@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #08080d;
+  --color-surface: #0d0d1a;
+  --color-elevated: #141426;
+  --color-gold: #b8953e;
+  --color-gold-light: #d4aa5a;
+  --color-gold-muted: #7a6229;
+  --color-ink: #e2e2f0;
+  --color-ink-muted: #8888aa;
+  --color-ink-dim: #5a5a7a;
+  --color-frame: #242438;
+  --color-frame-light: #303048;
+  --color-success: #3a9a6a;
+  --color-danger: #c0392b;
+
+  --font-mono: var(--font-ibm-plex-mono), "Courier New", monospace;
+  --font-display: var(--font-playfair-display), Georgia, serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: #08080d;
+  color: #e2e2f0;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0d1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #242438;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #303048;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e2e2f0;
+  -webkit-box-shadow: 0 0 0px 1000px #141426 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
