@@ -6,7 +6,8 @@
       "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/\" -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue; \"Status: $\\($r.StatusCode\\)\" } catch { $_.Exception.Response.StatusCode.value__ })",
       "PowerShell(Start-Process \"http://localhost:3000/login\")",
       "PowerShell(New-Item *)",
-      "PowerShell(Get-ChildItem *)"
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(taskkill *)"
     ]
   }
 }

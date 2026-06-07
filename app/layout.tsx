@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Playfair_Display } from "next/font/google";
+import { Inter, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "./ThemeProvider";
 
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-ibm-plex-mono",
+const inter = Inter({
+  subsets: ["latin", "greek"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -15,9 +15,15 @@ const playfairDisplay = Playfair_Display({
   display: "swap",
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Property OS",
-  description: "Διαχείριση Ακινήτων",
+  description: "Premium real estate management for Greek investors",
 };
 
 export default function RootLayout({
@@ -26,12 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="el"
-      className={`${ibmPlexMono.variable} ${playfairDisplay.variable}`}
-    >
-      <body className="min-h-screen bg-canvas text-ink antialiased">
-        {children}
+    <html lang="el" data-theme="midnight" data-mode="dark">
+      <body className={`${inter.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

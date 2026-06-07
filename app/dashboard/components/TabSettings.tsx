@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import NotificationSettings from './NotificationSettings'
 
 type S = {
   owner_name:string; owner_afm:string; owner_phone:string; owner_email:string;
@@ -23,7 +24,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   useEffect(()=>{ load() },[propertyId])
 
   async function load() {
-    const { data } = await supabase.from('property_settings').select('*').eq('property_id',propertyId).single()
+    const { data } = await supabase.from('property_settings').select('*').eq('property_id',propertyId).maybeSingle()
     if (data) setS(data)
   }
 
@@ -55,12 +56,14 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
         <F k="owner_phone" lbl="Τηλέφωνο"/>
         <F k="owner_email" lbl="Email" type="email" full/>
       </Box>
+
       <Box title="Πάροχοι">
         <F k="electricity_provider" lbl="Ρεύμα"/>
         <F k="water_provider" lbl="Νερό"/>
         <F k="internet_provider" lbl="Internet"/>
         <F k="internet_plan" lbl="Πρόγραμμα"/>
       </Box>
+
       <Box title="Διαχείριση & Ασφάλεια">
         <F k="property_manager" lbl="Διαχειριστής"/>
         <F k="property_manager_phone" lbl="Τηλ. Διαχειριστή"/>
@@ -68,15 +71,20 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
         <F k="insurance_policy" lbl="Αρ. Πολίτικής"/>
         <F k="insurance_expiry" lbl="Λήξη Ασφάλισης" type="date" full/>
       </Box>
+
       <div className="bg-[#12121f] border border-[#242438] rounded-lg p-5">
         <p className="font-mono text-[10px] uppercase tracking-widest text-[#b8953e] mb-3">Σημειώσεις</p>
         <textarea value={s.notes} onChange={e=>setS(p=>({...p,notes:e.target.value}))} rows={4}
           className="w-full bg-[#08080d] border border-[#242438] rounded px-3 py-2 text-[#e2e2f0] text-sm focus:outline-none focus:border-[#b8953e] resize-none"/>
       </div>
+
       <button onClick={save}
         className="w-full bg-[#b8953e] hover:bg-[#d4af6a] text-[#08080d] font-mono text-xs uppercase tracking-widest rounded py-3 transition-colors">
-        {saved?'✓ Αποθηκεύτηκε':'Αποθήκευση Ρυθμίσεων'}
+        {saved ? '✓ Αποθηκεύτηκε' : 'Αποθήκευση Ρυθμίσεων'}
       </button>
+
+      {/* Notifications */}
+      <NotificationSettings userId={userId}/>
     </div>
   )
 }

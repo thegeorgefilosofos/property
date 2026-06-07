@@ -1,0 +1,304 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  NumberInput, CustomSelect, DatePicker as UIDatePicker,
+  Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
+  SegmentControl, FREQ_OPTIONS,
+} from './UIComponents';
+
+// ─── Re-exports for TabTenant ─────────────────────────────────────────────────
+export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
+export { CustomSelect as SelectField };
+export { UIDatePicker as DateField };
+export { UIServiceBySelect as ServiceBySelect };
+export { SegmentControl };
+
+// ─── Colors (shared) ─────────────────────────────────────────────────────────
+export const C = {
+  bg:'var(--bg-base)', card:'var(--bg-surface)', card2:'var(--bg-elevated)',
+  border:'var(--border-subtle)', border2:'var(--border-default)',
+  gold:'var(--accent)', goldBg:'var(--accent-dim)',
+  green:'var(--positive)', red:'var(--negative)', amber:'var(--warning)',
+  text:'var(--text-primary)', muted:'var(--text-secondary)', dim:'var(--text-tertiary)',
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type ServiceBy = 'owner' | 'tenant' | 'split';
+export type CleaningPkg = 'none' | '2x2h' | '2x3h' | 'custom';
+export type LeaseType = 'monthly' | 'biannual' | 'annual' | '18months' | '24months' | '36months' | 'custom';
+export type PaymentFreq = 'monthly' | 'bimonthly' | 'quarterly';
+export type IdDocType = 'Αστυνομική Ταυτότητα' | 'Διαβατήριο' | 'Στρατιωτική Ταυτότητα' | 'Φοιτητικό Πάσο' | 'Άλλο';
+export interface StreamingSvc { name: string; cost_owner: number; charged_tenant: number; included: boolean; }
+export interface CleaningCfg { package: CleaningPkg; times: number; hours: number; price_per_hour: number; total_owner: number; total_tenant: number; }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+export const LEASE_LABELS: Record<LeaseType, string> = {
+  monthly:'Μηνιαίο', biannual:'Εξάμηνο', annual:'Ετήσιο',
+  '18months':'18 Μήνες', '24months':'24 Μήνες', '36months':'36 Μήνες', custom:'Custom',
+};
+export const LEASE_MONTHS: Record<LeaseType, number | null> = {
+  monthly:1, biannual:6, annual:12, '18months':18, '24months':24, '36months':36, custom:null,
+};
+export const SERVICE_BY_LABELS: Record<ServiceBy, string> = {
+  owner:'Ιδιοκτήτης', tenant:'Ενοικιαστής', split:'50/50',
+};
+export const ID_DOCS: IdDocType[] = [
+  'Αστυνομική Ταυτότητα', 'Διαβατήριο', 'Στρατιωτική Ταυτότητα', 'Φοιτητικό Πάσο', 'Άλλο',
+];
+export const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+export const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+export const EXTRA_CATS = ['Πρόωρη Αποχώρηση','Φθορά Συσκευής','Φθορά Επίπλου','Καθυστέρηση','Ρεύμα/Νερό','Άλλο'];
+export const DEFAULT_STREAMING: StreamingSvc[] = [
+  { name:'Netflix', cost_owner:13.99, charged_tenant:13.99, included:false },
+  { name:'HBO Max', cost_owner:8.99, charged_tenant:8.99, included:false },
+  { name:'Amazon Prime', cost_owner:4.99, charged_tenant:4.99, included:false },
+  { name:'Spotify', cost_owner:10.99, charged_tenant:10.99, included:false },
+  { name:'YouTube Premium', cost_owner:6.99, charged_tenant:6.99, included:false },
+  { name:'Nova / Cosmote TV', cost_owner:19.99, charged_tenant:19.99, included:false },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+export const fmt = (n: number | null | undefined) =>
+  n == null ? '—' : `${n.toLocaleString('el-GR', { minimumFractionDigits:0, maximumFractionDigits:2 })} €`;
+export const fmtD = (d: string | null) =>
+  !d ? '—' : new Date(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
+export const daysLeft = (end: string | null) =>
+  !end ? null : Math.ceil((new Date(end).getTime() - Date.now()) / 86400000);
+export const leaseSt = (d: number | null) => {
+  if (d == null) return null;
+  if (d < 0)   return { label:'Έληξε',    color:'var(--negative)', bg:'var(--negative-dim)' };
+  if (d <= 30) return { label:`${d} ημ.`, color:'var(--warning)',  bg:'var(--warning-dim)'  };
+  if (d <= 90) return { label:`${d} ημ.`, color:'var(--accent)',   bg:'var(--accent-dim)'   };
+  return                { label:'Ενεργό',  color:'var(--positive)', bg:'var(--positive-dim)' };
+};
+export const calcEnd = (start: string, type: LeaseType, days: number): string => {
+  if (!start) return '';
+  const d = new Date(start);
+  if (type === 'custom') { d.setDate(d.getDate() + days); }
+  else { d.setMonth(d.getMonth() + (LEASE_MONTHS[type] || 1)); }
+  return d.toISOString().split('T')[0];
+};
+
+// ─── Shared styles ────────────────────────────────────────────────────────────
+export const s = {
+  card:     { background:'var(--bg-surface)',  border:'1px solid var(--border-subtle)',  borderRadius:'12px', padding:'20px', marginBottom:'16px' } as React.CSSProperties,
+  cardGold: { background:'var(--bg-surface)',  border:'1px solid var(--border-accent)',  borderRadius:'12px', padding:'20px', marginBottom:'16px' } as React.CSSProperties,
+  sec:      { fontSize:'9px', letterSpacing:'0.18em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' },
+  dot:      (c='var(--accent)') => ({ width:'4px', height:'4px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
+  divider:  { borderTop:'1px solid var(--border-subtle)', margin:'18px 0' } as React.CSSProperties,
+  g2:       { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' } as React.CSSProperties,
+  g3:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
+  g4:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
+  badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius:'5px', fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid ${color}33` } as React.CSSProperties),
+  tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:'Inter,sans-serif', transition:'all 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),
+  kpi:      { background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'14px 16px', textAlign:'center' as const } as React.CSSProperties,
+  kpiV:     { fontSize:'20px', fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, fontFamily:"'JetBrains Mono',monospace" } as React.CSSProperties,
+  kpiL:     { fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginTop:'5px' } as React.CSSProperties,
+  th:       { fontSize:'9px', letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', padding:'8px 12px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left' as const, fontWeight:400 } as React.CSSProperties,
+  td:       { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-primary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
+  tdM:      { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-secondary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
+  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'8px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:'Inter,sans-serif', cursor:'pointer', fontWeight:700 } as React.CSSProperties,
+  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'8px 14px', fontSize:'11px', fontFamily:'Inter,sans-serif', cursor:'pointer' } as React.CSSProperties,
+  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:'Inter,sans-serif', cursor:'pointer', fontWeight:600 } as React.CSSProperties,
+  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:'Inter,sans-serif', cursor:'pointer' } as React.CSSProperties,
+};
+
+// ─── Streaming Configurator ───────────────────────────────────────────────────
+export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | null; onChange: (v: StreamingSvc[]) => void }) {
+  const svcs = value || DEFAULT_STREAMING.map(s => ({ ...s }));
+  const toggle = (i: number) => onChange(svcs.map((s, idx) => idx === i ? { ...s, included: !s.included } : s));
+  const upd = (i: number, field: 'cost_owner' | 'charged_tenant', val: number) =>
+    onChange(svcs.map((s, idx) => idx === i ? { ...s, [field]: Math.max(0, val) } : s));
+
+  const inc = svcs.filter(s => s.included);
+  const totalOwner = inc.reduce((sum, s) => sum + s.cost_owner, 0);
+  const totalTenant = inc.reduce((sum, s) => sum + s.charged_tenant, 0);
+  const profit = totalTenant - totalOwner;
+
+  return (
+    <div>
+      <div style={{ display:'flex', flexDirection:'column', gap:'6px', marginBottom:'12px' }}>
+        {svcs.map((svc, i) => (
+          <div key={svc.name} style={{
+            display:'grid', gridTemplateColumns:'auto 1fr 120px 120px',
+            alignItems:'center', gap:'12px', padding:'10px 14px',
+            background: svc.included ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+            border: `1px solid ${svc.included ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+            borderRadius:'10px', transition:'all 0.15s',
+          }}>
+            <Toggle on={svc.included} onChange={() => toggle(i)} />
+            <span style={{ fontSize:'13px', color: svc.included ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{svc.name}</span>
+            <NumberInput
+              label="ΚΟΣΤΟΣ ΙΔΙΟΚΤΗΤΗ"
+              value={svc.cost_owner.toString()}
+              onChange={v => upd(i, 'cost_owner', parseFloat(v)||0)}
+              suffix="€" step={0.01}
+            />
+            <NumberInput
+              label="ΧΡΕΩΣΗ ΕΝΟΙΚΙΑΣΤΗ"
+              value={svc.charged_tenant.toString()}
+              onChange={v => upd(i, 'charged_tenant', parseFloat(v)||0)}
+              suffix="€" step={0.01}
+            />
+          </div>
+        ))}
+      </div>
+      {inc.length > 0 && (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
+          {[
+            { label:'Κόστος Ιδιοκτήτη/μήνα', val:fmt(totalOwner), color:'var(--negative)' },
+            { label:'Χρέωση Ενοικιαστή/μήνα', val:fmt(totalTenant), color:'var(--accent)' },
+            { label:'Αποτέλεσμα', val:(profit>=0?'+':'')+fmt(profit), color:profit>=0?'var(--positive)':'var(--negative)' },
+          ].map(({ label, val, color }) => (
+            <div key={label} style={{ textAlign:'center' }}>
+              <div style={{ fontSize:'14px', fontWeight:700, color, fontFamily:"'JetBrains Mono',monospace" }}>{val}</div>
+              <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Cleaning Configurator ────────────────────────────────────────────────────
+export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null; onChange: (v: CleaningCfg | null) => void }) {
+  const pkg = value?.package || 'none';
+  const presets: Record<string, CleaningCfg> = {
+    '2x2h': { package:'2x2h', times:2, hours:2, price_per_hour:15, total_owner:60,  total_tenant:60  },
+    '2x3h': { package:'2x3h', times:2, hours:3, price_per_hour:15, total_owner:90,  total_tenant:90  },
+    'custom':{ package:'custom',times:1,hours:2, price_per_hour:15, total_owner:30,  total_tenant:30  },
+  };
+  const sel = (p: string) => { if (p === 'none') { onChange(null); return; } onChange({ ...presets[p] }); };
+  const upd = (field: keyof CleaningCfg, val: number) => {
+    if (!value) return;
+    const u = { ...value, [field]: Math.max(0, val) };
+    if (field !== 'total_owner' && field !== 'total_tenant') u.total_owner = u.times * u.hours * u.price_per_hour;
+    onChange(u);
+  };
+  const profit = value ? (value.total_tenant - value.total_owner) : 0;
+
+  return (
+    <div>
+      <div style={{ display:'flex', gap:'6px', marginBottom:'14px', flexWrap:'wrap' }}>
+        {[['none','Χωρίς'],['2x2h','2 × 2ώρ/μήνα'],['2x3h','2 × 3ώρ/μήνα'],['custom','Custom']].map(([v,l]) => (
+          <button
+            key={v}
+            onClick={() => sel(v)}
+            style={{
+              padding:'8px 14px', fontSize:'11px', fontFamily:'Inter,sans-serif',
+              cursor:'pointer', borderRadius:'8px',
+              border:`1px solid ${pkg===v ? 'var(--accent)' : 'var(--border-default)'}`,
+              background: pkg===v ? 'var(--accent-dim)' : 'transparent',
+              color: pkg===v ? 'var(--accent)' : 'var(--text-secondary)',
+              transition:'all 0.15s', fontWeight: pkg===v ? 600 : 400,
+            }}
+          >{l}</button>
+        ))}
+      </div>
+      {value && value.package !== 'none' && (
+        <div style={{ background:'var(--bg-elevated)', padding:'16px', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
+          <div style={{ ...s.g4, marginBottom:'12px' }}>
+            <NumberInput label="Φορές/μήνα"      value={value.times.toString()}            onChange={v=>upd('times',parseFloat(v)||0)}/>
+            <NumberInput label="Ώρες/επίσκεψη"   value={value.hours.toString()}            onChange={v=>upd('hours',parseFloat(v)||0)}/>
+            <NumberInput label="Τιμή/ώρα"        value={value.price_per_hour.toString()}   onChange={v=>upd('price_per_hour',parseFloat(v)||0)} suffix="€" step={0.5}/>
+            <NumberInput label="Κόστος ιδιοκτ."  value={value.total_owner.toString()}      onChange={v=>upd('total_owner',parseFloat(v)||0)} suffix="€"/>
+          </div>
+          <div style={s.g2}>
+            <NumberInput label="Χρέωση ενοικ." value={value.total_tenant.toString()} onChange={v=>upd('total_tenant',parseFloat(v)||0)} suffix="€"/>
+            <div style={{ display:'flex', alignItems:'center', paddingTop:'18px' }}>
+              <div style={{ textAlign:'center', flex:1 }}>
+                <div style={{ fontSize:'16px', fontWeight:700, color:profit>=0?'var(--positive)':'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>
+                  {profit>=0?'+':''}{fmt(profit)}
+                </div>
+                <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αποτέλεσμα/μήνα</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Investment Calculator ────────────────────────────────────────────────────
+export function InvestmentCalc({ title, amount }: { title: string; amount: number | null }) {
+  const [rate, setRate]   = useState('4');
+  const [years, setYears] = useState('1');
+  if (!amount || amount <= 0) return null;
+  const r = parseFloat(rate) / 100 || 0;
+  const y = parseFloat(years) || 1;
+  const future = amount * Math.pow(1 + r, y);
+  const gain = future - amount;
+
+  return (
+    <div style={{ background:'var(--bg-base)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'16px', marginTop:'12px' }}>
+      <div style={{ fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:'14px' }}>{title}</div>
+      <div style={{ ...s.g2, marginBottom:'12px' }}>
+        <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
+        <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)' }}>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--text-primary)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(amount)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αρχικό Ποσό</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:"'JetBrains Mono',monospace" }}>+{fmt(gain)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος ({years} έτη)</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(future)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελικό Ποσό</div></div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Prepay Calculator ────────────────────────────────────────────────────────
+export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
+  const [months, setMonths] = useState('3');
+  const [discount, setDiscount] = useState('3');
+  const [invest, setInvest] = useState(false);
+  const [rate, setRate]     = useState('4');
+  const [years, setYears]   = useState('1');
+  if (!monthlyRent || monthlyRent <= 0) return null;
+
+  const m = parseInt(months) || 3;
+  const d = parseFloat(discount) / 100 || 0;
+  const full = monthlyRent * m;
+  const discounted = full * (1 - d);
+  const ownerLoss = full - discounted;
+  const future = invest ? discounted * Math.pow(1 + (parseFloat(rate)/100||0), parseFloat(years)||1) : discounted;
+  const investGain = future - discounted;
+
+  return (
+    <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'16px' }}>
+      <div style={{ fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:'14px' }}>Αναλυτής Προπληρωμής</div>
+      <div style={{ ...s.g4, marginBottom:'12px' }}>
+        <CustomSelect
+          label="Μήνες προπληρωμής"
+          value={months}
+          onChange={setMonths}
+          options={[3,6,12,18,24,36].map(n=>({ value:String(n), label:`${n} μήνες` }))}
+        />
+        <NumberInput label="Έκπτωση %" value={discount} onChange={setDiscount} suffix="%" step={0.5} max={100}/>
+        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Πλήρης Αξία</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--text-primary)', padding:'9px 0', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(full)}</div></div>
+        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Τελικό Ποσό</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', padding:'9px 0', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(discounted)}</div></div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)', marginBottom:'14px' }}>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος Ενοικιαστή</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Χασούρα Ιδιοκτήτη</div></div>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:invest?'14px':0 }}>
+        <Toggle on={invest} onChange={setInvest} label="Επένδυση του ποσού" />
+      </div>
+      {invest && (
+        <div style={{ ...s.g3 }}>
+          <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
+          <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
+          <div style={{ textAlign:'center', paddingTop:'18px' }}>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(future)}</div>
+            <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελική Αξία +{fmt(investGain)}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CustomSelect re-export (named for TabTenant compatibility) ───────────────
+export { CustomSelect };
