@@ -323,11 +323,13 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
               {monthPaid.length} πληρωμένα
             </span>
             {/* Mini legend */}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            {/* Mini legend */}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {Object.entries(CATEGORIES).map(([k, c]) => (
-                <Tooltip key={k} text={c.label}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: c.color, display: 'inline-block', cursor: 'default' }}/>
-                </Tooltip>
+                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: c.color, display: 'inline-block', flexShrink: 0 }}/>
+                  <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</span>
+                </div>
               ))}
             </div>
           </div>
