@@ -9,6 +9,7 @@ import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabSettings  from './components/TabSettings';
 import TabTenant    from './components/TabTenant';
+import TabLoan      from './components/TabLoan';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Property {
@@ -41,7 +42,6 @@ interface Property {
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
 interface Bill     { id:string; type:string; amount:number; avg_amount:number|null; paid:boolean; }
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
-interface RentCfg  { monthly_rent:number|null; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -63,11 +63,16 @@ const STATUS_LABELS: Record<string,string> = {
   seasonal:   'Εποχιακό',
   disputed:   'Αμφισβητούμενο',
 };
-const PROP_TYPE_ICONS: Record<string,string> = {
-  apartment: '🏢', house: '🏠', studio: '▪', maisonette: '🏘',
-  office: '🏢', shop: '🏪', warehouse: '🏭', land: '🌍',
-  parking: '🅿', storage: '📦', villa: '🏡', other: '◆',
+const PROP_TYPE_LABELS: Record<string,string> = {
+  apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
+  maisonette:'Μεζονέτα', office:'Γραφείο', shop:'Κατάστημα',
+  warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
+  storage:'Αποθήκη Κτ.', villa:'Βίλα', other:'Άλλο'
 };
+const PROP_TYPES = [
+  'apartment','house','studio','maisonette','office',
+  'shop','warehouse','land','parking','storage','villa','other'
+];
 const NAV_ITEMS = [
   { id:'overview',  label:'Επισκόπηση',  icon:'⊞' },
   { id:'expenses',  label:'Δαπάνες',     icon:'↓'  },
@@ -75,18 +80,9 @@ const NAV_ITEMS = [
   { id:'calendar',  label:'Ημερολόγιο',  icon:'◷' },
   { id:'tenant',    label:'Ενοικιαστής', icon:'◫'  },
   { id:'roi',       label:'Αποδόσεις',   icon:'%'  },
+  { id:'loan',      label:'Δάνειο',      icon:'€'  },
   { id:'settings',  label:'Ρυθμίσεις',   icon:'⚙'  },
 ];
-const PROP_TYPES = [
-  'apartment','house','studio','maisonette','office',
-  'shop','warehouse','land','parking','storage','villa','other'
-];
-const PROP_TYPE_LABELS: Record<string,string> = {
-  apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
-  maisonette:'Μεζονέτα', office:'Γραφείο', shop:'Κατάστημα',
-  warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
-  storage:'Αποθήκη Κτ.', villa:'Βίλα', other:'Άλλο'
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n:number|null|undefined, decimals=0) =>
@@ -245,7 +241,6 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   }, [prop.id]);
 
   const totalExpYTD = expenses.reduce((s, e) => s + e.amount, 0);
-  const monthExp = expenses.filter(e => e.date?.startsWith(`${year}-${String(month).padStart(2,'0')}`)).reduce((s,e) => s+e.amount, 0);
   const rent = tenant?.monthly_rent || prop.target_rent || 0;
   const annualRent = rent * 12;
   const propValue = prop.value || 0;
@@ -604,6 +599,7 @@ export default function Dashboard() {
               {nav === 'calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} />}
               {nav === 'tenant'    && <TabTenant   propertyId={selected.id} userId={user.id} />}
               {nav === 'roi'       && <TabRentROI  propertyId={selected.id} userId={user.id} propertyValue={selected.value ?? undefined} />}
+              {nav === 'loan'      && <TabLoan     propertyId={selected.id} userId={user.id} />}
               {nav === 'settings'  && <TabSettings propertyId={selected.id} userId={user.id} />}
             </div>
           </>
