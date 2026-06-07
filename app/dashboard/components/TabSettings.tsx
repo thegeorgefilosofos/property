@@ -84,7 +84,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
       </button>
 
       {/* Notifications */}
-      <NotificationSettings userId={userId}/>
+      <NotificationSettings userId={userId} propertyId={propertyId}/>
     </div>
   )
 }
