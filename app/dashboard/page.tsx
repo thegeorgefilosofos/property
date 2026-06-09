@@ -10,6 +10,7 @@ import TabRentROI   from './components/TabRentROI';
 import TabSettings  from './components/TabSettings';
 import TabTenant    from './components/TabTenant';
 import TabLoan      from './components/TabLoan';
+import TabInventory from './components/TabInventory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Property {
@@ -74,14 +75,14 @@ const PROP_TYPES = [
   'shop','warehouse','land','parking','storage','villa','other'
 ];
 const NAV_ITEMS = [
-  { id:'overview',  label:'Επισκόπηση',  icon:'⊞' },
-  { id:'expenses',  label:'Δαπάνες',     icon:'↓'  },
-  { id:'bills',     label:'Λογαριασμοί', icon:'⚡' },
-  { id:'calendar',  label:'Ημερολόγιο',  icon:'◷' },
-  { id:'tenant',    label:'Ενοικιαστής', icon:'◫'  },
-  { id:'roi',       label:'Αποδόσεις',   icon:'%'  },
-  { id:'loan',      label:'Δάνειο',      icon:'€'  },
-  { id:'settings',  label:'Ρυθμίσεις',   icon:'⚙'  },
+  { id:'overview',   label:'Επισκόπηση' },
+  { id:'bills',      label:'Λογαριασμοί' },
+  { id:'calendar',   label:'Ημερολόγιο' },
+  { id:'tenant',     label:'Ενοικιαστής' },
+  { id:'roi',        label:'Αποδόσεις' },
+  { id:'loan',       label:'Δάνειο' },
+  { id:'inventory',  label:'Απογραφή' },
+  { id:'settings',   label:'Ρυθμίσεις' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -140,8 +141,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: {
       <div style={modal}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'24px' }}>
           <div>
-            <div style={{ fontSize:'18px', fontFamily:"'Playfair Display',serif", color:'var(--text-primary)', marginBottom:'4px' }}>Νέο Ακίνητο</div>
-            <div style={{ fontSize:'12px', color:'var(--text-secondary)' }}>Συμπλήρωσε τα βασικά στοιχεία</div>
+            <div style={{ fontSize:'18px', fontFamily:"'Playfair Display',serif", color:'var(--text-primary)', marginBottom:'4px' }}>Δώσε τα βασικά στοιχεία</div>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-sm">✕</button>
         </div>
@@ -149,7 +149,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'12px' }}>
           <div style={{ gridColumn:'1/-1' }}>
             <label className="form-label">Ονομασία Ακινήτου *</label>
-            <input className="form-input" value={form.name} onChange={e=>sf('name',e.target.value)} placeholder="π.χ. Αρύββου 45" />
+            <input className="form-input" value={form.name} onChange={e=>sf('name',e.target.value)} placeholder="π.χ. Αράββου 45" />
           </div>
           <div>
             <label className="form-label">Τύπος</label>
@@ -165,7 +165,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: {
           </div>
           <div style={{ gridColumn:'1/-1' }}>
             <label className="form-label">Διεύθυνση</label>
-            <input className="form-input" value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="π.χ. Αρύββου 45, Βύρωνας" />
+            <input className="form-input" value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="π.χ. Αράββου 45, Αθήνα" />
           </div>
           <div>
             <label className="form-label">Εμβαδόν (τ.μ.)</label>
@@ -249,22 +249,19 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   const daysToExpiry = tenant?.lease_end ? Math.ceil((new Date(tenant.lease_end).getTime() - Date.now()) / 86400000) : null;
 
   const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-  const monthlyExp = MONTHS.map((_, i) => {
-    const m = String(i+1).padStart(2,'0');
-    return expenses.filter(e => e.date?.startsWith(`${year}-${m}`)).reduce((s,e)=>s+e.amount,0);
+  const monthlyExp = Array(12).fill(0);
+  expenses.forEach(e => {
+    const m = new Date(e.date).getMonth();
+    monthlyExp[m] += e.amount;
   });
   const maxExp = Math.max(...monthlyExp, 1);
 
-  const categories: Record<string,number> = {};
-  expenses.forEach(e => { categories[e.category] = (categories[e.category]||0) + e.amount; });
-  const catEntries = Object.entries(categories).sort(([,a],[,b])=>b-a).slice(0,5);
-  const catColors = ['var(--accent)','var(--info)','var(--positive)','var(--warning)','var(--negative)'];
+  const catMap: Record<string,number> = {};
+  expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
+  const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const catColors = ['var(--accent)','var(--positive)','var(--info)','var(--warning)','var(--negative)'];
 
-  if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'300px', color:'var(--text-tertiary)', fontSize:'12px', letterSpacing:'0.1em' }}>
-      ΦΟΡΤΩΣΗ...
-    </div>
-  );
+  if (loading) return <div style={{ color:'var(--text-tertiary)', fontSize:'12px', textAlign:'center', padding:'40px' }}>Φόρτωση...</div>;
 
   return (
     <div>
@@ -329,11 +326,10 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
             <tbody>
               {[
                 ['Τύπος', PROP_TYPE_LABELS[prop.prop_type||''] || prop.prop_type],
-                ['Εμβαδόν', prop.sqm ? `${prop.sqm} τ.μ.` : '—'],
+                ['Εμβαδόν', prop.sqm ? `${prop.sqm} τ.μ.` : null],
                 ['Διεύθυνση', prop.address],
                 ['Αντικ. Αξία', fmtEur(prop.obj_value)],
-                ['ΕΝΦΙΑ', fmtEur(prop.enfia)],
-                ['ΠΕΑ Κλάση', prop.pea_class],
+                ['ΕΠΑ Κλάση', prop.pea_class],
               ].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
                   <td style={{ padding:'6px 0', color:'var(--text-secondary)', width:'110px', fontSize:'11px' }}>{k}</td>
@@ -458,7 +454,7 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside className="app-sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-mark">P</div>
@@ -484,12 +480,12 @@ export default function Dashboard() {
             style={{ opacity: 0.5, marginTop:'4px' }}
           >
             <div style={{ width:'8px', height:'8px', borderRadius:'2px', border:'1.5px dashed var(--text-tertiary)', flexShrink:0 }}/>
-            <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Νέο ακίνητο</span>
+            <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Προσθήκη ακινήτου</span>
           </div>
         </div>
 
         <div className="sidebar-section" style={{ flex:1 }}>
-          <div className="sidebar-section-label">Ενότητες</div>
+          <div className="sidebar-section-label">Πλοήγηση</div>
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
@@ -497,7 +493,6 @@ export default function Dashboard() {
               onClick={() => setNav(item.id)}
               disabled={!selected}
             >
-              <span className="sidebar-item-icon">{item.icon}</span>
               <span className="sidebar-item-label">{item.label}</span>
             </button>
           ))}
@@ -516,7 +511,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* ── Main ────────────────────────────────────────────────────────── */}
+      {/* ── Main ──────────────────────────────────────────────────────────── */}
       <main className="app-main">
         <header className="app-topbar">
           {selected ? (
@@ -588,19 +583,20 @@ export default function Dashboard() {
             </nav>
 
             <div className="app-content">
-              {nav === 'overview'  && <OverviewTab prop={selected} userId={user.id} />}
-              {nav === 'expenses'  && <TabExpenses propertyId={selected.id} userId={user.id} />}
-              {nav === 'bills'     && <TabBills
-                                        propertyId={selected.id}
-                                        userId={user.id}
-                                        propertyName={selected.name}
-                                        propertyAddress={selected.address || ''}
-                                      />}
-              {nav === 'calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} />}
-              {nav === 'tenant'    && <TabTenant   propertyId={selected.id} userId={user.id} />}
-              {nav === 'roi'       && <TabRentROI  propertyId={selected.id} userId={user.id} propertyValue={selected.value ?? undefined} />}
-              {nav === 'loan'      && <TabLoan     propertyId={selected.id} userId={user.id} />}
-              {nav === 'settings'  && <TabSettings propertyId={selected.id} userId={user.id} />}
+              {nav === 'overview'   && <OverviewTab prop={selected} userId={user.id} />}
+              {nav === 'expenses'   && <TabExpenses  propertyId={selected.id} userId={user.id} />}
+              {nav === 'bills'      && <TabBills
+                                          propertyId={selected.id}
+                                          userId={user.id}
+                                          propertyName={selected.name}
+                                          propertyAddress={selected.address || ''}
+                                        />}
+              {nav === 'calendar'   && <TabCalendar  propertyId={selected.id} userId={user.id} />}
+              {nav === 'tenant'     && <TabTenant    propertyId={selected.id} userId={user.id} />}
+              {nav === 'roi'        && <TabRentROI   propertyId={selected.id} userId={user.id} propertyValue={selected.value ?? undefined} />}
+              {nav === 'loan'       && <TabLoan      propertyId={selected.id} userId={user.id} />}
+              {nav === 'inventory'  && <TabInventory propertyId={selected.id} userId={user.id} />}
+              {nav === 'settings'   && <TabSettings  propertyId={selected.id} userId={user.id} />}
             </div>
           </>
         )}
