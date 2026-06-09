@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, ReactNode } from 'react';
 
-// ─── Number Input (no browser spinners, clean design) ────────────────────────
+// ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
   value: string;
@@ -22,14 +22,39 @@ export function NumberInput({
   min = 0, max, step = 1, disabled, className,
 }: NumberInputProps) {
   const [focused, setFocused] = useState(false);
+  const [local, setLocal] = useState(String(value ?? ''));
 
-  const handleChange = (v: string) => {
-    if (v === '' || v === '-') { onChange(v); return; }
-    const n = parseFloat(v);
-    if (isNaN(n)) return;
-    if (min !== undefined && n < min) return;
-    if (max !== undefined && n > max) return;
-    onChange(v);
+  useEffect(() => {
+    if (!focused) setLocal(String(value ?? ''));
+  }, [value, focused]);
+
+  const handleChange = (raw: string) => {
+    const normalized = raw.replace(',', '.');
+    if (normalized === '' || normalized === '.') { setLocal(normalized); return; }
+    if (!/^(\d+\.?\d*|\.\d+)$/.test(normalized)) return;
+    const n = parseFloat(normalized);
+    if (!isNaN(n) && min !== undefined && n < min) return;
+    if (!isNaN(n) && max !== undefined && n > max) return;
+    setLocal(normalized);
+    if (!isNaN(n)) onChange(normalized);
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setFocused(true);
+    if (local === '0') setLocal('');
+    setTimeout(() => e.target.select(), 0);
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    const n = parseFloat(local.replace(',', '.'));
+    if (isNaN(n) || local === '' || local === '.') {
+      const fallback = String(min ?? 0);
+      setLocal(fallback); onChange(fallback);
+    } else {
+      const clamped = min !== undefined && n < min ? min : max !== undefined && n > max ? max : n;
+      setLocal(String(clamped)); onChange(String(clamped));
+    }
   };
 
   const containerStyle: React.CSSProperties = {
@@ -66,42 +91,41 @@ export function NumberInput({
     padding: '9px 12px',
     color: 'var(--text-primary)',
     fontSize: '13px',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: 'JetBrains Mono, monospace',
     minWidth: 0,
-    MozAppearance: 'textfield' as any,
-    WebkitAppearance: 'none',
   };
 
   return (
     <div className={className}>
-      {label && <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>{label}</label>}
+      {label && (
+        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
+          {label}
+        </label>
+      )}
       <div style={containerStyle}>
         {prefix && <span style={affixStyle}>{prefix}</span>}
         <input
-          type="number"
-          value={value}
+          type="text"
+          inputMode="decimal"
+          value={local}
           onChange={e => handleChange(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           disabled={disabled}
-          min={min}
-          max={max}
-          step={step}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           style={inputStyle}
         />
-        {suffix && <span style={{ ...affixStyle, borderRight:'none', borderLeft:`1px solid var(--border-subtle)` }}>{suffix}</span>}
+        {suffix && (
+          <span style={{ ...affixStyle, borderRight: 'none', borderLeft: `1px solid var(--border-subtle)` }}>
+            {suffix}
+          </span>
+        )}
       </div>
-      <style>{`
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-      `}</style>
     </div>
   );
 }
 
-// ─── Custom Select Dropdown ──────────────────────────────────────────────────
+// ─── Custom Select Dropdown ───────────────────────────────────────────────────
 interface SelectOption {
   value: string;
   label: string;
@@ -123,6 +147,7 @@ export function CustomSelect({
   label, value, onChange, options, placeholder = 'Επιλογή...', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const selected = options.find(o => o.value === value);
 
@@ -178,8 +203,6 @@ export function CustomSelect({
     transition: 'background 0.1s',
   });
 
-  const [hovered, setHovered] = useState<string | null>(null);
-
   const chevronStyle: React.CSSProperties = {
     width: '16px',
     height: '16px',
@@ -191,7 +214,11 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>{label}</label>}
+      {label && (
+        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
+          {label}
+        </label>
+      )}
       <div style={triggerStyle} onClick={() => !disabled && setOpen(v => !v)}>
         <div style={{ display:'flex', alignItems:'center', gap:'8px', flex:1, minWidth:0 }}>
           {selected?.dot && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:selected.dot, flexShrink:0 }}/>}
@@ -218,7 +245,9 @@ export function CustomSelect({
               {opt.color && <div style={{ width:'10px', height:'10px', borderRadius:'3px', background:opt.color, flexShrink:0 }}/>}
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:'13px' }}>{opt.label}</div>
-                {opt.description && <div style={{ fontSize:'11px', color:'var(--text-secondary)', marginTop:'1px' }}>{opt.description}</div>}
+                {opt.description && (
+                  <div style={{ fontSize:'11px', color:'var(--text-secondary)', marginTop:'1px' }}>{opt.description}</div>
+                )}
               </div>
               {opt.value === value && (
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -274,8 +303,14 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
     setOpen(false);
   };
 
-  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); };
-  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); };
+  const prevMonth = () => {
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  };
 
   const triggerStyle: React.CSSProperties = {
     width: '100%',
@@ -307,7 +342,11 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>{label}</label>}
+      {label && (
+        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
+          {label}
+        </label>
+      )}
       <div style={triggerStyle} onClick={() => !disabled && setOpen(v => !v)}>
         <span style={{ fontSize:'13px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
@@ -319,21 +358,30 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
       </div>
       {open && (
         <div style={calendarStyle}>
-          {/* Header */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-            <button onClick={prevMonth} style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7.5 2l-4 4 4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button
+              onClick={prevMonth}
+              style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M7.5 2l-4 4 4 4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text-primary)' }}>{MONTHS_GR[month]} {year}</div>
-            <button onClick={nextMonth} style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4.5 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <button
+              onClick={nextMonth}
+              style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M4.5 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </div>
-          {/* Day labels */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px', marginBottom:'6px' }}>
-            {DAYS_GR.map(d => <div key={d} style={{ fontSize:'10px', color:'var(--text-tertiary)', textAlign:'center', padding:'3px', letterSpacing:'0.04em' }}>{d}</div>)}
+            {DAYS_GR.map(d => (
+              <div key={d} style={{ fontSize:'10px', color:'var(--text-tertiary)', textAlign:'center', padding:'3px', letterSpacing:'0.04em' }}>{d}</div>
+            ))}
           </div>
-          {/* Days grid */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
             {Array(firstDay).fill(null).map((_,i) => <div key={`b${i}`}/>)}
             {Array(daysInMonth).fill(null).map((_,i) => {
@@ -346,11 +394,12 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                   key={day}
                   onClick={() => pick(day)}
                   style={{
-                    width:'100%', aspectRatio:'1', borderRadius:'7px', border: isToday && !isSelected ? '1px solid var(--accent)' : 'none',
+                    width:'100%', aspectRatio:'1', borderRadius:'7px',
+                    border: isToday && !isSelected ? '1px solid var(--accent)' : 'none',
                     background: isSelected ? 'var(--accent)' : 'transparent',
                     color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
-                    fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif', fontWeight: isSelected ? 700 : 400,
-                    transition:'background 0.1s',
+                    fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif',
+                    fontWeight: isSelected ? 700 : 400, transition:'background 0.1s',
                   }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
@@ -360,7 +409,6 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               );
             })}
           </div>
-          {/* Footer */}
           <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:'12px', paddingTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <button
               onClick={() => { onChange(''); setOpen(false); }}
@@ -381,7 +429,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   );
 }
 
-// ─── Toggle ──────────────────────────────────────────────────────────────────
+// ─── Toggle ───────────────────────────────────────────────────────────────────
 interface ToggleProps {
   on: boolean;
   onChange: (v: boolean) => void;
@@ -394,7 +442,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
   const w = size === 'sm' ? 32 : 40;
   const h = size === 'sm' ? 18 : 22;
   const th = size === 'sm' ? 12 : 16;
-  const offset = size === 'sm' ? 3 : 3;
+  const offset = 3;
   const travel = w - th - offset * 2;
 
   return (
@@ -444,9 +492,17 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      {label && <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>{label}</label>}
+      {label && (
+        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
+          {label}
+        </label>
+      )}
       <div style={{ display:'flex', alignItems:'center', background:'var(--bg-base)', border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`, borderRadius:'8px', overflow:'hidden', transition:'border-color 0.15s', opacity:disabled?0.5:1 }}>
-        {prefix && <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderRight:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>{prefix}</div>}
+        {prefix && (
+          <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderRight:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>
+            {prefix}
+          </div>
+        )}
         <input
           type={type}
           value={value}
@@ -457,18 +513,30 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
           onBlur={() => setFocused(false)}
           style={{ flex:1, background:'transparent', border:'none', outline:'none', padding:'9px 12px', color:'var(--text-primary)', fontSize:'13px', fontFamily:'Inter,sans-serif', minWidth:0 }}
         />
-        {suffix && <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderLeft:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>{suffix}</div>}
+        {suffix && (
+          <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderLeft:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>
+            {suffix}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
-export function Textarea({ label, value, onChange, placeholder, rows=3 }: { label?:string; value:string; onChange:(v:string)=>void; placeholder?:string; rows?:number }) {
+export function Textarea({
+  label, value, onChange, placeholder, rows = 3,
+}: {
+  label?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
+}) {
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      {label && <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>{label}</label>}
+      {label && (
+        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
+          {label}
+        </label>
+      )}
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -487,10 +555,12 @@ type ServiceBy = 'owner' | 'tenant' | 'split';
 const SB_LABELS: Record<ServiceBy, string> = { owner:'Ιδιοκτήτης', tenant:'Ενοικιαστής', split:'50 / 50' };
 const SB_COLORS: Record<ServiceBy, string> = { owner:'var(--warning)', tenant:'var(--positive)', split:'var(--accent)' };
 
-export function ServiceBySelect({ label, value, onChange }: { label:string; value:ServiceBy; onChange:(v:ServiceBy)=>void }) {
+export function ServiceBySelect({ label, value, onChange }: { label: string; value: ServiceBy; onChange: (v: ServiceBy) => void }) {
   return (
     <div>
-      <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'6px' }}>{label}</label>
+      <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'6px' }}>
+        {label}
+      </label>
       <div style={{ display:'flex', gap:'4px' }}>
         {(['owner','tenant','split'] as ServiceBy[]).map(v => (
           <button
@@ -522,9 +592,10 @@ export const FREQ_OPTIONS = [
   { value:'annual', label:'Ετήσια' },
 ];
 
-// ─── Segment Control (tab-like buttons) ──────────────────────────────────────
+// ─── Segment Control ──────────────────────────────────────────────────────────
 interface SegmentOption { value: string; label: string; }
-export function SegmentControl({ options, value, onChange }: { options:SegmentOption[]; value:string; onChange:(v:string)=>void }) {
+
+export function SegmentControl({ options, value, onChange }: { options: SegmentOption[]; value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'3px', gap:'2px' }}>
       {options.map(o => (
@@ -532,7 +603,8 @@ export function SegmentControl({ options, value, onChange }: { options:SegmentOp
           key={o.value}
           onClick={() => onChange(o.value)}
           style={{
-            flex:1, padding:'7px 12px', fontSize:'11px', fontWeight: value===o.value ? 600 : 400,
+            flex:1, padding:'7px 12px', fontSize:'11px',
+            fontWeight: value===o.value ? 600 : 400,
             fontFamily:'Inter,sans-serif', cursor:'pointer', borderRadius:'7px',
             border:'none',
             background: value===o.value ? 'var(--bg-surface)' : 'transparent',
