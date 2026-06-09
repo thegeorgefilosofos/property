@@ -996,10 +996,10 @@ function ItemsTab({items,repairs,electricityPrice,onAdd,onEdit,onDelete,onAddRep
       </div>
 
       {/* Sort bar */}
-      <div style={{display:'flex',gap:6,alignItems:'center'}}>
-        <span style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Ταξινόμηση:</span>
+      <div style={{display:'flex',gap:4,alignItems:'center',padding:'6px 0'}}>
+        <span style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600,marginRight:4}}>Ταξινόμηση</span>
         {([['name','Όνομα'],['value','Αξία'],['energy','Ρεύμα'],['age','Ηλικία'],['depreciation','Απόσβεση']] as [SortKey,string][]).map(([k,l])=>(
-          <button key={k} onClick={()=>toggleSort(k)} style={{padding:'4px 10px',borderRadius:7,fontSize:10,cursor:'pointer',fontWeight:600,border:`1px solid ${sortKey===k?'var(--accent)':'var(--border-subtle)'}`,background:sortKey===k?'var(--accent-dim)':'none',color:sortKey===k?'var(--accent)':'var(--text-secondary)'}}>
+          <button key={k} onClick={()=>toggleSort(k)} style={{padding:'5px 12px',borderRadius:6,fontSize:11,cursor:'pointer',fontWeight:sortKey===k?600:400,border:'none',borderBottom:`2px solid ${sortKey===k?'var(--accent)':'transparent'}`,background:'none',color:sortKey===k?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s',fontFamily:'Inter,sans-serif'}}>
             {l} {sortIndicator(k)}
           </button>
         ))}
@@ -1657,10 +1657,10 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
 
       {/* Header */}
-      <div style={{marginBottom:16}}>
+      <div style={{marginBottom:8}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <p style={{fontSize:18,fontWeight:700,color:'var(--text-primary)'}}>Απογραφή</p>
+            <p style={{fontSize:15,fontWeight:700,color:'var(--text-primary)',letterSpacing:'-0.3px'}}>Απογραφή</p>
             {actionCount>0&&<span style={{padding:'2px 10px',borderRadius:10,background:'rgba(251,146,60,0.15)',color:'var(--warning)',fontSize:11,fontWeight:700,border:'1px solid var(--warning)30'}}>⚠️ {actionCount} αντικείμενα χρειάζονται δράση</span>}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -1688,13 +1688,47 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
         <p style={{fontSize:12,color:'var(--text-secondary)'}}>Διαχείριση εξοπλισμού, ενεργειακής κατανάλωσης, εγγυήσεων και παράδοσης</p>
       </div>
 
-      {/* Tabs */}
-      <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
+      {/* Sub-tabs — ίδιο style με .app-tabs */}
+      <div style={{
+        display:'flex', gap:2, marginBottom:24,
+        borderBottom:'1px solid var(--border-subtle)',
+        marginLeft:-24, marginRight:-24, paddingLeft:24,
+        overflowX:'auto', flexShrink:0,
+      }}>
         {TABS.map(tab=>(
-          <button key={tab.key} onClick={()=>setActiveTab(tab.key)} style={{position:'relative',padding:'9px 16px',borderRadius:10,border:`1px solid ${activeTab===tab.key?'var(--accent)':'var(--border-subtle)'}`,background:activeTab===tab.key?'var(--accent)':'var(--bg-elevated)',color:activeTab===tab.key?'var(--bg-base)':'var(--text-secondary)',cursor:'pointer',fontSize:12,fontWeight:600,transition:'all 0.2s'}}>
+          <button
+            key={tab.key}
+            onClick={()=>setActiveTab(tab.key)}
+            style={{
+              position:'relative',
+              padding:'12px 18px',
+              fontSize:12, fontWeight:activeTab===tab.key?600:500,
+              color:activeTab===tab.key?'var(--accent)':'var(--text-secondary)',
+              borderBottom:`2px solid ${activeTab===tab.key?'var(--accent)':'transparent'}`,
+              borderLeft:'none', borderRight:'none', borderTop:'none',
+              background:'none', cursor:'pointer',
+              whiteSpace:'nowrap', transition:'all 0.15s',
+              fontFamily:'Inter, sans-serif',
+            }}
+            onMouseEnter={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-primary)'}}
+            onMouseLeave={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-secondary)'}}
+          >
             {tab.label}
-            {tab.key==='maintenance'&&(overdueCount>0||warningCount>0)&&<span style={{position:'absolute',top:-4,right:-4,width:8,height:8,borderRadius:'50%',background:overdueCount>0?'var(--negative)':'var(--warning)'}}/>}
-            {tab.key==='items'&&actionCount>0&&<span style={{position:'absolute',top:-4,right:-4,width:8,height:8,borderRadius:'50%',background:'var(--warning)'}}/>}
+            {tab.key==='maintenance'&&(overdueCount>0||warningCount>0)&&(
+              <span style={{
+                display:'inline-flex',alignItems:'center',justifyContent:'center',
+                marginLeft:6, minWidth:16, height:16, borderRadius:8,
+                background:overdueCount>0?'var(--negative)':'var(--warning)',
+                color:'#fff', fontSize:9, fontWeight:700, padding:'0 4px',
+              }}>{overdueCount+warningCount>9?'9+':overdueCount+warningCount}</span>
+            )}
+            {tab.key==='items'&&actionCount>0&&(
+              <span style={{
+                display:'inline-flex',alignItems:'center',justifyContent:'center',
+                marginLeft:6, minWidth:16, height:16, borderRadius:8,
+                background:'var(--warning)', color:'#fff', fontSize:9, fontWeight:700, padding:'0 4px',
+              }}>{actionCount>9?'9+':actionCount}</span>
+            )}
           </button>
         ))}
       </div>
