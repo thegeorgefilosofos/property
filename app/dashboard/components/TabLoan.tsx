@@ -640,9 +640,9 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
                     </div>
                     <div style={{ textAlign:'right' as const }}>
                       <p style={{ fontSize:15, fontFamily:'JetBrains Mono, monospace', color:'var(--accent)', fontWeight:700 }}>{fmtEur(m)}/μήνα</p>
-                      {savedVsCurrent>0&&i>0
-                        ?<p style={{ fontSize:10, color:'var(--negative)', fontFamily:'JetBrains Mono, monospace' }}>+{fmtEur(ti-BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min)[0]&&calcMonthly(cs.loanAmount,(BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min)[0] as any).fixed_min,cs.years)*cs.years*12-cs.loanAmount||0)} τόκοι</p>
-                        :<p style={{ fontSize:10, color:'var(--positive)', fontFamily:'JetBrains Mono, monospace' }}>Καλύτερο στην αγορά</p>
+                      {i===0
+                        ?<p style={{ fontSize:10, color:'var(--positive)', fontFamily:'JetBrains Mono, monospace' }}>Καλύτερο στην αγορά</p>
+                        :<p style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:'JetBrains Mono, monospace' }}>Σύν. τόκοι: {fmtEur(ti)}</p>
                       }
                     </div>
                     <button onClick={()=>setTab('calculator')} style={{ padding:'7px 13px', background:'var(--accent-dim)', border:'1px solid var(--border-accent)', borderRadius:8, cursor:'pointer', color:'var(--accent)', fontSize:11, fontWeight:700 }}>Επιλογή</button>
