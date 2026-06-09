@@ -421,185 +421,280 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
       )}
 
       {/* ═══ ADVISOR ═══ */}
-      {tab==='advisor'&&(
-        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <div style={{ padding:'10px 16px', background:'rgba(167,139,250,0.06)', border:'1px solid rgba(167,139,250,0.18)', borderRadius:10 }}>
-            <p style={{ fontSize:12, color:'#a78bfa', lineHeight:1.6 }}>
-              <strong>Προσωπικός Σύμβουλος:</strong> Αντλεί αυτόματα τα δεδομένα από τον Calculator σας, ελέγχει επιλεξιμότητα σε όλα τα προγράμματα και προτείνει την καλύτερη στρατηγική.
-            </p>
-          </div>
+      {tab==='advisor'&&(()=>{
+        // ── Derived facts from Calculator state ──────────────────────────────
+        const cs = calcState
+        const ltv = cs.propertyValue>0 ? (cs.loanAmount/cs.propertyValue)*100 : 0
+        const totalCost = cs.monthly*cs.years*12
+        const interestRatio = cs.loanAmount>0 ? cs.totalInterest/cs.loanAmount : 0
+        const varMonthly = calcMonthly(cs.loanAmount, market.euribor_3m+( cs.effectiveRate-market.euribor_3m ), cs.years)
+        const stressMonthly2 = calcMonthly(cs.loanAmount, cs.effectiveRate+2, cs.years)
+        const spitiRate = Math.max(market.euribor_3m*0.5+0.3,1.0)
+        const spitiMonthly = calcMonthly(cs.loanAmount, spitiRate, cs.years)
+        const spitiSaving = (cs.monthly-spitiMonthly)*cs.years*12
+        const shortMonthly20 = cs.years>20 ? calcMonthly(cs.loanAmount, cs.effectiveRate, 20) : 0
+        const savedByShortening = cs.years>20 ? (cs.monthly*cs.years*12)-(shortMonthly20*20*12) : 0
+        const extraPay100Saving = (()=>{
+          let bal=cs.loanAmount,months=0
+          while(bal>0&&months<cs.years*12){bal=bal*(1+cs.effectiveRate/100/12)-(cs.monthly+100);months++}
+          return Math.max(0,(cs.years*12-months)/12)
+        })()
+        const bestBank = BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min)[0] as any
+        const bestBankMonthly = bestBank ? calcMonthly(cs.loanAmount, bestBank.fixed_min, cs.years) : cs.monthly
+        const savingVsBestBank = (cs.monthly-bestBankMonthly)*cs.years*12
 
-          {/* Inputs — synced from calculator */}
-          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
-            {dot('Στοιχεία Ανάλυσης', <span style={{ fontSize:10, color:'var(--text-tertiary)' }}>Συγχρονισμένο από Calculator</span>)}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
-              <CustomSelect label="Σκοπός Δανείου" value={advType} onChange={v=>setAdvType(v as LoanType)} options={LOAN_TYPE_OPTIONS}/>
-              <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
+        // ── Score card: how healthy is this loan? ─────────────────────────────
+        let score = 100
+        const issues: string[] = []
+        if(ltv>85){score-=20;issues.push('LTV')}
+        if(cs.effectiveRate>4){score-=15;issues.push('Επιτόκιο')}
+        if(cs.rateType==='variable'){score-=10;issues.push('Κυμαινόμενο')}
+        if(cs.years>25){score-=10;issues.push('Διάρκεια')}
+        if(interestRatio>0.6){score-=15;issues.push('Τόκοι')}
+        const scoreColor = score>=80?'var(--positive)':score>=60?'var(--warning)':'var(--negative)'
+        const scoreLabel = score>=80?'Υγιές δάνειο':score>=60?'Αποδεκτό — υπάρχει περιθώριο βελτίωσης':'Προσοχή — αξίζει επανεξέταση'
+
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+
+            {/* Header with sync badge */}
+            <div style={{ padding:'12px 16px', background:'rgba(167,139,250,0.07)', border:'1px solid rgba(167,139,250,0.2)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
-                <p style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:5, fontWeight:600 }}>Ποσό Δανείου (€)</p>
-                <input type="number" value={advAmt} onChange={e=>setAdvAmt(e.target.value)} style={{ width:'100%', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 12px', color:'var(--text-primary)', fontSize:13, outline:'none', boxSizing:'border-box' as any }}/>
-              </div>
-              <div>
-                <p style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:5, fontWeight:600 }}>Διάρκεια (χρόνια)</p>
-                <input type="number" value={advYrs} onChange={e=>setAdvYrs(e.target.value)} style={{ width:'100%', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 12px', color:'var(--text-primary)', fontSize:13, outline:'none', boxSizing:'border-box' as any }}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Eligibility */}
-          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
-            {dot('Έλεγχος Επιλεξιμότητας Προγραμμάτων')}
-            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-              {[
-                {
-                  l:'Σπίτι μου ΙΙ — Deadline 31/08/2026',
-                  el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',
-                  reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'
-                    ?'✓ Πληροίτε τα κριτήρια — Αξίζει οπωσδήποτε να το εξετάσετε'
-                    :advType!=='first_home'?'Επιλέξτε "Πρώτη κατοικία" ως σκοπό δανείου'
-                    :'Απαιτείται ηλικία 25-50 ετών',
-                  badge:`Εξοικονόμηση ~${fmtEur(calcMonthly(LA,3.5,Y)*Y*12*0.45)} τόκων`
-                },
-                {
-                  l:'Αναβαθμίζω το Σπίτι μου — Deadline 31/08/2026',
-                  el:advType==='energy',
-                  reason:advType==='energy'?'✓ Κατάλληλος σκοπός δανείου':'Επιλέξτε "Ενεργειακή αναβάθμιση" ως σκοπό',
-                  badge:'Επιδοτούμενο επιτόκιο από Ταμείο Ανάκαμψης'
-                },
-                {
-                  l:'Εξοικονομώ 2025 — Deadline 30/06/2026',
-                  el:advType==='energy',
-                  reason:advType==='energy'?'✓ Κατάλληλο για ενεργειακές παρεμβάσεις':'Μόνο για ενεργειακές παρεμβάσεις κατοικίας',
-                  badge:'Επιδότηση κόστους αναβάθμισης'
-                },
-                {
-                  l:'Πράσινο Δάνειο (έκπτωση -0.15% έως -0.25%)',
-                  el:advType==='energy'||advType==='renovation',
-                  reason:advType==='energy'||advType==='renovation'?'✓ Κατάλληλο για πράσινα/ανακαίνιση':'Για ενεργειακή αναβάθμιση ή ανακαίνιση',
-                  badge:`Εξοικονόμηση ~${fmtEur(LA*0.002*Y)} τόκων`
-                },
-                {
-                  l:'Ένοπλες Δυνάμεις — Ταμείο Αλληλοβοηθείας (ΤΑΠ-ΟΙΚ)',
-                  el:advBorr==='military',
-                  reason:advBorr==='military'?'✓ Δικαιούστε ειδικό επιδοτούμενο πρόγραμμα':'Μόνο για εν ενεργεία αξιωματικούς/υπαξιωματικούς',
-                  badge:'Χαμηλότερο επιτόκιο μέσω ΤΑΠ'
-                },
-                {
-                  l:'Γέφυρα 3 — Επιδότηση Δόσης (κυμαινόμενα δάνεια)',
-                  el:calcState.rateType==='variable',
-                  reason:calcState.rateType==='variable'?'✓ Εφαρμόζεται σε κυμαινόμενα δάνεια — εάν είστε ευάλωτος δανειολήπτης':'Μόνο για κυμαινόμενα επιτόκια',
-                  badge:'Επιδότηση 50% αύξησης δόσης'
-                },
-              ].map(item=>(
-                <div key={item.l} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:item.el?'rgba(52,211,153,0.04)':'var(--bg-surface)', border:`1px solid ${item.el?'rgba(52,211,153,0.15)':'var(--border-subtle)'}`, borderRadius:9 }}>
-                  <div style={{ width:22, height:22, borderRadius:'50%', background:item.el?'rgba(52,211,153,0.15)':'rgba(248,113,113,0.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    {item.el?<Check size={12} color="var(--positive)"/>:<X size={12} color="var(--negative)"/>}
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontSize:12, color:item.el?'var(--text-primary)':'var(--text-secondary)', fontWeight:item.el?600:400 }}>{item.l}</p>
-                    <p style={{ fontSize:11, color:'var(--text-tertiary)', marginTop:2 }}>{item.reason}</p>
-                  </div>
-                  {item.el&&<span style={{ fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'var(--positive)', background:'rgba(52,211,153,0.08)', padding:'4px 10px', borderRadius:6, border:'1px solid rgba(52,211,153,0.18)', whiteSpace:'nowrap' as const, fontWeight:600 }}>{item.badge}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bank ranking — personalized */}
-          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
-            {dot(`Κατάταξη Τραπεζών — ${fmtEur(LA)} / ${Y} χρόνια`)}
-            {BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min).slice(0,4).map((bank:any,i:number)=>{
-              const m=calcMonthly(LA,bank.fixed_min,Y)
-              const ti=m*Y*12-LA
-              const medals=['🥇','🥈','🥉','4️⃣']
-              return(
-                <div key={bank.id||bank.bank_id} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', marginBottom:7, background:i===0?'var(--accent-dim)':'var(--bg-surface)', border:`1px solid ${i===0?'var(--border-accent)':'var(--border-subtle)'}`, borderRadius:9 }}>
-                  <span style={{ fontSize:20, flexShrink:0 }}>{medals[i]}</span>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>{bank.bank_name||bank.name}</p>
-                    <p style={{ fontSize:11, color:'var(--text-secondary)' }}>{bank.note} · {bank.fees}</p>
-                  </div>
-                  <div style={{ textAlign:'right' as const }}>
-                    <p style={{ fontSize:15, fontFamily:'JetBrains Mono, monospace', color:'var(--accent)', fontWeight:700 }}>{fmtEur(m)}/μήνα</p>
-                    <p style={{ fontSize:11, fontFamily:'JetBrains Mono, monospace', color:'var(--text-secondary)' }}>Σύν. τόκοι: {fmtEur(ti)}</p>
-                  </div>
-                  <button onClick={()=>setTab('calculator')} style={{ padding:'7px 13px', background:'var(--accent-dim)', border:'1px solid var(--border-accent)', borderRadius:8, cursor:'pointer', color:'var(--accent)', fontSize:11, fontWeight:700 }}>Επιλογή</button>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Smart tips — always visible + personalized */}
-          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
-            {dot('Εξατομικευμένες Συμβουλές', <span style={{ fontSize:10, color:'var(--text-tertiary)' }}>Βάσει στοιχείων Calculator</span>)}
-            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-              {/* Always-on tips */}
-              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                <span style={{ fontSize:18, flexShrink:0 }}>📋</span>
-                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                  Πριν υποβάλετε αίτηση, ελέγξτε στον Τειρεσία αν έχετε εγγραφές και βεβαιωθείτε ότι δεν υπάρχουν εκκρεμότητες σε ΔΟΥ ή ΕΦΚΑ. Οι τράπεζες ελέγχουν τα πάντα.
+                <p style={{ fontSize:13, color:'#a78bfa', fontWeight:700 }}>Προσωπικός Σύμβουλος</p>
+                <p style={{ fontSize:11, color:'var(--text-secondary)', marginTop:2 }}>
+                  Ανάλυση βάσει <strong>{fmtEur(cs.loanAmount)}</strong> / <strong>{cs.years} χρ</strong> / <strong>{fmtPct(cs.effectiveRate)}</strong> {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'} — {LOAN_TYPES[cs.loanType]?.label||''}
                 </p>
               </div>
-              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                <span style={{ fontSize:18, flexShrink:0 }}>📊</span>
-                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                  Τρέχον Euribor 3M: <strong style={{ color:'var(--info)', fontFamily:'JetBrains Mono, monospace' }}>{fmtPct(market.euribor_3m)}</strong>. Κυμαινόμενο δάνειο με spread +1.5% σημαίνει σήμερα <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtPct(market.euribor_3m+1.5)}</strong> — αλλά θυμηθείτε ότι το 2023 έφτασε το 4%. Σκεφτείτε το σταθερό.
-                </p>
-              </div>
-              {/* Conditional on calcState — με fallback ώστε να φαίνεται πάντα κάτι */}
-              {calcState.loanAmount>0&&(
-                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                  <span style={{ fontSize:18, flexShrink:0 }}>🏦</span>
-                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                    {calcState.loanAmount>200000
-                      ?`Δάνειο ${fmtEur(calcState.loanAmount)}: Για ποσά άνω των 200.000€ διαπραγματευτείτε το spread απευθείας με τη Διεύθυνση Δανείων της τράπεζας — συχνά επιτυγχάνεται μείωση 0.10-0.20%, που σε βάθος χρόνου σημαίνει χιλιάδες ευρώ.`
-                      :`Δάνειο ${fmtEur(calcState.loanAmount)} / ${calcState.years} χρόνια: Μηνιαία δόση ${fmtEur(calcState.monthly)}. Η δόση αντιπροσωπεύει ${fmtPct1((calcState.monthly/(parseFloat(advAmt)/calcState.years/12||1500))*100)} του εκτιμώμενου εισοδήματός σας — ελέγξτε το DTI Ratio στον Calculator.`
-                    }
-                  </p>
-                </div>
-              )}
-              {calcState.loanType==='first_home'&&(
-                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'rgba(52,211,153,0.05)', border:'1px solid rgba(52,211,153,0.2)', borderRadius:9 }}>
-                  <span style={{ fontSize:18, flexShrink:0 }}>🏠</span>
-                  <p style={{ fontSize:12, color:'var(--positive)', lineHeight:1.6 }}>
-                    Πρώτη κατοικία: Εφόσον η ηλικία σας είναι 25-50 ετών, το Σπίτι μου ΙΙ μπορεί να εξοικονομήσει <strong>{fmtEur(Math.max(0,(calcState.monthly-calcMonthly(calcState.loanAmount,Math.max(market.euribor_3m*0.5+0.3,1.0),calcState.years))*calcState.years*12))}</strong> συνολικά. Deadline 31/08/2026 — ξεκινήστε τώρα.
-                  </p>
-                </div>
-              )}
-              {calcState.loanType==='investment'&&(
-                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                  <span style={{ fontSize:18, flexShrink:0 }}>💰</span>
-                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                    Επενδυτικό ακίνητο: Τα ενοίκια φορολογούνται με κλίμακα 15%/25%/35% (2026) με αυτόματη έκπτωση 5% δαπανών. Οι τόκοι στεγαστικού δεν εκπίπτουν για δάνεια μετά το 2013. Η απόδοση (yield) ενοικίου υπολογίζεται ως ετήσιο ενοίκιο ÷ αξία αγοράς.
-                  </p>
-                </div>
-              )}
-              {calcState.rateType==='variable'&&(
-                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'rgba(251,146,60,0.05)', border:'1px solid rgba(251,146,60,0.2)', borderRadius:9 }}>
-                  <span style={{ fontSize:18, flexShrink:0 }}>⚠️</span>
-                  <p style={{ fontSize:12, color:'var(--warning)', lineHeight:1.6 }}>
-                    Κυμαινόμενο επιτόκιο: Αν το Euribor ανέβει +2% (σενάριο 2023), η μηνιαία δόση σας θα γίνει <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtEur(calcMonthly(calcState.loanAmount,calcState.effectiveRate+2,calcState.years))}</strong> — αύξηση {fmtEur(calcMonthly(calcState.loanAmount,calcState.effectiveRate+2,calcState.years)-calcState.monthly)}/μήνα. Αξιολογήστε αν αντέχετε αυτή την επιβάρυνση.
-                  </p>
-                </div>
-              )}
-              {calcState.years>=25&&(
-                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                  <span style={{ fontSize:18, flexShrink:0 }}>⏱️</span>
-                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                    Διάρκεια {calcState.years} χρόνια: Αν μειώσετε σε 20 χρόνια, η δόση ανεβαίνει κατά <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtEur(Math.max(0,calcMonthly(calcState.loanAmount,calcState.effectiveRate,20)-calcState.monthly))}</strong>/μήνα αλλά εξοικονομείτε σημαντικούς τόκους. Εναλλακτικά, έκτακτες πληρωμές 100-200€/μήνα μειώνουν δραστικά τη συνολική διάρκεια.
-                  </p>
-                </div>
-              )}
-              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
-                <span style={{ fontSize:18, flexShrink:0 }}>🔄</span>
-                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
-                  Αναχρηματοδότηση: Αν έχετε ήδη δάνειο με επιτόκιο άνω του {fmtPct(market.euribor_3m+2.0)}, αξίζει να ελέγξετε αν συμφέρει η μεταφορά. Χρησιμοποιήστε την Ανάλυση Αναχρηματοδότησης στον Calculator για ακριβή break-even υπολογισμό.
-                </p>
+              <div style={{ textAlign:'right' as const }}>
+                <p style={{ fontSize:9, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>Βαθμολογία δανείου</p>
+                <p style={{ fontSize:22, fontFamily:'JetBrains Mono, monospace', color:scoreColor, fontWeight:700 }}>{score}/100</p>
+                <p style={{ fontSize:10, color:scoreColor }}>{scoreLabel}</p>
               </div>
             </div>
+
+            {/* Inputs — editable */}
+            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
+              {dot('Στοιχεία Ανάλυσης', <span style={{ fontSize:10, color:'var(--positive)' }}>⚡ Συγχρονισμένο από Calculator</span>)}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+                <CustomSelect label="Σκοπός Δανείου" value={advType} onChange={v=>setAdvType(v as LoanType)} options={LOAN_TYPE_OPTIONS}/>
+                <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
+                <div>
+                  <p style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:5, fontWeight:600 }}>Ποσό Δανείου (€)</p>
+                  <input type="number" value={advAmt} onChange={e=>setAdvAmt(e.target.value)} style={{ width:'100%', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 12px', color:'var(--text-primary)', fontSize:13, outline:'none', boxSizing:'border-box' as any, fontFamily:'Inter,sans-serif' }}/>
+                </div>
+                <div>
+                  <p style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.14em', marginBottom:5, fontWeight:600 }}>Διάρκεια (χρόνια)</p>
+                  <input type="number" value={advYrs} onChange={e=>setAdvYrs(e.target.value)} style={{ width:'100%', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 12px', color:'var(--text-primary)', fontSize:13, outline:'none', boxSizing:'border-box' as any, fontFamily:'Inter,sans-serif' }}/>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Personalized insights ── */}
+            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
+              {dot('Τι Βλέπω στο Σενάριό σας')}
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+
+                {/* LTV insight */}
+                <div style={{ display:'flex', gap:12, padding:'12px 14px', background:ltv>85?'rgba(248,113,113,0.05)':ltv>70?'rgba(251,146,60,0.05)':'rgba(52,211,153,0.05)', border:`1px solid ${ltv>85?'rgba(248,113,113,0.2)':ltv>70?'rgba(251,146,60,0.2)':'rgba(52,211,153,0.2)'}`, borderRadius:9 }}>
+                  <div style={{ width:36, height:36, borderRadius:8, background:ltv>85?'rgba(248,113,113,0.1)':ltv>70?'rgba(251,146,60,0.1)':'rgba(52,211,153,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:18 }}>
+                    {ltv>85?'⚠️':ltv>70?'👁':'✅'}
+                  </div>
+                  <div>
+                    <p style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', marginBottom:3 }}>
+                      LTV {ltv.toFixed(1)}% — {ltv>85?'Υψηλό — απαιτείται προσοχή':ltv>70?'Μέτριο — αποδεκτό':'Καλό — εντός ασφαλών ορίων'}
+                    </p>
+                    <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                      {ltv>85
+                        ? `Χρηματοδοτείτε το ${ltv.toFixed(0)}% της αξίας — οι τράπεζες είναι επιφυλακτικές άνω του 80%. Αν αυξήσετε την προκαταβολή κατά ${fmtEur(cs.propertyValue*0.85-cs.loanAmount > 0 ? cs.propertyValue*0.15-(cs.propertyValue-cs.loanAmount) : 0)}, το LTV πέφτει στο 85% και βελτιώνετε τους όρους.`
+                        : ltv>70
+                        ? `Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}% της αξίας). Εντός αποδεκτών ορίων — δεν απαιτούνται πρόσθετες εξασφαλίσεις.`
+                        : `Άριστη αναλογία — ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}%). Αυτό ενισχύει τη διαπραγματευτική σας θέση με την τράπεζα.`
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Interest rate insight */}
+                <div style={{ display:'flex', gap:12, padding:'12px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                  <div style={{ width:36, height:36, borderRadius:8, background:'rgba(96,165,250,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:18 }}>📈</div>
+                  <div>
+                    <p style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', marginBottom:3 }}>
+                      Επιτόκιο {fmtPct(cs.effectiveRate)} — {cs.rateType==='variable'?'Κυμαινόμενο':'Σταθερό'}
+                      {cs.rateType==='variable'&&<span style={{ fontSize:10, color:'var(--warning)', marginLeft:6, fontWeight:400 }}>⚠ Εκτεθειμένο σε Euribor</span>}
+                    </p>
+                    <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                      {cs.rateType==='variable'
+                        ? `Το τρέχον Euribor είναι ${fmtPct(market.euribor_3m)}. Αν ανέβει +2% (όπως το 2022-23), η μηνιαία σας δόση γίνεται ${fmtEur(stressMonthly2)} — αύξηση ${fmtEur(stressMonthly2-cs.monthly)}/μήνα ή ${fmtEur((stressMonthly2-cs.monthly)*12)}/χρόνο. Αξιολογήστε αν αντέχετε αυτή την επιβάρυνση.`
+                        : bestBank&&savingVsBestBank>0
+                        ? `Σταθερό επιτόκιο — ασφάλεια έναντι ανόδου Euribor. Το καλύτερο σταθερό στην αγορά σήμερα είναι ${fmtPct(bestBank.fixed_min)} (${bestBank.bank_name||bestBank.name}), που σημαίνει δόση ${fmtEur(bestBankMonthly)}/μήνα και δυνητική εξοικονόμηση ${fmtEur(savingVsBestBank)} συνολικά.`
+                        : `Σταθερό επιτόκιο ${fmtPct(cs.effectiveRate)} — προστατευμένοι από διακυμάνσεις. Το τρέχον Euribor 3M είναι ${fmtPct(market.euribor_3m)}.`
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total cost insight */}
+                <div style={{ display:'flex', gap:12, padding:'12px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                  <div style={{ width:36, height:36, borderRadius:8, background:'rgba(248,113,113,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:18 }}>💰</div>
+                  <div>
+                    <p style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', marginBottom:3 }}>
+                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)} — {(interestRatio*100).toFixed(0)}% επί κεφαλαίου
+                    </p>
+                    <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                      Για δάνειο {fmtEur(cs.loanAmount)} θα αποπληρώσετε συνολικά {fmtEur(totalCost)}.
+                      {cs.years>20 && savedByShortening>0
+                        ? ` Μειώνοντας σε 20 χρόνια (δόση ${fmtEur(shortMonthly20)}/μήνα, +${fmtEur(shortMonthly20-cs.monthly)}), εξοικονομείτε ${fmtEur(savedByShortening)} τόκους.`
+                        : ` Με έκτακτη πληρωμή 100€/μήνα μειώνετε τη διάρκεια κατά ~${extraPay100Saving.toFixed(1)} χρόνια.`
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Spiti mou II if applicable */}
+                {(advType==='first_home'||(advBorr==='young'||advBorr==='family'))&&spitiSaving>5000&&(
+                  <div style={{ display:'flex', gap:12, padding:'12px 14px', background:'rgba(52,211,153,0.06)', border:'1px solid rgba(52,211,153,0.2)', borderRadius:9 }}>
+                    <div style={{ width:36, height:36, borderRadius:8, background:'rgba(52,211,153,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:18 }}>🏠</div>
+                    <div>
+                      <p style={{ fontSize:12, fontWeight:700, color:'var(--positive)', marginBottom:3 }}>
+                        Σπίτι μου ΙΙ: εξοικονομείτε {fmtEur(spitiSaving)} — deadline 31/08/2026
+                      </p>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                        Με το πρόγραμμα Σπίτι μου ΙΙ, η δόση σας γίνεται {fmtEur(spitiMonthly)}/μήνα αντί {fmtEur(cs.monthly)} — διαφορά {fmtEur(cs.monthly-spitiMonthly)}/μήνα. Αξίζει να ελέγξετε επιλεξιμότητα στο gov.gr άμεσα.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Eligibility */}
+            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
+              {dot('Επιλεξιμότητα Κρατικών Προγραμμάτων')}
+              <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+                {[
+                  {
+                    l:'Σπίτι μου ΙΙ — Deadline 31/08/2026',
+                    el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',
+                    reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'
+                      ?`Πληροίτε τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)}/μήνα — εξοικονόμηση ${fmtEur(spitiSaving)}`
+                      :advType!=='first_home'?'Αλλάξτε σκοπό σε "Πρώτη κατοικία" ώστε να ελεγχθεί η επιλεξιμότητά σας'
+                      :'Απαιτείται ηλικία 25-50 — ελέγξτε το προφίλ δανειολήπτη',
+                    badge:`-${fmtEur(cs.monthly-spitiMonthly)}/μήνα`
+                  },
+                  {
+                    l:'Αναβαθμίζω — Deadline 31/08/2026',
+                    el:advType==='energy',
+                    reason:advType==='energy'?`Κατάλληλο. Δάνειο έως 25.000€ με επιδοτούμενο επιτόκιο`:'Επιλέξτε "Ενεργειακή αναβάθμιση" ως σκοπό',
+                    badge:'Επιδοτούμενο επιτόκιο ΤΑΑ'
+                  },
+                  {
+                    l:'Πράσινο Δάνειο (-0.15% έως -0.25%)',
+                    el:advType==='energy'||advType==='renovation',
+                    reason:advType==='energy'||advType==='renovation'?`Εξοικονόμηση ~${fmtEur(cs.loanAmount*0.002*cs.years)} τόκων με την πράσινη έκπτωση`:'Για ενεργειακή αναβάθμιση ή ανακαίνιση',
+                    badge:`~${fmtEur(cs.loanAmount*0.002*cs.years)}`
+                  },
+                  {
+                    l:'Ένοπλες Δυνάμεις — ΤΑΠ-ΟΙΚ',
+                    el:advBorr==='military',
+                    reason:advBorr==='military'?'Δικαιούστε επιδοτούμενο δάνειο μέσω ΤΑΠ — επικοινωνήστε με το Ταμείο':'Μόνο για εν ενεργεία μέλη Ενόπλων Δυνάμεων & Σωμάτων Ασφαλείας',
+                    badge:'Χαμηλότερο επιτόκιο'
+                  },
+                  {
+                    l:'Γέφυρα 3 — Επιδότηση δόσης',
+                    el:cs.rateType==='variable',
+                    reason:cs.rateType==='variable'?`Το κυμαινόμενο επιτόκιό σας ${fmtPct(cs.effectiveRate)} σας κάνει επιλέξιμο εφόσον πληροίτε τα εισοδηματικά κριτήρια ευάλωτου δανειολήπτη`:'Εφαρμόζεται μόνο σε κυμαινόμενα δάνεια',
+                    badge:'50% αύξησης δόσης'
+                  },
+                ].map(item=>(
+                  <div key={item.l} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:item.el?'rgba(52,211,153,0.04)':'var(--bg-surface)', border:`1px solid ${item.el?'rgba(52,211,153,0.15)':'var(--border-subtle)'}`, borderRadius:9 }}>
+                    <div style={{ width:22, height:22, borderRadius:'50%', background:item.el?'rgba(52,211,153,0.15)':'rgba(248,113,113,0.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      {item.el?<Check size={12} color="var(--positive)"/>:<X size={12} color="var(--negative)"/>}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <p style={{ fontSize:12, color:item.el?'var(--text-primary)':'var(--text-secondary)', fontWeight:item.el?600:400 }}>{item.l}</p>
+                      <p style={{ fontSize:11, color:'var(--text-tertiary)', marginTop:2 }}>{item.reason}</p>
+                    </div>
+                    {item.el&&<span style={{ fontSize:10, fontFamily:'JetBrains Mono, monospace', color:'var(--positive)', background:'rgba(52,211,153,0.08)', padding:'4px 10px', borderRadius:6, border:'1px solid rgba(52,211,153,0.18)', whiteSpace:'nowrap' as const, fontWeight:600 }}>{item.badge}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bank ranking — with personalized delta */}
+            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
+              {dot(`Καλύτερες Τράπεζες για ${fmtEur(cs.loanAmount)} / ${cs.years} χρόνια`)}
+              {BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min).slice(0,4).map((bank:any,i:number)=>{
+                const m=calcMonthly(cs.loanAmount,bank.fixed_min,cs.years)
+                const ti=m*cs.years*12-cs.loanAmount
+                const savedVsCurrent=cs.totalInterest-ti
+                const medals=['🥇','🥈','🥉','4️⃣']
+                return(
+                  <div key={bank.id||bank.bank_id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', marginBottom:7, background:i===0?'var(--accent-dim)':'var(--bg-surface)', border:`1px solid ${i===0?'var(--border-accent)':'var(--border-subtle)'}`, borderRadius:9 }}>
+                    <span style={{ fontSize:20, flexShrink:0 }}>{medals[i]}</span>
+                    <div style={{ flex:1 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>{bank.bank_name||bank.name}</p>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)' }}>
+                        {bank.note} · {fmtPct(bank.fixed_min)} σταθερό
+                        {bank.spiti_mou&&<span style={{ color:'var(--positive)', marginLeft:6 }}>· Σπίτι ΙΙ ✓</span>}
+                      </p>
+                    </div>
+                    <div style={{ textAlign:'right' as const }}>
+                      <p style={{ fontSize:15, fontFamily:'JetBrains Mono, monospace', color:'var(--accent)', fontWeight:700 }}>{fmtEur(m)}/μήνα</p>
+                      {savedVsCurrent>0&&i>0
+                        ?<p style={{ fontSize:10, color:'var(--negative)', fontFamily:'JetBrains Mono, monospace' }}>+{fmtEur(ti-BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min)[0]&&calcMonthly(cs.loanAmount,(BANKS.slice().sort((a:any,b:any)=>a.fixed_min-b.fixed_min)[0] as any).fixed_min,cs.years)*cs.years*12-cs.loanAmount||0)} τόκοι</p>
+                        :<p style={{ fontSize:10, color:'var(--positive)', fontFamily:'JetBrains Mono, monospace' }}>Καλύτερο στην αγορά</p>
+                      }
+                    </div>
+                    <button onClick={()=>setTab('calculator')} style={{ padding:'7px 13px', background:'var(--accent-dim)', border:'1px solid var(--border-accent)', borderRadius:8, cursor:'pointer', color:'var(--accent)', fontSize:11, fontWeight:700 }}>Επιλογή</button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Score breakdown & action plan */}
+            {issues.length>0&&(
+              <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
+                {dot('Τι Μπορείτε να Βελτιώσετε')}
+                <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+                  {issues.includes('LTV')&&(
+                    <div style={{ display:'flex', gap:10, padding:'10px 14px', background:'rgba(248,113,113,0.04)', border:'1px solid rgba(248,113,113,0.15)', borderRadius:8 }}>
+                      <span style={{ color:'var(--negative)', fontWeight:700, flexShrink:0 }}>↑</span>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                        <strong>Αυξήστε την προκαταβολή:</strong> Αν φέρετε {fmtEur(cs.propertyValue*0.2-(cs.propertyValue-cs.loanAmount))} επιπλέον ίδια κεφάλαια, το LTV πέφτει στο 80% — καλύτερο επιτόκιο και αποδοχή.
+                      </p>
+                    </div>
+                  )}
+                  {issues.includes('Επιτόκιο')&&(
+                    <div style={{ display:'flex', gap:10, padding:'10px 14px', background:'rgba(251,146,60,0.04)', border:'1px solid rgba(251,146,60,0.15)', borderRadius:8 }}>
+                      <span style={{ color:'var(--warning)', fontWeight:700, flexShrink:0 }}>↓</span>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                        <strong>Διαπραγματευτείτε το spread:</strong> Ζητήστε γραπτές προσφορές από τουλάχιστον 3 τράπεζες — η ανταγωνιστική πίεση συχνά οδηγεί σε μειώσεις 0.10-0.25%.
+                      </p>
+                    </div>
+                  )}
+                  {issues.includes('Κυμαινόμενο')&&(
+                    <div style={{ display:'flex', gap:10, padding:'10px 14px', background:'rgba(251,146,60,0.04)', border:'1px solid rgba(251,146,60,0.15)', borderRadius:8 }}>
+                      <span style={{ color:'var(--warning)', fontWeight:700, flexShrink:0 }}>⚠</span>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                        <strong>Σκεφτείτε σταθερό:</strong> Κυμαινόμενο +2% Euribor = δόση {fmtEur(stressMonthly2)} (+{fmtEur(stressMonthly2-cs.monthly)}/μήνα). Σταθερό 5ετίας προστατεύει και κοστίζει σήμερα μόλις {fmtPct(Math.max(0,(bestBank?.fixed5||3.5)-cs.effectiveRate))} επιπλέον.
+                      </p>
+                    </div>
+                  )}
+                  {issues.includes('Διάρκεια')&&cs.years>20&&(
+                    <div style={{ display:'flex', gap:10, padding:'10px 14px', background:'rgba(96,165,250,0.04)', border:'1px solid rgba(96,165,250,0.15)', borderRadius:8 }}>
+                      <span style={{ color:'var(--info)', fontWeight:700, flexShrink:0 }}>⏱</span>
+                      <p style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                        <strong>Μειώστε τη διάρκεια:</strong> Στα 20 χρόνια η δόση γίνεται {fmtEur(shortMonthly20)} (+{fmtEur(shortMonthly20-cs.monthly)}/μήνα) αλλά εξοικονομείτε {fmtEur(savedByShortening)} τόκους. Εναλλακτικά, έκτακτη πληρωμή 200€/μήνα μειώνει τη διάρκεια κατά ~{(extraPay100Saving*2).toFixed(0)} χρόνια.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ═══ GUIDE ═══ */}
       {tab==='guide'&&(
