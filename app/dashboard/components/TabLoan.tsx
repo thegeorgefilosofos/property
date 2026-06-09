@@ -529,22 +529,74 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
             })}
           </div>
 
-          {/* Smart tips — personalized from calcState */}
+          {/* Smart tips — always visible + personalized */}
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16 }}>
-            {dot('Εξατομικευμένες Συμβουλές')}
-            {[
-              calcState.loanAmount>200000&&{icon:'🏦',tip:`Δάνειο ${fmtEur(calcState.loanAmount)}: Για ποσά άνω των 200.000€ αξίζει να διαπραγματευτείτε το spread απευθείας με τη Διεύθυνση της τράπεζας — συχνά επιτυγχάνεται μείωση 0.10-0.20%.`},
-              calcState.loanType==='first_home'&&(advBorr!=='young'&&advBorr!=='family')&&{icon:'🏠',tip:'Σπίτι μου ΙΙ: Εφόσον η ηλικία σας είναι 25-50 ετών, η εξοικονόμηση μπορεί να ξεπεράσει τις δεκάδες χιλιάδες ευρώ — Deadline 31/08/2026.'},
-              calcState.loanType==='investment'&&{icon:'💰',tip:`Επενδυτικό ακίνητο: Τα ενοίκια φορολογούνται 15%/25%/35% (2026). Αυτόματη έκπτωση 5% δαπανών. Οι τόκοι στεγαστικού δεν εκπίπτουν για δάνεια μετά το 2013.`},
-              calcState.years>25&&{icon:'⏱️',tip:`${calcState.years} χρόνια: Εξοικονομείτε ${fmtEur(Math.max(0,(calcMonthly(LA,calcState.effectiveRate,calcState.years)*calcState.years*12)-(calcMonthly(LA,calcState.effectiveRate,20)*20*12)))} τόκους αν μειώσετε σε 20 χρόνια — αν το εισόδημά σας το επιτρέπει.`},
-              calcState.rateType==='variable'&&{icon:'📊',tip:`Κυμαινόμενο επιτόκιο: Αν το Euribor ανέβει +2%, η δόση σας θα γίνει ${fmtEur(calcMonthly(LA,calcState.effectiveRate+2,calcState.years))}/μήνα. Σκεφτείτε σταθερό επιτόκιο για ασφάλεια.`},
-              (calcState.totalInterest/Math.max(calcState.loanAmount,1))>0.5&&{icon:'💡',tip:`Ο λόγος τόκων/κεφαλαίου είναι ${((calcState.totalInterest/Math.max(calcState.loanAmount,1))*100).toFixed(0)}%. Έκτακτες πληρωμές ακόμα και 100€/μήνα μπορούν να εξοικονομήσουν αρκετά χρόνια και τόκους.`},
-            ].filter(Boolean).slice(0,5).map((tip:any,i)=>(
-              <div key={i} style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9, marginBottom:7 }}>
-                <span style={{ fontSize:18, flexShrink:0 }}>{tip.icon}</span>
-                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>{tip.tip}</p>
+            {dot('Εξατομικευμένες Συμβουλές', <span style={{ fontSize:10, color:'var(--text-tertiary)' }}>Βάσει στοιχείων Calculator</span>)}
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              {/* Always-on tips */}
+              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>📋</span>
+                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                  Πριν υποβάλετε αίτηση, ελέγξτε στον Τειρεσία αν έχετε εγγραφές και βεβαιωθείτε ότι δεν υπάρχουν εκκρεμότητες σε ΔΟΥ ή ΕΦΚΑ. Οι τράπεζες ελέγχουν τα πάντα.
+                </p>
               </div>
-            ))}
+              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>📊</span>
+                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                  Τρέχον Euribor 3M: <strong style={{ color:'var(--info)', fontFamily:'JetBrains Mono, monospace' }}>{fmtPct(market.euribor_3m)}</strong>. Κυμαινόμενο δάνειο με spread +1.5% σημαίνει σήμερα <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtPct(market.euribor_3m+1.5)}</strong> — αλλά θυμηθείτε ότι το 2023 έφτασε το 4%. Σκεφτείτε το σταθερό.
+                </p>
+              </div>
+              {/* Conditional on calcState — με fallback ώστε να φαίνεται πάντα κάτι */}
+              {calcState.loanAmount>0&&(
+                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>🏦</span>
+                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                    {calcState.loanAmount>200000
+                      ?`Δάνειο ${fmtEur(calcState.loanAmount)}: Για ποσά άνω των 200.000€ διαπραγματευτείτε το spread απευθείας με τη Διεύθυνση Δανείων της τράπεζας — συχνά επιτυγχάνεται μείωση 0.10-0.20%, που σε βάθος χρόνου σημαίνει χιλιάδες ευρώ.`
+                      :`Δάνειο ${fmtEur(calcState.loanAmount)} / ${calcState.years} χρόνια: Μηνιαία δόση ${fmtEur(calcState.monthly)}. Η δόση αντιπροσωπεύει ${fmtPct1((calcState.monthly/(parseFloat(advAmt)/calcState.years/12||1500))*100)} του εκτιμώμενου εισοδήματός σας — ελέγξτε το DTI Ratio στον Calculator.`
+                    }
+                  </p>
+                </div>
+              )}
+              {calcState.loanType==='first_home'&&(
+                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'rgba(52,211,153,0.05)', border:'1px solid rgba(52,211,153,0.2)', borderRadius:9 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>🏠</span>
+                  <p style={{ fontSize:12, color:'var(--positive)', lineHeight:1.6 }}>
+                    Πρώτη κατοικία: Εφόσον η ηλικία σας είναι 25-50 ετών, το Σπίτι μου ΙΙ μπορεί να εξοικονομήσει <strong>{fmtEur(Math.max(0,(calcState.monthly-calcMonthly(calcState.loanAmount,Math.max(market.euribor_3m*0.5+0.3,1.0),calcState.years))*calcState.years*12))}</strong> συνολικά. Deadline 31/08/2026 — ξεκινήστε τώρα.
+                  </p>
+                </div>
+              )}
+              {calcState.loanType==='investment'&&(
+                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>💰</span>
+                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                    Επενδυτικό ακίνητο: Τα ενοίκια φορολογούνται με κλίμακα 15%/25%/35% (2026) με αυτόματη έκπτωση 5% δαπανών. Οι τόκοι στεγαστικού δεν εκπίπτουν για δάνεια μετά το 2013. Η απόδοση (yield) ενοικίου υπολογίζεται ως ετήσιο ενοίκιο ÷ αξία αγοράς.
+                  </p>
+                </div>
+              )}
+              {calcState.rateType==='variable'&&(
+                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'rgba(251,146,60,0.05)', border:'1px solid rgba(251,146,60,0.2)', borderRadius:9 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>⚠️</span>
+                  <p style={{ fontSize:12, color:'var(--warning)', lineHeight:1.6 }}>
+                    Κυμαινόμενο επιτόκιο: Αν το Euribor ανέβει +2% (σενάριο 2023), η μηνιαία δόση σας θα γίνει <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtEur(calcMonthly(calcState.loanAmount,calcState.effectiveRate+2,calcState.years))}</strong> — αύξηση {fmtEur(calcMonthly(calcState.loanAmount,calcState.effectiveRate+2,calcState.years)-calcState.monthly)}/μήνα. Αξιολογήστε αν αντέχετε αυτή την επιβάρυνση.
+                  </p>
+                </div>
+              )}
+              {calcState.years>=25&&(
+                <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>⏱️</span>
+                  <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                    Διάρκεια {calcState.years} χρόνια: Αν μειώσετε σε 20 χρόνια, η δόση ανεβαίνει κατά <strong style={{ fontFamily:'JetBrains Mono, monospace' }}>{fmtEur(Math.max(0,calcMonthly(calcState.loanAmount,calcState.effectiveRate,20)-calcState.monthly))}</strong>/μήνα αλλά εξοικονομείτε σημαντικούς τόκους. Εναλλακτικά, έκτακτες πληρωμές 100-200€/μήνα μειώνουν δραστικά τη συνολική διάρκεια.
+                  </p>
+                </div>
+              )}
+              <div style={{ display:'flex', gap:12, padding:'11px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:9 }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>🔄</span>
+                <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                  Αναχρηματοδότηση: Αν έχετε ήδη δάνειο με επιτόκιο άνω του {fmtPct(market.euribor_3m+2.0)}, αξίζει να ελέγξετε αν συμφέρει η μεταφορά. Χρησιμοποιήστε την Ανάλυση Αναχρηματοδότησης στον Calculator για ακριβή break-even υπολογισμό.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -568,41 +620,41 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
               {
                 step:2, title:'Συλλογή Εγγράφων', time:'1-3 εβδομάδες',
                 color:'var(--info)',
-                desc:'Μισθοδοτικά 3 μηνών, εκκαθαριστικά 2 ετών, Ε9, πιστοποιητικό οικογενειακής κατάστασης, ΑΜΚΑ, ΑΦΜ. Για ελεύθερους επαγγελματίες: φορολογικές δηλώσεις 2 ετών και βεβαίωση έναρξης.',
-                tip:'💡 Ζητήστε ΚΑΘΕ έγγραφο που μπορεί να χρειαστεί εξαρχής. Η τράπεζα συχνά ζητάει επιπλέον στοιχεία εκ των υστέρων καθυστερώντας τη διαδικασία.',
-                warning:'⚠ Τα Ε1/Ε9 αντλούνται από ΑΑΔΕ — βεβαιωθείτε ότι είναι ενημερωμένα. Αγνοημένα ακίνητα στο Ε9 μπορεί να σας αποκλείσουν από απαλλαγή ΦΜΑ.',
+                desc:'Εκκαθαριστικά σημειώματα αποδοχών 3 τελευταίων μηνών, εκκαθαριστικά εφορίας 2 ετών, Ε9, πιστοποιητικό οικογενειακής κατάστασης, ΑΜΚΑ, ΑΦΜ. Για ελεύθερους επαγγελματίες: φορολογικές δηλώσεις 2 ετών και βεβαίωση έναρξης επιτηδεύματος.',
+                tip:'💡 Ζητήστε ΚΑΘΕ έγγραφο που μπορεί να χρειαστεί από την αρχή. Η τράπεζα συχνά ζητάει επιπλέον στοιχεία εκ των υστέρων, καθυστερώντας τη διαδικασία κατά εβδομάδες.',
+                warning:'⚠ Τα Ε1/Ε9 αντλούνται από ΑΑΔΕ — βεβαιωθείτε ότι είναι ενημερωμένα. Αδήλωτα ακίνητα στο Ε9 μπορεί να σας αποκλείσουν από την απαλλαγή ΦΜΑ.',
                 url: null,
               },
               {
                 step:3, title:'Αίτηση στην Τράπεζα', time:'1 ημέρα',
                 color:'var(--positive)',
-                desc:'Υποβάλτε αίτηση στη συνεργαζόμενη τράπεζα της επιλογής σας. Για Σπίτι μου ΙΙ επιλέγετε ΜΙΑ τράπεζα — δεν μπορείτε να κάνετε ταυτόχρονες αιτήσεις σε πολλές. Επιλέξτε προσεκτικά βάσει επιτοκίου και εξυπηρέτησης.',
-                tip:'💡 Ζητήστε γραπτή προσφορά (ESIS) από τουλάχιστον 2-3 τράπεζες πριν δεσμευτείτε. Σύμφωνα με νόμο, η τράπεζα οφείλει να σας δώσει 7 εργάσιμες μέρες για να αποφασίσετε.',
-                warning:'⚠ Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS (Ευρωπαϊκό Τυποποιημένο Δελτίο Πληροφοριών) με ηρεμία.',
+                desc:'Προχωρήστε στην υποβολή αίτησης με τη συνεργαζόμενη τράπεζα της επιλογής σας. Για το πρόγραμμα Σπίτι μου ΙΙ δύναται να επιλέξετε μόνο ΜΙΑ τράπεζα — δεν μπορείτε να κάνετε ταυτόχρονες αιτήσεις σε περισσότερες. Επιλέξτε προσεκτικά βάσει επιτοκίου και ποιότητας εξυπηρέτησης.',
+                tip:'💡 Ζητήστε γραπτή προσφορά (ESIS) από τουλάχιστον 2-3 τράπεζες πριν δεσμευτείτε. Σύμφωνα με το νόμο, η τράπεζα οφείλει να σας δώσει 7 εργάσιμες ημέρες για να αποφασίσετε.',
+                warning:'⚠ Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε προσεκτικά το ESIS (Ευρωπαϊκό Τυποποιημένο Δελτίο Πληροφοριών) πριν από οποιαδήποτε δέσμευση.',
                 url: 'https://www.bankofgreece.gr/el/to-nea/anakoinoseis/2016/pliroforiso-tous-katagites-gia-stegastika',
               },
               {
                 step:4, title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος', time:'1-3 εβδομάδες',
                 color:'var(--warning)',
-                desc:'Η τράπεζα στέλνει πιστοποιημένο εκτιμητή (RICS ή TEE) να αξιολογήσει το ακίνητο. Ταυτόχρονα, ο νομικός της τράπεζας ελέγχει τους τίτλους στο Κτηματολόγιο ή Υποθηκοφυλακείο.',
-                tip:'💡 Αν η εκτίμηση βγει χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί της εκτίμησης — χρειάζεστε περισσότερα ίδια κεφάλαια.',
-                warning:'⚠ Πολύ συνηθισμένο πρόβλημα: Αυθαίρετα τμήματα στο ακίνητο (π.χ. κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν την αγορά ή μειώνουν δραστικά την εκτίμηση. Ζητήστε τεχνικό έλεγχο πριν προχωρήσετε.',
+                desc:'Η τράπεζα αναθέτει σε πιστοποιημένο εκτιμητή (RICS ή ΤΕΕ) την αξιολόγηση του ακινήτου. Ταυτόχρονα, ο νομικός σύμβουλος της τράπεζας ελέγχει τους τίτλους στο Κτηματολόγιο ή στο Υποθηκοφυλακείο.',
+                tip:'💡 Αν η εκτίμηση προκύψει χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί της εκτιμηθείσας αξίας — ενδέχεται να χρειαστείτε περισσότερα ίδια κεφάλαια.',
+                warning:'⚠ Πολύ συνηθισμένο πρόβλημα: Αυθαίρετα τμήματα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση ή μειώνουν δραστικά την εκτίμηση. Ζητήστε τεχνικό έλεγχο πριν προχωρήσετε.',
                 url: 'https://www.ktimatologio.gr',
               },
               {
                 step:5, title:'Έγκριση Δανείου', time:'3-10 εργάσιμες',
                 color:'var(--positive)',
-                desc:'Η τράπεζα αξιολογεί εισόδημα, ιστορικό (Τειρεσίας), εκτίμηση και νομικά. Η απόφαση είναι γραπτή και ισχύει συνήθως 90 ημέρες. Για Σπίτι μου ΙΙ η έγκριση από ΕΑΤ λαμβάνεται παράλληλα.',
-                tip:'💡 Αν απορριφθείτε, ζητήστε γραπτώς τον λόγο. Μπορείτε να επανέλθετε μετά από 6 μήνες ή να υποβάλετε σε άλλη τράπεζα.',
-                warning:'⚠ Τειρεσίας: Ακόμα και μια ακάλυπτη επιταγή ή καθυστερημένη δόση μπορεί να επηρεάσει. Ελέγξτε τη φερεγγυότητά σας πριν υποβάλετε αίτηση.',
+                desc:'Η τράπεζα αξιολογεί εισόδημα, πιστωτικό ιστορικό (Τειρεσίας), εκτίμηση και νομικά στοιχεία. Η απόφαση χορήγησης είναι γραπτή και ισχύει συνήθως 90 ημέρες. Για το πρόγραμμα Σπίτι μου ΙΙ η έγκριση από την ΕΑΤ λαμβάνεται παράλληλα.',
+                tip:'💡 Σε περίπτωση απόρριψης, ζητήστε γραπτώς τον λόγο. Μπορείτε να επανέλθετε μετά από 6 μήνες ή να υποβάλετε αίτηση σε άλλη τράπεζα.',
+                warning:'⚠ Τειρεσίας: Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση άνω των 90 ημερών μπορεί να επηρεάσει αρνητικά. Τυχόν οφειλές πρέπει να τακτοποιηθούν νωρίτερα.',
                 url: 'https://www.tiresias.gr',
               },
               {
                 step:6, title:'Συμβόλαιο & Εκταμίευση', time:'1-2 εβδομάδες',
                 color:'var(--accent)',
-                desc:'Υπογραφή αγοραπωλητηρίου συμβολαίου στον συμβολαιογράφο με παρουσία αγοραστή, πωλητή, τράπεζας και δικηγόρου. Μετά καταχώρηση στο Κτηματολόγιο και εκταμίευση δανείου.',
-                tip:'💡 Για νεόδμητα: βεβαιωθείτε ότι έχει εκδοθεί ΠΕΑ (Πιστοποιητικό Ενεργειακής Απόδοσης) — υποχρεωτικό για τη μεταβίβαση.',
-                warning:'⚠ Έχετε μαζί σας ΟΛΕΣ τις φορολογικές και ασφαλιστικές ενημερότητες — λήγουν γρήγορα (15-30 μέρες) και η υπογραφή μπορεί να ματαιωθεί.',
+                desc:'Υπογραφή αγοραπωλητηρίου συμβολαίου ενώπιον συμβολαιογράφου, με παρουσία αγοραστή, πωλητή, εκπροσώπου τράπεζας και δικηγόρου. Σε δεύτερο χρόνο πραγματοποιείται συνήθως η καταχώρηση στο Κτηματολόγιο και η εκταμίευση του δανείου.',
+                tip:'💡 Για νεόδμητα: βεβαιωθείτε ότι έχει εκδοθεί Πιστοποιητικό Ενεργειακής Απόδοσης (ΠΕΑ) — είναι υποχρεωτικό για τη μεταβίβαση.',
+                warning:'⚠ Έχετε μαζί σας ΟΛΕΣ τις φορολογικές και ασφαλιστικές ενημερότητες — λήγουν γρήγορα (15-30 ημέρες) και η υπογραφή μπορεί να ματαιωθεί.',
                 url: null,
               },
             ].map((step,i,arr)=>(
@@ -633,7 +685,7 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
             {dot('Γιατί Απορρίπτεται Μια Αίτηση — Τι να Ελέγξετε Πρώτα')}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               {[
-                { icon:'📋', title:'Εγγραφή στον Τειρεσία', desc:'Ακόμα και ένα ακάλυπτο επιταγή ή δόση με καθυστέρηση >90 ημέρων. Ελέγξτε πριν αιτηθείτε.', url:'https://www.tiresias.gr' },
+                { icon:'📋', title:'Εγγραφή στον Τειρεσία', desc:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση άνω των 90 ημερών αρκεί. Τυχόν οφειλές πρέπει να τακτοποιηθούν νωρίτερα — ελέγξτε πριν από οποιαδήποτε αίτηση.', url:'https://www.tiresias.gr' },
                 { icon:'💰', title:'Χαμηλό εισόδημα / Υψηλό DTI', desc:'Η δόση δεν πρέπει να υπερβαίνει το 35-40% του καθαρού εισοδήματος. Επαγγελματικά με χαμηλές δηλώσεις είναι ο κύριος λόγος απόρριψης.', url:null },
                 { icon:'🏠', title:'Αυθαίρετα στο ακίνητο', desc:'Τροποποιήσεις χωρίς άδεια (κλεισμένη βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.', url:'https://www.ktimatologio.gr' },
                 { icon:'📑', title:'Προβλήματα τίτλων', desc:'Ακαθόριστοι τίτλοι, αδήλωτα ακίνητα σε Ε9, εκκρεμείς διαδικασίες κληρονομιάς. Ο νομικός έλεγχος διαρκεί εβδομάδες.', url:null },
@@ -657,7 +709,7 @@ export default function TabLoan({ propertyId, userId }: { propertyId:string; use
             {dot('Ειδικές Κατηγορίες Δανειοληπτών')}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               {[
-                {title:'Ένοπλες Δυνάμεις',icon:'🎖️',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
+                {title:'Ένοπλες Δυνάμεις',icon:'🎖️',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά δάνεια με χαμηλότερο επιτόκιο για εν ενεργεία μέλη των Ενόπλων Δυνάμεων και των Σωμάτων Ασφαλείας. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι Εξωτερικού',icon:'✈️',desc:'Max LTV 55-70%. Απαιτούνται επίσημες μεταφράσεις, αποδεικτικό κατοικίας εξωτερικού, εισοδήματα από ξένη χώρα. Ισχύουν ΣΑΔΦ.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
                 {title:'Νέοι 25-50 ετών',icon:'⭐',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, deadline 31/08/2026. Εισόδημα €25.000-€40.000 (νέα όρια 2026). Πρώτη κατοικία έως 150τμ.',url:'https://greece20.gov.gr/en/home-loans/'},
                 {title:'Ελεύθεροι Επαγγελματίες',icon:'💼',desc:'Ο μέσος όρος εισοδήματος 2 ετών υπολογίζεται αντί του τελευταίου. Max LTV 65-70%. Απαιτείται συνέπεια στις φορολογικές δηλώσεις.',url:'https://www.aade.gr'},
