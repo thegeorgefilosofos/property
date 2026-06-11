@@ -414,8 +414,8 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
   ] as {key:string;label:string}[]
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:16,width:'100%',maxWidth:680,maxHeight:'90vh',overflow:'hidden',padding:0,display:'flex',flexDirection:'column'}}>
+    <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px 16px'}}>
+      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:16,width:'100%',maxWidth:680,height:'calc(100vh - 16px)',maxHeight:800,overflow:'hidden',padding:0,display:'flex',flexDirection:'column'}}>
         {/* Modal header */}
         <div style={{padding:'20px 24px 16px',borderBottom:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
           <div>
