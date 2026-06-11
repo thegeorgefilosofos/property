@@ -415,7 +415,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:16,width:'100%',maxWidth:680,maxHeight:'92vh',overflowY:'auto',padding:0,display:'flex',flexDirection:'column'}}>
+      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:16,width:'100%',maxWidth:680,maxHeight:'90vh',overflow:'hidden',padding:0,display:'flex',flexDirection:'column'}}>
         {/* Modal header */}
         <div style={{padding:'20px 24px 16px',borderBottom:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
           <div>
@@ -433,7 +433,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
           ))}
         </div>
         {/* Modal body */}
-        <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:20,flex:1}}>
+        <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:20,flex:1,overflowY:'auto'}}>
 
           {tab==='basic'&&(
             <>
@@ -1091,13 +1091,13 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       ):(
         // List view
         <div style={{display:'flex',flexDirection:'column',gap:1}}>
-          <div style={{display:'grid',gridTemplateColumns:'2.5fr 1fr 80px 100px 110px 160px',gap:12,padding:'8px 16px',borderBottom:'2px solid var(--border-subtle)'}}>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px 150px',gap:8,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
             {['Αντικείμενο','Κατηγορία','Κλάση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:600}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
             return (
-              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2.5fr 1fr 80px 100px 110px 160px',gap:12,padding:'12px 16px',background:needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s'}}
+              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px 150px',gap:8,padding:'10px 14px',background:needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s'}}
                 onMouseEnter={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}
                 onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background=needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)'}
               >
@@ -1597,7 +1597,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
   const actionCount = items.filter(needsAction).length
 
   return (
-    <div>
+    <div style={{minWidth:0,width:'100%'}}>
       {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
