@@ -508,7 +508,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {(form.provenance==='new'||form.provenance==='discount')&&(
                 <div style={{padding:'14px 16px',background:'rgba(212,175,66,0.06)',borderRadius:12,border:'1px solid var(--border-accent)',display:'flex',flexDirection:'column',gap:12}}>
                   <p style={{fontSize:11,color:'var(--accent)',fontWeight:600}}>💰 Στοιχεία Τιμής</p>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,minWidth:0}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,minWidth:0,overflow:'hidden'}}>
                     <div>
                       <label style={{fontSize:9,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600,display:'block',marginBottom:6}}>Αρχική Τιμή (€)</label>
                       <NumberInput value={String(form.original_price||0)} onChange={v=>set('original_price',parseFloat(v)||0)} suffix="€" min={0}/>
