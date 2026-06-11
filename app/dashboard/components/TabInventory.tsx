@@ -508,7 +508,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {(form.provenance==='new'||form.provenance==='discount')&&(
                 <div style={{padding:'14px 16px',background:'rgba(212,175,66,0.06)',borderRadius:12,border:'1px solid var(--border-accent)',display:'flex',flexDirection:'column',gap:12}}>
                   <p style={{fontSize:11,color:'var(--accent)',fontWeight:600}}>💰 Στοιχεία Τιμής</p>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,minWidth:0}}>
                     <div>
                       <label style={{fontSize:9,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600,display:'block',marginBottom:6}}>Αρχική Τιμή (€)</label>
                       <NumberInput value={String(form.original_price||0)} onChange={v=>set('original_price',parseFloat(v)||0)} suffix="€" min={0}/>
@@ -520,7 +520,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                     <div>
                       <label style={{fontSize:9,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.12em',fontWeight:600,display:'block',marginBottom:6}}>Τελική Τιμή (€)</label>
                       {discountedPrice>0
-                        ?<div style={{background:'var(--bg-elevated)',border:'1px solid var(--positive)',borderRadius:8,padding:'9px 12px',fontSize:13,fontFamily:'JetBrains Mono,monospace',color:'var(--positive)',fontWeight:700}}>{fmtEur(discountedPrice)}</div>
+                        ?<div style={{background:'var(--bg-elevated)',border:'1px solid var(--positive)',borderRadius:8,padding:'9px 12px',fontSize:13,fontFamily:'JetBrains Mono,monospace',color:'var(--positive)',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmtEur(discountedPrice)}</div>
                         :<NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/>
                       }
                     </div>
@@ -1091,13 +1091,13 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       ):(
         // List view
         <div style={{display:'flex',flexDirection:'column',gap:1}}>
-          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px 150px',gap:8,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px auto',gap:8,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
             {['Αντικείμενο','Κατηγορία','Κλάση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.1em',fontWeight:600}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
             return (
-              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px 150px',gap:8,padding:'10px 14px',background:needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s'}}
+              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px auto',gap:8,padding:'10px 14px',background:needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s'}}
                 onMouseEnter={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}
                 onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background=needsAction(item)?'rgba(251,146,60,0.04)':'var(--bg-surface)'}
               >
