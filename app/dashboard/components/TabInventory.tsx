@@ -427,7 +427,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
         {/* Modal tabs */}
         <div style={{display:'flex',borderBottom:'1px solid var(--border-subtle)',padding:'0 24px',flexShrink:0}}>
           {TABS.map(t=>(
-            <button key={t.key} onClick={()=>setTab(t.key as any)} style={{padding:'10px 16px',fontSize:12,fontWeight:tab===t.key?600:400,color:tab===t.key?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${tab===t.key?'var(--accent)':'transparent'}`,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',fontFamily:'Inter,sans-serif',transition:'all 0.15s'}}>
+            <button key={t.key} onClick={()=>setTab(t.key as any)} style={{padding:'10px 16px',fontSize:12,fontWeight:tab===t.key?600:400,color:tab===t.key?'var(--accent)':'var(--text-secondary)',borderTop:'none',borderLeft:'none',borderRight:'none',borderBottom:`2px solid ${tab===t.key?'var(--accent)':'transparent'}`,background:'none',cursor:'pointer',whiteSpace:'nowrap',fontFamily:'Inter,sans-serif',transition:'all 0.15s'}}>
               {t.label}
             </button>
           ))}
