@@ -674,7 +674,7 @@ export default function TabTenant({propertyId,userId}:TabTenantProps) {
 
   const fetch_=useCallback(async()=>{
     setLoading(true);
-    const{data:td}=await supabase.from('tenants').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false}).limit(1);
+    const{data:td}=await supabase.from('tenants').select('*').eq('property_id',propertyId).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1);
     const t=td?.[0]||null;
     setTenant(t);
     if(t){
