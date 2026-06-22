@@ -21,25 +21,49 @@ interface Comparable {
 }
 
 const CONDITIONS = [
-  {value:'new',label:'Νεόδμητο / Άριστο'},
-  {value:'renovated',label:'Ανακαινισμένο'},
-  {value:'good',label:'Καλή Κατάσταση'},
-  {value:'average',label:'Μέτρια Κατάσταση'},
-  {value:'needs_work',label:'Χρειάζεται Εργασίες'},
+  { value: 'new', label: 'Νεόδμητο / Άριστο' },
+  { value: 'renovated', label: 'Ανακαινισμένο' },
+  { value: 'good', label: 'Καλή Κατάσταση' },
+  { value: 'average', label: 'Μέτρια Κατάσταση' },
+  { value: 'needs_work', label: 'Χρειάζεται Εργασίες' },
 ];
 
 const SOURCES = [
-  {value:'spitogatos',label:'Spitogatos'},
-  {value:'xe',label:'XE.gr'},
-  {value:'immowelt',label:'Immowelt'},
-  {value:'uniko',label:'Uniko'},
-  {value:'agent',label:'Μεσίτης'},
-  {value:'other',label:'Άλλο'},
+  { value: 'spitogatos', label: 'Spitogatos' },
+  { value: 'xe', label: 'XE.gr' },
+  { value: 'immowelt', label: 'Immowelt' },
+  { value: 'uniko', label: 'Uniko' },
+  { value: 'agent', label: 'Μεσίτης' },
+  { value: 'other', label: 'Άλλο' },
 ];
 
 const fe = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
 
-export default function RentComparables({ propertyId, userId, actualRent, sqm }: { propertyId: string; userId: string; actualRent: number; sqm?: number }) {
+const cardStyle: React.CSSProperties = {
+  background: 'var(--bg-elevated)',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: 12,
+  padding: 20,
+  marginBottom: 16,
+};
+
+const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
+      <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
+        {label}
+      </span>
+    </div>
+    {right}
+  </div>
+);
+
+export default function RentComparables({
+  propertyId, userId, actualRent,
+}: {
+  propertyId: string; userId: string; actualRent: number; sqm?: number;
+}) {
   const supabase = createClient();
   const [comps, setComps] = useState<Comparable[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -50,14 +74,16 @@ export default function RentComparables({ propertyId, userId, actualRent, sqm }:
   const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('rent_comparables')
-      .select('*').eq('property_id', propertyId).order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('rent_comparables')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('created_at', { ascending: false });
     setComps(data || []);
   }, [propertyId]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-calc rent per sqm
   useEffect(() => {
     if (form.rent && form.sqm && parseFloat(String(form.sqm)) > 0)
       sf('rent_per_sqm', (parseFloat(String(form.rent)) / parseFloat(String(form.sqm))).toFixed(2));
@@ -87,147 +113,180 @@ export default function RentComparables({ propertyId, userId, actualRent, sqm }:
 
   const avgRent = comps.length > 0 ? comps.reduce((s, c) => s + c.rent, 0) / comps.length : 0;
   const avgPerSqm = comps.filter(c => c.rent_per_sqm > 0).length > 0
-    ? comps.filter(c => c.rent_per_sqm > 0).reduce((s, c) => s + c.rent_per_sqm, 0) / comps.filter(c => c.rent_per_sqm > 0).length : 0;
+    ? comps.filter(c => c.rent_per_sqm > 0).reduce((s, c) => s + c.rent_per_sqm, 0) / comps.filter(c => c.rent_per_sqm > 0).length
+    : 0;
   const diff = actualRent > 0 && avgRent > 0 ? ((actualRent - avgRent) / avgRent) * 100 : 0;
 
   const condLabel = (v: string) => CONDITIONS.find(c => c.value === v)?.label || v;
   const srcLabel = (v: string) => SOURCES.find(s => s.value === v)?.label || v;
 
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', marginBottom: '16px' };
-  const g3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' };
-  const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '12px' };
+  const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 };
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '16px' }}>🔍</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Συγκριτικά Ακίνητα (Comparables)</span>
-        </div>
-        <button onClick={() => setShowForm(v => !v)}
-          style={{ background: showForm ? 'transparent' : 'var(--accent)', color: showForm ? 'var(--text-secondary)' : 'var(--bg-base)', border: `1px solid ${showForm ? 'var(--border-subtle)' : 'var(--accent)'}`, borderRadius: '8px', padding: '7px 14px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-          {showForm ? '✕ Κλείσιμο' : '+ Προσθήκη Comparable'}
-        </button>
-      </div>
+    <div style={cardStyle}>
+      <SectionLabel
+        label="Συγκριτικά Ακίνητα (Comparables)"
+        right={
+          <button
+            onClick={() => setShowForm(v => !v)}
+            style={{
+              background: showForm ? 'transparent' : 'var(--accent)',
+              color: showForm ? 'var(--text-secondary)' : '#fff',
+              border: `1px solid ${showForm ? 'var(--border-default)' : 'var(--accent)'}`,
+              borderRadius: 20, padding: '6px 14px', fontSize: 11, fontWeight: 500,
+              cursor: 'pointer', fontFamily: "'Google Sans', sans-serif",
+            }}
+          >
+            {showForm ? 'Κλείσιμο' : '+ Προσθήκη'}
+          </button>
+        }
+      />
 
       {/* Summary KPIs */}
       {comps.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
           {[
             { label: 'Μέσο Ενοίκιο Αγοράς', value: fe(avgRent), color: 'var(--info)' },
             { label: 'Μέσο €/τ.μ.', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} €/τ.μ.` : '—', color: 'var(--accent)' },
-            { label: 'Το Ενοίκιό σου', value: actualRent > 0 ? fe(actualRent) : '—', color: 'var(--text-primary)' },
+            { label: 'Ενοίκιό σου', value: actualRent > 0 ? fe(actualRent) : '—', color: 'var(--text-primary)' },
             {
               label: 'vs Αγορά',
               value: diff !== 0 ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—',
-              color: diff > 5 ? 'var(--positive)' : diff < -5 ? 'var(--negative)' : 'var(--warning)'
+              color: diff > 5 ? 'var(--positive)' : diff < -5 ? 'var(--negative)' : 'var(--warning)',
             },
           ].map((k, i) => (
-            <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: k.color, fontFamily: "'JetBrains Mono',monospace", marginBottom: '3px' }}>{k.value}</div>
-              <div style={{ fontSize: '9px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{k.label}</div>
+            <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Roboto Mono', monospace", marginBottom: 3 }}>{k.value}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>{k.label}</div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Comparison banners */}
       {diff > 5 && comps.length > 0 && (
-        <div style={{ background: 'rgba(52,217,123,0.08)', border: '1px solid var(--positive)', borderRadius: '8px', padding: '10px 14px', fontSize: '11px', color: 'var(--positive)', marginBottom: '12px' }}>
-          ✅ Το ενοίκιό σου είναι <strong>{diff.toFixed(1)}%</strong> πάνω από τον μέσο όρο της αγοράς — εξαιρετική τιμολόγηση!
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--positive)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: "'Roboto', sans-serif" }}>
+          Το ενοίκιό σου είναι <strong style={{ color: 'var(--positive)' }}>{diff.toFixed(1)}%</strong> πάνω από τον μέσο όρο της αγοράς — εξαιρετική τιμολόγηση.
         </div>
       )}
       {diff < -5 && comps.length > 0 && (
-        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid var(--warning)', borderRadius: '8px', padding: '10px 14px', fontSize: '11px', color: 'var(--warning)', marginBottom: '12px' }}>
-          ⚠️ Το ενοίκιό σου είναι <strong>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο — ίσως να μπορείς να αυξήσεις κατά <strong>{fe(avgRent - actualRent)}/μήνα</strong>.
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--warning)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: "'Roboto', sans-serif" }}>
+          Το ενοίκιό σου είναι <strong style={{ color: 'var(--warning)' }}>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο — ίσως να μπορείς να αυξήσεις κατά <strong style={{ color: 'var(--warning)' }}>{fe(avgRent - actualRent)}/μήνα</strong>.
         </div>
       )}
 
-      {/* Form */}
+      {/* Add form */}
       {showForm && (
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '16px', marginBottom: '16px', border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '14px' }}>Νέο Συγκριτικό Ακίνητο</div>
-          <div style={g4}>
-            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="π.χ. 2άρι Παγκράτι"/>
-            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="π.χ. Παγκράτι"/>
-            <NumberInput label="Τετραγωνικά (τ.μ.)" value={String(form.sqm || '')} onChange={v => sf('sqm', v)} suffix="τ.μ." step={5}/>
-            <NumberInput label="Ενοίκιο €/μήνα" value={String(form.rent || '')} onChange={v => sf('rent', v)} suffix="€" step={50}/>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: 16, marginBottom: 16, border: '1px solid var(--border-subtle)' }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14, fontFamily: "'Google Sans', sans-serif" }}>
+            Νέο Συγκριτικό Ακίνητο
           </div>
           <div style={g4}>
-            <CustomSelect label="Πηγή" value={form.source || 'spitogatos'} onChange={v => sf('source', v)} options={SOURCES}/>
-            <CustomSelect label="Κατάσταση Ακινήτου" value={form.condition || 'good'} onChange={v => sf('condition', v)} options={CONDITIONS}/>
-            <TextInput label="Απόσταση από ακίνητό σου" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ"/>
+            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="π.χ. 2άρι Παγκράτι" />
+            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="π.χ. Παγκράτι" />
+            <NumberInput label="Τετραγωνικά (τ.μ.)" value={String(form.sqm || '')} onChange={v => sf('sqm', v)} suffix="τ.μ." step={5} />
+            <NumberInput label="Ενοίκιο €/μήνα" value={String(form.rent || '')} onChange={v => sf('rent', v)} suffix="€" step={50} />
+          </div>
+          <div style={g4}>
+            <CustomSelect label="Πηγή" value={form.source || 'spitogatos'} onChange={v => sf('source', v)} options={SOURCES} />
+            <CustomSelect label="Κατάσταση Ακινήτου" value={form.condition || 'good'} onChange={v => sf('condition', v)} options={CONDITIONS} />
+            <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ" />
             <div>
-              <label style={{ fontSize: '9px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>€/τ.μ. (αυτόματο)</label>
-              <div style={{ padding: '9px 12px', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontSize: '13px', color: 'var(--accent)', fontFamily: "'JetBrains Mono',monospace" }}>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", display: 'block', marginBottom: 6 }}>€/τ.μ. (αυτόματο)</span>
+              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Roboto Mono', monospace" }}>
                 {form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} €/τ.μ.` : '—'}
               </div>
             </div>
           </div>
-          <TextInput label="URL Αγγελίας (προαιρετικό)" value={form.url || ''} onChange={v => sf('url', v)} placeholder="https://www.spitogatos.gr/..."/>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
-            <button onClick={() => setShowForm(false)}
-              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '8px 14px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+          <TextInput label="URL Αγγελίας (προαιρετικό)" value={form.url || ''} onChange={v => sf('url', v)} placeholder="https://www.spitogatos.gr/..." />
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+            <button
+              onClick={() => setShowForm(false)}
+              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: 20, padding: '8px 16px', fontSize: 11, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif", fontWeight: 500 }}
+            >
               Ακύρωση
             </button>
-            <button onClick={save} disabled={!form.title || !form.rent}
-              style={{ background: 'var(--accent)', color: 'var(--bg-base)', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+            <button
+              onClick={save}
+              disabled={!form.title || !form.rent}
+              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 20px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif" }}
+            >
               Αποθήκευση
             </button>
           </div>
         </div>
       )}
 
-      {/* List */}
+      {/* Empty state */}
       {comps.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-tertiary)' }}>
-          <div style={{ fontSize: '28px', opacity: 0.3, marginBottom: '8px' }}>🔍</div>
-          <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Δεν έχεις προσθέσει comparables ακόμα</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '6px' }}>Βρες παρόμοια ακίνητα στο Spitogatos/XE και πρόσθεσέ τα για σύγκριση</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tertiary)' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", marginBottom: 4 }}>Δεν έχεις προσθέσει comparables ακόμα</div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Βρες παρόμοια ακίνητα στο Spitogatos ή XE και πρόσθεσέ τα για σύγκριση</div>
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-          <thead>
-            <tr>
-              {['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€/τ.μ.', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', ''].map((h, i) => (
-                <th key={i} style={{ fontSize: '8px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 400 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {comps.map(c => {
-              const rentDiff = actualRent > 0 ? ((actualRent - c.rent) / c.rent) * 100 : 0;
-              return (
-                <tr key={c.id} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <td style={{ padding: '8px 8px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.title}</div>
-                    {c.distance && <div style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>{c.distance}</div>}
-                  </td>
-                  <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{c.area || '—'}</td>
-                  <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{c.sqm > 0 ? `${c.sqm} τ.μ.` : '—'}</td>
-                  <td style={{ padding: '8px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'JetBrains Mono',monospace" }}>{fe(c.rent)}</td>
-                  <td style={{ padding: '8px 8px', color: 'var(--text-secondary)', fontFamily: "'JetBrains Mono',monospace" }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
-                  <td style={{ padding: '8px 8px' }}><span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>{condLabel(c.condition)}</span></td>
-                  <td style={{ padding: '8px 8px', color: 'var(--text-tertiary)', fontSize: '10px' }}>{srcLabel(c.source)}</td>
-                  <td style={{ padding: '8px 8px' }}>
-                    {actualRent > 0 ? (
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'JetBrains Mono',monospace" }}>
-                        {rentDiff > 0 ? '+' : ''}{rentDiff.toFixed(1)}%
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                {['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€/τ.μ.', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', ''].map((h, i) => (
+                  <th key={i} style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {comps.map(c => {
+                const rentDiff = actualRent > 0 ? ((actualRent - c.rent) / c.rent) * 100 : 0;
+                return (
+                  <tr
+                    key={c.id}
+                    style={{ transition: 'background 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <td style={{ padding: '9px 8px' }}>
+                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.title}</div>
+                      {c.distance && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif", marginTop: 1 }}>{c.distance}</div>}
+                    </td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.area || '—'}</td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τ.μ.` : '—'}</td>
+                    <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Roboto Mono', monospace", fontSize: 12 }}>{fe(c.rent)}</td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto Mono', monospace", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
+                    <td style={{ padding: '9px 8px' }}>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: "'Roboto', sans-serif", whiteSpace: 'nowrap' }}>
+                        {condLabel(c.condition)}
                       </span>
-                    ) : '—'}
-                  </td>
-                  <td style={{ padding: '8px 8px' }}>
-                    <button onClick={() => del(c.id!)}
-                      style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '5px', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--negative)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Roboto', sans-serif" }}>{srcLabel(c.source)}</td>
+                    <td style={{ padding: '9px 8px' }}>
+                      {actualRent > 0 ? (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Roboto Mono', monospace" }}>
+                          {rentDiff > 0 ? '+' : ''}{rentDiff.toFixed(1)}%
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td style={{ padding: '9px 8px' }}>
+                      <button
+                        onClick={() => del(c.id!)}
+                        style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'rgba(239,68,68,0.08)'; b.style.color = 'var(--negative)'; b.style.borderColor = 'var(--negative)'; }}
+                        onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.color = 'var(--text-tertiary)'; b.style.borderColor = 'var(--border-subtle)'; }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

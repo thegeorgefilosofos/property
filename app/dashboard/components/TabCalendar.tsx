@@ -11,68 +11,47 @@ import {
   TrendingUp, Clock, Info,
 } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
 type EventStatus   = 'pending' | 'paid' | 'cancelled' | 'in_progress'
 type ViewMode      = 'month' | 'week' | 'list' | 'timeline'
 
 interface CalEvent {
-  id: string
-  property_id: string
-  user_id: string
-  title: string
-  category: EventCategory
-  event_date: string
-  amount?: number | null
-  priority: EventPriority
-  status: EventStatus
-  recurring: boolean
-  recurring_interval?: string | null
-  notes?: string | null
-  source: string
-  attachment_url?: string | null
-  color?: string | null
-  created_at: string
+  id: string; property_id: string; user_id: string; title: string
+  category: EventCategory; event_date: string; amount?: number | null
+  priority: EventPriority; status: EventStatus; recurring: boolean
+  recurring_interval?: string | null; notes?: string | null
+  source: string; attachment_url?: string | null; color?: string | null; created_at: string
 }
 
 interface FormState {
-  title: string
-  category: EventCategory
-  event_date: string
-  amount: string
-  priority: EventPriority
-  status: EventStatus
-  recurring: boolean
-  recurring_interval: string
-  notes: string
-  attachment_url: string
+  title: string; category: EventCategory; event_date: string; amount: string
+  priority: EventPriority; status: EventStatus; recurring: boolean
+  recurring_interval: string; notes: string; attachment_url: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
+// Google-aligned category colors
 const CATEGORIES: Record<EventCategory, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  financial:   { label: 'Οικονομικά',   color: '#d4af42', bg: 'rgba(212,175,66,0.12)',  border: 'rgba(212,175,66,0.3)',  icon: <DollarSign size={11}/> },
-  bills:       { label: 'Λογαριασμοί', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)',  icon: <Zap size={11}/> },
-  maintenance: { label: 'Συντήρηση',   color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)',  icon: <Wrench size={11}/> },
-  contract:    { label: 'Συμβόλαιο',   color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)', icon: <FileText size={11}/> },
-  tenant:      { label: 'Ενοικιαστής', color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  border: 'rgba(251,146,60,0.3)',  icon: <User size={11}/> },
-  reminder:    { label: 'Υπενθύμιση',  color: '#9ca3af', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.3)', icon: <Bell size={11}/> },
+  financial:   { label: 'Οικονομικά',   color: 'var(--accent)',    bg: 'var(--accent-dim)',    border: 'var(--border-accent)', icon: <DollarSign size={11}/> },
+  bills:       { label: 'Λογαριασμοί', color: 'var(--info)',      bg: 'var(--info-dim)',      border: 'var(--info)',          icon: <Zap size={11}/> },
+  maintenance: { label: 'Συντήρηση',   color: 'var(--positive)',  bg: 'var(--positive-dim)',  border: 'var(--positive)',      icon: <Wrench size={11}/> },
+  contract:    { label: 'Συμβόλαιο',   color: '#8b5cf6',          bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', icon: <FileText size={11}/> },
+  tenant:      { label: 'Ενοικιαστής', color: 'var(--warning)',   bg: 'var(--warning-dim)',   border: 'var(--warning)',       icon: <User size={11}/> },
+  reminder:    { label: 'Υπενθύμιση',  color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)', border: 'var(--border-default)', icon: <Bell size={11}/> },
 }
 
 const PRIORITIES: Record<EventPriority, { label: string; color: string }> = {
-  low:      { label: 'Χαμηλή',  color: '#34d399' },
-  medium:   { label: 'Μέτρια',  color: '#d4af42' },
-  high:     { label: 'Υψηλή',   color: '#fb923c' },
-  critical: { label: 'Κρίσιμη', color: '#f87171' },
+  low:      { label: 'Χαμηλή',  color: 'var(--positive)' },
+  medium:   { label: 'Μέτρια',  color: 'var(--warning)' },
+  high:     { label: 'Υψηλή',   color: 'var(--warning)' },
+  critical: { label: 'Κρίσιμη', color: 'var(--negative)' },
 }
 
 const STATUSES: Record<EventStatus, { label: string; color: string }> = {
-  pending:     { label: 'Εκκρεμεί',    color: '#d4af42' },
-  paid:        { label: 'Πληρώθηκε',   color: '#34d399' },
-  in_progress: { label: 'Σε εξέλιξη', color: '#60a5fa' },
-  cancelled:   { label: 'Ακυρώθηκε',  color: '#6b7280' },
+  pending:     { label: 'Εκκρεμεί',    color: 'var(--warning)' },
+  paid:        { label: 'Πληρώθηκε',   color: 'var(--positive)' },
+  in_progress: { label: 'Σε εξέλιξη', color: 'var(--info)' },
+  cancelled:   { label: 'Ακυρώθηκε',  color: 'var(--text-tertiary)' },
 }
 
 const RECURRING_OPTIONS = [
@@ -87,7 +66,6 @@ const RECURRING_OPTIONS = [
 const MONTH_NAMES_GR  = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος']
 const MONTH_SHORT_GR  = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ']
 const DAY_NAMES_GR    = ['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ']
-const DAY_FULL_GR     = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο']
 
 const EMPTY_FORM: FormState = {
   title: '', category: 'reminder', event_date: '', amount: '',
@@ -95,174 +73,143 @@ const EMPTY_FORM: FormState = {
   recurring_interval: 'monthly', notes: '', attachment_url: '',
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(date: string) {
-  if (!date) return ''
-  const [y, m, d] = date.split('-')
-  return `${d}/${m}/${y}`
-}
-function fmtShort(date: string) {
-  if (!date) return ''
-  const [y, m, d] = date.split('-')
-  return `${d} ${MONTH_SHORT_GR[parseInt(m)-1]}`
-}
-function daysUntil(dateStr: string) {
-  const today = new Date(); today.setHours(0,0,0,0)
-  const target = new Date(dateStr); target.setHours(0,0,0,0)
-  return Math.round((target.getTime() - today.getTime()) / 86400000)
-}
-function isOverdue(e: CalEvent)  { return e.status === 'pending' && daysUntil(e.event_date) < 0 }
-function isThisWeek(e: CalEvent) { const d = daysUntil(e.event_date); return e.status === 'pending' && d >= 0 && d <= 7 }
-function isThisMonth(e: CalEvent){ const d = daysUntil(e.event_date); return e.status === 'pending' && d > 7 && d <= 30 }
-function isExpiring(e: CalEvent) { const d = daysUntil(e.event_date); return e.category === 'contract' && e.status === 'pending' && d >= 0 && d <= 60 }
+function fmt(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d}/${m}/${y}` }
+function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d} ${MONTH_SHORT_GR[parseInt(m)-1]}` }
+function daysUntil(dateStr: string) { const t=new Date(); t.setHours(0,0,0,0); const g=new Date(dateStr); g.setHours(0,0,0,0); return Math.round((g.getTime()-t.getTime())/86400000) }
+function isOverdue(e: CalEvent)  { return e.status==='pending'&&daysUntil(e.event_date)<0 }
+function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.status==='pending'&&d>=0&&d<=7 }
+function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>7&&d<=30 }
+function isExpiring(e: CalEvent) { const d=daysUntil(e.event_date); return e.category==='contract'&&e.status==='pending'&&d>=0&&d<=60 }
 function todayStr() { return new Date().toISOString().split('T')[0] }
 
-// ─── Tooltip ──────────────────────────────────────────────────────────────────
-
+// Google-style tooltip
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
   const [show, setShow] = useState(false)
   return (
-    <div style={{ position: 'relative', display: 'inline-flex' }}
-      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+    <div style={{ position:'relative', display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
       {children}
       {show && text && (
-        <div style={{
-          position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
-          background: '#1a1a2e', border: '1px solid #2a2a40', borderRadius: 6,
-          padding: '5px 10px', fontSize: 11, color: '#c0c0d8',
-          zIndex: 999, pointerEvents: 'none', fontFamily: 'JetBrains Mono, monospace',
-          maxWidth: 260, whiteSpace: 'pre-wrap' as any,
-        }}>
+        <div style={{ position:'absolute', bottom:'110%', left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:4, padding:'6px 12px', fontSize:12, color:'var(--text-primary)', fontFamily:"'Roboto',sans-serif", zIndex:999, pointerEvents:'none', maxWidth:260, whiteSpace:'pre-wrap' as any, boxShadow:'var(--shadow-lg)' }}>
           {text}
-          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #2a2a40' }}/>
+          <div style={{ position:'absolute', top:'100%', left:'50%', transform:'translateX(-50%)', width:0, height:0, borderLeft:'5px solid transparent', borderRight:'5px solid transparent', borderTop:'5px solid var(--border-default)' }}/>
         </div>
       )}
     </div>
   )
 }
 
-// ─── Small UI pieces ──────────────────────────────────────────────────────────
-
 function CategoryBadge({ cat }: { cat: EventCategory }) {
   const c = CATEGORIES[cat]
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 4, color: c.color, background: c.bg, border: `1px solid ${c.border}`, whiteSpace: 'nowrap' }}>
+    <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Google Sans',sans-serif", fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase', padding:'2px 8px', borderRadius:16, color:c.color, background:c.bg, whiteSpace:'nowrap' }}>
       {c.icon}{c.label}
     </span>
   )
 }
+
 function StatusDot({ status }: { status: EventStatus }) {
   const s = STATUSES[status]
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: s.color }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.color, display: 'inline-block', flexShrink: 0 }}/>
+    <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, fontFamily:"'Roboto',sans-serif", color:s.color, letterSpacing:'0.25px' }}>
+      <span style={{ width:6, height:6, borderRadius:'50%', background:s.color, display:'inline-block', flexShrink:0 }}/>
       {s.label}
     </span>
   )
 }
+
 function PriorityTag({ priority }: { priority: EventPriority }) {
   const p = PRIORITIES[priority]
   return (
-    <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 3, color: p.color, border: `1px solid ${p.color}33` }}>
+    <span style={{ fontSize:11, fontFamily:"'Google Sans',sans-serif", fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase', padding:'1px 6px', borderRadius:4, color:p.color, background:`${p.color}15` }}>
       {p.label}
     </span>
   )
 }
+
 function SourceBadge({ source }: { source: string }) {
-  if (source === 'manual') return null
-  const labels: Record<string, string> = { bills: 'Bills', loan: 'Συντήρηση', rent: 'Ενοίκιο' }
+  if (source==='manual') return null
+  const labels: Record<string,string> = { bills:'Bills', loan:'Συντήρηση', rent:'Ενοίκιο' }
   return (
-    <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', padding: '1px 5px', borderRadius: 3, color: '#5a5a70', border: '1px solid #2a2a3e', background: 'rgba(255,255,255,0.02)' }}>
-      auto · {labels[source] ?? source}
+    <span style={{ fontSize:11, fontFamily:"'Roboto',sans-serif", padding:'1px 6px', borderRadius:4, color:'var(--text-tertiary)', border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
+      auto · {labels[source]??source}
     </span>
   )
 }
 
-// ─── Event Card (full) ────────────────────────────────────────────────────────
-
 function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect, bulkMode }: {
-  event: CalEvent; onToggleStatus: (e: CalEvent) => void
-  onEdit: (e: CalEvent) => void; onDelete: (id: string) => void
-  selected?: boolean; onSelect?: (id: string) => void; bulkMode?: boolean
+  event: CalEvent; onToggleStatus:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void
+  onDelete:(id:string)=>void; selected?:boolean; onSelect?:(id:string)=>void; bulkMode?:boolean
 }) {
   const overdue = isOverdue(event)
-  const done    = event.status === 'paid' || event.status === 'cancelled'
+  const done    = event.status==='paid'||event.status==='cancelled'
   const cat     = CATEGORIES[event.category]
-  const isAuto  = event.source !== 'manual'
+  const isAuto  = event.source!=='manual'
   const due     = daysUntil(event.event_date)
   const tooltipText = [
-    event.notes ? `📝 ${event.notes}` : '',
-    event.attachment_url ? `🔗 ${event.attachment_url}` : '',
-    event.recurring ? `🔄 Επαναλαμβάνεται: ${RECURRING_OPTIONS.find(o=>o.value===event.recurring_interval)?.label??''}` : '',
-    isAuto ? `⚡ Auto-synced από ${event.source}` : '',
+    event.notes?`${event.notes}`:'',
+    event.recurring?`Επαναλαμβάνεται: ${RECURRING_OPTIONS.find(o=>o.value===event.recurring_interval)?.label??''}` : '',
+    isAuto?`Auto-synced από ${event.source}`:'',
   ].filter(Boolean).join('\n')
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: 10,
-      padding: '11px 13px',
-      background: selected ? 'rgba(212,175,66,0.06)' : done ? 'rgba(255,255,255,0.015)' : '#12121f',
-      border: `1px solid ${selected ? 'rgba(212,175,66,0.35)' : overdue ? 'rgba(248,113,113,0.35)' : '#242438'}`,
-      borderLeft: `3px solid ${overdue ? '#f87171' : cat.color}`,
-      borderRadius: 8, opacity: done ? 0.55 : 1, transition: 'all 0.15s',
+    <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'12px 16px',
+      background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
+      border:`1px solid ${selected?'var(--border-accent)':overdue?'rgba(197,34,31,0.35)':'var(--border-subtle)'}`,
+      borderLeft:`3px solid ${overdue?'var(--negative)':cat.color}`,
+      borderRadius:8, opacity:done?0.6:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
     }}>
-      {/* Bulk checkbox */}
-      {bulkMode && onSelect && (
-        <button onClick={() => onSelect(event.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: selected ? '#d4af42' : '#3a3a54', padding: 0, display: 'flex', flexShrink: 0, marginTop: 1 }}>
-          {selected ? <CheckSquare size={15}/> : <Square size={15}/>}
+      {bulkMode&&onSelect&&(
+        <button onClick={()=>onSelect(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:selected?'var(--accent)':'var(--text-tertiary)', padding:0, display:'flex', flexShrink:0, marginTop:1 }}>
+          {selected?<CheckSquare size={15}/>:<Square size={15}/>}
         </button>
       )}
-      {/* Toggle done */}
-      {!bulkMode && (
-        <button onClick={() => onToggleStatus(event)} style={{ marginTop: 1, flexShrink: 0, width: 17, height: 17, borderRadius: '50%', border: `1.5px solid ${done ? '#d4af42' : '#3a3a54'}`, background: done ? '#d4af42' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
-          {done && <Check size={9} color="#08080d"/>}
+      {!bulkMode&&(
+        <button onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--positive)':'var(--border-default)'}`, background:done?'var(--positive)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all 0.15s' }}>
+          {done&&<Check size={9} color="#fff"/>}
         </button>
       )}
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-          <span style={{ fontSize: 13, color: done ? '#5a5a70' : '#e2e2f0', textDecoration: done ? 'line-through' : 'none', fontWeight: 500 }}>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:4 }}>
+          <span style={{ fontFamily:"'Google Sans',sans-serif", fontSize:14, fontWeight:500, color:done?'var(--text-tertiary)':'var(--text-primary)', textDecoration:done?'line-through':'none', letterSpacing:'0.1px' }}>
             {event.title}
           </span>
           <CategoryBadge cat={event.category}/>
           <PriorityTag priority={event.priority}/>
           <SourceBadge source={event.source}/>
-          {event.recurring && <Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={10} color="#5a5a70"/></Tooltip>}
-          {tooltipText && (
-            <Tooltip text={tooltipText}>
-              <Info size={10} color="#3a3a54" style={{ cursor: 'help' }}/>
-            </Tooltip>
-          )}
+          {event.recurring&&<Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={10} color="var(--text-tertiary)"/></Tooltip>}
+          {tooltipText&&<Tooltip text={tooltipText}><Info size={10} color="var(--text-tertiary)" style={{ cursor:'help' }}/></Tooltip>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           <StatusDot status={event.status}/>
-          {event.amount != null && (
-            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42' }}>
-              {event.amount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}
+          {event.amount!=null&&(
+            <span style={{ fontSize:13, fontFamily:"'Roboto Mono',monospace", color:'var(--accent)', fontWeight:500 }}>
+              {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
             </span>
           )}
-          {event.attachment_url && (
-            <a href={event.attachment_url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 2 }}>
+          {event.attachment_url&&(
+            <a href={event.attachment_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--info)', display:'flex', alignItems:'center', gap:2, fontFamily:"'Roboto',sans-serif" }}>
               Σύνδεσμος <ArrowRight size={9}/>
             </a>
           )}
         </div>
       </div>
-      {/* Date + urgency + actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-        <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: overdue ? '#f87171' : due <= 3 && !done ? '#fb923c' : '#5a5a70' }}>
-          {overdue ? `${Math.abs(due)}μ πριν` : due === 0 ? 'Σήμερα!' : fmt(event.event_date)}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+        <span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", color:overdue?'var(--negative)':due<=3&&!done?'var(--warning)':'var(--text-secondary)' }}>
+          {overdue?`${Math.abs(due)}μ πριν`:due===0?'Σήμερα!':fmt(event.event_date)}
         </span>
-        {!done && due >= 0 && due <= 7 && (
-          <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: due === 0 ? '#f87171' : due <= 3 ? '#fb923c' : '#d4af42', background: due === 0 ? 'rgba(248,113,113,0.1)' : 'rgba(212,175,66,0.08)', padding: '1px 5px', borderRadius: 3 }}>
-            {due === 0 ? 'ΣΗΜΕΡΑ' : `σε ${due}μ`}
+        {!done&&due>=0&&due<=7&&(
+          <span style={{ fontSize:11, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:due===0?'var(--negative)':due<=3?'var(--warning)':'var(--accent)', background:due===0?'var(--negative-dim)':'var(--accent-dim)', padding:'2px 8px', borderRadius:12 }}>
+            {due===0?'ΣΗΜΕΡΑ':`σε ${due}μ`}
           </span>
         )}
-        {!isAuto && !bulkMode && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={() => onEdit(event)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3a3a54', padding: 2, display: 'flex' }}><Edit2 size={12}/></button>
-            <button onClick={() => onDelete(event.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3a3a54', padding: 2, display: 'flex' }}><Trash2 size={12}/></button>
+        {!isAuto&&!bulkMode&&(
+          <div style={{ display:'flex', gap:4 }}>
+            <button onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
+              onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'}
+              onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Edit2 size={13}/></button>
+            <button onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
+              onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
+              onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
           </div>
         )}
       </div>
@@ -270,137 +217,74 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   )
 }
 
-// ─── Month View ───────────────────────────────────────────────────────────────
-
+// Month View
 function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll }: {
-  events: CalEvent[]; currentDate: Date
-  onDayClick: (date: string) => void; onEventClick: (e: CalEvent) => void
-  upcomingAll: CalEvent[]
+  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]
 }) {
-  const year  = currentDate.getFullYear()
-  const month = currentDate.getMonth()
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = todayStr()
-
-  const cells: (number | null)[] = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
-  for (let i = 1; i <= daysInMonth; i++) cells.push(i)
-  while (cells.length % 7 !== 0) cells.push(null)
-
-  const eventsForDay = (day: number) => {
-    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    return events.filter(e => e.event_date === ds)
-  }
-
-  // Upcoming 7 events across all months
-  const upcoming7 = upcomingAll
-    .filter(e => e.status === 'pending' && daysUntil(e.event_date) >= 0)
-    .sort((a, b) => a.event_date.localeCompare(b.event_date))
-    .slice(0, 7)
-
-  // Monthly stats
-  const monthPending = events.filter(e => e.status === 'pending')
-  const monthPendingAmt = monthPending.reduce((s, e) => s + (e.amount || 0), 0)
-  const monthPaid = events.filter(e => e.status === 'paid')
+  const year=currentDate.getFullYear(); const month=currentDate.getMonth()
+  const firstDay=new Date(year,month,1).getDay()
+  const daysInMonth=new Date(year,month+1,0).getDate()
+  const today=todayStr()
+  const cells:(number|null)[] = []
+  for(let i=0;i<firstDay;i++) cells.push(null)
+  for(let i=1;i<=daysInMonth;i++) cells.push(i)
+  while(cells.length%7!==0) cells.push(null)
+  const eventsForDay=(day:number)=>{ const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; return events.filter(e=>e.event_date===ds) }
+  const upcoming7=upcomingAll.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date)).slice(0,7)
+  const monthPendingAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
+  const monthPaid=events.filter(e=>e.status==='paid')
 
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      {/* Main grid */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, overflow: 'hidden' }}>
-          {/* Month summary bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 14px', borderBottom: '1px solid #1a1a2e', background: 'rgba(255,255,255,0.01)' }}>
-            <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70' }}>
-              {events.length} γεγονότα
-            </span>
-            {monthPendingAmt > 0 && (
-              <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42' }}>
-                {monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή
-              </span>
-            )}
-            <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#34d399' }}>
-              {monthPaid.length} πληρωμένα
-            </span>
-            {/* Mini legend */}
-            {/* Mini legend */}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {Object.entries(CATEGORIES).map(([k, c]) => (
-                <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: c.color, display: 'inline-block', flexShrink: 0 }}/>
-                  <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</span>
+    <div style={{ display:'flex', gap:12 }}>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
+            <span style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length} γεγονότα</span>
+            {monthPendingAmt>0&&<span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", color:'var(--accent)' }}>{monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή</span>}
+            <span style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--positive)' }}>{monthPaid.length} πληρωμένα</span>
+            <div style={{ marginLeft:'auto', display:'flex', gap:12, flexWrap:'wrap' }}>
+              {Object.entries(CATEGORIES).map(([k,c])=>(
+                <div key={k} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{ width:8, height:8, borderRadius:2, background:c.color, display:'inline-block' }}/>
+                  <span style={{ fontSize:11, fontFamily:"'Google Sans',sans-serif", color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{c.label}</span>
                 </div>
               ))}
             </div>
           </div>
-          {/* Day headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid #1e1e30' }}>
-            {DAY_NAMES_GR.map(d => (
-              <div key={d} style={{ padding: '7px 0', textAlign: 'center', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {d}
-              </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border-subtle)' }}>
+            {DAY_NAMES_GR.map(d=>(
+              <div key={d} style={{ padding:'8px 0', textAlign:'center', fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{d}</div>
             ))}
           </div>
-          {/* Cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
-            {cells.map((day, idx) => {
-              const dateStr = day ? `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : ''
-              const dayEvents = day ? eventsForDay(day) : []
-              const isToday = dateStr === today
-              const hasOverdue = dayEvents.some(isOverdue)
-              const dayAmt = dayEvents.filter(e => e.amount && e.status === 'pending').reduce((s,e)=>s+(e.amount||0),0)
-
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+            {cells.map((day,idx)=>{
+              const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
+              const dayEvents=day?eventsForDay(day):[]
+              const isToday=dateStr===today
+              const hasOverdue=dayEvents.some(isOverdue)
+              const dayAmt=dayEvents.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
               return (
-                <div key={idx} onClick={() => day && onDayClick(dateStr)} style={{
-                  minHeight: 74, padding: '5px 5px 3px',
-                  borderRight: (idx+1)%7===0 ? 'none' : '1px solid #1a1a2e',
-                  borderBottom: idx<cells.length-7 ? '1px solid #1a1a2e' : 'none',
-                  background: isToday ? 'rgba(212,175,66,0.05)' : 'transparent',
-                  cursor: day ? 'pointer' : 'default', transition: 'background 0.1s',
-                }}
-                  onMouseEnter={e => { if (day) (e.currentTarget as HTMLElement).style.background = isToday ? 'rgba(212,175,66,0.09)' : 'rgba(255,255,255,0.015)' }}
-                  onMouseLeave={e => { if (day) (e.currentTarget as HTMLElement).style.background = isToday ? 'rgba(212,175,66,0.05)' : 'transparent' }}
+                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:isToday?'var(--accent-dim)':'transparent', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                  onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
+                  onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'transparent'}}
                 >
-                  {day && (
+                  {day&&(
                     <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                        <span style={{
-                          fontSize: 11, fontFamily: 'JetBrains Mono, monospace',
-                          color: isToday ? '#d4af42' : '#5a5a70', fontWeight: isToday ? 700 : 400,
-                          width: 20, height: 20, borderRadius: '50%',
-                          background: isToday ? 'rgba(212,175,66,0.18)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>{day}</span>
-                        {hasOverdue && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f87171' }}/>}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                        <span style={{ fontSize:13, fontFamily:"'Google Sans',sans-serif", fontWeight:isToday?700:400, color:isToday?'var(--accent)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
+                        {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {dayEvents.slice(0,3).map(ev => (
-                          <Tooltip key={ev.id} text={`${ev.title}${ev.amount ? ` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` : ''}${ev.notes ? `\n${ev.notes}` : ''}`}>
-                            <div onClick={e => { e.stopPropagation(); onEventClick(ev) }} style={{
-                              fontSize: 9, padding: '1px 4px', borderRadius: 3,
-                              background: CATEGORIES[ev.category].bg,
-                              color: CATEGORIES[ev.category].color,
-                              border: `1px solid ${CATEGORIES[ev.category].border}`,
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              cursor: 'pointer', width: '100%',
-                              opacity: ev.status === 'paid' ? 0.4 : 1,
-                              textDecoration: ev.status === 'paid' ? 'line-through' : 'none',
-                            }}>
-                              {ev.recurring && '↻ '}{ev.title}
+                      <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                        {dayEvents.slice(0,3).map(ev=>(
+                          <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev.notes?`\n${ev.notes}`:''}`}>
+                            <div onClick={e=>{e.stopPropagation();onEventClick(ev)}} style={{ fontSize:11, padding:'1px 5px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', width:'100%', opacity:ev.status==='paid'?0.4:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily:"'Roboto',sans-serif", letterSpacing:'0.25px' }}>
+                              {ev.recurring&&'↻ '}{ev.title}
                             </div>
                           </Tooltip>
                         ))}
-                        {dayEvents.length > 3 && (
-                          <span style={{ fontSize: 8, color: '#4a4a60', paddingLeft: 3 }}>+{dayEvents.length - 3} ακόμα</span>
-                        )}
+                        {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily:"'Roboto',sans-serif" }}>+{dayEvents.length-3} ακόμα</span>}
                       </div>
-                      {dayAmt > 0 && (
-                        <div style={{ marginTop: 2 }}>
-                          <span style={{ fontSize: 8, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42', opacity: 0.7 }}>
-                            {dayAmt >= 1000 ? `${(dayAmt/1000).toFixed(1)}k€` : `${dayAmt.toFixed(0)}€`}
-                          </span>
-                        </div>
-                      )}
+                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily:"'Roboto Mono',monospace", color:'var(--accent)', opacity:0.8 }}>{dayAmt>=1000?`${(dayAmt/1000).toFixed(1)}k€`:`${dayAmt.toFixed(0)}€`}</span></div>}
                     </>
                   )}
                 </div>
@@ -409,31 +293,21 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
           </div>
         </div>
       </div>
-
-      {/* Right sidebar: upcoming + mini stats */}
-      <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Upcoming strip */}
-        <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 12 }}>
-          <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-            Επόμενα
-          </p>
-          {upcoming7.length === 0 && (
-            <p style={{ fontSize: 10, color: '#3a3a54', fontFamily: 'JetBrains Mono, monospace' }}>Κανένα εκκρεμές</p>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {upcoming7.map(ev => {
-              const d = daysUntil(ev.event_date)
-              const cat = CATEGORIES[ev.category]
+      <div style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
+          <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
+          {upcoming7.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Roboto',sans-serif" }}>Κανένα εκκρεμές</p>}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {upcoming7.map(ev=>{
+              const d=daysUntil(ev.event_date); const cat=CATEGORIES[ev.category]
               return (
-                <div key={ev.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <div style={{ width: 3, borderRadius: 2, background: cat.color, alignSelf: 'stretch', flexShrink: 0, minHeight: 30 }}/>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 10, color: '#c0c0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 1 }}>{ev.title}</p>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: d === 0 ? '#f87171' : d <= 3 ? '#fb923c' : '#5a5a70' }}>
-                        {d === 0 ? 'Σήμερα' : d === 1 ? 'Αύριο' : `${d}μ`}
-                      </span>
-                      {ev.amount && <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42' }}>{ev.amount}€</span>}
+                <div key={ev.id} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                  <div style={{ width:3, borderRadius:2, background:cat.color, alignSelf:'stretch', flexShrink:0, minHeight:28 }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>{ev.title}</p>
+                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <span style={{ fontSize:11, fontFamily:"'Roboto Mono',monospace", color:d===0?'var(--negative)':d<=3?'var(--warning)':'var(--text-secondary)' }}>{d===0?'Σήμερα':d===1?'Αύριο':`${d}μ`}</span>
+                      {ev.amount&&<span style={{ fontSize:11, fontFamily:"'Roboto Mono',monospace", color:'var(--accent)' }}>{ev.amount}€</span>}
                     </div>
                   </div>
                 </div>
@@ -441,47 +315,21 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
             })}
           </div>
         </div>
-
-        {/* Monthly mini-stats */}
-        <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 12 }}>
-          <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-            {MONTH_SHORT_GR[currentDate.getMonth()]}
-          </p>
-          {Object.entries(CATEGORIES).map(([k, cat]) => {
-            const cnt = events.filter(e => e.category === k).length
-            if (cnt === 0) return null
-            return (
-              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <span style={{ color: cat.color, display: 'flex' }}>{cat.icon}</span>
-                <span style={{ fontSize: 10, color: '#6b6b85', flex: 1 }}>{cat.label}</span>
-                <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70' }}>{cnt}</span>
-              </div>
-            )
-          })}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
+          <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_SHORT_GR[currentDate.getMonth()]}</p>
+          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
         </div>
-
-        {/* Heatmap mini */}
-        <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 12 }}>
-          <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-            Ετήσια δραστ.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 3 }}>
-            {MONTH_SHORT_GR.map((m, mIdx) => {
-              const cnt = upcomingAll.filter(e => {
-                const d = new Date(e.event_date)
-                return d.getMonth() === mIdx && d.getFullYear() === currentDate.getFullYear()
-              }).length
-              const intensity = cnt === 0 ? 0 : cnt <= 2 ? 0.2 : cnt <= 5 ? 0.5 : 1
-              const isCur = mIdx === currentDate.getMonth()
-              return (
-                <Tooltip key={m} text={`${m}: ${cnt} γεγονότα`}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '100%', aspectRatio: '1', borderRadius: 3, background: `rgba(212,175,66,${intensity})`, border: isCur ? '1px solid rgba(212,175,66,0.5)' : '1px solid transparent', marginBottom: 2 }}/>
-                    <span style={{ fontSize: 7, color: '#3a3a54', fontFamily: 'JetBrains Mono, monospace' }}>{m.slice(0,1)}</span>
-                  </div>
-                </Tooltip>
-              )
-            })}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
+          <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Ετήσια δραστ.</p>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:3 }}>
+            {MONTH_SHORT_GR.map((m,mIdx)=>{ const cnt=upcomingAll.filter(e=>{const d=new Date(e.event_date);return d.getMonth()===mIdx&&d.getFullYear()===currentDate.getFullYear()}).length; const intensity=cnt===0?0:cnt<=2?0.2:cnt<=5?0.5:1; const isCur=mIdx===currentDate.getMonth(); return (
+              <Tooltip key={m} text={`${m}: ${cnt} γεγονότα`}>
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ width:'100%', aspectRatio:'1', borderRadius:3, background:`rgba(25,103,210,${intensity})`, border:isCur?'1px solid var(--border-accent)':'1px solid transparent', marginBottom:2 }}/>
+                  <span style={{ fontSize:7, color:'var(--text-tertiary)', fontFamily:"'Roboto',sans-serif" }}>{m.slice(0,1)}</span>
+                </div>
+              </Tooltip>
+            )})}
           </div>
         </div>
       </div>
@@ -489,78 +337,35 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
   )
 }
 
-// ─── Week View ────────────────────────────────────────────────────────────────
-
-function WeekView({ events, currentDate, onDayClick, onEventClick }: {
-  events: CalEvent[]; currentDate: Date
-  onDayClick: (date: string) => void; onEventClick: (e: CalEvent) => void
-}) {
-  // Get Monday of the week
-  const d = new Date(currentDate)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const nd = new Date(d)
-    nd.setDate(d.getDate() + i)
-    return nd
-  })
-  const today = todayStr()
-
+// Week View
+function WeekView({ events, currentDate, onDayClick, onEventClick }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void }) {
+  const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
+  const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
+  const today=todayStr()
   return (
-    <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
-        {weekDays.map((wd, idx) => {
-          const ds = wd.toISOString().split('T')[0]
-          const dayEvs = events.filter(e => e.event_date === ds)
-          const isToday = ds === today
-          const hasOverdue = dayEvs.some(isOverdue)
-          const dayAmt = dayEvs.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+        {weekDays.map((wd,idx)=>{
+          const ds=wd.toISOString().split('T')[0]; const dayEvs=events.filter(e=>e.event_date===ds)
+          const isToday=ds===today; const hasOverdue=dayEvs.some(isOverdue)
+          const dayAmt=dayEvs.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
           return (
-            <div key={idx} style={{ borderRight: idx < 6 ? '1px solid #1a1a2e' : 'none' }}>
-              {/* Header */}
-              <div onClick={() => onDayClick(ds)} style={{
-                padding: '10px 8px 8px', borderBottom: '1px solid #1a1a2e', cursor: 'pointer',
-                background: isToday ? 'rgba(212,175,66,0.07)' : 'rgba(255,255,255,0.01)',
-                textAlign: 'center',
-              }}>
-                <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', marginBottom: 4 }}>
-                  {DAY_NAMES_GR[idx === 6 ? 0 : idx + 1]}
-                </p>
-                <span style={{
-                  fontSize: 16, fontFamily: 'JetBrains Mono, monospace',
-                  color: isToday ? '#d4af42' : '#c0c0d8', fontWeight: isToday ? 700 : 400,
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: isToday ? 'rgba(212,175,66,0.15)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
-                }}>
-                  {wd.getDate()}
-                </span>
-                {hasOverdue && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#f87171', margin: '4px auto 0' }}/>}
+            <div key={idx} style={{ borderRight:idx<6?'1px solid var(--border-subtle)':'none' }}>
+              <div onClick={()=>onDayClick(ds)} style={{ padding:'12px 8px 8px', borderBottom:'1px solid var(--border-subtle)', cursor:'pointer', background:isToday?'var(--accent-dim)':'var(--bg-elevated)', textAlign:'center' }}>
+                <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ fontSize:18, fontFamily:"'Google Sans',sans-serif", color:isToday?'var(--accent)':'var(--text-primary)', fontWeight:isToday?700:400, width:36, height:36, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto' }}>{wd.getDate()}</span>
+                {hasOverdue&&<div style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)', margin:'4px auto 0' }}/>}
               </div>
-              {/* Events */}
-              <div style={{ padding: '6px 5px', minHeight: 120, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {dayEvs.map(ev => (
-                  <Tooltip key={ev.id} text={`${ev.title}${ev.amount ? ` · ${ev.amount}€` : ''}${ev.notes ? `\n${ev.notes}` : ''}`}>
-                    <div onClick={() => onEventClick(ev)} style={{
-                      fontSize: 9, padding: '3px 5px', borderRadius: 4,
-                      background: CATEGORIES[ev.category].bg,
-                      color: CATEGORIES[ev.category].color,
-                      border: `1px solid ${CATEGORIES[ev.category].border}`,
-                      cursor: 'pointer', opacity: ev.status === 'paid' ? 0.4 : 1,
-                      borderLeft: `3px solid ${CATEGORIES[ev.category].color}`,
-                    }}>
-                      <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</p>
-                      {ev.amount && <p style={{ fontFamily: 'JetBrains Mono, monospace', opacity: 0.8 }}>{ev.amount}€</p>}
+              <div style={{ padding:'6px', minHeight:120, display:'flex', flexDirection:'column', gap:4 }}>
+                {dayEvs.map(ev=>(
+                  <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}${ev.notes?`\n${ev.notes}`:''}`}>
+                    <div onClick={()=>onEventClick(ev)} style={{ fontSize:11, padding:'4px 6px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:'pointer', opacity:ev.status==='paid'?0.4:1, borderLeft:`3px solid ${CATEGORIES[ev.category].color}`, fontFamily:"'Roboto',sans-serif" }}>
+                      <p style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</p>
+                      {ev.amount&&<p style={{ fontFamily:"'Roboto Mono',monospace", opacity:0.8 }}>{ev.amount}€</p>}
                     </div>
                   </Tooltip>
                 ))}
-                {dayAmt > 0 && (
-                  <p style={{ fontSize: 8, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42', textAlign: 'center', marginTop: 'auto', opacity: 0.7 }}>
-                    {dayAmt}€
-                  </p>
-                )}
+                {dayAmt>0&&<p style={{ fontSize:10, fontFamily:"'Roboto Mono',monospace", color:'var(--accent)', textAlign:'center', marginTop:'auto', opacity:0.8 }}>{dayAmt}€</p>}
               </div>
             </div>
           )
@@ -570,87 +375,63 @@ function WeekView({ events, currentDate, onDayClick, onEventClick }: {
   )
 }
 
-// ─── Timeline View ─────────────────────────────────────────────────────────────
-
-function TimelineView({ events, currentYear, onYearChange }: {
-  events: CalEvent[]; currentYear: number; onYearChange: (y: number) => void
-}) {
-  const today = new Date()
-  const todayMonth = today.getMonth()
-  const totalAmt = events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
-  const paidAmt  = events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
-
+// Timeline View
+function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void }) {
+  const today=new Date(); const todayMonth=today.getMonth()
+  const totalAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
+  const paidAmt=events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Year totals */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
         {[
-          { label: 'Σύνολο εκκρεμή', value: totalAmt > 0 ? totalAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}) : '—', color: '#d4af42' },
-          { label: 'Ήδη πληρώθηκαν', value: paidAmt > 0 ? paidAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}) : '—', color: '#34d399' },
-          { label: 'Γεγονότα έτους',  value: `${events.length}`, color: '#60a5fa' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 8, padding: '10px 13px' }}>
-            <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{s.label}</p>
-            <p style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace', color: s.color, fontWeight: 600 }}>{s.value}</p>
+          { label:'Σύνολο εκκρεμή', value:totalAmt>0?totalAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--accent)' },
+          { label:'Ήδη πληρώθηκαν', value:paidAmt>0?paidAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--positive)' },
+          { label:'Γεγονότα έτους', value:`${events.length}`, color:'var(--info)' },
+        ].map(s=>(
+          <div key={s.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
+            <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{s.label}</p>
+            <p style={{ fontSize:18, fontFamily:"'Roboto Mono',monospace", color:s.color, fontWeight:400 }}>{s.value}</p>
           </div>
         ))}
       </div>
-
-      <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => onYearChange(currentYear - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a5a70', display: 'flex' }}><ChevronLeft size={14}/></button>
-            <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Ετήσιος ορίζοντας {currentYear}
-            </p>
-            <button onClick={() => onYearChange(currentYear + 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a5a70', display: 'flex' }}><ChevronRight size={14}/></button>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:20, boxShadow:'var(--shadow-sm)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button onClick={()=>onYearChange(currentYear-1)} style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={16}/></button>
+            <p style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Ετήσιος ορίζοντας {currentYear}</p>
+            <button onClick={()=>onYearChange(currentYear+1)} style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={16}/></button>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12,1fr)', gap: 6 }}>
-          {MONTH_SHORT_GR.map((mName, mIdx) => {
-            const monthEvs = events.filter(e => {
-              const d = new Date(e.event_date)
-              return d.getFullYear() === currentYear && d.getMonth() === mIdx
-            })
-            const isCurrentMonth = mIdx === todayMonth && currentYear === today.getFullYear()
-            const isPast = currentYear < today.getFullYear() || (currentYear === today.getFullYear() && mIdx < todayMonth)
-            const pending = monthEvs.filter(e => e.status === 'pending')
-            const totalM = pending.reduce((s,e) => s+(e.amount||0), 0)
-            const overdueCount = monthEvs.filter(isOverdue).length
-
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(12,1fr)', gap:6 }}>
+          {MONTH_SHORT_GR.map((mName,mIdx)=>{
+            const monthEvs=events.filter(e=>{const d=new Date(e.event_date);return d.getFullYear()===currentYear&&d.getMonth()===mIdx})
+            const isCurrentMonth=mIdx===todayMonth&&currentYear===today.getFullYear()
+            const isPast=currentYear<today.getFullYear()||(currentYear===today.getFullYear()&&mIdx<todayMonth)
+            const pending=monthEvs.filter(e=>e.status==='pending')
+            const totalM=pending.reduce((s,e)=>s+(e.amount||0),0)
+            const overdueCount=monthEvs.filter(isOverdue).length
             return (
-              <div key={mIdx} style={{
-                background: isCurrentMonth ? 'rgba(212,175,66,0.08)' : isPast ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.02)',
-                border: `1px solid ${isCurrentMonth ? 'rgba(212,175,66,0.3)' : overdueCount > 0 ? 'rgba(248,113,113,0.2)' : '#1e1e30'}`,
-                borderRadius: 8, padding: '8px 5px', minHeight: 100,
-              }}>
-                <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: isCurrentMonth ? '#d4af42' : isPast ? '#2a2a3e' : '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, textAlign: 'center' }}>
-                  {mName}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {monthEvs.slice(0, 7).map(ev => (
-                    <Tooltip key={ev.id} text={`${ev.title}${ev.amount ? ` · ${ev.amount}€` : ''}`}>
-                      <div style={{ width: '100%', height: 4, borderRadius: 2, background: CATEGORIES[ev.category].color, opacity: ev.status === 'paid' ? 0.2 : isPast ? 0.5 : 1 }}/>
+              <div key={mIdx} style={{ background:isCurrentMonth?'var(--accent-dim)':isPast?'var(--bg-elevated)':'var(--bg-elevated)', border:`1px solid ${isCurrentMonth?'var(--border-accent)':overdueCount>0?'rgba(197,34,31,0.2)':'var(--border-subtle)'}`, borderRadius:8, padding:'8px 5px', minHeight:100 }}>
+                <p style={{ fontSize:11, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:isCurrentMonth?'var(--accent)':isPast?'var(--text-tertiary)':'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:6, textAlign:'center' }}>{mName}</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                  {monthEvs.slice(0,7).map(ev=>(
+                    <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}`}>
+                      <div style={{ width:'100%', height:4, borderRadius:2, background:CATEGORIES[ev.category].color, opacity:ev.status==='paid'?0.2:isPast?0.5:1 }}/>
                     </Tooltip>
                   ))}
-                  {monthEvs.length > 7 && <span style={{ fontSize: 7, color: '#3a3a54', textAlign: 'center' }}>+{monthEvs.length-7}</span>}
+                  {monthEvs.length>7&&<span style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Roboto',sans-serif" }}>+{monthEvs.length-7}</span>}
                 </div>
-                {totalM > 0 && (
-                  <p style={{ fontSize: 8, color: '#d4af42', textAlign: 'center', marginTop: 5, fontFamily: 'JetBrains Mono, monospace' }}>
-                    {totalM >= 1000 ? `${(totalM/1000).toFixed(1)}k€` : `${totalM.toFixed(0)}€`}
-                  </p>
-                )}
-                {monthEvs.length === 0 && <p style={{ fontSize: 8, color: '#1e1e30', textAlign: 'center' }}>—</p>}
+                {totalM>0&&<p style={{ fontSize:10, color:'var(--accent)', textAlign:'center', marginTop:5, fontFamily:"'Roboto Mono',monospace" }}>{totalM>=1000?`${(totalM/1000).toFixed(1)}k€`:`${totalM.toFixed(0)}€`}</p>}
+                {monthEvs.length===0&&<p style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Roboto',sans-serif" }}>—</p>}
               </div>
             )
           })}
         </div>
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid #1a1a2e' }}>
-          {Object.entries(CATEGORIES).map(([key, cat]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 4, borderRadius: 2, background: cat.color, display: 'inline-block' }}/>
-              <span style={{ fontSize: 9, color: '#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>{cat.label}</span>
+        <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+          {Object.entries(CATEGORIES).map(([key,cat])=>(
+            <div key={key} style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <span style={{ width:10, height:4, borderRadius:2, background:cat.color, display:'inline-block' }}/>
+              <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto',sans-serif", letterSpacing:'0.25px' }}>{cat.label}</span>
             </div>
           ))}
         </div>
@@ -659,203 +440,216 @@ function TimelineView({ events, currentYear, onYearChange }: {
   )
 }
 
-// ─── Auto-Pull Panel ──────────────────────────────────────────────────────────
-
-function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId: string; userId: string; onRefresh: () => void }) {
-  const supabase = createClient()
-  const [syncing, setSyncing] = useState(false)
-  const [sources, setSources] = useState({ bills: true, loan: true, rent: true })
-  const [lastSync, setLastSync] = useState<string | null>(null)
-  const [msg, setMsg] = useState('')
+// Auto-Pull Panel
+function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; userId:string; onRefresh:()=>void }) {
+  const supabase=createClient()
+  const [syncing,setSyncing]=useState(false)
+  const [sources,setSources]=useState({bills:true,loan:true,rent:true})
+  const [lastSync,setLastSync]=useState<string|null>(null)
+  const [msg,setMsg]=useState('')
 
   async function syncAll() {
-    setSyncing(true); setMsg(''); let count = 0
-
-    if (sources.bills) {
-      const { data: bills } = await supabase.from('bills').select('*').eq('property_id', propertyId)
-      if (bills?.length) {
-        await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'bills')
-        const today = new Date()
-        const billEvents = bills.filter((b: any) => b.due_date || b.next_due_date).map((b: any) => {
-          let dueDate = b.due_date || b.next_due_date
-          const d = new Date(dueDate)
-          if (d < today) { d.setMonth(today.getMonth()); d.setFullYear(today.getFullYear()); if (d < today) d.setMonth(d.getMonth() + 1); dueDate = d.toISOString().split('T')[0] }
-          return { property_id: propertyId, user_id: userId, title: b.name || b.provider || 'Λογαριασμός', category: 'bills' as EventCategory, event_date: dueDate, amount: b.amount || null, priority: 'medium' as EventPriority, status: (b.paid ? 'paid' : 'pending') as EventStatus, recurring: true, recurring_interval: 'monthly', notes: b.category ? `Κατηγορία: ${b.category}` : null, source: 'bills' }
+    setSyncing(true); setMsg(''); let count=0
+    if(sources.bills){
+      const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
+      if(bills?.length){
+        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
+        const today=new Date()
+        const billEvents=bills.filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
+          let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
+          if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
+          return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
         })
-        if (billEvents.length) { await supabase.from('calendar_events').insert(billEvents); count += billEvents.length }
+        if(billEvents.length){await supabase.from('calendar_events').insert(billEvents);count+=billEvents.length}
       }
     }
-    if (sources.loan) {
-      const { data: tasks } = await supabase.from('maintenance_tasks').select('*').eq('property_id', propertyId)
-      if (tasks?.length) {
-        await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'loan')
-        const taskEvents = tasks.map((t: any) => ({ property_id: propertyId, user_id: userId, title: t.title, category: 'maintenance' as EventCategory, event_date: t.due_date, amount: null, priority: (t.priority || 'medium') as EventPriority, status: (t.completed ? 'paid' : 'pending') as EventStatus, recurring: false, notes: t.description || null, source: 'loan' }))
-        await supabase.from('calendar_events').insert(taskEvents); count += taskEvents.length
+    if(sources.loan){
+      const{data:tasks}=await supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId)
+      if(tasks?.length){
+        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','loan')
+        const taskEvents=tasks.map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title,category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'loan'}))
+        await supabase.from('calendar_events').insert(taskEvents); count+=taskEvents.length
       }
     }
-    if (sources.rent) {
-      const { data: prop } = await supabase.from('properties').select('monthly_rent, rent_day').eq('id', propertyId).maybeSingle()
-      if (prop?.monthly_rent) {
-        await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'rent')
-        const rentDay = prop.rent_day || 1; const today2 = new Date()
-        const rentEvents = Array.from({ length: 12 }, (_, i) => {
-          const d = new Date(today2.getFullYear(), today2.getMonth() + i, rentDay)
-          return { property_id: propertyId, user_id: userId, title: 'Είσπραξη Ενοικίου', category: 'financial' as EventCategory, event_date: d.toISOString().split('T')[0], amount: prop.monthly_rent, priority: 'high' as EventPriority, status: 'pending' as EventStatus, recurring: true, recurring_interval: 'monthly', notes: 'Auto-pulled από στοιχεία ακινήτου', source: 'rent' }
-        })
-        await supabase.from('calendar_events').insert(rentEvents); count += rentEvents.length
+    if(sources.rent){
+      const{data:prop}=await supabase.from('properties').select('monthly_rent,rent_day').eq('id',propertyId).maybeSingle()
+      if(prop?.monthly_rent){
+        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','rent')
+        const rentDay=prop.rent_day||1; const today2=new Date()
+        const rentEvents=Array.from({length:12},(_,i)=>{const d=new Date(today2.getFullYear(),today2.getMonth()+i,rentDay);return{property_id:propertyId,user_id:userId,title:'Είσπραξη Ενοικίου',category:'financial' as EventCategory,event_date:d.toISOString().split('T')[0],amount:prop.monthly_rent,priority:'high' as EventPriority,status:'pending' as EventStatus,recurring:true,recurring_interval:'monthly',notes:'Auto-pulled από στοιχεία ακινήτου',source:'rent'}})
+        await supabase.from('calendar_events').insert(rentEvents); count+=rentEvents.length
       }
     }
     setLastSync(new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}))
-    setMsg(`✓ Συγχρονίστηκαν ${count} γεγονότα`)
+    setMsg(`Συγχρονίστηκαν ${count} γεγονότα`)
     setSyncing(false); onRefresh()
   }
 
   return (
-    <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16, boxShadow:'var(--shadow-sm)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
         <div>
-          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Auto-Pull Δεδομένων</p>
-          {lastSync && <p style={{ fontSize: 9, color: '#3a3a54', fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>Τελευταίος sync: {lastSync}</p>}
+          <p style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--positive)', letterSpacing:'0.1px' }}>Auto-Pull Δεδομένων</p>
+          {lastSync&&<p style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto',sans-serif", marginTop:2 }}>Τελευταίος sync: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: syncing ? 'transparent' : 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 7, cursor: syncing ? 'not-allowed' : 'pointer', color: '#34d399', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}>
-          <RefreshCw size={12} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }}/>
-          {syncing ? 'Συγχρονισμός...' : 'Sync τώρα'}
+        <button onClick={syncAll} disabled={syncing} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:syncing?'transparent':'var(--positive-dim)', border:'1px solid var(--positive)', borderRadius:18, cursor:syncing?'not-allowed':'pointer', color:'var(--positive)', fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>
+          <RefreshCw size={14} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός...':'Sync τώρα'}
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-        {[
-          { key: 'bills', label: 'Λογαριασμοί', icon: <Zap size={11}/>, desc: 'Bills tab' },
-          { key: 'loan',  label: 'Συντήρηση',   icon: <Wrench size={11}/>, desc: 'Maintenance tasks' },
-          { key: 'rent',  label: 'Ενοίκιο',     icon: <DollarSign size={11}/>, desc: '12 μήνες' },
-        ].map(({ key, label, icon, desc }) => {
-          const active = sources[key as keyof typeof sources]
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Bills tab'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Maintenance tasks'},{key:'rent',label:'Ενοίκιο',icon:<DollarSign size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
+          const active=sources[key as keyof typeof sources]
           return (
-            <button key={key} onClick={() => setSources(s => ({ ...s, [key]: !s[key as keyof typeof sources] }))} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: active ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.02)', border: `1px solid ${active ? 'rgba(52,211,153,0.25)' : '#1e1e30'}`, borderRadius: 7, cursor: 'pointer' }}>
-              <span style={{ color: active ? '#34d399' : '#3a3a54' }}>{icon}</span>
-              <div style={{ textAlign: 'left' }}>
-                <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: active ? '#34d399' : '#3a3a54' }}>{label}</p>
-                <p style={{ fontSize: 9, color: '#3a3a54', fontFamily: 'JetBrains Mono, monospace' }}>{desc}</p>
+            <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--positive-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--positive)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
+              <span style={{ color:active?'var(--positive)':'var(--text-tertiary)' }}>{icon}</span>
+              <div style={{ textAlign:'left' }}>
+                <p style={{ fontSize:13, fontFamily:"'Google Sans',sans-serif", color:active?'var(--positive)':'var(--text-secondary)' }}>{label}</p>
+                <p style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto',sans-serif" }}>{desc}</p>
               </div>
-              <span style={{ color: active ? '#34d399' : '#2a2a3e' }}>{active ? <ToggleRight size={14}/> : <ToggleLeft size={14}/>}</span>
+              <span style={{ color:active?'var(--positive)':'var(--text-tertiary)' }}>{active?<ToggleRight size={16}/>:<ToggleLeft size={16}/>}</span>
             </button>
           )
         })}
       </div>
-      {msg && <p style={{ marginTop: 8, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#34d399' }}>{msg}</p>}
+      {msg&&<p style={{ marginTop:8, fontSize:13, fontFamily:"'Roboto',sans-serif", color:'var(--positive)' }}>{msg}</p>}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
 
-// ─── Event Modal ──────────────────────────────────────────────────────────────
-
-function EventModal({ form, setForm, onSave, onClose, editing, saving }: {
-  form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>
-  onSave: () => void; onClose: () => void; editing: boolean; saving: boolean
+// Contact Picker
+function ContactPickerInput({ value, onChange, propertyId, inputStyle, placeholder, prefix='' }: {
+  value:string; onChange:(v:string)=>void; propertyId:string; inputStyle:React.CSSProperties; placeholder?:string; prefix?:string
 }) {
-  const inp: React.CSSProperties = { width: '100%', background: '#08080d', border: '1px solid #242438', borderRadius: 6, padding: '8px 10px', color: '#e2e2f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
-  const lbl: React.CSSProperties = { fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }
-
-  // Quick templates
-  const templates = [
-    { label: 'ΔΕΗ',     cat: 'bills',    pri: 'high',   title: 'Πληρωμή ΔΕΗ' },
-    { label: 'Ενοίκιο', cat: 'financial', pri: 'high',   title: 'Είσπραξη Ενοικίου' },
-    { label: 'ΕΝΦΙΑ',   cat: 'financial', pri: 'critical',title: 'Πληρωμή ΕΝΦΙΑ' },
-    { label: 'Ασφάλεια',cat: 'contract',  pri: 'high',   title: 'Ανανέωση Ασφάλειας' },
-    { label: 'Service', cat: 'maintenance',pri:'medium',  title: 'Service Κλιματιστικού' },
-  ]
-
+  const [contacts,setContacts]=useState<{id:string;full_name:string}[]>([])
+  const [show,setShow]=useState(false)
+  const ref=useRef<HTMLDivElement>(null)
+  useEffect(()=>{ const sb=createClient(); sb.from('contacts').select('id,full_name').eq('property_id',propertyId).then(({data}:{data:{id:string;full_name:string}[]|null})=>setContacts(data||[])) },[propertyId])
+  useEffect(()=>{ const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setShow(false)}; document.addEventListener('mousedown',h); return()=>document.removeEventListener('mousedown',h) },[])
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: '#0e0e1c', border: '1px solid #242438', borderRadius: 12, width: '100%', maxWidth: 540, maxHeight: '92vh', overflowY: 'auto', padding: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            {editing ? 'Επεξεργασία' : 'Νέο Γεγονός'}
-          </p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a5a70', display: 'flex' }}><X size={15}/></button>
+    <div ref={ref} style={{ position:'relative' }}>
+      <div style={{ display:'flex', gap:6 }}>
+        <input style={{...inputStyle,flex:1}} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)}/>
+        {contacts.length>0&&(
+          <button type="button" onClick={()=>setShow(s=>!s)} style={{ height:40, padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:14, fontFamily:"'Google Sans',sans-serif", whiteSpace:'nowrap' }}>
+            Επαφές
+          </button>
+        )}
+      </div>
+      {show&&(
+        <div style={{ position:'absolute', top:'calc(100% + 4px)', right:0, background:'var(--bg-surface)', borderRadius:4, padding:'8px 0', zIndex:2000, minWidth:220, maxHeight:200, overflowY:'auto', boxShadow:'var(--shadow-lg)' }}>
+          <div style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', padding:'4px 16px 8px', letterSpacing:'0.5px', textTransform:'uppercase', borderBottom:'1px solid var(--border-subtle)', marginBottom:4 }}>Επιλογή Επαφής</div>
+          {contacts.map(c=>(
+            <div key={c.id} onClick={()=>{onChange(prefix?prefix+c.full_name:c.full_name);setShow(false)}} style={{ padding:'10px 16px', cursor:'pointer', fontSize:14, color:'var(--text-primary)', fontFamily:"'Roboto',sans-serif" }}
+              onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-hover)')}
+              onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+              {c.full_name}
+            </div>
+          ))}
         </div>
+      )}
+    </div>
+  )
+}
 
-        {/* Quick templates (only for new) */}
-        {!editing && (
-          <div style={{ marginBottom: 14 }}>
+// Event Modal
+function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyId }: {
+  form:FormState; setForm:React.Dispatch<React.SetStateAction<FormState>>
+  onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; propertyId:string
+}) {
+  const inp: React.CSSProperties = { width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'10px 16px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Roboto',sans-serif", outline:'none', boxSizing:'border-box', height:40 }
+  const lbl: React.CSSProperties = { fontFamily:"'Google Sans',sans-serif", fontSize:12, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:6 }
+  const templates = [
+    {label:'ΔΕΗ',cat:'bills',pri:'high',title:'Πληρωμή ΔΕΗ'},
+    {label:'Ενοίκιο',cat:'financial',pri:'high',title:'Είσπραξη Ενοικίου'},
+    {label:'ΕΝΦΙΑ',cat:'financial',pri:'critical',title:'Πληρωμή ΕΝΦΙΑ'},
+    {label:'Ασφάλεια',cat:'contract',pri:'high',title:'Ανανέωση Ασφάλειας'},
+    {label:'Service',cat:'maintenance',pri:'medium',title:'Service Κλιματιστικού'},
+  ]
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.32)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:24 }}>
+      <div style={{ background:'var(--bg-surface)', borderRadius:28, width:'100%', maxWidth:540, maxHeight:'90vh', overflowY:'auto', padding:24, boxShadow:'var(--shadow-xl)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+          <p style={{ fontFamily:"'Google Sans',sans-serif", fontSize:22, fontWeight:400, color:'var(--text-primary)', lineHeight:'28px' }}>{editing?'Επεξεργασία':'Νέο Γεγονός'}</p>
+          <button onClick={onClose} style={{ width:40, height:40, borderRadius:20, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><X size={18}/></button>
+        </div>
+        {!editing&&(
+          <div style={{ marginBottom:16 }}>
             <p style={lbl}>Γρήγορη επιλογή</p>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {templates.map(t => (
-                <button key={t.label} onClick={() => setForm(f => ({ ...f, title: t.title, category: t.cat as EventCategory, priority: t.pri as EventPriority }))}
-                  style={{ padding: '4px 10px', borderRadius: 6, fontSize: 10, cursor: 'pointer', border: '1px solid #242438', background: form.title === t.title ? 'rgba(212,175,66,0.12)' : 'transparent', color: form.title === t.title ? '#d4af42' : '#5a5a70', fontFamily: 'JetBrains Mono, monospace', transition: 'all 0.15s' }}>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {templates.map(t=>(
+                <button key={t.label} onClick={()=>setForm(f=>({...f,title:t.title,category:t.cat as EventCategory,priority:t.pri as EventPriority}))} style={{ height:32, padding:'0 12px', borderRadius:16, fontSize:13, cursor:'pointer', border:`1px solid ${form.title===t.title?'var(--border-accent)':'var(--border-default)'}`, background:form.title===t.title?'var(--accent-dim)':'transparent', color:form.title===t.title?'var(--accent)':'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif", fontWeight:500, transition:'all 0.15s' }}>
                   {t.label}
                 </button>
               ))}
             </div>
           </div>
         )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div>
             <label style={lbl}>Τίτλος *</label>
-            <input style={inp} placeholder="π.χ. Πληρωμή ΔΕΗ Ιουνίου"
-              value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}/>
+            <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="π.χ. Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
             <div>
               <label style={lbl}>Κατηγορία</label>
-              <select style={{ ...inp, appearance: 'none' as any }} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as EventCategory }))}>
-                {Object.entries(CATEGORIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              <select style={{...inp,appearance:'none' as any,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center',paddingRight:36}} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value as EventCategory}))}>
+                {Object.entries(CATEGORIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
             <div>
               <label style={lbl}>Προτεραιότητα</label>
-              <select style={{ ...inp, appearance: 'none' as any }} value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as EventPriority }))}>
-                {Object.entries(PRIORITIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              <select style={{...inp,appearance:'none' as any,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center',paddingRight:36}} value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value as EventPriority}))}>
+                {Object.entries(PRIORITIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
             <div>
               <label style={lbl}>Ημερομηνία *</label>
-              <input type="date" style={inp} value={form.event_date} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))}/>
+              <input type="date" style={inp} value={form.event_date} onChange={e=>setForm(f=>({...f,event_date:e.target.value}))}/>
             </div>
             <div>
               <label style={lbl}>Ποσό (€)</label>
-              <input type="number" style={inp} placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}/>
+              <input type="number" style={inp} placeholder="0.00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/>
             </div>
           </div>
           <div>
             <label style={lbl}>Κατάσταση</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {Object.entries(STATUSES).map(([k,v]) => (
-                <button key={k} onClick={() => setForm(f => ({ ...f, status: k as EventStatus }))} style={{ padding: '5px 11px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', border: `1px solid ${form.status===k?v.color:'#242438'}`, background: form.status===k?`${v.color}15`:'transparent', color: form.status===k?v.color:'#5a5a70', transition: 'all 0.15s' }}>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {Object.entries(STATUSES).map(([k,v])=>(
+                <button key={k} onClick={()=>setForm(f=>({...f,status:k as EventStatus}))} style={{ height:36, padding:'0 16px', borderRadius:18, cursor:'pointer', fontSize:13, fontFamily:"'Google Sans',sans-serif", fontWeight:500, border:`1px solid ${form.status===k?v.color:'var(--border-default)'}`, background:form.status===k?`${v.color}15`:'transparent', color:form.status===k?v.color:'var(--text-secondary)', transition:'all 0.15s' }}>
                   {v.label}
                 </button>
               ))}
             </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid #1e1e30', borderRadius: 8, padding: 11 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: form.recurring ? 10 : 0 }}>
+          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:14 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.recurring?12:0 }}>
               <div>
-                <p style={{ fontSize: 12, color: '#e2e2f0', fontWeight: 500 }}>Επαναλαμβανόμενο</p>
-                <p style={{ fontSize: 11, color: '#5a5a70' }}>Ενοίκιο, δόση, ΕΝΦΙΑ κ.λπ.</p>
+                <p style={{ fontFamily:"'Google Sans',sans-serif", fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</p>
+                <p style={{ fontFamily:"'Roboto',sans-serif", fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.25px' }}>Ενοίκιο, δόση, ΕΝΦΙΑ κ.λπ.</p>
               </div>
-              <button onClick={() => setForm(f => ({ ...f, recurring: !f.recurring }))} style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', background: form.recurring ? '#d4af42' : '#242438', position: 'relative', transition: 'background 0.2s' }}>
-                <span style={{ position: 'absolute', top: 2, left: form.recurring ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }}/>
-              </button>
+              <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:52, height:32, borderRadius:16, border:`2px solid ${form.recurring?'var(--accent)':'var(--border-default)'}`, background:form.recurring?'var(--accent)':'transparent', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
+                <span style={{ position:'absolute', top:'50%', transform:'translateY(-50%)', width:form.recurring?24:16, height:form.recurring?24:16, borderRadius:'50%', background:form.recurring?'#fff':'var(--text-secondary)', left:form.recurring?'calc(100% - 26px)':'2px', transition:'all 0.2s' }}/>
+              </div>
             </div>
-            {form.recurring && (
-              <select style={{ ...inp, appearance: 'none' as any }} value={form.recurring_interval} onChange={e => setForm(f => ({ ...f, recurring_interval: e.target.value }))}>
-                {RECURRING_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {form.recurring&&(
+              <select style={{...inp,appearance:'none' as any,marginTop:0}} value={form.recurring_interval} onChange={e=>setForm(f=>({...f,recurring_interval:e.target.value}))}>
+                {RECURRING_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             )}
           </div>
           <div>
             <label style={lbl}>Σημειώσεις</label>
-            <textarea style={{ ...inp, resize: 'vertical' as any, minHeight: 56 }} placeholder="Πάροχος, αρ. λογαριασμού, οδηγίες..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}/>
+            <textarea style={{...inp,height:'auto',resize:'vertical',minHeight:64}} placeholder="Πάροχος, αρ. λογαριασμού, οδηγίες..." value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/>
           </div>
           <div>
             <label style={lbl}>Link (τιμολόγιο, σύμβαση)</label>
-            <input style={inp} placeholder="https://..." value={form.attachment_url} onChange={e => setForm(f => ({ ...f, attachment_url: e.target.value }))}/>
+            <input style={inp} placeholder="https://..." value={form.attachment_url} onChange={e=>setForm(f=>({...f,attachment_url:e.target.value}))}/>
           </div>
-          <button onClick={onSave} disabled={saving || !form.title || !form.event_date} style={{ background: '#d4af42', color: '#08080d', border: 'none', borderRadius: 7, padding: '10px 0', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', fontWeight: 600, opacity: saving || !form.title || !form.event_date ? 0.5 : 1 }}>
-            {saving ? 'Αποθήκευση...' : editing ? 'Ενημέρωση' : 'Προσθήκη'}
+          <button onClick={onSave} disabled={saving||!form.title||!form.event_date} style={{ height:40, borderRadius:20, border:'none', background:saving||!form.title||!form.event_date?'var(--bg-overlay)':'var(--accent)', color:saving||!form.title||!form.event_date?'var(--text-tertiary)':'#fff', fontFamily:"'Google Sans',sans-serif", fontSize:14, fontWeight:500, cursor:saving||!form.title||!form.event_date?'not-allowed':'pointer', letterSpacing:'0.1px', opacity:saving||!form.title||!form.event_date?0.6:1 }}>
+            {saving?'Αποθήκευση...':editing?'Ενημέρωση':'Προσθήκη'}
           </button>
         </div>
       </div>
@@ -863,24 +657,22 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving }: {
   )
 }
 
-// ─── Section helper ───────────────────────────────────────────────────────────
-
+// Section
 function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=false, bulkMode, selectedIds, onSelect }: {
-  title: string; color: string; events: CalEvent[]
-  onToggle: (e: CalEvent) => void; onEdit: (e: CalEvent) => void; onDelete: (id: string) => void
-  collapsed?: boolean; bulkMode?: boolean; selectedIds?: Set<string>; onSelect?: (id: string) => void
+  title:string; color:string; events:CalEvent[]; onToggle:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void; onDelete:(id:string)=>void
+  collapsed?:boolean; bulkMode?:boolean; selectedIds?:Set<string>; onSelect?:(id:string)=>void
 }) {
-  const [open, setOpen] = useState(!collapsed)
+  const [open,setOpen]=useState(!collapsed)
   return (
     <div>
-      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', marginBottom: open ? 8 : 0, padding: 0 }}>
-        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
-        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#3a3a54' }}>({events.length})</span>
-        <ChevronDown size={11} color="#3a3a54" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}/>
+      <button onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', marginBottom:open?10:0, padding:0 }}>
+        <span style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color, letterSpacing:'0.5px', textTransform:'uppercase' }}>{title}</span>
+        <span style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--text-tertiary)' }}>({events.length})</span>
+        <ChevronDown size={13} color="var(--text-tertiary)" style={{ transform:open?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>
       </button>
-      {open && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {events.map(e => (
+      {open&&(
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {events.map(e=>(
             <EventCard key={e.id} event={e} onToggleStatus={onToggle} onEdit={onEdit} onDelete={onDelete}
               selected={selectedIds?.has(e.id)} onSelect={onSelect} bulkMode={bulkMode}/>
           ))}
@@ -890,182 +682,146 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
   )
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main Component
+export default function TabCalendar({ propertyId, userId }: { propertyId:string; userId:string }) {
+  const supabase=createClient()
+  const [events,setEvents]=useState<CalEvent[]>([])
+  const [loading,setLoading]=useState(true)
+  const [viewMode,setViewMode]=useState<ViewMode>('month')
+  const [currentDate,setCurrentDate]=useState(new Date())
+  const [showModal,setShowModal]=useState(false)
+  const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
+  const [form,setForm]=useState<FormState>(EMPTY_FORM)
+  const [saving,setSaving]=useState(false)
+  const [filterCat,setFilterCat]=useState<EventCategory|'all'>('all')
+  const [filterStatus,setFilterStatus]=useState<EventStatus|'all'>('all')
+  const [showFilters,setShowFilters]=useState(false)
+  const [showAutoPull,setShowAutoPull]=useState(false)
+  const [searchQ,setSearchQ]=useState('')
+  const [bulkMode,setBulkMode]=useState(false)
+  const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set())
+  const [timelineYear,setTimelineYear]=useState(new Date().getFullYear())
 
-export default function TabCalendar({ propertyId, userId }: { propertyId: string; userId: string }) {
-  const supabase = createClient()
-  const [events, setEvents]             = useState<CalEvent[]>([])
-  const [loading, setLoading]           = useState(true)
-  const [viewMode, setViewMode]         = useState<ViewMode>('month')
-  const [currentDate, setCurrentDate]   = useState(new Date())
-  const [showModal, setShowModal]       = useState(false)
-  const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null)
-  const [form, setForm]                 = useState<FormState>(EMPTY_FORM)
-  const [saving, setSaving]             = useState(false)
-  const [filterCat, setFilterCat]       = useState<EventCategory | 'all'>('all')
-  const [filterStatus, setFilterStatus] = useState<EventStatus | 'all'>('all')
-  const [showFilters, setShowFilters]   = useState(false)
-  const [showAutoPull, setShowAutoPull] = useState(false)
-  const [searchQ, setSearchQ]           = useState('')
-  const [bulkMode, setBulkMode]         = useState(false)
-  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
-  const [timelineYear, setTimelineYear] = useState(new Date().getFullYear())
-
-  useEffect(() => { load() }, [propertyId])
+  useEffect(()=>{load()},[propertyId])
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('calendar_events').select('*').eq('property_id', propertyId).order('event_date')
-    setEvents(data || [])
-    setLoading(false)
+    const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')
+    setEvents(data||[]); setLoading(false)
   }
 
-  const filtered = events.filter(e => {
-    if (filterCat !== 'all' && e.category !== filterCat) return false
-    if (filterStatus !== 'all' && e.status !== filterStatus) return false
-    if (searchQ && !e.title.toLowerCase().includes(searchQ.toLowerCase())) return false
+  const filtered=events.filter(e=>{
+    if(filterCat!=='all'&&e.category!==filterCat)return false
+    if(filterStatus!=='all'&&e.status!==filterStatus)return false
+    if(searchQ&&!e.title.toLowerCase().includes(searchQ.toLowerCase()))return false
     return true
   })
 
-  const overdue   = filtered.filter(isOverdue)
-  const thisWeek  = filtered.filter(isThisWeek)
-  const thisMonth = filtered.filter(isThisMonth)
-  const expiring  = filtered.filter(isExpiring)
-  const later     = filtered.filter(e => { const d = daysUntil(e.event_date); return e.status === 'pending' && d > 30 })
-  const done      = filtered.filter(e => e.status === 'paid' || e.status === 'cancelled')
+  const overdue=filtered.filter(isOverdue)
+  const thisWeek=filtered.filter(isThisWeek)
+  const thisMonth=filtered.filter(isThisMonth)
+  const expiring=filtered.filter(isExpiring)
+  const later=filtered.filter(e=>{const d=daysUntil(e.event_date);return e.status==='pending'&&d>30})
+  const done=filtered.filter(e=>e.status==='paid'||e.status==='cancelled')
+  const totalPending=filtered.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
+  const nextEvent=filtered.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
+  const monthEvents=filtered.filter(e=>{const d=new Date(e.event_date);return d.getFullYear()===currentDate.getFullYear()&&d.getMonth()===currentDate.getMonth()})
 
-  const totalPending = filtered.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
-  const nextEvent    = filtered.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
+  function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
+  function openEdit(e:CalEvent){setEditingEvent(e);setForm({title:e.title,category:e.category,event_date:e.event_date,amount:e.amount?.toString()||'',priority:e.priority,status:e.status,recurring:e.recurring,recurring_interval:e.recurring_interval||'monthly',notes:e.notes||'',attachment_url:e.attachment_url||''});setShowModal(true)}
 
-  const monthEvents = filtered.filter(e => {
-    const d = new Date(e.event_date)
-    return d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth()
-  })
-  const weekEvents = filtered // WeekView handles internal filtering
-
-  function openNew(date?: string) {
-    setEditingEvent(null); setForm({ ...EMPTY_FORM, event_date: date || '' }); setShowModal(true)
-  }
-  function openEdit(e: CalEvent) {
-    setEditingEvent(e)
-    setForm({ title: e.title, category: e.category, event_date: e.event_date, amount: e.amount?.toString()||'', priority: e.priority, status: e.status, recurring: e.recurring, recurring_interval: e.recurring_interval||'monthly', notes: e.notes||'', attachment_url: e.attachment_url||'' })
-    setShowModal(true)
-  }
-
-  async function saveEvent() {
-    if (!form.title || !form.event_date) return
-    setSaving(true)
-    const payload = { property_id: propertyId, user_id: userId, title: form.title, category: form.category, event_date: form.event_date, amount: form.amount ? parseFloat(form.amount) : null, priority: form.priority, status: form.status, recurring: form.recurring, recurring_interval: form.recurring ? form.recurring_interval : null, notes: form.notes||null, attachment_url: form.attachment_url||null, source: 'manual' }
-    if (editingEvent) { await supabase.from('calendar_events').update(payload).eq('id', editingEvent.id) }
-    else { await supabase.from('calendar_events').insert(payload) }
+  async function saveEvent(){
+    if(!form.title||!form.event_date)return; setSaving(true)
+    const payload={property_id:propertyId,user_id:userId,title:form.title,category:form.category,event_date:form.event_date,amount:form.amount?parseFloat(form.amount):null,priority:form.priority,status:form.status,recurring:form.recurring,recurring_interval:form.recurring?form.recurring_interval:null,notes:form.notes||null,attachment_url:form.attachment_url||null,source:'manual'}
+    if(editingEvent){await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)}
+    else{await supabase.from('calendar_events').insert(payload)}
     await load(); setShowModal(false); setSaving(false)
   }
 
-  async function toggleStatus(e: CalEvent) {
-    const ns: EventStatus = e.status === 'paid' ? 'pending' : 'paid'
-    await supabase.from('calendar_events').update({ status: ns }).eq('id', e.id)
-    setEvents(prev => prev.map(ev => ev.id === e.id ? { ...ev, status: ns } : ev))
+  async function toggleStatus(e:CalEvent){
+    const ns:EventStatus=e.status==='paid'?'pending':'paid'
+    await supabase.from('calendar_events').update({status:ns}).eq('id',e.id)
+    setEvents(prev=>prev.map(ev=>ev.id===e.id?{...ev,status:ns}:ev))
   }
-  async function deleteEvent(id: string) {
-    if (!confirm('Διαγραφή γεγονότος;')) return
-    await supabase.from('calendar_events').delete().eq('id', id)
-    setEvents(prev => prev.filter(e => e.id !== id))
+  async function deleteEvent(id:string){
+    if(!confirm('Διαγραφή γεγονότος;'))return
+    await supabase.from('calendar_events').delete().eq('id',id)
+    setEvents(prev=>prev.filter(e=>e.id!==id))
   }
 
-  // Bulk actions
-  function toggleSelect(id: string) {
-    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-  async function bulkMarkPaid() {
-    if (!selectedIds.size) return
-    await Promise.all([...selectedIds].map(id => supabase.from('calendar_events').update({ status: 'paid' }).eq('id', id)))
+  function toggleSelect(id:string){setSelectedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
+  async function bulkMarkPaid(){
+    if(!selectedIds.size)return
+    await Promise.all([...selectedIds].map(id=>supabase.from('calendar_events').update({status:'paid'}).eq('id',id)))
     await load(); setSelectedIds(new Set()); setBulkMode(false)
   }
-  async function bulkDelete() {
-    if (!selectedIds.size || !confirm(`Διαγραφή ${selectedIds.size} γεγονότων;`)) return
-    await Promise.all([...selectedIds].map(id => supabase.from('calendar_events').delete().eq('id', id)))
+  async function bulkDelete(){
+    if(!selectedIds.size||!confirm(`Διαγραφή ${selectedIds.size} γεγονότων;`))return
+    await Promise.all([...selectedIds].map(id=>supabase.from('calendar_events').delete().eq('id',id)))
     await load(); setSelectedIds(new Set()); setBulkMode(false)
   }
 
-  // iCal export
-  function exportICal() {
-    const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//GR','CALSCALE:GREGORIAN']
-    filtered.forEach(e => {
-      const d = e.event_date.replace(/-/g,'')
-      lines.push('BEGIN:VEVENT',`UID:${e.id}@propertyos`,`DTSTART;VALUE=DATE:${d}`,`SUMMARY:${e.title}`,e.notes?`DESCRIPTION:${e.notes}`:'','END:VEVENT')
-    })
+  function exportICal(){
+    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//GR','CALSCALE:GREGORIAN']
+    filtered.forEach(e=>{const d=e.event_date.replace(/-/g,'');lines.push('BEGIN:VEVENT',`UID:${e.id}@propertyos`,`DTSTART;VALUE=DATE:${d}`,`SUMMARY:${e.title}`,e.notes?`DESCRIPTION:${e.notes}`:'','END:VEVENT')})
     lines.push('END:VCALENDAR')
-    const blob = new Blob([lines.filter(Boolean).join('\r\n')],{type:'text/calendar'})
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href=url; a.download='property-os.ics'; a.click()
-    URL.revokeObjectURL(url)
+    const blob=new Blob([lines.filter(Boolean).join('\r\n')],{type:'text/calendar'})
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='property-os.ics'; a.click(); URL.revokeObjectURL(url)
   }
 
-  // Print
-  function printCalendar() { window.print() }
+  const prevPeriod=()=>{ if(viewMode==='week')setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()-7)); else setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1)) }
+  const nextPeriod=()=>{ if(viewMode==='week')setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+7)); else setCurrentDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1)) }
+  const periodLabel=()=>{ if(viewMode==='week'){const d=new Date(currentDate);const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);const end=new Date(d);end.setDate(d.getDate()+6);return`${d.getDate()} ${MONTH_SHORT_GR[d.getMonth()]} – ${end.getDate()} ${MONTH_SHORT_GR[end.getMonth()]}`}; return`${MONTH_NAMES_GR[currentDate.getMonth()]} ${currentDate.getFullYear()}` }
 
-  // Go to today
-  function goToday() { setCurrentDate(new Date()) }
-
-  const prevPeriod = () => {
-    if (viewMode === 'week') setCurrentDate(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7))
-    else setCurrentDate(d => new Date(d.getFullYear(), d.getMonth()-1, 1))
-  }
-  const nextPeriod = () => {
-    if (viewMode === 'week') setCurrentDate(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))
-    else setCurrentDate(d => new Date(d.getFullYear(), d.getMonth()+1, 1))
-  }
-
-  const periodLabel = () => {
-    if (viewMode === 'week') {
-      const d = new Date(currentDate)
-      const day = d.getDay(); const diff = d.getDate() - day + (day===0?-6:1)
-      d.setDate(diff)
-      const end = new Date(d); end.setDate(d.getDate()+6)
-      return `${d.getDate()} ${MONTH_SHORT_GR[d.getMonth()]} – ${end.getDate()} ${MONTH_SHORT_GR[end.getMonth()]}`
-    }
-    return `${MONTH_NAMES_GR[currentDate.getMonth()]} ${currentDate.getFullYear()}`
-  }
+  // Google-style button base
+  const toolBtn=(active:boolean,activeColor:string='var(--accent)'): React.CSSProperties => ({
+    display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px',
+    background:active?`${activeColor}15`:'var(--bg-surface)',
+    border:`1px solid ${active?activeColor:'var(--border-default)'}`,
+    borderRadius:18, cursor:'pointer', color:active?activeColor:'var(--text-secondary)',
+    fontSize:13, fontFamily:"'Google Sans',sans-serif", fontWeight:500, letterSpacing:'0.1px',
+    transition:'all 0.15s', whiteSpace:'nowrap' as const,
+  })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
-      {/* ── KPI Bar ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+      {/* KPI Bar */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
         {[
-          { label: 'Εκκρεμή ποσά',       value: totalPending>0 ? totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}) : '—', color: totalPending>0?'#d4af42':'#5a5a70', icon: <TrendingUp size={13}/> },
-          { label: 'Εκπρόθεσμα',         value: overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα ✓', color: overdue.length>0?'#f87171':'#34d399', icon: <AlertTriangle size={13}/> },
-          { label: 'Επόμενη πληρωμή',    value: nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα!':`σε ${daysUntil(nextEvent.event_date)}μ`):'—', color: '#60a5fa', icon: <Clock size={13}/> },
-          { label: 'Λήξεις συμβολαίων', value: expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color: expiring.length>0?'#a78bfa':'#5a5a70', icon: <Shield size={13}/> },
-        ].map(kpi => (
-          <div key={kpi.label} style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 8, padding: '10px 13px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-              <span style={{ color: kpi.color, opacity: 0.7 }}>{kpi.icon}</span>
-              <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.label}</p>
+          {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
+          {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--positive)', icon:<AlertTriangle size={14}/>},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα!':`σε ${daysUntil(nextEvent.event_date)}μ`):'—', color:'var(--info)', icon:<Clock size={14}/>},
+          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'#8b5cf6':'var(--text-secondary)', icon:<Shield size={14}/>},
+        ].map(kpi=>(
+          <div key={kpi.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+              <span style={{ color:kpi.color, opacity:0.8 }}>{kpi.icon}</span>
+              <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{kpi.label}</p>
             </div>
-            <p style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: kpi.color, fontWeight: 600 }}>{kpi.value}</p>
+            <p style={{ fontSize:16, fontFamily:"'Roboto Mono',monospace", color:kpi.color, fontWeight:400 }}>{kpi.value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Smart Alerts ── */}
-      {(overdue.length>0||expiring.length>0) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {overdue.length>0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.22)', borderRadius: 8, padding: '9px 13px' }}>
-              <AlertTriangle size={13} color="#f87171"/>
-              <p style={{ fontSize: 12, color: '#f87171', fontFamily: 'JetBrains Mono, monospace', flex: 1 }}>
+      {/* Smart Alerts */}
+      {(overdue.length>0||expiring.length>0)&&(
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {overdue.length>0&&(
+            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--negative-dim)', border:'1px solid rgba(197,34,31,0.35)', borderRadius:8, padding:'10px 16px' }}>
+              <AlertTriangle size={14} color="var(--negative)"/>
+              <p style={{ fontSize:14, color:'var(--negative)', fontFamily:"'Roboto',sans-serif", flex:1, letterSpacing:'0.25px' }}>
                 {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'} — χρειάζονται άμεση δράση
               </p>
-              <span style={{ fontSize: 10, color: '#f87171', fontFamily: 'JetBrains Mono, monospace' }}>
-                {overdue.reduce((s,e)=>s+(e.amount||0),0)>0 && `${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
+              <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Roboto Mono',monospace" }}>
+                {overdue.reduce((s,e)=>s+(e.amount||0),0)>0&&`${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
               </span>
             </div>
           )}
-          {expiring.length>0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.22)', borderRadius: 8, padding: '9px 13px' }}>
-              <Shield size={13} color="#a78bfa"/>
-              <p style={{ fontSize: 12, color: '#a78bfa', fontFamily: 'JetBrains Mono, monospace' }}>
+          {expiring.length>0&&(
+            <div style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.3)', borderRadius:8, padding:'10px 16px' }}>
+              <Shield size={14} color="#8b5cf6"/>
+              <p style={{ fontSize:14, color:'#8b5cf6', fontFamily:"'Roboto',sans-serif", letterSpacing:'0.25px' }}>
                 {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών — {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
               </p>
             </div>
@@ -1073,155 +829,117 @@ export default function TabCalendar({ propertyId, userId }: { propertyId: string
         </div>
       )}
 
-      {/* ── Toolbar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+      {/* Toolbar */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         {/* View toggle */}
-        <div style={{ display: 'flex', background: '#12121f', border: '1px solid #242438', borderRadius: 7, overflow: 'hidden' }}>
-          {([
-            ['month','Μήνας',<Calendar size={11}/>],
-            ['week','Εβδομάδα',<CalendarDays size={11}/>],
-            ['list','Λίστα',<List size={11}/>],
-            ['timeline','Timeline',<BarChart2 size={11}/>],
-          ] as [ViewMode,string,React.ReactNode][]).map(([v,label,icon]) => (
-            <button key={v} onClick={() => setViewMode(v)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', border: 'none', borderRight: '1px solid #1e1e30', cursor: 'pointer', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', background: viewMode===v?'rgba(212,175,66,0.15)':'transparent', color: viewMode===v?'#d4af42':'#5a5a70', transition: 'all 0.15s' }}>
+        <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:8, overflow:'hidden' }}>
+          {([['month','Μήνας',<Calendar size={13}/>],['week','Εβδομάδα',<CalendarDays size={13}/>],['list','Λίστα',<List size={13}/>],['timeline','Timeline',<BarChart2 size={13}/>]] as [ViewMode,string,React.ReactNode][]).map(([v,label,icon])=>(
+            <button key={v} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px', border:'none', cursor:'pointer', fontSize:13, fontFamily:"'Google Sans',sans-serif", fontWeight:500, background:viewMode===v?'var(--accent-dim)':'transparent', color:viewMode===v?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s', letterSpacing:'0.1px' }}>
               {icon}{label}
             </button>
           ))}
         </div>
 
         {/* Period nav */}
-        {viewMode !== 'list' && viewMode !== 'timeline' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <button onClick={prevPeriod} style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', color: '#5a5a70', display: 'flex' }}><ChevronLeft size={12}/></button>
-            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#e2e2f0', minWidth: 160, textAlign: 'center' }}>{periodLabel()}</span>
-            <button onClick={nextPeriod} style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', color: '#5a5a70', display: 'flex' }}><ChevronRight size={12}/></button>
-            <button onClick={goToday} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid #242438', borderRadius: 6, cursor: 'pointer', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70' }}>Σήμερα</button>
+        {viewMode!=='list'&&viewMode!=='timeline'&&(
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <button onClick={prevPeriod} style={{ width:36, height:36, borderRadius:18, border:'1px solid var(--border-default)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='var(--bg-surface)'}><ChevronLeft size={16}/></button>
+            <span style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", color:'var(--text-primary)', minWidth:180, textAlign:'center', letterSpacing:'0.1px' }}>{periodLabel()}</span>
+            <button onClick={nextPeriod} style={{ width:36, height:36, borderRadius:18, border:'1px solid var(--border-default)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='var(--bg-surface)'}><ChevronRight size={16}/></button>
+            <button onClick={()=>setCurrentDate(new Date())} style={{...toolBtn(false)}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='var(--bg-hover)';(e.currentTarget as HTMLElement).style.color='var(--text-primary)'}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='var(--bg-surface)';(e.currentTarget as HTMLElement).style.color='var(--text-secondary)'}}>Σήμερα</button>
           </div>
         )}
 
-        <input placeholder="Αναζήτηση..." value={searchQ} onChange={e => setSearchQ(e.target.value)}
-          style={{ flex: 1, minWidth: 100, background: '#12121f', border: '1px solid #242438', borderRadius: 7, padding: '6px 10px', color: '#e2e2f0', fontSize: 11, fontFamily: 'inherit', outline: 'none' }}/>
+        <input placeholder="Αναζήτηση..." value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+          style={{ flex:1, minWidth:120, height:36, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Roboto',sans-serif", letterSpacing:'0.25px', outline:'none' }}/>
 
-        {/* Bulk mode toggle */}
-        <button onClick={() => { setBulkMode(b=>!b); setSelectedIds(new Set()) }} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: bulkMode?'rgba(96,165,250,0.1)':'#12121f', border: `1px solid ${bulkMode?'rgba(96,165,250,0.3)':'#242438'}`, borderRadius: 7, cursor: 'pointer', color: bulkMode?'#60a5fa':'#5a5a70', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}>
-          <CheckSquare size={11}/>Bulk
+        <button onClick={()=>{setBulkMode(b=>!b);setSelectedIds(new Set())}} style={toolBtn(bulkMode,'var(--info)')}>
+          <CheckSquare size={14}/>Bulk
         </button>
-
-        <button onClick={() => setShowFilters(f=>!f)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: showFilters?'rgba(212,175,66,0.1)':'#12121f', border: `1px solid ${showFilters?'rgba(212,175,66,0.3)':'#242438'}`, borderRadius: 7, cursor: 'pointer', color: showFilters?'#d4af42':'#5a5a70', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}>
-          <Filter size={11}/>Φίλτρα
+        <button onClick={()=>setShowFilters(f=>!f)} style={toolBtn(showFilters)}>
+          <Filter size={14}/>Φίλτρα
         </button>
-
-        <button onClick={() => setShowAutoPull(f=>!f)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: showAutoPull?'rgba(52,211,153,0.08)':'#12121f', border: `1px solid ${showAutoPull?'rgba(52,211,153,0.3)':'#242438'}`, borderRadius: 7, cursor: 'pointer', color: showAutoPull?'#34d399':'#5a5a70', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}>
-          <RefreshCw size={11}/>Sync
+        <button onClick={()=>setShowAutoPull(f=>!f)} style={toolBtn(showAutoPull,'var(--positive)')}>
+          <RefreshCw size={14}/>Sync
         </button>
-
-        <button onClick={exportICal} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: '#12121f', border: '1px solid #242438', borderRadius: 7, cursor: 'pointer', color: '#5a5a70', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}>
-          <Download size={11}/>iCal
+        <button onClick={exportICal} style={toolBtn(false)}>
+          <Download size={14}/>iCal
         </button>
-
-        <button onClick={printCalendar} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: '#12121f', border: '1px solid #242438', borderRadius: 7, cursor: 'pointer', color: '#5a5a70', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}>
-          <Printer size={11}/>Print
+        <button onClick={()=>window.print()} style={toolBtn(false)}>
+          <Printer size={14}/>Print
         </button>
-
-        <button onClick={() => openNew()} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 13px', background: '#d4af42', border: 'none', borderRadius: 7, cursor: 'pointer', color: '#08080d', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          <Plus size={12}/>Προσθήκη
+        <button onClick={()=>openNew()} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:'var(--accent)', border:'none', borderRadius:20, cursor:'pointer', color:'#fff', fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
+          <Plus size={14}/>Προσθήκη
         </button>
       </div>
 
-      {/* ── Bulk action bar ── */}
-      {bulkMode && selectedIds.size > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, padding: '9px 14px' }}>
-          <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#60a5fa' }}>{selectedIds.size} επιλεγμένα</span>
-          <button onClick={bulkMarkPaid} style={{ padding: '4px 12px', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 6, cursor: 'pointer', fontSize: 10, color: '#34d399', fontFamily: 'JetBrains Mono, monospace' }}>✓ Mark as Paid</button>
-          <button onClick={bulkDelete} style={{ padding: '4px 12px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 6, cursor: 'pointer', fontSize: 10, color: '#f87171', fontFamily: 'JetBrains Mono, monospace' }}>Διαγραφή</button>
-          <button onClick={() => setSelectedIds(new Set(filtered.map(e=>e.id)))} style={{ padding: '4px 12px', background: 'transparent', border: '1px solid #242438', borderRadius: 6, cursor: 'pointer', fontSize: 10, color: '#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>Επιλογή όλων</button>
+      {/* Bulk action bar */}
+      {bulkMode&&selectedIds.size>0&&(
+        <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--info-dim)', border:'1px solid var(--border-accent)', borderRadius:8, padding:'10px 16px' }}>
+          <span style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--info)' }}>{selectedIds.size} επιλεγμένα</span>
+          <button onClick={bulkMarkPaid} style={{ height:32, padding:'0 16px', background:'var(--positive-dim)', border:'1px solid var(--positive)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--positive)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>Πληρωμένα</button>
+          <button onClick={bulkDelete} style={{ height:32, padding:'0 16px', background:'var(--negative-dim)', border:'1px solid var(--negative)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--negative)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>Διαγραφή</button>
+          <button onClick={()=>setSelectedIds(new Set(filtered.map(e=>e.id)))} style={{ height:32, padding:'0 16px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif" }}>Επιλογή όλων</button>
         </div>
       )}
 
-      {/* ── Filters Panel ── */}
-      {showFilters && (
-        <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 8, padding: '12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      {/* Filters Panel */}
+      {showFilters&&(
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px', display:'flex', gap:24, flexWrap:'wrap', boxShadow:'var(--shadow-sm)' }}>
           <div>
-            <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Κατηγορία</p>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              <button onClick={() => setFilterCat('all')} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 10, cursor: 'pointer', border: '1px solid #242438', background: filterCat==='all'?'#d4af42':'transparent', color: filterCat==='all'?'#08080d':'#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>Όλες</button>
-              {Object.entries(CATEGORIES).map(([k,v]) => (
-                <button key={k} onClick={() => setFilterCat(k as EventCategory)} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 10, cursor: 'pointer', border: `1px solid ${filterCat===k?v.color:'#242438'}`, background: filterCat===k?v.bg:'transparent', color: filterCat===k?v.color:'#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>{v.label}</button>
+            <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Κατηγορία</p>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              <button onClick={()=>setFilterCat('all')} style={{ height:32, padding:'0 12px', borderRadius:16, fontSize:13, cursor:'pointer', border:'1px solid var(--border-default)', background:filterCat==='all'?'var(--accent)':'transparent', color:filterCat==='all'?'#fff':'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>Όλες</button>
+              {Object.entries(CATEGORIES).map(([k,v])=>(
+                <button key={k} onClick={()=>setFilterCat(k as EventCategory)} style={{ height:32, padding:'0 12px', borderRadius:16, fontSize:13, cursor:'pointer', border:`1px solid ${filterCat===k?v.color:'var(--border-default)'}`, background:filterCat===k?v.bg:'transparent', color:filterCat===k?v.color:'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>{v.label}</button>
               ))}
             </div>
           </div>
           <div>
-            <p style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#4a4a60', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Κατάσταση</p>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              <button onClick={() => setFilterStatus('all')} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 10, cursor: 'pointer', border: '1px solid #242438', background: filterStatus==='all'?'#d4af42':'transparent', color: filterStatus==='all'?'#08080d':'#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>Όλες</button>
-              {Object.entries(STATUSES).map(([k,v]) => (
-                <button key={k} onClick={() => setFilterStatus(k as EventStatus)} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 10, cursor: 'pointer', border: `1px solid ${filterStatus===k?v.color:'#242438'}`, background: filterStatus===k?`${v.color}15`:'transparent', color: filterStatus===k?v.color:'#5a5a70', fontFamily: 'JetBrains Mono, monospace' }}>{v.label}</button>
+            <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Κατάσταση</p>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              <button onClick={()=>setFilterStatus('all')} style={{ height:32, padding:'0 12px', borderRadius:16, fontSize:13, cursor:'pointer', border:'1px solid var(--border-default)', background:filterStatus==='all'?'var(--accent)':'transparent', color:filterStatus==='all'?'#fff':'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>Όλες</button>
+              {Object.entries(STATUSES).map(([k,v])=>(
+                <button key={k} onClick={()=>setFilterStatus(k as EventStatus)} style={{ height:32, padding:'0 12px', borderRadius:16, fontSize:13, cursor:'pointer', border:`1px solid ${filterStatus===k?v.color:'var(--border-default)'}`, background:filterStatus===k?`${v.color}15`:'transparent', color:filterStatus===k?v.color:'var(--text-secondary)', fontFamily:"'Google Sans',sans-serif", fontWeight:500 }}>{v.label}</button>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Auto-Pull ── */}
-      {showAutoPull && <AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load}/>}
+      {showAutoPull&&<AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load}/>}
 
-      {/* ── Loading ── */}
-      {loading && <div style={{ textAlign: 'center', padding: 40 }}><p style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#3a3a54' }}>Φόρτωση...</p></div>}
+      {loading&&<div style={{ textAlign:'center', padding:40 }}><p style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", color:'var(--text-secondary)' }}>Φόρτωση...</p></div>}
 
-      {/* ── Month View ── */}
-      {!loading && viewMode === 'month' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {!loading&&viewMode==='month'&&(
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered}/>
-          {monthEvents.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#5a5a70', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}
-              </p>
-              {monthEvents.map(e => (
-                <EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent}
-                  selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>
-              ))}
+          {monthEvents.length>0&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
+              {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
             </div>
           )}
-          {monthEvents.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <p style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#3a3a54' }}>Δεν υπάρχουν γεγονότα αυτόν τον μήνα</p>
-            </div>
-          )}
+          {monthEvents.length===0&&<div style={{ textAlign:'center', padding:'20px 0' }}><p style={{ fontSize:14, fontFamily:"'Roboto',sans-serif", color:'var(--text-tertiary)' }}>Δεν υπάρχουν γεγονότα αυτόν τον μήνα</p></div>}
         </div>
       )}
 
-      {/* ── Week View ── */}
-      {!loading && viewMode === 'week' && (
-        <WeekView events={filtered} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit}/>
-      )}
+      {!loading&&viewMode==='week'&&<WeekView events={filtered} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit}/>}
 
-      {/* ── List View ── */}
-      {!loading && viewMode === 'list' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {overdue.length>0   && <Section title="Εκπρόθεσμα"               color="#f87171" events={overdue}   onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {thisWeek.length>0  && <Section title="Επόμενες 7 μέρες"         color="#d4af42" events={thisWeek}  onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {thisMonth.length>0 && <Section title="Αυτόν τον μήνα"            color="#60a5fa" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {later.length>0     && <Section title="Αργότερα"                  color="#5a5a70" events={later}     onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {done.length>0      && <Section title="Ολοκληρωμένα / Ακυρωμένα" color="#2a2a3e" events={done}      onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {filtered.length===0 && (
-            <div style={{ textAlign: 'center', padding: '50px 0' }}>
-              <Calendar size={28} color="#2a2a3e" style={{ margin: '0 auto 10px' }}/>
-              <p style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#3a3a54' }}>Δεν υπάρχουν γεγονότα</p>
-            </div>
-          )}
+      {!loading&&viewMode==='list'&&(
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          {overdue.length>0&&<Section title="Εκπρόθεσμα" color="var(--negative)" events={overdue} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {thisWeek.length>0&&<Section title="Επόμενες 7 μέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--info)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {filtered.length===0&&<div style={{ textAlign:'center', padding:'50px 0' }}><Calendar size={28} color="var(--text-tertiary)" style={{ margin:'0 auto 12px' }}/><p style={{ fontSize:14, fontFamily:"'Roboto',sans-serif", color:'var(--text-tertiary)' }}>Δεν υπάρχουν γεγονότα</p></div>}
         </div>
       )}
 
-      {/* ── Timeline View ── */}
-      {!loading && viewMode === 'timeline' && (
-        <TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear}/>
-      )}
+      {!loading&&viewMode==='timeline'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear}/>}
 
-      {/* ── Modal ── */}
-      {showModal && (
-        <EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={() => setShowModal(false)} editing={!!editingEvent} saving={saving}/>
-      )}
+      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} propertyId={propertyId}/>}
     </div>
   )
 }

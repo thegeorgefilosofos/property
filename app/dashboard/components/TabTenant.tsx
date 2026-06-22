@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   C, s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
@@ -18,7 +18,7 @@ import type {
   ServiceBy, CleaningPkg, LeaseType, PaymentFreq, IdDocType,
   StreamingSvc, CleaningCfg,
 } from './TabTenantHelpers';
-// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Tenant {
   id:string; property_id:string; user_id:string;
   full_name:string; email:string|null; phone:string|null; phone_work:string|null;
@@ -48,7 +48,6 @@ interface RentPayment { id:string; tenant_id:string; property_id:string; user_id
 interface ExtraCharge { id:string; property_id:string; user_id:string; description:string; amount:number; date:string; paid:boolean; category:string; notes:string|null; created_at:string; }
 interface TabTenantProps { propertyId:string; userId:string; }
 
-// ─── Blank form ───────────────────────────────────────────────────────────────
 const blank = () => ({
   full_name:'', email:'', phone:'', phone_work:'', afm:'',
   id_doc_type:'' as IdDocType|'', id_doc_number:'', iban:'', notes:'',
@@ -73,22 +72,21 @@ const blank = () => ({
   lease_doc_external_url:'',
 });
 
-// ─── KPI Strip ────────────────────────────────────────────────────────────────
 function KPIs({ tenant, payments, extras }: { tenant:Tenant; payments:RentPayment[]; extras:ExtraCharge[] }) {
   const d = daysLeft(tenant.lease_end);
   const st = leaseSt(d);
   const streaming = tenant.streaming || [];
-  const totalTenant = (tenant.monthly_rent||0) + (tenant.cleaning?.total_tenant||0) + streaming.filter(s=>s.included).reduce((sum,s)=>sum+s.charged_tenant,0) + (tenant.parking_extra?(tenant.parking_extra_price||0):0);
-  const ownerCosts = (tenant.cleaning?.total_owner||0) + streaming.filter(s=>s.included).reduce((sum,s)=>sum+s.cost_owner,0);
+  const totalTenant = (tenant.monthly_rent||0) + (tenant.cleaning?.total_tenant||0) + streaming.filter(sv=>sv.included).reduce((sum,sv)=>sum+sv.charged_tenant,0) + (tenant.parking_extra?(tenant.parking_extra_price||0):0);
+  const ownerCosts = (tenant.cleaning?.total_owner||0) + streaming.filter(sv=>sv.included).reduce((sum,sv)=>sum+sv.cost_owner,0);
   const unpaid = payments.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0) + extras.filter(e=>!e.paid).reduce((a,e)=>a+e.amount,0);
   return (
     <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'10px', marginBottom:'20px' }}>
       {[
-        { label:'Βασικό Ενοίκιο',   value:fmt(tenant.monthly_rent), color:'var(--accent)' },
-        { label:'Σύνολο/μήνα',      value:fmt(totalTenant),         color:'var(--positive)' },
-        { label:'Κόστη Ιδιοκτ.',    value:fmt(ownerCosts),          color:'var(--negative)' },
-        { label:'Λήξη Μίσθωσης',    value:d==null?'—':d<0?'Έληξε':`${d} ημ.`, color:st?.color||'var(--text-primary)' },
-        { label:'Εκκρεμή Σύνολο',   value:fmt(unpaid),              color:unpaid>0?'var(--negative)':'var(--positive)' },
+        { label:'Βασικό Ενοίκιο', value:fmt(tenant.monthly_rent), color:'var(--accent)' },
+        { label:'Σύνολο/μήνα', value:fmt(totalTenant), color:'var(--positive)' },
+        { label:'Κόστη Ιδιοκτ.', value:fmt(ownerCosts), color:'var(--negative)' },
+        { label:'Λήξη Μίσθωσης', value:d==null?'—':d<0?'Έληξε':`${d} ημ.`, color:st?.color||'var(--text-primary)' },
+        { label:'Εκκρεμή Σύνολο', value:fmt(unpaid), color:unpaid>0?'var(--negative)':'var(--positive)' },
         { label:`Εγγύηση${tenant.deposit_invested?' (Επενδ.)':''}`, value:fmt(tenant.deposit_amount), color:tenant.deposit_returned?'var(--positive)':'var(--accent)' },
       ].map((k,i) => (
         <div key={i} style={s.kpi}>
@@ -100,7 +98,196 @@ function KPIs({ tenant, payments, extras }: { tenant:Tenant; payments:RentPaymen
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── TDE Rent Adjustment View ─────────────────────────────────────────────────
+function RentAdjustView({ tenant }: { tenant: Tenant }) {
+  const TDE: Record<number,number> = {
+    2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,
+    2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8,
+  };
+  const fmtE = (n:number) => `${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+  const fmtDate = (d:string|null) => d ? new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+  const rent = tenant.monthly_rent || 0;
+  const leaseEnd = tenant.lease_end;
+  const daysExp = leaseEnd ? Math.ceil((new Date(leaseEnd+'T00:00:00').getTime()-Date.now())/86400000) : null;
+  const [yr, setYr] = useState(String(new Date().getFullYear()));
+  const [useCustom, setUseCustom] = useState(false);
+  const [customPct, setCustomPct] = useState('');
+  const tde = TDE[parseInt(yr)] ?? 2.8;
+  const pct = useCustom ? (parseFloat(customPct)||0) : tde;
+  const newRent = rent * (1+pct/100);
+  const diff = newRent - rent;
+  const isExpired  = daysExp !== null && daysExp < 0;
+  const isExpiring = daysExp !== null && daysExp >= 0 && daysExp <= 60;
+
+  const genLetter = () => {
+    const today_str = new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
+    const w = window.open('','_blank','width=800,height=700');
+    if (!w) { alert('Επίτρεψε τα popups'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="el"><head>
+    <meta charset="UTF-8"><title>Αναπροσαρμογή Μισθώματος</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>body{font-family:'Roboto',sans-serif;max-width:700px;margin:40px auto;padding:40px;color:#1a1a2e;font-size:13px;line-height:1.8}h1{font-family:'Google Sans',sans-serif;font-size:20px;font-weight:500;color:#1a73e8;margin-bottom:4px}.sub{font-size:11px;color:#5f6368;margin-bottom:32px}table{width:100%;border-collapse:collapse;margin:16px 0}td{padding:10px;border:1px solid #e8eaed}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px}.sign{border-top:1px solid #e8eaed;padding-top:8px;font-size:11px;color:#5f6368}@media print{body{margin:20px;padding:20px}}</style></head><body>
+    <h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
+    <div class="sub">Βάσει ΤΔΕ ${yr} (+${pct.toFixed(1)}%) — Property OS</div>
+    <p><strong>Ημερομηνία:</strong> ${today_str}</p>
+    <p>Προς: <strong>${tenant.full_name}</strong>${tenant.afm ? '<br>ΑΦΜ: '+tenant.afm : ''}</p>
+    <p style="margin-top:16px">Βάσει ΤΔΕ <strong>${yr}</strong>, το μηνιαίο μίσθωμα αναπροσαρμόζεται:</p>
+    <table>
+      <tr style="background:#f8f9fa"><td><strong>Τρέχον μίσθωμα</strong></td><td style="text-align:right;font-family:monospace">${fmtE(rent)}/μήνα</td></tr>
+      <tr><td>ΤΔΕ ${yr}</td><td style="text-align:right">+${pct.toFixed(1)}%</td></tr>
+      <tr style="background:#e6f4ea"><td><strong>Νέο μίσθωμα</strong></td><td style="text-align:right;font-family:monospace;color:#137333;font-weight:700">${fmtE(newRent)}/μήνα</td></tr>
+    </table>
+    <div class="grid2">
+      <div class="sign"><p><strong>Ο Εκμισθωτής</strong></p><p>________________</p></div>
+      <div class="sign"><p><strong>Ο Μισθωτής</strong></p><p>${tenant.full_name}</p>${tenant.afm?'<p>ΑΦΜ: '+tenant.afm+'</p>':''}</div>
+    </div>
+    <div style="margin-top:40px;font-size:10px;color:#9aa0a6;text-align:center">Property OS — Εκτίμηση, συμβουλευτείτε νομικό</div>
+    </body></html>`);
+    w.document.close(); setTimeout(()=>w.print(),700);
+  };
+
+  return (
+    <div>
+      {(isExpired||isExpiring) && (
+        <div style={{ background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',
+          borderLeft:`3px solid ${isExpired?'var(--negative)':'var(--warning)'}`,
+          borderRadius:8,padding:'10px 16px',marginBottom:14,fontSize:12,
+          color:isExpired?'var(--negative)':'var(--warning)',
+          fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
+          {isExpired
+            ? `Το μισθωτήριο έληξε στις ${fmtDate(leaseEnd)} — ανανέωσε άμεσα`
+            : `Λήγει σε ${daysExp} μέρες (${fmtDate(leaseEnd)}) — προετοίμασε ανανέωση`}
+        </div>
+      )}
+
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
+        {/* Left: Calculator */}
+        <div style={s.card}>
+          <div style={s.sec}><span style={s.dot()}/>Υπολογιστής ΤΔΕ</div>
+
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:10,letterSpacing:'0.5px',textTransform:'uppercase' as const,color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",marginBottom:6,fontWeight:500 }}>Τρέχον Ενοίκιο</div>
+            <div style={{ fontSize:26,fontWeight:700,color:'var(--text-primary)',fontFamily:"'JetBrains Mono',monospace",marginBottom:2 }}>{fmtE(rent)}</div>
+            <div style={{ fontSize:11,color:'var(--text-tertiary)',fontFamily:"Inter,sans-serif" }}>Λήξη: {fmtDate(leaseEnd)}</div>
+          </div>
+
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'var(--text-secondary)',fontFamily:"Inter,sans-serif",marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
+            <select value={yr} onChange={e=>setYr(e.target.value)}
+              style={{ width:'100%',height:40,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',
+                borderRadius:6,padding:'0 12px',color:'var(--text-primary)',fontSize:12,
+                fontFamily:"Inter,sans-serif",outline:'none' }}>
+              {Object.keys(TDE).sort((a,b)=>parseInt(b)-parseInt(a)).map(y=>(
+                <option key={y} value={y}>{y} — ΤΔΕ: {TDE[parseInt(y)]>=0?'+':''}{TDE[parseInt(y)]}%</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:12 }}>
+            <span style={{ fontSize:12,color:'var(--text-primary)',fontFamily:"Inter,sans-serif" }}>Προσαρμοσμένο ποσοστό</span>
+            <Toggle on={useCustom} onChange={setUseCustom} size="sm"/>
+          </div>
+          {useCustom && (
+            <div style={{ marginBottom:14 }}>
+              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)}
+                placeholder="π.χ. 3.5" step="0.1"
+                style={{ width:'100%',height:40,background:'var(--bg-elevated)',border:'1px solid var(--accent)',
+                  borderRadius:6,padding:'0 12px',color:'var(--text-primary)',fontSize:14,
+                  fontFamily:"'JetBrains Mono',monospace",outline:'none',boxSizing:'border-box' as const }}/>
+            </div>
+          )}
+
+          <div style={{ fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'var(--text-secondary)',fontFamily:"Inter,sans-serif",marginBottom:8 }}>
+            Ιστορικό ΤΔΕ (ΕΛΣΤΑΤ)
+          </div>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:4 }}>
+            {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).slice(0,10).map(([year,rate])=>(
+              <div key={year} onClick={()=>{setYr(year);setUseCustom(false);}}
+                style={{ background:parseInt(year)===parseInt(yr)?'var(--accent-dim)':'var(--bg-elevated)',
+                  border:`1px solid ${parseInt(year)===parseInt(yr)?'var(--accent)':'var(--border-subtle)'}`,
+                  borderRadius:6,padding:'5px 4px',textAlign:'center' as const,cursor:'pointer' }}>
+                <div style={{ fontSize:10,fontWeight:600,
+                  color:parseInt(year)===parseInt(yr)?'var(--accent)':'var(--text-primary)',
+                  fontFamily:"'JetBrains Mono',monospace" }}>
+                  {rate>=0?'+':''}{rate}%
+                </div>
+                <div style={{ fontSize:8,color:'var(--text-tertiary)',fontFamily:"Inter,sans-serif" }}>{year}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Results */}
+        <div>
+          {rent > 0 ? (
+            <>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
+                <div style={{ background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'14px 16px' }}>
+                  <div style={{ fontSize:10,color:'var(--text-secondary)',fontFamily:"Inter,sans-serif",marginBottom:4 }}>Τρέχον</div>
+                  <div style={{ fontSize:16,fontWeight:700,color:'var(--text-primary)',fontFamily:"'JetBrains Mono',monospace" }}>{fmtE(rent)}</div>
+                </div>
+                <div style={{ background:'var(--positive-dim)',border:'1px solid var(--positive)',borderRadius:10,padding:'14px 16px' }}>
+                  <div style={{ fontSize:10,color:'var(--text-secondary)',fontFamily:"Inter,sans-serif",marginBottom:4 }}>Νέο Ενοίκιο</div>
+                  <div style={{ fontSize:16,fontWeight:700,color:'var(--positive)',fontFamily:"'JetBrains Mono',monospace" }}>{fmtE(newRent)}</div>
+                </div>
+              </div>
+
+              <div style={s.card}>
+                {[
+                  {label:`ΤΔΕ ${yr}`,value:`+${pct.toFixed(1)}%`,color:'var(--info)'},
+                  {label:'Αύξηση/μήνα',value:`+${fmtE(diff)}`,color:'var(--positive)'},
+                  {label:'Αύξηση/έτος',value:`+${fmtE(diff*12)}`,color:'var(--positive)'},
+                ].map((row,i)=>(
+                  <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"Inter,sans-serif" }}>{row.label}</span>
+                    <span style={{ fontSize:13,fontWeight:600,color:row.color,fontFamily:"'JetBrains Mono',monospace" }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={genLetter}
+                style={{ width:'100%',height:44,borderRadius:22,border:'none',
+                  background:'var(--accent)',color:'var(--accent-text)',cursor:'pointer',fontSize:12,
+                  fontFamily:"Inter,sans-serif",fontWeight:700,letterSpacing:'0.04em',
+                  display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:10 }}>
+                Εκτύπωση Ειδοποίησης Αναπροσαρμογής
+              </button>
+            </>
+          ) : (
+            <div style={{ ...s.card,textAlign:'center' as const,padding:48 }}>
+              <div style={{ fontSize:12,color:'var(--text-tertiary)',fontFamily:"Inter,sans-serif" }}>
+                Καταχώρησε ενοίκιο για να υπολογίσεις αναπροσαρμογή
+              </div>
+            </div>
+          )}
+
+          {/* AADE Links */}
+          <div style={s.card}>
+            <div style={s.sec}><span style={s.dot()}/>Υποχρεώσεις & Σύνδεσμοι</div>
+            {[
+              {label:'Καταχώρηση Μισθωτηρίου AADE',desc:'Εντός 30 ημερών από υπογραφή',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:true},
+              {label:'Ε2 — Δήλωση Εισοδήματος',desc:'30 Ιουνίου κάθε χρόνο',url:'https://www.aade.gr',urgent:false},
+              {label:'Πρότυπο Σύμβασης ΑΕΠΠ',desc:'Επίσημο πρότυπο μισθωτηρίου',url:'https://www.aade.gr/polites/foroi/misthotiria/protypo',urgent:false},
+            ].map((link,i)=>(
+              <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 10px',marginBottom:6,
+                  background:link.urgent?'var(--negative-dim)':'var(--bg-elevated)',
+                  border:`1px solid ${link.urgent?'var(--negative)':'var(--border-subtle)'}`,
+                  borderRadius:8,textDecoration:'none' }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12,fontWeight:600,color:link.urgent?'var(--negative)':'var(--text-primary)',fontFamily:"Inter,sans-serif" }}>{link.label}</div>
+                  <div style={{ fontSize:10,color:'var(--text-tertiary)',fontFamily:"Inter,sans-serif" }}>{link.desc}</div>
+                </div>
+                <span style={{ fontSize:11,color:'var(--accent)' }}>→</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TabTenant({ propertyId, userId }: TabTenantProps) {
   const supabase = createClient();
   const [tenant,   setTenant]   = useState<Tenant|null>(null);
@@ -112,7 +299,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
   const [isForm,   setIsForm]   = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formTab,  setFormTab]  = useState<'profile'|'lease'|'services'|'parking'|'docs'>('profile');
-  const [viewTab,  setViewTab]  = useState<'profile'|'lease'|'services'|'payments'|'extras'|'docs'>('profile');
+  const [viewTab,  setViewTab]  = useState<'profile'|'lease'|'services'|'rentadjust'|'payments'|'extras'|'docs'>('profile');
   const [addPay,   setAddPay]   = useState(false);
   const [addExtra, setAddExtra] = useState(false);
   const [error,    setError]    = useState<string|null>(null);
@@ -250,7 +437,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
   if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'400px', color:'var(--text-tertiary)', fontSize:'12px', letterSpacing:'0.14em' }}>ΦΟΡΤΩΣΗ...</div>;
 
   const FTABS: [string, typeof formTab][] = [['Στοιχεία','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],['Parking','parking'],['Έγγραφα','docs']];
-  const VTABS: [string, typeof viewTab][] = [['Προφίλ','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],[`Πληρωμές (${payments.length})`,'payments'],[`Έκτακτα (${extras.length})`,'extras'],['Συμβόλαιο','docs']];
+  const VTABS: [string, typeof viewTab][] = [['Προφίλ','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],['Αναπροσαρμογή','rentadjust'],[`Πληρωμές (${payments.length})`,'payments'],[`Έκτακτα (${extras.length})`,'extras'],['Συμβόλαιο','docs']];
 
   return (
     <div style={{ fontFamily:'Inter,sans-serif', color:'var(--text-primary)' }}>
@@ -266,7 +453,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
         </div>
       )}
 
-      {/* ── FORM ── */}
       {isForm && (
         <div style={s.cardGold}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'18px' }}>
@@ -442,7 +628,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
         </div>
       )}
 
-      {/* ── VIEW ── */}
       {tenant && !isForm && (
         <>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px' }}>
@@ -467,7 +652,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             {VTABS.map(([l,t])=><button key={t} onClick={()=>setViewTab(t as typeof viewTab)} style={s.tabBtn(viewTab===t)}>{l}</button>)}
           </div>
 
-          {/* Profile view */}
           {viewTab==='profile' && (
             <div style={s.g2}>
               <div style={s.card}>
@@ -510,7 +694,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             </div>
           )}
 
-          {/* Lease view */}
           {viewTab==='lease' && (
             <div style={s.g2}>
               <div style={s.card}>
@@ -579,40 +762,24 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             </div>
           )}
 
-          {/* Services view */}
           {viewTab==='services' && (
             <div style={s.g2}>
               <div style={s.card}>
                 <div style={s.sec}><span style={s.dot()}/>Streaming & Συνδρομές</div>
-                {!(tenant.streaming?.some(s=>s.included)) && <div style={{ color:'var(--text-tertiary)', fontSize:'12px' }}>Καμία συνδρομή</div>}
-                {tenant.streaming?.filter(s=>s.included).map((svc,i)=>(
+                {!(tenant.streaming?.some(sv=>sv.included)) && <div style={{ color:'var(--text-tertiary)', fontSize:'12px' }}>Καμία συνδρομή</div>}
+                {tenant.streaming?.filter(sv=>sv.included).map((svc,i)=>(
                   <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap:'14px', alignItems:'center', padding:'10px 12px', marginBottom:'6px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize:'13px', color:'var(--text-primary)' }}>{svc.name}</span>
                     <div style={{ textAlign:'right' }}><div style={{ fontSize:'10px', color:'var(--text-secondary)', letterSpacing:'0.06em' }}>ΚΟΣΤΟΣ</div><div style={{ fontSize:'13px', color:'var(--negative)', fontWeight:700, fontFamily:"'JetBrains Mono',monospace" }}>{fmt(svc.cost_owner)}</div></div>
                     <div style={{ textAlign:'right' }}><div style={{ fontSize:'10px', color:'var(--text-secondary)', letterSpacing:'0.06em' }}>ΧΡΕΩΣΗ</div><div style={{ fontSize:'13px', color:'var(--accent)', fontWeight:700, fontFamily:"'JetBrains Mono',monospace" }}>{fmt(svc.charged_tenant)}</div></div>
                   </div>
                 ))}
-                {(tenant.streaming?.filter(s=>s.included).length||0)>0&&(()=>{
-                  const tc=tenant.streaming!.filter(s=>s.included).reduce((sum,s)=>sum+s.cost_owner,0);
-                  const tt=tenant.streaming!.filter(s=>s.included).reduce((sum,s)=>sum+s.charged_tenant,0);
-                  const p=tt-tc;
-                  return <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginTop:'10px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
-                    <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(tc)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', marginTop:'3px', textTransform:'uppercase' }}>Κόστος/μήνα</div></div>
-                    <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(tt)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', marginTop:'3px', textTransform:'uppercase' }}>Χρέωση/μήνα</div></div>
-                    <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:p>=0?'var(--positive)':'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>{p>=0?'+':''}{fmt(p)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', marginTop:'3px', textTransform:'uppercase' }}>Αποτέλεσμα</div></div>
-                  </div>;
-                })()}
               </div>
               <div style={s.card}>
                 <div style={s.sec}><span style={s.dot()}/>Καθαρισμός</div>
                 {!tenant.cleaning||tenant.cleaning.package==='none'?<div style={{ color:'var(--text-tertiary)', fontSize:'12px' }}>Δεν περιλαμβάνεται</div>:(
                   <div style={{ background:'var(--bg-elevated)', padding:'14px', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
                     <div style={{ fontSize:'13px', color:'var(--text-primary)', marginBottom:'10px' }}>{tenant.cleaning.times}× {tenant.cleaning.hours}ώρ/μήνα</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
-                      {[['Κόστος',fmt(tenant.cleaning.total_owner),'var(--negative)'],[fmt(tenant.cleaning.total_tenant),'Χρέωση','var(--accent)'],[(tenant.cleaning.total_tenant-tenant.cleaning.total_owner)>=0?'+':'']+fmt(tenant.cleaning.total_tenant-tenant.cleaning.total_owner),'Αποτέλεσμα',(tenant.cleaning.total_tenant-tenant.cleaning.total_owner)>=0?'var(--positive)':'var(--negative)'].map(([v,l,c],i)=>(
-                        <div key={i} style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:c as string, fontFamily:"'JetBrains Mono',monospace" }}>{v as string}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>{l as string}</div></div>
-                      ))}
-                    </div>
                   </div>
                 )}
                 {tenant.extra_perks && <div style={{ marginTop:'14px', paddingTop:'14px', borderTop:'1px solid var(--border-subtle)', fontSize:'12px', color:'var(--text-secondary)', lineHeight:1.7 }}>{tenant.extra_perks}</div>}
@@ -620,7 +787,9 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             </div>
           )}
 
-          {/* Payments */}
+          {/* ── ΑΝΑΠΡΟΣΑΡΜΟΓΗ ΤΔΕ ── */}
+          {viewTab==='rentadjust' && <RentAdjustView tenant={tenant}/>}
+
           {viewTab==='payments' && (
             <div style={s.card}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
@@ -646,7 +815,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
                   </div>
                 </div>
               )}
-              {payments.length===0 ? <div style={{ textAlign:'center', padding:'48px', color:'var(--text-tertiary)', fontSize:'12px', letterSpacing:'0.1em' }}>Δεν υπάρχουν πληρωμές</div> : (
+              {payments.length===0 ? <div style={{ textAlign:'center', padding:'48px', color:'var(--text-tertiary)', fontSize:'12px' }}>Δεν υπάρχουν πληρωμές</div> : (
                 <>
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Ημ/νία','Καθ/ση','Σημ.',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
@@ -674,7 +843,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             </div>
           )}
 
-          {/* Extras */}
           {viewTab==='extras' && (
             <div style={s.card}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
@@ -698,7 +866,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
                   </div>
                 </div>
               )}
-              {extras.length===0 ? <div style={{ textAlign:'center', padding:'48px', color:'var(--text-tertiary)', fontSize:'12px', letterSpacing:'0.1em' }}>Δεν υπάρχουν έκτακτες χρεώσεις</div> : (
+              {extras.length===0 ? <div style={{ textAlign:'center', padding:'48px', color:'var(--text-tertiary)', fontSize:'12px' }}>Δεν υπάρχουν έκτακτες χρεώσεις</div> : (
                 <>
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <thead><tr>{['Ημ/νία','Περιγραφή','Κατηγορία','Ποσό','Κατάσταση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
@@ -724,7 +892,6 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
             </div>
           )}
 
-          {/* Docs */}
           {viewTab==='docs' && (
             <div style={s.g2}>
               <div style={s.card}>
@@ -732,7 +899,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
                 {tenant.lease_doc_name ? (
                   <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'16px' }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-                      <div><div style={{ fontSize:'13px', color:'var(--text-primary)', marginBottom:'3px' }}>📄 {tenant.lease_doc_name}</div><div style={{ fontSize:'10px', color:'var(--text-tertiary)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Supabase Storage</div></div>
+                      <div><div style={{ fontSize:'13px', color:'var(--text-primary)', marginBottom:'3px' }}>📄 {tenant.lease_doc_name}</div></div>
                       <button style={s.btnDng} onClick={deletePDF}>Διαγραφή</button>
                     </div>
                     {tenant.lease_doc_url && <a href={tenant.lease_doc_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none', textAlign:'center' }}>Άνοιγμα PDF</a>}
@@ -746,7 +913,7 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
                 ) : (
                   <div style={{ background:'var(--bg-elevated)', border:`2px dashed var(--border-default)`, borderRadius:'10px', padding:'40px', textAlign:'center' }}>
                     <div style={{ fontSize:'32px', opacity:.2, marginBottom:'12px' }}>📄</div>
-                    <div style={{ fontSize:'12px', color:'var(--text-secondary)', marginBottom:'16px' }}>Ανέβασε το ενοικιαστήριο συμβόλαιο (PDF, max 50MB)</div>
+                    <div style={{ fontSize:'12px', color:'var(--text-secondary)', marginBottom:'16px' }}>Ανέβασε το ενοικιαστήριο συμβόλαιο (PDF)</div>
                     <label style={{ ...s.btnGold, cursor:'pointer', display:'inline-block' }}>
                       {uploading?'Ανέβασμα...':'Επιλογή PDF'}
                       <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e=>{ const f=e.target.files?.[0]; if(f)uploadPDF(f); }} disabled={uploading}/>
@@ -758,11 +925,11 @@ export default function TabTenant({ propertyId, userId }: TabTenantProps) {
                 <div style={s.sec}><span style={s.dot()}/>Εξωτερικό Link</div>
                 {tenant.lease_doc_external_url ? (
                   <div>
-                    <div style={{ fontSize:'12px', color:'var(--text-secondary)', marginBottom:'12px', wordBreak:'break-all', lineHeight:1.6 }}>{tenant.lease_doc_external_url}</div>
+                    <div style={{ fontSize:'12px', color:'var(--text-secondary)', marginBottom:'12px', wordBreak:'break-all' }}>{tenant.lease_doc_external_url}</div>
                     <a href={tenant.lease_doc_external_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none' }}>Άνοιγμα Link</a>
                   </div>
                 ) : (
-                  <div style={{ color:'var(--text-tertiary)', fontSize:'12px', lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικό link. Πρόσθεσέ το από Επεξεργασία → Έγγραφα.</div>
+                  <div style={{ color:'var(--text-tertiary)', fontSize:'12px', lineHeight:1.7 }}>Δεν έχει οριστεί εξωτερικό link.</div>
                 )}
               </div>
             </div>

@@ -2,6 +2,34 @@
 
 import { useState, useRef, useEffect, ReactNode } from 'react';
 
+// Google MD3 form styles
+const mdInputBase: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--bg-surface)',
+  border: '1px solid var(--border-default)',
+  borderRadius: 4,
+  padding: '10px 16px',
+  color: 'var(--text-primary)',
+  fontSize: 14,
+  fontFamily: "'Roboto', sans-serif",
+  letterSpacing: '0.25px',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+  height: 40,
+  transition: 'border-color 0.15s, border-width 0.1s',
+};
+
+const mdLabelBase: React.CSSProperties = {
+  display: 'block',
+  fontFamily: "'Google Sans', sans-serif",
+  fontSize: 12,
+  fontWeight: 500,
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase' as const,
+  color: 'var(--text-secondary)',
+  marginBottom: 6,
+};
+
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
@@ -57,53 +85,36 @@ export function NumberInput({
     }
   };
 
-  const containerStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'var(--bg-base)',
-    border: `1px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    transition: 'border-color 0.15s',
-    opacity: disabled ? 0.5 : 1,
-  };
-
-  const affixStyle: React.CSSProperties = {
-    padding: '0 10px',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    background: 'var(--bg-elevated)',
-    alignSelf: 'stretch',
-    display: 'flex',
-    alignItems: 'center',
-    borderRight: prefix ? `1px solid var(--border-subtle)` : 'none',
-    borderLeft: suffix ? `1px solid var(--border-subtle)` : 'none',
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
-  };
-
-  const inputStyle: React.CSSProperties = {
-    flex: 1,
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    padding: '9px 12px',
-    color: 'var(--text-primary)',
-    fontSize: '13px',
-    fontFamily: 'JetBrains Mono, monospace',
-    minWidth: 0,
-  };
-
   return (
     <div className={className}>
-      {label && (
-        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
-          {label}
-        </label>
-      )}
-      <div style={containerStyle}>
-        {prefix && <span style={affixStyle}>{prefix}</span>}
+      {label && <label style={mdLabelBase}>{label}</label>}
+      <div style={{
+        width: '100%',
+        background: 'var(--bg-surface)',
+        border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
+        borderRadius: 4,
+        display: 'flex',
+        alignItems: 'center',
+        overflow: 'hidden',
+        transition: 'border-color 0.15s',
+        opacity: disabled ? 0.5 : 1,
+        height: 40,
+      }}>
+        {prefix && (
+          <span style={{
+            padding: '0 12px',
+            fontFamily: "'Google Sans', sans-serif",
+            fontSize: 14,
+            color: 'var(--text-secondary)',
+            background: 'var(--bg-elevated)',
+            alignSelf: 'stretch',
+            display: 'flex',
+            alignItems: 'center',
+            borderRight: `1px solid var(--border-subtle)`,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}>{prefix}</span>
+        )}
         <input
           type="text"
           inputMode="decimal"
@@ -113,12 +124,33 @@ export function NumberInput({
           onBlur={handleBlur}
           placeholder={placeholder}
           disabled={disabled}
-          style={inputStyle}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            padding: focused ? '9px 15px' : '10px 16px',
+            color: 'var(--text-primary)',
+            fontSize: 14,
+            fontFamily: "'Roboto Mono', monospace",
+            letterSpacing: '0.25px',
+            minWidth: 0,
+          }}
         />
         {suffix && (
-          <span style={{ ...affixStyle, borderRight: 'none', borderLeft: `1px solid var(--border-subtle)` }}>
-            {suffix}
-          </span>
+          <span style={{
+            padding: '0 12px',
+            fontFamily: "'Google Sans', sans-serif",
+            fontSize: 14,
+            color: 'var(--text-secondary)',
+            background: 'var(--bg-elevated)',
+            alignSelf: 'stretch',
+            display: 'flex',
+            alignItems: 'center',
+            borderLeft: `1px solid var(--border-subtle)`,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}>{suffix}</span>
         )}
       </div>
     </div>
@@ -159,100 +191,87 @@ export function CustomSelect({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const triggerStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'var(--bg-base)',
-    border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
-    borderRadius: open ? '8px 8px 0 0' : '8px',
-    padding: '9px 12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '8px',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    transition: 'border-color 0.15s',
-    userSelect: 'none',
-  };
-
-  const dropdownStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--accent)',
-    borderTop: 'none',
-    borderRadius: '0 0 10px 10px',
-    zIndex: 200,
-    overflow: 'hidden',
-    boxShadow: 'var(--shadow-md)',
-    maxHeight: '240px',
-    overflowY: 'auto',
-  };
-
-  const optionStyle = (isSelected: boolean, isHovered: boolean): React.CSSProperties => ({
-    padding: '9px 14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
-    background: isSelected ? 'var(--accent-dim)' : isHovered ? 'var(--bg-hover)' : 'transparent',
-    transition: 'background 0.1s',
-  });
-
-  const chevronStyle: React.CSSProperties = {
-    width: '16px',
-    height: '16px',
-    flexShrink: 0,
-    color: 'var(--text-secondary)',
-    transition: 'transform 0.2s',
-    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-  };
-
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && (
-        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
-          {label}
-        </label>
-      )}
-      <div style={triggerStyle} onClick={() => !disabled && setOpen(v => !v)}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px', flex:1, minWidth:0 }}>
-          {selected?.dot && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:selected.dot, flexShrink:0 }}/>}
-          {selected?.color && <div style={{ width:'10px', height:'10px', borderRadius:'3px', background:selected.color, flexShrink:0 }}/>}
-          <span style={{ fontSize:'13px', color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+      {label && <label style={mdLabelBase}>{label}</label>}
+      <div
+        onClick={() => !disabled && setOpen(v => !v)}
+        style={{
+          ...mdInputBase,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+          border: `${open ? 2 : 1}px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
+          padding: open ? '9px 15px' : '10px 16px',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+          {selected?.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selected.dot, flexShrink: 0 }}/>}
+          {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: selected.color, flexShrink: 0 }}/>}
+          <span style={{
+            fontFamily: "'Roboto', sans-serif",
+            fontSize: 14,
+            letterSpacing: '0.25px',
+            color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
             {selected?.label || placeholder}
           </span>
         </div>
-        <svg style={chevronStyle} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Google-style dropdown chevron */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+          <path d="M7 10l5 5 5-5z"/>
         </svg>
       </div>
       {open && (
-        <div style={dropdownStyle}>
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 2px)',
+          left: 0,
+          right: 0,
+          background: 'var(--bg-surface)',
+          borderRadius: 4,
+          zIndex: 200,
+          boxShadow: 'var(--shadow-lg)',
+          maxHeight: 240,
+          overflowY: 'auto',
+          border: 'none',
+          padding: '8px 0',
+        }}>
           {options.map(opt => (
             <div
               key={opt.value}
-              style={optionStyle(opt.value === value, hovered === opt.value)}
               onMouseEnter={() => setHovered(opt.value)}
               onMouseLeave={() => setHovered(null)}
               onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                padding: '10px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                cursor: 'pointer',
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: 14,
+                letterSpacing: '0.25px',
+                color: opt.value === value ? 'var(--accent)' : 'var(--text-primary)',
+                background: opt.value === value ? 'var(--accent-dim)' : hovered === opt.value ? 'var(--bg-hover)' : 'transparent',
+                transition: 'background 0.1s',
+              }}
             >
-              {opt.dot && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:opt.dot, flexShrink:0 }}/>}
-              {opt.color && <div style={{ width:'10px', height:'10px', borderRadius:'3px', background:opt.color, flexShrink:0 }}/>}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:'13px' }}>{opt.label}</div>
+              {opt.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.dot, flexShrink: 0 }}/>}
+              {opt.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: opt.color, flexShrink: 0 }}/>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>{opt.label}</div>
                 {opt.description && (
-                  <div style={{ fontSize:'11px', color:'var(--text-secondary)', marginTop:'1px' }}>{opt.description}</div>
+                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
                 )}
               </div>
               {opt.value === value && (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M2.5 7l3 3 6-6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
               )}
             </div>
           ))}
@@ -262,7 +281,7 @@ export function CustomSelect({
   );
 }
 
-// ─── Custom Date Picker ───────────────────────────────────────────────────────
+// ─── Date Picker ─────────────────────────────────────────────────────────────
 const MONTHS_GR = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const DAYS_GR = ['Δε','Τρ','Τε','Πε','Πα','Σά','Κυ'];
 
@@ -290,7 +309,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   const fmtDisplay = (d: string) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -299,90 +318,73 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
 
   const pick = (day: number) => {
     const d = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    onChange(d);
-    setOpen(false);
+    onChange(d); setOpen(false);
   };
 
-  const prevMonth = () => {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
-  };
-
-  const triggerStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'var(--bg-base)',
-    border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
-    borderRadius: '8px',
-    padding: '9px 12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    transition: 'border-color 0.15s',
-    userSelect: 'none',
-  };
-
-  const calendarStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    left: 0,
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-accent)',
-    borderRadius: '12px',
-    padding: '16px',
-    zIndex: 300,
-    width: '280px',
-    boxShadow: 'var(--shadow-lg)',
-  };
+  const prevMonth = () => month === 0 ? (setMonth(11), setYear(y => y-1)) : setMonth(m => m-1);
+  const nextMonth = () => month === 11 ? (setMonth(0), setYear(y => y+1)) : setMonth(m => m+1);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && (
-        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
-          {label}
-        </label>
-      )}
-      <div style={triggerStyle} onClick={() => !disabled && setOpen(v => !v)}>
-        <span style={{ fontSize:'13px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+      {label && <label style={mdLabelBase}>{label}</label>}
+      <div
+        onClick={() => !disabled && setOpen(v => !v)}
+        style={{
+          ...mdInputBase,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+          border: `${open ? 2 : 1}px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
+          padding: open ? '9px 15px' : '10px 16px',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 14, letterSpacing: '0.25px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.5">
-          <rect x="1.5" y="2.5" width="13" height="12" rx="2"/>
-          <path d="M5 1v3M11 1v3M1.5 6.5h13"/>
+        {/* Google Calendar icon */}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)">
+          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
         </svg>
       </div>
       {open && (
-        <div style={calendarStyle}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-            <button
-              onClick={prevMonth}
-              style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M7.5 2l-4 4 4 4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 4px)',
+          left: 0,
+          background: 'var(--bg-surface)',
+          borderRadius: 8,
+          padding: 16,
+          zIndex: 300,
+          width: 280,
+          boxShadow: 'var(--shadow-lg)',
+        }}>
+          {/* Month navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
             </button>
-            <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text-primary)' }}>{MONTHS_GR[month]} {year}</div>
-            <button
-              onClick={nextMonth}
-              style={{ width:'28px', height:'28px', borderRadius:'7px', border:'1px solid var(--border-default)', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-secondary)' }}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M4.5 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <span style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
+              {MONTHS_GR[month]} {year}
+            </span>
+            <button onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
             </button>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px', marginBottom:'6px' }}>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
             {DAYS_GR.map(d => (
-              <div key={d} style={{ fontSize:'10px', color:'var(--text-tertiary)', textAlign:'center', padding:'3px', letterSpacing:'0.04em' }}>{d}</div>
+              <div key={d} style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
             ))}
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
+          {/* Days grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0 }}>
             {Array(firstDay).fill(null).map((_,i) => <div key={`b${i}`}/>)}
             {Array(daysInMonth).fill(null).map((_,i) => {
               const day = i + 1;
@@ -394,32 +396,39 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                   key={day}
                   onClick={() => pick(day)}
                   style={{
-                    width:'100%', aspectRatio:'1', borderRadius:'7px',
-                    border: isToday && !isSelected ? '1px solid var(--accent)' : 'none',
+                    width: '100%', aspectRatio: '1',
+                    borderRadius: '50%',
+                    border: 'none',
                     background: isSelected ? 'var(--accent)' : 'transparent',
-                    color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
-                    fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif',
-                    fontWeight: isSelected ? 700 : 400, transition:'background 0.1s',
+                    color: isSelected ? '#fff' : isToday ? 'var(--accent)' : 'var(--text-primary)',
+                    fontFamily: "'Google Sans', sans-serif",
+                    fontSize: 13,
+                    fontWeight: isToday ? 700 : 400,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.1s',
                   }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                 >
                   {day}
+                  {isToday && !isSelected && (
+                    <div style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }}/>
+                  )}
                 </button>
               );
             })}
           </div>
-          <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:'12px', paddingTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <button
-              onClick={() => { onChange(''); setOpen(false); }}
-              style={{ fontSize:'11px', color:'var(--text-secondary)', background:'none', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', padding:'4px 8px', borderRadius:'5px' }}
-            >
+          {/* Actions */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+            <button onClick={() => { onChange(''); setOpen(false); }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               Εκκαθάριση
             </button>
-            <button
-              onClick={() => { onChange(today); setOpen(false); }}
-              style={{ fontSize:'11px', color:'var(--accent)', background:'var(--accent-dim)', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', padding:'4px 10px', borderRadius:'5px', fontWeight:600 }}
-            >
+            <button onClick={() => { onChange(today); setOpen(false); }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: '#fff', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Σήμερα
             </button>
           </div>
@@ -429,7 +438,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   );
 }
 
-// ─── Toggle ───────────────────────────────────────────────────────────────────
+// ─── Toggle — Google MD3 Switch ───────────────────────────────────────────────
 interface ToggleProps {
   on: boolean;
   onChange: (v: boolean) => void;
@@ -439,36 +448,39 @@ interface ToggleProps {
 }
 
 export function Toggle({ on, onChange, label, labelOff, size = 'md' }: ToggleProps) {
-  const w = size === 'sm' ? 32 : 40;
-  const h = size === 'sm' ? 18 : 22;
-  const th = size === 'sm' ? 12 : 16;
-  const offset = 3;
-  const travel = w - th - offset * 2;
+  const w = size === 'sm' ? 36 : 52;
+  const h = size === 'sm' ? 20 : 32;
+  const thumbOff = size === 'sm' ? 12 : 16;
+  const thumbOn = size === 'sm' ? 16 : 24;
 
   return (
-    <label style={{ display:'inline-flex', alignItems:'center', gap:'10px', cursor:'pointer', userSelect:'none' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}>
       <div
         onClick={() => onChange(!on)}
         style={{
-          width:`${w}px`, height:`${h}px`, borderRadius:`${h}px`,
-          background: on ? 'var(--positive)' : 'var(--bg-overlay)',
-          border: `1px solid ${on ? 'var(--positive)' : 'var(--border-default)'}`,
-          position:'relative', flexShrink:0,
-          transition:'background 0.2s, border-color 0.2s',
-          cursor:'pointer',
+          width: w, height: h, borderRadius: h,
+          background: on ? 'var(--accent)' : 'transparent',
+          border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+          position: 'relative', flexShrink: 0,
+          transition: 'background 0.2s, border-color 0.2s',
+          cursor: 'pointer',
         }}
       >
         <div style={{
-          width:`${th}px`, height:`${th}px`, borderRadius:'50%',
-          background: on ? '#fff' : 'var(--text-tertiary)',
-          position:'absolute', top:`${offset}px`,
-          left: on ? `${offset + travel}px` : `${offset}px`,
-          transition:'left 0.2s, background 0.2s',
-          boxShadow:'0 1px 3px rgba(0,0,0,0.3)',
+          width: on ? thumbOn : thumbOff,
+          height: on ? thumbOn : thumbOff,
+          borderRadius: '50%',
+          background: on ? '#fff' : 'var(--text-secondary)',
+          position: 'absolute',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
+          transition: 'all 0.2s cubic-bezier(0.2,0,0,1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }}/>
       </div>
       {(label || labelOff) && (
-        <span style={{ fontSize:'12px', color: on ? 'var(--positive)' : 'var(--text-secondary)', transition:'color 0.15s' }}>
+        <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
           {on ? (label || 'Ναι') : (labelOff || label || 'Όχι')}
         </span>
       )}
@@ -492,14 +504,19 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      {label && (
-        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
-          {label}
-        </label>
-      )}
-      <div style={{ display:'flex', alignItems:'center', background:'var(--bg-base)', border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`, borderRadius:'8px', overflow:'hidden', transition:'border-color 0.15s', opacity:disabled?0.5:1 }}>
+      {label && <label style={mdLabelBase}>{label}</label>}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        background: 'var(--bg-surface)',
+        border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
+        borderRadius: 4,
+        overflow: 'hidden',
+        transition: 'border-color 0.15s',
+        opacity: disabled ? 0.5 : 1,
+        height: 40,
+      }}>
         {prefix && (
-          <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderRight:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {prefix}
           </div>
         )}
@@ -511,10 +528,21 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
           disabled={disabled}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={{ flex:1, background:'transparent', border:'none', outline:'none', padding:'9px 12px', color:'var(--text-primary)', fontSize:'13px', fontFamily:'Inter,sans-serif', minWidth:0 }}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            padding: focused ? '9px 15px' : '10px 16px',
+            color: 'var(--text-primary)',
+            fontFamily: "'Roboto', sans-serif",
+            fontSize: 14,
+            letterSpacing: '0.25px',
+            minWidth: 0,
+          }}
         />
         {suffix && (
-          <div style={{ padding:'0 10px', color:'var(--text-secondary)', background:'var(--bg-elevated)', alignSelf:'stretch', display:'flex', alignItems:'center', borderLeft:'1px solid var(--border-subtle)', flexShrink:0, fontSize:'12px' }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {suffix}
           </div>
         )}
@@ -532,11 +560,7 @@ export function Textarea({
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      {label && (
-        <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'5px' }}>
-          {label}
-        </label>
-      )}
+      {label && <label style={mdLabelBase}>{label}</label>}
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -544,7 +568,23 @@ export function Textarea({
         rows={rows}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        style={{ width:'100%', background:'var(--bg-base)', border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`, borderRadius:'8px', padding:'9px 12px', color:'var(--text-primary)', fontSize:'13px', fontFamily:'Inter,sans-serif', boxSizing:'border-box', outline:'none', resize:'vertical', minHeight:'64px', transition:'border-color 0.15s' }}
+        style={{
+          width: '100%',
+          background: 'var(--bg-surface)',
+          border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
+          borderRadius: 4,
+          padding: focused ? '9px 15px' : '10px 16px',
+          color: 'var(--text-primary)',
+          fontFamily: "'Roboto', sans-serif",
+          fontSize: 14,
+          letterSpacing: '0.25px',
+          boxSizing: 'border-box',
+          outline: 'none',
+          resize: 'vertical',
+          minHeight: 80,
+          transition: 'border-color 0.15s',
+          lineHeight: '20px',
+        }}
       />
     </div>
   );
@@ -552,27 +592,31 @@ export function Textarea({
 
 // ─── Service By Selector ──────────────────────────────────────────────────────
 type ServiceBy = 'owner' | 'tenant' | 'split';
-const SB_LABELS: Record<ServiceBy, string> = { owner:'Ιδιοκτήτης', tenant:'Ενοικιαστής', split:'50 / 50' };
-const SB_COLORS: Record<ServiceBy, string> = { owner:'var(--warning)', tenant:'var(--positive)', split:'var(--accent)' };
+const SB_LABELS: Record<ServiceBy, string> = { owner: 'Ιδιοκτήτης', tenant: 'Ενοικιαστής', split: '50 / 50' };
+const SB_COLORS: Record<ServiceBy, string> = { owner: 'var(--warning)', tenant: 'var(--positive)', split: 'var(--accent)' };
 
 export function ServiceBySelect({ label, value, onChange }: { label: string; value: ServiceBy; onChange: (v: ServiceBy) => void }) {
   return (
     <div>
-      <label style={{ fontSize:'9px', letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:'6px' }}>
-        {label}
-      </label>
-      <div style={{ display:'flex', gap:'4px' }}>
-        {(['owner','tenant','split'] as ServiceBy[]).map(v => (
+      <label style={mdLabelBase}>{label}</label>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {(['owner', 'tenant', 'split'] as ServiceBy[]).map(v => (
           <button
             key={v}
             onClick={() => onChange(v)}
             style={{
-              flex:1, padding:'8px 6px', fontSize:'10px', letterSpacing:'0.04em',
-              fontFamily:'Inter,sans-serif', cursor:'pointer', borderRadius:'7px',
-              border: `1px solid ${value===v ? SB_COLORS[v] : 'var(--border-default)'}`,
-              background: value===v ? `color-mix(in srgb, ${SB_COLORS[v]} 15%, transparent)` : 'transparent',
-              color: value===v ? SB_COLORS[v] : 'var(--text-secondary)',
-              transition:'all 0.15s', textAlign:'center' as const,
+              flex: 1,
+              height: 36,
+              fontFamily: "'Google Sans', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              letterSpacing: '0.1px',
+              cursor: 'pointer',
+              borderRadius: 18,
+              border: `1px solid ${value === v ? SB_COLORS[v] : 'var(--border-default)'}`,
+              background: value === v ? `var(--accent-dim)` : 'transparent',
+              color: value === v ? SB_COLORS[v] : 'var(--text-secondary)',
+              transition: 'all 0.15s',
             }}
           >
             {SB_LABELS[v]}
@@ -585,33 +629,50 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
 
 // ─── Frequency Select ─────────────────────────────────────────────────────────
 export const FREQ_OPTIONS = [
-  { value:'', label:'Χωρίς' },
-  { value:'monthly', label:'Μηνιαία' },
-  { value:'quarterly', label:'Τριμηνιαία' },
-  { value:'biannual', label:'Εξαμηνιαία' },
-  { value:'annual', label:'Ετήσια' },
+  { value: '', label: 'Χωρίς' },
+  { value: 'monthly', label: 'Μηνιαία' },
+  { value: 'quarterly', label: 'Τριμηνιαία' },
+  { value: 'biannual', label: 'Εξαμηνιαία' },
+  { value: 'annual', label: 'Ετήσια' },
 ];
 
-// ─── Segment Control ──────────────────────────────────────────────────────────
+// ─── Segment Control — Google Tabs style ─────────────────────────────────────
 interface SegmentOption { value: string; label: string; }
 
 export function SegmentControl({ options, value, onChange }: { options: SegmentOption[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'3px', gap:'2px' }}>
+    <div style={{
+      display: 'flex',
+      background: 'var(--bg-elevated)',
+      border: '1px solid var(--border-subtle)',
+      borderRadius: 8,
+      padding: 4,
+      gap: 2,
+    }}>
       {options.map(o => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
           style={{
-            flex:1, padding:'7px 12px', fontSize:'11px',
-            fontWeight: value===o.value ? 600 : 400,
-            fontFamily:'Inter,sans-serif', cursor:'pointer', borderRadius:'7px',
-            border:'none',
-            background: value===o.value ? 'var(--bg-surface)' : 'transparent',
-            color: value===o.value ? 'var(--accent)' : 'var(--text-secondary)',
-            transition:'all 0.15s', whiteSpace:'nowrap' as const,
-            boxShadow: value===o.value ? 'var(--shadow-sm)' : 'none',
+            flex: 1,
+            height: 32,
+            paddingLeft: 16,
+            paddingRight: 16,
+            fontFamily: "'Google Sans', sans-serif",
+            fontSize: 13,
+            fontWeight: value === o.value ? 500 : 400,
+            letterSpacing: '0.1px',
+            cursor: 'pointer',
+            borderRadius: 6,
+            border: 'none',
+            background: value === o.value ? 'var(--bg-surface)' : 'transparent',
+            color: value === o.value ? 'var(--accent)' : 'var(--text-secondary)',
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+            boxShadow: value === o.value ? 'var(--shadow-sm)' : 'none',
           }}
+          onMouseEnter={e => { if (value !== o.value) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+          onMouseLeave={e => { if (value !== o.value) e.currentTarget.style.background = 'transparent'; }}
         >
           {o.label}
         </button>
