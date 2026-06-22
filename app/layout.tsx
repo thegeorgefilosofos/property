@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="el" data-mode="light">
+    <html lang="el" suppressHydrationWarning>
       <head>
         {/* Google Fonts — Material Design 3 typefaces */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
