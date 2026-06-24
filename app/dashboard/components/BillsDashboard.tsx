@@ -4,9 +4,14 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Toggle } from './UIComponents';
 import BillsPDFExport from './BillsPDFExport';
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell
+} from 'recharts';
 
 const fe = (n: number, d = 0) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-const MONTHS_GR = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
 interface BillEntry {
   id: string; property_id?: string; user_id?: string;
@@ -16,36 +21,35 @@ interface BillEntry {
   kwh?: number; ert?: number; etmear?: number; dimotika?: number;
   created_at?: string;
 }
-
 interface Props { propertyId: string; userId: string; propertyName?: string; propertyAddress?: string; }
 
 const CATEGORIES = [
-  { value: 'electricity', label: 'Ρεύμα', icon: '⚡', color: '#f59e0b' },
-  { value: 'common', label: 'Κοινόχρηστα', icon: '🏛', color: '#6366f1' },
-  { value: 'internet', label: 'Internet/TV', icon: '📶', color: '#3b82f6' },
-  { value: 'water', label: 'Νερό', icon: '💧', color: '#06b6d4' },
-  { value: 'gas', label: 'Αέριο/Θέρμανση', icon: '🔥', color: '#ef4444' },
-  { value: 'insurance', label: 'Ασφάλεια', icon: '🛡️', color: '#10b981' },
-  { value: 'security', label: 'Security', icon: '🔒', color: '#f97316' },
-  { value: 'streaming', label: 'Streaming/Media', icon: '🎬', color: '#ec4899' },
-  { value: 'enfia', label: 'ΕΝΦΙΑ', icon: '🏛', color: '#64748b' },
-  { value: 'dimotika', label: 'Δημοτικά Τέλη', icon: '🏙', color: '#94a3b8' },
-  { value: 'cleaning', label: 'Καθαρισμός', icon: '🧹', color: '#84cc16' },
-  { value: 'garden', label: 'Κήπος', icon: '🌿', color: '#22c55e' },
-  { value: 'pool', label: 'Πισίνα', icon: '🏊', color: '#0ea5e9' },
-  { value: 'elevator', label: 'Ανελκυστήρας', icon: '🛗', color: '#a78bfa' },
-  { value: 'ac_service', label: 'Σέρβις Κλιματιστικού', icon: '❄️', color: '#38bdf8' },
-  { value: 'renovation', label: 'Ανακαίνιση/Επισκευή', icon: '🔨', color: '#d97706' },
-  { value: 'pest', label: 'Απεντόμωση', icon: '🐛', color: '#78716c' },
-  { value: 'other', label: 'Άλλο', icon: '📦', color: '#94a3b8' },
+  { value: 'electricity', label: 'Ρεύμα',            icon: 'bolt',     color: '#f59e0b' },
+  { value: 'common',      label: 'Κοινόχρηστα',       icon: 'building', color: '#6366f1' },
+  { value: 'internet',    label: 'Internet / Τηλεόραση',        icon: 'wifi',     color: '#3b82f6' },
+  { value: 'water',       label: 'Νερό',              icon: 'drop',     color: '#06b6d4' },
+  { value: 'gas',         label: 'Αέριο / Θέρμανση',   icon: 'flame',    color: '#ef4444' },
+  { value: 'insurance',   label: 'Ασφάλεια',          icon: 'shield',   color: '#10b981' },
+  { value: 'security',    label: 'Security / Συναγερμός',           icon: 'lock',     color: '#f97316' },
+  { value: 'streaming',   label: 'Streaming / Συνδρομές',          icon: 'device-tv',color: '#ec4899' },
+  { value: 'enfia',       label: 'ΕΝΦΙΑ',             icon: 'landmark', color: '#64748b' },
+  { value: 'dimotika',    label: 'Δημοτικά Τέλη', icon: 'building-community', color: '#94a3b8' },
+  { value: 'cleaning',    label: 'Καθαρισμός',         icon: 'sparkles', color: '#84cc16' },
+  { value: 'garden',      label: 'Κήπος',             icon: 'plant',    color: '#22c55e' },
+  { value: 'pool',        label: 'Πισίνα',            icon: 'pool',     color: '#0ea5e9' },
+  { value: 'elevator',    label: 'Ανελκυστήρας',      icon: 'elevator', color: '#a78bfa' },
+  { value: 'ac_service',  label: 'Σέρβις Κλιματιστικού',   icon: 'air-conditioning', color: '#38bdf8' },
+  { value: 'renovation',  label: 'Ανακαίνιση / Επισκευή',        icon: 'hammer',   color: '#d97706' },
+  { value: 'pest',        label: 'Απεντόμωση',        icon: 'bug',      color: '#78716c' },
+  { value: 'other',       label: 'Άλλο',              icon: 'package',  color: '#94a3b8' },
 ];
 
-const CAT_OPTIONS = CATEGORIES.map(c => ({ value: c.value, label: `${c.icon} ${c.label}` }));
+const CAT_OPTIONS = CATEGORIES.map(c => ({ value: c.value, label: c.label }));
 const VAT_OPTIONS = [
-  { value: '6', label: 'ΦΠΑ 6% (Ρεύμα, Αέριο)' },
+  { value: '6',  label: 'ΦΠΑ 6% (Ρεύμα, Αέριο)' },
   { value: '13', label: 'ΦΠΑ 13%' },
   { value: '24', label: 'ΦΠΑ 24% (Γενικό)' },
-  { value: '0', label: 'Χωρίς ΦΠΑ' },
+  { value: '0',  label: 'Χωρίς ΦΠΑ' },
 ];
 const PERIOD_OPTIONS = [
   { value: '', label: '— Επιλογή περιόδου —' },
@@ -53,15 +57,141 @@ const PERIOD_OPTIONS = [
   { value: 'custom', label: 'Προσαρμοσμένο' },
 ];
 const MARKET_BENCHMARKS: { [k: string]: number } = {
-  electricity: 45, common: 40, internet: 25, water: 15, gas: 30,
-  insurance: 18, security: 25, streaming: 20, enfia: 30, dimotika: 8,
+  electricity:45, common:40, internet:25, water:15, gas:30,
+  insurance:18, security:25, streaming:20, enfia:30, dimotika:8,
 };
 
 const cat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[CATEGORIES.length - 1];
 
-export default function BillsDashboard({ propertyId, userId, propertyName = 'Ακίνητό μου', propertyAddress = '' }: Props) {
+const CatIcon = ({ name, size = 14, color }: { name: string; size?: number; color?: string }) => {
+  const icons: Record<string, string> = {
+    bolt:                'M13 2L4.5 13.5H11L10 22L19.5 10.5H13Z',
+    building:            'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6',
+    wifi:                'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0',
+    drop:                'M12 2S5 11 5 15a7 7 0 0 0 14 0c0-4-7-13-7-13z',
+    flame:               'M8.5 14c.5-2 2-4 3.5-6 1.5 2 3 4 3.5 6a3.5 3.5 0 0 1-7 0z',
+    shield:              'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
+    lock:                'M5 11V7a7 7 0 0 1 14 0v4M3 11h18v10H3z',
+    'device-tv':         'M21 7H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM9 21h6',
+    landmark:            'M3 21h18M6 21V11M18 21V11M12 21V5M3 11l9-7 9 7',
+    'building-community':'M3 21h18M5 21V9l7-4 7 4v12',
+    sparkles:            'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z',
+    plant:               'M12 22V12M12 12C12 7 7 4 7 4s0 5 5 8M12 12c0-5 5-8 5-8s0 5-5 8',
+    pool:                'M2 12h20M2 17h20M5 7l7 5 7-5',
+    elevator:            'M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 8l3-3 3 3M9 16l3 3 3-3',
+    'air-conditioning':  'M9 6h6M9 18h6M3 12h18M6 8l-3 4 3 4M18 8l3 4-3 4',
+    hammer:              'M9.5 14.5L3 21M14.5 9.5l2-2M14 5l5 5-8.5 8.5-5-5L14 5z',
+    bug:                 'M8 2l1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a6 6 0 0 1 12 0v3c0 3.3-2.7 6-6 6zM12 20v2M8.5 18.5l-1 1.5M15.5 18.5l1 1.5',
+    package:             'M21 8l-9-6-9 6v8l9 6 9-6V8zM3 8l9 6 9-6M12 14v8',
+  };
+  const d = icons[name] || icons.package;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'middle',flexShrink:0}}>
+      <path d={d}/>
+    </svg>
+  );
+};
+
+
+async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byCategory: any[], avgMonthly: number, propertyName: string) {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  const today = new Date().toLocaleDateString('el-GR');
+  const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+
+  // Sheet 1: Σύνοψη
+  const totalM = bills.filter(b=>b.recurring).reduce((s,b)=>s+b.amount,0);
+  const unpaid = bills.filter(b=>!b.paid).reduce((s,b)=>s+b.amount,0);
+  const paid = bills.filter(b=>b.paid).reduce((s,b)=>s+b.amount,0);
+  const summaryData: (string|number)[][] = [
+    ['Property OS — Σύνοψη Λογαριασμών & Παγίων', ''],
+    ['Ακίνητο:', propertyName],
+    ['Ημερομηνία εξαγωγής:', today],
+    [''],
+    ['ΟΙΚΟΝΟΜΙΚΗ ΣΥΝΟΨΗ', ''],
+    ['Σύνολο παγίων/μήνα (€)', totalM],
+    ['Εκτιμώμενο ετήσιο κόστος (€)', totalM*12],
+    ['Εκκρεμείς πληρωμές (€)', unpaid],
+    ['Πληρωμένοι (€)', paid],
+    ['Μέσο μηνιαίο ιστορικού (€)', avgMonthly],
+    [''],
+    ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ', '', '', ''],
+    ['Κατηγορία', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μ.Ο. Αγοράς (€)', 'Απόκλιση %'],
+    ...byCategory.map(c => [c.label, c.monthly, c.monthly*12, c.benchmark||0, c.benchmark>0?Math.round((c.monthly/c.benchmark-1)*100):0]),
+    [''],
+    ['ΙΣΤΟΡΙΚΟ ' + new Date().getFullYear(), '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['', ...MONTHS, 'Σύνολο'],
+    ['Σύνολο', ...historyTotals, historyTotals.reduce((a,b)=>a+b,0)],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws1['!cols'] = [{wch:32},{wch:16},{wch:16},{wch:16},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Σύνοψη');
+
+  // Sheet 2: Αναλυτικά
+  const headers = ['Κατηγορία','Ονομασία','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημ. Λήξης','Τύπος','Κατάσταση','kWh','Σημειώσεις'];
+  const detailRows = [headers, ...bills.map(b => [
+    cat(b.category).label, b.name, b.amount, b.vat_rate||0, b.period||'',
+    b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR') : '',
+    b.recurring?'Πάγιο':'Εφάπαξ', b.paid?'Πληρωμένο':'Εκκρεμεί',
+    b.kwh||'', b.notes||''
+  ])];
+  const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
+  ws2['!cols'] = [{wch:18},{wch:32},{wch:12},{wch:8},{wch:14},{wch:14},{wch:10},{wch:12},{wch:8},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικά');
+
+  // Sheet 3: Εκκρεμείς
+  const overdue = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < new Date());
+  const pending = bills.filter(b => !b.paid);
+  const pendingData: (string|number)[][] = [
+    ['Εκκρεμείς & Ληξιπρόθεσμοι Λογαριασμοί', ''],
+    [`${pending.length} εκκρεμείς · ${overdue.length} ληξιπρόθεσμοι`, today],
+    [''],
+    ['Κατάσταση','Κατηγορία','Ονομασία','Ποσό (€)','Ημ. Λήξης','Ημέρες'],
+    ...pending.sort((a,b) => {
+      const ad = a.due_date?new Date(a.due_date).getTime():0;
+      const bd = b.due_date?new Date(b.due_date).getTime():0;
+      return ad-bd;
+    }).map(b => {
+      const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime()-Date.now())/86400000) : null;
+      return [
+        days!==null&&days<0?'ΛΗΞΙΠΡΟΘΕΣΜΟΣ':'Εκκρεμεί',
+        cat(b.category).label, b.name, b.amount,
+        b.due_date?new Date(b.due_date).toLocaleDateString('el-GR'):'—',
+        days!==null?(days<0?`${Math.abs(days)} ημ. πριν`:`σε ${days} ημ.`):'—'
+      ];
+    })
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(pendingData);
+  ws3['!cols'] = [{wch:18},{wch:18},{wch:32},{wch:12},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς');
+
+  XLSX.writeFile(wb, `λογαριασμοι_${propertyName.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+const T = {
+  card: { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:'14px', padding:'20px', marginBottom:'16px', fontFamily:"Inter,'Google Sans',sans-serif" } as React.CSSProperties,
+  font: { sans: "Inter,'Google Sans',sans-serif", mono: "'JetBrains Mono',monospace" },
+};
+
+// Custom recharts tooltip
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'10px 14px', fontSize:12, fontFamily:T.font.sans }}>
+      <div style={{ fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:p.color, flexShrink:0 }}/>
+          <span style={{ color:'var(--text-secondary)' }}>{p.name}:</span>
+          <span style={{ fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.mono }}>{fe(p.value, 0)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default function BillsDashboard({ propertyId, userId, propertyName='Ακίνητό μου', propertyAddress='' }: Props) {
   const supabase = createClient();
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '20px', marginBottom: '16px' };
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
@@ -73,326 +203,359 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [chartView, setChartView] = useState<'area'|'bar'|'category'>('area');
+  const [budgets, setBudgets] = useState<Record<string, string>>({});
+  const [showBudgets, setShowBudgets] = useState(false);
   const [form, setForm] = useState({
-    category: 'electricity', name: '', amount: '', kwh: '',
-    period: '', period_custom: '', due_date: '', recurring: true,
-    notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '',
+    category:'electricity', name:'', amount:'', kwh:'',
+    period:'', period_custom:'', due_date:'', recurring:true,
+    notes:'', vat_rate:'6', ert:'', etmear:'', dimotika_amt:'',
   });
   const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
-  // ── Load from Supabase ──────────────────────────────────────────────────────
   const loadBills = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('bills')
-      .select('*')
-      .eq('property_id', propertyId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('bills').select('*').eq('property_id', propertyId).order('created_at', { ascending: false });
     if (!error && data) setBills(data);
     setLoading(false);
   }, [propertyId]);
 
   const loadHistory = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('bills_history')
-      .select('*')
-      .eq('property_id', propertyId)
-      .eq('year', currentYear);
+    const { data, error } = await supabase.from('bills_history').select('*').eq('property_id', propertyId).eq('year', currentYear);
     if (!error && data) {
       const h = Object.fromEntries(CATEGORIES.map(c => [c.value, Array(12).fill('')]));
-      data.forEach((row: any) => {
-        if (h[row.category]) h[row.category][row.month] = row.amount > 0 ? String(row.amount) : '';
-      });
+      data.forEach((row: any) => { if (h[row.category]) h[row.category][row.month] = row.amount > 0 ? String(row.amount) : ''; });
       setHistory(h);
     }
   }, [propertyId, currentYear]);
 
-  useEffect(() => { loadBills(); loadHistory(); }, [loadBills, loadHistory]);
+  const loadBudgets = useCallback(async () => {
+    const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle();
+    if (data?.data) setBudgets(data.data as Record<string, string>);
+  }, [propertyId]);
 
-  // ── Save history cell ───────────────────────────────────────────────────────
+  useEffect(() => { loadBills(); loadHistory(); loadBudgets(); }, [loadBills, loadHistory, loadBudgets]);
+
   const saveHistoryCell = async (category: string, month: number, value: string) => {
     const amount = parseFloat(value) || 0;
-    await supabase.from('bills_history').upsert({
-      property_id: propertyId, user_id: userId,
-      category, month, year: currentYear, amount,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'property_id,category,month,year' });
+    await supabase.from('bills_history').upsert({ property_id:propertyId, user_id:userId, category, month, year:currentYear, amount, updated_at:new Date().toISOString() }, { onConflict:'property_id,category,month,year' });
   };
-
   const updateHistory = (category: string, month: number, value: string) => {
-    setHistory(h => { const n = { ...h }; n[category] = [...(n[category] || Array(12).fill(''))]; n[category][month] = value; return n; });
+    setHistory(h => { const n={...h}; n[category]=[...(n[category]||Array(12).fill(''))]; n[category][month]=value; return n; });
     saveHistoryCell(category, month, value);
   };
 
-  // ── Add bill ────────────────────────────────────────────────────────────────
+  const saveBudgets = async (b: Record<string, string>) => {
+    await supabase.from('bills_settings').upsert({ property_id:propertyId, user_id:userId, section:'budgets', data:b, updated_at:new Date().toISOString() }, { onConflict:'property_id,section' });
+  };
+
   const addBill = async () => {
     if (!form.name || !form.amount) return;
     setSaving(true);
     const period = form.period === 'custom' ? form.period_custom : form.period;
     const payload = {
-      property_id: propertyId, user_id: userId,
-      category: form.category, name: form.name,
-      amount: parseFloat(form.amount),
-      vat_rate: parseInt(form.vat_rate),
-      period: period || null,
-      due_date: form.due_date || null,
-      paid: false, recurring: form.recurring,
-      notes: form.notes || null,
-      kwh: form.kwh ? parseFloat(form.kwh) : null,
-      ert: form.ert ? parseFloat(form.ert) : null,
-      etmear: form.etmear ? parseFloat(form.etmear) : null,
-      dimotika: form.dimotika_amt ? parseFloat(form.dimotika_amt) : null,
+      property_id:propertyId, user_id:userId,
+      category:form.category, name:form.name, amount:parseFloat(form.amount),
+      vat_rate:parseInt(form.vat_rate), period:period||null, due_date:form.due_date||null,
+      paid:false, recurring:form.recurring, notes:form.notes||null,
+      kwh:form.kwh?parseFloat(form.kwh):null,
+      ert:form.ert?parseFloat(form.ert):null, etmear:form.etmear?parseFloat(form.etmear):null,
+      dimotika:form.dimotika_amt?parseFloat(form.dimotika_amt):null,
     };
     const { data, error } = await supabase.from('bills').insert(payload).select().single();
-    if (!error && data) setBills(prev => [data, ...prev]);
-    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', period_custom: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '' });
-    setShowForm(false);
-    setSaving(false);
+    if (!error && data) {
+      setBills(prev => [data, ...prev]);
+      // Cross-tab: auto-create expense when bill is added as paid
+      if (payload.paid) {
+        try { await supabase.from('expenses').insert({ property_id:propertyId, user_id:userId, amount:parseFloat(form.amount), description:form.name, date:new Date().toISOString().split('T')[0], category:cat(form.category).label, expense_group:'bills' }); } catch(_) {}
+      }
+    }
+    setForm({ category:'electricity', name:'', amount:'', kwh:'', period:'', period_custom:'', due_date:'', recurring:true, notes:'', vat_rate:'6', ert:'', etmear:'', dimotika_amt:'' });
+    setShowForm(false); setSaving(false);
   };
 
-  // ── Toggle paid ─────────────────────────────────────────────────────────────
   const togglePaid = async (id: string) => {
     const bill = bills.find(b => b.id === id);
     if (!bill) return;
     const newPaid = !bill.paid;
     setBills(prev => prev.map(b => b.id === id ? { ...b, paid: newPaid } : b));
-    await supabase.from('bills').update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq('id', id);
+    await supabase.from('bills').update({ paid:newPaid, paid_at:newPaid?new Date().toISOString():null }).eq('id', id);
+    // Cross-tab: create expense when marked as paid
+    if (newPaid) {
+      try { await supabase.from('expenses').insert({ property_id:propertyId, user_id:userId, amount:bill.amount, description:bill.name, date:new Date().toISOString().split('T')[0], category:cat(bill.category).label, expense_group:'bills' }); } catch(_) {}
+    }
   };
 
-  // ── Delete bill ─────────────────────────────────────────────────────────────
   const deleteBill = async (id: string) => {
     setBills(prev => prev.filter(b => b.id !== id));
     await supabase.from('bills').delete().eq('id', id);
   };
 
-  // ── Calculations ────────────────────────────────────────────────────────────
   const calc = useMemo(() => {
     const totalMonthly = bills.filter(b => b.recurring).reduce((s, b) => s + b.amount, 0);
     const totalUnpaid = bills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
     const totalPaid = bills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
     const overdue = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < today);
-    const dueSoon = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) >= today && new Date(b.due_date) <= new Date(today.getTime() + 7 * 86400000));
+    const dueSoon = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) >= today && new Date(b.due_date) <= new Date(today.getTime()+7*86400000));
     const byCategory = CATEGORIES.map(c => ({
-      ...c, monthly: bills.filter(b => b.category === c.value && b.recurring).reduce((s, b) => s + b.amount, 0),
-      benchmark: MARKET_BENCHMARKS[c.value] || 0,
+      ...c, monthly:bills.filter(b => b.category===c.value && b.recurring).reduce((s,b) => s+b.amount, 0),
+      benchmark:MARKET_BENCHMARKS[c.value]||0,
     })).filter(c => c.monthly > 0);
-    const historyTotals = Array(12).fill(0).map((_, i) => CATEGORIES.reduce((s, c) => s + (parseFloat(history[c.value]?.[i]) || 0), 0));
+    const historyTotals = Array(12).fill(0).map((_,i) => CATEGORIES.reduce((s,c) => s+(parseFloat(history[c.value]?.[i])||0), 0));
     const filled = historyTotals.filter(v => v > 0);
-    const avgMonthly = filled.length > 0 ? filled.reduce((a, b) => a + b, 0) / filled.length : totalMonthly;
+    const avgMonthly = filled.length > 0 ? filled.reduce((a,b) => a+b, 0)/filled.length : totalMonthly;
     const maxHistory = Math.max(...historyTotals, totalMonthly, 1);
-    const alerts: { type: 'danger' | 'warning' | 'info'; msg: string }[] = [];
-    if (overdue.length > 0) alerts.push({ type: 'danger', msg: `${overdue.length} λογαριασμός/-οί σε καθυστέρηση: ${overdue.map(b => b.name).join(', ')}` });
-    if (dueSoon.length > 0) alerts.push({ type: 'warning', msg: `${dueSoon.length} λογαριασμός/-οί λήγει εντός 7 ημερών` });
-    byCategory.forEach(c => { if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'warning', msg: `${c.icon} ${c.label}: ${fe(c.monthly)}/μήνα — 30%+ πάνω από μ.ο.` }); });
-    return { totalMonthly, totalUnpaid, totalPaid, overdue, dueSoon, byCategory, historyTotals, avgMonthly, maxHistory, alerts };
-  }, [bills, history]);
+    const alerts: { type:'danger'|'warning'|'info'; msg:string }[] = [];
+    if (overdue.length > 0) alerts.push({ type:'danger', msg:`${overdue.length} λογαριασμός/-οί σε καθυστέρηση: ${overdue.map(b=>b.name).join(', ')}` });
+    if (dueSoon.length > 0) alerts.push({ type:'warning', msg:`${dueSoon.length} λογαριασμός/-οί λήγει εντός 7 ημερών` });
+    // Budget alerts
+    byCategory.forEach(c => {
+      const budget = parseFloat(budgets[c.value]||'0');
+      if (budget > 0 && c.monthly > budget) alerts.push({ type:'warning', msg:`${c.label}: ${fe(c.monthly)}/μήνα — υπέρβαση budget (${fe(budget)})` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark*1.3) alerts.push({ type:'info', msg:`${c.label}: ${fe(c.monthly)}/μήνα — 30%+ πάνω από μ.ο. αγοράς` });
+    });
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+    // Chart data
+    const areaData = MONTHS_GR.map((m, i) => {
+      const obj: any = { month: m };
+      CATEGORIES.filter(c => history[c.value]?.some(v => parseFloat(v) > 0)).forEach(c => {
+        obj[c.label] = parseFloat(history[c.value]?.[i])||0;
+      });
+      obj['Σύνολο'] = historyTotals[i];
+      return obj;
+    });
+
+    const categoryData = byCategory.map(c => ({
+      name: c.label, monthly: c.monthly, benchmark: c.benchmark, color: c.color,
+      pct: c.benchmark > 0 ? Math.round((c.monthly/c.benchmark-1)*100) : 0,
+    }));
+
+    return { totalMonthly, totalUnpaid, totalPaid, overdue, dueSoon, byCategory, historyTotals, avgMonthly, maxHistory, alerts, areaData, categoryData };
+  }, [bills, history, budgets]);
+
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: 'var(--text-tertiary)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '28px', marginBottom: '12px', opacity: 0.4 }}>⚡</div>
-        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Φόρτωση λογαριασμών...</div>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'60px', color:'var(--text-tertiary)' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ width:32, height:32, border:'3px solid var(--border-subtle)', borderTopColor:'var(--accent)', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+        <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', fontFamily:T.font.sans }}>Φόρτωση λογαριασμών...</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ fontFamily: 'Inter,sans-serif', color: 'var(--text-primary)' }}>
+    <div style={{ fontFamily:T.font.sans, color:'var(--text-primary)' }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Alerts */}
       {calc.alerts.map((a, i) => (
-        <div key={i} style={{
-          background: a.type === 'danger' ? 'rgba(239,68,68,0.08)' : a.type === 'warning' ? 'rgba(245,158,11,0.08)' : 'rgba(59,130,246,0.06)',
-          border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)'}`,
-          borderRadius: '10px', padding: '10px 16px', marginBottom: '10px', fontSize: '11px',
-          color: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)',
-        }}>
-          {a.type === 'danger' ? '🚨' : '⚠️'} {a.msg}
+        <div key={i} style={{ background:a.type==='danger'?'rgba(197,34,31,0.07)':a.type==='warning'?'rgba(242,153,0,0.07)':'rgba(26,115,232,0.06)', border:`1px solid ${a.type==='danger'?'rgba(197,34,31,0.3)':a.type==='warning'?'rgba(242,153,0,0.3)':'rgba(26,115,232,0.2)'}`, borderRadius:'10px', padding:'10px 16px', marginBottom:'10px', fontSize:12, fontFamily:T.font.sans, display:'flex', alignItems:'center', gap:10, color:a.type==='danger'?'var(--negative)':a.type==='warning'?'var(--warning)':'var(--info)' }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'currentColor', flexShrink:0 }}/>
+          {a.msg}
         </div>
       ))}
 
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '16px' }}>
+      {/* KPI row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16 }}>
         {[
-          { label: 'Σύνολο Παγίων/μήνα', value: fe(calc.totalMonthly), color: 'var(--accent)', icon: '📊' },
-          { label: 'Εκκρεμείς Πληρωμές', value: fe(calc.totalUnpaid), color: calc.totalUnpaid > 0 ? 'var(--negative)' : 'var(--positive)', icon: '⏳' },
-          { label: 'Πληρωμένοι', value: fe(calc.totalPaid), color: 'var(--positive)', icon: '✅' },
-          { label: 'Ετήσιο Κόστος', value: fe(calc.totalMonthly * 12), color: 'var(--warning)', icon: '📅' },
-        ].map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px 16px' }}>
-            <div style={{ fontSize: '18px', marginBottom: '6px' }}>{k.icon}</div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: k.color, fontFamily: "'JetBrains Mono',monospace", marginBottom: '4px' }}>{k.value}</div>
-            <div style={{ fontSize: '9px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{k.label}</div>
+          { label:'Πάγια / Μήνα', value:fe(calc.totalMonthly), color:'var(--text-primary)', sub:fe(calc.totalMonthly*12)+'/έτος' },
+          { label:'Εκκρεμείς', value:fe(calc.totalUnpaid), color:calc.totalUnpaid>0?'var(--negative)':'var(--text-primary)', sub:bills.filter(b=>!b.paid).length+' λογαριασμοί' },
+          { label:'Πληρωμένοι', value:fe(calc.totalPaid), color:'var(--text-primary)', sub:bills.filter(b=>b.paid).length+' λογαριασμοί' },
+          { label:'Μέσο Μηνιαίο', value:fe(calc.avgMonthly), color:'var(--text-primary)', sub:'βάσει ιστορικού' },
+        ].map((k,i) => (
+          <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:'14px', padding:'16px 18px' }}>
+            <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8, fontFamily:T.font.sans, fontWeight:600 }}>{k.label}</div>
+            <div style={{ fontSize:22, fontWeight:700, color:k.color, fontFamily:T.font.mono, marginBottom:4 }}>{k.value}</div>
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{k.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <BillsPDFExport data={{
-          propertyName: propertyName,
-          propertyAddress: propertyAddress,
-          bills,
-          totalMonthly: calc.totalMonthly,
-          totalAnnual: calc.totalMonthly * 12,
-          avgMonthly: calc.avgMonthly,
-          historyTotals: calc.historyTotals,
-        }} />
-        <button onClick={() => setShowForm(v => !v)}
-          style={{ background: showForm ? 'transparent' : 'var(--accent)', color: showForm ? 'var(--text-secondary)' : 'var(--bg-base)', border: `1px solid ${showForm ? 'var(--border-subtle)' : 'var(--accent)'}`, borderRadius: '8px', padding: '9px 20px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-          {showForm ? '✕ Κλείσιμο' : '+ Προσθήκη Λογαριασμού'}
-        </button>
+
+      {/* Upcoming payments this week */}
+      {(() => {
+        const upcoming = bills.filter(b => !b.paid && b.due_date && (() => {
+          const d = new Date(b.due_date); const now = new Date();
+          return d >= now && d <= new Date(now.getTime() + 7*86400000);
+        })());
+        if (upcoming.length === 0) return null;
+        return (
+          <div style={{ background:'rgba(242,153,0,0.06)', border:'1px solid rgba(242,153,0,0.2)', borderRadius:'10px', padding:'12px 18px', marginBottom:14, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+            <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }}/>
+            <span style={{ fontSize:12, fontWeight:600, color:'var(--warning)', fontFamily:T.font.sans }}>Πληρωμές αυτή την εβδομάδα:</span>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', flex:1 }}>
+              {upcoming.map(b => (
+                <div key={b.id} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', borderRadius:'8px', padding:'4px 10px', border:'1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize:12, color:'var(--text-primary)', fontFamily:T.font.sans }}>{b.name}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono }}>{b.amount.toLocaleString('el-GR')}€</span>
+                  <button onClick={()=>togglePaid(b.id)} style={{ fontSize:10, color:'var(--positive)', background:'rgba(52,168,83,0.1)', border:'1px solid var(--positive)', borderRadius:'6px', padding:'2px 8px', cursor:'pointer', fontFamily:T.font.sans, fontWeight:600 }}>
+                    Πληρώθηκε
+                  </button>
+                </div>
+              ))}
+            </div>
+            <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono }}>{fe(upcoming.reduce((s,b)=>s+b.amount,0))}</span>
+          </div>
+        );
+      })()}
+
+      {/* Action row */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:10 }}>
+        <div style={{display:'flex',gap:8}}>
+          <BillsPDFExport data={{ propertyName, propertyAddress, bills, totalMonthly:calc.totalMonthly, totalAnnual:calc.totalMonthly*12, avgMonthly:calc.avgMonthly, historyTotals:calc.historyTotals }} />
+          <button onClick={()=>exportBillsExcel(bills,calc.historyTotals,calc.byCategory,calc.avgMonthly,propertyName)} style={{ padding:'8px 16px', borderRadius:'10px', border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:T.font.sans, transition:'all 0.15s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-elevated)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>
+            Excel
+          </button>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={()=>setShowBudgets(s=>!s)} style={{ padding:'8px 16px', borderRadius:'10px', border:`1px solid ${showBudgets?'var(--accent)':'var(--border-subtle)'}`, background:showBudgets?'rgba(212,175,66,0.1)':'transparent', color:showBudgets?'var(--accent)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:T.font.sans, transition:'all 0.15s' }}>
+            Όρια Budget
+          </button>
+          {!showForm ? (
+            <button onClick={()=>setShowForm(true)} style={{ background:'var(--accent)', color:'#000', border:'none', borderRadius:'100px', padding:'0 22px', height:38, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:T.font.sans, display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap' }}>
+              + Προσθήκη Λογαριασμού
+            </button>
+          ) : (
+            <button onClick={()=>setShowForm(false)} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'8px 16px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:T.font.sans }}>
+              Κλείσιμο
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Budget limits panel - shows ALL categories always */}
+      {showBudgets && (
+        <div style={{ ...T.card, border:'1px solid var(--border-accent)', marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-subtle)' }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+            <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--text-secondary)', fontFamily:T.font.sans }}>Όρια Budget ανά Κατηγορία</span>
+            <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ορισμός μέγιστου αποδεκτού ποσού ανά κατηγορία</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
+            {CATEGORIES.map(c => {
+              const current = bills.filter(b=>b.category===c.value&&b.recurring).reduce((s,b)=>s+b.amount,0);
+              const budget = parseFloat(budgets[c.value]||'0');
+              const over = budget>0 && current>budget;
+              const near = budget>0 && current>budget*0.8 && !over;
+              return (
+                <div key={c.value} style={{ background:'var(--bg-elevated)', borderRadius:'10px', padding:'12px 14px', border:`1px solid ${over?'rgba(197,34,31,0.25)':near?'rgba(242,153,0,0.25)':'var(--border-subtle)'}` }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                    <div style={{ width:7, height:7, borderRadius:'50%', background:c.color, flexShrink:0 }}/>
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, flex:1 }}>{c.label}</span>
+                    {current>0 && <span style={{ fontSize:10, color:over?'var(--negative)':near?'var(--warning)':'var(--text-tertiary)', fontFamily:T.font.mono }}>{current.toLocaleString('el-GR')}€</span>}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <input type="number" value={budgets[c.value]||''} placeholder="Μέγιστο €"
+                      onChange={e => { const b={...budgets,[c.value]:e.target.value}; setBudgets(b); saveBudgets(b); }}
+                      style={{ flex:1, background:'var(--bg-base)', border:`1px solid ${over?'rgba(197,34,31,0.4)':near?'rgba(242,153,0,0.4)':'var(--border-subtle)'}`, borderRadius:'8px', padding:'7px 10px', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.mono, outline:'none' }}/>
+                    <span style={{ fontSize:11, color:'var(--text-tertiary)', flexShrink:0 }}>€</span>
+                  </div>
+                  {over && <div style={{ fontSize:10, color:'var(--negative)', marginTop:5, fontFamily:T.font.sans }}>Υπέρβαση κατά {(current-budget).toFixed(0)}€</div>}
+                  {near && !over && <div style={{ fontSize:10, color:'var(--warning)', marginTop:5, fontFamily:T.font.sans }}>Κοντά στο όριο</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add Form */}
       {showForm && (
-        <div style={{ ...card, border: '1px solid var(--accent)', marginBottom: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '18px' }}>✚ Νέος Λογαριασμός / Πάγιο</div>
-
-          {/* Row 1: Category, Name, Amount, VAT */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr 1fr 1.4fr', gap: '10px', marginBottom: '12px' }}>
-            <CustomSelect label="Κατηγορία" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS} />
-            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="π.χ. ΔΕΗ Πράσινο Ιουνίου..." />
-            <div style={{ minWidth: 0 }}>
-              <label style={{ fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>Ποσό (€)</label>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
-                <input type="number" value={form.amount} onChange={e => sf('amount', e.target.value)} placeholder="0.00"
-                  style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', padding: '9px 10px', color: 'var(--text-primary)', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
-                <span style={{ padding: '0 10px', fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0 }}>€</span>
-              </div>
-            </div>
-            <CustomSelect label="ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS} />
+        <div style={{ ...T.card, border:'1px solid var(--accent)' }}>
+          <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:18 }}>Νέος Λογαριασμός / Πάγιο</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1.3fr 2fr 1fr 1.4fr', gap:10, marginBottom:12 }}>
+            <CustomSelect label="Κατηγορία Λογαριασμού" value={form.category} onChange={v=>sf('category',v)} options={CAT_OPTIONS}/>
+            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v=>sf('name',v)} placeholder="π.χ. ΔΕΗ Πράσινο Ιουνίου"/>
+            <NumberInput label="Ποσό (€)" value={form.amount} onChange={v=>sf('amount',v)} suffix="€" step={1}/>
+            <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v=>sf('vat_rate',v)} options={VAT_OPTIONS}/>
           </div>
-
-          {/* Row 2: Period, Due date, Type, Notes */}
-          <div style={{ display: 'grid', gridTemplateColumns: form.period === 'custom' ? '1fr 1fr 1fr auto 1fr' : '1fr 1fr auto 1fr', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
-            <CustomSelect label="Περίοδος" value={form.period} onChange={v => sf('period', v)} options={PERIOD_OPTIONS} />
-            {form.period === 'custom' && (
-              <TextInput label="Προσαρμοσμένη Περίοδος" value={form.period_custom} onChange={v => sf('period_custom', v)} placeholder="π.χ. 01-15/06/2026" />
-            )}
-            <DatePicker label="Ημ. Λήξης" value={form.due_date} onChange={v => sf('due_date', v)} />
-            <div style={{ paddingTop: '22px' }}>
-              <Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="📅 Πάγιο" labelOff="1️⃣ Εφάπαξ" />
-            </div>
-            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση, ληξιπρόθεσμος..." />
+          <div style={{ display:'grid', gridTemplateColumns:form.period==='custom'?'1fr 1fr 1fr auto 1fr':'1fr 1fr auto 1fr', gap:10, marginBottom:12, alignItems:'flex-start' }}>
+            <CustomSelect label="Περίοδος" value={form.period} onChange={v=>sf('period',v)} options={PERIOD_OPTIONS}/>
+            {form.period==='custom' && <TextInput label="Προσαρμοσμένη Περίοδος" value={form.period_custom} onChange={v=>sf('period_custom',v)} placeholder="01-15/06/2026"/>}
+            <DatePicker label="Ημ. Λήξης" value={form.due_date} onChange={v=>sf('due_date',v)}/>
+            <div style={{ paddingTop:22 }}><Toggle on={form.recurring} onChange={v=>sf('recurring',v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
+            <TextInput label="Σημειώσεις" value={form.notes} onChange={v=>sf('notes',v)} placeholder="π.χ. δόση..."/>
           </div>
-
-          {/* Electricity extras */}
-          {form.category === 'electricity' && (
-            <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '10px', padding: '14px', marginBottom: '12px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>⚡ Λεπτομέρειες Λογαριασμού Ρεύματος</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '8px' }}>
-                {[
-                  { label: 'Κατανάλωση', key: 'kwh', suffix: 'kWh' },
-                  { label: 'ΕΡΤ', key: 'ert', suffix: '€' },
-                  { label: 'ΕΤΜΕΑΡ', key: 'etmear', suffix: '€' },
-                  { label: 'Δημοτικά', key: 'dimotika_amt', suffix: '€' },
-                ].map(f => (
-                  <div key={f.key} style={{ minWidth: 0 }}>
-                    <label style={{ fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>{f.label} ({f.suffix})</label>
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <input type="number" value={(form as any)[f.key]} onChange={e => sf(f.key, e.target.value)} placeholder="0"
-                        style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', padding: '9px 8px', color: 'var(--text-primary)', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
-                      <span style={{ padding: '0 8px', fontSize: '10px', color: 'var(--text-tertiary)', flexShrink: 0 }}>{f.suffix}</span>
-                    </div>
-                  </div>
+          {form.category==='electricity' && (
+            <div style={{ background:'rgba(245,158,11,0.05)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:10, padding:14, marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--warning)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>Λεπτομέρειες Ρεύματος</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+                {[{label:'Κατανάλωση',key:'kwh',suffix:'kWh'},{label:'ΕΡΤ',key:'ert',suffix:'€'},{label:'ΕΤΜΕΑΡ',key:'etmear',suffix:'€'},{label:'Δημοτικά',key:'dimotika_amt',suffix:'€'}].map(f => (
+                  <NumberInput key={f.key} label={`${f.label} (${f.suffix})`} value={(form as any)[f.key]} onChange={v=>sf(f.key,v)} suffix={f.suffix} step={0.01}/>
                 ))}
               </div>
-              {form.amount && form.kwh && parseFloat(form.kwh) > 0 && (
-                <div style={{ display: 'flex', gap: '20px', fontSize: '11px', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'var(--warning)' }}>Κόστος/kWh: <strong style={{ fontFamily: "'JetBrains Mono',monospace" }}>{(parseFloat(form.amount) / parseFloat(form.kwh)).toFixed(4)} €</strong></span>
-                  {form.ert && form.etmear && form.dimotika_amt && (
-                    <span style={{ color: 'var(--text-secondary)' }}>Καθαρή κατανάλωση: <strong style={{ color: 'var(--positive)', fontFamily: "'JetBrains Mono',monospace" }}>{(parseFloat(form.amount) - parseFloat(form.ert||'0') - parseFloat(form.etmear||'0') - parseFloat(form.dimotika_amt||'0')).toFixed(2)} €</strong></span>
-                  )}
-                </div>
-              )}
             </div>
           )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button onClick={() => setShowForm(false)}
-              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '9px 16px', fontSize: '12px', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-              Ακύρωση
-            </button>
-            <button onClick={addBill} disabled={!form.name || !form.amount || saving}
-              style={{ background: (!form.name || !form.amount || saving) ? 'var(--bg-overlay)' : 'var(--accent)', color: (!form.name || !form.amount || saving) ? 'var(--text-tertiary)' : 'var(--bg-base)', border: 'none', borderRadius: '8px', padding: '9px 20px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
-              {saving ? '⏳ Αποθήκευση...' : '✚ Προσθήκη'}
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+            <button onClick={()=>setShowForm(false)} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'9px 16px', fontSize:12, cursor:'pointer', fontFamily:T.font.sans }}>Ακύρωση</button>
+            <button onClick={addBill} disabled={!form.name||!form.amount||saving} style={{ background:(!form.name||!form.amount||saving)?'var(--bg-elevated)':'var(--accent)', color:(!form.name||!form.amount||saving)?'var(--text-tertiary)':'#000', border:'none', borderRadius:'8px', padding:'9px 20px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:T.font.sans }}>
+              {saving?'Αποθήκευση...':'Προσθήκη'}
             </button>
           </div>
         </div>
       )}
 
       {/* Bills List */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <span style={{ fontSize: '16px' }}>📋</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Λογαριασμοί & Πάγια</span>
-          <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: '20px' }}>{bills.length} εγγραφές</span>
+      <div style={T.card}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-subtle)' }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+          <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', flex:1, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Λογαριασμοί & Πάγια</span>
+          <span style={{ fontSize:10, color:'var(--text-tertiary)', background:'var(--bg-elevated)', padding:'2px 10px', borderRadius:20, fontFamily:T.font.mono }}>{bills.length} εγγραφές</span>
         </div>
-
-        {bills.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: '36px', marginBottom: '10px', opacity: 0.25 }}>🧾</div>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>Δεν έχεις προσθέσει λογαριασμούς</div>
-            <div style={{ fontSize: '10px' }}>Πάτα "+ Προσθήκη" για να ξεκινήσεις</div>
+        {bills.length===0 ? (
+          <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text-tertiary)' }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)', marginBottom:8 }}>Δεν υπάρχουν λογαριασμοί</div>
+            <div style={{ fontSize:13, color:'var(--text-secondary)', marginBottom:24 }}>Πρόσθεσε τα πάγια έξοδα του ακινήτου σου</div>
+            <button onClick={()=>setShowForm(true)} style={{ background:'var(--accent)', color:'#000', border:'none', borderRadius:'100px', padding:'0 22px', height:38, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
           </div>
         ) : (
-          ['overdue', 'upcoming', 'paid'].map(group => {
+          ['overdue','upcoming','paid'].map(group => {
             const groupBills = bills.filter(b => {
               const isOverdue = !b.paid && b.due_date && new Date(b.due_date) < today;
-              if (group === 'overdue') return isOverdue;
-              if (group === 'paid') return b.paid;
+              if (group==='overdue') return isOverdue;
+              if (group==='paid') return b.paid;
               return !isOverdue && !b.paid;
             });
-            if (groupBills.length === 0) return null;
-            const cfg = {
-              overdue: { label: '🚨 Ληξιπρόθεσμοι', color: 'var(--negative)' },
-              upcoming: { label: '⏳ Εκκρεμείς', color: 'var(--warning)' },
-              paid: { label: '✅ Πληρωμένοι', color: 'var(--positive)' },
-            }[group]!;
+            if (groupBills.length===0) return null;
+            const cfg = { overdue:{label:'Ληξιπρόθεσμοι',color:'var(--negative)'}, upcoming:{label:'Εκκρεμείς',color:'var(--warning)'}, paid:{label:'Πληρωμένοι',color:'var(--positive)'} }[group]!;
             return (
-              <div key={group} style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '9px', fontWeight: 700, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '8px', paddingBottom: '4px', borderBottom: `1px solid ${cfg.color}30` }}>
+              <div key={group} style={{ marginBottom:16 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:cfg.color, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:8, paddingBottom:4, borderBottom:`1px solid ${cfg.color}25` }}>
                   {cfg.label} · {groupBills.length}
                 </div>
                 {groupBills.map(b => {
                   const c = cat(b.category);
-                  const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
+                  const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime()-today.getTime())/86400000) : null;
                   return (
-                    <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto', gap: '12px', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
-                      <button onClick={() => togglePaid(b.id)}
-                        style={{ width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${b.paid ? 'var(--positive)' : 'var(--border-default)'}`, background: b.paid ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {b.paid && <span style={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}>✓</span>}
+                    <div key={b.id} style={{ display:'grid', gridTemplateColumns:'28px 1fr auto auto auto', gap:12, alignItems:'center', padding:'10px 0', borderBottom:'1px solid var(--border-subtle)', opacity:b.paid?0.55:1 }}>
+                      <button onClick={()=>togglePaid(b.id)} style={{ width:22, height:22, borderRadius:6, border:`2px solid ${b.paid?'var(--positive)':'var(--border-default)'}`, background:b.paid?'var(--positive)':'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
                       </button>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap', marginBottom: '3px' }}>
-                          <span style={{ fontSize: '15px' }}>{c.icon}</span>
-                          <span style={{ fontSize: '12px', fontWeight: 600, textDecoration: b.paid ? 'line-through' : 'none', color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{b.name}</span>
-                          {b.recurring && <span style={{ fontSize: '8px', background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>ΠΑΓΙΟ</span>}
-                          <span style={{ fontSize: '8px', color: c.color, background: `${c.color}18`, padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>{c.label}</span>
-                          {b.vat_rate ? <span style={{ fontSize: '8px', color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 6px', borderRadius: '3px' }}>ΦΠΑ {b.vat_rate}%</span> : null}
+                        <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap', marginBottom:3 }}>
+                          <div style={{ width:7, height:7, borderRadius:'50%', background:c.color, flexShrink:0 }}/>
+                          <span style={{ fontSize:12, fontWeight:600, textDecoration:b.paid?'line-through':'none', color:b.paid?'var(--text-tertiary)':'var(--text-primary)' }}>{b.name}</span>
+                          {b.recurring && <span style={{ fontSize:8, background:'var(--bg-overlay)', color:'var(--text-tertiary)', padding:'1px 6px', borderRadius:3, fontWeight:600 }}>ΠΑΓΙΟ</span>}
+                          <span style={{ fontSize:8, color:c.color, background:`${c.color}18`, padding:'1px 6px', borderRadius:3, fontWeight:600 }}>{c.label}</span>
+                          {b.vat_rate ? <span style={{ fontSize:8, color:'var(--text-tertiary)', background:'var(--bg-overlay)', padding:'1px 6px', borderRadius:3 }}>ΦΠΑ {b.vat_rate}%</span> : null}
                         </div>
-                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                          {b.period && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>📅 {b.period}</span>}
-                          {b.kwh && <span style={{ fontSize: '10px', color: 'var(--info)', fontFamily: "'JetBrains Mono',monospace" }}>{b.kwh} kWh</span>}
-                          {b.due_date && <span style={{ fontSize: '10px', color: daysLeft !== null && daysLeft < 0 ? 'var(--negative)' : daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
-                            {daysLeft !== null && daysLeft < 0 ? `⚠ ${Math.abs(daysLeft)}ημ. καθυστέρηση` : daysLeft === 0 ? '⚠ Λήγει σήμερα' : daysLeft !== null ? `Λήγει σε ${daysLeft}ημ.` : new Date(b.due_date).toLocaleDateString('el-GR')}
+                        <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+                          {b.period && <span style={{ fontSize:10, color:'var(--text-tertiary)' }}>{b.period}</span>}
+                          {b.kwh && <span style={{ fontSize:10, color:'var(--info)', fontFamily:T.font.mono }}>{b.kwh} kWh</span>}
+                          {b.due_date && <span style={{ fontSize:10, color:daysLeft!==null&&daysLeft<0?'var(--negative)':daysLeft!==null&&daysLeft<=7?'var(--warning)':'var(--text-tertiary)' }}>
+                            {daysLeft!==null&&daysLeft<0?`${Math.abs(daysLeft)}ημ. καθυστέρηση`:daysLeft===0?'Λήγει σήμερα':daysLeft!==null?`σε ${daysLeft}ημ.`:new Date(b.due_date).toLocaleDateString('el-GR')}
                           </span>}
-                          {b.notes && <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>• {b.notes}</span>}
+                          {b.notes && <span style={{ fontSize:10, color:'var(--text-tertiary)' }}>· {b.notes}</span>}
                         </div>
                       </div>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'nowrap' }}>{fe(b.amount, 2)}</span>
+                      <span style={{ fontSize:15, fontWeight:700, color:b.paid?'var(--text-tertiary)':'var(--accent)', fontFamily:T.font.mono, whiteSpace:'nowrap' }}>{fe(b.amount,2)}</span>
                       {!b.paid && (
-                        <button onClick={() => togglePaid(b.id)}
-                          style={{ fontSize: '10px', color: 'var(--positive)', background: 'rgba(52,217,123,0.1)', border: '1px solid var(--positive)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'Inter,sans-serif', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                          ✓ Πληρώθηκε
+                        <button onClick={()=>togglePaid(b.id)} style={{ fontSize:10, color:'var(--positive)', background:'rgba(52,168,83,0.1)', border:'1px solid var(--positive)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontFamily:T.font.sans, whiteSpace:'nowrap', fontWeight:600 }}>
+                          Πληρώθηκε
                         </button>
                       )}
-                      <button onClick={() => deleteBill(b.id)}
-                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--negative)'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>✕</button>
+                      <button onClick={()=>deleteBill(b.id)} style={{ width:26, height:26, borderRadius:6, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-tertiary)', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='rgba(197,34,31,0.1)';(e.currentTarget as HTMLButtonElement).style.color='var(--negative)'}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='transparent';(e.currentTarget as HTMLButtonElement).style.color='var(--text-tertiary)'}}>✕</button>
                     </div>
                   );
                 })}
@@ -402,49 +565,156 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         )}
       </div>
 
-      {/* Smart Insights */}
-      {calc.byCategory.length > 0 && (
-        <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '16px' }}>💡</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Smart Insights</span>
+      {/* Charts section */}
+      {(calc.historyTotals.some(v=>v>0) || calc.byCategory.length>0) && (
+        <div style={T.card}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+          <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', flex:1, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Ανάλυση & Γραφήματα</span>
+            <div style={{ display:'flex', background:'var(--bg-elevated)', borderRadius:10, padding:3, gap:2, border:'1px solid var(--border-subtle)' }}>
+              {[{id:'area',label:'Τάση'},{id:'bar',label:'Μηνιαίο'},{id:'category',label:'Κατηγορίες'}].map(v => (
+                <button key={v.id} onClick={()=>setChartView(v.id as any)} style={{ padding:'5px 12px', borderRadius:8, border:'none', background:chartView===v.id?'var(--accent)':'transparent', color:chartView===v.id?'#000':'var(--text-secondary)', fontSize:11, fontWeight:chartView===v.id?700:400, cursor:'pointer', transition:'all 0.15s' }}>{v.label}</button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
+
+          {chartView==='area' && (
+            <div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:12 }}>Εξέλιξη δαπανών {currentYear} — συνολικό ποσό ανά μήνα</div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={calc.areaData} margin={{top:5,right:10,left:0,bottom:5}}>
+                  <defs>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#d4af42" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#d4af42" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false}/>
+                  <XAxis dataKey="month" tick={{fontSize:10,fill:'var(--text-tertiary)'}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fontSize:10,fill:'var(--text-tertiary)'}} axisLine={false} tickLine={false} tickFormatter={v=>v>0?`${v}€`:''}/>
+                  <Tooltip content={<ChartTooltip/>}/>
+                  {calc.avgMonthly>0 && <ReferenceLine y={calc.avgMonthly} stroke="var(--text-tertiary)" strokeDasharray="4 4" label={{value:`μ.ο. ${Math.round(calc.avgMonthly)}€`,position:'right',fontSize:9,fill:'var(--text-tertiary)'}}/>}
+                  <Area type="monotone" dataKey="Σύνολο" stroke="#d4af42" strokeWidth={2} fill="url(#colorTotal)" dot={{r:3,fill:'#d4af42'}} activeDot={{r:5}}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {chartView==='bar' && (
+            <div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:12 }}>Μηνιαίο κόστος — σύγκριση με μέσο όρο</div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={calc.areaData} margin={{top:5,right:10,left:0,bottom:5}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false}/>
+                  <XAxis dataKey="month" tick={{fontSize:10,fill:'var(--text-tertiary)'}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fontSize:10,fill:'var(--text-tertiary)'}} axisLine={false} tickLine={false} tickFormatter={v=>v>0?`${v}€`:''}/>
+                  <Tooltip content={<ChartTooltip/>}/>
+                  {calc.avgMonthly>0 && <ReferenceLine y={calc.avgMonthly} stroke="var(--accent)" strokeDasharray="4 4"/>}
+                  <Bar dataKey="Σύνολο" fill="#1a73e8" fillOpacity={0.8} radius={[4,4,0,0]}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {chartView==='category' && calc.categoryData.length>0 && (
+            <div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:14 }}>Κόστος ανά κατηγορία vs. μέσος όρος αγοράς</div>
+              <ResponsiveContainer width="100%" height={Math.max(180, calc.categoryData.length*44)}>
+                <BarChart layout="vertical" data={calc.categoryData} margin={{top:0,right:60,left:0,bottom:0}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" horizontal={false}/>
+                  <XAxis type="number" tick={{fontSize:10,fill:'var(--text-tertiary)'}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}€`}/>
+                  <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:'var(--text-primary)'}} axisLine={false} tickLine={false} width={100}/>
+                  <Tooltip content={<ChartTooltip/>}/>
+                  <Bar dataKey="monthly" name="Τρέχον" radius={[0,4,4,0]}>
+                    {calc.categoryData.map((entry, index) => (
+                      <Cell key={index} fill={entry.pct>25?'#c5221f':entry.color}/>
+                    ))}
+                  </Bar>
+                  <Bar dataKey="benchmark" name="Μ.Ο. Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0,4,4,0]}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+
+      {/* Live Smart Advice - based on actual data */}
+      {calc.byCategory.length > 0 && (() => {
+        const advice: {type:'tip'|'warning'|'saving'; title:string; body:string}[] = [];
+        const elec = calc.byCategory.find(c=>c.value==='electricity');
+        const insur = calc.byCategory.find(c=>c.value==='insurance');
+        const internet = calc.byCategory.find(c=>c.value==='internet');
+        if (elec && elec.monthly > 50) advice.push({type:'tip',title:'Εξοικονομήσεις στο ρεύμα',body:`Με ${fe(elec.monthly)}/μήνα, αλλαγή σε πρόγραμμα νυχτερινής ζώνης (ΔΕΗ Γ1Ν) μπορεί να εξοικονομήσει έως 15%.`});
+        if (!insur) advice.push({type:'warning',title:'Δεν καταγράφεται ασφάλεια κατοικίας',body:'Η ασφάλεια κατοικίας είναι υποχρεωτική για δανειολήπτες. Ελάχιστο κόστος ~9€/μήνα.'});
+        if (internet && internet.monthly > 30) advice.push({type:'saving',title:'Εξοικονόμηση Internet',body:`Με ${fe(internet.monthly)}/μήνα, ελέγξτε στο ΕΕΤΤ 360° για οικονομικότερο πρόγραμμα.`});
+        if (calc.overdue.length > 0) advice.push({type:'warning',title:`${calc.overdue.length} ληξιπρόθεσμοι λογαριασμοί`,body:`Συνολικό ποσό: ${fe(calc.overdue.reduce((s,b)=>s+b.amount,0))}. Οι καθυστερήσεις επιφέρουν πρόστιμα.`});
+        if (advice.length === 0) return null;
+        const colors = {tip:{bg:'rgba(26,115,232,0.06)',border:'rgba(26,115,232,0.2)',color:'var(--info)',dot:'#1a73e8'},warning:{bg:'rgba(197,34,31,0.06)',border:'rgba(197,34,31,0.2)',color:'var(--negative)',dot:'#c5221f'},saving:{bg:'rgba(52,168,83,0.06)',border:'rgba(52,168,83,0.2)',color:'var(--positive)',dot:'#34a853'}};
+        return (
+          <div style={T.card}>
+            <div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:14,paddingBottom:10,borderBottom:'1px solid var(--border-subtle)'}}>Έξυπνες Συμβουλές</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {advice.map((a,i)=>{const c=colors[a.type];return(
+                <div key={i} style={{background:c.bg,border:`1px solid ${c.border}`,borderRadius:10,padding:'12px 16px',display:'flex',alignItems:'flex-start',gap:12}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:c.dot,flexShrink:0,marginTop:4}}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:c.color,marginBottom:3,fontFamily:T.font.sans}}>{a.title}</div>
+                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:T.font.sans}}>{a.body}</div>
+                  </div>
+                </div>
+              )})}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Smart Insights */}
+      {calc.byCategory.length>0 && (
+        <div style={T.card}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-subtle)' }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+            <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--text-secondary)', fontFamily:T.font.sans }}>Smart Insights</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20 }}>
             {[
-              { label: 'Πάγια / τ.μ. / μήνα', value: calc.totalMonthly > 0 ? `${(calc.totalMonthly/35).toFixed(2)} €/τ.μ.` : '—', sub: 'Μ.Ο. αγοράς ~3.50 €/τ.μ.', color: calc.totalMonthly > 0 && (calc.totalMonthly/35) > 3.50 ? 'var(--negative)' : 'var(--positive)', icon: '📐' },
-              { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', sub: 'βάσει ιστορικού', color: 'var(--accent)', icon: '📊' },
-              { label: 'Ακριβότερος μήνας', value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', color: 'var(--negative)', icon: '📈' },
-              { label: 'Εκκρεμείς', value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : '✓ Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', color: calc.overdue.length > 0 ? 'var(--negative)' : 'var(--positive)', icon: calc.overdue.length > 0 ? '🚨' : '✅' },
-            ].map((k, i) => (
-              <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', border: `1px solid ${k.color}22` }}>
-                <div style={{ fontSize: '20px', marginBottom: '6px' }}>{k.icon}</div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: k.color, fontFamily: "'JetBrains Mono',monospace", marginBottom: '4px' }}>{k.value}</div>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{k.label}</div>
-                <div style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>{k.sub}</div>
+              { label:'Πάγια / τ.μ. / μήνα', value:calc.totalMonthly>0?`${(calc.totalMonthly/35).toFixed(2)} €/τ.μ.`:'—', sub:'Μ.Ο. αγοράς ~3.50 €/τ.μ.', color:calc.totalMonthly>0&&(calc.totalMonthly/35)>3.50?'var(--negative)':'var(--positive)' },
+              { label:'Μέσο Μηνιαίο', value:calc.avgMonthly>0?`${Math.round(calc.avgMonthly)} €`:'—', sub:'βάσει ιστορικού', color:'var(--accent)' },
+              { label:'Ακριβότερος μήνας', value:Math.max(...calc.historyTotals)>0?`${Math.round(Math.max(...calc.historyTotals))} €`:'—', sub:MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))]||'—', color:'var(--negative)' },
+              { label:'Εκκρεμείς', value:calc.overdue.length>0?`${calc.overdue.length} λογ/σμοί`:'Εντάξει', sub:calc.totalUnpaid>0?`${calc.totalUnpaid.toFixed(2)} €`:'Καμία εκκρεμότητα', color:calc.overdue.length>0?'var(--negative)':'var(--positive)' },
+            ].map((k,i) => (
+              <div key={i} style={{ background:'var(--bg-surface)', borderRadius:'12px', padding:'14px 16px', border:'1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize:17, fontWeight:700, color:k.color, fontFamily:T.font.mono, marginBottom:4 }}>{k.value}</div>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-primary)', marginBottom:2 }}>{k.label}</div>
+                <div style={{ fontSize:9, color:'var(--text-tertiary)' }}>{k.sub}</div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Κατηγορίες vs Μέσος Όρος Αγοράς</div>
+          {/* Category bars */}
+          <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>Κατηγορίες vs. Μέσος Όρος Αγοράς</div>
           {calc.byCategory.map(c => {
-            const pct = c.benchmark > 0 ? (c.monthly / c.benchmark - 1) * 100 : 0;
-            const isHigh = pct > 25;
-            const barPct = c.benchmark > 0 ? Math.min(c.monthly / (c.benchmark * 2), 1) * 100 : 50;
+            const pct = c.benchmark>0?(c.monthly/c.benchmark-1)*100:0;
+            const isHigh = pct>25;
+            const barPct = c.benchmark>0?Math.min(c.monthly/(c.benchmark*2),1)*100:50;
+            const budget = parseFloat(budgets[c.value]||'0');
+            const overBudget = budget>0 && c.monthly>budget;
             return (
-              <div key={c.value} style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '15px' }}>{c.icon}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 600 }}>{c.label}</span>
+              <div key={c.value} style={{ marginBottom:14 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:8, height:8, borderRadius:2, background:c.color, flexShrink:0 }}/>
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{c.label}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'JetBrains Mono',monospace" }}>{fe(c.monthly)}/μήνα</span>
-                    {c.benchmark > 0 && <span style={{ fontSize: '10px', fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: "'JetBrains Mono',monospace", width: '50px', textAlign: 'right' }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
-                    {c.benchmark > 0 && <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', width: '60px' }}>μ.ο. {fe(c.benchmark)}</span>}
+                  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                    {budget>0 && <span style={{ fontSize:9, color:overBudget?'var(--negative)':'var(--positive)', fontWeight:700 }}>budget {fe(budget)}</span>}
+                    <span style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono }}>{fe(c.monthly)}/μήνα</span>
+                    {c.benchmark>0 && <span style={{ fontSize:10, fontWeight:700, color:isHigh?'var(--negative)':pct<-10?'var(--positive)':'var(--text-secondary)', fontFamily:T.font.mono, width:50, textAlign:'right' }}>{pct>0?'+':''}{pct.toFixed(0)}%</span>}
+                    {c.benchmark>0 && <span style={{ fontSize:9, color:'var(--text-tertiary)', width:60 }}>μ.ο. {fe(c.benchmark)}</span>}
                   </div>
                 </div>
-                <div style={{ position: 'relative', height: '6px', background: 'var(--bg-overlay)', borderRadius: '3px' }}>
-                  {c.benchmark > 0 && <div style={{ position: 'absolute', left: '50%', top: '-2px', width: '2px', height: '10px', background: 'var(--border-default)', borderRadius: '1px' }} />}
-                  <div style={{ height: '100%', width: `${Math.min(barPct, 100)}%`, background: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : c.color, borderRadius: '3px', transition: 'width 0.5s' }} />
+                <div style={{ position:'relative', height:6, background:'var(--bg-overlay)', borderRadius:3 }}>
+                  {c.benchmark>0 && <div style={{ position:'absolute', left:'50%', top:-2, width:2, height:10, background:'var(--border-default)', borderRadius:1 }}/>}
+                  <div style={{ height:'100%', width:`${Math.min(barPct,100)}%`, background:overBudget?'var(--negative)':isHigh?'var(--negative)':pct<-10?'var(--positive)':c.color, borderRadius:3, transition:'width 0.5s' }}/>
                 </div>
               </div>
             );
@@ -452,115 +722,102 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* 12-Month History */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <span style={{ fontSize: '16px' }}>📊</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ιστορικό {currentYear}</span>
+      {/* 12-Month History Input Table */}
+      <div style={T.card}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-subtle)' }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+          <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', flex:1, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Ιστορικό {currentYear}</span>
         </div>
-        <div style={{ position: 'relative', display: 'flex', gap: '5px', alignItems: 'flex-end', height: '90px', marginBottom: '8px' }}>
-          {calc.avgMonthly > 0 && calc.maxHistory > 0 && (
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(calc.avgMonthly / calc.maxHistory) * 78}px`, borderTop: '1px dashed var(--accent)', opacity: 0.4, zIndex: 1, pointerEvents: 'none' }}>
-              <span style={{ position: 'absolute', right: 0, top: '-12px', fontSize: '8px', color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', borderRadius: '3px' }}>μ.ο. {Math.round(calc.avgMonthly)}€</span>
-            </div>
-          )}
-          {MONTHS_GR.map((m, i) => {
-            const val = calc.historyTotals[i];
-            const pct = val / calc.maxHistory;
-            const isCurrent = i === currentMonth;
-            const isHigh = val > 0 && calc.avgMonthly > 0 && val > calc.avgMonthly * 1.2;
-            return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                {val > 0 && <div style={{ fontSize: '7px', color: isHigh ? 'var(--negative)' : 'var(--text-tertiary)', fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(val)}</div>}
-                <div style={{ width: '100%', height: `${Math.max(pct * 78, val > 0 ? 5 : 2)}px`, background: isCurrent ? 'var(--accent)' : isHigh ? 'rgba(239,68,68,0.65)' : 'var(--info)', borderRadius: '4px 4px 0 0', opacity: isCurrent ? 1 : 0.75, transition: 'height 0.35s' }} />
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '16px' }}>
-          {MONTHS_GR.map((m, i) => <div key={i} style={{ flex: 1, fontSize: '8px', color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', textAlign: 'center', fontWeight: i === currentMonth ? 700 : 400 }}>{m}</div>)}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '16px' }}>
-          {[
-            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', color: 'var(--accent)' },
-            { label: 'Ακριβότερος', value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', color: 'var(--negative)' },
-            { label: 'Φθηνότερος', value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', color: 'var(--positive)' },
-          ].map((k, i) => (
-            <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '10px 14px' }}>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: k.color, fontFamily: "'JetBrains Mono',monospace" }}>{k.value}</div>
-              <div style={{ fontSize: '9px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '2px' }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Καταχώρηση Ιστορικού ανά Κατηγορία</div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', minWidth: '900px' }}>
+        <div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:14 }}>Καταχώρησε τα ποσά από τους λογαριασμούς σου ανά μήνα για να δεις τα γραφήματα.</div>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:10, minWidth:900 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-secondary)', fontWeight: 400, fontSize: '9px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-subtle)', width: '120px' }}>Κατηγορία</th>
-                {MONTHS_GR.map((m, i) => <th key={i} style={{ padding: '6px 4px', color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: i === currentMonth ? 700 : 400, fontSize: '9px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>{m}</th>)}
-                <th style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontWeight: 400, fontSize: '9px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'right' }}>Σύνολο</th>
+                <th style={{ textAlign:'left', padding:'6px 8px', color:'var(--text-secondary)', fontWeight:400, fontSize:9, textTransform:'uppercase', borderBottom:'1px solid var(--border-subtle)', width:120 }}>Κατηγορία</th>
+                {MONTHS_GR.map((m,i) => <th key={i} style={{ padding:'6px 4px', color:i===currentMonth?'var(--accent)':'var(--text-secondary)', fontWeight:i===currentMonth?700:400, fontSize:9, borderBottom:'1px solid var(--border-subtle)', textAlign:'center' }}>{m}</th>)}
+                <th style={{ padding:'6px 8px', color:'var(--text-secondary)', fontWeight:400, fontSize:9, borderBottom:'1px solid var(--border-subtle)', textAlign:'right' }}>Σύνολο</th>
               </tr>
             </thead>
             <tbody>
-              {CATEGORIES.filter(c => c.value !== 'other').map(c => {
-                const rowTotal = history[c.value]?.reduce((s, v) => s + (parseFloat(v) || 0), 0) || 0;
+              {CATEGORIES.filter(c => c.value!=='other').map(c => {
+                const rowTotal = history[c.value]?.reduce((s,v)=>s+(parseFloat(v)||0),0)||0;
                 return (
                   <tr key={c.value}>
-                    <td style={{ padding: '4px 8px', color: 'var(--text-secondary)', fontSize: '10px', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }}>{c.icon} {c.label}</td>
-                    {MONTHS_GR.map((m, i) => (
-                      <td key={i} style={{ padding: '2px 2px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <input type="number" value={history[c.value]?.[i] || ''} onChange={e => updateHistory(c.value, i, e.target.value)}
-                          style={{ width: '100%', background: i === currentMonth ? 'rgba(212,175,66,0.07)' : 'var(--bg-base)', border: `1px solid ${i === currentMonth ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: '4px', padding: '4px 2px', color: 'var(--text-primary)', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                    <td style={{ padding:'4px 8px', fontSize:10, borderBottom:'1px solid var(--border-subtle)', whiteSpace:'nowrap' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <div style={{ width:6, height:6, borderRadius:'50%', background:c.color, flexShrink:0 }}/>
+                        <span style={{ color:'var(--text-secondary)', fontFamily:T.font.sans }}>{c.label}</span>
+                      </div>
+                    </td>
+                    {MONTHS_GR.map((_,i) => (
+                      <td key={i} style={{ padding:'2px 2px', borderBottom:'1px solid var(--border-subtle)' }}>
+                        <input type="number" value={history[c.value]?.[i]||''} onChange={e=>updateHistory(c.value,i,e.target.value)}
+                          style={{ width:'100%', background:i===currentMonth?'rgba(212,175,66,0.07)':'var(--bg-base)', border:`1px solid ${i===currentMonth?'var(--accent)':'var(--border-subtle)'}`, borderRadius:4, padding:'4px 2px', color:'var(--text-primary)', fontSize:10, fontFamily:T.font.mono, outline:'none', textAlign:'center', boxSizing:'border-box' }}/>
                       </td>
                     ))}
-                    <td style={{ padding: '4px 8px', fontWeight: 700, color: rowTotal > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: "'JetBrains Mono',monospace", borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: '11px' }}>
-                      {rowTotal > 0 ? fe(rowTotal) : '—'}
+                    <td style={{ padding:'4px 8px', fontWeight:700, color:rowTotal>0?'var(--accent)':'var(--text-tertiary)', fontFamily:T.font.mono, borderBottom:'1px solid var(--border-subtle)', textAlign:'right', fontSize:11 }}>
+                      {rowTotal>0?fe(rowTotal):'—'}
                     </td>
                   </tr>
                 );
               })}
-              <tr style={{ background: 'var(--bg-elevated)' }}>
-                <td style={{ padding: '8px', fontWeight: 700, fontSize: '11px' }}>Σύνολο</td>
-                {calc.historyTotals.map((t, i) => (
-                  <td key={i} style={{ padding: '5px 2px', fontWeight: 700, color: t > 0 ? (t > calc.avgMonthly * 1.2 ? 'var(--negative)' : 'var(--positive)') : 'var(--text-tertiary)', fontFamily: "'JetBrains Mono',monospace", textAlign: 'center', fontSize: '10px' }}>
-                    {t > 0 ? Math.round(t) : '—'}
+              <tr style={{ background:'var(--bg-elevated)' }}>
+                <td style={{ padding:8, fontWeight:700, fontSize:11 }}>Σύνολο</td>
+                {calc.historyTotals.map((t,i) => (
+                  <td key={i} style={{ padding:'5px 2px', fontWeight:700, color:t>0?(t>calc.avgMonthly*1.2?'var(--negative)':'var(--positive)'):'var(--text-tertiary)', fontFamily:T.font.mono, textAlign:'center', fontSize:10 }}>
+                    {t>0?Math.round(t):'—'}
                   </td>
                 ))}
-                <td style={{ padding: '8px', fontWeight: 700, color: 'var(--warning)', fontFamily: "'JetBrains Mono',monospace", textAlign: 'right', fontSize: '11px' }}>
-                  {fe(calc.historyTotals.reduce((a, b) => a + b, 0))}
+                <td style={{ padding:8, fontWeight:700, color:'var(--warning)', fontFamily:T.font.mono, textAlign:'right', fontSize:11 }}>
+                  {fe(calc.historyTotals.reduce((a,b)=>a+b,0))}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        {/* Summary stats */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginTop:16 }}>
+          {[
+            { label:'Μέσο Μηνιαίο', value:calc.avgMonthly>0?`${Math.round(calc.avgMonthly)} €`:'—', color:'var(--accent)' },
+            { label:'Ακριβότερος', value:Math.max(...calc.historyTotals)>0?`${Math.round(Math.max(...calc.historyTotals))} €`:'—', color:'var(--negative)' },
+            { label:'Φθηνότερος', value:calc.historyTotals.filter(t=>t>0).length>0?`${Math.round(Math.min(...calc.historyTotals.filter(t=>t>0)))} €`:'—', color:'var(--positive)' },
+          ].map((k,i) => (
+            <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:8, padding:'10px 14px' }}>
+              <div style={{ fontSize:15, fontWeight:700, color:k.color, fontFamily:T.font.mono }}>{k.value}</div>
+              <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase', marginTop:2 }}>{k.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Payment Calendar */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <span style={{ fontSize: '16px' }}>📅</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ημερολόγιο Πληρωμών — {MONTHS_GR[currentMonth]}</span>
+      <div style={T.card}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-subtle)' }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>
+          <span style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--text-secondary)', fontFamily:T.font.sans }}>Ημερολόγιο Πληρωμών — {MONTHS_GR[currentMonth]}</span>
         </div>
-        {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-tertiary)', fontSize: '11px' }}>Δεν υπάρχουν λογαριασμοί με ημ. λήξης αυτόν τον μήνα</div>
+        {bills.filter(b=>b.due_date&&new Date(b.due_date).getMonth()===currentMonth).length===0 ? (
+          <div style={{ textAlign:'center', padding:'20px', color:'var(--text-tertiary)', fontSize:11 }}>Δεν υπάρχουν λογαριασμοί με ημ. λήξης αυτόν τον μήνα</div>
         ) : (
-          Array.from({ length: 31 }, (_, d) => d + 1).map(day => {
-            const dayBills = bills.filter(b => { if (!b.due_date) return false; const d = new Date(b.due_date); return d.getMonth() === currentMonth && d.getDate() === day; });
-            if (dayBills.length === 0) return null;
-            const isToday = today.getDate() === day && today.getMonth() === currentMonth;
+          Array.from({length:31},(_,d)=>d+1).map(day => {
+            const dayBills = bills.filter(b=>{if(!b.due_date)return false;const d=new Date(b.due_date);return d.getMonth()===currentMonth&&d.getDate()===day;});
+            if(dayBills.length===0) return null;
+            const isToday=today.getDate()===day&&today.getMonth()===currentMonth;
             return (
-              <div key={day} style={{ display: 'flex', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: isToday ? 'var(--accent)' : 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', color: isToday ? 'var(--bg-base)' : 'var(--text-primary)', flexShrink: 0 }}>{day}</div>
-                <div style={{ flex: 1 }}>
+              <div key={day} style={{ display:'flex', gap:12, padding:'8px 0', borderBottom:'1px solid var(--border-subtle)', alignItems:'center' }}>
+                <div style={{ width:34, height:34, borderRadius:8, background:isToday?'var(--accent)':'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:13, color:isToday?'#000':'var(--text-primary)', flexShrink:0 }}>{day}</div>
+                <div style={{ flex:1 }}>
                   {dayBills.map(b => {
-                    const c = cat(b.category);
+                    const c=cat(b.category);
                     return (
-                      <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '11px', color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none' }}>{c.icon} {b.name}</span>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: b.paid ? 'var(--positive)' : 'var(--accent)', fontFamily: "'JetBrains Mono',monospace" }}>{fe(b.amount, 2)}</span>
-                          <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: b.paid ? 'rgba(52,217,123,0.1)' : 'rgba(239,68,68,0.1)', color: b.paid ? 'var(--positive)' : 'var(--negative)' }}>{b.paid ? '✓' : 'ΕΚΚΡΕΜΕΣ'}</span>
+                      <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <div style={{ width:6, height:6, borderRadius:'50%', background:c.color, flexShrink:0 }}/>
+                          <span style={{ fontSize:11, color:b.paid?'var(--text-tertiary)':'var(--text-primary)', textDecoration:b.paid?'line-through':'none' }}>{b.name}</span>
+                        </div>
+                        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                          <span style={{ fontSize:11, fontWeight:700, color:b.paid?'var(--positive)':'var(--accent)', fontFamily:T.font.mono }}>{fe(b.amount,2)}</span>
+                          <span style={{ fontSize:8, padding:'1px 6px', borderRadius:3, background:b.paid?'rgba(52,168,83,0.1)':'rgba(197,34,31,0.1)', color:b.paid?'var(--positive)':'var(--negative)' }}>{b.paid?'Πληρώθηκε':'ΕΚΚΡΕΜΕΣ'}</span>
                         </div>
                       </div>
                     );
