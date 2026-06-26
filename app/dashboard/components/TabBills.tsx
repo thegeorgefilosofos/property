@@ -17,7 +17,8 @@ interface Props {
 }
 
 const T = {
-  font: { sans: "Inter,'Google Sans',sans-serif", mono: "'JetBrains Mono',monospace" },
+  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
+  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
 };
 
 const TabIconPath: Record<string, string> = {

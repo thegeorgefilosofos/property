@@ -101,22 +101,25 @@ const PROVIDERS = [
 ];
 
 const BADGE_COLORS: Record<string,{bg:string;color:string;border:string}> = {
-  'ΠΡΑΣΙΝΟ': {bg:'rgba(5,150,105,0.12)',color:'#059669',border:'rgba(5,150,105,0.3)'},
-  'ΚΙΤΡΙΝΟ': {bg:'rgba(202,138,4,0.12)',color:'#ca8a04',border:'rgba(202,138,4,0.3)'},
-  'ΜΠΛΕ':    {bg:'rgba(37,99,235,0.12)',color:'#2563eb',border:'rgba(37,99,235,0.3)'},
-  'VNM':     {bg:'rgba(245,158,11,0.12)',color:'#f59e0b',border:'rgba(245,158,11,0.3)'},
-  'ΔΥΝΑΜΙΚΟ':{bg:'rgba(139,92,246,0.12)',color:'#7c3aed',border:'rgba(139,92,246,0.3)'},
+  'ΠΡΑΣΙΝΟ': {bg:'rgba(52,168,83,0.1)',  color:'var(--positive)', border:'rgba(52,168,83,0.25)'},
+  'ΚΙΤΡΙΝΟ': {bg:'rgba(242,153,0,0.1)',  color:'var(--warning)',  border:'rgba(242,153,0,0.25)'},
+  'ΜΠΛΕ':    {bg:'rgba(26,115,232,0.1)', color:'var(--info)',     border:'rgba(26,115,232,0.25)'},
+  'VNM':     {bg:'rgba(212,175,66,0.1)', color:'var(--accent)',   border:'rgba(212,175,66,0.25)'},
+  'ΔΥΝΑΜΙΚΟ':{bg:'rgba(139,92,246,0.1)', color:'var(--info)',     border:'rgba(139,92,246,0.25)'},
 };
 const bc = (badge:string) => BADGE_COLORS[badge] || {bg:'var(--bg-elevated)',color:'var(--text-secondary)',border:'var(--border-subtle)'};
 
-const T = { font: { sans:"Inter,'Google Sans',sans-serif", mono:"'JetBrains Mono',monospace" } };
+const T = {
+  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
+  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
+};
 
 export default function BillsElectricity({propertyId,userId}:{propertyId:string;userId?:string}) {
   const supabase = createClient();
-  const card:React.CSSProperties = {background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:20,marginBottom:16};
-  const g2:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12};
-  const g3:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12};
-  const g4:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12,marginBottom:12};
+  const card:React.CSSProperties = {background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:20,marginBottom:16};
+  const g2:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14};
+  const g3:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14};
+  const g4:React.CSSProperties = {display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:14};
   const currentMonth = new Date().getMonth();
 
   // ── Cross-tab: fetch insurance data for ΕΝΦΙΑ discount ──
@@ -243,7 +246,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
 
       {/* ── Cross-tab: Insurance ΕΝΦΙΑ discount banner ── */}
       {insData && (insData.eq || insData.fl) && (
-        <div style={{background:'rgba(52,168,83,0.07)',border:'1px solid rgba(52,168,83,0.25)',borderRadius:10,padding:'11px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:12}}>
+        <div style={{background:'rgba(52,168,83,0.07)',border:'1px solid rgba(52,168,83,0.25)',borderRadius:T.radius.inner,padding:'11px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:7,height:7,borderRadius:'50%',background:'var(--positive)',flexShrink:0}}/>
           <div style={{flex:1,fontSize:12,fontFamily:T.font.sans}}>
             <span style={{fontWeight:700,color:'var(--positive)'}}>Έκπτωση ΕΝΦΙΑ 10-20% </span>
@@ -256,9 +259,9 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
       )}
 
       {/* ── ΡΑΑΕΥ Banner ── */}
-      <div style={{background:'rgba(26,115,232,0.06)',border:'1px solid rgba(26,115,232,0.2)',borderRadius:10,padding:'11px 18px',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+      <div style={{background:'rgba(26,115,232,0.06)',border:'1px solid rgba(26,115,232,0.2)',borderRadius:T.radius.inner,padding:'11px 18px',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
         <div>
-          <div style={{fontSize:10,fontWeight:600,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2,fontFamily:T.font.sans}}>Επίσημη Σύγκριση Τιμολογίων — ΡΑΑΕΥ</div>
+          <div style={{fontSize:10,fontWeight:600,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2,fontFamily:T.font.sans}}>Επίσημη Σύγκριση Τιμολογίων — ΡΑΑΕΥ</div>
           <div style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>energycost.gr — Ανεξάρτητη σύγκριση όλων των παρόχων ρεύματος</div>
         </div>
         <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer"
@@ -271,14 +274,14 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
       {calc && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:16}}>
           {[
-            {label:'Εκτιμώμενος Λογαριασμός',value:fe(calc.total),color:'var(--text-primary)'},
-            {label:'Μέση Κατανάλωση',value:`${calc.avgKwh.toFixed(0)} kWh`,color:'var(--text-primary)'},
-            {label:'Εκτιμώμενο Ετήσιο',value:fe(calc.annualCost),color:'var(--text-primary)'},
-            {label:`Πρόβλεψη ${MONTHS_GR[(currentMonth+1)%12]}`,value:fe(calc.predictedBill),color:calc.predictedBill>calc.total?'var(--negative)':'var(--positive)'},
-          ].map((k,i) => (
-            <div key={i} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
-              <div style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8,fontFamily:T.font.sans,fontWeight:600}}>{k.label}</div>
-              <div style={{fontSize:22,fontWeight:700,color:k.color,fontFamily:T.font.mono,marginBottom:4}}>{k.value}</div>
+            {label:'Εκτιμώμενος Λογαριασμός',value:fe(calc.total),accent:false},
+            {label:'Μέση Κατανάλωση',value:`${calc.avgKwh.toFixed(0)} kWh`,accent:false},
+            {label:'Εκτιμώμενο Ετήσιο',value:fe(calc.annualCost),accent:false},
+            {label:`Πρόβλεψη ${MONTHS_GR[(currentMonth+1)%12]}`,value:fe(calc.predictedBill),accent:calc.predictedBill>calc.total,negative:calc.predictedBill>calc.total},
+          ].map((k:any,i:number) => (
+            <div key={i} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:'16px 18px'}}>
+              <div style={{fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:T.font.sans}}>{k.label}</div>
+              <div style={{fontSize:22,fontWeight:700,color:k.negative?'var(--negative)':k.accent?'var(--positive)':'var(--text-primary)',fontFamily:T.font.mono,lineHeight:1}}>{k.value}</div>
             </div>
           ))}
         </div>
@@ -295,7 +298,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
         </div>
 
         {tariff && (
-          <div style={{background:tariffBc.bg,border:`1px solid ${tariffBc.border}`,borderRadius:10,padding:14,marginBottom:14}}>
+          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,padding:16,marginBottom:14}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
               <span style={{fontSize:11,fontWeight:700,color:tariffBc.color,background:tariffBc.bg,padding:'3px 10px',borderRadius:6,border:`1px solid ${tariffBc.border}`,fontFamily:T.font.sans}}>{tariff.badge}</span>
               <span style={{fontSize:13,fontWeight:700,color:'var(--text-primary)',fontFamily:T.font.sans}}>{tariff.name}</span>
@@ -305,7 +308,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
             {tariff.type!=='fixed_monthly'&&tariff.type!=='dynamic'&&(
               <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
                 {[
-                  {label:'Τιμή kWh Ημέρας',value:fk(parseFloat(customKwh)||tariff.kwh_day),color:tariffBc.color},
+                  {label:'Τιμή kWh Ημέρας',value:fk(parseFloat(customKwh)||tariff.kwh_day),color:'var(--text-primary)'},
                   tariff.kwh_night&&{label:'Τιμή kWh Νύχτας',value:fk(parseFloat(customNight)||tariff.kwh_night),color:'var(--info)'},
                   tariff.kwh_tier2&&{label:`kWh >Τ2`,value:fk(tariff.kwh_tier2),color:'var(--warning)'},
                   {label:'Πάγιο/μήνα',value:`${(parseFloat(customFixed)||(useEbill&&tariff.fixed_ebill?tariff.fixed_ebill:tariff.fixed)||0).toFixed(2)} €`,color:'var(--text-secondary)'},
@@ -331,7 +334,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
         )}
 
         {/* Δημοτικά calculator */}
-        <div style={{background:'rgba(26,115,232,0.05)',border:'1px solid rgba(26,115,232,0.15)',borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:'rgba(26,115,232,0.05)',border:'1px solid rgba(26,115,232,0.15)',borderRadius:T.radius.inner,padding:14,marginBottom:12}}>
           <div style={{fontSize:10,fontWeight:600,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12,fontFamily:T.font.sans}}>Δημοτικά Τέλη — Ορισμός Ποσοστού</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,alignItems:'flex-end'}}>
             <NumberInput label="Ποσοστό % (αν το γνωρίζεις)" value={dimotika} onChange={setDimotika} suffix="%" step={0.1}/>
@@ -372,10 +375,10 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
       {/* ── Ιστορικό kWh ── */}
       <div style={card}>
         {secHdr('Ιστορικό Κατανάλωσης kWh — 12 Μήνες')}
-        <div style={{position:'relative',display:'flex',gap:6,alignItems:'flex-end',height:100,marginBottom:8}}>
+        <div style={{position:'relative',display:'flex',gap:5,alignItems:'flex-end',height:90,marginBottom:8,padding:'0 2px'}}>
           {calc&&maxKwh>0&&(
-            <div style={{position:'absolute',left:0,right:0,bottom:`${(calc.avgKwh/maxKwh)*80}px`,borderTop:'1px dashed var(--accent)',opacity:0.4,pointerEvents:'none',zIndex:1}}>
-              <span style={{position:'absolute',right:0,top:'-11px',fontSize:8,color:'var(--accent)',background:'var(--bg-surface)',padding:'0 3px',fontFamily:T.font.mono}}>μ.ο. {calc.avgKwh.toFixed(0)}</span>
+            <div style={{position:'absolute',left:0,right:0,bottom:`${(calc.avgKwh/maxKwh)*76}px`,borderTop:'1px dashed rgba(212,175,66,0.5)',pointerEvents:'none',zIndex:1}}>
+              <span style={{position:'absolute',right:0,top:'-11px',fontSize:8,color:'var(--accent)',background:'var(--bg-surface)',padding:'0 4px',fontFamily:T.font.mono,borderRadius:3}}>μ.ο. {calc.avgKwh.toFixed(0)}</span>
             </div>
           )}
           {MONTHS_GR.map((m,i)=>{
@@ -384,9 +387,11 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
             const isCur=i===currentMonth;
             const isHigh=calc&&kwh>0&&kwh>calc.avgKwh*1.2;
             return(
-              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
-                {kwh>0&&<div style={{fontSize:7,color:isHigh?'var(--negative)':'var(--text-tertiary)',fontFamily:T.font.mono}}>{kwh}</div>}
-                <div style={{width:'100%',height:`${Math.max(pct*80,kwh>0?4:1)}px`,background:isCur?'var(--accent)':isHigh?'rgba(197,34,31,0.7)':'var(--info)',borderRadius:'4px 4px 0 0',opacity:isCur?1:0.75,transition:'height 0.3s'}}/>
+              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>
+                <div style={{fontSize:7,color:isHigh?'var(--negative)':isCur?'var(--accent)':'var(--text-tertiary)',fontFamily:T.font.mono,height:14,display:'flex',alignItems:'flex-end'}}>
+                  {kwh>0?kwh:''}
+                </div>
+                <div style={{width:'100%',height:`${Math.max(pct*76,kwh>0?3:1)}px`,background:isCur?'var(--accent)':isHigh?'var(--negative)':'rgba(26,115,232,0.45)',borderRadius:'3px 3px 0 0',transition:'height 0.3s'}}/>
               </div>
             );
           })}
@@ -412,7 +417,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
               {label:'Μέση Μηνιαία',value:`${calc.avgKwh.toFixed(0)} kWh`,color:'var(--text-primary)'},
               {label:`Πρόβλεψη ${MONTHS_GR[(currentMonth+1)%12]}`,value:`${calc.predictedKwh} kWh`,color:'var(--text-primary)'},
             ].map((k,i)=>(
-              <div key={i} style={{background:'var(--bg-elevated)',borderRadius:10,padding:'12px 14px',border:'1px solid var(--border-subtle)'}}>
+              <div key={i} style={{background:'var(--bg-elevated)',borderRadius:T.radius.inner,padding:'12px 14px',border:'1px solid var(--border-subtle)'}}>
                 <div style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:T.font.sans,fontWeight:600}}>{k.label}</div>
                 <div style={{fontSize:18,fontWeight:700,color:k.color,fontFamily:T.font.mono}}>{k.value}</div>
               </div>
@@ -428,7 +433,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
             <div>
               {[
-                {label:'Κατανάλωση (πραγματική)',value:fe(calc.consumption),pct:calc.consumptionPct,color:'var(--positive)'},
+                {label:'Κατανάλωση (πραγματική)',value:fe(calc.consumption),pct:calc.consumptionPct,color:'var(--text-primary)'},
                 {label:'ΕΡΤ',value:fe(calc.ert),pct:calc.taxesPct*0.36,color:'var(--warning)'},
                 {label:'ΕΤΜΕΑΡ (ΑΠΕ)',value:fe(calc.etmear),pct:calc.taxesPct*0.64,color:'var(--warning)'},
                 {label:`Δημοτικά Τέλη (${dimotika}%)`,value:fe(calc.dimotikaAmt),pct:calc.dimotikaPct,color:'var(--info)'},
@@ -445,17 +450,17 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
                   </div>
                 </div>
               ))}
-              <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderTop:'2px solid var(--border-subtle)',marginTop:8}}>
-                <span style={{fontSize:13,fontWeight:700,fontFamily:T.font.sans}}>Σύνολο</span>
-                <span style={{fontSize:18,fontWeight:700,color:'var(--accent)',fontFamily:T.font.mono}}>{fe(calc.total)}</span>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',borderTop:'2px solid var(--border-subtle)',marginTop:8}}>
+                <span style={{fontSize:13,fontWeight:700,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Σύνολο Λογαριασμού</span>
+                <span style={{fontSize:22,fontWeight:700,color:'var(--text-primary)',fontFamily:T.font.mono}}>{fe(calc.total)}</span>
               </div>
               <div style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.mono}}>
                 Πραγματικό κόστος/kWh: {calc.avgKwh>0?(calc.total/calc.avgKwh).toFixed(4):'-'} €
               </div>
             </div>
             <div>
-              <div style={{background:'var(--bg-elevated)',borderRadius:10,padding:14,marginBottom:12,border:'1px solid var(--border-subtle)'}}>
-                <div style={{fontSize:10,fontWeight:600,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:T.font.sans}}>Κατανομή Λογαριασμού</div>
+              <div style={{background:'var(--bg-elevated)',borderRadius:T.radius.inner,padding:14,marginBottom:12,border:'1px solid var(--border-subtle)'}}>
+                <div style={{fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:T.font.sans}}>Κατανομή Λογαριασμού</div>
                 {[
                   {label:'Πραγματική Κατανάλωση',pct:calc.consumptionPct,color:'var(--positive)'},
                   {label:'Τέλη (ΕΡΤ + ΕΤΜΕΑΡ)',pct:calc.taxesPct,color:'var(--warning)'},
@@ -472,9 +477,9 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
                   </div>
                 ))}
               </div>
-              <div style={{background:calc.predictedBill>calc.total?'rgba(197,34,31,0.06)':'rgba(52,168,83,0.06)',border:`1px solid ${calc.predictedBill>calc.total?'var(--negative)':'var(--positive)'}`,borderRadius:10,padding:14}}>
-                <div style={{fontSize:10,fontWeight:600,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:T.font.sans}}>Πρόβλεψη {MONTHS_GR[(currentMonth+1)%12]}</div>
-                <div style={{fontSize:22,fontWeight:700,color:calc.predictedBill>calc.total?'var(--negative)':'var(--positive)',fontFamily:T.font.mono}}>{fe(calc.predictedBill)}</div>
+              <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,padding:14}}>
+                <div style={{fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:T.font.sans}}>Πρόβλεψη {MONTHS_GR[(currentMonth+1)%12]}</div>
+                <div style={{fontSize:22,fontWeight:700,color:calc.predictedBill>calc.total?'var(--negative)':'var(--text-primary)',fontFamily:T.font.mono}}>{fe(calc.predictedBill)}</div>
                 <div style={{fontSize:10,color:'var(--text-secondary)',marginTop:4,fontFamily:T.font.sans}}>{calc.predictedKwh} kWh — εποχική πρόβλεψη</div>
               </div>
             </div>
@@ -525,8 +530,8 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
                       {p.label}{isCur?' —':''}{isCur&&<span style={{fontSize:9,color:'var(--accent)',marginLeft:4}}>Τρέχον</span>}
                     </td>
                     <td style={{padding:'8px',color:'var(--text-secondary)',fontSize:10,fontFamily:T.font.sans}}>{tv.name}</td>
-                    <td style={{padding:'8px'}}>
-                      <span style={{fontSize:8,fontWeight:700,padding:'2px 7px',borderRadius:4,background:tbc.bg,color:tbc.color,border:`1px solid ${tbc.border}`,whiteSpace:'nowrap',fontFamily:T.font.sans}}>{tv.badge}</span>
+                    <td style={{padding:'6px 8px',minWidth:80}}>
+                      <span style={{fontSize:8,fontWeight:700,padding:'2px 10px',borderRadius:T.radius.inner,background:tbc.bg,color:tbc.color,border:`1px solid ${tbc.border}`,whiteSpace:'nowrap',fontFamily:T.font.sans,display:'inline-block'}}>{tv.badge}</span>
                     </td>
                     <td style={{padding:'8px',fontFamily:T.font.mono,color:'var(--text-primary)',fontSize:11}}>
                       {tv.type==='fixed_monthly'?`${tv.flat_monthly}€ flat`:tv.type==='dynamic'?'Ωριαίο':tv.kwh_day>0?`${tv.kwh_day.toFixed(4)} €`:'—'}
@@ -581,7 +586,7 @@ export default function BillsElectricity({propertyId,userId}:{propertyId:string;
                   {label:'Εξοικονόμηση/έτος',value:fe((calc.vnmMonthly||0)*12),color:'var(--positive)'},
                   {label:'Απόσβεση (χρόνια)',value:calc.vnmPayback&&calc.vnmPayback>0?`${calc.vnmPayback.toFixed(1)} χρ`:'—',color:'var(--text-primary)'},
                 ].map((k,i)=>(
-                  <div key={i} style={{background:'rgba(52,168,83,0.06)',borderRadius:10,padding:'12px 14px',border:'1px solid rgba(52,168,83,0.2)'}}>
+                  <div key={i} style={{background:'rgba(52,168,83,0.06)',borderRadius:T.radius.inner,padding:'12px 14px',border:'1px solid rgba(52,168,83,0.2)'}}>
                     <div style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6,fontFamily:T.font.sans,fontWeight:600}}>{k.label}</div>
                     <div style={{fontSize:16,fontWeight:700,color:k.color,fontFamily:T.font.mono}}>{k.value}</div>
                   </div>
