@@ -3,6 +3,11 @@
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const todayStr = () => new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
 
+const T = {
+  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
+  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
+};
+
 interface BillEntry {
   id: string; category: string; name: string; amount: number;
   period?: string; due_date?: string; paid: boolean; recurring: boolean;
@@ -42,11 +47,11 @@ const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιου�
 export default function BillsPDFExport({ data }: { data: BillsData }) {
 
   const handlePrint = () => {
-    const now = new Date();
+    const now          = new Date();
     const currentMonth = now.getMonth();
-    const year = now.getFullYear();
-    const overdue = data.bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < now);
-    const maxH = Math.max(...(data.historyTotals || [1]), 1);
+    const year         = now.getFullYear();
+    const overdue      = data.bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < now);
+    const maxH         = Math.max(...(data.historyTotals || [1]), 1);
 
     // Category breakdown
     const byCat: Record<string, { label: string; color: string; monthly: number; count: number }> = {};
@@ -59,12 +64,12 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
 
     // Bill rows
     const billRows = data.bills.map(b => {
-      const c = catOf(b.category);
-      const dl = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
-      const isOd = dl !== null && dl < 0;
-      const statusBg = b.paid ? '#e6f4ea' : isOd ? '#fce8e6' : '#fff8e1';
+      const c       = catOf(b.category);
+      const dl      = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
+      const isOd    = dl !== null && dl < 0;
+      const statusBg    = b.paid ? '#e6f4ea' : isOd ? '#fce8e6' : '#fff8e1';
       const statusColor = b.paid ? '#137333' : isOd ? '#c5221f' : '#b45309';
-      const statusText = b.paid ? 'Πληρώθηκε' : isOd ? 'Ληξιπρόθεσμος' : 'Εκκρεμεί';
+      const statusText  = b.paid ? 'Πληρώθηκε' : isOd ? 'Ληξιπρόθεσμος' : 'Εκκρεμεί';
       return [
         '<tr>',
         '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle">',
@@ -108,10 +113,10 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
 
     // History bars
     const histBars = MONTHS.map((m, i) => {
-      const val = data.historyTotals[i] || 0;
-      const pct = val / maxH;
-      const isCur = i === currentMonth;
-      const barH = Math.max(pct * 60, val > 0 ? 4 : 1);
+      const val      = data.historyTotals[i] || 0;
+      const pct      = val / maxH;
+      const isCur    = i === currentMonth;
+      const barH     = Math.max(pct * 60, val > 0 ? 4 : 1);
       const barColor = isCur ? '#d4af42' : val > data.avgMonthly * 1.2 ? '#c5221f' : '#1a73e8';
       return [
         '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">',
@@ -128,8 +133,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       '*{margin:0;padding:0;box-sizing:border-box}',
       'body{font-family:Roboto,sans-serif;background:#fff;color:#202124;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
       '.page{max-width:940px;margin:0 auto;padding:28px 32px}',
-      '.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:16px;margin-bottom:24px;border-bottom:3px solid #1a73e8}',
-      '.logo{font-family:Google Sans,sans-serif;font-size:22px;font-weight:700;color:#1a73e8}',
+      '.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:16px;margin-bottom:24px;border-bottom:3px solid #d4af42}',
+      '.logo{font-family:Google Sans,sans-serif;font-size:22px;font-weight:700;color:#202124}',
       '.logo span{color:#d4af42}',
       '.logo-sub{font-size:10px;color:#5f6368;margin-top:3px}',
       '.hdr-r{text-align:right}',
@@ -145,8 +150,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       'table{width:100%;border-collapse:collapse}',
       'th{font-family:Google Sans,sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;padding:8px 10px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa}',
       'tr:nth-child(even) td{background:#fafafa}',
-      '.total-row td{background:#1a73e8!important;color:#fff;font-weight:700;padding:10px!important}',
-      '.total-row .amt{color:#d4af42;font-family:Roboto Mono,monospace;font-size:14px;text-align:right}',
+      '.total-row td{background:#d4af42!important;color:#000;font-weight:700;padding:10px!important}',
+      '.total-row .amt{font-family:Roboto Mono,monospace;font-size:14px;text-align:right}',
       '.alert{background:#fce8e6;border:1px solid rgba(197,34,31,0.3);border-left:4px solid #c5221f;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:10px;color:#c5221f;display:flex;align-items:flex-start;gap:8px}',
       '.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;font-size:9px;color:#9aa0a6}',
       '.footer .wm{color:#d4af42;font-weight:700}',
@@ -160,7 +165,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       '<style>' + css + '</style>',
       '</head><body><div class="page">',
 
-      // Header
+      // Header — accent gold border (consistent with design system)
       '<div class="hdr">',
       '<div><div class="logo">Property <span>OS</span></div><div class="logo-sub">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>',
       '<div class="hdr-r"><div class="hdr-title">Αναφορά Λογαριασμών & Παγίων</div>',
@@ -237,8 +242,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
     ].join('');
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url; a.target = '_blank'; a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
@@ -252,13 +257,12 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         background: 'transparent', color: 'var(--text-secondary)',
-        border: '1px solid var(--border-subtle)', borderRadius: 10,
+        border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn,
         padding: '8px 16px', fontSize: 12, fontWeight: 600,
-        cursor: 'pointer', fontFamily: "Inter,'Google Sans',sans-serif",
-        transition: 'all 0.15s',
+        cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; }}
     >
       Εξαγωγή PDF
     </button>
