@@ -45,9 +45,11 @@ const TABS = [
   { id: 'services',    label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά, καθαρισμός, κηπουρός, πισίνα, κλιματιστικά, απεντόμωση' },
 ] as const;
 
+type TabId = typeof TABS[number]['id'];
+
 export default function TabBills({ propertyId, userId, propertyName = 'Ακίνητό μου', propertyAddress = '' }: Props) {
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>('dashboard');
-  const [crossTabData, setCrossTabData] = useState<{totalMonthly:number; overdueCount:number; tenantName?:string}>({ totalMonthly:0, overdueCount:0 });
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [crossTabData, setCrossTabData] = useState<{ totalMonthly: number; overdueCount: number; tenantName?: string }>({ totalMonthly: 0, overdueCount: 0 });
   const supabase = createClient();
 
   useEffect(() => {
@@ -58,10 +60,10 @@ export default function TabBills({ propertyId, userId, propertyName = 'Ακίν�
           supabase.from('bills').select('amount,paid,due_date,recurring').eq('property_id', propertyId),
           supabase.from('contacts').select('full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
         ]);
-        const totalMonthly = (bills||[]).filter(b=>b.recurring).reduce((s:number,b:any)=>s+b.amount,0);
-        const overdueCount = (bills||[]).filter((b:any)=>!b.paid&&b.due_date&&new Date(b.due_date)<new Date()).length;
+        const totalMonthly = (bills || []).filter((b: any) => b.recurring).reduce((s: number, b: any) => s + b.amount, 0);
+        const overdueCount = (bills || []).filter((b: any) => !b.paid && b.due_date && new Date(b.due_date) < new Date()).length;
         setCrossTabData({ totalMonthly, overdueCount, tenantName: tenant?.[0]?.full_name });
-      } catch(_) {}
+      } catch (_) {}
     })();
   }, [propertyId]);
 
@@ -71,45 +73,84 @@ export default function TabBills({ propertyId, userId, propertyName = 'Ακίν�
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* Header with cross-tab summary */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 16 }}>
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4, fontFamily: T.font.sans }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
+            textTransform: 'uppercase' as const, letterSpacing: '0.1em',
+            marginBottom: 4, fontFamily: T.font.sans,
+          }}>
             Λογαριασμοί & Πάγιες Δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Πλήρης καταγραφή, ανάλυση και παρακολούθηση όλων των σταθερών εξόδων
           </div>
         </div>
+
         {/* Cross-tab live strip */}
-        <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {crossTabData.tenantName && (
-            <div style={{ padding:'4px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:20, fontSize:11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>
+            <div style={{
+              padding: '5px 12px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: T.radius.pill,
+              fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans,
+            }}>
               {crossTabData.tenantName}
             </div>
           )}
           {crossTabData.totalMonthly > 0 && (
-            <div style={{ padding:'4px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:20, fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono }}>
+            <div style={{
+              padding: '5px 12px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: T.radius.pill,
+              fontSize: 11, fontWeight: 700,
+              color: 'var(--text-primary)', fontFamily: T.font.mono,
+            }}>
               {fe(crossTabData.totalMonthly)}/μήνα
             </div>
           )}
           {crossTabData.overdueCount > 0 && (
-            <div style={{ padding:'4px 12px', background:'rgba(197,34,31,0.08)', border:'1px solid rgba(197,34,31,0.25)', borderRadius:20, fontSize:11, fontWeight:700, color:'var(--negative)', fontFamily:T.font.sans }}>
+            <div style={{
+              padding: '5px 12px',
+              background: 'rgba(197,34,31,0.08)',
+              border: '1px solid rgba(197,34,31,0.25)',
+              borderRadius: T.radius.pill,
+              fontSize: 11, fontWeight: 700,
+              color: 'var(--negative)', fontFamily: T.font.sans,
+            }}>
               {crossTabData.overdueCount} ληξιπρόθεσμα
             </div>
           )}
         </div>
       </div>
 
-      {/* Tab navigation — Google MD3 pill style */}
-      <div style={{ display: 'flex', gap: 3, marginBottom: 4, flexWrap: 'wrap', background: 'var(--bg-surface)', borderRadius: 14, padding: 5, border: '1px solid var(--border-subtle)' }}>
+      {/* ── Tab navigation — MD3 pill style ─────────────────────────────── */}
+      <div style={{
+        display: 'flex', gap: 3, marginBottom: 4, flexWrap: 'wrap' as const,
+        background: 'var(--bg-surface)', borderRadius: T.radius.card,
+        padding: 5, border: '1px solid var(--border-subtle)',
+      }}>
         {TABS.map(t => {
           const isActive = activeTab === t.id;
           return (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
-              style={{ display:'flex', alignItems:'center', gap:7, padding:'7px 13px', borderRadius:10, border:'none', cursor:'pointer', fontSize:12, fontWeight:isActive?700:500, fontFamily:T.font.sans, whiteSpace:'nowrap', transition:'all 0.18s', background:isActive?'var(--accent)':'transparent', color:isActive?'#000':'var(--text-secondary)' }}
-              onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background='var(--bg-elevated)';e.currentTarget.style.color='var(--text-primary)';}}}
-              onMouseLeave={e=>{if(!isActive){e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '7px 14px', borderRadius: T.radius.inner,
+                border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: isActive ? 700 : 500,
+                fontFamily: T.font.sans, whiteSpace: 'nowrap' as const,
+                transition: 'all 0.18s',
+                background: isActive ? 'var(--accent)' : 'transparent',
+                color: isActive ? '#000' : 'var(--text-secondary)',
+                letterSpacing: isActive ? '0.01em' : 'normal',
+              }}
+              onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; } }}
+              onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; } }}
             >
               <TabIcon name={t.icon} size={13}/>
               {t.label}
@@ -119,17 +160,21 @@ export default function TabBills({ propertyId, userId, propertyName = 'Ακίν�
       </div>
 
       {/* Active tab description */}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 18, paddingLeft: 4, minHeight: 16, fontFamily: T.font.sans }}>
+      <div style={{
+        fontSize: 11, color: 'var(--text-tertiary)',
+        marginBottom: 18, paddingLeft: 4, minHeight: 16,
+        fontFamily: T.font.sans,
+      }}>
         {active.desc}
       </div>
 
-      {/* Content */}
-      {activeTab === 'dashboard'   && <BillsDashboard  propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />}
-      {activeTab === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId} />}
-      {activeTab === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId} />}
-      {activeTab === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId} />}
-      {activeTab === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId} />}
-      {activeTab === 'services'    && <BillsServices    propertyId={propertyId} userId={userId} />}
+      {/* ── Content ──────────────────────────────────────────────────────── */}
+      {activeTab === 'dashboard'   && <BillsDashboard  propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>}
+      {activeTab === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
     </div>
   );
 }
