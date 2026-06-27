@@ -12,100 +12,14 @@ const T = {
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 const INSURANCE_COMPANIES = [
-  {
-    value: 'hellas_direct', label: 'Hellas Direct',
-    url: 'https://www.hellasdirect.gr', agent_label: 'Ψηφιακή — χωρίς ασφαλιστή',
-    plans: [
-      { id: 'hd_basic',   name: 'Basic',   monthly: 8.90,  annual: 89,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],                                    earthquake: false, flood: false, natural: false },
-      { id: 'hd_plus',    name: 'Plus',    monthly: 14.90, annual: 149, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Θύελλα'],                earthquake: false, flood: true,  natural: true  },
-      { id: 'hd_premium', name: 'Premium', monthly: 22.90, annual: 219, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true,  flood: true,  natural: true  },
-    ],
-  },
-  {
-    value: 'interamerican', label: 'Interamerican',
-    url: 'https://www.interamerican.gr', agent_label: 'Ασφαλιστής Interamerican',
-    plans: [
-      { id: 'ia_basic',   name: 'Oikia Basic',   monthly: 12.50, annual: 125, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'],                        earthquake: false, flood: false, natural: false },
-      { id: 'ia_comfort', name: 'Oikia Comfort', monthly: 18.00, annual: 180, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Θεομηνία'],            earthquake: false, flood: true,  natural: true  },
-      { id: 'ia_full',    name: 'Oikia Full',    monthly: 26.00, annual: 250, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Σεισμός','Πλημμύρα'], earthquake: true,  flood: true,  natural: true  },
-    ],
-  },
-  {
-    value: 'eurolife', label: 'Eurolife FFH',
-    url: 'https://www.eurolife.gr', agent_label: 'Σύμβουλος Eurolife FFH',
-    plans: [
-      { id: 'el_first_std',  name: 'My Home First Standard', monthly: 12.00, annual: 120, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές','Σωληνώσεις'],                              earthquake: true, flood: true, natural: true },
-      { id: 'el_first_plus', name: 'My Home First Plus',     monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές','Βραχυκύκλωμα','Ενοίκιο Αντικατάστασης'], earthquake: true, flood: true, natural: true },
-      { id: 'el_luxury',     name: 'My Home Luxury',         monthly: 30.00, annual: 290, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Ηλεκτρ. Βλάβες','Καθίζηση'],              earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'generali', label: 'Generali',
-    url: 'https://www.generali.gr', agent_label: 'Σύμβουλος Generali',
-    plans: [
-      { id: 'gen_basic',   name: 'MyHome Basic',   monthly: 11.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],                             earthquake: false, flood: false, natural: false },
-      { id: 'gen_plus',    name: 'MyHome Plus',    monthly: 16.00, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'],               earthquake: false, flood: true,  natural: true  },
-      { id: 'gen_premium', name: 'MyHome Premium', monthly: 24.00, annual: 230, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'axa', label: 'AXA Ασφαλιστική',
-    url: 'https://www.axa.gr', agent_label: 'Σύμβουλος AXA',
-    plans: [
-      { id: 'axa_basic',   name: 'Home Basic',   monthly: 9.50,  annual: 95,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],               earthquake: false, flood: false, natural: false },
-      { id: 'axa_comfort', name: 'Home Comfort', monthly: 15.00, annual: 148, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'],  earthquake: false, flood: true,  natural: true  },
-      { id: 'axa_premium', name: 'Home Premium', monthly: 23.00, annual: 225, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'ethniki', label: 'Εθνική Ασφαλιστική',
-    url: 'https://www.ethniki-asfalistiki.gr', agent_label: 'Σύμβουλος Εθνικής Ασφαλιστικής',
-    plans: [
-      { id: 'eth_oikos', name: 'Οίκος',    monthly: 13.00, annual: 126, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'],  earthquake: false, flood: false, natural: false },
-      { id: 'eth_mega',  name: 'MegaHome', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'],   earthquake: false, flood: true,  natural: true  },
-      { id: 'eth_ultra', name: 'UltraHome',monthly: 28.00, annual: 270, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'nn_hellas', label: 'NN Hellas',
-    url: 'https://www.nnhellas.gr', agent_label: 'Σύμβουλος NN Hellas',
-    plans: [
-      { id: 'nn_home_basic',   name: 'NN Home Basic',   monthly: 10.00, annual: 99,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],                          earthquake: false, flood: false, natural: false },
-      { id: 'nn_home_plus',    name: 'NN Home Plus',    monthly: 17.00, annual: 165, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'],      earthquake: false, flood: true,  natural: true  },
-      { id: 'nn_home_premium', name: 'NN Home Premium', monthly: 25.00, annual: 240, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Ηλεκτρ. Βλάβες'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'groupama', label: 'Groupama Ασφαλιστική',
-    url: 'https://www.groupama.gr', agent_label: 'Σύμβουλος Groupama',
-    plans: [
-      { id: 'grp_habitat',      name: 'Habitat Basic', monthly: 11.50, annual: 112, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],                        earthquake: false, flood: false, natural: false },
-      { id: 'grp_habitat_plus', name: 'Habitat Plus',  monthly: 18.50, annual: 178, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'],    earthquake: false, flood: true,  natural: true  },
-      { id: 'grp_habitat_full', name: 'Habitat Full',  monthly: 26.00, annual: 248, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'allianz', label: 'Allianz Hellas',
-    url: 'https://www.allianz.gr', agent_label: 'Σύμβουλος Allianz',
-    plans: [
-      { id: 'alz_home',    name: 'Allianz Home Basic',   monthly: 12.00, annual: 115, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],                       earthquake: false, flood: false, natural: false },
-      { id: 'alz_comfort', name: 'Allianz Home Comfort', monthly: 19.00, annual: 182, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'],  earthquake: false, flood: true,  natural: true  },
-      { id: 'alz_premium', name: 'Allianz Home Premium', monthly: 27.00, annual: 258, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true },
-    ],
-  },
-  {
-    value: 'minetta', label: 'Ασφάλειαι Μινέττα',
-    url: 'https://www.minetta.gr', agent_label: 'Σύμβουλος Μινέττα',
-    plans: [
-      { id: 'min_basic', name: 'Κατοικία Basic', monthly: 9.00,  annual: 88,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'],               earthquake: false, flood: false, natural: false },
-      { id: 'min_plus',  name: 'Κατοικία Plus',  monthly: 15.50, annual: 148, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'],  earthquake: false, flood: true,  natural: true  },
-    ],
-  },
-  {
-    value: 'other', label: 'Άλλη Ασφαλιστική',
-    url: '', agent_label: 'Ασφαλιστής',
-    plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }],
-  },
+  { value: 'hellas_direct', label: 'Hellas Direct',          url: 'https://www.hellasdirect.gr',           agent_label: 'Ψηφιακή — χωρίς ασφαλιστή', plans: [{ id: 'hd_basic', name: 'Basic', monthly: 8.90, annual: 89, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'hd_plus', name: 'Plus', monthly: 14.90, annual: 149, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Θύελλα'], earthquake: false, flood: true, natural: true },{ id: 'hd_premium', name: 'Premium', monthly: 22.90, annual: 219, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
+  { value: 'interamerican', label: 'Interamerican',           url: 'https://www.interamerican.gr',           agent_label: 'Ασφαλιστής Interamerican',    plans: [{ id: 'ia_basic', name: 'Oikia Basic', monthly: 12.50, annual: 125, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'], earthquake: false, flood: false, natural: false },{ id: 'ia_comfort', name: 'Oikia Comfort', monthly: 18.00, annual: 180, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'ia_full', name: 'Oikia Full', monthly: 26.00, annual: 250, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
+  { value: 'eurolife',      label: 'Eurolife FFH',            url: 'https://www.eurolife.gr',                agent_label: 'Σύμβουλος Eurolife FFH',       plans: [{ id: 'el_first_std', name: 'My Home First Standard', monthly: 12.00, annual: 120, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές','Σωληνώσεις'], earthquake: true, flood: true, natural: true },{ id: 'el_first_plus', name: 'My Home First Plus', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές','Βραχυκύκλωμα'], earthquake: true, flood: true, natural: true },{ id: 'el_luxury', name: 'My Home Luxury', monthly: 30.00, annual: 290, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Καθίζηση'], earthquake: true, flood: true, natural: true }] },
+  { value: 'generali',      label: 'Generali',                url: 'https://www.generali.gr',                agent_label: 'Σύμβουλος Generali',           plans: [{ id: 'gen_basic', name: 'MyHome Basic', monthly: 11.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'gen_plus', name: 'MyHome Plus', monthly: 16.00, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'gen_premium', name: 'MyHome Premium', monthly: 24.00, annual: 230, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
+  { value: 'axa',           label: 'AXA Ασφαλιστική',        url: 'https://www.axa.gr',                     agent_label: 'Σύμβουλος AXA',               plans: [{ id: 'axa_basic', name: 'Home Basic', monthly: 9.50, annual: 95, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'axa_comfort', name: 'Home Comfort', monthly: 15.00, annual: 148, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'axa_premium', name: 'Home Premium', monthly: 23.00, annual: 225, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
+  { value: 'ethniki',       label: 'Εθνική Ασφαλιστική',     url: 'https://www.ethniki-asfalistiki.gr',     agent_label: 'Σύμβουλος Εθνικής',           plans: [{ id: 'eth_oikos', name: 'Οίκος', monthly: 13.00, annual: 126, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'], earthquake: false, flood: false, natural: false },{ id: 'eth_mega', name: 'MegaHome', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'eth_ultra', name: 'UltraHome', monthly: 28.00, annual: 270, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
+  { value: 'allianz',       label: 'Allianz Hellas',          url: 'https://www.allianz.gr',                 agent_label: 'Σύμβουλος Allianz',           plans: [{ id: 'alz_home', name: 'Allianz Home Basic', monthly: 12.00, annual: 115, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'alz_comfort', name: 'Allianz Home Comfort', monthly: 19.00, annual: 182, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'], earthquake: false, flood: true, natural: true },{ id: 'alz_premium', name: 'Allianz Home Premium', monthly: 27.00, annual: 258, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
+  { value: 'other',         label: 'Άλλη Ασφαλιστική',       url: '',                                       agent_label: 'Ασφαλιστής',                  plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
 ];
 
 const STREAMING = [
@@ -121,48 +35,38 @@ const STREAMING = [
 ];
 
 const CLOUD = [
-  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',             plans: [{ id: 'ic_50', name: '50 GB — 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB — 9,99 €', price: 9.99 },{ id: 'ic_6t', name: '6 TB Family — 29,99 €', price: 29.99 }] },
-  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',             plans: [{ id: 'g_100', name: '100 GB — 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB — 9,99 €', price: 9.99 }] },
-  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr',    plans: [{ id: 'ms_pers', name: 'Personal — 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family (6 άτομα) — 9,99 €', price: 9.99 }] },
-  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',            plans: [{ id: 'db_plus', name: 'Plus 2 TB — 9,99 €', price: 9.99 },{ id: 'db_pro', name: 'Professional — 16,58 €', price: 16.58 }] },
-  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',           plans: [{ id: 'ad_photo', name: 'Photography — 12,29 €', price: 12.29 },{ id: 'ad_all', name: 'All Apps — 54,99 €', price: 54.99 }] },
+  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB — 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB — 9,99 €', price: 9.99 }] },
+  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB — 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB — 9,99 €', price: 9.99 }] },
+  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal — 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family (6 άτομα) — 9,99 €', price: 9.99 }] },
+  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB — 9,99 €', price: 9.99 }] },
+  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography — 12,29 €', price: 12.29 },{ id: 'ad_all', name: 'All Apps — 54,99 €', price: 54.99 }] },
 ];
+
+const miniSelectStyle: React.CSSProperties = {
+  width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
+  borderRadius: T.radius.badge, padding: '7px 10px', color: 'var(--text-primary)',
+  fontSize: 11, outline: 'none', fontFamily: T.font.sans, cursor: 'pointer',
+};
 
 interface StreamingEntry { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
 interface CloudEntry     { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
 interface OtherSub       { name: string; price: string; renewalDate: string; }
 
-// Compact native select — only used inside streaming/cloud mini-cards where space is tight
-const miniSelectStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: T.radius.badge,
-  padding: '7px 10px',
-  color: 'var(--text-primary)',
-  fontSize: 11,
-  outline: 'none',
-  marginBottom: 8,
-  fontFamily: T.font.sans,
-  cursor: 'pointer',
-};
-
 export default function BillsInsurance({ propertyId, userId = '' }: { propertyId: string; userId?: string }) {
   const supabase = createClient();
-
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 };
   const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 };
   const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 };
 
-  // ── Cross-tab: checklist insurance renewal ───────────────────────────────
+  // Cross-tab: checklist insurance renewal
   const [checklistRenewal, setChecklistRenewal] = useState<{ daysLeft: number | null } | null>(null);
   useEffect(() => {
     if (!propertyId) return;
     (async () => {
       try {
         const { data } = await supabase.from('checklist_items')
-          .select('status,due_date,description').eq('property_id', propertyId)
+          .select('status,due_date').eq('property_id', propertyId)
           .ilike('description', '%ασφαλιστήριο%').limit(1);
         if (data?.[0]) {
           const d = data[0].due_date;
@@ -191,23 +95,17 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     activeStreaming, activeCloud, otherSubs,
   } = ps;
 
-  const setInsProvider         = (v: string)  => updPs({ insProvider: v });
-  const setInsPlanId           = (v: string)  => updPs({ insPlanId: v });
-  const setInsCustomPrice      = (v: string)  => updPs({ insCustomPrice: v });
-  const setInsCustomPlanName   = (v: string)  => updPs({ insCustomPlanName: v });
-  const setInsAgentName        = (v: string)  => updPs({ insAgentName: v });
-  const setInsAgentPhone       = (v: string)  => updPs({ insAgentPhone: v });
-  const setInsRenewalDate      = (v: string)  => updPs({ insRenewalDate: v });
-  const setInsPropValue        = (v: string)  => updPs({ insPropValue: v });
-  const setInsContentValue     = (v: string)  => updPs({ insContentValue: v });
-  const setInsCustomCovers     = (v: string)  => updPs({ insCustomCovers: v });
-  const setInsEditCovers       = (v: boolean | ((p: boolean) => boolean)) => updPs({ insEditCovers: typeof v === 'function' ? v(ps.insEditCovers) : v });
-  const setInsCustomEarthquake = (v: boolean) => updPs({ insCustomEarthquake: v });
-  const setInsCustomFlood      = (v: boolean) => updPs({ insCustomFlood: v });
-  const setInsCustomNatural    = (v: boolean) => updPs({ insCustomNatural: v });
-  const setActiveStreaming = (v: StreamingEntry[] | ((p: StreamingEntry[]) => StreamingEntry[])) => updPs({ activeStreaming: typeof v === 'function' ? v(ps.activeStreaming || []) : v });
-  const setActiveCloud     = (v: CloudEntry[]     | ((p: CloudEntry[])     => CloudEntry[]))     => updPs({ activeCloud:     typeof v === 'function' ? v(ps.activeCloud || [])     : v });
-  const setOtherSubs       = (v: OtherSub[]        | ((p: OtherSub[])       => OtherSub[]))       => updPs({ otherSubs:       typeof v === 'function' ? v(ps.otherSubs || [])       : v });
+  const u = (patch: any) => updPs(patch);
+  const setInsProvider         = (v: string)  => u({ insProvider: v });
+  const setInsPlanId           = (v: string)  => u({ insPlanId: v });
+  const setInsEditCovers       = (v: boolean | ((p: boolean) => boolean)) => u({ insEditCovers: typeof v === 'function' ? v(ps.insEditCovers) : v });
+  const setInsCustomCovers     = (v: string)  => u({ insCustomCovers: v });
+  const setInsCustomEarthquake = (v: boolean) => u({ insCustomEarthquake: v });
+  const setInsCustomFlood      = (v: boolean) => u({ insCustomFlood: v });
+  const setInsCustomNatural    = (v: boolean) => u({ insCustomNatural: v });
+  const setActiveStreaming = (v: StreamingEntry[] | ((p: StreamingEntry[]) => StreamingEntry[])) => u({ activeStreaming: typeof v === 'function' ? v(ps.activeStreaming || []) : v });
+  const setActiveCloud     = (v: CloudEntry[]     | ((p: CloudEntry[])     => CloudEntry[]))     => u({ activeCloud:     typeof v === 'function' ? v(ps.activeCloud || [])     : v });
+  const setOtherSubs       = (v: OtherSub[]        | ((p: OtherSub[])       => OtherSub[]))       => u({ otherSubs:       typeof v === 'function' ? v(ps.otherSubs || [])       : v });
 
   const [newSubName,    setNewSubName]    = useState('');
   const [newSubPrice,   setNewSubPrice]   = useState('');
@@ -228,19 +126,17 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     const base = parseFloat(a.customPrice) || plan?.price || 0;
     return s + (a.splitActive && a.splitPeople > 1 ? base / a.splitPeople : base);
   }, 0);
-
   const cloudCost = (activeCloud || []).reduce((s, a) => {
     const svc  = CLOUD.find(x => x.value === a.service);
     const plan = svc?.plans.find(p => p.id === a.planId);
     const base = parseFloat(a.customPrice) || plan?.price || 0;
     return s + (a.splitActive && a.splitPeople > 1 ? base / a.splitPeople : base);
   }, 0);
-
   const otherCost = (otherSubs || []).reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
   const total     = insCost + streamingCost + cloudCost + otherCost;
 
   // Renewal alerts
-  const renewalAlerts: { name: string; daysLeft: number; type: 'danger' | 'warning' | 'info' }[] = [];
+  const renewalAlerts: { name: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
   const checkRenewal = (name: string, dateStr: string, warningDays: number) => {
     if (!dateStr) return;
     const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
@@ -284,19 +180,19 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* ── Cross-tab: Checklist insurance renewal ─────────────────────── */}
+      {/* Cross-tab: Checklist renewal */}
       {checklistRenewal && checklistRenewal.daysLeft !== null && checklistRenewal.daysLeft <= 60 && (
         <div style={{ background: checklistRenewal.daysLeft <= 7 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${checklistRenewal.daysLeft <= 7 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, fontFamily: T.font.sans }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: checklistRenewal.daysLeft <= 7 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
           <div style={{ flex: 1 }}>
             <span style={{ fontWeight: 700, color: checklistRenewal.daysLeft <= 7 ? 'var(--negative)' : 'var(--warning)' }}>Ανανέωση ασφαλιστηρίου </span>
-            <span style={{ color: 'var(--text-secondary)' }}>{checklistRenewal.daysLeft <= 0 ? 'έχει λήξει — καταγεγραμμένο στο Checklist' : `σε ${checklistRenewal.daysLeft} ημέρες — από Checklist`}</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{checklistRenewal.daysLeft <= 0 ? 'έχει λήξει — καταγεγραμμένο στο Checklist' : `σε ${checklistRenewal.daysLeft} ημέρες`}</span>
           </div>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const }}>Checklist</span>
         </div>
       )}
 
-      {/* ── Renewal Alerts ─────────────────────────────────────────────── */}
+      {/* Renewal Alerts */}
       {renewalAlerts.map((a, i) => (
         <div key={i} style={{ background: a.type === 'danger' ? 'rgba(197,34,31,0.08)' : a.type === 'warning' ? 'rgba(242,153,0,0.08)' : 'rgba(26,115,232,0.06)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans, color: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }}/>
@@ -304,28 +200,27 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         </div>
       ))}
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
+      {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Ασφάλεια Κατοικίας', value: fe(insCost),       accent: false },
-          { label: 'Streaming & Media',   value: fe(streamingCost), accent: false },
-          { label: 'Cloud & Λογισμικό',   value: fe(cloudCost),     accent: false },
-          { label: 'Σύνολο / μήνα',       value: fe(total),         accent: total > 0 },
+          { label: 'Ασφάλεια Κατοικίας', value: fe(insCost)       },
+          { label: 'Streaming & Media',   value: fe(streamingCost) },
+          { label: 'Cloud & Λογισμικό',   value: fe(cloudCost)     },
+          { label: 'Σύνολο / μήνα',       value: fe(total)         },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.accent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: i === 3 && total > 0 ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Ασφάλεια Κατοικίας ───────────────────────────────────────────── */}
+      {/* Ασφάλεια Κατοικίας */}
       <div style={card}>
         {secHdr('Ασφάλεια Κατοικίας')}
         <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>
-          Ενδεικτικές τιμές για κατοικία ~100 τ.μ., αντικατ. αξία ~150.000 € — επαλήθευσε με τον ασφαλιστή σου
+          Ενδεικτικές τιμές για ~100 τ.μ., αξία ~150.000 € — επαλήθευσε με τον ασφαλιστή σου
         </div>
-
         <div style={g3}>
           <CustomSelect label="Ασφαλιστική Εταιρεία" value={insProvider}
             onChange={v => { setInsProvider(v); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) setInsPlanId(c.plans[0].id); setInsEditCovers(false); setInsCustomCovers(''); }}
@@ -333,35 +228,31 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           <CustomSelect label="Πρόγραμμα Ασφάλισης" value={insPlanId}
             onChange={v => { setInsPlanId(v); setInsEditCovers(false); setInsCustomCovers(''); }}
             options={insPlanOptions}/>
-          <NumberInput label="Πραγματικό Κόστος / μήνα (€)" value={insCustomPrice} onChange={setInsCustomPrice} suffix="€" step={1}/>
+          <NumberInput label="Πραγματικό Κόστος / μήνα (€)" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
         </div>
-
         {insProvider === 'other' && (
           <div style={{ marginBottom: 14 }}>
-            <TextInput label="Ονομασία Προγράμματος" value={insCustomPlanName} onChange={setInsCustomPlanName} placeholder="π.χ. Ergo Home Basic, Interlife Standard..."/>
+            <TextInput label="Ονομασία Προγράμματος" value={insCustomPlanName} onChange={v => u({ insCustomPlanName: v })} placeholder="π.χ. Ergo Home Basic..."/>
           </div>
         )}
-
         <div style={g4}>
-          <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={setInsAgentName}    placeholder="Ονοματεπώνυμο"/>
-          <TextInput   label="Τηλέφωνο Ασφαλιστή"                      value={insAgentPhone}   onChange={setInsAgentPhone}   placeholder="69xxxxxxxx"/>
-          <NumberInput label="Αξία Κτηρίου (€)"                        value={insPropValue}    onChange={setInsPropValue}    suffix="€" step={5000}/>
-          <NumberInput label="Αξία Περιεχομένου (€)"                   value={insContentValue} onChange={setInsContentValue} suffix="€" step={1000}/>
+          <TextInput   label={insCompany?.agent_label || 'Ασφαλιστής'} value={insAgentName}    onChange={v => u({ insAgentName: v })}    placeholder="Ονοματεπώνυμο"/>
+          <TextInput   label="Τηλέφωνο Ασφαλιστή"                      value={insAgentPhone}   onChange={v => u({ insAgentPhone: v })}   placeholder="69xxxxxxxx"/>
+          <NumberInput label="Αξία Κτηρίου (€)"                        value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
+          <NumberInput label="Αξία Περιεχομένου (€)"                   value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
         </div>
-
         <div style={g2}>
-          <DatePicker label="Ημερομηνία Ανανέωσης Ασφαλιστηρίου" value={insRenewalDate} onChange={setInsRenewalDate}/>
+          <DatePicker label="Ημερομηνία Ανανέωσης Ασφαλιστηρίου" value={insRenewalDate} onChange={v => u({ insRenewalDate: v })}/>
           {insCompany?.url && (
             <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
               <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                Επίσημη σελίδα {insCompany.label}
+                Επίσημη σελίδα {insCompany.label} →
               </a>
             </div>
           )}
         </div>
 
-        {/* Plan details */}
         {insPlan && (
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, border: '1px solid var(--border-subtle)', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -373,7 +264,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 ].map((r, i) => (
                   <div key={i} style={{ textAlign: 'center' as const }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: r.ok ? 'var(--positive)' : 'var(--negative)', lineHeight: 1, marginBottom: 3 }}>{r.ok ? '✓' : '✗'}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, fontFamily: T.font.sans, letterSpacing: '0.04em' }}>{r.label}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, fontFamily: T.font.sans }}>{r.label}</div>
                   </div>
                 ))}
               </div>
@@ -382,7 +273,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία Καλύψεων'}
               </button>
             </div>
-
             {insEditCovers ? (
               <div>
                 <div style={{ marginBottom: 10 }}>
@@ -402,7 +292,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {effectiveCovers.join(' · ') || 'Δεν έχουν οριστεί καλύψεις'}
               </div>
             )}
-
             {effectiveEarthquake && effectiveFlood && (
               <div style={{ marginTop: 12, background: 'rgba(52,168,83,0.08)', border: '1px solid rgba(52,168,83,0.3)', borderRadius: T.radius.badge, padding: '9px 14px', fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans }}>
                 Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026 — ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
@@ -416,11 +305,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
             <thead>
-              <tr>
-                {['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσ. Καταστροφές','Μηνιαίο *','Ετήσιο *'].map((h, i) => (
-                  <th key={i} style={{ fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '7px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
-                ))}
-              </tr>
+              <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσ. Καταστροφές','Μηνιαίο *','Ετήσιο *'].map((h, i) => (
+                <th key={i} style={{ fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '7px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
+              ))}</tr>
             </thead>
             <tbody>
               {INSURANCE_COMPANIES.filter(c => c.value !== 'other').flatMap(c => c.plans.map(plan => {
@@ -443,20 +330,20 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           </table>
         </div>
         <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 8, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, fontFamily: T.font.sans }}>
-          * Ενδεικτικές τιμές για κατοικία ~100 τ.μ., αντικ. αξία ~150.000 €. Χρησιμοποίησε{' '}
-          <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>insurancemarket.gr</a>{' '}
-          για ακριβή σύγκριση. Πάτα γραμμή για επιλογή.
+          * Ενδεικτικές τιμές. Χρησιμοποίησε{' '}
+          <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>insurancemarket.gr</a>
+          {' '}για ακριβή σύγκριση. Πάτα γραμμή για επιλογή.
         </div>
       </div>
 
-      {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
+      {/* Streaming & Ψυχαγωγία */}
       <div style={card}>
         {secHdr('Streaming & Ψυχαγωγία')}
         <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>
-          Επίλεξε τις υπηρεσίες που χρησιμοποιείς — τιμές Ελλάδα, επαλήθευσε στον πάροχο
+          Επίλεξε τις υπηρεσίες που χρησιμοποιείς — τιμές Ελλάδα
         </div>
 
-        {/* ── Streaming grid — 3 cols, consistent card height ── */}
+        {/* ── FIX: streaming cards — ✕ top-right, ↗ inside header ONLY ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
           {STREAMING.map(svc => {
             const active  = (activeStreaming || []).find(a => a.service === svc.value);
@@ -469,37 +356,49 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 style={{
                   background: active ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                   border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                  borderRadius: T.radius.inner,
-                  padding: 14,
-                  transition: 'all 0.15s',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  // Fixed min-height so inactive cards don't collapse
-                  minHeight: 72,
-                  display: 'flex',
-                  flexDirection: 'column' as const,
-                  gap: 0,
+                  borderRadius: T.radius.inner, padding: 14, transition: 'all 0.15s',
+                  position: 'relative', minHeight: 68,
+                  display: 'flex', flexDirection: 'column' as const,
                 }}>
 
-                {/* Header row — always visible */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: active ? 10 : 0 }}
-                  onClick={() => toggleStreaming(svc.value)}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, transition: 'background 0.15s' }}/>
-                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
-                  <a href={svc.url} target="_blank" rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', opacity: active ? 1 : 0.35, fontFamily: T.font.sans, flexShrink: 0 }}>↗</a>
+                {/* FIX: Header row — dot + label + ↗ link + ✕ button all in one row, no overlap */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: active ? 10 : 0 }}>
+                  {/* Click dot or name to toggle */}
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: active ? svc.color : 'var(--border-default)', flexShrink: 0, cursor: 'pointer', transition: 'background 0.15s' }}
+                    onClick={() => toggleStreaming(svc.value)}/>
+                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1, cursor: 'pointer' }}
+                    onClick={() => toggleStreaming(svc.value)}>
+                    {svc.label}
+                  </span>
+                  {/* FIX: ↗ link — only when active, before ✕ */}
+                  {active && (
+                    <a href={svc.url} target="_blank" rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{ fontSize: 10, color: 'var(--text-tertiary)', textDecoration: 'none', flexShrink: 0, lineHeight: 1, padding: '2px 4px' }}>
+                      ↗
+                    </a>
+                  )}
+                  {/* FIX: ✕ button — always last, no absolute positioning to avoid overlap */}
+                  {active ? (
+                    <button onClick={() => toggleStreaming(svc.value)}
+                      style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)', flexShrink: 0, lineHeight: 1, padding: 0 }}>
+                      ✕
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 9, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: T.font.sans }}
+                      onClick={() => toggleStreaming(svc.value)}>+ Προσθήκη</span>
+                  )}
                 </div>
 
-                {/* Inactive: show starting price */}
+                {/* Inactive: price */}
                 {!active && (
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 16 }}
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 15, cursor: 'pointer' }}
                     onClick={() => toggleStreaming(svc.value)}>
                     από {fe(svc.plans[0].price)} / μήνα
                   </div>
                 )}
 
-                {/* Active: show controls */}
+                {/* Active: compact controls */}
                 {active && (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
 
@@ -508,7 +407,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       {svc.plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
 
-                    {/* Split billing row */}
+                    {/* Split row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
                       <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
                         style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
@@ -517,31 +416,22 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Διαμοιρασμός κόστους</span>
                       {active.splitActive && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <input
-                            type="number" min="2" max="10"
-                            value={active.splitPeople || 2}
+                          <input type="number" min="2" max="10" value={active.splitPeople || 2}
                             onChange={e => updateS(svc.value, 'splitPeople', Math.max(2, parseInt(e.target.value) || 2))}
-                            style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, outline: 'none', textAlign: 'center' }}
-                          />
+                            style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, outline: 'none', textAlign: 'center' }}/>
                           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>άτομα</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Custom price override */}
-                    <NumberInput
-                      label="Τιμή αν διαφέρει (€)"
-                      value={active.customPrice}
-                      onChange={v => updateS(svc.value, 'customPrice', v)}
-                      suffix="€"
-                      step={0.5}
-                    />
+                    {/* Custom price */}
+                    <NumberInput label="Τιμή αν διαφέρει (€)" value={active.customPrice} onChange={v => updateS(svc.value, 'customPrice', v)} suffix="€" step={0.5}/>
 
-                    {/* Renewal date */}
+                    {/* Renewal */}
                     <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
 
                     {/* Cost summary */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                         {active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}
                       </span>
@@ -549,14 +439,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                         {fe(myShare)} / μήνα
                       </span>
                     </div>
-                  </div>
-                )}
-
-                {/* Active badge top-right */}
-                {active && (
-                  <div onClick={() => toggleStreaming(svc.value)}
-                    style={{ position: 'absolute', top: 8, right: 10, width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 9, color: 'var(--text-tertiary)' }}>
-                    ✕
                   </div>
                 )}
               </div>
@@ -583,7 +465,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         )}
       </div>
 
-      {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
+      {/* Cloud & Λογισμικό */}
       <div style={card}>
         {secHdr('Cloud & Λογισμικό')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 14 }}>
@@ -598,15 +480,14 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 10, fontWeight: 600, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>{svc.label}</span>
-                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none' }}>↗</a>}
+                  {active && <a href={svc.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, color: 'var(--text-tertiary)', textDecoration: 'none' }}>↗</a>}
                 </div>
                 {active ? (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
                     <select value={active.planId} onChange={e => updateC(svc.value, 'planId', e.target.value)}
-                      style={{ ...miniSelectStyle, fontSize: 9, padding: '4px 6px', marginBottom: 0 }}>
+                      style={{ ...miniSelectStyle, fontSize: 9, padding: '4px 6px' }}>
                       {svc.plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    {/* Split row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <div onClick={() => updateC(svc.value, 'splitActive', !active.splitActive)}
                         style={{ width: 26, height: 14, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--info)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
@@ -630,16 +511,15 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         </div>
       </div>
 
-      {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
+      {/* Άλλες Πάγιες Συνδρομές */}
       <div style={card}>
         {secHdr('Άλλες Πάγιες Συνδρομές')}
-
-        {/* Add form — proper alignment */}
+        {/* FIX: add form — proper grid, button aligned */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput   label="Ονομασία"          value={newSubName}    onChange={setNewSubName}    placeholder="π.χ. Canva Pro, Adobe, Antivirus..."/>
-            <NumberInput label="Κόστος / μήνα (€)" value={newSubPrice}   onChange={setNewSubPrice}   suffix="€" step={1}/>
-            <DatePicker  label="Ημ. Ανανέωσης"     value={newSubRenewal} onChange={setNewSubRenewal}/>
+            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="π.χ. Canva Pro, Adobe, Antivirus..."/>
+            <NumberInput label="Κόστος / μήνα (€)" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
+            <DatePicker  label="Ημ. Ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
@@ -649,7 +529,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   setNewSubName(''); setNewSubPrice(''); setNewSubRenewal('');
                 }
               }}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>
@@ -660,7 +540,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             Δεν υπάρχουν καταγεγραμμένες συνδρομές
           </div>
         )}
-
         {(otherSubs || []).map((s, i) => {
           const daysLeft = s.renewalDate ? Math.ceil((new Date(s.renewalDate).getTime() - Date.now()) / 86400000) : null;
           return (
@@ -688,7 +567,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {total > 0 && (
           <div style={{ marginTop: 16, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο — ασφάλεια + streaming + cloud + άλλα</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                Σύνολο — ασφάλεια + streaming + cloud + άλλα
+              </div>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
                 {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
               </div>
