@@ -268,7 +268,7 @@ export default function BillsElectricity({ propertyId, userId }: { propertyId: s
                 Εφαρμογή {(parseFloat(dimotikaCalcAmt) / parseFloat(dimotikaCalcCons) * 100).toFixed(1)}%
               </button>
             )}
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συγχρονίζεται με tab Παροχοί</span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συγχρονίζεται με tab Πάροχοι</span>
           </div>
         </div>
 

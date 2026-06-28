@@ -85,6 +85,17 @@ export function NumberInput({
     }
   };
 
+  // FIX: calculate suffix padding based on string length
+  // Short suffixes (€, %, η, ω) → 12px each side
+  // Medium (kWh, τ.μ., Mbps) → 10px each side, slightly more space
+  // Long (άτομα, kWp, τεμ.) → 8px each side, ensure min content fits
+  const getSuffixPadding = (s: string) => {
+    const len = s.length;
+    if (len <= 2) return '0 12px';
+    if (len <= 4) return '0 10px';
+    return '0 8px';
+  };
+
   return (
     <div className={className}>
       {label && <label style={mdLabelBase}>{label}</label>}
@@ -139,9 +150,10 @@ export function NumberInput({
         />
         {suffix && (
           <span style={{
-            padding: '0 12px',
+            // FIX: dynamic padding + never shrink below content width
+            padding: getSuffixPadding(suffix),
             fontFamily: "'Google Sans', sans-serif",
-            fontSize: 14,
+            fontSize: suffix.length > 4 ? 12 : 14,
             color: 'var(--text-secondary)',
             background: 'var(--bg-elevated)',
             alignSelf: 'stretch',
@@ -150,6 +162,8 @@ export function NumberInput({
             borderLeft: `1px solid var(--border-subtle)`,
             whiteSpace: 'nowrap',
             flexShrink: 0,
+            // FIX: ensure enough width for the content
+            minWidth: 'max-content',
           }}>{suffix}</span>
         )}
       </div>
@@ -222,7 +236,6 @@ export function CustomSelect({
             {selected?.label || placeholder}
           </span>
         </div>
-        {/* Google-style dropdown chevron */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
           <path d="M7 10l5 5 5-5z"/>
         </svg>
@@ -344,7 +357,6 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
         <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 14, letterSpacing: '0.25px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
-        {/* Google Calendar icon */}
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)">
           <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
         </svg>
@@ -361,7 +373,6 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           width: 280,
           boxShadow: 'var(--shadow-lg)',
         }}>
-          {/* Month navigation */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -377,13 +388,11 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
             </button>
           </div>
-          {/* Day headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
             {DAYS_GR.map(d => (
               <div key={d} style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
             ))}
           </div>
-          {/* Days grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0 }}>
             {Array(firstDay).fill(null).map((_,i) => <div key={`b${i}`}/>)}
             {Array(daysInMonth).fill(null).map((_,i) => {
@@ -419,7 +428,6 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               );
             })}
           </div>
-          {/* Actions */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
             <button onClick={() => { onChange(''); setOpen(false); }}
               style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
@@ -451,7 +459,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
   const w = size === 'sm' ? 36 : 52;
   const h = size === 'sm' ? 20 : 32;
   const thumbOff = size === 'sm' ? 12 : 16;
-  const thumbOn = size === 'sm' ? 16 : 24;
+  const thumbOn  = size === 'sm' ? 16 : 24;
 
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}>
