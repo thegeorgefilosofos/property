@@ -33,9 +33,9 @@ const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> 
 const MGMT_CARDS = [
   { key: 'traditional', costLabel: 'Εθελοντής',   nameLabel: 'Παραδοσιακός Διαχειριστής', url: '' },
   { key: 'office',      costLabel: 'Αμοιβή',       nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
-  { key: 'billys',      costLabel: '3 €/μήνα',     nameLabel: 'Billys',                    url: 'https://www.billys.gr' },
-  { key: 'comfy',       costLabel: '5 €/μήνα',     nameLabel: 'Comfy',                     url: 'https://www.comfy.gr'  },
-  { key: 'mycondo',     costLabel: '4 €/μήνα',     nameLabel: 'My Condo',                  url: 'https://www.mycondo.gr' },
+  { key: 'billys',      costLabel: '3 € / μήνα',   nameLabel: 'Billys',                    url: 'https://www.billys.gr' },
+  { key: 'comfy',       costLabel: '5 € / μήνα',   nameLabel: 'Comfy',                     url: 'https://www.comfy.gr'  },
+  { key: 'mycondo',     costLabel: '4 € / μήνα',   nameLabel: 'My Condo',                  url: 'https://www.mycondo.gr' },
   { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
 ] as const;
 

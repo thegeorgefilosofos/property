@@ -323,13 +323,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.08)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid rgba(242,153,0,0.2)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
             {/* FIX: direct taxheaven ΕΝΦΙΑ link */}
-            <a href="https://www.taxheaven.gr/news/news/view/id/52060" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--info)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'rgba(26,115,232,0.06)', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.18)' }}>
               taxheaven ΕΝΦΙΑ →
             </a>
-            <a href="https://www1.aade.gr/saadeweb/menu.aspx" target="_blank" rel="noopener noreferrer"
+            <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              myAADE.gr
+              Ε9 / ΕΝΦΙΑ (myAADE) →
             </a>
             <button onClick={() => upd({ enfiaShowCalc: !s.enfiaShowCalc })}
               style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 10px', cursor: 'pointer', fontFamily: T.font.sans }}>
@@ -359,7 +359,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
             <span style={{ fontWeight: 700, color: 'var(--info)' }}>Νέο 2026: </span>
             Αύξηση ~8% στους συντελεστές. Μείωση 10-20% αν ασφαλίζεται για φυσικές καταστροφές (Α.1005/2026).{' '}
-            <a href="https://www.taxheaven.gr/news/news/view/id/52060" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ανάλυση ΕΝΦΙΑ 2026 →</a>
+            <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ανάλυση ΕΝΦΙΑ 2026 →</a>
           </div>
         </div>
 
@@ -506,13 +506,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               ) : (
                 <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 24, textAlign: 'center' as const }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 8 }}>Συμπλήρωσε εμβαδόν + τιμή ζώνης</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 18, lineHeight: 1.5 }}>Η τιμή ζώνης βρίσκεται στο myAADE.gr → Ε9</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 18, lineHeight: 1.5 }}>Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ</div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-                    <a href="https://www1.aade.gr/saadeweb/menu.aspx" target="_blank" rel="noopener noreferrer"
+                    <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--info)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
-                      myAADE.gr →
+                      Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
                     </a>
-                    <a href="https://www.taxheaven.gr/news/news/view/id/52060" target="_blank" rel="noopener noreferrer"
+                    <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(212,175,66,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
                       ΕΝΦΙΑ 2026 →
                     </a>
@@ -529,13 +529,23 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {secHdr('Δημοτικά Τέλη')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'flex-end' }}>
+          {/* FIX: 2 inputs + result — all in same grid, aligned at bottom, no marginBottom on result box */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού (€)"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά στον λογαριασμό (€)" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
-            <div style={{ background: 'var(--bg-surface)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '12px 16px', textAlign: 'center' as const, marginBottom: 14, minWidth: 90 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, lineHeight: 1 }}>{dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}</div>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, fontFamily: T.font.sans, marginTop: 3 }}>Ποσοστό</div>
+          </div>
+          {/* Result: compact inline pill — same pattern as Providers + Electricity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(212,175,66,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, lineHeight: 1 }}>
+                {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
+              </span>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών</div>
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Αθήνα: ~5% · Τυπικό: 3–6%</div>
+              </div>
             </div>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συγχρονίζεται με tab Πάροχοι</span>
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
@@ -704,7 +714,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <NumberInput  label="Κόστος (€)" value={newCost} onChange={setNewCost} suffix="€" step={10}/>
             <CustomSelect label="Συχνότητα"  value={newFreq} onChange={setNewFreq} options={FREQ}/>
             <button onClick={addOther}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, marginBottom: 14, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη
             </button>
           </div>

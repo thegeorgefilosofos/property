@@ -247,7 +247,31 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     if (data?.data) setBudgets(data.data as Record<string, string>);
   }, [propertyId]);
 
-  useEffect(() => { loadBills(); loadHistory(); loadBudgets(); }, [loadBills, loadHistory, loadBudgets]);
+  // ── Realtime subscription — instant updates when bills change ──────────────
+  useEffect(() => {
+    if (!propertyId) return;
+    let mounted = true;
+
+    // Initial load
+    loadBills();
+    loadHistory();
+    loadBudgets();
+
+    // Subscribe to bills table changes
+    const channel = supabase
+      .channel(`dashboard_bills_${propertyId}`)
+      .on(
+        'postgres_changes' as const,
+        { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` },
+        () => { if (mounted) loadBills(); }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [propertyId, loadBills, loadHistory, loadBudgets]);
 
   const saveHistoryCell = async (category: string, month: number, value: string) => {
     const amount = parseFloat(value) || 0;
@@ -532,10 +556,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           {form.category === 'electricity' && (
             <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-                {[{ label: 'Κατανάλωση', key: 'kwh', suffix: 'kWh' }, { label: 'ΕΡΤ', key: 'ert', suffix: '€' }, { label: 'ΕΤΜΕΑΡ', key: 'etmear', suffix: '€' }, { label: 'Δημοτικά', key: 'dimotika_amt', suffix: '€' }].map(f => (
-                  <NumberInput key={f.key} label={`${f.label} (${f.suffix})`} value={(form as any)[f.key]} onChange={v => sf(f.key, v)} suffix={f.suffix} step={0.01}/>
-                ))}
+              {/* FIX: 2+2 grid — prevents overflow on narrow panels */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <NumberInput label="Κατανάλωση (kWh)" value={(form as any)['kwh']}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
+                <NumberInput label="ΕΡΤ (€)"           value={(form as any)['ert']}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <NumberInput label="ΕΤΜΕΑΡ (€)"        value={(form as any)['etmear']}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
+                <NumberInput label="Δημοτικά (€)"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
               </div>
             </div>
           )}

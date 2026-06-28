@@ -398,15 +398,16 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
           </div>
           {s.hasTV && (
-            <div style={g4}>
-              <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
-                options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
-              <TextInput   label="Πρόγραμμα / Πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="π.χ. Cosmote TV Start"/>
-              <NumberInput label="Μηνιαίο Κόστος (€)"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
-              <div style={{ paddingTop: 22 }}>
-                <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package" labelOff="Χωρίς Sports Package"/>
+            <>
+              {/* FIX: 3 cols + separate toggle row — avoids Sports Package label truncation */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 12 }}>
+                <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
+                  options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
+                <TextInput   label="Πρόγραμμα / Πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="π.χ. Cosmote TV Start"/>
+                <NumberInput label="Μηνιαίο Κόστος (€)"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
               </div>
-            </div>
+              <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package ενεργό" labelOff="Χωρίς Sports Package"/>
+            </>
           )}
         </div>
       </div>
@@ -414,13 +415,16 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       {/* ── Νερό ─────────────────────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Νερό')}
-        <div style={g4}>
-          <CustomSelect label="Πάροχος"                  value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
+        {/* FIX: 2+2 layout — prevents label overflow on narrow screens */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
           <NumberInput  label="Διμηνιαίος Λογαριασμός (€)" value={s.waterBiMonthly}
             onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / 2).toFixed(2)) : '' })}
             suffix="€" step={5}/>
-          <NumberInput  label="Μηνιαία Αναγωγή (€)"      value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€" step={2}/>
-          <NumberInput  label="Άτομα στο ακίνητο"         value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα" step={1}/>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <NumberInput  label="Μηνιαία Αναγωγή (€)"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
+          <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
         </div>
         {waterM > 0 && (
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
