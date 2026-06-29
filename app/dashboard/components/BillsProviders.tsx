@@ -22,41 +22,48 @@ const INTERNET_PROVIDERS = [
   { value: 'other',     label: 'Άλλος',      url: '',                           color: '#94a3b8' },
 ];
 
-const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; price: number; hasPhone: boolean; note: string }[]> = {
+const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; price: number; hasPhone: boolean; note: string; contract?: string }[]> = {
   cosmote: [
-    { id: 'c_fiber100',  name: 'Fiber 100',  speed: '100/50 Mbps',   price: 19.90, hasPhone: true,  note: 'Τριετία' },
-    { id: 'c_fiber500',  name: 'Fiber 500',  speed: '500/200 Mbps',  price: 24.90, hasPhone: true,  note: 'Τριετία' },
-    { id: 'c_fiber1000', name: 'Fiber 1000', speed: '1000/300 Mbps', price: 29.90, hasPhone: true,  note: 'Τριετία' },
+    { id: 'c_fiber100',  name: 'Fiber 100',  speed: '100/50 Mbps',   price: 27.90, hasPhone: true,  note: 'Οπτική ίνα FTTH',    contract: '24μ' },
+    { id: 'c_fiber200',  name: 'Fiber 200',  speed: '200/100 Mbps',  price: 33.90, hasPhone: true,  note: 'Οπτική ίνα FTTH',    contract: '24μ' },
+    { id: 'c_fiber500',  name: 'Fiber 500',  speed: '500/200 Mbps',  price: 37.90, hasPhone: false, note: 'Internet μόνο',       contract: '24μ' },
+    { id: 'c_fiber1000', name: 'Fiber 1Gbps',speed: '1 Gbps FTTH',   price: 45.90, hasPhone: false, note: 'Internet μόνο',       contract: '24μ' },
   ],
   nova: [
-    { id: 'n_fiber100',  name: 'Nova Fiber 100',  speed: '100/50 Mbps',  price: 19.90, hasPhone: true, note: 'Διετία' },
-    { id: 'n_fiber500',  name: 'Nova Fiber 500',  speed: '500/200 Mbps', price: 24.90, hasPhone: true, note: 'Διετία' },
-    { id: 'n_fiber1000', name: 'Nova Fiber 1000', speed: '1 Gbps',        price: 29.90, hasPhone: true, note: 'Διετία' },
+    { id: 'n_fiber100',  name: 'Nova Fiber 100',  speed: '100/50 Mbps',  price: 24.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    { id: 'n_fiber300',  name: 'Nova Fiber 300',  speed: '300/150 Mbps', price: 27.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    { id: 'n_fiber600',  name: 'Nova Fiber 600',  speed: '600/300 Mbps', price: 32.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    { id: 'n_fiber1000', name: 'Nova Fiber 1Gbps',speed: '1 Gbps FTTH',  price: 37.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
   ],
   vodafone: [
-    { id: 'v_pro100', name: 'Pro 100', speed: '100/50 Mbps',  price: 21.90, hasPhone: true, note: 'Διετία' },
-    { id: 'v_pro500', name: 'Pro 500', speed: '500/200 Mbps', price: 26.90, hasPhone: true, note: 'Διετία' },
+    { id: 'v_ff300',  name: 'Full Fiber 300',  speed: '300/150 Mbps', price: 35.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    { id: 'v_ff500',  name: 'Full Fiber 500',  speed: '500/200 Mbps', price: 42.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    { id: 'v_ff1000', name: 'Full Fiber 1Gbps',speed: '1 Gbps FTTH',  price: 49.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+  ],
+  dei: [
+    { id: 'dei_f500',  name: 'ΔΕΗ Fiber 500',    speed: '500 Mbps',   price: 17.90, hasPhone: false, note: 'Φθηνότερο στην αγορά', contract: '24μ' },
+    { id: 'dei_f1000', name: 'ΔΕΗ Fiber 1Gbps',  speed: '1 Gbps',     price: 24.90, hasPhone: false, note: 'Νέος πάροχος 2026',   contract: '24μ' },
+    { id: 'dei_f2500', name: 'ΔΕΗ Fiber 2.5Gbps',speed: '2.5 Gbps',   price: 52.90, hasPhone: false, note: 'Ultra γρήγορο',       contract: '24μ' },
   ],
   inalan: [
-    { id: 'i_100',  name: 'Fiber 100', speed: '100 Mbps Symmetric', price: 17.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
-    { id: 'i_500',  name: 'Fiber 500', speed: '500 Mbps Symmetric', price: 22.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
-    { id: 'i_1000', name: 'Fiber 1G',  speed: '1 Gbps Symmetric',   price: 27.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
+    { id: 'i_100',  name: 'Inalan Fiber 100', speed: '100 Mbps Symmetric', price: 17.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
+    { id: 'i_500',  name: 'Inalan Fiber 500', speed: '500 Mbps Symmetric', price: 22.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
+    { id: 'i_1000', name: 'Inalan Fiber 1G',  speed: '1 Gbps Symmetric',   price: 27.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
   ],
   enterwave: [
-    { id: 'ew_100', name: 'Home 100', speed: '100 Mbps', price: 16.90, hasPhone: false, note: 'FTTH' },
-    { id: 'ew_500', name: 'Home 500', speed: '500 Mbps', price: 21.90, hasPhone: false, note: 'FTTH' },
-  ],
-  hol: [
-    { id: 'h_basic', name: 'HOL Basic', speed: '100/50 Mbps',  price: 19.90, hasPhone: true, note: 'Διετία' },
-    { id: 'h_plus',  name: 'HOL Plus',  speed: '500/200 Mbps', price: 24.90, hasPhone: true, note: 'Διετία' },
+    { id: 'ew_100', name: 'Enterwave 100', speed: '100 Mbps', price: 16.90, hasPhone: false, note: 'FTTH Αθήνα/Θεσσαλονίκη' },
+    { id: 'ew_500', name: 'Enterwave 500', speed: '500 Mbps', price: 21.90, hasPhone: false, note: 'FTTH Αθήνα/Θεσσαλονίκη' },
   ],
   cyta: [
-    { id: 'cy_100', name: 'CytaFiber 100', speed: '100 Mbps', price: 18.90, hasPhone: true, note: 'Τριετία' },
-    { id: 'cy_500', name: 'CytaFiber 500', speed: '500 Mbps', price: 23.90, hasPhone: true, note: 'Τριετία' },
+    { id: 'cy_100',  name: 'CytaFiber 100', speed: '100 Mbps',  price: 18.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
+    { id: 'cy_500',  name: 'CytaFiber 500', speed: '500 Mbps',  price: 24.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
+    { id: 'cy_1000', name: 'CytaFiber 1G',  speed: '1 Gbps',    price: 29.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
   ],
-  other: [],
+  hol: [
+    { id: 'h_basic', name: 'HOL Fiber 100', speed: '100/50 Mbps',  price: 19.90, hasPhone: true, note: 'Διετία', contract: '24μ' },
+    { id: 'h_plus',  name: 'HOL Fiber 500', speed: '500/200 Mbps', price: 24.90, hasPhone: true, note: 'Διετία', contract: '24μ' },
+  ],
 };
-
 const WATER_PROVIDERS = [
   { value: 'eydap', label: 'ΕΥΔΑΠ (Αττική)',         url: 'https://www.eydap.gr',  color: '#06b6d4' },
   { value: 'eyath', label: 'ΕΥΑΘ (Θεσσαλονίκη)',     url: 'https://www.eyath.gr',  color: '#0ea5e9' },

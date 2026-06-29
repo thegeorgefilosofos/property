@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 
+const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
+const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
+
 const T = {
   radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
   font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
@@ -20,7 +23,38 @@ const INSURANCE_COMPANIES = [
   { value: 'axa',           label: 'AXA Ασφαλιστική',    url: 'https://www.axa.gr',                  agent_label: 'Σύμβουλος AXA',                      plans: [{ id: 'axa_basic', name: 'Home Basic', monthly: 9.50, annual: 95, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'axa_comfort', name: 'Home Comfort', monthly: 15.00, annual: 148, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'axa_premium', name: 'Home Premium', monthly: 23.00, annual: 225, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
   { value: 'ethniki',       label: 'Εθνική Ασφαλιστική', url: 'https://www.ethniki-asfalistiki.gr',  agent_label: 'Σύμβουλος Εθνικής',                 plans: [{ id: 'eth_oikos', name: 'Οίκος', monthly: 13.00, annual: 126, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'], earthquake: false, flood: false, natural: false },{ id: 'eth_mega', name: 'MegaHome', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'eth_ultra', name: 'UltraHome', monthly: 28.00, annual: 270, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
   { value: 'allianz',       label: 'Allianz Hellas',      url: 'https://www.allianz.gr',              agent_label: 'Σύμβουλος Allianz',                  plans: [{ id: 'alz_basic', name: 'Allianz Home Basic', monthly: 12.00, annual: 115, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'alz_comfort', name: 'Allianz Home Comfort', monthly: 19.00, annual: 182, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'], earthquake: false, flood: true, natural: true },{ id: 'alz_premium', name: 'Allianz Home Premium', monthly: 27.00, annual: 258, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
-  { value: 'other',         label: 'Άλλη Ασφαλιστική',   url: '',                                    agent_label: 'Ασφαλιστής',                         plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
+  { value: 'ergo',      label: 'ERGO Ασφαλιστική',     url: 'https://www.ergo.gr',              agent_label: 'Μεσίτης / Online',
+    plans: [
+      { id: 'ergo_home',    name: 'Home Basic',      monthly: 10.00, annual: 99,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'ergo_plus',    name: 'Home Plus',       monthly: 15.50, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'ergo_premium', name: 'Home Premium',    monthly: 21.00, annual: 199, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'allianz',   label: 'Allianz Hellas',        url: 'https://www.allianz.gr',           agent_label: 'Ασφαλιστής / Online',
+    plans: [
+      { id: 'allianz_basic',   name: 'MeinHaus Compact', monthly: 12.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'allianz_comfort', name: 'MeinHaus Comfort',  monthly: 17.90, annual: 170, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'allianz_full',    name: 'MeinHaus Plus',     monthly: 24.90, annual: 239, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'groupama',  label: 'Groupama (myZen)',      url: 'https://www.groupama.gr',          agent_label: 'Online — myZen',
+    plans: [
+      { id: 'grp_basic',   name: 'myZen Basic',     monthly: 9.90,  annual: 95,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
+      { id: 'grp_comfort', name: 'myZen Comfort',   monthly: 13.50, annual: 130, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'grp_full',    name: 'myZen Full',      monthly: 19.90, annual: 189, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'ethniki',   label: 'Εθνική Ασφαλιστική',   url: 'https://www.ethniki-asfalistiki.gr', agent_label: 'Ασφαλιστής',
+    plans: [
+      { id: 'eth_basic',   name: 'Οικία Basic',     monthly: 14.00, annual: 132, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'eth_plus',    name: 'Οικία Plus',      monthly: 19.90, annual: 190, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'eth_premium', name: 'Οικία Premium',   monthly: 26.90, annual: 259, covers: ['Πλήρης κάλυψη + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'anytime',   label: 'Anytime (Interamerican)', url: 'https://www.anytime.gr',         agent_label: 'Online — Digital',
+    plans: [
+      { id: 'any_basic', name: 'Home Essential',    monthly: 9.50,  annual: 90,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
+      { id: 'any_plus',  name: 'Home Plus',         monthly: 13.90, annual: 135, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'any_full',  name: 'Home Full',         monthly: 19.50, annual: 185, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'other',     label: 'Άλλη Ασφαλιστική',     url: '',                                 agent_label: 'Ασφαλιστής',
+    plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
 ];
 
 const STREAMING = [
@@ -240,14 +274,17 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
   // ── ΑΑΔΕ connect ─────────────────────────────────────────────────────────
   const connectAADE = async () => {
+    // ΑΑΔΕ API δεν είναι διαθέσιμο ακόμη — ανοίγουμε myaade.gov.gr
+    // Όταν ανοίξει το API: αντικατάστησε με OAuth2 flow
     setAadeLoading(true);
     try {
-      const data = await fetchENFIAFromAADE(propertyId);
-      if (data) { setAadeData(data); setAadeConnected(true); }
-      else {
-        // API not yet available — show message
-        setAadeConnected(false);
+      // Άνοιξε το myAADE σε νέο tab
+      if (typeof window !== 'undefined') {
+        window.open('https://www.aade.gr/polites/forologikes-ypiresies/enfia', '_blank', 'noopener,noreferrer');
       }
+      // Simulate API not available yet
+      await new Promise(r => setTimeout(r, 400));
+      setAadeConnected(false);
     } finally { setAadeLoading(false); }
   };
 
@@ -384,10 +421,14 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             </div>
           </div>
           {!aadeConnected ? (
-            <button onClick={connectAADE} disabled={aadeLoading}
-              style={{ background: 'var(--info)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: aadeLoading ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, opacity: aadeLoading ? 0.7 : 1 }}>
-              {aadeLoading ? 'Σύνδεση...' : 'Σύνδεση με TAXISnet →'}
-            </button>
+            <a
+              href="https://www.aade.gr/polites/forologikes-ypiresies/enfia"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={connectAADE}
+              style={{ display: 'inline-block', background: 'var(--info)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textDecoration: 'none' }}>
+              Σύνδεση με TAXISnet →
+            </a>
           ) : (
             <span style={{ fontSize: 10, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 700, background: 'rgba(52,168,83,0.1)', padding: '4px 12px', borderRadius: T.radius.pill }}>✓ Συνδεδεμένο</span>
           )}

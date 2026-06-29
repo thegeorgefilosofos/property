@@ -130,10 +130,23 @@ const CONFIDENCE_LBL = { high: 'Σίγουρο', medium: 'Πιθανό', low: '�
 
 // Greek banks — comprehensive list
 const BANKS = [
-  'Alpha Bank','Εθνική Τράπεζα (NBG)','Eurobank','Πειραιώς','Attica Bank',
-  'Optima Bank','Credia (Παγκρήτια)','Παγκρήτια Τράπεζα','Τράπεζα Θεσσαλίας',
-  'Revolut','N26','Wise','Payzy (Cosmote)','Google Pay','Apple Pay',
-  'Winbank (Πειραιώς)','MyAlpha (Alpha)','Eurobank Online','NBG Mobile',
+  // Ελληνικές Τράπεζες — αλφαβητική σειρά
+  'Alpha Bank',
+  'Attica Bank',
+  'Credia (Παγκρήτια)',
+  'Eurobank',
+  'Εθνική Τράπεζα (NBG)',
+  'Optima Bank',
+  'Τράπεζα Πειραιώς',
+  'Τράπεζα Θεσσαλίας',
+  // Νεοτράπεζες
+  'N26',
+  'Revolut',
+  'Wise',
+  // Ψηφιακές Πληρωμές
+  'Apple Pay',
+  'Google Pay',
+  'Payzy (Cosmote)',
 ];
 
 interface Props { propertyId: string; userId?: string; onImported?: (count: number) => void; }
@@ -321,9 +334,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         <>
           {/* Bank selector */}
           <div style={{ marginBottom: 16 }}>
-            <label style={mdLabel}>Τράπεζα (προαιρετικό)</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, letterSpacing: "0.3px", color: "var(--text-secondary)", marginBottom: 8, fontFamily: T.font.sans }}>Τράπεζα <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-tertiary)" }}>(προαιρετικό)</span></label>
             <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)}
-              style={{ width: '100%', maxWidth: 360, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: selectedBank ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '11px 16px', color: selectedBank ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', cursor: 'pointer' }}>
               <option value="">— Επιλογή τράπεζας —</option>
               {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
@@ -335,9 +348,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onClick={() => fileRef.current?.click()}
-            style={{ border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius: T.radius.card, padding: '48px 32px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(212,175,66,0.04)' : 'transparent', transition: 'all 0.2s', marginBottom: 20 }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-            onMouseLeave={e => { if (!dragOver) e.currentTarget.style.borderColor = 'var(--border-default)'; }}>
+            style={{ border: `1px solid ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius: T.radius.card, padding: '44px 32px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(212,175,66,0.03)' : 'var(--bg-elevated)', transition: 'all 0.2s', marginBottom: 20 }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+            onMouseLeave={e => { if (!dragOver) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; } }}>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
               <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -346,8 +359,8 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>Ανέβασε Αρχείο Τράπεζας</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>Σύρε εδώ ή κάνε κλικ για επιλογή</div>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {['CSV','Excel','PDF','JPG · PNG','HEIC','TXT'].map(f => (
-                <span key={f} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.mono }}>{f}</span>
+              {['CSV','Excel','PDF','JPG','PNG','HEIC','TXT'].map(f => (
+                <span key={f} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', fontFamily: T.font.mono }}>{f}</span>
               ))}
             </div>
           </div>
@@ -366,20 +379,21 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           {/* Instructions */}
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', padding: 20 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, fontFamily: T.font.sans }}>Πώς να κατεβάσεις αρχείο από την τράπεζά σου</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 32px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: T.font.sans }}>Εξαγωγή Κινήσεων ανά Τράπεζα</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>Κατέβασε το αρχείο κινήσεων από το e-Banking σου και ανέβασέ το παραπάνω</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { bank: 'Alpha Bank',         path: 'MyAlpha → Λογαριασμοί → Κινήσεις → Εξαγωγή CSV' },
-                { bank: 'Εθνική (NBG)',        path: 'NBG Mobile → Λογαριασμοί → Κινήσεις → Εξαγωγή' },
-                { bank: 'Eurobank',            path: 'e-Banking → Λογαριασμοί → Κινήσεις → Εξαγωγή' },
-                { bank: 'Πειραιώς (Winbank)',  path: 'winbank → Λογαριασμοί → Κινήσεις → Excel/CSV' },
-                { bank: 'Optima Bank',         path: 'Optima e-Banking → Λογαριασμοί → Εξαγωγή CSV' },
-                { bank: 'Credia / Παγκρήτια', path: 'e-Banking → Κινήσεις → Εξαγωγή αρχείου' },
-                { bank: 'Revolut',             path: 'Εφαρμογή → Λογαριασμός → Λήψη αντιγράφου → CSV' },
-                { bank: 'Payzy (Cosmote)',      path: 'Εφαρμογή Payzy → Ιστορικό → Λήψη PDF' },
+                { bank: 'Alpha Bank',        sub: 'MyAlpha',       path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή CSV' },
+                { bank: 'Εθνική Τράπεζα',   sub: 'NBG Mobile',    path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή' },
+                { bank: 'Eurobank',          sub: 'e-Banking',     path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή' },
+                { bank: 'Τράπεζα Πειραιώς', sub: 'winbank',       path: 'Λογαριασμοί → Κινήσεις → Excel/CSV' },
+                { bank: 'Optima Bank',       sub: 'e-Banking',     path: 'Λογαριασμοί → Εξαγωγή CSV' },
+                { bank: 'Credia',            sub: 'e-Banking',     path: 'Κινήσεις → Εξαγωγή αρχείου' },
+                { bank: 'Revolut',           sub: 'Mobile App',    path: 'Λογαριασμός → Λήψη αντιγράφου → CSV' },
               ].map((b, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', minWidth: 140, fontFamily: T.font.sans }}>{b.bank}</span>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '160px 96px 1fr', gap: 12, padding: '10px 0', borderBottom: i < 6 ? '1px solid var(--border-subtle)' : 'none', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{b.bank}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.badge, fontFamily: T.font.sans, textAlign: 'center' }}>{b.sub}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{b.path}</span>
                 </div>
               ))}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { NumberInput } from './UIComponents';
+import { NumberInput, TextInput, CustomSelect } from './UIComponents';
 
 const T = {
   radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
@@ -10,42 +10,38 @@ const T = {
 };
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
-interface BudgetCategory {
-  key:     string;
-  label:   string;
-  color:   string;
-  default: number;
-  icon:    string; // SVG path
+// ── Category definitions ──────────────────────────────────────────────────────
+const CATS = [
+  { key: 'electricity',  label: 'Ρεύμα',              color: '#f59e0b', default: 80  },
+  { key: 'water',        label: 'Νερό',                color: '#3b82f6', default: 25  },
+  { key: 'internet',     label: 'Internet & Τηλεφωνία',color: '#8b5cf6', default: 35  },
+  { key: 'heating',      label: 'Θέρμανση',            color: '#ef4444', default: 60  },
+  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',color: '#10b981', default: 30  },
+  { key: 'services',     label: 'Υπηρεσίες — ΕΝΦΙΑ',  color: '#ec4899', default: 50  },
+  { key: 'common',       label: 'Κοινόχρηστα',         color: '#6366f1', default: 40  },
+  { key: 'maintenance',  label: 'Συντήρηση',           color: '#84cc16', default: 20  },
+] as const;
+
+type CatKey = typeof CATS[number]['key'];
+
+// ── Participant (split cost person) ──────────────────────────────────────────
+interface Participant {
+  id:    string;
+  name:  string;
+  role:  string; // π.χ. Σύζυγος, Οικογένεια, Ενοικιαστής, Εταίρος
+  share: number; // percentage 0-100
+  color: string;
 }
 
-// SVG icons — no emoji
-const CAT_ICON_PATHS: Record<string, string> = {
-  electricity: 'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
-  water:       'M12 2C6.48 2 2 9 2 14a10 10 0 0 0 20 0c0-5-4.48-12-10-12z',
-  internet:    'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0M1.5 7.5a14 14 0 0 1 21 0',
-  heating:     'M12 2a5 5 0 0 1 5 5c0 3-5 11-5 11S7 10 7 7a5 5 0 0 1 5-5z',
-  insurance:   'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
-  services:    'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6M9 11h1m4 0h1M9 7h1m4 0h1',
-  common:      'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3',
-  maintenance: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
-};
-
-const CatIcon = ({ catKey, size = 14, color }: { catKey: string; size?: number; color: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-    <path d={CAT_ICON_PATHS[catKey] ?? CAT_ICON_PATHS.maintenance}/>
-  </svg>
-);
-
-const BUDGET_CATS: BudgetCategory[] = [
-  { key: 'electricity',  label: 'Ρεύμα',                color: '#f59e0b', default: 80,  icon: 'electricity' },
-  { key: 'water',        label: 'Νερό',                  color: '#3b82f6', default: 25,  icon: 'water'       },
-  { key: 'internet',     label: 'Internet & Τηλεφωνία',  color: '#8b5cf6', default: 35,  icon: 'internet'    },
-  { key: 'heating',      label: 'Θέρμανση',              color: '#ef4444', default: 60,  icon: 'heating'     },
-  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',  color: '#10b981', default: 30,  icon: 'insurance'   },
-  { key: 'services',     label: 'Υπηρεσίες — ΕΝΦΙΑ',    color: '#ec4899', default: 50,  icon: 'services'    },
-  { key: 'common',       label: 'Κοινόχρηστα',           color: '#6366f1', default: 40,  icon: 'common'      },
-  { key: 'maintenance',  label: 'Συντήρηση',             color: '#84cc16', default: 20,  icon: 'maintenance' },
+const ROLE_OPTIONS = [
+  { value: 'spouse',    label: 'Σύζυγος'     },
+  { value: 'family',    label: 'Οικογένεια'  },
+  { value: 'partner',   label: 'Εταίρος'     },
+  { value: 'tenant',    label: 'Ενοικιαστής' },
+  { value: 'other',     label: 'Άλλο'        },
 ];
+
+const PARTICIPANT_COLORS = ['#3b82f6','#8b5cf6','#10b981','#ec4899','#f59e0b','#ef4444'];
 
 interface Props { propertyId: string; userId?: string; }
 
@@ -53,26 +49,33 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const supabase  = createClient();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── State ──────────────────────────────────────────────────────────────────
   const initBudgets = (): Record<string, string> => {
     const b: Record<string, string> = { total: '340' };
-    BUDGET_CATS.forEach(c => { b[c.key] = String(c.default); });
+    CATS.forEach(c => { b[c.key] = String(c.default); });
     return b;
   };
 
-  const [budgets,  setBudgets]  = useState<Record<string, string>>(initBudgets);
-  const [actuals,  setActuals]  = useState<Record<string, number>>({});
-  const [loading,  setLoading]  = useState(true);
-  const [saving,   setSaving]   = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [rtOk,     setRtOk]     = useState(false);
+  const [budgets,      setBudgets]      = useState<Record<string, string>>(initBudgets);
+  const [actuals,      setActuals]      = useState<Record<string, number>>({});
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [editMode,     setEditMode]     = useState(false);
+  const [showSplit,    setShowSplit]     = useState(false);
+  const [rtOk,         setRtOk]         = useState(false);
+  // New participant form
+  const [newName,      setNewName]      = useState('');
+  const [newRole,      setNewRole]      = useState('spouse');
+  const [newShare,     setNewShare]     = useState('50');
 
-  const mapCategory = (cat: string): string => {
-    const m: Record<string, string> = {
+  const mapCategory = (cat: string): CatKey | 'other' => {
+    const m: Record<string, CatKey> = {
       electricity: 'electricity', water: 'water', eydap: 'water',
       internet: 'internet', phone: 'internet', tv: 'internet',
       heating: 'heating', gas: 'heating',
       insurance: 'insurance', streaming: 'insurance',
-      taxes: 'services', enfia: 'services', municipal: 'services', dimotika: 'services',
+      taxes: 'services', enfia: 'services', municipal: 'services',
       common: 'common', koinoxrista: 'common',
       maintenance: 'maintenance', repair: 'maintenance',
     };
@@ -90,24 +93,22 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
       const [budgetRes, billsRes, settRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
-        supabase.from('bills').select('category,amount').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
-        supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['electricity','providers','insurance','services','common']),
+        supabase.from('bills').select('category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
+        supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
       ]);
 
-      // Load saved budgets
       if (budgetRes.data?.data) {
-        const saved = budgetRes.data.data as Record<string, string | number>;
-        setBudgets(prev => { const n = { ...prev }; Object.entries(saved).forEach(([k, v]) => { n[k] = String(v); }); return n; });
+        const saved = budgetRes.data.data as Record<string, unknown>;
+        setBudgets(prev => { const n = { ...prev }; Object.entries(saved).forEach(([k, v]) => { if (k !== 'participants') n[k] = String(v); }); return n; });
+        if ((saved as any).participants) setParticipants((saved as any).participants);
       }
 
-      // Actuals from bills table
       const billActuals: Record<string, number> = {};
       (billsRes.data ?? []).forEach(b => {
         const key = mapCategory(b.category ?? '');
-        billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
+        if (key !== 'other') billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
       });
 
-      // Fill gaps from settings (recurring monthly costs)
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
       const prov = getSett('providers');
       if (prov) {
@@ -118,10 +119,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const svc = getSett('services');
       if (svc && !billActuals.services) {
         const enfia = parseFloat(String(svc.enfiaAnnual)) / 12 || parseFloat(String(svc.enfiaMonthly)) || 0;
-        const hist  = Array.isArray(svc.dimotikaHistory) ? (svc.dimotikaHistory as string[]) : [];
+        const hist  = Array.isArray(svc.dimotikaHistory) ? svc.dimotikaHistory as string[] : [];
         const valid = hist.filter(v => parseFloat(v) > 0);
-        const dimM  = valid.length ? valid.reduce((s, v) => s + parseFloat(v), 0) / valid.length : 0;
-        billActuals.services = enfia + dimM;
+        billActuals.services = enfia + (valid.length ? valid.reduce((s, v) => s + parseFloat(v), 0) / valid.length : 0);
       }
       const ins = getSett('insurance');
       if (ins && !billActuals.insurance) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
@@ -143,27 +143,58 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId, loadData]);
 
-  const saveBudgets = useCallback((data: Record<string, string>) => {
+  const saveBudgets = useCallback((data: Record<string, string>, parts?: Participant[]) => {
     if (!propertyId) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setSaving(true);
-      try { await supabase.from('bills_settings').upsert({ property_id: propertyId, user_id: userId, section: 'budgets', data }, { onConflict: 'property_id,section' }); }
-      finally { setSaving(false); }
+      try {
+        await supabase.from('bills_settings').upsert(
+          { property_id: propertyId, user_id: userId, section: 'budgets', data: { ...data, participants: parts ?? participants } },
+          { onConflict: 'property_id,section' }
+        );
+      } finally { setSaving(false); }
     }, 800);
-  }, [propertyId, userId]);
+  }, [propertyId, userId, participants]);
 
-  const updateBudget = (key: string, val: string) => { const next = { ...budgets, [key]: val }; setBudgets(next); saveBudgets(next); };
+  const updateBudget = (key: string, val: string) => {
+    const next = { ...budgets, [key]: val };
+    setBudgets(next);
+    saveBudgets(next);
+  };
 
-  const catTotal     = BUDGET_CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0);
-  const masterBudget = parseFloat(budgets.total) || catTotal;
-  const actualTotal  = BUDGET_CATS.reduce((s, c) => s + (actuals[c.key] || 0), 0);
-  const overBudget   = BUDGET_CATS.filter(c => (actuals[c.key] || 0) > (parseFloat(budgets[c.key]) || c.default));
+  const addParticipant = () => {
+    if (!newName.trim()) return;
+    const colorIdx = participants.length % PARTICIPANT_COLORS.length;
+    const next: Participant[] = [...participants, {
+      id:    `p_${Date.now()}`,
+      name:  newName.trim(),
+      role:  ROLE_OPTIONS.find(r => r.value === newRole)?.label || newRole,
+      share: Math.min(100, Math.max(0, parseFloat(newShare) || 50)),
+      color: PARTICIPANT_COLORS[colorIdx],
+    }];
+    setParticipants(next);
+    saveBudgets(budgets, next);
+    setNewName(''); setNewShare('50');
+  };
+
+  const removeParticipant = (id: string) => {
+    const next = participants.filter(p => p.id !== id);
+    setParticipants(next);
+    saveBudgets(budgets, next);
+  };
+
+  // ── Derived numbers ────────────────────────────────────────────────────────
+  const masterBudget  = parseFloat(budgets.total) || CATS.reduce((s, c) => s + c.default, 0);
+  const actualTotal   = CATS.reduce((s, c) => s + (actuals[c.key] || 0), 0);
+  const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > (parseFloat(budgets[c.key]) || c.default));
+  const totalParticipantShare = participants.reduce((s, p) => s + p.share, 0);
+  const myShare = Math.max(0, 100 - totalParticipantShare);
 
   const secHdr = (label: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
-      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
+      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
     </div>
   );
 
@@ -177,7 +208,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--positive)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--positive)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: rtOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block' }}/>
               Live
             </span>
@@ -187,10 +218,16 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση...</span>}
           </div>
         </div>
-        <button onClick={() => setEditMode(v => !v)}
-          style={{ padding: '8px 18px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
-          {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setShowSplit(v => !v)}
+            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 500, borderRadius: T.radius.btn, border: `1px solid ${showSplit ? 'var(--accent)' : 'var(--border-default)'}`, background: showSplit ? 'rgba(212,175,66,0.08)' : 'transparent', color: showSplit ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+            Διαμοιρασμός{participants.length > 0 ? ` (${participants.length})` : ''}
+          </button>
+          <button onClick={() => setEditMode(v => !v)}
+            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+            {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
+          </button>
+        </div>
       </div>
 
       {/* Over-budget alerts */}
@@ -200,12 +237,12 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             const budget = parseFloat(budgets[cat.key]) || cat.default;
             const actual = actuals[cat.key] || 0;
             return (
-              <div key={cat.key} style={{ background: 'rgba(197,34,31,0.06)', border: '1px solid rgba(197,34,31,0.22)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div key={cat.key} style={{ background: 'rgba(197,34,31,0.05)', border: '1px solid rgba(197,34,31,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>υπέρβαση</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>+{fe(actual - budget)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 4, fontFamily: T.font.sans }}>({fe(actual)} vs {fe(budget)})</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({fe(actual)} vs {fe(budget)})</span>
               </div>
             );
           })}
@@ -215,10 +252,10 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
         {([
-          { label: 'Στόχος / μήνα',    value: fe(masterBudget),                                 color: 'var(--info)'     },
-          { label: 'Πραγματικό',        value: fe(actualTotal),                                  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--positive)' },
-          { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)),      color: 'var(--text-primary)' },
-          { label: 'Υπέρβαση κατηγ.',   value: String(overBudget.length),                        color: overBudget.length > 0 ? 'var(--negative)' : 'var(--positive)' },
+          { label: 'Στόχος / μήνα',    value: fe(masterBudget), color: 'var(--text-primary)' },
+          { label: 'Πραγματικό',        value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--positive)' },
+          { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)), color: 'var(--text-primary)' },
+          { label: 'Κατηγ. σε υπέρβαση', value: String(overBudget.length), color: overBudget.length > 0 ? 'var(--negative)' : 'var(--positive)' },
         ] as const).map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -226,6 +263,70 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           </div>
         ))}
       </div>
+
+      {/* ── Διαμοιρασμός Κόστους ────────────────────────────────────────────── */}
+      {showSplit && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+          {secHdr('Διαμοιρασμός Κόστους')}
+
+          {/* My share visual */}
+          {(participants.length > 0 || true) && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ display: 'flex', height: 32, borderRadius: T.radius.inner, overflow: 'hidden', marginBottom: 10, gap: 2 }}>
+                {/* My share */}
+                <div title={`Εγώ: ${myShare.toFixed(0)}%`}
+                  style={{ flex: myShare, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: myShare > 5 ? undefined : 0, overflow: 'hidden', borderRadius: 6 }}>
+                  {myShare > 10 && <span style={{ fontSize: 11, fontWeight: 700, color: '#000', whiteSpace: 'nowrap' }}>Εγώ {myShare.toFixed(0)}%</span>}
+                </div>
+                {/* Participants */}
+                {participants.map(p => (
+                  <div key={p.id} title={`${p.name}: ${p.share.toFixed(0)}%`}
+                    style={{ flex: p.share, background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: p.share > 5 ? undefined : 0, overflow: 'hidden', borderRadius: 6 }}>
+                    {p.share > 10 && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{p.name.split(' ')[0]} {p.share.toFixed(0)}%</span>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }}/>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εγώ — {fe(masterBudget * myShare / 100)}/μήνα</span>
+                </div>
+                {participants.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }}/>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name} ({p.role}) — {fe(masterBudget * p.share / 100)}/μήνα</span>
+                    <button onClick={() => removeParticipant(p.id)}
+                      style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add participant form */}
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Πρόσθεσε Συμμετέχοντα</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10, alignItems: 'flex-end' }}>
+              <TextInput label="Όνομα" value={newName} onChange={setNewName} placeholder="π.χ. Μαρία, Οικογένεια"/>
+              <CustomSelect label="Σχέση" value={newRole} onChange={setNewRole} options={ROLE_OPTIONS}/>
+              <NumberInput label="Ποσοστό (%)" value={newShare} onChange={setNewShare} suffix="%" step={5}/>
+              <button onClick={addParticipant} disabled={!newName.trim()}
+                style={{ height: 40, padding: '0 18px', background: newName.trim() ? 'var(--accent)' : 'var(--bg-overlay)', color: newName.trim() ? '#000' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, cursor: newName.trim() ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                + Προσθήκη
+              </button>
+            </div>
+            {totalParticipantShare >= 100 && (
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--warning)', fontFamily: T.font.sans }}>
+                Το σύνολο ποσοστών φτάνει {totalParticipantShare.toFixed(0)}% — το δικό σου μερίδιο θα γίνει 0%.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Master progress */}
       {!editMode && (() => {
@@ -235,7 +336,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
             {secHdr('Σύνολο Μήνα')}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>
               <span>{fe(actualTotal)}</span>
               <span style={{ color: 'var(--text-tertiary)' }}>/ {fe(masterBudget)}</span>
             </div>
@@ -246,6 +347,14 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
               <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
             </div>
+
+            {/* My personal share */}
+            {participants.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Το δικό μου μερίδιο ({myShare.toFixed(0)}%)</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{fe(masterBudget * myShare / 100)}</span>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -254,7 +363,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 }}>
         {secHdr('Ανά Κατηγορία')}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {BUDGET_CATS.map(cat => {
+          {CATS.map(cat => {
             const budget  = parseFloat(budgets[cat.key]) || cat.default;
             const actual  = actuals[cat.key] || 0;
             const pct     = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
@@ -264,8 +373,8 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
             return (
               <div key={cat.key}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: editMode ? 10 : 6 }}>
-                  <CatIcon catKey={cat.key} color={col} size={16}/>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 6 }}>
+                  <div style={{ width: 3, height: 32, borderRadius: 2, background: col, flexShrink: 0 }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, flex: 1, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
 
                   {editMode ? (
@@ -275,19 +384,21 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                   ) : (
                     <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
                       {actual > 0
-                        ? <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.mono, color: isOver ? 'var(--negative)' : 'var(--text-primary)' }}>{fe(actual, 0)}</span>
-                        : <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>—</span>
+                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, color: isOver ? 'var(--negative)' : 'var(--text-primary)' }}>{fe(actual, 0)}</span>
+                        : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>/ {fe(budget, 0)}</span>
-                      {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'rgba(197,34,31,0.1)', padding: '1px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>+{fe(actual - budget, 0)}</span>}
-                      {isWarn && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)', padding: '1px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>{pct.toFixed(0)}%</span>}
+                      {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'rgba(197,34,31,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>+{fe(actual - budget, 0)}</span>}
+                      {isWarn && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>{pct.toFixed(0)}%</span>}
                     </div>
                   )}
                 </div>
 
                 {!editMode && (
-                  <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden', marginLeft: 28 }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 2, transition: 'width 0.5s ease' }}/>
+                  <div style={{ marginLeft: 13 }}>
+                    <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 2, transition: 'width 0.5s ease' }}/>
+                    </div>
                   </div>
                 )}
               </div>
@@ -295,16 +406,12 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Master budget editor */}
         {editMode && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Συνολικός Μηνιαίος Στόχος</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <NumberInput label="Μέγιστο Μηνιαίο Budget (€)" value={budgets.total ?? '340'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="340"/>
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)' }}>{fe(catTotal, 0)}</div>
-              </div>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '340'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="340"/>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
+              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.mono }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
             </div>
           </div>
         )}
