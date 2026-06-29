@@ -546,10 +546,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <NumberInput label="Ποσό (€)" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
+          {/* Period row — Από/Έως only for custom, Ημερομηνία Λήξης otherwise */}
           <div style={{ display: 'grid', gridTemplateColumns: form.period === 'custom' ? '1fr 1fr 1fr auto 1fr' : '1fr 1fr auto 1fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
-            <CustomSelect label="Περίοδος" value={form.period} onChange={v => sf('period', v)} options={PERIOD_OPTIONS}/>
-            {form.period === 'custom' && <TextInput label="Προσαρμοσμένη Περίοδος" value={form.period_custom} onChange={v => sf('period_custom', v)} placeholder="01-15/06/2026"/>}
-            <DatePicker label="Ημ. Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
+            <CustomSelect label="Περίοδος" value={form.period} onChange={v => {
+              sf('period', v);
+              if (v !== 'custom') sf('period_custom', '');
+            }} options={PERIOD_OPTIONS}/>
+            {form.period === 'custom' ? (
+              <DatePicker label="Ημερομηνία Έναρξης" value={(form as any).date_from || ''} onChange={v => sf('date_from' as any, v)}/>
+            ) : (
+              <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
+            )}
+            {form.period === 'custom' && (
+              <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
+            )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
             <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση..."/>
           </div>
@@ -563,7 +573,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <NumberInput label="ΕΤΜΕΑΡ (€)"        value={(form as any)['etmear']}      onChange={v => sf('etmear', v)}      suffix="€"   step={0.01}/>
-                <NumberInput label="Δημοτικά (€)"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
+                <NumberInput label="Δημοτικά Τέλη (€)"      value={(form as any)['dimotika_amt']} onChange={v => sf('dimotika_amt', v)} suffix="€"  step={0.01}/>
               </div>
             </div>
           )}
@@ -613,7 +623,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   const c = cat(b.category);
                   const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
                   return (
-                    <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
+                    <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
                       <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--positive)' : 'var(--border-default)'}`, background: b.paid ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
                       </button>
@@ -640,6 +650,36 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           Πληρώθηκε
                         </button>
                       )}
+                      {/* Duplicate */}
+                      <button
+                        title="Αντιγραφή λογαριασμού"
+                        onClick={() => {
+                          setForm({
+                            category: b.category || 'electricity',
+                            name: b.name || '',
+                            amount: String(b.amount || ''),
+                            kwh: String(b.kwh || ''),
+                            period: '',
+                            period_custom: '',
+                            due_date: '',
+                            recurring: b.recurring || false,
+                            notes: b.notes || '',
+                            vat_rate: String(b.vat_rate || '6'),
+                            ert: String((b as any).ert || ''),
+                            etmear: String(b.etmear || ''),
+                            dimotika_amt: String(b.dimotika || ''),
+                          });
+                          setShowForm(true);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(26,115,232,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--info)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                      </button>
+                      {/* Delete */}
                       <button onClick={() => deleteBill(b.id)} style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(197,34,31,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--negative)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
@@ -672,7 +712,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
           {chartView === 'area' && (
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Εξέλιξη δαπανών {currentYear} — συνολικό ποσό ανά μήνα</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Τάση κόστους {currentYear} — μηνιαίο σύνολο vs μέσος όρος</div>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={calc.areaData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>

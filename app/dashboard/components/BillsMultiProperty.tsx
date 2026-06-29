@@ -147,17 +147,19 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {properties.length > 1 && (
+            <button onClick={() => setShowCreate(v => !v)}
+              style={{ padding: '7px 16px', fontSize: 11, borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 500 }}>
+              + Προσθήκη Ακινήτου
+            </button>
+          )}
           {properties.length > 1 && (['cards','table','chart'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               style={{ padding: '6px 14px', fontSize: 11, borderRadius: T.radius.btn, border: `1px solid ${view === v ? 'var(--accent)' : 'var(--border-default)'}`, background: view === v ? 'rgba(212,175,66,0.1)' : 'transparent', color: view === v ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: view === v ? 700 : 400, fontFamily: T.font.sans }}>
               {v === 'cards' ? 'Κάρτες' : v === 'table' ? 'Πίνακας' : 'Γράφημα'}
             </button>
           ))}
-          <button onClick={() => setShowCreate(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Νέο Ακίνητο
-          </button>
+
         </div>
       </div>
 

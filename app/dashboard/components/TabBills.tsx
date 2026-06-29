@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import BillsDashboard   from './BillsDashboard';
-import BillsElectricity from './BillsElectricity';
-import BillsCommon      from './BillsCommon';
-import BillsProviders   from './BillsProviders';
-import BillsInsurance   from './BillsInsurance';
-import BillsServices    from './BillsServices';
+
+// ── Static imports — all components must be static for Next.js App Router ────
+import BillsDashboard    from './BillsDashboard';
+import BillsElectricity  from './BillsElectricity';
+import BillsCommon       from './BillsCommon';
+import BillsProviders    from './BillsProviders';
+import BillsInsurance    from './BillsInsurance';
+import BillsServices     from './BillsServices';
+import BillsNotifications from './BillsNotification';
+import BillsBudget       from './BillsBudget';
+import BillsBankImport   from './BillsBankImport';
+import BillsAIScan       from './BillsAIScan';
+import BillsMultiProperty from './BillsMultiProperty';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -27,11 +34,7 @@ interface TabDef {
   icon:  string;
   desc:  string;
 }
-
-interface TabGroup {
-  label: string;
-  tabs:  TabDef[];
-}
+interface TabGroup { label: string; tabs: TabDef[]; }
 
 interface StripData {
   totalMonthly: number;
@@ -47,7 +50,7 @@ const T = {
   font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
 };
 
-// ─── SVG icon paths ───────────────────────────────────────────────────────────
+// ─── SVG icons ────────────────────────────────────────────────────────────────
 const ICONS: Record<string, string> = {
   dashboard:  'M4 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5zm10 0a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V5zM4 15a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4zm10-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-6z',
   bolt:       'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
@@ -60,8 +63,6 @@ const ICONS: Record<string, string> = {
   bank:       'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3',
   camera:     'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   buildings:  'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M2 22h20M10 10h4M10 14h4M10 18h4M10 6h4',
-  spinner:    'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83',
-  file:       'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6',
 };
 
 const TabIcon = ({ name, size = 13 }: { name: string; size?: number }) => (
@@ -71,7 +72,7 @@ const TabIcon = ({ name, size = 13 }: { name: string; size?: number }) => (
   </svg>
 );
 
-// ─── Tab definitions — καθαρά ελληνικά, χωρίς badge ──────────────────────────
+// ─── Tab definitions ──────────────────────────────────────────────────────────
 const TAB_GROUPS: TabGroup[] = [
   {
     label: 'Λογαριασμοί',
@@ -81,7 +82,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'common',        label: 'Κοινόχρηστα',          icon: 'building',  desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
       { id: 'providers',     label: 'Πάροχοι',              icon: 'wifi',      desc: 'Internet, Νερό, Θέρμανση, Φυσικό Αέριο, Security' },
       { id: 'insurance',     label: 'Ασφάλεια & Συνδρομές', icon: 'shield',    desc: 'Ασφάλεια κατοικίας, streaming, cloud — live σύγκριση' },
-      { id: 'services',      label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά, καθαρισμός, κηπουρός, πισίνα' },
+      { id: 'services',      label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά Τέλη, καθαρισμός, κηπουρός, πισίνα' },
     ],
   },
   {
@@ -89,7 +90,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'notifications', label: 'Ειδοποιήσεις',        icon: 'bell',      desc: 'Έξυπνες ειδοποιήσεις βάσει δεδομένων — ΕΝΦΙΑ, λήξεις, budget' },
       { id: 'budget',        label: 'Προϋπολογισμός',       icon: 'chart',     desc: 'Στόχοι vs πραγματικό κόστος — ανά κατηγορία με live ενημέρωση' },
-      { id: 'bank_import',   label: 'Εισαγωγή CSV',         icon: 'bank',      desc: 'Αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ από τραπεζικό αρχείο' },
+      { id: 'bank_import',   label: 'Εισαγωγή',             icon: 'bank',      desc: 'Αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ από τραπεζικό αρχείο' },
       { id: 'ai_scan',       label: 'Σάρωση Λογαριασμού',  icon: 'camera',    desc: 'Φωτογράφισε λογαριασμό — αυτόματη εξαγωγή δεδομένων με AI' },
       { id: 'multi_property',label: 'Σύγκριση Ακινήτων',   icon: 'buildings', desc: 'Συγκριτικό κόστος πολλαπλών ακινήτων' },
     ],
@@ -98,69 +99,17 @@ const TAB_GROUPS: TabGroup[] = [
 
 const ALL_TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
 
-// ─── Dynamic component loader (safe — δεν κάνει crash αν το αρχείο δεν υπάρχει)
-const useDynamicComponent = (name: string) => {
-  const [Comp, setComp] = useState<React.ComponentType<Record<string, unknown>> | null | undefined>(undefined);
-  useEffect(() => {
-    import(`./${name}`)
-      .then(m => setComp(() => m.default as React.ComponentType<Record<string, unknown>>))
-      .catch(() => setComp(null));
-  }, [name]);
-  return Comp;
-};
-
-const PanelLoading = () => (
-  <div style={{ padding: '60px 0', textAlign: 'center', fontFamily: T.font.sans }}>
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-      <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)"
-        strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}>
-        <path d={ICONS.spinner}/>
-      </svg>
-    </div>
-    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Φόρτωση...</div>
-    <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-  </div>
-);
-
-const PanelMissing = ({ name }: { name: string }) => (
-  <div style={{ padding: '48px 0', textAlign: 'center', fontFamily: T.font.sans }}>
-    <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2"><path d={ICONS.file}/></svg>
-    </div>
-    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>{name}</div>
-    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-      Μετονόμασε το αρχείο σε{' '}
-      <code style={{ background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontFamily: T.font.mono }}>.tsx</code>
-    </div>
-  </div>
-);
-
-function DynamicPanel({ componentName, displayName, props }: {
-  componentName: string;
-  displayName:   string;
-  props:         Record<string, unknown>;
-}) {
-  const Comp = useDynamicComponent(componentName);
-  if (Comp === undefined) return <PanelLoading/>;
-  if (Comp === null)      return <PanelMissing name={displayName}/>;
-  return <Comp {...props}/>;
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function TabBills({
-  propertyId,
-  userId,
-  propertyName    = 'Ακίνητό μου',
-  propertyAddress = '',
+  propertyId, userId, propertyName = 'Ακίνητό μου', propertyAddress = '',
 }: Props) {
   const supabase   = createClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
-  const [strip, setStrip] = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
+  const [activeTab,  setActiveTab]  = useState<TabId>('dashboard');
+  const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
   const [realtimeOk, setRealtimeOk] = useState(false);
 
-  // ── Live data load ─────────────────────────────────────────────────────────
   const loadStrip = useCallback(async () => {
     if (!propertyId) return;
     try {
@@ -175,10 +124,8 @@ export default function TabBills({
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
       let notifCount = overdueCount;
-      // ΕΝΦΙΑ deadlines
-      const ENFIA = ['2026-05-31','2026-06-30','2026-07-31','2026-08-31','2026-09-30','2026-10-30'];
+      const ENFIA = ['2026-06-30','2026-07-31','2026-08-31','2026-09-30','2026-10-30'];
       if (ENFIA.some(d => { const diff = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000); return diff >= 0 && diff <= 30; })) notifCount++;
-      // Insurance renewal
       const ins = (setts ?? []).find(x => x.section === 'insurance')?.data as Record<string, unknown> | undefined;
       if (ins?.insRenewalDate) {
         const diff = Math.ceil((new Date(String(ins.insRenewalDate)).getTime() - now.getTime()) / 86400000);
@@ -189,7 +136,6 @@ export default function TabBills({
     } catch (_) {}
   }, [propertyId]);
 
-  // ── Supabase Realtime ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!propertyId) return;
     let mounted = true;
@@ -208,33 +154,19 @@ export default function TabBills({
   }, []);
 
   const fe = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
-
   const timeSince = () => {
     if (!strip.lastUpdate) return '';
     const sec = Math.floor((Date.now() - strip.lastUpdate) / 1000);
-    if (sec < 60)  return 'μόλις τώρα';
+    if (sec < 60) return 'μόλις τώρα';
     if (sec < 120) return '1 λεπτό πριν';
     return `${Math.floor(sec / 60)} λεπτά πριν`;
   };
 
   const activeTabDef = ALL_TABS.find(t => t.id === activeTab) ?? ALL_TABS[0];
 
-  const newCompProps: Record<string, unknown> = {
-    propertyId, userId,
-    onNavigateTab:     navigateTo,
-    onImported:        () => setActiveTab('dashboard'),
-    onSaved:           () => setActiveTab('dashboard'),
-    onNavigate:        (_id: string) => {},
-    currentPropertyId: propertyId,
-  };
-
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-
-      {/* Pulse animation για live dot */}
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-      `}</style>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }`}</style>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -246,27 +178,14 @@ export default function TabBills({
             {activeTabDef.desc}
           </div>
         </div>
-
-        {/* Live strip */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {/* Realtime indicator */}
-          <span
-            title={realtimeOk ? `Live · Ενημερώθηκε ${timeSince()}` : 'Εκτός σύνδεσης'}
+          <span title={realtimeOk ? `Live · ${timeSince()}` : 'Εκτός σύνδεσης'}
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: realtimeOk ? 'var(--positive)' : 'var(--text-tertiary)', cursor: 'default', fontFamily: T.font.sans }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: realtimeOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block', animation: realtimeOk ? 'pulse 2s infinite' : 'none' }}/>
             Live
           </span>
-
-          {strip.tenantName && (
-            <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-              {strip.tenantName}
-            </span>
-          )}
-          {strip.totalMonthly > 0 && (
-            <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>
-              {fe(strip.totalMonthly)} / μήνα
-            </span>
-          )}
+          {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
+          {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(strip.totalMonthly)} / μήνα</span>}
           {strip.overdueCount > 0 && (
             <button onClick={() => setActiveTab('dashboard')}
               style={{ padding: '4px 12px', background: 'rgba(197,34,31,0.08)', border: '1px solid rgba(197,34,31,0.3)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
@@ -282,14 +201,14 @@ export default function TabBills({
         </div>
       </div>
 
-      {/* ── Tab navigation — 2 rows ───────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-        {TAB_GROUPS.map(group => (
-          <div key={group.label}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4, paddingLeft: 2, fontFamily: T.font.sans }}>
+      {/* ── Tab navigation — unified single container ──────────────────── */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '6px 6px 6px 6px', marginBottom: 20 }}>
+        {TAB_GROUPS.map((group, gIdx) => (
+          <div key={group.label} style={{ marginBottom: gIdx < TAB_GROUPS.length - 1 ? 4 : 0 }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3, paddingLeft: 4, paddingTop: gIdx === 0 ? 0 : 2, fontFamily: T.font.sans }}>
               {group.label}
             </div>
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 4 }}>
+            <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               {group.tabs.map((tab: TabDef) => {
                 const isActive = activeTab === tab.id;
                 const hasBadge = tab.id === 'notifications' && strip.notifCount > 0 && !isActive;
@@ -300,9 +219,7 @@ export default function TabBills({
                     onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
                     <TabIcon name={tab.icon} size={12}/>
                     {tab.label}
-                    {hasBadge && (
-                      <span style={{ position: 'absolute', top: 3, right: 3, width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', border: '1.5px solid var(--bg-surface)' }}/>
-                    )}
+                    {hasBadge && <span style={{ position: 'absolute', top: 3, right: 3, width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', border: '1.5px solid var(--bg-surface)' }}/>}
                   </button>
                 );
               })}
@@ -311,20 +228,18 @@ export default function TabBills({
         ))}
       </div>
 
-      {/* ── Static tabs ──────────────────────────────────────────────────── */}
-      {activeTab === 'dashboard'   && <BillsDashboard   propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>}
-      {activeTab === 'electricity' && <BillsElectricity propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'common'      && <BillsCommon      propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'providers'   && <BillsProviders   propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'insurance'   && <BillsInsurance   propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'services'    && <BillsServices    propertyId={propertyId} userId={userId}/>}
-
-      {/* ── Dynamic tabs ──────────────────────────────────────────────────── */}
-      {activeTab === 'notifications'  && <DynamicPanel componentName="BillsNotifications" displayName="Ειδοποιήσεις"       props={{ propertyId, userId, onNavigateTab: navigateTo }}/>}
-      {activeTab === 'budget'         && <DynamicPanel componentName="BillsBudget"        displayName="Προϋπολογισμός"      props={{ propertyId, userId }}/>}
-      {activeTab === 'bank_import'    && <DynamicPanel componentName="BillsBankImport"    displayName="Εισαγωγή CSV"        props={{ propertyId, userId, onImported: () => setActiveTab('dashboard') }}/>}
-      {activeTab === 'ai_scan'        && <DynamicPanel componentName="BillsAIScan"        displayName="Σάρωση Λογαριασμού" props={{ propertyId, userId, onSaved: () => setActiveTab('dashboard') }}/>}
-      {activeTab === 'multi_property' && <DynamicPanel componentName="BillsMultiProperty" displayName="Σύγκριση Ακινήτων"  props={{ userId, currentPropertyId: propertyId, onNavigate: (_id: string) => {} }}/>}
+      {/* ── Content ──────────────────────────────────────────────────── */}
+      {activeTab === 'dashboard'      && <BillsDashboard    propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>}
+      {activeTab === 'electricity'    && <BillsElectricity  propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'common'         && <BillsCommon       propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'providers'      && <BillsProviders    propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'insurance'      && <BillsInsurance    propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'services'       && <BillsServices     propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'notifications'  && <BillsNotifications propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
+      {activeTab === 'budget'         && <BillsBudget       propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'bank_import'    && <BillsBankImport   propertyId={propertyId} userId={userId} onImported={() => setActiveTab('dashboard')}/>}
+      {activeTab === 'ai_scan'        && <BillsAIScan       propertyId={propertyId} userId={userId} onSaved={() => setActiveTab('dashboard')}/>}
+      {activeTab === 'multi_property' && <BillsMultiProperty userId={userId} currentPropertyId={propertyId} onNavigate={(_id: string) => {}}/>}
     </div>
   );
 }
