@@ -108,6 +108,7 @@ export default function TabBills({
 
   const [activeTab,  setActiveTab]  = useState<TabId>('dashboard');
   const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
+  const [liveNotifCount, setLiveNotifCount] = useState(0);
   const [realtimeOk, setRealtimeOk] = useState(false);
 
   const loadStrip = useCallback(async () => {
@@ -123,13 +124,66 @@ export default function TabBills({
       const totalMonthly = (bills ?? []).filter(b => b.recurring).reduce((s, b) => s + (b.amount ?? 0), 0);
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
-      let notifCount = overdueCount;
-      const ENFIA = ['2026-06-30','2026-07-31','2026-08-31','2026-09-30','2026-10-30'];
-      if (ENFIA.some(d => { const diff = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000); return diff >= 0 && diff <= 30; })) notifCount++;
+      // Bills due in next 7 days (unpaid)
+      const dueSoon = (bills ?? []).filter((b: any) => {
+        if (b.paid || !b.due_date) return false;
+        const diff = Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000);
+        return diff >= 0 && diff <= 7;
+      }).length;
+      // Load dismissed notifications from localStorage
+      const dismissedKey = `notif_d_${propertyId}`;
+      let dismissedIds: Set<string> = new Set();
+      try {
+        if (typeof window !== 'undefined') {
+          dismissedIds = new Set(JSON.parse(localStorage.getItem(dismissedKey) || '[]'));
+        }
+      } catch (_) {}
+
+      let notifCount = 0;
+      // Overdue bills
+      if (overdueCount > 0) notifCount += overdueCount;
+      // Bills due in 7 days
+      if (dueSoon > 0) notifCount += dueSoon;
+      // Budget overrun
+      const budgetSett = (setts ?? []).find(x => x.section === 'budgets')?.data as Record<string, unknown> | undefined;
+      if (budgetSett?.total) {
+        const thisMonthBills = (bills ?? []).filter((b: any) => {
+          const d = b.due_date || b.date;
+          if (!d) return false;
+          const bd = new Date(d);
+          return bd.getMonth() === now.getMonth() && bd.getFullYear() === now.getFullYear();
+        }).reduce((s: number, b: any) => s + (Number(b.amount) || 0), 0);
+        const budgetId = `budget_${now.getMonth()}`;
+        if (thisMonthBills > parseFloat(String(budgetSett.total)) * 0.9 && !dismissedIds.has(budgetId)) notifCount++;
+      }
+      // ΕΝΦΙΑ — only count if upcoming installment has no matching paid bill
+      const ENFIA_2026 = ['2026-05-31','2026-06-30','2026-07-31','2026-08-31','2026-09-30','2026-10-30'];
+      const nextEnfia = ENFIA_2026.find(d => {
+        const diff = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000);
+        return diff >= 0 && diff <= 30;
+      });
+      if (nextEnfia) {
+        const month = nextEnfia.slice(0, 7); // YYYY-MM
+        const enfiaAlreadyPaid = (bills ?? []).some((b: any) =>
+          (b.category === 'taxes' || b.category === 'enfia' ||
+           (b.name ?? '').toLowerCase().includes('ενφια') ||
+           (b.notes ?? '').toLowerCase().includes('ενφια'))
+          && b.paid === true
+          && (b.due_date ?? '').startsWith(month)
+        );
+        if (!enfiaAlreadyPaid && !dismissedIds.has(`enfia_${nextEnfia}`)) notifCount++;
+      }
+      // Ασφάλεια — only count if renewal date coming AND not already renewed
       const ins = (setts ?? []).find(x => x.section === 'insurance')?.data as Record<string, unknown> | undefined;
       if (ins?.insRenewalDate) {
         const diff = Math.ceil((new Date(String(ins.insRenewalDate)).getTime() - now.getTime()) / 86400000);
-        if (diff >= 0 && diff <= 60) notifCount++;
+        if (diff >= 0 && diff <= 60) {
+          const insAlreadyRenewed = (bills ?? []).some((b: any) =>
+            b.category === 'insurance' && b.paid === true &&
+            Math.ceil((now.getTime() - new Date(b.due_date ?? '').getTime()) / 86400000) <= 30
+          );
+          if (!insAlreadyRenewed && !dismissedIds.has(`ins_${ins.insRenewalDate}`)) notifCount++;
+        }
       }
 
       setStrip({ totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '', notifCount, lastUpdate: Date.now() });
@@ -192,10 +246,10 @@ export default function TabBills({
               {strip.overdueCount} ληξιπρόθεσμα
             </button>
           )}
-          {strip.notifCount > 0 && (
+          {liveNotifCount > 0 && (
             <button onClick={() => setActiveTab('notifications')}
               style={{ padding: '4px 12px', background: 'rgba(242,153,0,0.08)', border: '1px solid rgba(242,153,0,0.3)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--warning)', cursor: 'pointer', fontFamily: T.font.sans }}>
-              {strip.notifCount} ειδοποιήσεις
+              {liveNotifCount} {liveNotifCount === 1 ? 'ειδοποίηση' : 'ειδοποιήσεις'}
             </button>
           )}
         </div>
@@ -235,7 +289,7 @@ export default function TabBills({
       {activeTab === 'providers'      && <BillsProviders    propertyId={propertyId} userId={userId}/>}
       {activeTab === 'insurance'      && <BillsInsurance    propertyId={propertyId} userId={userId}/>}
       {activeTab === 'services'       && <BillsServices     propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'notifications'  && <BillsNotifications propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
+      {activeTab === 'notifications'  && <BillsNotifications propertyId={propertyId} userId={userId} onNavigateTab={navigateTo} onCountChange={setLiveNotifCount}/>}
       {activeTab === 'budget'         && <BillsBudget       propertyId={propertyId} userId={userId}/>}
       {activeTab === 'bank_import'    && <BillsBankImport   propertyId={propertyId} userId={userId} onImported={() => setActiveTab('dashboard')}/>}
       {activeTab === 'ai_scan'        && <BillsAIScan       propertyId={propertyId} userId={userId} onSaved={() => setActiveTab('dashboard')}/>}

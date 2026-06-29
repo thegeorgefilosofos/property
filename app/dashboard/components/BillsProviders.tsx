@@ -18,52 +18,94 @@ const INTERNET_PROVIDERS = [
   { value: 'enterwave', label: 'Enterwave',  url: 'https://www.enterwave.gr',  color: '#f59e0b' },
   { value: 'hol',       label: 'HOL',        url: 'https://www.hol.gr',        color: '#f97316' },
   { value: 'cyta',      label: 'Cyta',       url: 'https://www.cyta.gr',       color: '#003da5' },
-  { value: 'wind',      label: 'Wind (Nova)', url: 'https://www.nova.gr',       color: '#7c3aed' },
+
   { value: 'dei',       label: 'ΔΕΗ Telecom', url: 'https://www.dei.gr',         color: '#1a7fe0' },
   { value: 'other',     label: 'Άλλος',       url: '',                           color: '#94a3b8' },
 ];
 
-const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; price: number; hasPhone: boolean; note: string; contract?: string }[]> = {
+const INTERNET_PLANS: Record<string, {
+  id: string; name: string; speed: string; price: number;
+  hasPhone: boolean; hasTV?: boolean; hasMobile?: boolean;
+  note: string; contract?: string; student?: boolean; backup?: boolean;
+  networkType?: string; // ADSL | VDSL | Fiber | 5G
+}[]> = {
   cosmote: [
-    { id: 'c_fiber100',  name: 'Fiber 100',  speed: '100/50 Mbps',   price: 27.90, hasPhone: true,  note: 'Οπτική ίνα FTTH',    contract: '24μ' },
-    { id: 'c_fiber200',  name: 'Fiber 200',  speed: '200/100 Mbps',  price: 33.90, hasPhone: true,  note: 'Οπτική ίνα FTTH',    contract: '24μ' },
-    { id: 'c_fiber500',  name: 'Fiber 500',  speed: '500/200 Mbps',  price: 37.90, hasPhone: false, note: 'Internet μόνο',       contract: '24μ' },
-    { id: 'c_fiber1000', name: 'Fiber 1Gbps',speed: '1 Gbps FTTH',   price: 45.90, hasPhone: false, note: 'Internet μόνο',       contract: '24μ' },
+    // ── Double Play (Σταθερή + Internet) ─────────────────────────────────
+    { id:'c_dp_24',    name: 'Double Play Unlimited 24',    speed: '24 Mbps',   price: 19.90, hasPhone: true,  note: 'ADSL. Απεριόριστα λεπτά σταθερά και κινητά.', networkType: 'ADSL', contract: '24 μήνες' },
+    { id:'c_dp_50',    name: 'Double Play Advanced 50',     speed: '50 Mbps',   price: 22.90, hasPhone: true,  note: 'VDSL. Απεριόριστα λεπτά σταθερά και κινητά.', networkType: 'VDSL', contract: '24 μήνες' },
+    { id:'c_f100',     name: 'Fiber 100 Unlimited',         speed: '100 Mbps',  price: 23.71, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f300',     name: 'Fiber 300 Unlimited',         speed: '300 Mbps',  price: 27.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f500',     name: 'Fiber 500 Unlimited',         speed: '500 Mbps',  price: 31.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f1g',      name: 'Fiber 1 Gbps Unlimited',      speed: '1 Gbps',    price: 35.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f3g',      name: 'Fiber 3 Gbps Unlimited',      speed: '3 Gbps',    price: 70.39, hasPhone: true,  note: 'Υπερ-γρήγορο οπτική ίνα FTTH.', networkType: 'Fiber', contract: '24 μήνες' },
+    // ── 5G WiFi (Internet backup μέσω 5G) ────────────────────────────────
+    { id:'c_5g50',     name: '5G WiFi Double Play 50',      speed: '50 Mbps',   price: 30.90, hasPhone: true,  note: 'Ασύρματο 5G — Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
+    { id:'c_5g300',    name: '5G WiFi Double Play 300',     speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G — Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
+    { id:'c_5g_free',  name: '5G WiFi 300 Χωρίς Σύμβαση',  speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G χωρίς δέσμευση. Εξοπλισμός 349€.', networkType: '5G', backup: true },
+    // ── Triple Play (Σταθερή + Internet + Τηλεόραση) ─────────────────────
+    { id:'c_f100_tv',  name: 'Fiber 100 + Cosmote TV Full', speed: '100 Mbps',  price: 48.77, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV πλήρες πακέτο. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f300_tv',  name: 'Fiber 300 + Cosmote TV Full', speed: '300 Mbps',  price: 51.85, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV πλήρες πακέτο. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f500_tv',  name: 'Fiber 500 + TV + Netflix',    speed: '500 Mbps',  price: 62.06, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV + Netflix. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'c_f1g_tv',   name: 'Fiber 1 Gbps + TV + Netflix', speed: '1 Gbps',    price: 65.30, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV + Netflix. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   nova: [
-    { id: 'n_fiber100',  name: 'Nova Fiber 100',  speed: '100/50 Mbps',  price: 24.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-    { id: 'n_fiber300',  name: 'Nova Fiber 300',  speed: '300/150 Mbps', price: 27.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-    { id: 'n_fiber600',  name: 'Nova Fiber 600',  speed: '600/300 Mbps', price: 32.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-    { id: 'n_fiber1000', name: 'Nova Fiber 1Gbps',speed: '1 Gbps FTTH',  price: 37.90, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
+    // ── Double Play (Σταθερή + Internet) ─────────────────────────────────
+    { id:'n_24',       name: 'Nova 24 Double Play',         speed: '24 Mbps',   price: 18.90, hasPhone: true,  note: 'ADSL. Απεριόριστα λεπτά σταθερά και κινητά.', networkType: 'ADSL', contract: '24 μήνες' },
+    { id:'n_50',       name: 'Nova 50 Double Play',         speed: '50 Mbps',   price: 22.90, hasPhone: true,  note: 'VDSL. Απεριόριστα λεπτά σταθερά και κινητά.', networkType: 'VDSL', contract: '24 μήνες' },
+    { id:'n_f100',     name: 'Nova Fiber 100',              speed: '100 Mbps',  price: 24.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'n_f300',     name: 'Nova Fiber 300',              speed: '300 Mbps',  price: 27.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'n_f600',     name: 'Nova Fiber 600',              speed: '600 Mbps',  price: 32.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'n_f1g',      name: 'Nova Fiber 1 Gbps',           speed: '1 Gbps',    price: 37.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    // ── Triple Play (Σταθερή + Internet + Τηλεόραση) ─────────────────────
+    { id:'n_f100_tv',  name: 'Nova Fiber 100 + TV',         speed: '100 Mbps',  price: 41.90, hasPhone: true, hasTV: true, note: 'FTTH + Nova TV Sport + Cinema.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'n_f300_tv',  name: 'Nova Fiber 300 + TV',         speed: '300 Mbps',  price: 44.90, hasPhone: true, hasTV: true, note: 'FTTH + Nova TV Sport + Cinema.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'n_f1g_tv',   name: 'Nova Fiber 1 Gbps + TV',      speed: '1 Gbps',    price: 54.90, hasPhone: true, hasTV: true, note: 'FTTH + Nova TV Sport + Cinema + Netflix.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   vodafone: [
-    { id: 'v_ff300',  name: 'Full Fiber 300',  speed: '300/150 Mbps', price: 35.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-    { id: 'v_ff500',  name: 'Full Fiber 500',  speed: '500/200 Mbps', price: 42.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-    { id: 'v_ff1000', name: 'Full Fiber 1Gbps',speed: '1 Gbps FTTH',  price: 49.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-  ],  inalan: [
-    { id: 'i_100',  name: 'Inalan Fiber 100', speed: '100 Mbps Symmetric', price: 17.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
-    { id: 'i_500',  name: 'Inalan Fiber 500', speed: '500 Mbps Symmetric', price: 22.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
-    { id: 'i_1000', name: 'Inalan Fiber 1G',  speed: '1 Gbps Symmetric',   price: 27.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
-  ],
-  enterwave: [
-    { id: 'ew_100', name: 'Enterwave 100', speed: '100 Mbps', price: 16.90, hasPhone: false, note: 'FTTH Αθήνα/Θεσσαλονίκη' },
-    { id: 'ew_500', name: 'Enterwave 500', speed: '500 Mbps', price: 21.90, hasPhone: false, note: 'FTTH Αθήνα/Θεσσαλονίκη' },
-  ],
-  cyta: [
-    { id: 'cy_100',  name: 'CytaFiber 100', speed: '100 Mbps',  price: 18.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
-    { id: 'cy_500',  name: 'CytaFiber 500', speed: '500 Mbps',  price: 24.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
-    { id: 'cy_1000', name: 'CytaFiber 1G',  speed: '1 Gbps',    price: 29.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
+    // ── Double Play (Σταθερή + Internet) ─────────────────────────────────
+    { id:'v_24',       name: 'Vodafone 24',                 speed: '24 Mbps',   price: 21.00, hasPhone: true,  note: 'ADSL. Απεριόριστα σταθερά, 300 λεπτά κινητά.', networkType: 'ADSL', contract: '24 μήνες' },
+    { id:'v_50',       name: 'Vodafone 50',                 speed: '50 Mbps',   price: 24.00, hasPhone: true,  note: 'VDSL. Απεριόριστα σταθερά, 300 λεπτά κινητά.', networkType: 'VDSL', contract: '24 μήνες' },
+    { id:'v_ff300',    name: 'Full Fiber 300',              speed: '300 Mbps',  price: 35.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff500',    name: 'Full Fiber 500',              speed: '500 Mbps',  price: 42.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff1g',     name: 'Full Fiber 1 Gbps',           speed: '1 Gbps',    price: 49.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
+    // ── Triple Play (+ Vodafone TV) ───────────────────────────────────────
+    { id:'v_ff300_tv', name: 'Full Fiber 300 + Vodafone TV', speed: '300 Mbps', price: 44.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV (45 κανάλια, HBO).', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff500_tv', name: 'Full Fiber 500 + Vodafone TV', speed: '500 Mbps', price: 51.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2.50€.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'v_ff1g_tv',  name: 'Full Fiber 1 Gbps + TV',       speed: '1 Gbps',   price: 58.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2.50€.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   dei: [
-    { id: 'dei_f500',   name: 'ΔΕΗ Fiber 500',     speed: '500 Mbps',    price: 17.90, hasPhone: false, note: 'Φθηνότερο στην αγορά', contract: '24μ' },
-    { id: 'dei_f1000',  name: 'ΔΕΗ Fiber 1 Gbps',  speed: '1 Gbps',     price: 24.90, hasPhone: false, note: 'Υπερ-γρήγορο fiber',    contract: '24μ' },
-    { id: 'dei_f2500',  name: 'ΔΕΗ Fiber 2.5 Gbps',speed: '2.5 Gbps',   price: 52.90, hasPhone: false, note: 'Ultra broadband',       contract: '24μ' },
-    { id: 'dei_voice',  name: 'ΔΕΗ Fiber + Φωνή',  speed: '500 Mbps',   price: 21.90, hasPhone: true,  note: 'Fiber + φωνή +4€',      contract: '24μ' },
+    { id:'dei_f500',   name: 'ΔΕΗ Fiber 500',              speed: '500 Mbps',  price: 17.90, hasPhone: false, note: 'Φθηνότερο fiber στην αγορά. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'dei_f1g',    name: 'ΔΕΗ Fiber 1 Gbps',           speed: '1 Gbps',    price: 24.90, hasPhone: false, note: 'Οπτική ίνα. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'dei_f25g',   name: 'ΔΕΗ Fiber 2.5 Gbps',         speed: '2.5 Gbps',  price: 52.90, hasPhone: false, note: 'Ultra broadband. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'dei_f500_v', name: 'ΔΕΗ Fiber 500 + Φωνή',       speed: '500 Mbps',  price: 21.90, hasPhone: true,  note: 'Fiber + τηλεφωνία (+4€). Απεριόριστα λεπτά σταθερά.', networkType: 'Fiber', contract: '24 μήνες' },
+  ],
+  inalan: [
+    // ── Οικιακά (με σύμβαση 24 μηνών) ────────────────────────────────────
+    { id:'i_300_24',   name: 'Fiber 300 (24 μήνες)',        speed: '300/300 Mbps συμμετρικό', price: 28.00, hasPhone: false, note: 'Χωρίς τηλεφωνία. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'i_300_ph',   name: 'Fiber 300 + Τηλεφωνία',      speed: '300/300 Mbps + τηλεφωνία', price: 28.00, hasPhone: true,  note: 'Απεριόριστα λεπτά εντός Ευρωπαϊκής Ένωσης.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'i_1g_24',    name: 'Fiber 1 Gbps (24 μήνες)',     speed: '1 Gbps/1 Gbps συμμετρικό', price: 38.00, hasPhone: false, note: 'Υπερ-γρήγορο FTTH. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'i_1g_ph',    name: 'Fiber 1 Gbps + Τηλεφωνία',   speed: '1 Gbps + τηλεφωνία', price: 38.00, hasPhone: true, note: 'Απεριόριστα λεπτά + 300 λεπτά σε ΕΕ/ΗΠΑ/Καναδά.', networkType: 'Fiber', contract: '24 μήνες' },
+    // ── Αδέσμευτα ────────────────────────────────────────────────────────
+    { id:'i_300_free', name: 'Fiber 300 Χωρίς Δέσμευση',   speed: '300/300 Mbps', price: 22.90, hasPhone: false, note: 'Χωρίς σύμβαση. Δωρεάν εξοπλισμός και εγκατάσταση.', networkType: 'Fiber' },
+    { id:'i_1g_free',  name: 'Fiber 1 Gbps Χωρίς Δέσμευση',speed: '1 Gbps/1 Gbps', price: 27.90, hasPhone: false, note: 'Χωρίς σύμβαση. Δωρεάν εξοπλισμός και εγκατάσταση.', networkType: 'Fiber' },
+    // ── Φοιτητικά ────────────────────────────────────────────────────────
+    { id:'i_300_st',   name: 'Φοιτητικό 300 Mbps',         speed: '300/300 Mbps συμμετρικό', price: 14.00, hasPhone: false, note: 'Φοιτητικό — χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ. Δωρεάν εγκατάσταση.', networkType: 'Fiber', student: true },
+    { id:'i_1g_st',    name: 'Φοιτητικό 1 Gbps',           speed: '1 Gbps/1 Gbps συμμετρικό', price: 28.00, hasPhone: false, note: 'Φοιτητικό — χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.', networkType: 'Fiber', student: true },
+  ],
+  enterwave: [
+    { id:'ew_100',     name: 'Enterwave Fiber 100',         speed: '100 Mbps',  price: 16.90, hasPhone: false, note: 'FTTH Αθήνα και Θεσσαλονίκη.', networkType: 'Fiber' },
+    { id:'ew_500',     name: 'Enterwave Fiber 500',         speed: '500 Mbps',  price: 21.90, hasPhone: false, note: 'FTTH Αθήνα και Θεσσαλονίκη.', networkType: 'Fiber' },
+  ],
+  cyta: [
+    { id:'cy_100',     name: 'CytaFiber 100',               speed: '100 Mbps',  price: 18.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'cy_500',     name: 'CytaFiber 500',               speed: '500 Mbps',  price: 24.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'cy_1g',      name: 'CytaFiber 1 Gbps',            speed: '1 Gbps',    price: 29.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   hol: [
-    { id: 'h_basic', name: 'HOL Fiber 100', speed: '100/50 Mbps',  price: 19.90, hasPhone: true, note: 'Διετία', contract: '24μ' },
-    { id: 'h_plus',  name: 'HOL Fiber 500', speed: '500/200 Mbps', price: 24.90, hasPhone: true, note: 'Διετία', contract: '24μ' },
+    { id:'h_100',      name: 'HOL Fiber 100',               speed: '100/50 Mbps', price: 19.90, hasPhone: true, note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'h_500',      name: 'HOL Fiber 500',               speed: '500/200 Mbps',price: 24.90, hasPhone: true, note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
+
 };
 const WATER_PROVIDERS = [
   { value: 'eydap', label: 'ΕΥΔΑΠ (Αττική)',         url: 'https://www.eydap.gr',  color: '#06b6d4' },
@@ -115,7 +157,7 @@ const DEFAULTS = {
   phoneLocal: true, phoneMobile: false, phoneIntl: false, phoneVoip: false, phoneNotes: '',
   // FIX: "Συνδρομητική Τηλεόραση" label
   hasTV: false, tvProvider: 'cosmote', tvPlan: '', tvPrice: '', tvHasSports: false,
-  waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2',
+  waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2', waterPeriodMonths: '2',
   heatingType: 'autonomous_gas', heatingMonthly: '',
   heatingLitersPerYear: '', heatingOilPricePerLiter: '1.20',
   heatingKgPellet: '', heatingPelletPrice: '0.38',
@@ -138,7 +180,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
-  const waterM       = s.waterBiMonthly ? (parseFloat(s.waterBiMonthly) || 0) / 2 : (parseFloat(s.waterMonthly) || 0);
+  const waterM       = s.waterBiMonthly ? (parseFloat(s.waterBiMonthly) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2) : (parseFloat(s.waterMonthly) || 0);
   const heatingM     = (() => {
     if (s.heatingType === 'autonomous_oil' && s.heatingLitersPerYear)
       return (parseFloat(s.heatingLitersPerYear) * parseFloat(s.heatingOilPricePerLiter)) / 12;
@@ -151,7 +193,17 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
   const totalM    = internetCost + tvCost + waterM + heatingM + gasM + securityM;
 
   const provData     = INTERNET_PROVIDERS.find(p => p.value === s.internetProvider);
-  const planOptions  = (INTERNET_PLANS[s.internetProvider] || []).map(p => ({ value: p.id, label: `${p.name} — ${p.speed} — ${p.price.toFixed(2)} €/μήνα` }));
+  const planOptions  = (INTERNET_PLANS[s.internetProvider] || []).sort((a, b) => a.price - b.price).map(p => ({
+    value: p.id,
+    label: [
+      p.name,
+      p.speed,
+      p.price > 0 ? `${p.price.toFixed(2)} €/μήνα` : '',
+      p.student ? '(Φοιτητικό)' : '',
+      p.backup ? '(Backup 5G)' : '',
+      p.hasTV ? '+ TV' : '',
+    ].filter(Boolean).join(' — ')
+  }));
   const selectedPlan = (INTERNET_PLANS[s.internetProvider] || []).find(p => p.id === s.internetPlanId);
   const secData      = SECURITY_COMPANIES.find(c => c.value === s.securityCompany);
   const waterData    = WATER_PROVIDERS.find(p => p.value === s.waterProvider);
@@ -426,8 +478,20 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {/* FIX: 2+2 layout — prevents label overflow on narrow screens */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
-          <NumberInput  label="Διμηνιαίος Λογαριασμός (€)" value={s.waterBiMonthly}
-            onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / 2).toFixed(2)) : '' })}
+          <CustomSelect
+            label="Συχνότητα Χρέωσης"
+            value={s.waterPeriodMonths || '2'}
+            onChange={v => upd({ waterPeriodMonths: v })}
+            options={[
+              { value: '1', label: 'Μηνιαίος' },
+              { value: '2', label: 'Διμηνιαίος (κάθε 2 μήνες)' },
+              { value: '3', label: 'Τριμηνιαίος (κάθε 3 μήνες)' },
+              { value: '4', label: 'Τετραμηνιαίος (κάθε 4 μήνες)' },
+              { value: '6', label: 'Εξαμηνιαίος (κάθε 6 μήνες)' },
+            ]}
+          />
+          <NumberInput  label="Λογαριασμός Νερού (€)" value={s.waterBiMonthly}
+            onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
             suffix="€" step={5}/>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>

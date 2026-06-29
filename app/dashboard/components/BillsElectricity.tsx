@@ -40,13 +40,15 @@ interface Tariff {
   id: string; name: string; badge: string; type: string;
   kwh_day: number; kwh_night?: number | null;
   kwh_tier2?: number; tier2_threshold?: number;
-  flat_monthly?: number;
-  fixed: number; fixed_ebill?: number;
+  flat_monthly?: number | null;
+  fixed: number; fixed_ebill?: number | null;
   vat: number; desc: string;
-  contract_months?: number;      // διάρκεια σύμβασης σε μήνες
-  no_fixed?: boolean;            // χωρίς πάγιο
-  smart_meter?: boolean;         // απαιτεί έξυπνο μετρητή
-  discount_ebill?: number;       // έκπτωση e-bill
+  contract_months?: number;
+  no_fixed?: boolean;
+  smart_meter?: boolean;
+  discount_ebill?: number;
+  dynamic?: boolean;             // ωριαία δυναμική τιμολόγηση
+  student?: boolean;             // φοιτητικό πρόγραμμα
 }
 
 const PROVIDERS = [
@@ -63,18 +65,28 @@ const PROVIDERS = [
       { id: 'dei_prasino',      name: 'Γ1 Πράσινο',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, desc: 'Ειδικό Οικιακό (Γ1) — κυμαινόμενο. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_prasino_n',    name: 'Γ1Ν Πράσινο Νυχτερινό', badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: 0.1160, fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, desc: 'Ειδικό με νυχτερινή ζώνη. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_dynamic',      name: 'myHome Dynamic',         badge: 'ΔΥΝΑΜΙΚΟ',type: 'dynamic',       kwh_day: 0, kwh_night: null, fixed: 5.00, smart_meter: true, contract_months: 0, vat: 6, desc: 'Ωριαία τιμολόγηση βάσει χονδρεμπορικής (HEnEx). Απαιτεί έξυπνο μετρητή ΔΕΔΔΗΕ.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
-  {
+    {
     value: 'heron', label: 'Ήρων', url: 'https://www.heron.gr',
     tariffs: [
-      { id: 'heron_basic',      name: 'Basic Home',             badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1642, kwh_night: null,   fixed: 7.00, contract_months: 0,  vat: 6, desc: 'Κυμαινόμενο. Έκπτωση συνέπειας 7 λεπτά/kWh. Ανακοινώνεται κάθε 1η μήνα.' },
-      { id: 'heron_blue_smart', name: 'Blue Smart',             badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1550, kwh_night: null,   fixed: 7.95, contract_months: 12, vat: 6, desc: 'Σταθερό 12 μήνες. Κλιμακωτό πάγιο (7.95 € < 150 kWh).' },
-      { id: 'heron_blue_max',   name: 'Blue Generous Max',      badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1650, kwh_night: null,   fixed: 13.90, contract_months: 18, vat: 6, desc: 'Σταθερό 18 μήνες. Πιο σταθερό με μακρύτερη δέσμευση.' },
-      { id: 'heron_stable',     name: 'Ήρων Σταθερό Οικιακό',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1480, kwh_night: null,   fixed: 7.20, contract_months: 12, vat: 6, desc: 'Σταθερό 12 μήνες.' },
-      { id: 'heron_ena',        name: 'Ε.ΝΑ (Virtual Net Metering)', badge: 'VNM', type: 'vnm',    kwh_day: 0.1290, kwh_night: null,   fixed: 7.00, contract_months: 0,  vat: 6, desc: 'Συμμετοχή σε κοινό φωτοβολταϊκό (VNM). Χαμηλότερη τιμή + περιβαλλοντικό όφελος.' },
-    ] as Tariff[],
+      // ── Σταθερά (Μπλε) ────────────────────────────────────────────────────
+      { id: 'heron_blue_smart',   name: 'Blue Smart Home',              badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1380, kwh_night: null, flat_monthly: null, fixed: 7.95,  fixed_ebill: 7.95, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Πάγιο 7.95€ (≤150 kWh) / 15.90€ (>150 kWh). Έκπτωση Συνέπειας.' },
+      { id: 'heron_blue_gen_max', name: 'Blue Generous Max Home',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1440, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 6, desc: 'Best Seller. Πάγιο 11.90€. Έκπτωση Συνέπειας. 18 μήνες.' },
+      { id: 'heron_blue_gen',     name: 'Blue Generous Home',           badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1530, kwh_night: null, flat_monthly: null, fixed: 10.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Πάγιο 10.90€. Έκπτωση Συνέπειας.' },
+      { id: 'heron_blue_simple',  name: 'Blue Simple Home',             badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, flat_monthly: null, fixed: 15.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Χωρίς προϋπόθεση συνέπειας. Πάγιο 15.90€.' },
+      // ── Κυμαινόμενα (Κίτρινα) ─────────────────────────────────────────────
+      { id: 'heron_yellow_one',     name: 'Yellow One Home',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.13044, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Κυμαινόμενο. Έκπτωση Συνέπειας. Συμβατό με ΚΟΤ.' },
+      { id: 'heron_yellow_free',    name: 'Yellow Free Home',           badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  dynamic: false, vat: 6, desc: 'Χωρίς πάγιο. Τιμή + ΜΔΚΑ. Απαιτείται πάγια εντολή.' },
+      { id: 'heron_yellow_student', name: 'Yellow Free Student',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  dynamic: false, vat: 6, desc: 'Φοιτητικό. Χωρίς πάγιο. Δώρο 20€. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.' },
+      { id: 'heron_protect',        name: 'Protect Home',               badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 5.50,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Νέο τιμολόγιο. Τιμή 0.0825€ + ΜΔΚΑ. Πάγιο 5.50€.' },
+      { id: 'heron_happy_hour',     name: 'Happy Hour Home',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, desc: 'Νέο. 3 ώρες δωρεάν ρεύμα ημερησίως. Πάγιο 7€.' },
+      // ── Πράσινο (Γ1 Ειδικό) ───────────────────────────────────────────────
+      { id: 'heron_basic',          name: 'Basic Home (Γ1 Πράσινο)',    badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1642,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 0, no_fixed: false, dynamic: false, vat: 6, desc: 'Ειδικό τιμολόγιο Γ1. Ανακοινώνεται κάθε 1η μήνα. Έκπτωση συνέπειας 7 λεπτά/kWh.' },
+      { id: 'heron_ena',            name: 'Ε.ΝΑ (Virtual Net Metering)', badge: 'VNM',   type: 'vnm',      kwh_day: 0.1290,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 0, no_fixed: false, dynamic: false, vat: 6, desc: 'Εικονική Καθαρή Μέτρηση. Συμμετοχή σε κοινό φωτοβολταϊκό. Χωρίς δέσμευση.' },
+    ] as unknown as Tariff[],
   },
+
   {
     value: 'protergia', label: 'Protergia', url: 'https://www.protergia.gr',
     tariffs: [
@@ -84,60 +96,60 @@ const PROVIDERS = [
       { id: 'prot_standard',    name: 'Value Standard',         badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1590, kwh_night: null,  fixed: 5.00, contract_months: 0,  vat: 6, desc: 'Κυμαινόμενο ειδικό. Ανακοινώνεται κάθε 1η μήνα.' },
       { id: 'prot_lite2',       name: 'Value Lite 2.0',         badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.16267, kwh_night: null, fixed: 0,    no_fixed: true, contract_months: 0, vat: 6, desc: 'Χωρίς πάγιο. Ιδανικό για σπάνια χρήση ή εξοχικά.' },
       { id: 'prot_dynamic',     name: 'Dynamic One Home',       badge: 'ΔΥΝΑΜΙΚΟ',type: 'dynamic',  kwh_day: 0,      kwh_night: null, fixed: 0,    smart_meter: true, contract_months: 0, vat: 6, desc: 'Ωριαία δυναμική τιμολόγηση. Ενεργοποιήθηκε Ιούνιο 2026.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'volterra', label: 'Volterra', url: 'https://www.volterra.gr',
     tariffs: [
       { id: 'volt_easy',        name: 'Volterra Easy',          badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1610, kwh_night: null, fixed: 6.50, contract_months: 0,  vat: 6, desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },
       { id: 'volt_stable',      name: 'Volterra Stable',        badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1490, kwh_night: null, fixed: 7.00, contract_months: 24, vat: 6, desc: 'Σταθερό 24 μήνες. Μέγιστη ασφάλεια τιμής.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'nrg', label: 'NRG', url: 'https://www.nrg.gr',
     tariffs: [
       { id: 'nrg_now',          name: 'NRG Now Οικιακό',        badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1595, kwh_night: null, fixed: 6.90, contract_months: 0,  vat: 6, desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },
       { id: 'nrg_adjust',       name: 'NRG adjust 1.0',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, fixed: 9.90, contract_months: 12, vat: 6, desc: 'Σταθερό 12 μήνες. Τελευταία γνωστή τιμή.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'zenith', label: 'Zenith', url: 'https://www.zenith.gr',
     tariffs: [
       { id: 'zen_start',        name: 'Power Home Start',       badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1595, kwh_night: null, fixed: 6.80, contract_months: 0, vat: 6, desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'elin', label: 'Elin', url: 'https://www.elin.gr',
     tariffs: [
       { id: 'elin_green',       name: 'Home Green',             badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1598, kwh_night: null, fixed: 7.10, contract_months: 0, vat: 6, desc: 'Κυμαινόμενο πράσινο τιμολόγιο.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'elpedison', label: 'Elpedison', url: 'https://www.elpedison.gr',
     tariffs: [
       { id: 'elp_bright',       name: 'Elpedison Bright',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1690, kwh_night: null, fixed: 3.00, contract_months: 12, vat: 6, desc: 'Σταθερό 12 μήνες. Χαμηλό πάγιο.' },
       { id: 'elp_one',          name: 'Elpedison One Home',     badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1706, kwh_night: null, fixed: 5.00, contract_months: 0,  vat: 6, desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'volton', label: 'Volton', url: 'https://www.volton.gr',
     tariffs: [
       { id: 'volton_green',     name: 'Volton Easy',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1442, kwh_night: null, fixed: 5.00, contract_months: 0, vat: 6, desc: 'Κυμαινόμενο. Αρχική έκπτωση 20% + 20% συνέπειας.' },
       { id: 'volton_blue',      name: 'Volton Blue Flat',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590, kwh_night: null, fixed: 9.90, contract_months: 18, vat: 6, desc: 'Σταθερό 18 μήνες.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'enerwave', label: 'Enerwave', url: 'https://www.enerwave.gr',
     tariffs: [
       { id: 'enrw_saver',       name: 'Reward Saver',           badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1490, kwh_night: null, fixed: 0, no_fixed: true, contract_months: 0, vat: 6, desc: 'Κυμαινόμενο χωρίς πάγιο. Χαμηλότερο συνολικό κόστος για μέτρια κατανάλωση.' },
       { id: 'enrw_stable',      name: 'Reward Stable',          badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1690, kwh_night: null, fixed: 12.90, contract_months: 18, vat: 6, desc: 'Σταθερό 18 μήνες.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
   {
     value: 'fysiko_aerio', label: 'Φυσικό Αέριο Ελλάδος', url: 'https://www.gaselli.gr',
     tariffs: [
       { id: 'fa_oikia',         name: 'Oikia Green',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.14265, kwh_night: null, fixed: 5.00, contract_months: 0, vat: 6, desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
-    ] as Tariff[],
+    ] as unknown as Tariff[],
   },
 ];
 
@@ -501,7 +513,7 @@ export default function BillsElectricity({ propertyId, userId }: { propertyId: s
                         {t.no_fixed ? '0 €' : `${(t.fixed_ebill != null ? t.fixed_ebill : t.fixed).toFixed(2)} €`}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
-                        {t.contract_months ? `${t.contract_months}μ` : '—'}
+                        {t.contract_months ? `${t.contract_months} μήνες` : 'Χωρίς δέσμευση'}
                       </td>
                       <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, color: isBest ? 'var(--positive)' : isCur ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap' as const }}>
                         {t.type === 'dynamic' ? 'Ωριαίο' : fe(t.monthly)}
