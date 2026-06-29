@@ -66,9 +66,9 @@ const ENFIA_2026 = [
   { date: '2026-09-30', label: '5η Δόση' }, { date: '2026-10-30', label: '6η Δόση' },
 ];
 
-interface Props { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void; }
+interface Props { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void; onCountChange?: (count: number) => void; }
 
-export default function BillsNotifications({ propertyId, userId = '', onNavigateTab }: Props) {
+export default function BillsNotifications({ propertyId, userId = '', onNavigateTab, onCountChange }: Props) {
   const supabase = createClient();
 
   const [notifs,      setNotifs]      = useState<Notification[]>([]);
@@ -353,6 +353,12 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
   const visible    = allNotifs.filter(n => !dismissed.has(n.id) && (filter === 'all' || n.severity === filter));
   const critCount  = allNotifs.filter(n => !dismissed.has(n.id) && n.severity === 'critical').length;
   const warnCount  = allNotifs.filter(n => !dismissed.has(n.id) && n.severity === 'warning').length;
+  const activeCount = allNotifs.filter(n => !dismissed.has(n.id)).length;
+
+  // ── Sync count to parent strip ────────────────────────────────────────────
+  useEffect(() => {
+    onCountChange?.(activeCount);
+  }, [activeCount, onCountChange]);
 
   if (loading) return (
     <div style={{ padding: '60px 0', textAlign: 'center', fontFamily: T.font.sans, color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -435,10 +441,21 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 20 }}>
             {filter !== 'all' ? `Δεν υπάρχουν ${SEV[filter as Severity].label.toLowerCase()} ειδοποιήσεις` : 'Δεν υπάρχουν ενεργές ειδοποιήσεις'}
           </div>
-          <button onClick={() => setShowCreate(true)}
-            style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.2)', borderRadius: T.radius.pill, padding: '8px 20px', cursor: 'pointer', fontFamily: T.font.sans }}>
-            + Πρόσθεσε Υπενθύμιση
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
+            <button onClick={() => setShowCreate(true)}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.2)', borderRadius: T.radius.pill, padding: '8px 20px', cursor: 'pointer', fontFamily: T.font.sans }}>
+              + Πρόσθεσε Υπενθύμιση
+            </button>
+            {dismissed.size > 0 && (
+              <button onClick={() => {
+                setDismissed(new Set());
+                if (typeof window !== 'undefined') localStorage.removeItem(storageKey);
+              }}
+                style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '8px 20px', cursor: 'pointer', fontFamily: T.font.sans }}>
+                Επαναφορά Ειδοποιήσεων
+              </button>
+            )}
+          </div>
         </div>
       )}
 
