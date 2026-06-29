@@ -18,8 +18,9 @@ const INTERNET_PROVIDERS = [
   { value: 'enterwave', label: 'Enterwave',  url: 'https://www.enterwave.gr',  color: '#f59e0b' },
   { value: 'hol',       label: 'HOL',        url: 'https://www.hol.gr',        color: '#f97316' },
   { value: 'cyta',      label: 'Cyta',       url: 'https://www.cyta.gr',       color: '#003da5' },
-  { value: 'wind',      label: 'Wind',       url: 'https://www.wind.com.gr',   color: '#7c3aed' },
-  { value: 'other',     label: 'Άλλος',      url: '',                           color: '#94a3b8' },
+  { value: 'wind',      label: 'Wind (Nova)', url: 'https://www.nova.gr',       color: '#7c3aed' },
+  { value: 'dei',       label: 'ΔΕΗ Telecom', url: 'https://www.dei.gr',         color: '#1a7fe0' },
+  { value: 'other',     label: 'Άλλος',       url: '',                           color: '#94a3b8' },
 ];
 
 const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; price: number; hasPhone: boolean; note: string; contract?: string }[]> = {
@@ -39,13 +40,7 @@ const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; 
     { id: 'v_ff300',  name: 'Full Fiber 300',  speed: '300/150 Mbps', price: 35.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
     { id: 'v_ff500',  name: 'Full Fiber 500',  speed: '500/200 Mbps', price: 42.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
     { id: 'v_ff1000', name: 'Full Fiber 1Gbps',speed: '1 Gbps FTTH',  price: 49.00, hasPhone: true,  note: 'FTTH + τηλεφωνία', contract: '24μ' },
-  ],
-  dei: [
-    { id: 'dei_f500',  name: 'ΔΕΗ Fiber 500',    speed: '500 Mbps',   price: 17.90, hasPhone: false, note: 'Φθηνότερο στην αγορά', contract: '24μ' },
-    { id: 'dei_f1000', name: 'ΔΕΗ Fiber 1Gbps',  speed: '1 Gbps',     price: 24.90, hasPhone: false, note: 'Νέος πάροχος 2026',   contract: '24μ' },
-    { id: 'dei_f2500', name: 'ΔΕΗ Fiber 2.5Gbps',speed: '2.5 Gbps',   price: 52.90, hasPhone: false, note: 'Ultra γρήγορο',       contract: '24μ' },
-  ],
-  inalan: [
+  ],  inalan: [
     { id: 'i_100',  name: 'Inalan Fiber 100', speed: '100 Mbps Symmetric', price: 17.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
     { id: 'i_500',  name: 'Inalan Fiber 500', speed: '500 Mbps Symmetric', price: 22.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
     { id: 'i_1000', name: 'Inalan Fiber 1G',  speed: '1 Gbps Symmetric',   price: 27.90, hasPhone: false, note: 'Χωρίς δέσμευση' },
@@ -58,6 +53,12 @@ const INTERNET_PLANS: Record<string, { id: string; name: string; speed: string; 
     { id: 'cy_100',  name: 'CytaFiber 100', speed: '100 Mbps',  price: 18.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
     { id: 'cy_500',  name: 'CytaFiber 500', speed: '500 Mbps',  price: 24.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
     { id: 'cy_1000', name: 'CytaFiber 1G',  speed: '1 Gbps',    price: 29.90, hasPhone: true,  note: 'Διετία', contract: '24μ' },
+  ],
+  dei: [
+    { id: 'dei_f500',   name: 'ΔΕΗ Fiber 500',     speed: '500 Mbps',    price: 17.90, hasPhone: false, note: 'Φθηνότερο στην αγορά', contract: '24μ' },
+    { id: 'dei_f1000',  name: 'ΔΕΗ Fiber 1 Gbps',  speed: '1 Gbps',     price: 24.90, hasPhone: false, note: 'Υπερ-γρήγορο fiber',    contract: '24μ' },
+    { id: 'dei_f2500',  name: 'ΔΕΗ Fiber 2.5 Gbps',speed: '2.5 Gbps',   price: 52.90, hasPhone: false, note: 'Ultra broadband',       contract: '24μ' },
+    { id: 'dei_voice',  name: 'ΔΕΗ Fiber + Φωνή',  speed: '500 Mbps',   price: 21.90, hasPhone: true,  note: 'Fiber + φωνή +4€',      contract: '24μ' },
   ],
   hol: [
     { id: 'h_basic', name: 'HOL Fiber 100', speed: '100/50 Mbps',  price: 19.90, hasPhone: true, note: 'Διετία', contract: '24μ' },

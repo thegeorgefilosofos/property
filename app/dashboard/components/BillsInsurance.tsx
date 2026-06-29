@@ -16,44 +16,67 @@ const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionD
 
 // ─── Insurance data ────────────────────────────────────────────────────────────
 const INSURANCE_COMPANIES = [
-  { value: 'hellas_direct', label: 'Hellas Direct',       url: 'https://www.hellasdirect.gr',        agent_label: 'Ψηφιακή — χωρίς ασφαλιστή',        plans: [{ id: 'hd_basic', name: 'Basic', monthly: 8.90, annual: 89, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'hd_plus', name: 'Plus', monthly: 14.90, annual: 149, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Θύελλα'], earthquake: false, flood: true, natural: true },{ id: 'hd_premium', name: 'Premium', monthly: 22.90, annual: 219, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
-  { value: 'interamerican', label: 'Interamerican',       url: 'https://www.interamerican.gr',        agent_label: 'Ασφαλιστής Interamerican',           plans: [{ id: 'ia_basic', name: 'Oikia Basic', monthly: 12.50, annual: 125, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'], earthquake: false, flood: false, natural: false },{ id: 'ia_comfort', name: 'Oikia Comfort', monthly: 18.00, annual: 180, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'ia_full', name: 'Oikia Full', monthly: 26.00, annual: 250, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
-  { value: 'eurolife',      label: 'Eurolife FFH',        url: 'https://www.eurolife.gr',             agent_label: 'Σύμβουλος Eurolife FFH',             plans: [{ id: 'el_std', name: 'My Home First Standard', monthly: 12.00, annual: 120, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές'], earthquake: true, flood: true, natural: true },{ id: 'el_plus', name: 'My Home First Plus', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικές Καταστροφές','Βραχυκύκλωμα'], earthquake: true, flood: true, natural: true },{ id: 'el_luxury', name: 'My Home Luxury', monthly: 30.00, annual: 290, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Καθίζηση'], earthquake: true, flood: true, natural: true }] },
-  { value: 'generali',      label: 'Generali',            url: 'https://www.generali.gr',             agent_label: 'Σύμβουλος Generali',                plans: [{ id: 'gen_basic', name: 'MyHome Basic', monthly: 11.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'gen_plus', name: 'MyHome Plus', monthly: 16.00, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'gen_premium', name: 'MyHome Premium', monthly: 24.00, annual: 230, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
-  { value: 'axa',           label: 'AXA Ασφαλιστική',    url: 'https://www.axa.gr',                  agent_label: 'Σύμβουλος AXA',                      plans: [{ id: 'axa_basic', name: 'Home Basic', monthly: 9.50, annual: 95, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'axa_comfort', name: 'Home Comfort', monthly: 15.00, annual: 148, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'axa_premium', name: 'Home Premium', monthly: 23.00, annual: 225, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
-  { value: 'ethniki',       label: 'Εθνική Ασφαλιστική', url: 'https://www.ethniki-asfalistiki.gr',  agent_label: 'Σύμβουλος Εθνικής',                 plans: [{ id: 'eth_oikos', name: 'Οίκος', monthly: 13.00, annual: 126, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σωληνώσεις'], earthquake: false, flood: false, natural: false },{ id: 'eth_mega', name: 'MegaHome', monthly: 20.00, annual: 195, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Θεομηνία'], earthquake: false, flood: true, natural: true },{ id: 'eth_ultra', name: 'UltraHome', monthly: 28.00, annual: 270, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα','Βανδαλισμός'], earthquake: true, flood: true, natural: true }] },
-  { value: 'allianz',       label: 'Allianz Hellas',      url: 'https://www.allianz.gr',              agent_label: 'Σύμβουλος Allianz',                  plans: [{ id: 'alz_basic', name: 'Allianz Home Basic', monthly: 12.00, annual: 115, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },{ id: 'alz_comfort', name: 'Allianz Home Comfort', monthly: 19.00, annual: 182, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Φυσικά Φαινόμενα'], earthquake: false, flood: true, natural: true },{ id: 'alz_premium', name: 'Allianz Home Premium', monthly: 27.00, annual: 258, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Σεισμός','Πλημμύρα'], earthquake: true, flood: true, natural: true }] },
-  { value: 'ergo',      label: 'ERGO Ασφαλιστική',     url: 'https://www.ergo.gr',              agent_label: 'Μεσίτης / Online',
+  { value: 'hellas_direct', label: 'Hellas Direct',          url: 'https://www.hellasdirect.gr',         agent_label: 'Ψηφιακή — χωρίς ασφαλιστή',
     plans: [
-      { id: 'ergo_home',    name: 'Home Basic',      monthly: 10.00, annual: 99,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
-      { id: 'ergo_plus',    name: 'Home Plus',       monthly: 15.50, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
-      { id: 'ergo_premium', name: 'Home Premium',    monthly: 21.00, annual: 199, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Σεισμός'], earthquake: true, flood: true, natural: true },
+      { id: 'hd_basic',    name: 'Basic',   monthly: 8.90,  annual: 89,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'hd_plus',     name: 'Plus',    monthly: 14.90, annual: 149, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Θύελλα'], earthquake: false, flood: true, natural: true },
+      { id: 'hd_premium',  name: 'Premium', monthly: 22.90, annual: 219, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα','Σεισμός'], earthquake: true, flood: true, natural: true },
     ] },
-  { value: 'allianz',   label: 'Allianz Hellas',        url: 'https://www.allianz.gr',           agent_label: 'Ασφαλιστής / Online',
+  { value: 'interamerican', label: 'Interamerican',           url: 'https://www.interamerican.gr',        agent_label: 'Ασφαλιστής Interamerican',
     plans: [
-      { id: 'allianz_basic',   name: 'MeinHaus Compact', monthly: 12.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
-      { id: 'allianz_comfort', name: 'MeinHaus Comfort',  monthly: 17.90, annual: 170, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
-      { id: 'allianz_full',    name: 'MeinHaus Plus',     monthly: 24.90, annual: 239, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+      { id: 'im_basic',    name: 'Κατοικία Basic',   monthly: 12.00, annual: 115, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'im_plus',     name: 'Κατοικία Plus',    monthly: 18.00, annual: 175, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'im_premium',  name: 'Κατοικία Premium', monthly: 26.00, annual: 249, covers: ['Πλήρης κάλυψη + Σεισμός'], earthquake: true, flood: true, natural: true },
     ] },
-  { value: 'groupama',  label: 'Groupama (myZen)',      url: 'https://www.groupama.gr',          agent_label: 'Online — myZen',
+  { value: 'eurolife',      label: 'Eurolife FFH',             url: 'https://www.eurolife.gr',             agent_label: 'Σύμβουλος Eurolife FFH',
     plans: [
-      { id: 'grp_basic',   name: 'myZen Basic',     monthly: 9.90,  annual: 95,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
-      { id: 'grp_comfort', name: 'myZen Comfort',   monthly: 13.50, annual: 130, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
-      { id: 'grp_full',    name: 'myZen Full',      monthly: 19.90, annual: 189, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+      { id: 'el_basic',    name: 'Home Basic',   monthly: 11.00, annual: 105, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'el_plus',     name: 'Home Plus',    monthly: 16.50, annual: 160, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'el_premium',  name: 'Home Premium', monthly: 23.00, annual: 220, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
     ] },
-  { value: 'ethniki',   label: 'Εθνική Ασφαλιστική',   url: 'https://www.ethniki-asfalistiki.gr', agent_label: 'Ασφαλιστής',
+  { value: 'generali',      label: 'Generali',                 url: 'https://www.generali.gr',             agent_label: 'Σύμβουλος Generali',
     plans: [
-      { id: 'eth_basic',   name: 'Οικία Basic',     monthly: 14.00, annual: 132, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
-      { id: 'eth_plus',    name: 'Οικία Plus',      monthly: 19.90, annual: 190, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
-      { id: 'eth_premium', name: 'Οικία Premium',   monthly: 26.90, annual: 259, covers: ['Πλήρης κάλυψη + Σεισμός'], earthquake: true, flood: true, natural: true },
+      { id: 'gen_basic',   name: 'MyHome Basic',   monthly: 10.50, annual: 99,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'gen_plus',    name: 'MyHome Plus',    monthly: 15.90, annual: 152, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'gen_premium', name: 'MyHome Premium', monthly: 22.00, annual: 210, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
     ] },
-  { value: 'anytime',   label: 'Anytime (Interamerican)', url: 'https://www.anytime.gr',         agent_label: 'Online — Digital',
+  { value: 'axa',           label: 'ΑΧΑ Ασφαλιστική',         url: 'https://www.axa.gr',                  agent_label: 'Σύμβουλος ΑΧΑ',
     plans: [
-      { id: 'any_basic', name: 'Home Essential',    monthly: 9.50,  annual: 90,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
-      { id: 'any_plus',  name: 'Home Plus',         monthly: 13.90, annual: 135, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
-      { id: 'any_full',  name: 'Home Full',         monthly: 19.50, annual: 185, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+      { id: 'axa_basic',   name: 'Home Protect Basic',   monthly: 11.50, annual: 109, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'axa_plus',    name: 'Home Protect Plus',    monthly: 17.00, annual: 165, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'axa_premium', name: 'Home Protect Premium', monthly: 24.00, annual: 229, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
     ] },
-  { value: 'other',     label: 'Άλλη Ασφαλιστική',     url: '',                                 agent_label: 'Ασφαλιστής',
+  { value: 'ethniki',       label: 'Εθνική Ασφαλιστική',       url: 'https://www.ethniki-asfalistiki.gr',  agent_label: 'Ασφαλιστής',
+    plans: [
+      { id: 'eth_basic',   name: 'Οικία Basic',   monthly: 14.00, annual: 132, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'eth_plus',    name: 'Οικία Plus',    monthly: 19.90, annual: 190, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'eth_premium', name: 'Οικία Premium', monthly: 26.90, annual: 259, covers: ['Πλήρης κάλυψη + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'allianz',       label: 'Allianz Hellas',            url: 'https://www.allianz.gr',              agent_label: 'Ασφαλιστής / Online',
+    plans: [
+      { id: 'al_basic',    name: 'MeinHaus Compact', monthly: 12.00, annual: 110, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'al_comfort',  name: 'MeinHaus Comfort', monthly: 17.90, annual: 170, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'al_full',     name: 'MeinHaus Plus',    monthly: 24.90, annual: 239, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'ergo',          label: 'ERGO Ασφαλιστική',          url: 'https://www.ergo.gr',                 agent_label: 'Μεσίτης / Online',
+    plans: [
+      { id: 'ergo_home',    name: 'Home Basic',   monthly: 10.00, annual: 99,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
+      { id: 'ergo_plus',    name: 'Home Plus',    monthly: 15.50, annual: 155, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'ergo_premium', name: 'Home Premium', monthly: 21.00, annual: 199, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'groupama',      label: 'Groupama (myZen)',          url: 'https://www.groupama.gr',             agent_label: 'Online — myZen',
+    plans: [
+      { id: 'grp_basic',   name: 'myZen Basic',   monthly: 9.90,  annual: 95,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
+      { id: 'grp_comfort', name: 'myZen Comfort', monthly: 13.50, annual: 130, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'grp_full',    name: 'myZen Full',    monthly: 19.90, annual: 189, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'anytime',       label: 'Anytime (Interamerican)',   url: 'https://www.anytime.gr',              agent_label: 'Online — Digital',
+    plans: [
+      { id: 'any_basic', name: 'Home Essential', monthly: 9.50,  annual: 90,  covers: ['Πυρκαγιά','Κλοπή'], earthquake: false, flood: false, natural: false },
+      { id: 'any_plus',  name: 'Home Plus',      monthly: 13.90, annual: 135, covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη','Πλημμύρα'], earthquake: false, flood: true, natural: true },
+      { id: 'any_full',  name: 'Home Full',      monthly: 19.50, annual: 185, covers: ['Πλήρης + Σεισμός'], earthquake: true, flood: true, natural: true },
+    ] },
+  { value: 'other',         label: 'Άλλη Ασφαλιστική',          url: '',                                    agent_label: 'Ασφαλιστής',
     plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
 ];
 
@@ -120,7 +143,7 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
 
   return INSURANCE_COMPANIES
     .filter(c => c.value !== 'other')
-    .flatMap(c => c.plans.map(p => {
+    .flatMap(c => (c.plans ?? []).map(p => {
       const base = (p as any).monthly;
       const estimate = base * totalFactor;
       return {
@@ -323,8 +346,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   (activeStreaming || []).forEach(a => { const svc = STREAMING.find(x => x.value === a.service); if (a.renewalDate) checkRenewal(svc?.label || a.service, a.renewalDate, 5); });
   (otherSubs || []).forEach(s => { if (s.renewalDate) checkRenewal(s.name, s.renewalDate, 7); });
 
-  const insOptions     = INSURANCE_COMPANIES.map(c => ({ value: c.value, label: c.label }));
-  const insPlanOptions = (insCompany?.plans || []).map(p => ({ value: p.id, label: `${(p as any).name} — ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
+  const insOptions     = INSURANCE_COMPANIES.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
+  const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name} — ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
 
   const filteredQuotes = liveQuotes.filter(q =>
     quotesFilter === 'all'       ? true :
@@ -654,7 +677,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {active && (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, flex: 1 }}>
                     <select value={active.planId} onChange={e => updateS(svc.value, 'planId', e.target.value)} style={miniSelectStyle}>
-                      {svc.plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {(svc.plans ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
                       <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
@@ -716,7 +739,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {active ? (
                   <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' as const, gap: 5 }}>
                     <select value={active.planId} onChange={e => updateC(svc.value, 'planId', e.target.value)} style={{ ...miniSelectStyle, fontSize: 9, padding: '4px 6px' }}>
-                      {svc.plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {(svc.plans ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.mono }}>{fe(myShare)} / μήνα</div>
                   </div>
