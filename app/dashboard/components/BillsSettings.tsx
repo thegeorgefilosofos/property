@@ -15,13 +15,26 @@ export function useBillsSettings<T extends Record<string, any>>(
   const [loading, setLoading] = useState(true);
   const timer   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest  = useRef<T>(defaults);
-  const aborted = useRef(false); // FIX 3: race condition guard
+  const aborted = useRef(false);
+
+  // FIX A: track the property/section this hook instance is "bound" to,
+  // so a pending save timer never accidentally targets a different one.
+  const boundKey = useRef(`${propertyId}::${section}`);
 
   // ── Load ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!propertyId) { setLoading(false); return; }
+    boundKey.current = `${propertyId}::${section}`;
 
-    aborted.current = false; // reset για κάθε νέο propertyId
+    if (!propertyId) {
+      // FIX B: reset to defaults instead of leaving stale data from a
+      // previously-loaded property when propertyId becomes empty.
+      setData(defaults);
+      latest.current = defaults;
+      setLoading(false);
+      return;
+    }
+
+    aborted.current = false;
     setLoading(true);
 
     (async () => {
@@ -32,57 +45,71 @@ export function useBillsSettings<T extends Record<string, any>>(
         .eq('section', section)
         .maybeSingle();
 
-      if (aborted.current) return; // FIX 3: αγνόησε αν το effect έχει ακυρωθεί
+      if (aborted.current) return;
 
       if (row?.data) {
         const merged = { ...defaults, ...row.data } as T;
         setData(merged);
         latest.current = merged;
       } else {
-        // Reset στα defaults αν δεν υπάρχει row (νέο ακίνητο)
         setData(defaults);
         latest.current = defaults;
       }
       setLoading(false);
     })();
 
-    // FIX 3: cleanup function — ακυρώνει stale fetches
     return () => {
       aborted.current = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyId, section]); // defaults είναι stable object literal, δεν χρειάζεται
+  }, [propertyId, section]);
 
-  // FIX 2: timer cleanup on unmount
+  // Timer cleanup on unmount — flushes any pending save instead of dropping it
   useEffect(() => {
     return () => {
-      if (timer.current) clearTimeout(timer.current);
+      if (timer.current) {
+        clearTimeout(timer.current);
+        // Best-effort flush so a save scheduled just before navigating away
+        // (e.g. switching tabs) isn't silently lost.
+        doSaveRef.current?.(latest.current, boundKey.current);
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  const doSave = useCallback(async (snapshot: T) => {
-    if (!propertyId || !userId) return;
+  // FIX C: accepts the propertyId/section the write was scheduled FOR,
+  // so a timer that survives a property switch still writes to the
+  // correct row instead of silently doing nothing or racing the new one.
+  const doSave = useCallback(async (snapshot: T, key: string) => {
+    const [savePropertyId, saveSection] = key.split('::');
+    if (!savePropertyId || !userId) return; // userId truly missing → nothing to attribute the write to
     try {
       await supabase.from('bills_settings').upsert({
-        property_id: propertyId,
-        user_id:     String(userId), // FIX: consistent με το pattern του project
-        section,
+        property_id: savePropertyId,
+        user_id:     String(userId),
+        section:     saveSection,
         data:        snapshot,
         updated_at:  new Date().toISOString(),
       }, { onConflict: 'property_id,section' });
     } catch (_) {
       // Silent fail — δεν crash το UI αν αποτύχει το save
     }
-  }, [propertyId, userId, section]);
+  }, [userId]);
+
+  // Keep a ref to the latest doSave so the unmount-flush effect (which only
+  // runs once) always calls the current version, not a stale closure.
+  const doSaveRef = useRef(doSave);
+  useEffect(() => { doSaveRef.current = doSave; }, [doSave]);
 
   // ── Update ────────────────────────────────────────────────────────────────
   const update = useCallback((patch: Partial<T>) => {
+    const keyAtCallTime = boundKey.current; // FIX C continued: capture target before any switch can happen
     setData(prev => {
       const next = { ...prev, ...patch } as T;
       latest.current = next;
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => doSave(latest.current), 800);
+      timer.current = setTimeout(() => doSave(latest.current, keyAtCallTime), 800);
       return next;
     });
   }, [doSave]);

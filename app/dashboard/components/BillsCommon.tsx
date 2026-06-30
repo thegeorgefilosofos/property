@@ -16,7 +16,6 @@ const MGMT_TYPES = [
   { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
   { value: 'office',      label: 'Γραφείο Διαχείρισης'       },
   { value: 'billys',      label: 'Billys — 3 € / μήνα'       },
-  
   { value: 'none',        label: 'Χωρίς Διαχειριστή'         },
 ];
 
@@ -24,7 +23,6 @@ const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> 
   traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής — εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
   office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης — επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
   billys:      { monthly: 3, desc: 'Billys — ψηφιακή διαχείριση, online πληρωμές, αυτόματες ειδοποιήσεις.',    url: 'https://www.billys.gr' },
-
   none:        { monthly: 0, desc: 'Αυτοδιαχείριση — μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
 };
 
@@ -32,7 +30,6 @@ const MGMT_CARDS = [
   { key: 'traditional', costLabel: 'Εθελοντής',   nameLabel: 'Παραδοσιακός Διαχειριστής', url: '' },
   { key: 'office',      costLabel: 'Αμοιβή',       nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
   { key: 'billys',      costLabel: '3 € / μήνα',   nameLabel: 'Billys',                    url: 'https://www.billys.gr' },
-
   { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
 ] as const;
 

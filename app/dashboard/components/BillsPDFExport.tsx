@@ -2,6 +2,11 @@
 
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const todayStr = () => new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
+// SECURITY: bill names/notes/property fields come from user input and are interpolated
+// directly into an HTML string via document.write — escape to prevent stored-XSS.
+const esc = (v: unknown) => String(v ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 const T = {
   radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
@@ -27,7 +32,7 @@ const CAT: Record<string, { label: string; color: string }> = {
   water:       { label: 'Νερό',              color: '#06b6d4' },
   gas:         { label: 'Αέριο/Θέρμανση',    color: '#ef4444' },
   insurance:   { label: 'Ασφάλεια',          color: '#10b981' },
-  security:    { label: 'Ασφάλεια',          color: '#f97316' },
+  security:    { label: 'Security / Συναγερμός', color: '#f97316' },
   streaming:   { label: 'Streaming',          color: '#ec4899' },
   enfia:       { label: 'ΕΝΦΙΑ',             color: '#64748b' },
   dimotika:    { label: 'Δημοτικά Τέλη',     color: '#94a3b8' },
@@ -84,8 +89,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
           <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;vertical-align:middle">
             <span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;background:${c.color}18;color:${c.color};letter-spacing:0.03em">${c.label}</span>
           </td>
-          <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#202124;font-size:11px">${b.name}</td>
-          <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#5f6368">${b.period || (b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', {day:'2-digit',month:'short',year:'numeric'}) : '—')}</td>
+          <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#202124;font-size:11px">${esc(b.name)}</td>
+          <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#5f6368">${esc(b.period) || (b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', {day:'2-digit',month:'short',year:'numeric'}) : '—')}</td>
           <td style="padding:9px 12px;border-bottom:1px solid #e8eaed;text-align:center">
             <span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;background:${b.recurring ? 'rgba(26,115,232,0.1)' : 'rgba(128,134,139,0.1)'};color:${b.recurring ? '#1a73e8' : '#80868b'}">${b.recurring ? 'Πάγιο' : 'Εφάπαξ'}</span>
           </td>
@@ -140,7 +145,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Αναφορά Λογαριασμών — ${data.propertyName}</title>
+  <title>Αναφορά Λογαριασμών — ${esc(data.propertyName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
@@ -170,8 +175,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">
       <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(212,175,66,0.8);margin-bottom:6px">Property OS — Αναφορά Λογαριασμών</div>
-        <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px">${data.propertyName}</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.6)">${data.propertyAddress}</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px">${esc(data.propertyName)}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6)">${esc(data.propertyAddress)}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:4px">Ημερομηνία Έκδοσης</div>

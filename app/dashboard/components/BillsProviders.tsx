@@ -144,7 +144,7 @@ const SECURITY_COMPANIES = [
 
 const BENCHMARKS = {
   internet: { avg: 22.50, label: 'Μ.Ο. Ελλάδας'              },
-  water:    { avg: 12.00, label: 'Μ.Ο. Αττικής — ~24 € / 2μ' },
+  water:    { avg: 12.00, label: 'Μ.Ο. Αττικής — ~24 € / 2 μήνες' },
   heating:  { avg: 70.00, label: 'Μ.Ο. χειμώνα'               },
   gas:      { avg: 40.00, label: 'Μ.Ο. οικιακό'               },
   security: { avg: 18.00, label: 'Μ.Ο. αγοράς'                },
@@ -256,7 +256,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {[
           { label: 'Internet & TV',                   value: fe(internetCost + tvCost), accent: false },
           { label: 'Νερό & Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
-          { label: 'Φυσικό Αέριο & Security',          value: fe(gasM + securityM),      accent: false },
+          { label: 'Security',                          value: fe(securityM),             accent: false },
           { label: 'Σύνολο Παρόχων / μήνα',           value: fe(totalM),                accent: totalM > 0 },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
@@ -546,21 +546,15 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {benchmarkBar(heatingM, BENCHMARKS.heating.avg, BENCHMARKS.heating.label)}
       </div>
 
-      {/* ── Φυσικό Αέριο ─────────────────────────────────────────────────── */}
-      <div style={card}>
-        {secHdr('Φυσικό Αέριο', { url: 'https://energycost.gr', text: 'ΡΑΑΕΥ energycost.gr →' })}
-        <div style={g3}>
-          <CustomSelect label="Πάροχος Φυσικού Αερίου" value={s.gasProvider} onChange={v => upd({ gasProvider: v })} options={GAS_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
-          <TextInput    label="Πρόγραμμα"               value={s.gasPlan}    onChange={v => upd({ gasPlan: v })}    placeholder="π.χ. Οικιακό Σταθερό"/>
-          <NumberInput  label="Μηνιαίο Κόστος (€)"     value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€" step={5}/>
+      {/* ── Φυσικό Αέριο → μετακόμισε σε αφιερωμένο tab ─────────────────────── */}
+      <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.18)', borderRadius: T.radius.card, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 32, height: 32, borderRadius: T.radius.inner, background: 'rgba(249,115,22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2"><path d="M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z"/></svg>
         </div>
-        {gasM > 0 && (
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
-            Ετήσιο κόστος φυσικού αερίου: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(gasM * 12)}</strong>
-            {gasData?.url && <a href={gasData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {gasData.label} →</a>}
-          </div>
-        )}
-        {benchmarkBar(gasM, BENCHMARKS.gas.avg, BENCHMARKS.gas.label)}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>Το Φυσικό Αέριο έχει το δικό του tab</div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Σύγκριση 7 παρόχων με πραγματικά τιμολόγια, διαχειριστές δικτύου (ΕΔΑ Αττικής/ΘΕΣΣ/ΔΕΔΑ) και ζωντανές ειδοποιήσεις σύμβασης.</div>
+        </div>
       </div>
 
       {/* ── Security & Συναγερμός ─────────────────────────────────────────── */}
@@ -593,7 +587,6 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             { label: s.tvProvider === 'cosmote' ? 'Cosmote TV' : 'Συνδρομητική TV', amount: tvCost, skip: !s.hasTV },
             { label: 'Νερό',                   amount: waterM,       skip: !waterM      },
             { label: 'Θέρμανση',               amount: heatingM,     skip: !heatingM    },
-            { label: 'Φυσικό Αέριο',           amount: gasM,         skip: !gasM        },
             { label: 'Security',               amount: securityM,    skip: !securityM   },
           ].filter(r => !r.skip && r.amount > 0).map((r, i) => (
             <div key={i} style={{ marginBottom: 12 }}>
