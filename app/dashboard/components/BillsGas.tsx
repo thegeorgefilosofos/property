@@ -113,7 +113,7 @@ const DEFAULTS = {
 
 export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Props) {
   const supabase = createClient();
-  const [s, su] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
+  const [s, su, loading] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
   const [segmentFilter, setSegmentFilter] = useState<'residential' | 'business'>('residential');
   const [elecProvider, setElecProvider]   = useState<string>('');
   const [calendarSynced, setCalendarSynced] = useState(false);
@@ -214,6 +214,8 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     .sort((a, b) => a.kwh - b.kwh)
     .map(t => ({ value: t.id, label: `${t.name} — ${t.badge} — ${fk(t.kwh)}/kWh` }));
   const networkOptions  = NETWORK_OPERATORS.map(n => ({ value: n.value, label: `${n.label} (${n.region})` }));
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση...</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
