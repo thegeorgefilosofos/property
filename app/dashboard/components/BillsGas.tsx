@@ -86,10 +86,13 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
 ];
 
 const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-const secHdr = (title: string, sub?: string) => (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{title}</div>
-    {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
+const secHdr = (label: string, sub?: string) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
+    </div>
   </div>
 );
 
@@ -224,17 +227,17 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       <div style={card}>
         {secHdr('Φυσικό Αέριο — Τρέχον Κόστος', `Ενημέρωση: ${LAST_UPDATED}`)}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          <div style={{ background: 'var(--bg-base)', borderRadius: T.radius.inner, padding: 16 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6 }}>Μηνιαίο Κόστος</div>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--accent)' }}>{fe(effective)}</div>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο Κόστος</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
           </div>
-          <div style={{ background: 'var(--bg-base)', borderRadius: T.radius.inner, padding: 16 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6 }}>Ετήσιο Κόστος</div>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)' }}>{fe(effective * 12)}</div>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο Κόστος</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)', lineHeight: 1 }}>{fe(effective * 12)}</div>
           </div>
-          <div style={{ background: 'var(--bg-base)', borderRadius: T.radius.inner, padding: 16 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6 }}>Δίκτυο Διανομής</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>{NETWORK_OPERATORS.find(n => n.value === s.networkOperator)?.label}</div>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο Διανομής</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1.2 }}>{NETWORK_OPERATORS.find(n => n.value === s.networkOperator)?.label}</div>
           </div>
         </div>
       </div>
@@ -273,7 +276,10 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tariff.name}</span>
                 <span style={{ fontSize: 9, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: bc(tariff.badge).bg, border: `1px solid ${bc(tariff.badge).border}`, color: bc(tariff.badge).color }}>{tariff.badge}</span>
               </div>
-              <a href={provider?.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--info)', textDecoration: 'none', fontWeight: 600 }}>Επίσκεψη →</a>
+              <a href={provider?.url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 10, color: bc(tariff.badge).color, border: `1px solid ${bc(tariff.badge).border}`, borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
+                Επίσκεψη →
+              </a>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
@@ -307,7 +313,9 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           {savings > 1 && (
             <div style={{ background: 'rgba(52,168,83,0.05)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }}/>
-              <span style={{ fontSize: 12 }}>Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο</span>
+              <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
+                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
+              </span>
             </div>
           )}
 
@@ -315,7 +323,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr>{['Πάροχος', 'Πρόγραμμα', 'Τύπος', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
-                  <th key={h} style={{ fontSize: 9, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', background: 'var(--bg-elevated)' }}>{h}</th>
+                  <th key={h} style={{ fontSize: 9, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
                 ))}</tr>
               </thead>
               <tbody>
@@ -326,7 +334,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                   return (
                     <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(212,175,66,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
-                        {isBest && <span style={{ color: 'var(--positive)', fontSize: 9, fontWeight: 700, marginRight: 4 }}>★ ΚΑΛΥΤΕΡΟ</span>}
+                        {!t.isCurrent && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
                         {t.providerLabel}
                       </td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>{t.name}</td>

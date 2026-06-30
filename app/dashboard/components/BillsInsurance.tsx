@@ -359,7 +359,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       // Simulate API latency (replace with real fetch)
       const quotes = computeLiveQuotes(sqm, pVal, cVal, effectiveFloor, effectiveAge, effectiveCity);
       // Add savings vs current plan
-      const currentMonthly = parseFloat(insCustomPrice) || (insCompany?.plans.find(p => p.id === insPlanId) as any)?.monthly || 0;
+      const currentMonthly = parseFloat(insCustomPrice) || ((insCompany?.plans ?? []).find(p => p.id === insPlanId) as any)?.monthly || 0;
       const withSavings = quotes.map(q => ({ ...q, savings: currentMonthly > 0 ? currentMonthly - q.monthlyEstimate : undefined }));
       setLiveQuotes(withSavings);
       setQuotesLoading(false);
@@ -385,7 +385,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   };
 
   const insCompany = INSURANCE_COMPANIES.find(c => c.value === insProvider);
-  const insPlan    = insCompany?.plans.find(p => p.id === insPlanId) as any;
+  const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId) as any;
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;
 
   const effectiveCovers     = insEditCovers && insCustomCovers ? insCustomCovers.split(',').map(s => s.trim()).filter(Boolean) : (insPlan?.covers || []);

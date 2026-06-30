@@ -71,7 +71,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
         const providersCost =
           (parseFloat(String(prov?.internetPrice)) || 0) +
           (prov?.hasTV ? parseFloat(String(prov?.tvPrice)) || 0 : 0) +
-          (prov?.waterBiMonthly ? (parseFloat(String(prov.waterBiMonthly)) || 0) / 2 : parseFloat(String(prov?.waterMonthly)) || 0) +
+          (prov?.waterBiMonthly ? (parseFloat(String(prov.waterBiMonthly)) || 0) / (parseInt(String(prov?.waterPeriodMonths)) || 2) : parseFloat(String(prov?.waterMonthly)) || 0) +
           (parseFloat(String(prov?.heatingMonthly)) || 0) +
           (parseFloat(String(prov?.gasMonthly)) || 0) +
           (parseFloat(String(prov?.securityMonthly)) || 0);

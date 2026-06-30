@@ -29,7 +29,7 @@ const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικ
 Εξάγαγε τα στοιχεία από τον λογαριασμό και επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
 {
   "provider": "όνομα παρόχου (π.χ. ΔΕΗ, ΕΥΔΑΠ, COSMOTE)",
-  "category": "electricity|water|gas|internet|phone|other",
+  "category": "electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|other",
   "amount": αριθμός (συνολικό ποσό πληρωμής σε ευρώ),
   "due_date": "YYYY-MM-DD ή κενό",
   "period": "π.χ. Ιούν 2026 ή 01/04-30/06/2026",
@@ -44,8 +44,10 @@ const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικ
 }`;
 
 const CATEGORY_LABELS: Record<string, string> = {
-  electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο',
-  internet: 'Internet', phone: 'Τηλεφωνία', other: 'Άλλο',
+  electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet',
+  insurance: 'Ασφάλεια', streaming: 'Streaming & Συνδρομές', taxes: 'ΕΝΦΙΑ & Φόροι',
+  municipal: 'Δημοτικά Τέλη', security: 'Security / Συναγερμός', common: 'Κοινόχρηστα',
+  maintenance: 'Συντήρηση', other: 'Άλλο',
 };
 
 // Reusable input field
