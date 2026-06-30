@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -112,8 +112,11 @@ const DEFAULTS = {
 };
 
 export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Props) {
-  const [s, su, saving] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
+  const supabase = createClient();
+  const [s, su] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
   const [segmentFilter, setSegmentFilter] = useState<'residential' | 'business'>('residential');
+  const [elecProvider, setElecProvider]   = useState<string>('');
+  const [calendarSynced, setCalendarSynced] = useState(false);
 
   const upd = (patch: Partial<typeof DEFAULTS>) => su(patch);
 
@@ -123,6 +126,78 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
   const calcMonthly = tariff ? (tariff.type === 'flat' ? tariff.fixed : kwh * tariff.kwh + tariff.fixed) : 0;
   const manual      = parseFloat(s.gasMonthly) || 0;
   const effective   = manual > 0 ? manual : calcMonthly;
+
+  // ── Live cross-tab read: ηλεκτρικού πάροχος για Dual Fuel detection ────────
+  useEffect(() => {
+    if (!propertyId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('bills_settings')
+        .select('data')
+        .eq('property_id', propertyId)
+        .eq('section', 'electricity')
+        .maybeSingle();
+      const elecData = data?.data as Record<string, unknown> | undefined;
+      if (elecData?.elecProvider) setElecProvider(String(elecData.elecProvider));
+    })();
+  }, [propertyId]);
+
+  // ── Dual Fuel: ίδιος πάροχος σε ρεύμα και αέριο ────────────────────────────
+  const sameDualFuelProvider = elecProvider && elecProvider === s.gasProvider &&
+    ['dei', 'protergia', 'heron', 'zenith'].includes(s.gasProvider);
+  const dualFuelTariff = tariff?.dual_fuel_discount;
+
+  // ── Heating season check (Οκτώβριος–Μάρτιος) χωρίς καταχωρημένο κόστος ─────
+  const now = new Date();
+  const isHeatingSeason = [10, 11, 12, 1, 2, 3].includes(now.getMonth() + 1);
+  const noGasDataYet = effective === 0 && kwh === 0;
+
+  // ── Sync-back: properties.heating (single source of truth για υπόλοιπο app) ─
+  const propertyHeatingSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!propertyId || !s.heatingType) return;
+    if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current);
+    propertyHeatingSyncTimer.current = setTimeout(() => {
+      supabase.from('properties').update({ heating: s.heatingType }).eq('id', propertyId).then(() => {});
+    }, 1200);
+    return () => { if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current); };
+  }, [propertyId, s.heatingType]);
+
+  // ── Auto-sync ημερομηνίας σύμβασης → calendar_events ────────────────────────
+  useEffect(() => {
+    if (!propertyId || !s.gasContractStart || !s.gasContractMonths || calendarSynced) return;
+    const months = parseInt(s.gasContractMonths) || 0;
+    if (months <= 0) return;
+    const start = new Date(s.gasContractStart);
+    const expiry = new Date(start);
+    expiry.setMonth(expiry.getMonth() + months);
+    const expiryStr = expiry.toISOString().split('T')[0];
+
+    (async () => {
+      const { data: existing } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .eq('property_id', propertyId)
+        .eq('category', 'gas_contract')
+        .eq('event_date', expiryStr)
+        .limit(1);
+      if (existing?.length) { setCalendarSynced(true); return; }
+
+      await supabase.from('calendar_events').insert({
+        property_id: propertyId,
+        user_id: userId,
+        title: `Λήξη Σύμβασης Φυσικού Αερίου — ${provider?.label ?? ''}`,
+        category: 'gas_contract',
+        event_date: expiryStr,
+        amount: effective > 0 ? effective : null,
+        priority: 'medium',
+        status: 'pending',
+        recurring: false,
+        notes: `Σύμβαση ${tariff?.name ?? ''} λήγει. Σύγκρινε νέα τιμολόγια πριν ανανεώσεις.`,
+        source: 'system',
+      }).then(() => setCalendarSynced(true));
+    })();
+  }, [propertyId, s.gasContractStart, s.gasContractMonths]);
 
   const allTariffs = useMemo(() => {
     return GAS_PROVIDERS.flatMap(p => p.tariffs.filter(t => t.segment === segmentFilter).map(t => {
@@ -271,6 +346,49 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           </div>
         </div>
       )}
+
+      {/* ── Smart live hints based on real user data ── */}
+      {(() => {
+        const hints: { text: string; severity: 'info' | 'warning' | 'tip'; action?: string; tab?: string }[] = [];
+
+        if (sameDualFuelProvider && !dualFuelTariff) {
+          hints.push({ text: `Έχεις ${provider?.label} και στα δύο (ρεύμα + αέριο) — ελέγξτε αν δικαιούστε dual fuel πρόγραμμα με έκπτωση.`, severity: 'tip' });
+        }
+        if (dualFuelTariff) {
+          hints.push({ text: `Το τρέχον πρόγραμμα έχει ήδη Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
+        }
+        if (isHeatingSeason && noGasDataYet && s.heatingType === 'autonomous_gas') {
+          hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμα κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });
+        }
+        if (tariff?.type === 'variable' && kwh > 800) {
+          hints.push({ text: `Με ${kwh} kWh/μήνα κατανάλωση, ένα σταθερό τιμολόγιο θα σε προστάτευε από διακυμάνσεις TTF τον χειμώνα.`, severity: 'tip' });
+        }
+        if (s.heatingType === 'central_gas') {
+          hints.push({ text: 'Με κεντρική θέρμανση, το κόστος αερίου μοιράζεται στους ενοίκους/ιδιοκτήτες βάσει χιλιοστών. Έλεγξε τον κανονισμό κοινοχρήστων.', severity: 'info' });
+        }
+
+        if (hints.length === 0) return null;
+
+        const SEV_STYLE = {
+          warning: { bg: 'rgba(242,153,0,0.05)', border: 'rgba(242,153,0,0.2)', dot: 'var(--warning)', text: 'var(--warning)' },
+          info:    { bg: 'rgba(26,115,232,0.04)', border: 'rgba(26,115,232,0.15)', dot: 'var(--info)', text: 'var(--info)' },
+          tip:     { bg: 'rgba(52,168,83,0.04)', border: 'rgba(52,168,83,0.15)', dot: 'var(--positive)', text: 'var(--positive)' },
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+            {hints.map((h, i) => {
+              const sv = SEV_STYLE[h.severity];
+              return (
+                <div key={i} style={{ background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: sv.dot, flexShrink: 0, marginTop: 5 }}/>
+                  <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{h.text}</div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── Πληροφορίες ── */}
       <div style={card}>

@@ -212,6 +212,28 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
         }
       }
 
+      // ── 5b. Gas contract ─────────────────────────────────────────────────────
+      const gas = getSett('gas');
+      if (gas?.gasContractStart && gas?.gasContractMonths) {
+        const start  = new Date(String(gas.gasContractStart));
+        const months = parseInt(String(gas.gasContractMonths)) || 0;
+        if (months > 0) {
+          const expiry = new Date(start);
+          expiry.setMonth(expiry.getMonth() + months);
+          const days = daysUntil(expiry.toISOString().split('T')[0]);
+          const price = parseFloat(String(gas?.gasMonthly)) || 0;
+          if (days >= 0 && days <= 30) {
+            result.push({
+              id: `gas_${gas.gasContractStart}`,
+              title: `Σύμβαση Φυσικού Αερίου λήγει σε ${days} ημέρες`,
+              body: price > 0 ? `Τρέχον: ${fe(price)}/μήνα. Σύγκρινε νέα τιμολόγια στο tab Φυσικού Αερίου.` : `Σύγκρινε νέα τιμολόγια πριν ανανεώσεις.`,
+              cta: 'Φυσικό Αέριο', ctaTab: 'gas',
+              severity: days <= 7 ? 'critical' : days <= 14 ? 'warning' : 'info', date: today.toISOString(),
+            });
+          }
+        }
+      }
+
       // ── 6. Budget overrun ────────────────────────────────────────────────────
       if (budgets) {
         const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);

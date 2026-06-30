@@ -273,7 +273,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const [crossProperty, setCrossProperty] = useState<{
     sqm?: string; zone?: string; floor?: string; age?: string;
     propValue?: string; contentValue?: string; city?: string;
+    propertyType?: string; isRented?: boolean;
   }>({});
+  const [calendarSynced, setCalendarSynced] = useState(false);
   // ── ΑΑΔΕ API state ───────────────────────────────────────────────────────
   const [aadeData,        setAadeData]        = useState<AADEEnfiaData | null>(null);
   const [aadeLoading,     setAadeLoading]     = useState(false);
@@ -296,15 +298,17 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         // Property data from services (ΕΝΦΙΑ has sqm, zone, floor, age)
         const { data: svc } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'services').maybeSingle();
         // Property name/address from properties table for city detection
-        const { data: prop } = await supabase.from('properties').select('address,city,sqm').eq('id', propertyId).maybeSingle();
-        if (svc?.data) {
-          const d = svc.data as any;
+        const { data: prop } = await supabase.from('properties').select('address,city,sqm,prop_type,status_detail').eq('id', propertyId).maybeSingle();
+        if (svc?.data || prop) {
+          const d = (svc?.data as any) || {};
           setCrossProperty({
             sqm:          d.enfiaSqm       || prop?.sqm       || '',
             zone:         d.enfiaZone      || '',
             floor:        d.enfiaFloor     || 'second',
             age:          d.enfiaAge       || '10_20',
             city:         prop?.city       || prop?.address   || '',
+            propertyType: prop?.prop_type  || '',
+            isRented:     prop?.status_detail === 'rented',
           });
         }
       } catch (_) {}
@@ -415,8 +419,72 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   (activeStreaming || []).forEach(a => { const svc = STREAMING.find(x => x.value === a.service); if (a.renewalDate) checkRenewal(svc?.label || a.service, a.renewalDate, 5); });
   (otherSubs || []).forEach(s => { if (s.renewalDate) checkRenewal(s.name, s.renewalDate, 7); });
 
-  const insOptions     = INSURANCE_COMPANIES.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
+  // ── Auto-detect insurance property type από property settings ──────────────
+  // prop_type στη βάση είναι ελληνικό label (π.χ. 'Κατοικία', 'Επαγγελματικό Ακίνητο')
+  // status_detail === 'rented' σημαίνει ενοικιαζόμενο — αυτό υπερισχύει του prop_type
+  const detectedPropertyType = crossProperty.isRented
+    ? 'Ενοικιαζόμενη'
+    : crossProperty.propertyType === 'Κατοικία'
+      ? 'Κύρια Κατοικία'
+      : crossProperty.propertyType === 'Εξοχική Κατοικία'
+        ? 'Εξοχική Κατοικία'
+        : crossProperty.propertyType === 'Επαγγελματικό Ακίνητο'
+          ? null  // δεν φιλτράρουμε ασφάλειες κατοικίας για επαγγελματικά ακίνητα
+          : null;
+
+  // ── Φιλτράρισμα εταιρειών βάσει πραγματικού τύπου ακινήτου ─────────────────
+  const relevantCompanies = detectedPropertyType
+    ? INSURANCE_COMPANIES.filter(c => !c.propertyTypes || c.propertyTypes.includes(detectedPropertyType))
+    : INSURANCE_COMPANIES;
+
+  const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
   const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name} — ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
+
+  // ── Sync-back: properties table (single source of truth για υπόλοιπο app) ──
+  // Το TabOverview/Property card διαβάζει properties.insurance_company κ.λπ.
+  // Χωρίς αυτό το sync, το BillsInsurance και το property card δείχνουν διαφορετικά στοιχεία.
+  const propertySyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!propertyId) return;
+    if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current);
+    propertySyncTimer.current = setTimeout(() => {
+      supabase.from('properties').update({
+        insurance_company: insCompany?.label ?? null,
+        insurance_amount:   insCost > 0 ? insCost : null,
+        insurance_expiry:   insRenewalDate || null,
+      }).eq('id', propertyId).then(() => {});
+    }, 1200); // debounce — αποφυγή write σε κάθε keystroke
+    return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };
+  }, [propertyId, insCompany?.label, insCost, insRenewalDate]);
+
+  // ── Auto-sync ανανέωσης ασφάλειας → calendar_events ──────────────────────────
+  useEffect(() => {
+    if (!propertyId || !insRenewalDate || calendarSynced) return;
+    (async () => {
+      const { data: existing } = await supabase
+        .from('calendar_events')
+        .select('id')
+        .eq('property_id', propertyId)
+        .eq('category', 'insurance_renewal')
+        .eq('event_date', insRenewalDate)
+        .limit(1);
+      if (existing?.length) { setCalendarSynced(true); return; }
+
+      await supabase.from('calendar_events').insert({
+        property_id: propertyId,
+        user_id: userId,
+        title: `Ανανέωση Ασφάλειας Κατοικίας — ${insCompany?.label ?? ''}`,
+        category: 'insurance_renewal',
+        event_date: insRenewalDate,
+        amount: insCost > 0 ? insCost : null,
+        priority: 'medium',
+        status: 'pending',
+        recurring: false,
+        notes: `Πρόγραμμα: ${(insCompany?.plans ?? []).find((p: any) => p.id === insPlanId)?.name ?? ''}. Σύγκρινε εναλλακτικές πριν ανανεώσεις.`,
+        source: 'system',
+      }).then(() => setCalendarSynced(true));
+    })();
+  }, [propertyId, insRenewalDate]);
 
   const filteredQuotes = liveQuotes.filter(q =>
     quotesFilter === 'all'       ? true :
@@ -472,6 +540,32 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Checklist</span>
         </div>
       )}
+
+      {/* ── Auto-detected property type banner ──────────────────────────── */}
+      {detectedPropertyType && (
+        <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--info)' }}>{detectedPropertyType}</strong> — εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
+          </span>
+        </div>
+      )}
+
+      {/* ── Standalone coverage gap notification (σεισμός/πλημμύρα) ───────── */}
+      {insCompany && (() => {
+        const hasEq = effectiveEarthquake;
+        const hasFl = effectiveFloodState;
+        if (hasEq && hasFl) return null;
+        return (
+          <div style={{ background: 'rgba(242,153,0,0.05)', border: '1px solid rgba(242,153,0,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }}/>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {!hasEq && !hasFl ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό ούτε πλημμύρα.' : !hasEq ? 'Το πρόγραμμά σου δεν καλύπτει σεισμό.' : 'Το πρόγραμμά σου δεν καλύπτει πλημμύρα.'}
+              {' '}Εξετάστε αναβάθμιση κάλυψης.
+            </span>
+          </div>
+        );
+      })()}
 
       {/* ── Renewal alerts ──────────────────────────────────────────────── */}
       {renewalAlerts.map((a, i) => (

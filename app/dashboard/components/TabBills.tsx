@@ -127,69 +127,7 @@ export default function TabBills({
       const totalMonthly = (bills ?? []).filter(b => b.recurring).reduce((s, b) => s + (b.amount ?? 0), 0);
       const overdueCount = (bills ?? []).filter(b => !b.paid && b.due_date && new Date(b.due_date) < now).length;
 
-      // Bills due in next 7 days (unpaid)
-      const dueSoon = (bills ?? []).filter((b: any) => {
-        if (b.paid || !b.due_date) return false;
-        const diff = Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000);
-        return diff >= 0 && diff <= 7;
-      }).length;
-      // Load dismissed notifications from localStorage
-      const dismissedKey = `notif_d_${propertyId}`;
-      let dismissedIds: Set<string> = new Set();
-      try {
-        if (typeof window !== 'undefined') {
-          dismissedIds = new Set(JSON.parse(localStorage.getItem(dismissedKey) || '[]'));
-        }
-      } catch (_) {}
-
-      let notifCount = 0;
-      // Overdue bills
-      if (overdueCount > 0) notifCount += overdueCount;
-      // Bills due in 7 days
-      if (dueSoon > 0) notifCount += dueSoon;
-      // Budget overrun
-      const budgetSett = (setts ?? []).find(x => x.section === 'budgets')?.data as Record<string, unknown> | undefined;
-      if (budgetSett?.total) {
-        const thisMonthBills = (bills ?? []).filter((b: any) => {
-          const d = b.due_date || b.date;
-          if (!d) return false;
-          const bd = new Date(d);
-          return bd.getMonth() === now.getMonth() && bd.getFullYear() === now.getFullYear();
-        }).reduce((s: number, b: any) => s + (Number(b.amount) || 0), 0);
-        const budgetId = `budget_${now.getMonth()}`;
-        if (thisMonthBills > parseFloat(String(budgetSett.total)) * 0.9 && !dismissedIds.has(budgetId)) notifCount++;
-      }
-      // ΕΝΦΙΑ — only count if upcoming installment has no matching paid bill
-      const ENFIA_2026 = ['2026-05-31','2026-06-30','2026-07-31','2026-08-31','2026-09-30','2026-10-30'];
-      const nextEnfia = ENFIA_2026.find(d => {
-        const diff = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000);
-        return diff >= 0 && diff <= 30;
-      });
-      if (nextEnfia) {
-        const month = nextEnfia.slice(0, 7); // YYYY-MM
-        const enfiaAlreadyPaid = (bills ?? []).some((b: any) =>
-          (b.category === 'taxes' || b.category === 'enfia' ||
-           (b.name ?? '').toLowerCase().includes('ενφια') ||
-           (b.notes ?? '').toLowerCase().includes('ενφια'))
-          && b.paid === true
-          && (b.due_date ?? '').startsWith(month)
-        );
-        if (!enfiaAlreadyPaid && !dismissedIds.has(`enfia_${nextEnfia}`)) notifCount++;
-      }
-      // Ασφάλεια — only count if renewal date coming AND not already renewed
-      const ins = (setts ?? []).find(x => x.section === 'insurance')?.data as Record<string, unknown> | undefined;
-      if (ins?.insRenewalDate) {
-        const diff = Math.ceil((new Date(String(ins.insRenewalDate)).getTime() - now.getTime()) / 86400000);
-        if (diff >= 0 && diff <= 60) {
-          const insAlreadyRenewed = (bills ?? []).some((b: any) =>
-            b.category === 'insurance' && b.paid === true &&
-            Math.ceil((now.getTime() - new Date(b.due_date ?? '').getTime()) / 86400000) <= 30
-          );
-          if (!insAlreadyRenewed && !dismissedIds.has(`ins_${ins.insRenewalDate}`)) notifCount++;
-        }
-      }
-
-      setStrip({ totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '', notifCount, lastUpdate: Date.now() });
+      setStrip({ totalMonthly, overdueCount, tenantName: contacts?.[0]?.full_name ?? '', notifCount: 0, lastUpdate: Date.now() });
     } catch (_) {}
   }, [propertyId]);
 
@@ -268,7 +206,7 @@ export default function TabBills({
             <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               {group.tabs.map((tab: TabDef) => {
                 const isActive = activeTab === tab.id;
-                const hasBadge = tab.id === 'notifications' && strip.notifCount > 0 && !isActive;
+                const hasBadge = tab.id === 'notifications' && liveNotifCount > 0 && !isActive;
                 return (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: T.radius.inner, border: 'none', cursor: 'pointer', position: 'relative', fontSize: 11, fontWeight: isActive ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#000' : 'var(--text-secondary)' }}
