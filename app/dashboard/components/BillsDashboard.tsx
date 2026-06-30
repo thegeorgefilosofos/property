@@ -16,7 +16,7 @@ const T = {
 };
 
 const fe = (n: number, d = 0) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+const MONTHS_GR = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
 interface BillEntry {
   id: string; property_id?: string; user_id?: string;
@@ -98,76 +98,165 @@ const CatIcon = ({ name, size = 14, color }: { name: string; size?: number; colo
 };
 
 async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byCategory: any[], avgMonthly: number, propertyName: string) {
-  const XLSX = await import('xlsx');
-  const wb = XLSX.utils.book_new();
-  const today = new Date().toLocaleDateString('el-GR');
-  const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+  const XLSX   = await import('xlsx');
+  const wb     = XLSX.utils.book_new();
+  const today  = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const year   = new Date().getFullYear();
+  const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+  const MONTHS_SH   = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
+  const now     = new Date();
   const totalM  = bills.filter(b => b.recurring).reduce((s, b) => s + b.amount, 0);
-  const unpaid  = bills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
-  const paid    = bills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
+  const totalA  = totalM * 12;
+  const unpaidA = bills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
+  const paidA   = bills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
+  const overdue = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < now);
+  const dueSoon = bills.filter(b => !b.paid && b.due_date && (() => { const d = Math.ceil((new Date(b.due_date!).getTime() - now.getTime()) / 86400000); return d >= 0 && d <= 7; })());
+  const pending = bills.filter(b => !b.paid);
+  const recurring = bills.filter(b => b.recurring);
 
-  const summaryData: (string | number)[][] = [
-    ['Property OS — Σύνοψη Λογαριασμών & Παγίων', ''],
-    ['Ακίνητο:', propertyName],
-    ['Ημερομηνία εξαγωγής:', today],
+  // ── SHEET 1: Σύνοψη ──────────────────────────────────────────────────────────
+  const summaryData: (string | number | null | undefined)[][] = [
+    ['PROPERTY OS — ΑΝΑΦΟΡΑ ΛΟΓΑΡΙΑΣΜΩΝ & ΠΑΓΙΩΝ ΔΑΠΑΝΩΝ', null, null, null, null],
     [''],
-    ['ΟΙΚΟΝΟΜΙΚΗ ΣΥΝΟΨΗ', ''],
-    ['Σύνολο παγίων/μήνα (€)', totalM],
-    ['Εκτιμώμενο ετήσιο κόστος (€)', totalM * 12],
-    ['Εκκρεμείς πληρωμές (€)', unpaid],
-    ['Πληρωμένοι (€)', paid],
-    ['Μέσο μηνιαίο ιστορικού (€)', avgMonthly],
+    ['Ακίνητο', propertyName, null, 'Ημερομηνία Έκδοσης', today],
+    ['Έτος Αναφοράς', year, null, 'Σύνολο Λογαριασμών', bills.length],
     [''],
-    ['ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ', '', '', ''],
-    ['Κατηγορία', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μ.Ο. Αγοράς (€)', 'Απόκλιση %'],
-    ...byCategory.map(c => [c.label, c.monthly, c.monthly * 12, c.benchmark || 0, c.benchmark > 0 ? Math.round((c.monthly / c.benchmark - 1) * 100) : 0]),
+    ['━━━ ΟΙΚΟΝΟΜΙΚΗ ΣΥΝΟΨΗ ━━━', null, null, null, null],
+    ['Μηνιαίο Πάγιο Κόστος (€)', totalM, null, 'Εκτιμώμενο Ετήσιο Κόστος (€)', totalA],
+    ['Εκκρεμείς Πληρωμές (€)', unpaidA, null, 'Πληρωμένοι Λογαριασμοί (€)', paidA],
+    ['Μέσο Μηνιαίο (Ιστορικό) (€)', avgMonthly, null, 'Ληξιπρόθεσμοι', overdue.length],
+    ['Λήγουν εντός 7 ημερών', dueSoon.length, null, 'Πάγιοι Λογαριασμοί', recurring.length],
     [''],
-    ['ΙΣΤΟΡΙΚΟ ' + new Date().getFullYear(), '', '', '', '', '', '', '', '', '', '', '', ''],
-    ['', ...MONTHS, 'Σύνολο'],
-    ['Σύνολο', ...historyTotals, historyTotals.reduce((a, b) => a + b, 0)],
-  ];
+    ['━━━ ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ ━━━', null, null, null, null],
+    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μ.Ο. Αγοράς (€)', 'Απόκλιση %', '% Συνόλου'],
+    ...byCategory
+      .sort((a: any, b: any) => b.monthly - a.monthly)
+      .map((c: any) => {
+        const deviation = c.benchmark > 0 ? Math.round((c.monthly / c.benchmark - 1) * 100) : 0;
+        const pctTotal  = totalM > 0 ? Math.round((c.monthly / totalM) * 100) : 0;
+        return [c.label, c.count || 1, c.monthly, c.monthly * 12, c.benchmark || 0, deviation, pctTotal];
+      }),
+    [''],
+    ['━━━ ΙΣΤΟΡΙΚΟ ΚΟΣΤΟΥΣ ' + year + ' ━━━', null, null, null, null, null, null, null, null, null, null, null, null, null],
+    ['', ...MONTHS_SH, 'Σύνολο Έτους'],
+    ['Κόστος (€)', ...historyTotals, historyTotals.reduce((a, b) => a + b, 0)],
+    ['Σε σχέση με Μ.Ο.', ...historyTotals.map(v => v > 0 ? Math.round((v / avgMonthly - 1) * 100) + '%' : '—'), null],
+    [''],
+    ['━━━ ΕΙΔΟΠΟΙΗΣΕΙΣ ━━━', null, null, null, null],
+    overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ — ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${overdue.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
+    dueSoon.length > 0 ? [`! ${dueSoon.length} λογαριασμοί λήγουν εντός 7 ημερών`, null, null, `Σύνολο: ${dueSoon.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : [],
+  ].filter(row => row.length > 0);
+
   const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-  ws1['!cols'] = [{ wch: 32 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+  ws1['!cols'] = [{ wch: 36 }, { wch: 14 }, { wch: 6 }, { wch: 30 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
+  ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
   XLSX.utils.book_append_sheet(wb, ws1, 'Σύνοψη');
 
-  const headers = ['Κατηγορία','Ονομασία','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημ. Λήξης','Τύπος','Κατάσταση','kWh','Σημειώσεις'];
-  const detailRows = [headers, ...bills.map(b => [
-    cat(b.category).label, b.name, b.amount, b.vat_rate || 0, b.period || '',
-    b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR') : '',
-    b.recurring ? 'Πάγιο' : 'Εφάπαξ', b.paid ? 'Πληρωμένο' : 'Εκκρεμεί',
-    b.kwh || '', b.notes || '',
-  ])];
+  // ── SHEET 2: Αναλυτικά ───────────────────────────────────────────────────────
+  const headers2 = ['Κατηγορία','Ονομασία / Πάροχος','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημερομηνία Λήξης','Τύπος','Κατάσταση','Ημέρες έως Λήξη','Κατανάλωση (kWh)','Σημειώσεις'];
+  const detailRows: (string | number | null | undefined)[][] = [headers2, ...bills
+    .sort((a, b) => {
+      const ad = a.due_date ? new Date(a.due_date).getTime() : 9e12;
+      const bd = b.due_date ? new Date(b.due_date).getTime() : 9e12;
+      return ad - bd;
+    })
+    .map(b => {
+      const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
+      return [
+        cat(b.category).label,
+        b.name,
+        b.amount,
+        b.vat_rate || 0,
+        b.period || '',
+        b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '',
+        b.recurring ? 'Πάγιο' : 'Εφάπαξ',
+        b.paid ? 'Πληρωμένο' : (days !== null && days < 0 ? 'ΛΗΞΙΠΡΟΘΕΣΜΟΣ' : 'Εκκρεμεί'),
+        days !== null ? days : '',
+        b.kwh || '',
+        b.notes || '',
+      ];
+    })
+  ];
   const ws2 = XLSX.utils.aoa_to_sheet(detailRows);
-  ws2['!cols'] = [{ wch: 18 }, { wch: 32 }, { wch: 12 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 28 }];
+  ws2['!cols'] = [{ wch: 18 }, { wch: 34 }, { wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 36 }];
   XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικά');
 
-  const overdue = bills.filter(b => !b.paid && b.due_date && new Date(b.due_date) < new Date());
-  const pending = bills.filter(b => !b.paid);
-  const pendingData: (string | number)[][] = [
-    ['Εκκρεμείς & Ληξιπρόθεσμοι Λογαριασμοί', ''],
-    [`${pending.length} εκκρεμείς · ${overdue.length} ληξιπρόθεσμοι`, today],
+  // ── SHEET 3: Εκκρεμείς & Ληξιπρόθεσμοι ──────────────────────────────────────
+  const pendingData: (string | number | null | undefined)[][] = [
+    ['ΕΚΚΡΕΜΕΙΣ & ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ', null, null, null, null, null],
+    [`${pending.length} εκκρεμείς · ${overdue.length} ληξιπρόθεσμοι · Εξαγωγή: ${today}`, null, null, null, null, null],
     [''],
-    ['Κατάσταση','Κατηγορία','Ονομασία','Ποσό (€)','Ημ. Λήξης','Ημέρες'],
-    ...pending.sort((a, b) => {
-      const ad = a.due_date ? new Date(a.due_date).getTime() : 0;
-      const bd = b.due_date ? new Date(b.due_date).getTime() : 0;
-      return ad - bd;
-    }).map(b => {
-      const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - Date.now()) / 86400000) : null;
-      return [
-        days !== null && days < 0 ? 'ΛΗΞΙΠΡΟΘΕΣΜΟΣ' : 'Εκκρεμεί',
-        cat(b.category).label, b.name, b.amount,
-        b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR') : '—',
-        days !== null ? (days < 0 ? `${Math.abs(days)} ημ. πριν` : `σε ${days} ημ.`) : '—',
-      ];
-    }),
+    ['Κατάσταση', 'Κατηγορία', 'Ονομασία / Πάροχος', 'Ποσό (€)', 'Ημερομηνία Λήξης', 'Ημέρες έως Λήξη'],
+    ...pending
+      .sort((a, b) => {
+        const ad = a.due_date ? new Date(a.due_date).getTime() : 0;
+        const bd = b.due_date ? new Date(b.due_date).getTime() : 0;
+        return ad - bd;
+      })
+      .map(b => {
+        const days = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - now.getTime()) / 86400000) : null;
+        return [
+          days !== null && days < 0 ? '⚠ ΛΗΞΙΠΡΟΘΕΣΜΟΣ' : days !== null && days <= 7 ? '! ΛΗΓΕΙ ΣΥΝΤΟΜΑ' : 'Εκκρεμεί',
+          cat(b.category).label,
+          b.name,
+          b.amount,
+          b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—',
+          days !== null ? (days < 0 ? `${Math.abs(days)} ημέρες πριν` : days === 0 ? 'ΣΗΜΕΡΑ' : `σε ${days} ημέρες`) : '—',
+        ];
+      }),
+    [''],
+    ['ΣΥΝΟΛΟ ΕΚΚΡΕΜΩΝ', null, null, unpaidA, null, null],
   ];
   const ws3 = XLSX.utils.aoa_to_sheet(pendingData);
-  ws3['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 32 }, { wch: 12 }, { wch: 14 }, { wch: 14 }];
+  ws3['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 34 }, { wch: 12 }, { wch: 22 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς');
 
-  XLSX.writeFile(wb, `λογαριασμοι_${propertyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  // ── SHEET 4: Πάγια Κόστη ─────────────────────────────────────────────────────
+  if (recurring.length > 0) {
+    const recurData: (string | number | null | undefined)[][] = [
+      ['ΠΑΓΙΑ ΚΟΣΤΗ — ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
+      [`Ακίνητο: ${propertyName} · Σύνολο: ${totalM.toFixed(2)} € / μήνα`, null, null, null, null],
+      [''],
+      ['Κατηγορία', 'Ονομασία / Πάροχος', 'Μηνιαίο (€)', 'Ετήσιο (€)', '% Συνόλου'],
+      ...recurring
+        .sort((a, b) => b.amount - a.amount)
+        .map(b => [
+          cat(b.category).label,
+          b.name,
+          b.amount,
+          b.amount * 12,
+          totalM > 0 ? Math.round((b.amount / totalM) * 100) + '%' : '0%',
+        ]),
+      [''],
+      ['ΣΥΝΟΛΟ', null, totalM, totalA, '100%'],
+    ];
+    const ws4 = XLSX.utils.aoa_to_sheet(recurData);
+    ws4['!cols'] = [{ wch: 18 }, { wch: 34 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, ws4, 'Πάγια Κόστη');
+  }
+
+  // ── SHEET 5: Ιστορικό ────────────────────────────────────────────────────────
+  const histData: (string | number | null | undefined)[][] = [
+    ['ΙΣΤΟΡΙΚΟ ΚΟΣΤΟΥΣ ' + year, null, null, null],
+    [`Ακίνητο: ${propertyName} · Μέσος Όρος: ${avgMonthly.toFixed(2)} € / μήνα`, null, null, null],
+    [''],
+    ['Μήνας', 'Κόστος (€)', 'Μέσος Όρος (€)', 'Απόκλιση (€)', 'Απόκλιση %'],
+    ...MONTHS_FULL.map((m, i) => {
+      const val     = historyTotals[i] || 0;
+      const devAbs  = val > 0 ? val - avgMonthly : null;
+      const devPct  = val > 0 && avgMonthly > 0 ? Math.round((val / avgMonthly - 1) * 100) : null;
+      return [m, val > 0 ? val : '', avgMonthly, devAbs !== null ? devAbs : '', devPct !== null ? devPct + '%' : ''];
+    }),
+    [''],
+    ['Σύνολο Έτους', historyTotals.reduce((a, b) => a + b, 0), null, null, null],
+  ];
+  const ws5 = XLSX.utils.aoa_to_sheet(histData);
+  ws5['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws5, 'Ιστορικό');
+
+  const filename = `λογαριασμοι_${propertyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(wb, filename);
 }
 
 // Custom recharts tooltip
@@ -975,7 +1064,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         {secHdr(`Ημερολόγιο Πληρωμών — ${MONTHS_GR[currentMonth]}`)}
         {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>Δεν υπάρχουν λογαριασμοί με ημ. λήξης αυτόν τον μήνα</div>
+          <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>Δεν υπάρχουν λογαριασμοί με ημερομηνία λήξης αυτόν τον μήνα</div>
         ) : (
           Array.from({ length: 31 }, (_, d) => d + 1).map(day => {
             const dayBills = bills.filter(b => {

@@ -565,7 +565,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   { key: 'all',       label: 'Όλα'       },
                   { key: 'earthquake',label: 'Σεισμός'   },
                   { key: 'flood',     label: 'Πλημμύρα'  },
-                  { key: 'natural',   label: 'Φυσ. Καταστροφές' },
+                  { key: 'natural',   label: 'Φυσικές Καταστροφές' },
                 ].map(f => (
                   <button key={f.key} onClick={() => setQuotesFilter(f.key as any)}
                     style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'rgba(212,175,66,0.1)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
@@ -601,7 +601,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
                         {q.earthquake && <span style={{ fontSize: 8, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
                         {q.flood     && <span style={{ fontSize: 8, color: 'var(--info)',     background: 'rgba(26,115,232,0.1)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
-                        {q.natural   && <span style={{ fontSize: 8, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)',  padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσ.Καταστρ.</span>}
+                        {q.natural   && <span style={{ fontSize: 8, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)',  padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές Καταστροφές</span>}
                       </div>
                     </div>
                   );
@@ -614,7 +614,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
                   <thead>
-                    <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσ.Κατ.','Εκτ. Μηνιαίο','Εκτ. Ετήσιο','Εξοικ./μήνα'].map((h, i) => (
+                    <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές Καταστροφές','Εκτ. Μηνιαίο','Εκτ. Ετήσιο','Εξοικ./μήνα'].map((h, i) => (
                       <th key={i} style={{ fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
                     ))}</tr>
                   </thead>
@@ -703,7 +703,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   <div style={{ display: 'flex', gap: 16 }}>
                     <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
                     <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς Πλημμύρα"/>
-                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσ. Καταστροφές" labelOff="Χωρίς"/>
+                    <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές Καταστροφές" labelOff="Χωρίς"/>
                   </div>
                 </div>
               ) : (
@@ -828,7 +828,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
             <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="π.χ. Canva Pro, Adobe, Antivirus..."/>
             <NumberInput label="Κόστος / μήνα (€)" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
-            <DatePicker  label="Ημ. Ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
+            <DatePicker  label="Ημερομηνία Ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}

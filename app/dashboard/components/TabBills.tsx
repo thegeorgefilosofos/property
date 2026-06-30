@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 // ── Static imports — all components must be static for Next.js App Router ────
 import BillsDashboard    from './BillsDashboard';
 import BillsElectricity  from './BillsElectricity';
+import BillsGas          from './BillsGas';
 import BillsCommon       from './BillsCommon';
 import BillsProviders    from './BillsProviders';
 import BillsInsurance    from './BillsInsurance';
@@ -25,7 +26,7 @@ interface Props {
 }
 
 type TabId =
-  | 'dashboard' | 'electricity' | 'common' | 'providers' | 'insurance' | 'services'
+  | 'dashboard' | 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services'
   | 'notifications' | 'budget' | 'bank_import' | 'ai_scan' | 'multi_property';
 
 interface TabDef {
@@ -54,6 +55,7 @@ const T = {
 const ICONS: Record<string, string> = {
   dashboard:  'M4 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5zm10 0a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V5zM4 15a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4zm10-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-6z',
   bolt:       'M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z',
+  flame:      'M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z M12 13a2 2 0 1 1-2-2c.5 0 1 .5 1 1.5 0 1-.5.5-.5 1.5a1.5 1.5 0 0 0 1.5 1.5z',
   building:   'M3 21h18M5 21V7l8-4 8 4v14M9 21V15h6v6M9 11h1m4 0h1M9 7h1m4 0h1',
   wifi:       'M12 18h.01M8.5 14.5A5.5 5.5 0 0 1 12 13a5.5 5.5 0 0 1 3.5 1.5M5 11a9 9 0 0 1 14 0M1.5 7.5a14 14 0 0 1 21 0',
   shield:     'M12 3l8 4v5c0 5-3.5 9.7-8 11-4.5-1.3-8-6-8-11V7l8-4z',
@@ -79,6 +81,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'dashboard',     label: 'Επισκόπηση',          icon: 'dashboard', desc: 'Σύνοψη, ανάλυση, γραφήματα, ημερολόγιο πληρωμών' },
       { id: 'electricity',   label: 'Ρεύμα',                icon: 'bolt',      desc: 'Πάροχος, κατανάλωση kWh, τιμολόγιο, σύγκριση παρόχων' },
+      { id: 'gas',           label: 'Φυσικό Αέριο',         icon: 'flame',     desc: 'Πάροχος αερίου, διαχειριστής δικτύου, σύγκριση τιμολογίων' },
       { id: 'common',        label: 'Κοινόχρηστα',          icon: 'building',  desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
       { id: 'providers',     label: 'Πάροχοι',              icon: 'wifi',      desc: 'Internet, Νερό, Θέρμανση, Φυσικό Αέριο, Security' },
       { id: 'insurance',     label: 'Ασφάλεια & Συνδρομές', icon: 'shield',    desc: 'Ασφάλεια κατοικίας, streaming, cloud — live σύγκριση' },
@@ -284,7 +287,8 @@ export default function TabBills({
 
       {/* ── Content ──────────────────────────────────────────────────── */}
       {activeTab === 'dashboard'      && <BillsDashboard    propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress}/>}
-      {activeTab === 'electricity'    && <BillsElectricity  propertyId={propertyId} userId={userId}/>}
+      {activeTab === 'electricity'    && <BillsElectricity  propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
+      {activeTab === 'gas'            && <BillsGas          propertyId={propertyId} userId={userId} onNavigateTab={navigateTo}/>}
       {activeTab === 'common'         && <BillsCommon       propertyId={propertyId} userId={userId}/>}
       {activeTab === 'providers'      && <BillsProviders    propertyId={propertyId} userId={userId}/>}
       {activeTab === 'insurance'      && <BillsInsurance    propertyId={propertyId} userId={userId}/>}
