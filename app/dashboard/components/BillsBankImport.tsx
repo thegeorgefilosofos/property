@@ -379,24 +379,65 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           {/* Instructions */}
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', padding: 20 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: T.font.sans }}>Εξαγωγή Κινήσεων ανά Τράπεζα</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>Κατέβασε το αρχείο κινήσεων από το e-Banking σου και ανέβασέ το παραπάνω</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες ${selectedBank}` : 'Εξαγωγή Κινήσεων ανά Τράπεζα'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες εξαγωγής για ${selectedBank} — ακολούθησε τα παρακάτω βήματα` : 'Επίλεξε τράπεζα παραπάνω ή πάτα οποιαδήποτε κάρτα για αναλυτικές οδηγίες'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { bank: 'Alpha Bank',        sub: 'MyAlpha',       path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή CSV' },
-                { bank: 'Εθνική Τράπεζα',   sub: 'NBG Mobile',    path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή' },
-                { bank: 'Eurobank',          sub: 'e-Banking',     path: 'Λογαριασμοί → Κινήσεις → Εξαγωγή' },
-                { bank: 'Τράπεζα Πειραιώς', sub: 'winbank',       path: 'Λογαριασμοί → Κινήσεις → Excel/CSV' },
-                { bank: 'Optima Bank',       sub: 'e-Banking',     path: 'Λογαριασμοί → Εξαγωγή CSV' },
-                { bank: 'Credia',            sub: 'e-Banking',     path: 'Κινήσεις → Εξαγωγή αρχείου' },
-                { bank: 'Revolut',           sub: 'Mobile App',    path: 'Λογαριασμός → Λήψη αντιγράφου → CSV' },
-              ].map((b, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '160px 96px 1fr', gap: 12, padding: '10px 0', borderBottom: i < 6 ? '1px solid var(--border-subtle)' : 'none', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{b.bank}</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.badge, fontFamily: T.font.sans, textAlign: 'center' }}>{b.sub}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{b.path}</span>
-                </div>
-              ))}
+              {(() => {
+                const ALL_BANK_INSTRUCTIONS: Record<string, { sub: string; steps: string[]; format: string; url: string }> = {
+                  'Alpha Bank':             { sub: 'MyAlpha',       format: 'CSV',      url: 'https://www.alpha.gr', steps: ['Σύνδεση στο MyAlpha','Λογαριασμοί','Κινήσεις','Επιλογή περιόδου','Εξαγωγή CSV'] },
+                  'Attica Bank':            { sub: 'e-Banking',     format: 'CSV',      url: 'https://www.atticabank.gr', steps: ['Σύνδεση e-Banking','Λογαριασμοί','Κινήσεις Λογαριασμού','Λήψη CSV'] },
+                  'Credia (Παγκρήτια)':     { sub: 'e-Banking',     format: 'Excel/CSV',url: 'https://www.credia.gr', steps: ['Σύνδεση e-Banking','Κινήσεις','Εξαγωγή αρχείου'] },
+                  'Eurobank':               { sub: 'e-Banking',     format: 'Excel',    url: 'https://www.eurobank.gr', steps: ['Σύνδεση e-Banking','Λογαριασμοί','Κινήσεις','Εξαγωγή'] },
+                  'Εθνική Τράπεζα (NBG)':   { sub: 'NBG Mobile / i-bank', format: 'CSV', url: 'https://www.nbg.gr', steps: ['Σύνδεση i-bank ή NBG Mobile','Λογαριασμοί','Κινήσεις','Εξαγωγή CSV'] },
+                  'Optima Bank':            { sub: 'e-Banking',     format: 'CSV',      url: 'https://www.optimabank.gr', steps: ['Σύνδεση e-Banking','Λογαριασμοί','Εξαγωγή CSV'] },
+                  'Τράπεζα Πειραιώς':       { sub: 'winbank',       format: 'Excel/CSV',url: 'https://www.piraeusbank.gr', steps: ['Σύνδεση winbank','Λογαριασμοί','Κινήσεις','Λήψη Excel ή CSV'] },
+                  'Τράπεζα Θεσσαλίας':      { sub: 'e-Banking',     format: 'CSV',      url: 'https://www.bankofthessaly.gr', steps: ['Σύνδεση e-Banking','Κινήσεις','Εξαγωγή'] },
+                  'N26':                    { sub: 'N26 App',       format: 'CSV',      url: 'https://n26.com', steps: ['Άνοιξε N26 App','Λογαριασμός','Εξαγωγή Κινήσεων','Επιλογή μορφής CSV'] },
+                  'Revolut':                { sub: 'Revolut App',   format: 'CSV/PDF',  url: 'https://www.revolut.com', steps: ['Άνοιξε Revolut App','Λογαριασμός','Λήψη αντιγράφου κίνησης','CSV ή PDF'] },
+                  'Wise':                   { sub: 'Wise App/Web',  format: 'CSV',      url: 'https://wise.com', steps: ['Σύνδεση Wise','Κινήσεις (Transactions)','Κατέβασε CSV'] },
+                };
+
+                const selected = selectedBank && ALL_BANK_INSTRUCTIONS[selectedBank];
+
+                if (selected) {
+                  return (
+                    <div style={{ background: 'var(--bg-base)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-default)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{selectedBank}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Μέσω {selected.sub} · Μορφή αρχείου: <span style={{ fontFamily: T.font.mono, color: 'var(--accent)' }}>{selected.format}</span></div>
+                        </div>
+                        <a href={selected.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, fontWeight: 600, color: 'var(--info)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                          Άνοιξε {selected.sub} →
+                        </a>
+                      </div>
+                      <div style={{ display: 'flex', gap: 0, flexDirection: 'column' }}>
+                        {selected.steps.map((step, si) => (
+                          <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: si < selected.steps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, flexShrink: 0 }}>{si + 1}</div>
+                            <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // No bank selected — show compact grid of all banks
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {Object.entries(ALL_BANK_INSTRUCTIONS).map(([name, info], i) => (
+                      <div key={i} onClick={() => setSelectedBank(name)}
+                        style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '8px 12px', cursor: 'pointer', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-base)'; }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{info.sub} · {info.format}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </>

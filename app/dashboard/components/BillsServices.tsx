@@ -301,7 +301,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           { label: 'Υπηρεσίες / μήνα',     value: fe(totalServices)                        },
           { label: 'Υπηρεσίες / έτος',     value: fe(totalServices * 12)                   },
           { label: 'ΕΝΦΙΑ / μήνα',          value: enfiaM > 0 ? fe(enfiaM) : '—'           },
-          { label: 'Δημοτικά μ.ο. / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
+          { label: 'Δημοτικά Τέλη μ.ο. / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -532,7 +532,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* FIX: 2 inputs + result — all in same grid, aligned at bottom, no marginBottom on result box */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού (€)"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
-            <NumberInput label="Δημοτικά στον λογαριασμό (€)" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
+            <NumberInput label="Δημοτικά Τέλη στον λογαριασμό (€)" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
           {/* Result: compact inline pill — same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -541,7 +541,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
               </span>
               <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό Δημοτικών Τελών</div>
                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Αθήνα: ~5% · Τυπικό: 3–6%</div>
               </div>
             </div>
@@ -549,7 +549,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
-          Ιστορικό Δημοτικών / μήνα — Μ.Ο.: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
+          Ιστορικό Δημοτικών Τελών / μήνα — Μ.Ο.: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
           {MONTHS_GR.map((m, i) => {
@@ -597,7 +597,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <TextInput    label="Εταιρεία / Όνομα"        value={s.cleaningContact}      onChange={v => upd({ cleaningContact: v })}      placeholder="π.χ. Μαρία Α."/>
               <TextInput    label="Τηλέφωνο"                 value={s.cleaningPhone}        onChange={v => upd({ cleaningPhone: v })}        placeholder="69xxxxxxxx"/>
               <CustomSelect label="Συχνότητα"               value={s.cleaningFreq}         onChange={v => upd({ cleaningFreq: v })}         options={FREQ}/>
-              <NumberInput  label="Κόστος ανά Επίσκεψη (€)" value={s.cleaningCostPerVisit} onChange={v => upd({ cleaningCostPerVisit: v })} suffix="€" step={5}/>
+              <NumberInput  label="Κόστος / Επίσκεψη (€)" value={s.cleaningCostPerVisit} onChange={v => upd({ cleaningCostPerVisit: v })} suffix="€" step={5}/>
             </div>
             <div style={g2}>
               <NumberInput label="Ώρες ανά Επίσκεψη" value={s.cleaningHours} onChange={v => upd({ cleaningHours: v })} suffix="ώρες" step={0.5}/>
@@ -623,7 +623,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <TextInput    label="Κηπουρός / Εταιρεία"      value={s.gardenContact} onChange={v => upd({ gardenContact: v })} placeholder="π.χ. Νίκος Κ."/>
             <TextInput    label="Τηλέφωνο"                   value={s.gardenPhone}   onChange={v => upd({ gardenPhone: v })}   placeholder="69xxxxxxxx"/>
             <CustomSelect label="Συχνότητα"                 value={s.gardenFreq}    onChange={v => upd({ gardenFreq: v })}    options={FREQ}/>
-            <NumberInput  label="Κόστος ανά Επίσκεψη (€)"   value={s.gardenCost}    onChange={v => upd({ gardenCost: v })}   suffix="€" step={10}/>
+            <NumberInput  label="Κόστος / Επίσκεψη (€)"   value={s.gardenCost}    onChange={v => upd({ gardenCost: v })}   suffix="€" step={10}/>
           </div>
         )}
       </div>
@@ -634,7 +634,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {s.hasPool && (
           <>
             <div style={g4}>
-              <TextInput   label="Εταιρεία Συντήρησης"     value={s.poolContact}    onChange={v => upd({ poolContact: v })}    placeholder="Pool Service"/>
+              <TextInput   label="Τεχνικός / Εταιρεία "     value={s.poolContact}    onChange={v => upd({ poolContact: v })}    placeholder="Pool Service"/>
               <TextInput   label="Τηλέφωνο"                 value={s.poolPhone}      onChange={v => upd({ poolPhone: v })}      placeholder="69xxxxxxxx"/>
               <NumberInput label="Εβδομαδιαίο Κόστος (€)"  value={s.poolWeeklyCost} onChange={v => upd({ poolWeeklyCost: v })} suffix="€" step={5}/>
               <NumberInput label="Χημικά / μήνα (€)"        value={s.poolChemicals}  onChange={v => upd({ poolChemicals: v })} suffix="€" step={5}/>
@@ -656,10 +656,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <TextInput   label="Τεχνικός / Εταιρεία"           value={s.acContact}     onChange={v => upd({ acContact: v })}     placeholder="Παναγιώτης Τ."/>
               <TextInput   label="Τηλέφωνο"                        value={s.acPhone}       onChange={v => upd({ acPhone: v })}       placeholder="69xxxxxxxx"/>
               <NumberInput label="Αριθμός Κλιματιστικών"           value={s.acUnits}       onChange={v => upd({ acUnits: v })}       suffix="τεμ." step={1}/>
-              <NumberInput label="Κόστος Σέρβις ανά Τεμάχιο (€)"  value={s.acServiceCost} onChange={v => upd({ acServiceCost: v })} suffix="€" step={10}/>
+              <NumberInput label="Κόστος Συντήρησης / Τεμάχιο (€)"  value={s.acServiceCost} onChange={v => upd({ acServiceCost: v })} suffix="€" step={10}/>
             </div>
             <div style={g2}>
-              <DatePicker label="Τελευταίο Σέρβις" value={s.acLastService} onChange={v => upd({ acLastService: v })}/>
+              <DatePicker label="Τελευταία Συντήρηση" value={s.acLastService} onChange={v => upd({ acLastService: v })}/>
               <TextInput  label="Σημειώσεις"        value={s.acNotes}      onChange={v => upd({ acNotes: v })}      placeholder="π.χ. Κάθε Απρίλιο"/>
             </div>
             {s.acServiceCost && s.acUnits && parseFloat(s.acServiceCost) > 0 && (
@@ -678,10 +678,10 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {s.hasElevator && (
           <>
             <div style={g4}>
-              <TextInput   label="Εταιρεία Συντήρησης"   value={s.elevatorCompany}        onChange={v => upd({ elevatorCompany: v })}        placeholder="Otis, Schindler..."/>
+              <TextInput   label="Τεχνικός / Εταιρεία "   value={s.elevatorCompany}        onChange={v => upd({ elevatorCompany: v })}        placeholder="Otis, Schindler..."/>
               <TextInput   label="Τηλέφωνο"               value={s.elevatorPhone}          onChange={v => upd({ elevatorPhone: v })}          placeholder="210xxxxxxx"/>
               <NumberInput label="Μηνιαία Συντήρηση (€)"  value={s.elevatorMonthly}        onChange={v => upd({ elevatorMonthly: v })}        suffix="€" step={5}/>
-              <DatePicker  label="Τελευταία Επιθεώρηση"  value={s.elevatorLastInspection} onChange={v => upd({ elevatorLastInspection: v })}/>
+              <DatePicker  label="Τελευταία Συντήρηση"  value={s.elevatorLastInspection} onChange={v => upd({ elevatorLastInspection: v })}/>
             </div>
             <TextInput label="Σημειώσεις" value={s.elevatorNotes} onChange={v => upd({ elevatorNotes: v })} placeholder="π.χ. Ετήσιος έλεγχος ΕΛΟΤ..."/>
           </>
@@ -693,9 +693,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {svcHdr('Απεντόμωση', s.hasPest, v => upd({ hasPest: v }), pestM)}
         {s.hasPest && (
           <div style={g4}>
-            <TextInput    label="Εταιρεία"                 value={s.pestContact} onChange={v => upd({ pestContact: v })} placeholder="Anticimex, Rentokil..."/>
+            <TextInput    label="Τεχνικός / Εταιρεία"                 value={s.pestContact} onChange={v => upd({ pestContact: v })} placeholder="Anticimex, Rentokil..."/>
             <TextInput    label="Τηλέφωνο"                 value={s.pestPhone}   onChange={v => upd({ pestPhone: v })}   placeholder="69xxxxxxxx"/>
-            <NumberInput  label="Κόστος ανά Επέμβαση (€)"  value={s.pestCost}   onChange={v => upd({ pestCost: v })}   suffix="€" step={10}/>
+            <NumberInput  label="Κόστος / Απεντόμωση (€)"  value={s.pestCost}   onChange={v => upd({ pestCost: v })}   suffix="€" step={10}/>
             <CustomSelect label="Συχνότητα"               value={s.pestFreq}    onChange={v => upd({ pestFreq: v })}   options={FREQ}/>
           </div>
         )}
@@ -707,7 +707,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
             <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="π.χ. Βαφή, Υδραυλικός..."/>
-            <TextInput label="Επαφή / Εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
+            <TextInput label="Τεχνικός / Εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
             <TextInput label="Τηλέφωνο"          value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'flex-end' }}>
