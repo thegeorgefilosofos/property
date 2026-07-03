@@ -14,6 +14,7 @@ import TabInventory from './components/TabInventory';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
+import TabComparison from './components/TabComparison';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -48,6 +49,7 @@ const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','w
 
 const NAV_ITEMS = [
   { id:'overview',   label:'Επισκόπηση' },
+  { id:'comparison', label:'Σύγκριση' },
   { id:'bills',      label:'Λογαριασμοί' },
   { id:'expenses',   label:'Δαπάνες' },
   { id:'calendar',   label:'Ημερολόγιο' },
@@ -646,6 +648,7 @@ export default function Dashboard() {
             </nav>
             <div className="app-content">
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id}/>}
+              {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
