@@ -3,59 +3,51 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Property, PropertyData } from "@/lib/types";
+import { T, Card, SecHdr, KPIGrid, type KPIItem } from "@/components/Theme";
 
 interface Props {
   property: Property;
   userId: string;
 }
 
-function StatCard({
+function InfoRow({
   label,
   value,
-  sub,
+  last,
 }: {
   label: string;
   value: string;
-  sub?: string;
+  last?: boolean;
 }) {
   return (
-    <div className="bg-elevated border border-frame rounded-xl p-5">
-      <p
-        className="text-xs text-ink-muted uppercase tracking-wider mb-2"
-        style={{ fontFamily: "var(--font-mono)" }}
-      >
-        {label}
-      </p>
-      <p
-        className="text-xl text-ink font-semibold"
-        style={{ fontFamily: "var(--font-mono)" }}
-      >
-        {value}
-      </p>
-      {sub && (
-        <p
-          className="text-xs text-ink-muted mt-1"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {sub}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-start py-3 border-b border-frame last:border-0">
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        padding: "12px 0",
+        borderBottom: last ? "none" : "1px solid var(--border-subtle)",
+      }}
+    >
       <span
-        className="text-xs text-ink-muted uppercase tracking-wider"
-        style={{ fontFamily: "var(--font-mono)" }}
+        style={{
+          fontSize: 11,
+          color: "var(--text-secondary)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          fontFamily: T.font.mono,
+        }}
       >
         {label}
       </span>
       <span
-        className="text-sm text-ink text-right max-w-[60%]"
-        style={{ fontFamily: "var(--font-mono)" }}
+        style={{
+          fontSize: 12,
+          color: "var(--text-primary)",
+          textAlign: "right",
+          maxWidth: "60%",
+          fontFamily: T.font.mono,
+        }}
       >
         {value}
       </span>
@@ -85,14 +77,63 @@ export default function TabOverview({ property, userId }: Props) {
   const expenses = propData?.data?.expenses ?? [];
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
 
+  const kpis: KPIItem[] = [
+    { label: "Εμβαδόν", value: `${property.sqm} τ.μ.` },
+    { label: "Ιδιοκτησία", value: `${property.ownership}%` },
+    value
+      ? {
+          label: "Αξία",
+          value: `€${value.toLocaleString("el-GR")}`,
+          sub: ownedValue
+            ? `Δικό σας: €${Math.round(ownedValue).toLocaleString("el-GR")}`
+            : undefined,
+        }
+      : { label: "Αξία", value: "—", sub: "Δεν έχει οριστεί" },
+    {
+      label: "Δαπάνες",
+      value: `€${totalExpenses.toLocaleString("el-GR")}`,
+      sub: "Συνολικά",
+    },
+  ];
+
+  const infoRows: { label: string; value: string }[] = [
+    { label: "Τύπος", value: property.prop_type },
+    { label: "Διεύθυνση", value: property.address || "Δεν έχει οριστεί" },
+    { label: "Εμβαδόν", value: `${property.sqm} τ.μ.` },
+    { label: "Ποσοστό ιδιοκτησίας", value: `${property.ownership}%` },
+    ...(value
+      ? [
+          {
+            label: "Εκτιμώμενη αξία",
+            value: `€${value.toLocaleString("el-GR")}`,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="space-y-6">
+    <div>
       {/* Property title */}
-      <div>
-        <h1 className="font-display text-3xl text-ink">{property.name}</h1>
+      <div style={{ marginBottom: 24 }}>
+        <h1
+          style={{
+            fontFamily: T.font.sans,
+            fontWeight: 800,
+            fontSize: 28,
+            color: "var(--text-primary)",
+            margin: 0,
+          }}
+        >
+          {property.name}
+        </h1>
         <p
-          className="text-xs text-ink-muted mt-1 tracking-wider"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            fontSize: 11,
+            color: "var(--text-secondary)",
+            marginTop: 4,
+            letterSpacing: "0.06em",
+            fontFamily: T.font.mono,
+          }}
         >
           {property.prop_type}
           {property.address ? ` · ${property.address}` : ""}
@@ -100,85 +141,71 @@ export default function TabOverview({ property, userId }: Props) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          label="Εμβαδόν"
-          value={`${property.sqm} τ.μ.`}
-        />
-        <StatCard
-          label="Ιδιοκτησία"
-          value={`${property.ownership}%`}
-        />
-        {value ? (
-          <StatCard
-            label="Αξία"
-            value={`€${value.toLocaleString("el-GR")}`}
-            sub={ownedValue ? `Δικό σας: €${Math.round(ownedValue).toLocaleString("el-GR")}` : undefined}
-          />
-        ) : (
-          <StatCard label="Αξία" value="—" sub="Δεν έχει οριστεί" />
-        )}
-        <StatCard
-          label="Δαπάνες"
-          value={`€${totalExpenses.toLocaleString("el-GR")}`}
-          sub="Συνολικά"
-        />
-      </div>
+      <KPIGrid items={kpis} columns={4} />
 
       {/* Details */}
-      <div className="bg-surface border border-frame rounded-xl p-5">
-        <h3
-          className="text-xs text-ink-muted uppercase tracking-wider mb-4"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          Στοιχεία Ακινήτου
-        </h3>
-        <InfoRow label="Τύπος" value={property.prop_type} />
-        <InfoRow
-          label="Διεύθυνση"
-          value={property.address || "Δεν έχει οριστεί"}
-        />
-        <InfoRow label="Εμβαδόν" value={`${property.sqm} τ.μ.`} />
-        <InfoRow label="Ποσοστό ιδιοκτησίας" value={`${property.ownership}%`} />
-        {value && (
+      <Card>
+        <SecHdr label="Στοιχεία Ακινήτου" />
+        {infoRows.map((r, i) => (
           <InfoRow
-            label="Εκτιμώμενη αξία"
-            value={`€${value.toLocaleString("el-GR")}`}
+            key={r.label}
+            label={r.label}
+            value={r.value}
+            last={i === infoRows.length - 1}
           />
-        )}
-      </div>
+        ))}
+      </Card>
 
       {/* Ownership bar */}
-      <div className="bg-surface border border-frame rounded-xl p-5">
-        <h3
-          className="text-xs text-ink-muted uppercase tracking-wider mb-4"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          Ποσοστό Ιδιοκτησίας
-        </h3>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 bg-elevated rounded-full overflow-hidden">
+      <Card>
+        <SecHdr label="Ποσοστό Ιδιοκτησίας" />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              flex: 1,
+              height: 8,
+              background: "var(--bg-elevated)",
+              borderRadius: T.radius.pill,
+              overflow: "hidden",
+            }}
+          >
             <div
-              className="h-full bg-gold rounded-full transition-all"
-              style={{ width: `${property.ownership}%` }}
+              style={{
+                height: "100%",
+                background: "var(--accent)",
+                borderRadius: T.radius.pill,
+                transition: "all 0.25s cubic-bezier(0.2,0,0,1)",
+                width: `${property.ownership}%`,
+              }}
             />
           </div>
           <span
-            className="text-sm text-gold font-semibold w-12 text-right"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              fontSize: 12,
+              color: "var(--accent)",
+              fontWeight: 600,
+              width: 48,
+              textAlign: "right",
+              fontFamily: T.font.mono,
+              fontVariantNumeric: "tabular-nums",
+            }}
           >
             {property.ownership}%
           </span>
         </div>
         {property.ownership < 100 && (
           <p
-            className="text-xs text-ink-muted mt-2"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              fontSize: 11,
+              color: "var(--text-secondary)",
+              marginTop: 8,
+              fontFamily: T.font.mono,
+            }}
           >
             Υπόλοιπο {100 - property.ownership}% ανήκει σε άλλους ιδιοκτήτες
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
