@@ -59,7 +59,6 @@ const GROUPS = [
       { value: 'elec_dei', label: 'ΔΕΗ' },
       { value: 'elec_heron', label: 'Heron Energy' },
       { value: 'elec_protergia', label: 'Protergia' },
-      { value: 'elec_volterra', label: 'Volterra' },
       { value: 'elec_elpedison', label: 'Elpedison' },
       { value: 'elec_nrg', label: 'NRG' },
       { value: 'elec_zenith', label: 'Zenith Energy' },

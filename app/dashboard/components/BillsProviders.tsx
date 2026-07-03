@@ -113,7 +113,6 @@ const GAS_PROVIDERS = [
   { value: 'eda_thess',   label: 'ΕΔΑ Θεσσαλίας', url: 'https://www.edathess.gr',   color: '#fb923c' },
   { value: 'heron',       label: 'Ήρων',           url: 'https://www.heron.gr',      color: '#e85d04' },
   { value: 'protergia',   label: 'Protergia',       url: 'https://www.protergia.gr', color: '#7c3aed' },
-  { value: 'volterra',    label: 'Volterra',        url: 'https://www.volterra.gr',  color: '#059669' },
 ];
 
 const HEATING_TYPES = [
