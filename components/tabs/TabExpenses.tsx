@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   EXPENSE_CATEGORIES,
@@ -8,6 +8,7 @@ import {
   type Property,
   type PropertyData,
 } from "@/lib/types";
+import { T, EmptyState } from "@/components/Theme";
 
 interface Props {
   property: Property;
@@ -113,29 +114,97 @@ export default function TabExpenses({ property, userId }: Props) {
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
 
-  const labelClass = "text-xs text-ink-muted uppercase tracking-wider block mb-1.5";
-  const inputClass =
-    "w-full bg-elevated border border-frame rounded-lg px-3.5 py-2.5 text-ink text-sm focus:outline-none focus:border-gold transition-colors";
+  const labelStyle: CSSProperties = {
+    display: "block",
+    marginBottom: 6,
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontFamily: T.font.mono,
+  };
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.inner,
+    padding: "10px 14px",
+    color: "var(--text-primary)",
+    fontSize: 12,
+    fontFamily: T.font.mono,
+    outline: "none",
+  };
+  const cardStyle: CSSProperties = {
+    background: "var(--bg-surface)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.card,
+  };
+  const cellStyle: CSSProperties = { padding: "12px 16px" };
+  const thStyle: CSSProperties = {
+    ...cellStyle,
+    textAlign: "left",
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontFamily: T.font.mono,
+  };
+  const numFont: CSSProperties = {
+    fontFamily: T.font.mono,
+    fontVariantNumeric: "tabular-nums",
+  };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
-          <h2 className="font-display text-2xl text-ink">Δαπάνες</h2>
+          <h2
+            style={{
+              fontFamily: T.font.sans,
+              fontWeight: 800,
+              fontSize: 22,
+              color: "var(--text-primary)",
+              margin: 0,
+            }}
+          >
+            Δαπάνες
+          </h2>
           <p
-            className="text-xs text-ink-muted mt-0.5"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              fontSize: 11,
+              color: "var(--text-secondary)",
+              marginTop: 2,
+              ...numFont,
+            }}
           >
             Σύνολο: €{total.toLocaleString("el-GR")}
           </p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 bg-gold hover:bg-gold-light text-canvas text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "var(--accent)",
+            color: "var(--accent-text)",
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "6px 12px",
+            borderRadius: T.radius.inner,
+            border: "none",
+            cursor: "pointer",
+            fontFamily: T.font.mono,
+          }}
         >
           <svg
-            className="w-3.5 h-3.5"
+            style={{ width: 14, height: 14 }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -154,45 +223,57 @@ export default function TabExpenses({ property, userId }: Props) {
       {showForm && (
         <form
           onSubmit={handleAdd}
-          className="bg-surface border border-frame rounded-xl p-5 space-y-4"
+          style={{
+            ...cardStyle,
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
         >
           <h3
-            className="text-xs text-ink-muted uppercase tracking-wider"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              margin: 0,
+              fontSize: 11,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontFamily: T.font.mono,
+            }}
           >
             Καταχώρηση Δαπάνης
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ημερομηνία
-              </label>
+              <label style={labelStyle}>Ημερομηνία</label>
               <input
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className={inputClass}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Κατηγορία
-              </label>
+              <label style={labelStyle}>Κατηγορία</label>
               <select
                 value={form.category}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, category: e.target.value }))
                 }
-                className={`${inputClass} cursor-pointer`}
+                style={{ ...inputStyle, cursor: "pointer" }}
               >
                 {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c} value={c} className="bg-elevated">
+                  <option
+                    key={c}
+                    value={c}
+                    style={{ background: "var(--bg-elevated)" }}
+                  >
                     {c}
                   </option>
                 ))}
@@ -200,29 +281,19 @@ export default function TabExpenses({ property, userId }: Props) {
             </div>
           </div>
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Περιγραφή
-            </label>
+            <label style={labelStyle}>Περιγραφή</label>
             <input
               value={form.description}
               onChange={(e) =>
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
-              className={inputClass}
+              style={inputStyle}
               placeholder="π.χ. Βαφή εξωτερικών τοίχων"
               required
             />
           </div>
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Ποσό (€)
-            </label>
+            <label style={labelStyle}>Ποσό (€)</label>
             <input
               type="number"
               min="0.01"
@@ -231,25 +302,45 @@ export default function TabExpenses({ property, userId }: Props) {
               onChange={(e) =>
                 setForm((f) => ({ ...f, amount: e.target.value }))
               }
-              className={inputClass}
+              style={inputStyle}
               placeholder="0.00"
               required
             />
           </div>
-          <div className="flex gap-3">
+          <div style={{ display: "flex", gap: 12 }}>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 border border-frame text-ink-muted hover:text-ink text-sm py-2 rounded-lg transition-colors"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                cursor: "pointer",
+                fontFamily: T.font.mono,
+              }}
             >
               Ακύρωση
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-gold hover:bg-gold-light text-canvas text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                background: "var(--accent)",
+                color: "var(--accent-text)",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                border: "none",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.5 : 1,
+                fontFamily: T.font.mono,
+              }}
             >
               {saving ? "Αποθήκευση…" : "Προσθήκη"}
             </button>
@@ -259,27 +350,18 @@ export default function TabExpenses({ property, userId }: Props) {
 
       {/* List */}
       {expenses.length === 0 ? (
-        <div className="bg-surface border border-frame rounded-xl p-10 text-center">
-          <p
-            className="text-ink-muted text-sm"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            Δεν υπάρχουν καταχωρημένες δαπάνες
-          </p>
+        <div style={cardStyle}>
+          <EmptyState title="Δεν υπάρχουν καταχωρημένες δαπάνες" />
         </div>
       ) : (
-        <div className="bg-surface border border-frame rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+        <div style={{ ...cardStyle, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr className="border-b border-frame">
+                <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                   {["Ημερομηνία", "Κατηγορία", "Περιγραφή", "Ποσό", ""].map(
                     (h) => (
-                      <th
-                        key={h}
-                        className="text-left px-4 py-3 text-xs text-ink-muted uppercase tracking-wider"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
+                      <th key={h} style={thStyle}>
                         {h}
                       </th>
                     )
@@ -290,41 +372,69 @@ export default function TabExpenses({ property, userId }: Props) {
                 {expenses.map((exp) => (
                   <tr
                     key={exp.id}
-                    className="border-b border-frame last:border-0 hover:bg-elevated/50 transition-colors"
+                    style={{ borderBottom: "1px solid var(--border-subtle)" }}
                   >
                     <td
-                      className="px-4 py-3 text-sm text-ink-muted whitespace-nowrap"
-                      style={{ fontFamily: "var(--font-mono)" }}
+                      style={{
+                        ...cellStyle,
+                        fontSize: 12,
+                        color: "var(--text-secondary)",
+                        whiteSpace: "nowrap",
+                        ...numFont,
+                      }}
                     >
                       {exp.date}
                     </td>
-                    <td className="px-4 py-3">
+                    <td style={cellStyle}>
                       <span
-                        className="text-xs bg-frame px-2 py-0.5 rounded text-ink-muted"
-                        style={{ fontFamily: "var(--font-mono)" }}
+                        style={{
+                          fontSize: 11,
+                          background: "var(--bg-overlay)",
+                          padding: "2px 8px",
+                          borderRadius: T.radius.badge,
+                          color: "var(--text-secondary)",
+                          fontFamily: T.font.mono,
+                        }}
                       >
                         {exp.category}
                       </span>
                     </td>
                     <td
-                      className="px-4 py-3 text-sm text-ink"
-                      style={{ fontFamily: "var(--font-mono)" }}
+                      style={{
+                        ...cellStyle,
+                        fontSize: 12,
+                        color: "var(--text-primary)",
+                        fontFamily: T.font.mono,
+                      }}
                     >
                       {exp.description}
                     </td>
                     <td
-                      className="px-4 py-3 text-sm text-gold font-semibold whitespace-nowrap"
-                      style={{ fontFamily: "var(--font-mono)" }}
+                      style={{
+                        ...cellStyle,
+                        fontSize: 12,
+                        color: "var(--accent)",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        ...numFont,
+                      }}
                     >
                       €{exp.amount.toLocaleString("el-GR")}
                     </td>
-                    <td className="px-4 py-3">
+                    <td style={cellStyle}>
                       <button
                         onClick={() => handleDelete(exp.id)}
-                        className="text-ink-dim hover:text-danger transition-colors"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--text-tertiary)",
+                          cursor: "pointer",
+                          padding: 0,
+                          display: "inline-flex",
+                        }}
                       >
                         <svg
-                          className="w-4 h-4"
+                          style={{ width: 16, height: 16 }}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -342,17 +452,29 @@ export default function TabExpenses({ property, userId }: Props) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-frame bg-elevated/30">
+                <tr style={{ borderTop: "1px solid var(--border-subtle)" }}>
                   <td
                     colSpan={3}
-                    className="px-4 py-3 text-xs text-ink-muted uppercase tracking-wider text-right"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      ...cellStyle,
+                      fontSize: 11,
+                      color: "var(--text-secondary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      textAlign: "right",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     Σύνολο
                   </td>
                   <td
-                    className="px-4 py-3 text-sm text-gold font-semibold"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      ...cellStyle,
+                      fontSize: 12,
+                      color: "var(--accent)",
+                      fontWeight: 600,
+                      ...numFont,
+                    }}
                   >
                     €{total.toLocaleString("el-GR")}
                   </td>

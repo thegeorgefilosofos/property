@@ -8,6 +8,7 @@ import {
   type Property,
   type PropertyData,
 } from "@/lib/types";
+import { T, Card, SecHdr, Btn, EmptyState } from "@/components/Theme";
 
 interface Props {
   property: Property;
@@ -123,31 +124,66 @@ export default function TabBills({ property, userId }: Props) {
   const pending = bills.filter((b) => !b.paid);
   const totalPending = pending.reduce((s, b) => s + b.amount, 0);
 
-  const labelClass = "text-xs text-ink-muted uppercase tracking-wider block mb-1.5";
-  const inputClass =
-    "w-full bg-elevated border border-frame rounded-lg px-3.5 py-2.5 text-ink text-sm focus:outline-none focus:border-gold transition-colors";
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    display: "block",
+    marginBottom: 6,
+    fontFamily: T.font.mono,
+  };
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.inner,
+    padding: "10px 14px",
+    color: "var(--text-primary)",
+    fontSize: 12,
+    fontFamily: T.font.sans,
+    outline: "none",
+  };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
-          <h2 className="font-display text-2xl text-ink">Λογαριασμοί</h2>
+          <h2
+            style={{
+              fontFamily: T.font.sans,
+              fontWeight: 800,
+              fontSize: 22,
+              color: "var(--text-primary)",
+              margin: 0,
+            }}
+          >
+            Λογαριασμοί
+          </h2>
           {totalPending > 0 && (
             <p
-              className="text-xs text-danger mt-0.5"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                color: "var(--negative)",
+                marginTop: 2,
+                fontFamily: T.font.mono,
+                fontVariantNumeric: "tabular-nums",
+              }}
             >
-              {pending.length} εκκρεμείς · €{totalPending.toLocaleString("el-GR")}
+              {pending.length} εκκρεμείς · €
+              {totalPending.toLocaleString("el-GR")}
             </p>
           )}
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 bg-gold hover:bg-gold-light text-canvas text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
+        <Btn variant="primary" onClick={() => setShowForm((v) => !v)}>
           <svg
-            className="w-3.5 h-3.5"
+            style={{ width: 14, height: 14 }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -160,161 +196,201 @@ export default function TabBills({ property, userId }: Props) {
             />
           </svg>
           Νέος Λογαριασμός
-        </button>
+        </Btn>
       </div>
 
       {showForm && (
-        <form
-          onSubmit={handleAdd}
-          className="bg-surface border border-frame rounded-xl p-5 space-y-4"
-        >
-          <h3
-            className="text-xs text-ink-muted uppercase tracking-wider"
-            style={{ fontFamily: "var(--font-mono)" }}
+        <Card>
+          <SecHdr label="Νέος Λογαριασμός" />
+          <form
+            onSubmit={handleAdd}
+            style={{ display: "flex", flexDirection: "column", gap: 16 }}
           >
-            Νέος Λογαριασμός
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Τύπος
-              </label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className={`${inputClass} cursor-pointer`}
-              >
-                {BILL_TYPES.map((t) => (
-                  <option key={t} value={t} className="bg-elevated">
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Εκδότης
-              </label>
-              <input
-                value={form.issuer}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, issuer: e.target.value }))
-                }
-                className={inputClass}
-                placeholder="Προαιρετικό"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ποσό (€)
-              </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={form.amount}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, amount: e.target.value }))
-                }
-                className={inputClass}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ημερομηνία
-              </label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, date: e.target.value }))
-                }
-                className={inputClass}
-              />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.paid}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, paid: e.target.checked }))
-              }
-              className="w-4 h-4 accent-gold"
-            />
-            <span
-              className="text-sm text-ink-muted"
-              style={{ fontFamily: "var(--font-mono)" }}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
             >
-              Έχει εξοφληθεί
-            </span>
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="flex-1 border border-frame text-ink-muted hover:text-ink text-sm py-2 rounded-lg transition-colors"
-              style={{ fontFamily: "var(--font-mono)" }}
+              <div>
+                <label style={labelStyle}>Τύπος</label>
+                <select
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, type: e.target.value }))
+                  }
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  {BILL_TYPES.map((t) => (
+                    <option
+                      key={t}
+                      value={t}
+                      style={{ background: "var(--bg-elevated)" }}
+                    >
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Εκδότης</label>
+                <input
+                  value={form.issuer}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, issuer: e.target.value }))
+                  }
+                  style={inputStyle}
+                  placeholder="Προαιρετικό"
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
             >
-              Ακύρωση
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 bg-gold hover:bg-gold-light text-canvas text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
-              style={{ fontFamily: "var(--font-mono)" }}
+              <div>
+                <label style={labelStyle}>Ποσό (€)</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, amount: e.target.value }))
+                  }
+                  style={inputStyle}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Ημερομηνία</label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, date: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+              }}
             >
-              {saving ? "Αποθήκευση…" : "Προσθήκη"}
-            </button>
-          </div>
-        </form>
+              <input
+                type="checkbox"
+                checked={form.paid}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, paid: e.target.checked }))
+                }
+                style={{ width: 16, height: 16, accentColor: "var(--accent)" }}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                  fontFamily: T.font.mono,
+                }}
+              >
+                Έχει εξοφληθεί
+              </span>
+            </label>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                style={{
+                  flex: 1,
+                  border: "1px solid var(--border-subtle)",
+                  background: "transparent",
+                  color: "var(--text-secondary)",
+                  fontSize: 12,
+                  padding: "8px 0",
+                  borderRadius: T.radius.inner,
+                  cursor: "pointer",
+                  transition: "color 0.15s",
+                  fontFamily: T.font.mono,
+                }}
+              >
+                Ακύρωση
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  background: "var(--accent)",
+                  color: "var(--accent-text)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "8px 0",
+                  borderRadius: T.radius.inner,
+                  border: "none",
+                  cursor: saving ? "not-allowed" : "pointer",
+                  opacity: saving ? 0.5 : 1,
+                  transition: "all 0.15s",
+                  fontFamily: T.font.mono,
+                }}
+              >
+                {saving ? "Αποθήκευση…" : "Προσθήκη"}
+              </button>
+            </div>
+          </form>
+        </Card>
       )}
 
       {bills.length === 0 ? (
-        <div className="bg-surface border border-frame rounded-xl p-10 text-center">
-          <p
-            className="text-ink-muted text-sm"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            Δεν υπάρχουν καταχωρημένοι λογαριασμοί
-          </p>
-        </div>
+        <Card>
+          <EmptyState title="Δεν υπάρχουν καταχωρημένοι λογαριασμοί" />
+        </Card>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {bills.map((bill) => (
             <div
               key={bill.id}
-              className={`flex items-center gap-3 bg-surface border rounded-xl px-4 py-3 transition-all ${
-                bill.paid ? "border-frame opacity-60" : "border-frame hover:border-frame-light"
-              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: T.radius.card,
+                padding: "12px 16px",
+                opacity: bill.paid ? 0.6 : 1,
+                transition: "all 0.15s",
+              }}
             >
               <button
                 onClick={() => togglePaid(bill.id)}
-                className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                  bill.paid
-                    ? "bg-success border-success"
-                    : "border-frame-light hover:border-gold"
-                }`}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  border: bill.paid
+                    ? "1px solid var(--positive)"
+                    : "1px solid var(--border-default)",
+                  background: bill.paid ? "var(--positive)" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
               >
                 {bill.paid && (
                   <svg
-                    className="w-3 h-3 text-canvas"
+                    style={{ width: 12, height: 12, color: "var(--accent-text)" }}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -329,46 +405,74 @@ export default function TabBills({ property, userId }: Props) {
                 )}
               </button>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span
-                    className="text-xs bg-frame px-2 py-0.5 rounded text-ink-muted"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 11,
+                      background: "var(--bg-overlay)",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      color: "var(--text-secondary)",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     {bill.type}
                   </span>
                   {bill.issuer !== bill.type && (
                     <span
-                      className="text-sm text-ink truncate"
-                      style={{ fontFamily: "var(--font-mono)" }}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text-primary)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontFamily: T.font.mono,
+                      }}
                     >
                       {bill.issuer}
                     </span>
                   )}
                 </div>
                 <p
-                  className="text-xs text-ink-muted mt-0.5"
-                  style={{ fontFamily: "var(--font-mono)" }}
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-secondary)",
+                    marginTop: 2,
+                    fontFamily: T.font.mono,
+                  }}
                 >
                   {bill.date}
                 </p>
               </div>
 
               <span
-                className={`text-sm font-semibold whitespace-nowrap ${
-                  bill.paid ? "text-ink-muted" : "text-gold"
-                }`}
-                style={{ fontFamily: "var(--font-mono)" }}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  color: bill.paid ? "var(--text-secondary)" : "var(--accent)",
+                  fontFamily: T.font.mono,
+                  fontVariantNumeric: "tabular-nums",
+                }}
               >
                 €{bill.amount.toLocaleString("el-GR")}
               </span>
 
               <button
                 onClick={() => handleDelete(bill.id)}
-                className="text-ink-dim hover:text-danger transition-colors ml-1"
+                style={{
+                  color: "var(--text-tertiary)",
+                  marginLeft: 4,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "color 0.15s",
+                  display: "flex",
+                }}
               >
                 <svg
-                  className="w-4 h-4"
+                  style={{ width: 16, height: 16 }}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Property } from "@/lib/types";
+import { T } from "@/components/Theme";
 import DashboardHeader from "./DashboardHeader";
 import AddPropertyModal from "./AddPropertyModal";
 import TabOverview from "./tabs/TabOverview";
@@ -84,8 +85,31 @@ export default function DashboardClient({ user, initialProperties }: Props) {
     }
   }
 
+  const addBtnStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "var(--accent)",
+    color: "var(--accent-text)",
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "10px 20px",
+    borderRadius: T.radius.inner,
+    border: "none",
+    cursor: "pointer",
+    transition: "background 0.15s ease",
+    fontFamily: T.font.mono,
+  };
+
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-base)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <DashboardHeader
         user={user}
         properties={properties}
@@ -99,10 +123,32 @@ export default function DashboardClient({ user, initialProperties }: Props) {
 
       {properties.length === 0 ? (
         /* Empty state */
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
-          <div className="w-16 h-16 rounded-2xl bg-surface border border-frame flex items-center justify-center">
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 24,
+            paddingLeft: 16,
+            paddingRight: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <svg
-              className="w-8 h-8 text-ink-dim"
+              style={{ width: 32, height: 32, color: "var(--text-tertiary)" }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -115,27 +161,39 @@ export default function DashboardClient({ user, initialProperties }: Props) {
               />
             </svg>
           </div>
-          <div className="text-center">
+          <div style={{ textAlign: "center" }}>
             <p
-              className="text-ink text-sm mb-1"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                color: "var(--text-primary)",
+                fontSize: 12,
+                marginBottom: 4,
+                fontFamily: T.font.mono,
+              }}
             >
               Δεν έχετε ακίνητα ακόμα
             </p>
             <p
-              className="text-ink-muted text-xs"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                color: "var(--text-secondary)",
+                fontSize: 11,
+                fontFamily: T.font.mono,
+              }}
             >
               Προσθέστε το πρώτο σας ακίνητο για να ξεκινήσετε
             </p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-gold hover:bg-gold-light text-canvas text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={addBtnStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--accent-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--accent)";
+            }}
           >
             <svg
-              className="w-4 h-4"
+              style={{ width: 16, height: 16 }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -153,30 +211,83 @@ export default function DashboardClient({ user, initialProperties }: Props) {
       ) : (
         <>
           {/* Tab bar */}
-          <div className="bg-surface border-b border-frame">
-            <div className="flex overflow-x-auto px-5">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative py-3.5 px-4 text-xs whitespace-nowrap transition-colors ${
-                    activeTab === tab.id
-                      ? "text-gold"
-                      : "text-ink-muted hover:text-ink"
-                  }`}
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold rounded-t-full" />
-                  )}
-                </button>
-              ))}
+          <div
+            style={{
+              background: "var(--bg-surface)",
+              borderBottom: "1px solid var(--border-subtle)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                overflowX: "auto",
+                paddingLeft: 20,
+                paddingRight: 20,
+              }}
+            >
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    style={{
+                      position: "relative",
+                      paddingTop: 14,
+                      paddingBottom: 14,
+                      paddingLeft: 16,
+                      paddingRight: 16,
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "color 0.15s ease",
+                      color: isActive
+                        ? "var(--accent)"
+                        : "var(--text-secondary)",
+                      fontFamily: T.font.mono,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.color = "var(--text-primary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                    }}
+                  >
+                    {tab.label}
+                    {isActive && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          background: "var(--accent)",
+                          borderTopLeftRadius: T.radius.pill,
+                          borderTopRightRadius: T.radius.pill,
+                        }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Tab content */}
-          <div className="flex-1 p-5 max-w-5xl w-full mx-auto">
+          <div
+            style={{
+              flex: 1,
+              padding: 20,
+              maxWidth: 1024,
+              width: "100%",
+              margin: "0 auto",
+            }}
+          >
             {renderTab()}
           </div>
         </>

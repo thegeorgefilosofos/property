@@ -134,15 +134,6 @@ const PROVIDERS = [
     ] as unknown as Tariff[],
   },
   {
-    value: 'volterra', label: 'Volterra', url: 'https://www.volterra.gr',
-    tariffs: [
-      { id: 'volt_easy',        name: 'Volterra Easy',          badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1610, kwh_night: null, fixed: 6.50, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },
-      { id: 'volt_stable',      name: 'Volterra Stable',        badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1490, kwh_night: null, fixed: 7.00, contract_months: 24, vat: 6, segment: 'residential', desc: 'Σταθερό 24 μήνες. Μέγιστη ασφάλεια τιμής.' },
-      // ── Επαγγελματικά ──────────────────────────────────────────────────
-      { id: 'volt_biz_stable', name: 'Volterra Business Stable', badge: 'ΜΠΛΕ', type: 'fixed', kwh_day: 0.1620, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό 12μηνο.' },
-    ] as unknown as Tariff[],
-  },
-  {
     value: 'nrg', label: 'NRG', url: 'https://www.nrg.gr',
     tariffs: [
       { id: 'nrg_now',          name: 'NRG Now Οικιακό',        badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1595, kwh_night: null, fixed: 6.90, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },

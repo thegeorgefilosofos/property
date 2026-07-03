@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CalendarEvent, Property, PropertyData } from "@/lib/types";
+import { T, EmptyState } from "@/components/Theme";
 
 interface Props {
   property: Property;
@@ -20,11 +21,27 @@ const EVENT_TYPES = [
   { value: "other", label: "Άλλο" },
 ] as const;
 
-const EVENT_COLORS: Record<CalendarEvent["type"], string> = {
-  reminder: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
-  payment: "text-red-400 bg-red-400/10 border-red-400/30",
-  visit: "text-blue-400 bg-blue-400/10 border-blue-400/30",
-  other: "text-ink-muted bg-frame border-frame-light",
+const EVENT_STYLES: Record<CalendarEvent["type"], CSSProperties> = {
+  reminder: {
+    color: "var(--warning)",
+    background: "var(--warning-soft)",
+    border: "1px solid var(--warning-border)",
+  },
+  payment: {
+    color: "var(--negative)",
+    background: "var(--negative-soft)",
+    border: "1px solid var(--negative-border)",
+  },
+  visit: {
+    color: "var(--info)",
+    background: "var(--info-soft)",
+    border: "1px solid var(--info-border)",
+  },
+  other: {
+    color: "var(--text-secondary)",
+    background: "var(--bg-overlay)",
+    border: "1px solid var(--border-default)",
+  },
 };
 
 export default function TabCalendar({ property, userId }: Props) {
@@ -124,49 +141,120 @@ export default function TabCalendar({ property, userId }: Props) {
   const upcoming = events.filter((e) => e.date >= today);
   const past = events.filter((e) => e.date < today);
 
-  const labelClass = "text-xs text-ink-muted uppercase tracking-wider block mb-1.5";
-  const inputClass =
-    "w-full bg-elevated border border-frame rounded-lg px-3.5 py-2.5 text-ink text-sm focus:outline-none focus:border-gold transition-colors";
+  const labelStyle: CSSProperties = {
+    display: "block",
+    marginBottom: 6,
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontFamily: T.font.mono,
+  };
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.inner,
+    padding: "10px 14px",
+    color: "var(--text-primary)",
+    fontSize: 12,
+    fontFamily: T.font.mono,
+    outline: "none",
+  };
+  const cardStyle: CSSProperties = {
+    background: "var(--bg-surface)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.card,
+  };
+  const sectionHdrStyle: CSSProperties = {
+    margin: 0,
+    marginBottom: 12,
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontFamily: T.font.mono,
+  };
 
   function EventRow({ ev }: { ev: CalendarEvent }) {
     return (
-      <div className="flex items-start gap-3 py-3 border-b border-frame last:border-0">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+          padding: "12px 0",
+          borderBottom: "1px solid var(--border-subtle)",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
             <span
-              className={`text-xs px-2 py-0.5 rounded border ${EVENT_COLORS[ev.type]}`}
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: T.radius.badge,
+                fontFamily: T.font.mono,
+                ...EVENT_STYLES[ev.type],
+              }}
             >
               {EVENT_TYPES.find((t) => t.value === ev.type)?.label}
             </span>
             <span
-              className="text-sm text-ink"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 12,
+                color: "var(--text-primary)",
+                fontFamily: T.font.mono,
+              }}
             >
               {ev.title}
             </span>
           </div>
           {ev.description && (
             <p
-              className="text-xs text-ink-muted mt-1"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                color: "var(--text-secondary)",
+                marginTop: 4,
+                fontFamily: T.font.mono,
+              }}
             >
               {ev.description}
             </p>
           )}
           <p
-            className="text-xs text-ink-dim mt-1"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              fontSize: 11,
+              color: "var(--text-tertiary)",
+              marginTop: 4,
+              fontFamily: T.font.mono,
+              fontVariantNumeric: "tabular-nums",
+            }}
           >
             {ev.date}
           </p>
         </div>
         <button
           onClick={() => handleDelete(ev.id)}
-          className="text-ink-dim hover:text-danger transition-colors mt-0.5"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-tertiary)",
+            cursor: "pointer",
+            padding: 0,
+            marginTop: 2,
+            display: "inline-flex",
+          }}
         >
           <svg
-            className="w-4 h-4"
+            style={{ width: 16, height: 16 }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -184,16 +272,44 @@ export default function TabCalendar({ property, userId }: Props) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-ink">Ημερολόγιο</h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: T.font.sans,
+            fontWeight: 800,
+            fontSize: 22,
+            color: "var(--text-primary)",
+            margin: 0,
+          }}
+        >
+          Ημερολόγιο
+        </h2>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 bg-gold hover:bg-gold-light text-canvas text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "var(--accent)",
+            color: "var(--accent-text)",
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "6px 12px",
+            borderRadius: T.radius.inner,
+            border: "none",
+            cursor: "pointer",
+            fontFamily: T.font.mono,
+          }}
         >
           <svg
-            className="w-3.5 h-3.5"
+            style={{ width: 14, height: 14 }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -212,22 +328,35 @@ export default function TabCalendar({ property, userId }: Props) {
       {showForm && (
         <form
           onSubmit={handleAdd}
-          className="bg-surface border border-frame rounded-xl p-5 space-y-4"
+          style={{
+            ...cardStyle,
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
         >
           <h3
-            className="text-xs text-ink-muted uppercase tracking-wider"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              margin: 0,
+              fontSize: 11,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontFamily: T.font.mono,
+            }}
           >
             Νέο Γεγονός
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Τύπος
-              </label>
+              <label style={labelStyle}>Τύπος</label>
               <select
                 value={form.type}
                 onChange={(e) =>
@@ -236,75 +365,84 @@ export default function TabCalendar({ property, userId }: Props) {
                     type: e.target.value as CalendarEvent["type"],
                   }))
                 }
-                className={`${inputClass} cursor-pointer`}
+                style={{ ...inputStyle, cursor: "pointer" }}
               >
                 {EVENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value} className="bg-elevated">
+                  <option
+                    key={t.value}
+                    value={t.value}
+                    style={{ background: "var(--bg-elevated)" }}
+                  >
                     {t.label}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ημερομηνία
-              </label>
+              <label style={labelStyle}>Ημερομηνία</label>
               <input
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className={inputClass}
+                style={inputStyle}
               />
             </div>
           </div>
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Τίτλος
-            </label>
+            <label style={labelStyle}>Τίτλος</label>
             <input
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className={inputClass}
+              style={inputStyle}
               placeholder="π.χ. Ανανέωση ασφαλιστηρίου"
               required
             />
           </div>
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Σημείωση
-            </label>
+            <label style={labelStyle}>Σημείωση</label>
             <input
               value={form.description}
               onChange={(e) =>
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
-              className={inputClass}
+              style={inputStyle}
               placeholder="Προαιρετικά"
             />
           </div>
-          <div className="flex gap-3">
+          <div style={{ display: "flex", gap: 12 }}>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 border border-frame text-ink-muted hover:text-ink text-sm py-2 rounded-lg transition-colors"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                cursor: "pointer",
+                fontFamily: T.font.mono,
+              }}
             >
               Ακύρωση
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-gold hover:bg-gold-light text-canvas text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                background: "var(--accent)",
+                color: "var(--accent-text)",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                border: "none",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.5 : 1,
+                fontFamily: T.font.mono,
+              }}
             >
               {saving ? "Αποθήκευση…" : "Προσθήκη"}
             </button>
@@ -313,37 +451,22 @@ export default function TabCalendar({ property, userId }: Props) {
       )}
 
       {events.length === 0 ? (
-        <div className="bg-surface border border-frame rounded-xl p-10 text-center">
-          <p
-            className="text-ink-muted text-sm"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            Δεν υπάρχουν καταχωρημένα γεγονότα
-          </p>
+        <div style={cardStyle}>
+          <EmptyState title="Δεν υπάρχουν καταχωρημένα γεγονότα" />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {upcoming.length > 0 && (
-            <div className="bg-surface border border-frame rounded-xl p-5">
-              <h3
-                className="text-xs text-ink-muted uppercase tracking-wider mb-3"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Επερχόμενα ({upcoming.length})
-              </h3>
+            <div style={{ ...cardStyle, padding: 20 }}>
+              <h3 style={sectionHdrStyle}>Επερχόμενα ({upcoming.length})</h3>
               {upcoming.map((ev) => (
                 <EventRow key={ev.id} ev={ev} />
               ))}
             </div>
           )}
           {past.length > 0 && (
-            <div className="bg-surface border border-frame rounded-xl p-5 opacity-60">
-              <h3
-                className="text-xs text-ink-muted uppercase tracking-wider mb-3"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Παρελθόν ({past.length})
-              </h3>
+            <div style={{ ...cardStyle, padding: 20, opacity: 0.6 }}>
+              <h3 style={sectionHdrStyle}>Παρελθόν ({past.length})</h3>
               {past
                 .slice()
                 .reverse()

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Property } from "@/lib/types";
 import type { User } from "@supabase/supabase-js";
+import { T } from "@/components/Theme";
 
 interface Props {
   user: User;
@@ -46,25 +47,79 @@ export default function DashboardHeader({
   }
 
   return (
-    <header className="h-14 border-b border-frame bg-surface flex items-center px-5 gap-4 sticky top-0 z-40">
+    <header
+      style={{
+        height: 56,
+        borderBottom: "1px solid var(--border-subtle)",
+        background: "var(--bg-surface)",
+        display: "flex",
+        alignItems: "center",
+        paddingLeft: 20,
+        paddingRight: 20,
+        gap: 16,
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+      }}
+    >
       {/* Brand */}
-      <span className="font-display text-xl text-gold tracking-wide mr-auto">
+      <span
+        style={{
+          fontFamily: T.font.sans,
+          fontWeight: 800,
+          fontSize: 20,
+          color: "var(--accent)",
+          letterSpacing: "0.02em",
+          marginRight: "auto",
+        }}
+      >
         Property OS
       </span>
 
       {/* Property Switcher */}
       {properties.length > 0 && (
-        <div className="relative" ref={propRef}>
+        <div style={{ position: "relative" }} ref={propRef}>
           <button
             onClick={() => setPropOpen((v) => !v)}
-            className="flex items-center gap-2 bg-elevated border border-frame rounded-lg px-3 py-1.5 text-ink text-sm hover:border-frame-light transition-colors"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: T.radius.inner,
+              padding: "6px 12px",
+              color: "var(--text-primary)",
+              fontSize: 12,
+              cursor: "pointer",
+              transition: "border-color 0.15s ease",
+              fontFamily: T.font.mono,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-default)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+            }}
           >
-            <span className="max-w-[160px] truncate">
+            <span
+              style={{
+                maxWidth: 160,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {selectedProperty?.name ?? "—"}
             </span>
             <svg
-              className={`w-3.5 h-3.5 text-ink-muted transition-transform ${propOpen ? "rotate-180" : ""}`}
+              style={{
+                width: 14,
+                height: 14,
+                color: "var(--text-secondary)",
+                transition: "transform 0.15s ease",
+                transform: propOpen ? "rotate(180deg)" : "none",
+              }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -79,25 +134,67 @@ export default function DashboardHeader({
           </button>
 
           {propOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-56 bg-elevated border border-frame rounded-lg shadow-xl overflow-hidden z-50">
-              {properties.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    onSelectProperty(p);
-                    setPropOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-frame ${
-                    p.id === selectedProperty?.id
-                      ? "text-gold"
-                      : "text-ink"
-                  }`}
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  <span className="block truncate">{p.name}</span>
-                  <span className="text-xs text-ink-muted">{p.prop_type}</span>
-                </button>
-              ))}
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "100%",
+                marginTop: 6,
+                width: 224,
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: T.radius.inner,
+                boxShadow: "var(--shadow-xl)",
+                overflow: "hidden",
+                zIndex: 50,
+              }}
+            >
+              {properties.map((p) => {
+                const isActive = p.id === selectedProperty?.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onSelectProperty(p);
+                      setPropOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "10px 16px",
+                      fontSize: 12,
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "background 0.15s ease",
+                      color: isActive ? "var(--accent)" : "var(--text-primary)",
+                      fontFamily: T.font.mono,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--bg-overlay)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.name}
+                    </span>
+                    <span
+                      style={{ fontSize: 11, color: "var(--text-secondary)" }}
+                    >
+                      {p.prop_type}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -106,11 +203,30 @@ export default function DashboardHeader({
       {/* Add Property */}
       <button
         onClick={onAddProperty}
-        className="flex items-center gap-1.5 bg-gold hover:bg-gold-light text-canvas text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-        style={{ fontFamily: "var(--font-mono)" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "var(--accent)",
+          color: "var(--accent-text)",
+          fontSize: 11,
+          fontWeight: 600,
+          padding: "6px 12px",
+          borderRadius: T.radius.inner,
+          border: "none",
+          cursor: "pointer",
+          transition: "background 0.15s ease",
+          fontFamily: T.font.mono,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--accent-hover)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--accent)";
+        }}
       >
         <svg
-          className="w-3.5 h-3.5"
+          style={{ width: 14, height: 14 }}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -126,30 +242,91 @@ export default function DashboardHeader({
       </button>
 
       {/* User Menu */}
-      <div className="relative" ref={userRef}>
+      <div style={{ position: "relative" }} ref={userRef}>
         <button
           onClick={() => setUserOpen((v) => !v)}
-          className="w-8 h-8 rounded-full bg-elevated border border-frame flex items-center justify-center text-xs text-gold font-semibold hover:border-gold transition-colors"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: T.radius.pill,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border-subtle)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 11,
+            color: "var(--accent)",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "border-color 0.15s ease",
+            fontFamily: T.font.mono,
+          }}
           title={user.email}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--accent)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--border-subtle)";
+          }}
         >
           {user.email?.charAt(0).toUpperCase()}
         </button>
 
         {userOpen && (
-          <div className="absolute right-0 top-full mt-1.5 w-52 bg-elevated border border-frame rounded-lg shadow-xl overflow-hidden z-50">
-            <div className="px-4 py-3 border-b border-frame">
+          <div
+            style={{
+              position: "absolute",
+              right: 0,
+              top: "100%",
+              marginTop: 6,
+              width: 208,
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: T.radius.inner,
+              boxShadow: "var(--shadow-xl)",
+              overflow: "hidden",
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                padding: "12px 16px",
+                borderBottom: "1px solid var(--border-subtle)",
+              }}
+            >
               <p
-                className="text-xs text-ink-muted truncate"
-                style={{ fontFamily: "var(--font-mono)" }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontFamily: T.font.mono,
+                }}
               >
                 {user.email}
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-2.5 text-sm text-danger hover:bg-frame transition-colors"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "10px 16px",
+                fontSize: 12,
+                color: "var(--negative)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.15s ease",
+                fontFamily: T.font.mono,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bg-overlay)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               Αποσύνδεση
             </button>
