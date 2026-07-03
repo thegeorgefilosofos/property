@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd } from '@/components/Theme';
+import { T, fd, KPIGrid } from '@/components/Theme';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
 
 interface Props { propertyId: string; userId: string; }
@@ -153,6 +153,8 @@ export default function TabDocuments({ propertyId, userId }: Props) {
 
   const photoCount = rows.filter(r => r.kind === 'photo').length;
   const docCount   = rows.filter(r => r.kind === 'document').length;
+  const totalSize  = rows.reduce((s, r) => s + (r.size_bytes || 0), 0);
+  const supplierCount = new Set(rows.map(r => r.supplier).filter(Boolean)).size;
 
   // Ομαδοποίηση εγγράφων ανά κατηγορία ή ανά πάροχο
   const grouped: Record<string, DocRow[]> = {};
@@ -191,6 +193,14 @@ export default function TabDocuments({ propertyId, userId }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Σύνοψη αρχείου */}
+      <KPIGrid items={[
+        { label: 'Φωτογραφίες',      value: String(photoCount) },
+        { label: 'Έγγραφα',          value: String(docCount) },
+        { label: 'Πάροχοι',          value: String(supplierCount) },
+        { label: 'Συνολικός Χώρος',  value: totalSize > 0 ? fmtSize(totalSize) : '0 B' },
+      ]}/>
 
       {/* Upload card */}
       <div style={card}>
