@@ -3,14 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
+import { T, fe } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 const MGMT_TYPES = [
   { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
@@ -42,6 +37,7 @@ const histInputStyle = (isCurrent: boolean, isHovered: boolean): React.CSSProper
   color: 'var(--text-primary)',
   fontSize: 11,
   fontFamily: T.font.mono,
+  fontVariantNumeric: 'tabular-nums',
   outline: 'none',
   textAlign: 'center',
   boxSizing: 'border-box',
@@ -203,7 +199,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -248,7 +244,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                   cursor: 'pointer', position: 'relative',
                 }}>
                 {isCur && <div style={{ position: 'absolute', top: 8, right: 10, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>}
-                <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, lineHeight: 1, color: isCur ? 'var(--accent)' : isHov ? 'var(--text-primary)' : 'var(--text-primary)', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isCur ? 'var(--accent)' : isHov ? 'var(--text-primary)' : 'var(--text-primary)', marginBottom: 4 }}>
                   {opt.costLabel}
                 </div>
                 <div style={{ fontSize: 11, fontFamily: T.font.sans, color: isCur ? 'var(--text-primary)' : 'var(--text-secondary)', lineHeight: 1.3 }}>
@@ -290,7 +286,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               ].map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 5, fontFamily: T.font.sans }}>{k.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
                 </div>
               ))}
             </div>
@@ -309,7 +305,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={addExtra}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 38, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>
@@ -333,7 +329,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>{fe(parseFloat(e.amount))}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(e.amount))}</span>
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
                   style={{ fontSize: 10, color: 'var(--info)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
@@ -351,7 +347,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {totalExtras > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12 }}>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο έκτακτων εισφορών</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>{fe(totalExtras)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalExtras)}</span>
           </div>
         )}
       </div>
@@ -370,7 +366,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(212,175,66,0.4)', pointerEvents: 'none' }}>
-              <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, borderRadius: 3 }}>
+              <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
                 μ.ο. {monthlyAvg.toFixed(0)}
               </span>
             </div>
@@ -388,7 +384,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'pointer' }}
                 onMouseEnter={() => setHoveredMonth(i)}
                 onMouseLeave={() => setHoveredMonth(null)}>
-                <div style={{ fontSize: 7, fontFamily: T.font.mono, height: 12, display: 'flex', alignItems: 'flex-end', color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 7, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end', color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
                   {val > 0 ? Math.round(val) : ''}
                 </div>
                 <div style={{ width: '100%', height: `${Math.max(pct * 48, 2)}px`, background: barBg, borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
@@ -438,7 +434,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: T.font.mono }}>{k.value}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -458,8 +454,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{r.label}</span>
                 <div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(r.amount)} / μήνα</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.mono }}>{fe(r.amount * 12)} / έτος</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount)} / μήνα</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
               <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
@@ -470,8 +466,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο Κοινοχρήστων</span>
             <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(totalCommon)} / μήνα</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginTop: 3 }}>{fe(totalCommon * 12)} / έτος</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalCommon)} / μήνα</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalCommon * 12)} / έτος</div>
             </div>
           </div>
         </div>
