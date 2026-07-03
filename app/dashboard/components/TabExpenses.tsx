@@ -138,7 +138,7 @@ function InfoRow({ label, value, color = 'var(--text-primary)' }: { label: strin
   return (
     <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
       <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto', sans-serif" }}>{label}</span>
-      <span style={{ fontSize:14, fontWeight:700, color, fontFamily:"'Roboto Mono', monospace" }}>{value}</span>
+      <span style={{ fontSize:14, fontWeight:700, color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
 }
@@ -190,7 +190,7 @@ function InstallmentCalc({ amount, installments, interestRate, startDate }: { am
           { label:'Εξόφληση', value:payoff.toLocaleDateString('el-GR',{month:'long',year:'numeric'}), color:'var(--info)' },
         ].map((k,i) => (
           <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:6, padding:'8px 10px' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
             <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
           </div>
         ))}
@@ -331,7 +331,7 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
         <button
           onClick={() => inputRef.current?.click()}
           disabled={scanning}
-          style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'#fff', fontSize:11, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
+          style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
           {scanning ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation:'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -427,7 +427,7 @@ function ExpenseForm({
         <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate',v)} options={VAT_RATES} />
         <div>
           <label style={labelStyle}>ΦΠΑ Ποσό</label>
-          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--warning)', fontFamily:"'Roboto Mono', monospace" }}>
+          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--warning)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
             {form.vat_amount ? `${form.vat_amount} €` : '—'}
           </div>
         </div>
@@ -458,7 +458,7 @@ function ExpenseForm({
           <NumberInput label="Cashback %" value={form.cashback_pct} onChange={v => sf('cashback_pct',v)} suffix="%" step={0.1} max={100} />
           <div>
             <label style={labelStyle}>Cashback Ποσό</label>
-            <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace" }}>
+            <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
               {form.cashback_amount ? `+${form.cashback_amount} €` : '—'}
             </div>
           </div>
@@ -517,7 +517,7 @@ function ExpenseForm({
           Ακύρωση
         </button>
         <button onClick={onSave} disabled={saving || !form.description || !form.amount}
-          style={{ background:isEdit?'var(--info)':'var(--accent)', color:'#fff', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Google Sans', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
+          style={{ background:isEdit?'var(--info)':'var(--accent)', color:isEdit?'#fff':'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Google Sans', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
           {saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
         </button>
       </div>
@@ -549,11 +549,11 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
             {info.label}
           </div>
           <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-            <span style={{ fontSize:16, fontWeight:700, color: over ? 'var(--negative)' : 'var(--text-primary)', fontFamily:"'Roboto Mono', monospace" }}>
+            <span style={{ fontSize:16, fontWeight:700, color: over ? 'var(--negative)' : 'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
               {fmtEur0(spent)}
             </span>
             {budget > 0 && (
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace" }}>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
                 / {fmtEur0(budget)}
               </span>
             )}
@@ -561,7 +561,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           {mom !== null && (
-            <span style={{ fontSize:10, fontWeight:500, color: mom > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily:"'Roboto Mono', monospace" }}>
+            <span style={{ fontSize:10, fontWeight:500, color: mom > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
               {mom > 0 ? '+' : ''}{mom.toFixed(0)}% vs πέρσι
             </span>
           )}
@@ -570,10 +570,10 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
               <input
                 type="number" value={val} onChange={e => setVal(e.target.value)}
                 autoFocus
-                style={{ width:72, height:28, border:'1px solid var(--accent)', borderRadius:4, background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:12, padding:'0 8px', outline:'none', fontFamily:"'Roboto Mono', monospace" }}
+                style={{ width:72, height:28, border:'1px solid var(--accent)', borderRadius:4, background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:12, padding:'0 8px', outline:'none', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}
               />
               <button onClick={() => { onSetBudget(parseFloat(val)||0); setEditing(false); }}
-                style={{ height:28, padding:'0 8px', borderRadius:4, border:'none', background:'var(--accent)', color:'#fff', fontSize:11, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+                style={{ height:28, padding:'0 8px', borderRadius:4, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:11, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
                 OK
               </button>
             </div>
@@ -598,7 +598,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
             <span style={{ fontSize:10, color: over ? 'var(--negative)' : remaining < budget*0.1 ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>
               {over ? `Υπέρβαση ${fmtEur0(spent-budget)}` : `Απομένουν ${fmtEur0(remaining)}`}
             </span>
-            <span style={{ fontSize:10, fontWeight:600, color:barColor, fontFamily:"'Roboto Mono', monospace" }}>
+            <span style={{ fontSize:10, fontWeight:600, color:barColor, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
               {pct.toFixed(0)}%
             </span>
           </>
@@ -1421,7 +1421,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             {recurringReminders.slice(0,6).map((e, i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:'6px 12px' }}>
                 <span style={{ fontSize:12, color:'var(--text-primary)', fontFamily:"'Roboto', sans-serif" }}>{e.description}</span>
-                <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace" }}>{fmtEur(e.amount)}</span>
+                <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(e.amount)}</span>
                 <button onClick={async () => {
                   await supabase.from('expenses').insert({
                     property_id:propertyId, user_id:userId,
@@ -1442,7 +1442,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     appliance_lease_monthly:null, notes:null,
                   });
                   notify('Καταχωρήθηκε'); load();
-                }} style={{ height:24, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'#fff', fontSize:10, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+                }} style={{ height:24, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
                   + Καταχώρηση
                 </button>
               </div>
@@ -1500,7 +1500,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             Εξαγωγή PDF
           </button>
           <button onClick={() => { setShowForm(v=>!v); setEditingId(null); }}
-            style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'#fff', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
+            style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
             {showForm ? 'Κλείσιμο' : '+ Νέα Δαπάνη'}
           </button>
         </div>
@@ -1520,14 +1520,14 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           type="number" value={quickAmt} onChange={e=>setQuickAmt(e.target.value)}
           placeholder="Ποσό €"
           onKeyDown={e=>{ if(e.key==='Enter'&&quickDesc.trim()) quickSave(); }}
-          style={{ flex:1, minWidth:90, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Roboto Mono', monospace", outline:'none' }}
+          style={{ flex:1, minWidth:90, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', outline:'none' }}
         />
         <select value={quickGroup} onChange={e=>setQuickGroup(e.target.value)}
           style={{ flex:2, minWidth:130, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 8px', color:'var(--text-primary)', fontSize:12, fontFamily:"'Roboto', sans-serif", outline:'none' }}>
           {Object.entries(EXPENSE_GROUPS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
         <button onClick={quickSave} disabled={quickSaving||!quickDesc.trim()||!quickAmt}
-          style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', background:'var(--accent)', color:'#fff', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
+          style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
           {quickSaving?'...':'Αποθήκευση'}
         </button>
         <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif", flexShrink:0 }}>Enter</span>
@@ -1551,7 +1551,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           { label:'Σύνολο ΦΠΑ',          value:fmtEur(totalVat),      color:'var(--accent)' },
         ].map((k,i) => (
           <div key={i} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 14px' }}>
-            <div style={{ fontSize:15, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", letterSpacing:'-0.5px', marginBottom:4 }}>{k.value}</div>
+            <div style={{ fontSize:15, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.5px', marginBottom:4 }}>{k.value}</div>
             <div style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
           </div>
         ))}
@@ -1568,16 +1568,16 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 </div>
                 <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Roboto Mono', monospace" }}>{fmtEur(yoyData.thisYTD)}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(yoyData.thisYTD)}</div>
                     <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>{yoyData.thisYear}</div>
                   </div>
                   <div style={{ fontSize:10, color:'var(--text-tertiary)' }}>vs</div>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace" }}>{fmtEur(yoyData.lastYTD)}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(yoyData.lastYTD)}</div>
                     <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>{yoyData.lastYear}</div>
                   </div>
                   {yoyData.change !== null && (
-                    <div style={{ fontSize:13, fontWeight:700, color:yoyData.change>0?'var(--negative)':'var(--positive)', fontFamily:"'Roboto Mono', monospace" }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:yoyData.change>0?'var(--negative)':'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
                       {yoyData.change>0?'+':''}{yoyData.change.toFixed(1)}%
                     </div>
                   )}
@@ -1591,7 +1591,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 Cashback Φέτος
               </div>
               <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
-                <div style={{ fontSize:16, fontWeight:700, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace" }}>+{fmtEur(cashbackStats.ytdCashback)}</div>
+                <div style={{ fontSize:16, fontWeight:700, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>+{fmtEur(cashbackStats.ytdCashback)}</div>
                 <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto', sans-serif" }}>{cashbackStats.cashbackCount} αγορές</div>
                 {cashbackStats.bestCashback && (
                   <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>
@@ -1775,7 +1775,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                   Αναλύσεις & Ειδοποιήσεις
                 </span>
                 {cards.some(c=>c.urgent) && (
-                  <span style={{ fontSize:9, fontWeight:700, color:'var(--negative)', background:'rgba(239,68,68,0.1)', padding:'2px 8px', borderRadius:10, fontFamily:"'Google Sans', sans-serif" }}>
+                  <span style={{ fontSize:9, fontWeight:700, color:'var(--negative)', background:'var(--negative-soft)', padding:'2px 8px', borderRadius:10, fontFamily:"'Google Sans', sans-serif" }}>
                     {cards.filter(c=>c.urgent).length} επείγοντα
                   </span>
                 )}
@@ -1796,7 +1796,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {card.title}
                     </span>
                   </div>
-                  <div style={{ fontSize:14, fontWeight:700, color:card.accent, fontFamily:"'Roboto Mono', monospace", marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:card.accent, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {card.value}
                   </div>
                   <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif", lineHeight:1.4 }}>
@@ -1825,7 +1825,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {overBudgetGroups.length} ομάδες σε υπέρβαση
                     </span>
                   )}
-                  <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace" }}>
+                  <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
                     {fmtEur0(totalSpent)} / {fmtEur0(totalBudget)}
                   </span>
                 </div>
@@ -1876,7 +1876,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               { label:'Εκτιμώμενος Φόρος (15%)', value:fmtEur(deductible*0.15), color:'var(--warning)', sub:'Εκτίμηση βάσει εκπιπτόμενων' },
             ].map((k,i) => (
               <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'14px 16px' }}>
-                <div style={{ fontSize:17, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", marginBottom:4 }}>{k.value}</div>
+                <div style={{ fontSize:17, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{k.value}</div>
                 <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:2 }}>{k.label}</div>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>{k.sub}</div>
               </div>
@@ -1899,8 +1899,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {EXPENSE_GROUPS[g]?.label||g}
                     </div>
                   </td>
-                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontWeight:700, color:'var(--text-primary)' }}>{fmtEur(row.amount)}</td>
-                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", color:'var(--warning)' }}>{row.vat>0?fmtEur(row.vat):'—'}</td>
+                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:'var(--text-primary)' }}>{fmtEur(row.amount)}</td>
+                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--warning)' }}>{row.vat>0?fmtEur(row.vat):'—'}</td>
                   <td style={{ padding:'9px 10px' }}>
                     <span style={{ fontSize:10, fontWeight:500, padding:'3px 10px', borderRadius:20, fontFamily:"'Google Sans', sans-serif", background:row.deductible?'var(--positive-dim)':'var(--bg-surface)', color:row.deductible?'var(--positive)':'var(--text-tertiary)'                    }}>
                       {row.deductible ? 'Εκπιπτόμενη' : 'Μη εκπιπτόμενη'}
@@ -1981,10 +1981,10 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                         <div style={{ width:80, height:4, background:'var(--border-subtle)', borderRadius:2, overflow:'hidden' }}>
                           <div style={{ height:'100%', width:`${pct}%`, background:over?'var(--negative)':pct>80?'var(--warning)':'var(--positive)', borderRadius:2 }} />
                         </div>
-                        <span style={{ fontSize:10, color:over?'var(--negative)':'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace" }}>{pct.toFixed(0)}%</span>
+                        <span style={{ fontSize:10, color:over?'var(--negative)':'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{pct.toFixed(0)}%</span>
                       </div>
                     )}
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--negative)', fontFamily:"'Roboto Mono', monospace" }}>{fmtEur(groupTotal)}</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'var(--negative)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(groupTotal)}</span>
                   </div>
                 </div>
                 <div style={{ overflowX:'auto' }}>
@@ -2039,12 +2039,12 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                 <div>{pm?.label||'—'}</div>
                                 {e.installments && <div style={{ fontSize:10, color:'var(--text-tertiary)' }}>{e.installments} δόσεις</div>}
                               </td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", color:'var(--warning)', fontSize:12 }}>
+                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--warning)', fontSize:12 }}>
                                 {e.vat_amount ? fmtEur(e.vat_amount) : '—'}
                                 {e.vat_rate && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>{e.vat_rate}%</div>}
                               </td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", color:'var(--positive)', fontSize:12 }}>{e.cashback_amount ? `+${fmtEur(e.cashback_amount)}` : '—'}</td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
+                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--positive)', fontSize:12 }}>{e.cashback_amount ? `+${fmtEur(e.cashback_amount)}` : '—'}</td>
+                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
                                 {fmtEur(e.amount)}
                                 {e.original_price && e.original_price > e.amount && <div style={{ fontSize:10, color:'var(--positive)', textDecoration:'line-through', fontWeight:400 }}>{fmtEur(e.original_price)}</div>}
                               </td>
@@ -2072,7 +2072,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                   </button>
                                   <button onClick={() => del(e.id)}
                                     style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-tertiary)', cursor:'pointer' }}
-                                    onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(239,68,68,0.08)';ev.currentTarget.style.color='var(--negative)';ev.currentTarget.style.borderColor='var(--negative)';}}
+                                    onMouseEnter={ev=>{ev.currentTarget.style.background='var(--negative-soft)';ev.currentTarget.style.color='var(--negative)';ev.currentTarget.style.borderColor='var(--negative)';}}
                                     onMouseLeave={ev=>{ev.currentTarget.style.background='transparent';ev.currentTarget.style.color='var(--text-tertiary)';ev.currentTarget.style.borderColor='var(--border-subtle)';}}>
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                   </button>
@@ -2100,7 +2100,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 { label:'Εκπιπτόμενες', value:fmtEur(deductible), color:'var(--positive)' },
               ].map((item,i) => (
                 <span key={i} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto', sans-serif" }}>
-                  {item.label}: <strong style={{ color:item.color, fontFamily:"'Roboto Mono', monospace" }}>{item.value}</strong>
+                  {item.label}: <strong style={{ color:item.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{item.value}</strong>
                 </span>
               ))}
             </div>
