@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PROPERTY_TYPES, type Property } from "@/lib/types";
+import { T } from "@/components/Theme";
 
 interface Props {
   property: Property;
@@ -98,51 +99,96 @@ export default function TabSettings({
     }
   }
 
-  const labelClass = "text-xs text-ink-muted uppercase tracking-wider block mb-1.5";
-  const inputClass =
-    "w-full bg-elevated border border-frame rounded-lg px-3.5 py-2.5 text-ink text-sm focus:outline-none focus:border-gold transition-colors";
+  const labelStyle: CSSProperties = {
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    display: "block",
+    marginBottom: 6,
+    fontFamily: T.font.mono,
+  };
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.inner,
+    padding: "10px 14px",
+    color: "var(--text-primary)",
+    fontSize: 12,
+    fontFamily: T.font.mono,
+    outline: "none",
+  };
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <h2 className="font-display text-2xl text-ink">Ρυθμίσεις</h2>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        maxWidth: 512,
+      }}
+    >
+      <h2
+        style={{
+          fontFamily: T.font.sans,
+          fontWeight: 800,
+          fontSize: 22,
+          color: "var(--text-primary)",
+          margin: 0,
+        }}
+      >
+        Ρυθμίσεις
+      </h2>
 
       {/* Edit form */}
-      <div className="bg-surface border border-frame rounded-xl p-5">
+      <div
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: T.radius.card,
+          padding: 20,
+        }}
+      >
         <h3
-          className="text-xs text-ink-muted uppercase tracking-wider mb-5"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            fontSize: 11,
+            color: "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginTop: 0,
+            marginBottom: 20,
+            fontFamily: T.font.mono,
+          }}
         >
           Στοιχεία Ακινήτου
         </h3>
-        <form onSubmit={handleSave} className="space-y-4">
+        <form
+          onSubmit={handleSave}
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Όνομα *
-            </label>
+            <label style={labelStyle}>Όνομα *</label>
             <input
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
-              className={inputClass}
+              style={inputStyle}
             />
           </div>
 
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Τύπος
-            </label>
+            <label style={labelStyle}>Τύπος</label>
             <select
               value={form.prop_type}
               onChange={(e) => update("prop_type", e.target.value)}
-              className={`${inputClass} cursor-pointer`}
+              style={{ ...inputStyle, cursor: "pointer" }}
             >
               {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t} className="bg-elevated">
+                <option
+                  key={t}
+                  value={t}
+                  style={{ background: "var(--bg-elevated)" }}
+                >
                   {t}
                 </option>
               ))}
@@ -150,65 +196,64 @@ export default function TabSettings({
           </div>
 
           <div>
-            <label
-              className={labelClass}
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              Διεύθυνση
-            </label>
+            <label style={labelStyle}>Διεύθυνση</label>
             <input
               value={form.address}
               onChange={(e) => update("address", e.target.value)}
-              className={inputClass}
+              style={inputStyle}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Τ.Μ.
-              </label>
+              <label style={labelStyle}>Τ.Μ.</label>
               <input
                 type="number"
                 min="1"
                 value={form.sqm}
                 onChange={(e) => update("sqm", e.target.value)}
-                className={inputClass}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label
-                className={labelClass}
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ιδιοκτησία %
-              </label>
+              <label style={labelStyle}>Ιδιοκτησία %</label>
               <input
                 type="number"
                 min="1"
                 max="100"
                 value={form.ownership}
                 onChange={(e) => update("ownership", e.target.value)}
-                className={inputClass}
+                style={inputStyle}
               />
             </div>
           </div>
 
           {error && (
             <p
-              className="text-xs text-danger"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                color: "var(--negative)",
+                margin: 0,
+                fontFamily: T.font.mono,
+              }}
             >
               {error}
             </p>
           )}
           {saveMsg && (
             <p
-              className="text-xs text-success"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                color: "var(--positive)",
+                margin: 0,
+                fontFamily: T.font.mono,
+              }}
             >
               {saveMsg}
             </p>
@@ -217,8 +262,19 @@ export default function TabSettings({
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-gold hover:bg-gold-light text-canvas font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              width: "100%",
+              background: "var(--accent)",
+              color: "var(--accent-text)",
+              fontWeight: 600,
+              fontSize: 12,
+              padding: "10px 0",
+              borderRadius: T.radius.inner,
+              border: "none",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.5 : 1,
+              fontFamily: T.font.mono,
+            }}
           >
             {saving ? "Αποθήκευση…" : "Αποθήκευση Αλλαγών"}
           </button>
@@ -226,16 +282,35 @@ export default function TabSettings({
       </div>
 
       {/* Danger zone */}
-      <div className="bg-surface border border-danger/30 rounded-xl p-5">
+      <div
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--negative-border)",
+          borderRadius: T.radius.card,
+          padding: 20,
+        }}
+      >
         <h3
-          className="text-xs text-danger uppercase tracking-wider mb-3"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            fontSize: 11,
+            color: "var(--negative)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginTop: 0,
+            marginBottom: 12,
+            fontFamily: T.font.mono,
+          }}
         >
           Επικίνδυνη Ζώνη
         </h3>
         <p
-          className="text-xs text-ink-muted mb-4"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            fontSize: 11,
+            color: "var(--text-secondary)",
+            marginTop: 0,
+            marginBottom: 16,
+            fontFamily: T.font.mono,
+          }}
         >
           Η διαγραφή ακινήτου είναι μη αναστρέψιμη. Όλα τα δεδομένα θα χαθούν.
         </p>
@@ -243,32 +318,65 @@ export default function TabSettings({
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="text-sm text-danger border border-danger/40 hover:bg-danger/10 px-4 py-2 rounded-lg transition-colors"
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{
+              fontSize: 12,
+              color: "var(--negative)",
+              border: "1px solid var(--negative-border)",
+              padding: "8px 16px",
+              borderRadius: T.radius.inner,
+              background: "transparent",
+              cursor: "pointer",
+              fontFamily: T.font.mono,
+            }}
           >
             Διαγραφή Ακινήτου
           </button>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <p
-              className="text-xs text-danger font-semibold"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 11,
+                color: "var(--negative)",
+                fontWeight: 600,
+                margin: 0,
+                fontFamily: T.font.mono,
+              }}
             >
               Είστε σίγουροι; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
             </p>
-            <div className="flex gap-3">
+            <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="flex-1 border border-frame text-ink-muted hover:text-ink text-sm py-2 rounded-lg transition-colors"
-                style={{ fontFamily: "var(--font-mono)" }}
+                style={{
+                  flex: 1,
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                  fontSize: 12,
+                  padding: "8px 0",
+                  borderRadius: T.radius.inner,
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontFamily: T.font.mono,
+                }}
               >
                 Ακύρωση
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 bg-danger hover:bg-red-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
-                style={{ fontFamily: "var(--font-mono)" }}
+                style={{
+                  flex: 1,
+                  background: "var(--negative)",
+                  color: "#ffffff",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "8px 0",
+                  borderRadius: T.radius.inner,
+                  border: "none",
+                  cursor: deleting ? "not-allowed" : "pointer",
+                  opacity: deleting ? 0.5 : 1,
+                  fontFamily: T.font.mono,
+                }}
               >
                 {deleting ? "Διαγραφή…" : "Ναι, Διαγραφή"}
               </button>

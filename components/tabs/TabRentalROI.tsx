@@ -1,55 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Property, PropertyData, RentalInfo } from "@/lib/types";
+import { T, Card, KPIGrid, EmptyState, type KPIItem } from "@/components/Theme";
 
 interface Props {
   property: Property;
   userId: string;
-}
-
-function MetricCard({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`border rounded-xl p-5 ${
-        highlight
-          ? "bg-gold/5 border-gold/30"
-          : "bg-elevated border-frame"
-      }`}
-    >
-      <p
-        className="text-xs text-ink-muted uppercase tracking-wider mb-2"
-        style={{ fontFamily: "var(--font-mono)" }}
-      >
-        {label}
-      </p>
-      <p
-        className={`text-xl font-semibold ${highlight ? "text-gold" : "text-ink"}`}
-        style={{ fontFamily: "var(--font-mono)" }}
-      >
-        {value}
-      </p>
-      {sub && (
-        <p
-          className="text-xs text-ink-muted mt-1"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {sub}
-        </p>
-      )}
-    </div>
-  );
 }
 
 export default function TabRentalROI({ property, userId }: Props) {
@@ -143,35 +101,116 @@ export default function TabRentalROI({ property, userId }: Props) {
   const ownedAnnualRent =
     annualRent ? (annualRent * property.ownership) / 100 : null;
 
-  const labelClass = "text-xs text-ink-muted uppercase tracking-wider block mb-1.5";
-  const inputClass =
-    "w-full bg-elevated border border-frame rounded-lg px-3.5 py-2.5 text-ink text-sm focus:outline-none focus:border-gold transition-colors";
+  const labelStyle: CSSProperties = {
+    fontSize: 11,
+    color: "var(--text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    display: "block",
+    marginBottom: 6,
+    fontFamily: T.font.mono,
+  };
+  const inputStyle: CSSProperties = {
+    width: "100%",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: T.radius.inner,
+    padding: "10px 14px",
+    color: "var(--text-primary)",
+    fontSize: 12,
+    fontFamily: T.font.mono,
+    outline: "none",
+  };
+
+  const kpis: KPIItem[] = [
+    {
+      label: "Μηνιαίο Ενοίκιο",
+      value: rental.monthlyRent
+        ? `€${rental.monthlyRent.toLocaleString("el-GR")}`
+        : "—",
+    },
+    {
+      label: "Ετήσιο Εισόδημα",
+      value: annualRent ? `€${annualRent.toLocaleString("el-GR")}` : "—",
+      sub:
+        ownedAnnualRent && property.ownership < 100
+          ? `Δικό σας: €${Math.round(ownedAnnualRent).toLocaleString("el-GR")}`
+          : undefined,
+    },
+    {
+      label: "Μικτή Απόδοση",
+      value: grossROI ? `${grossROI}%` : "—",
+      sub: !value ? "Ορίστε αξία στο Overview" : undefined,
+      tone: grossROI ? "accent" : undefined,
+    },
+  ];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-ink">Ενοίκιο & ROI</h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: T.font.sans,
+            fontWeight: 800,
+            fontSize: 22,
+            color: "var(--text-primary)",
+            margin: 0,
+          }}
+        >
+          Ενοίκιο & ROI
+        </h2>
         <button
           onClick={() => setEditing((v) => !v)}
-          className="text-xs border border-frame text-ink-muted hover:text-gold hover:border-gold px-3 py-1.5 rounded-lg transition-colors"
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            fontSize: 11,
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-secondary)",
+            padding: "6px 12px",
+            borderRadius: T.radius.inner,
+            background: "transparent",
+            cursor: "pointer",
+            fontFamily: T.font.mono,
+          }}
         >
           {editing ? "Ακύρωση" : "Επεξεργασία"}
         </button>
       </div>
 
       {/* Status badge */}
-      <div className="flex items-center gap-3">
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span
-          className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border ${
-            rental.isRented
-              ? "text-success border-success/30 bg-success/10"
-              : "text-ink-muted border-frame bg-elevated"
-          }`}
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 11,
+            padding: "4px 12px",
+            borderRadius: T.radius.pill,
+            border: `1px solid ${
+              rental.isRented ? "var(--positive-border)" : "var(--border-subtle)"
+            }`,
+            background: rental.isRented
+              ? "var(--positive-soft)"
+              : "var(--bg-elevated)",
+            color: rental.isRented ? "var(--positive)" : "var(--text-secondary)",
+            fontFamily: T.font.mono,
+          }}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${rental.isRented ? "bg-success" : "bg-ink-dim"}`}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: rental.isRented
+                ? "var(--positive)"
+                : "var(--text-tertiary)",
+            }}
           />
           {rental.isRented ? "Ενοικιαζόμενο" : "Μη ενοικιαζόμενο"}
         </span>
@@ -180,20 +219,38 @@ export default function TabRentalROI({ property, userId }: Props) {
       {editing ? (
         <form
           onSubmit={handleSave}
-          className="bg-surface border border-frame rounded-xl p-5 space-y-4"
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: T.radius.card,
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
         >
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+            }}
+          >
             <input
               type="checkbox"
               checked={form.isRented}
               onChange={(e) =>
                 setForm((f) => ({ ...f, isRented: e.target.checked }))
               }
-              className="w-4 h-4 accent-gold"
+              style={{ width: 16, height: 16, accentColor: "var(--accent)" }}
             />
             <span
-              className="text-sm text-ink"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                fontSize: 12,
+                color: "var(--text-primary)",
+                fontFamily: T.font.mono,
+              }}
             >
               Το ακίνητο είναι ενοικιαζόμενο
             </span>
@@ -201,14 +258,15 @@ export default function TabRentalROI({ property, userId }: Props) {
 
           {form.isRented && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                }}
+              >
                 <div>
-                  <label
-                    className={labelClass}
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    Μηνιαίο Ενοίκιο (€)
-                  </label>
+                  <label style={labelStyle}>Μηνιαίο Ενοίκιο (€)</label>
                   <input
                     type="number"
                     min="0"
@@ -216,78 +274,89 @@ export default function TabRentalROI({ property, userId }: Props) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, monthlyRent: e.target.value }))
                     }
-                    className={inputClass}
+                    style={inputStyle}
                     placeholder="800"
                   />
                 </div>
                 <div>
-                  <label
-                    className={labelClass}
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    Όνομα Ενοικιαστή
-                  </label>
+                  <label style={labelStyle}>Όνομα Ενοικιαστή</label>
                   <input
                     value={form.tenantName}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, tenantName: e.target.value }))
                     }
-                    className={inputClass}
+                    style={inputStyle}
                     placeholder="Προαιρετικό"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                }}
+              >
                 <div>
-                  <label
-                    className={labelClass}
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    Έναρξη Μίσθωσης
-                  </label>
+                  <label style={labelStyle}>Έναρξη Μίσθωσης</label>
                   <input
                     type="date"
                     value={form.leaseStart}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, leaseStart: e.target.value }))
                     }
-                    className={inputClass}
+                    style={inputStyle}
                   />
                 </div>
                 <div>
-                  <label
-                    className={labelClass}
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    Λήξη Μίσθωσης
-                  </label>
+                  <label style={labelStyle}>Λήξη Μίσθωσης</label>
                   <input
                     type="date"
                     value={form.leaseEnd}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, leaseEnd: e.target.value }))
                     }
-                    className={inputClass}
+                    style={inputStyle}
                   />
                 </div>
               </div>
             </>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex-1 border border-frame text-ink-muted hover:text-ink text-sm py-2 rounded-lg transition-colors"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                border: "1px solid var(--border-subtle)",
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                background: "transparent",
+                cursor: "pointer",
+                fontFamily: T.font.mono,
+              }}
             >
               Ακύρωση
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-gold hover:bg-gold-light text-canvas text-sm font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
-              style={{ fontFamily: "var(--font-mono)" }}
+              style={{
+                flex: 1,
+                background: "var(--accent)",
+                color: "var(--accent-text)",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "8px 0",
+                borderRadius: T.radius.inner,
+                border: "none",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.5 : 1,
+                fontFamily: T.font.mono,
+              }}
             >
               {saving ? "Αποθήκευση…" : "Αποθήκευση"}
             </button>
@@ -296,87 +365,101 @@ export default function TabRentalROI({ property, userId }: Props) {
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <MetricCard
-              label="Μηνιαίο Ενοίκιο"
-              value={
-                rental.monthlyRent
-                  ? `€${rental.monthlyRent.toLocaleString("el-GR")}`
-                  : "—"
-              }
-            />
-            <MetricCard
-              label="Ετήσιο Εισόδημα"
-              value={
-                annualRent
-                  ? `€${annualRent.toLocaleString("el-GR")}`
-                  : "—"
-              }
-              sub={
-                ownedAnnualRent && property.ownership < 100
-                  ? `Δικό σας: €${Math.round(ownedAnnualRent).toLocaleString("el-GR")}`
-                  : undefined
-              }
-            />
-            <MetricCard
-              label="Μικτή Απόδοση"
-              value={grossROI ? `${grossROI}%` : "—"}
-              sub={!value ? "Ορίστε αξία στο Overview" : undefined}
-              highlight={!!grossROI}
-            />
-          </div>
+          <KPIGrid items={kpis} columns={3} />
 
           {rental.isRented && (
-            <div className="bg-surface border border-frame rounded-xl p-5 space-y-3">
+            <div
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: T.radius.card,
+                padding: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
               <h3
-                className="text-xs text-ink-muted uppercase tracking-wider"
-                style={{ fontFamily: "var(--font-mono)" }}
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  margin: 0,
+                  fontFamily: T.font.mono,
+                }}
               >
                 Στοιχεία Μίσθωσης
               </h3>
               {rental.tenantName && (
-                <div className="flex justify-between">
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <span
-                    className="text-xs text-ink-muted"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-secondary)",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     Ενοικιαστής
                   </span>
                   <span
-                    className="text-sm text-ink"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-primary)",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     {rental.tenantName}
                   </span>
                 </div>
               )}
               {rental.leaseStart && (
-                <div className="flex justify-between">
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <span
-                    className="text-xs text-ink-muted"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-secondary)",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     Έναρξη
                   </span>
                   <span
-                    className="text-sm text-ink"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-primary)",
+                      fontFamily: T.font.mono,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
                   >
                     {rental.leaseStart}
                   </span>
                 </div>
               )}
               {rental.leaseEnd && (
-                <div className="flex justify-between">
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <span
-                    className="text-xs text-ink-muted"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-secondary)",
+                      fontFamily: T.font.mono,
+                    }}
                   >
                     Λήξη
                   </span>
                   <span
-                    className="text-sm text-ink"
-                    style={{ fontFamily: "var(--font-mono)" }}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-primary)",
+                      fontFamily: T.font.mono,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
                   >
                     {rental.leaseEnd}
                   </span>
@@ -386,21 +469,26 @@ export default function TabRentalROI({ property, userId }: Props) {
           )}
 
           {!rental.isRented && (
-            <div className="bg-surface border border-frame rounded-xl p-6 text-center">
-              <p
-                className="text-ink-muted text-sm mb-3"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Το ακίνητο δεν είναι αυτή τη στιγμή ενοικιαζόμενο
-              </p>
-              <button
-                onClick={() => setEditing(true)}
-                className="text-xs text-gold hover:text-gold-light transition-colors"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Ρύθμιση ενοικίασης →
-              </button>
-            </div>
+            <Card>
+              <EmptyState
+                title="Το ακίνητο δεν είναι αυτή τη στιγμή ενοικιαζόμενο"
+                action={
+                  <button
+                    onClick={() => setEditing(true)}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--accent)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: T.font.mono,
+                    }}
+                  >
+                    Ρύθμιση ενοικίασης →
+                  </button>
+                }
+              />
+            </Card>
           )}
         </>
       )}
