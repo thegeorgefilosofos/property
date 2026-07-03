@@ -255,6 +255,31 @@ async function fetchENFIAFromAADE(_propertyId: string, _taxisnetToken?: string):
   return null;
 }
 
+// ─── Coverage taxonomy — δυναμική ανάλυση καλύψεων (pricefox / insurancemarket style) ──
+// Οι φράσεις «Πλήρης Κάλυψη / Παντός Κινδύνου / All Risk» υπονοούν τους βασικούς κινδύνους.
+const ALL_RISK_HINTS = ['πλήρης', 'παντός κινδύνου', 'all risk', 'παντός'];
+function hasCov(covers: string[], keys: string[], allRiskImplies = false): boolean {
+  const joined = (covers || []).join(' ').toLowerCase();
+  if (keys.some(k => joined.includes(k.toLowerCase()))) return true;
+  if (allRiskImplies && ALL_RISK_HINTS.some(h => joined.includes(h))) return true;
+  return false;
+}
+// Επιστρέφει τον πλήρη πίνακα καλύψεων με ✓/✗ βάσει του προγράμματος.
+function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, natural: boolean) {
+  return [
+    { label: 'Πυρκαγιά',            ok: hasCov(covers, ['πυρκαγιά', 'φωτιά'], true) },
+    { label: 'Σεισμός',             ok: !!earthquake },
+    { label: 'Πλημμύρα',            ok: !!flood || hasCov(covers, ['πλημμύρα']) },
+    { label: 'Φυσικά Φαινόμενα',    ok: !!natural || hasCov(covers, ['φυσικά φαινόμενα', 'καιρικά']) },
+    { label: 'Κλοπή / Διάρρηξη',    ok: hasCov(covers, ['κλοπή', 'διάρρηξη', 'ληστεία'], true) },
+    { label: 'Αστική Ευθύνη',       ok: hasCov(covers, ['αστική ευθύνη'], true) },
+    { label: 'Θραύση Σωληνώσεων',   ok: hasCov(covers, ['θραύση σωλην', 'σωληνώσ'], true) },
+    { label: 'Βραχυκύκλωμα',        ok: hasCov(covers, ['βραχυκύκλωμα'], true) },
+    { label: 'Θραύση Κρυστάλλων',   ok: hasCov(covers, ['κρυστάλλ']) },
+    { label: 'Νομική Προστασία',    ok: hasCov(covers, ['νομική']) },
+  ];
+}
+
 export default function BillsInsurance({ propertyId, userId = '' }: { propertyId: string; userId?: string }) {
   const supabase = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
@@ -488,6 +513,16 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     quotesFilter === 'natural'    ? q.natural : true
   );
 
+  // ── Πρόταση ιδανικού προγράμματος βάσει του ακινήτου (liveQuotes ταξινομημένα κατά τιμή) ──
+  const recommended: { q: LiveQuote; reason: string } | null = (() => {
+    if (!liveQuotes.length) return null;
+    const full = liveQuotes.filter(q => q.earthquake && q.flood && q.natural);
+    if (full.length) return { q: full[0], reason: 'Πλήρης κάλυψη — σεισμός, πλημμύρα & φυσικά φαινόμενα στην καλύτερη τιμή' };
+    const fl = liveQuotes.filter(q => q.flood && q.natural);
+    if (fl.length) return { q: fl[0], reason: 'Κάλυψη πλημμύρας & φυσικών φαινομένων στην καλύτερη τιμή' };
+    return { q: liveQuotes[0], reason: 'Καλύτερη σχέση τιμής και κάλυψης για το ακίνητό σου' };
+  })();
+
   const toggleStreaming = (svc: string) => {
     if ((activeStreaming || []).find(a => a.service === svc)) {
       u({ activeStreaming: (activeStreaming || []).filter(a => a.service !== svc) });
@@ -668,6 +703,22 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               </div>
             </div>
 
+            {/* Προτεινόμενο πρόγραμμα βάσει ακινήτου */}
+            {!quotesLoading && recommended && (
+              <div onClick={() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false })}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel} — {recommended.q.planLabel}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(recommended.q.monthlyEstimate)}</div>
+                  <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκτίμηση / μήνα</div>
+                </div>
+              </div>
+            )}
+
             {/* Top 3 deals */}
             {!quotesLoading && filteredQuotes.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
@@ -676,7 +727,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   const isBest    = i === 0;
                   return (
                     <div key={q.plan}
-                      onClick={() => { u({ insProvider: q.company, insPlanId: q.plan }); }}
+                      onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
                       style={{ background: isCurrent ? 'rgba(212,175,66,0.07)' : isBest ? 'rgba(52,168,83,0.05)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'rgba(52,168,83,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
                       {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΛΥΤΕΡΗ ΤΙΜΗ</div>}
                       {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(212,175,66,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
@@ -711,7 +762,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     {filteredQuotes.map(q => {
                       const isCur = q.company === insProvider && q.plan === insPlanId;
                       return (
-                        <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan }); }}
+                        <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
                           style={{ cursor: 'pointer', background: isCur ? 'rgba(212,175,66,0.08)' : 'transparent', transition: 'background 0.15s' }}>
                           <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
@@ -747,10 +798,10 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Τρέχον Πρόγραμμα</div>
           <div style={g3}>
             <CustomSelect label="Ασφαλιστική Εταιρεία" value={insProvider}
-              onChange={v => { u({ insProvider: v }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
+              onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
               options={insOptions}/>
             <CustomSelect label="Πρόγραμμα Ασφάλισης" value={insPlanId}
-              onChange={v => u({ insPlanId: v })}
+              onChange={v => u({ insPlanId: v, insEditCovers: false })}
               options={insPlanOptions}/>
             <NumberInput label="Πραγματικό Κόστος / μήνα (€)" value={insCustomPrice} onChange={v => u({ insCustomPrice: v })} suffix="€" step={1}/>
           </div>
@@ -772,20 +823,22 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           {insPlan && (
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ display: 'flex', gap: 20 }}>
-                  {[{ label: 'Σεισμός', ok: effectiveEarthquake },{ label: 'Πλημμύρα', ok: effectiveFloodState },{ label: 'Φυσικές Καταστροφές', ok: effectiveNatural }].map((r, i) => (
-                    <div key={i} style={{ textAlign: 'center' as const }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: r.ok ? 'var(--positive)' : 'var(--negative)', lineHeight: 1, marginBottom: 2 }}>{r.ok ? '✓' : '✗'}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, fontFamily: T.font.sans }}>{r.label}</div>
-                    </div>
-                  ))}
-                </div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις Προγράμματος</div>
                 <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
                   style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
                   {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
                 </button>
               </div>
-              {insEditCovers ? (
+              {/* Δυναμικός πίνακας καλύψεων — ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
+                {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--positive-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--positive-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--positive)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
+                    <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
+                  </div>
+                ))}
+              </div>
+              {insEditCovers && (
                 <div>
                   <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="π.χ. Πυρκαγιά, Κλοπή, Σεισμός..."
                     style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
@@ -794,10 +847,6 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα" labelOff="Χωρίς Πλημμύρα"/>
                     <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές Καταστροφές" labelOff="Χωρίς"/>
                   </div>
-                </div>
-              ) : (
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
-                  {effectiveCovers.join(' · ') || 'Δεν έχουν οριστεί καλύψεις'}
                 </div>
               )}
               {effectiveEarthquake && effectiveFloodState && (
