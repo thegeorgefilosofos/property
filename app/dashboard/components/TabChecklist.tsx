@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
+import { T } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -29,12 +30,6 @@ interface ChecklistItem {
 interface Contact { id: string; full_name: string; role: string; phone?: string | null }
 interface SmartSuggestion { title: string; reason: string; templateKey: string }
 interface TabChecklistProps { propertyId: string; userId: string }
-
-// ─── Design tokens (matching rest of app) ────────────────────────────────────
-const T = {
-  radius: { card: '14px', inner: '10px', badge: '6px', btn: '10px', pill: '100px' },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-}
 
 const iStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: T.radius.inner,
@@ -239,7 +234,7 @@ function SubTaskEditor({ subtasks, onChange }: { subtasks: SubTask[]; onChange: 
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέο υπο-task..." style={{ ...iStyle, flex: 1 }} />
-        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
+        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
   )
@@ -252,13 +247,13 @@ function CommentsEditor({ comments, onChange }: { comments: Comment[]; onChange:
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Γράψε σχόλιο..." style={{ ...iStyle, flex: 1 }} />
-        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
+        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
         {comments.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: 13, textAlign: 'center', padding: 16 }}>Δεν υπάρχουν σχόλια ακόμα</p>}
         {comments.map(c => (
           <div key={c.id} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, paddingRight: 20 }}>{c.text}</div>
             <button type="button" onClick={() => onChange(comments.filter(x => x.id !== c.id))} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16 }}>×</button>
           </div>
@@ -928,16 +923,16 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', background: bulkSelected ? 'rgba(26,115,232,0.06)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked ? 0.6 : 1, position: 'relative' }}>
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', background: bulkSelected ? 'var(--info-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked ? 0.6 : 1, position: 'relative' }}>
 
       <button type="button" onClick={() => { if (bulkMode) onBulkSelect?.(); else if (!blocked) onToggle() }}
         style={{ width: 20, height: 20, borderRadius: bulkMode ? 5 : 6, flexShrink: 0, marginTop: 2, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked && !bulkMode ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-        onMouseEnter={e => { if (!bulkMode && !done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'rgba(52,168,83,0.1)' } }}
+        onMouseEnter={e => { if (!bulkMode && !done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
         onMouseLeave={e => { if (!bulkMode && !done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
         {(done || (bulkMode && bulkSelected)) && (
-          <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke={done ? '#000' : '#fff'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke={done ? '#000' : 'var(--accent-text)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         )}
-        {!bulkMode && blocked && !done && <span style={{ fontSize: 9 }}>⛔</span>}
+        {!bulkMode && blocked && !done && <span style={{ fontSize: 9 }} />}
       </button>
 
       <div style={{ flex: 1, minWidth: 0, cursor: bulkMode ? 'pointer' : 'default' }} onClick={bulkMode ? () => onBulkSelect?.() : undefined}>
@@ -952,7 +947,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: sm.bg, color: sm.color, fontWeight: 600, flexShrink: 0 }}>{sm.label}</span>
           )}
           {item.recurring !== 'none' && (
-            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.08)', color: 'var(--accent)', border: '1px solid rgba(212,175,66,0.2)', flexShrink: 0 }}>
+            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)', flexShrink: 0 }}>
               {RECURRING_OPTIONS.find(r => r.value === item.recurring)?.label}
             </span>
           )}
@@ -961,12 +956,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11, color: cat.color, fontWeight: 500, fontFamily: T.font.sans }}>{cat.label}</span>
           {item.due_date && (
-            <span style={{ fontSize: 11, fontFamily: T.font.mono, color: overdue && !done ? '#c5221f' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-secondary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
+            <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-secondary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
               {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` (${Math.abs(due)}μ πριν)` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` (σε ${due}μ)` : ''}
             </span>
           )}
           {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{item.assigned_contact_name}</span>}
-          {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' εκτ.'}</span>}
+          {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' εκτ.'}</span>}
           {subtasks.length > 0 && <span style={{ fontSize: 11, color: subDone === subtasks.length ? 'var(--positive)' : 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-tasks</span>}
           {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--info)' }}>{(item._comments || []).length} σχόλια</span>}
         </div>
@@ -986,9 +981,9 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             Επεξ.
           </button>
           <button type="button" onClick={onDelete}
-            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid rgba(234,67,53,0.3)', background: 'rgba(234,67,53,0.08)', color: 'var(--negative)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,67,53,0.15)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,67,53,0.08)' }}>
+            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--negative-dim)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--negative-soft)' }}>
             Διαγρ.
           </button>
           <button ref={menuBtnRef} type="button" onClick={openMenu}
@@ -1026,7 +1021,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
   const overdue = isOverdue(item.due_date, item.status)
   const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
   return (
-    <div onClick={onEdit} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'rgba(234,67,53,0.35)' : 'var(--border-subtle)'), borderLeft: '3px solid ' + cat.color, borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+    <div onClick={onEdit} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderLeft: '3px solid ' + cat.color, borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
@@ -1037,8 +1032,8 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
         <span style={{ fontSize: 10, color: cat.color, fontFamily: T.font.sans }}>{cat.label}</span>
         <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: T.radius.pill, background: pri.bg, color: pri.color }}>{pri.label}</span>
-        {item.due_date && <span style={{ fontSize: 10, color: overdue ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono }}>{fmtDate(item.due_date)}</span>}
-        {item.estimated_cost > 0 && <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{item.estimated_cost}€</span>}
+        {item.due_date && <span style={{ fontSize: 10, color: overdue ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</span>}
+        {item.estimated_cost > 0 && <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost}€</span>}
       </div>
       {subtasks.length > 0 && (
         <div>
@@ -1066,8 +1061,8 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
           return (
             <div key={item.id} style={{ marginBottom: 14, position: 'relative' }}>
               <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--positive)' : overdue ? 'var(--negative)' : cat.color, border: '2px solid var(--bg-base)', zIndex: 1 }} />
-              <div onClick={() => onEdit(item)} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'rgba(234,67,53,0.3)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = cat.color)} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'rgba(234,67,53,0.3)' : 'var(--border-subtle)')}>
+              <div onClick={() => onEdit(item)} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = cat.color)} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', marginBottom: 4, fontFamily: T.font.sans }}>{item.description}</div>
@@ -1078,7 +1073,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono }}>{fmtDate(item.due_date)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</div>
                     {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>{Math.abs(due || 0)}μ πριν</div>}
                     {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>σε {due} ημ.</div>}
                   </div>
@@ -1210,7 +1205,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
                 <div><FL>Εκτιμώμενο (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="150" type="number" /></div>
                 <div><FL>Πραγματικό (€)</FL><Inp value={form.actual_cost} onChange={v => setForm(f => ({ ...f, actual_cost: v }))} placeholder="180" type="number" /></div>
               </div>
-              {overBudget && <div style={{ background: 'rgba(234,67,53,0.08)', border: '1px solid rgba(234,67,53,0.3)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 12, color: 'var(--negative)' }}>Υπέρβαση budget κατά {Math.round((actualN / budgetN - 1) * 100)}%</div>}
+              {overBudget && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 12, color: 'var(--negative)' }}>Υπέρβαση budget κατά {Math.round((actualN / budgetN - 1) * 100)}%</div>}
               <div><FL>Σημείωση</FL>
                 <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
               </div>
@@ -1222,7 +1217,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
               {form.subtasks.length > 0 && (
                 <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                    <span>Πρόοδος</span><span style={{ fontWeight: 700, color: subDone === form.subtasks.length ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono }}>{subDone}/{form.subtasks.length}</span>
+                    <span>Πρόοδος</span><span style={{ fontWeight: 700, color: subDone === form.subtasks.length ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{subDone}/{form.subtasks.length}</span>
                   </div>
                   <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: (form.subtasks.length > 0 ? subDone / form.subtasks.length * 100 : 0) + '%', background: 'var(--positive)', borderRadius: 2, transition: 'width 0.3s' }} />
@@ -1245,7 +1240,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 {ITEM_TAGS.map(t => (
                   <button key={t} type="button" onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
-                    style={{ padding: '6px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'rgba(212,175,66,0.12)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                    style={{ padding: '6px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
                     {form.tags.includes(t) ? '✓ ' : ''}{t}
                   </button>
                 ))}
@@ -1268,7 +1263,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
         <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
           <button type="button" onClick={() => form.description.trim() && onSave(form)}
-            style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: form.description.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: form.description.trim() ? '#000' : 'var(--text-tertiary)', fontWeight: 700, cursor: form.description.trim() ? 'pointer' : 'not-allowed', fontSize: 14, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+            style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: form.description.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: form.description.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: form.description.trim() ? 'pointer' : 'not-allowed', fontSize: 14, transition: 'all 0.15s', fontFamily: T.font.sans }}>
             {item ? 'Αποθήκευση' : 'Προσθήκη Task'}
           </button>
         </div>
@@ -1296,7 +1291,7 @@ function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { ite
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: amount ? 'var(--accent)' : 'var(--bg-elevated)', color: amount ? '#000' : 'var(--text-tertiary)', fontWeight: 700, cursor: amount ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
+          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: amount ? 'var(--accent)' : 'var(--bg-elevated)', color: amount ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: amount ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
             {saving ? 'Καταχώρηση...' : 'Καταχώρηση Δαπάνης'}
           </button>
         </div>
@@ -1498,7 +1493,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
 
-      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(212,175,66,0.4)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 9998, boxShadow: '0 8px 32px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
+      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 9998, boxShadow: '0 8px 32px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
@@ -1510,10 +1505,10 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       )}
 
       {stats.overdue > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.2)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 22 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }} />
           <div style={{ flex: 1 }}><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)' }}>{stats.overdue} ληγμένα tasks</span>{stats.critical > 0 && <span style={{ fontSize: 12, color: 'var(--negative)' }}> · {stats.critical} κρίσιμα εκκρεμή</span>}</div>
-          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid rgba(234,67,53,0.4)', background: 'transparent', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Εμφάνιση</button>
+          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Εμφάνιση</button>
         </div>
       )}
 
@@ -1528,7 +1523,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.title}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}</div>
                 </div>
-                <button type="button" onClick={() => loadTemplate(s.templateKey)} style={{ padding: '5px 12px', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Φόρτωσε</button>
+                <button type="button" onClick={() => loadTemplate(s.templateKey)} style={{ padding: '5px 12px', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Φόρτωσε</button>
               </div>
             ))}
           </div>
@@ -1543,7 +1538,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)', flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{tenantInfo.full_name}</span>
-              {tenantInfo.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{tenantInfo.phone}</span>}
+              {tenantInfo.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{tenantInfo.phone}</span>}
               <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ενοικιαστής</span>
             </div>
           )}
@@ -1551,11 +1546,11 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Δόση δανείου:</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{loanPayment.toLocaleString('el-GR')} €/μήνα</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{loanPayment.toLocaleString('el-GR')} €/μήνα</span>
             </div>
           )}
           {enfiaPaid && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(52,168,83,0.1)', borderRadius: T.radius.pill, border: '1px solid rgba(52,168,83,0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--positive-soft)', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)' }}>
               <svg width="12" height="12" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               <span style={{ fontSize: 12, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans }}>ΕΝΦΙΑ εξοφλημένο</span>
             </div>
@@ -1570,10 +1565,10 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '4px 0 0', fontFamily: T.font.sans }}>{stats.total} tasks · {stats.done} ολοκληρωμένα · {stats.pct}% πρόοδος</p>
         </div>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '75%' }}>
-          <button type="button" onClick={() => setHideCompleted(h => !h)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'rgba(212,175,66,0.1)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+          <button type="button" onClick={() => setHideCompleted(h => !h)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
             {hideCompleted ? 'Εμφάνιση done' : 'Κρύψε done'}
           </button>
-          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>{bulkMode ? 'Έξοδος' : 'Επιλογή'}</button>
+          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'var(--accent-soft)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>{bulkMode ? 'Έξοδος' : 'Επιλογή'}</button>
           <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Templates</button>
           <button type="button" onClick={loadAADECalendar}
             style={{ padding: '8px 13px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
@@ -1584,7 +1579,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           <button type="button" onClick={() => exportChecklistExcel(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Excel</button>
           <button type="button" onClick={() => exportChecklistPDF(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
           <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
-          <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+          <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             + Νέο Task
           </button>
         </div>
@@ -1595,7 +1590,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Συνολική Πρόοδος</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono }}>{stats.pct}%</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{stats.pct}%</span>
           </div>
           <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: stats.pct + '%', background: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 4, transition: 'width 0.6s cubic-bezier(.4,0,.2,1)' }} />
@@ -1609,7 +1604,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           {[
             { label: 'Σύνολο', value: stats.total, color: 'var(--text-primary)', onClick: () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all') } },
             { label: 'Ολοκλήρωση', value: stats.done, color: 'var(--positive)', onClick: () => setFilterStatus('done') },
-            { label: 'Σε εξέλιξη', value: stats.inProgress, color: '#1a73e8', onClick: () => setFilterStatus('in_progress') },
+            { label: 'Σε εξέλιξη', value: stats.inProgress, color: 'var(--info)', onClick: () => setFilterStatus('in_progress') },
             { label: 'Ληγμένα', value: stats.overdue, color: 'var(--negative)', onClick: () => setFilterStatus('overdue') },
             { label: 'Κρίσιμα', value: stats.critical, color: 'var(--negative)', onClick: () => setFilterPri('critical') },
             { label: 'Εκτιμ. Κόστος', value: stats.totalEstimated > 0 ? stats.totalEstimated.toLocaleString('el-GR') + '€' : '—', color: 'var(--accent)', onClick: undefined as any },
@@ -1618,7 +1613,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             <div key={s.label} onClick={s.onClick} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px', textAlign: 'center', cursor: s.onClick ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
               onMouseEnter={e => { if (s.onClick) e.currentTarget.style.borderColor = 'var(--border-default)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontFamily: T.font.mono, marginBottom: 4 }}>{s.value}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{s.label}</div>
             </div>
           ))}
@@ -1627,7 +1622,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
 
       {/* Bulk bar */}
       {bulkMode && selected.size === 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', marginBottom: 14, background: 'rgba(212,175,66,0.06)', border: '1px solid var(--border-accent)', borderRadius: T.radius.inner }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', marginBottom: 14, background: 'var(--accent-soft)', border: '1px solid var(--border-accent)', borderRadius: T.radius.inner }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>Κάνε κλικ στα tasks για να τα επιλέξεις</span>
           <button type="button" onClick={() => setSelected(new Set(filtered.map(i => i.id)))} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Επιλογή όλων ({filtered.length})</button>
           <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ padding: '5px 10px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 16, color: 'var(--text-secondary)', cursor: 'pointer' }}>✕</button>
@@ -1655,18 +1650,18 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         </select>
         <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
           {(['list', 'board', 'timeline'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? '#000' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
               {v === 'list' ? 'Λίστα' : v === 'board' ? 'Board' : 'Timeline'}
             </button>
           ))}
         </div>
-        {hasFilters && <button type="button" onClick={() => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all'); setSearch('') }} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid rgba(234,67,53,0.3)', background: 'rgba(255,59,48,0.08)', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>✕ Καθαρισμός</button>}
+        {hasFilters && <button type="button" onClick={() => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all'); setSearch('') }} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>✕ Καθαρισμός</button>}
       </div>
 
       {/* Category pills */}
       {usedCats.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => setFilterCat('all')} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === 'all' ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === 'all' ? 'rgba(212,175,66,0.1)' : 'transparent', color: filterCat === 'all' ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === 'all' ? 700 : 400 }}>Όλα ({items.length})</button>
+          <button type="button" onClick={() => setFilterCat('all')} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === 'all' ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === 'all' ? 'var(--accent-soft)' : 'transparent', color: filterCat === 'all' ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === 'all' ? 700 : 400 }}>Όλα ({items.length})</button>
           {usedCats.map(c => {
             const count = items.filter(i => i.category === c.id).length
             const catDone = items.filter(i => i.category === c.id && i.status === 'done').length
@@ -1675,7 +1670,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? c.color : 'var(--border-subtle)'), background: filterCat === c.id ? c.color + '15' : 'transparent', color: filterCat === c.id ? c.color : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                 {c.label}
-                <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono }}>{catDone}/{count}</span>
+                <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
             )
           })}
@@ -1693,7 +1688,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Templates</button>
             <button type="button" onClick={loadAADECalendar} style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>ΑΑΔΕ Ημερολόγιο</button>
-            <button type="button" onClick={() => setShowAddModal(true)} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, height: 40, padding: '0 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>+ Νέο Task</button>
+            <button type="button" onClick={() => setShowAddModal(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, height: 40, padding: '0 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>+ Νέο Task</button>
           </div>
         </div>
       ) : filtered.length === 0 ? (
@@ -1708,7 +1703,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: T.radius.inner, background: s.bg, marginBottom: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, fontFamily: T.font.sans }}>{s.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + '20', borderRadius: T.radius.pill, padding: '1px 7px', fontFamily: T.font.mono }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + '20', borderRadius: T.radius.pill, padding: '1px 7px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
               </div>
               {boardCols[s.value as keyof typeof boardCols].map(item => (
                 <BoardCard key={item.id} item={item} onToggle={() => toggleItem(item)} onEdit={() => { setEditItem(item); setShowAddModal(true) }} />
@@ -1734,7 +1729,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: cat.color, fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, ' + cat.color + '44, transparent)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
                 </div>
                 <div style={{ height: 3, borderRadius: 2, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: catPct + '%', background: catPct === 100 ? 'var(--positive)' : cat.color, borderRadius: 2, transition: 'width 0.4s' }} />
@@ -1764,14 +1759,14 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       {bulkMode && selected.size > 0 && (
         <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 480, maxWidth: '90vw' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#000', fontFamily: T.font.mono }}>{selected.size}</div>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'Όλα επιλεγμένα' : 'επιλεγμένα'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             {[
-              { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--positive)', hoverBg: 'rgba(52,168,83,0.1)' },
+              { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--positive)', hoverBg: 'var(--positive-soft)' },
               { label: selected.size === filtered.length ? 'Αποεπιλογή' : `Όλα (${filtered.length})`, fn: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))) }, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
-              { label: 'Διαγραφή', fn: bulkDelete, color: 'var(--negative)', hoverBg: 'rgba(234,67,53,0.08)' },
+              { label: 'Διαγραφή', fn: bulkDelete, color: 'var(--negative)', hoverBg: 'var(--negative-soft)' },
             ].map((a, i, arr) => (
               <button key={i} type="button" onClick={a.fn}
                 style={{ flex: 1, padding: '12px 0', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans }}
@@ -1795,7 +1790,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       {deleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(234,67,53,0.1)', border: '1px solid rgba(255,59,48,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
             </div>
             <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700, fontFamily: T.font.sans }}>Διαγραφή Task;</h3>
