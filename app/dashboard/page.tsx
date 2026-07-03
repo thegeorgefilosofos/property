@@ -13,6 +13,7 @@ import TabLoan      from './components/TabLoan';
 import TabInventory from './components/TabInventory';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
+import TabDocuments from './components/TabDocuments';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -56,6 +57,7 @@ const NAV_ITEMS = [
   { id:'inventory',  label:'Απογραφή' },
   { id:'checklist',  label:'Checklist' },
   { id:'contacts',   label:'Επαφές' },
+  { id:'documents',  label:'Αρχείο' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 
@@ -596,6 +598,7 @@ export default function Dashboard() {
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
+              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id}/>}
             </div>
           </>
