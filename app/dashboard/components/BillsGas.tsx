@@ -157,7 +157,7 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
     ],
   },
   {
-    value: 'enerwave', label: 'enerwave (πρώην Elpedison)', url: 'https://www.elpedison.gr',
+    value: 'enerwave', label: 'enerwave (πρώην Elpedison)', url: 'https://www.enerwave.gr',
     tariffs: [
       { id: 'enw_gas', name: 'enerwave Gas Home', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
         kwh: 0.0470, fixed: 5.00, vat: 6,
