@@ -9,14 +9,9 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
+import { T, fe } from '@/components/Theme';
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-
-const fe = (n: number, d = 0) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-const MONTHS_GR = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
 const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
@@ -265,7 +260,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }}/>
           <span style={{ color: 'var(--text-secondary)' }}>{p.name}:</span>
-          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(p.value, 0)}</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(p.value, 0)}</span>
         </div>
       ))}
     </div>
@@ -281,6 +276,7 @@ const histInputStyle = (isCurrent: boolean): React.CSSProperties => ({
   color: 'var(--text-primary)',
   fontSize: 11,
   fontFamily: T.font.mono,
+  fontVariantNumeric: 'tabular-nums',
   outline: 'none',
   textAlign: 'center',
   boxSizing: 'border-box',
@@ -456,19 +452,19 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
     const alerts: { type: 'danger' | 'warning' | 'info'; msg: string; bill?: string }[] = [];
     if (overdue.length > 0) {
-      alerts.push({ type: 'danger', msg: `${overdue.length} ληξιπρόθεσμος/-οι: ${overdue.map(b => b.name).join(', ')} — Σύνολο: ${fe(overdue.reduce((s, b) => s + b.amount, 0))}` });
+      alerts.push({ type: 'danger', msg: `${overdue.length} ληξιπρόθεσμος/-οι: ${overdue.map(b => b.name).join(', ')} — Σύνολο: ${fe(overdue.reduce((s, b) => s + b.amount, 0), 0)}` });
     }
     dueSoon.forEach(b => {
       const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
-      const msg = daysLeft === 0 ? `"${b.name}" λήγει ΣΗΜΕΡΑ — ${fe(b.amount)}`
-                : daysLeft === 1 ? `"${b.name}" λήγει ΑΥΡΙΟ — ${fe(b.amount)}`
-                : `"${b.name}" σε ${daysLeft} ημέρες — ${fe(b.amount)}`;
+      const msg = daysLeft === 0 ? `"${b.name}" λήγει ΣΗΜΕΡΑ — ${fe(b.amount, 0)}`
+                : daysLeft === 1 ? `"${b.name}" λήγει ΑΥΡΙΟ — ${fe(b.amount, 0)}`
+                : `"${b.name}" σε ${daysLeft} ημέρες — ${fe(b.amount, 0)}`;
       alerts.push({ type: 'warning', msg, bill: b.id });
     });
     byCategory.forEach(c => {
       const budget = parseFloat(budgets[c.value] || '0');
-      if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly)}/μήνα — υπέρβαση budget (${fe(budget)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly)}/μήνα — 30%+ πάνω από μ.ο. αγοράς` });
+      if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — υπέρβαση budget (${fe(budget, 0)})` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — 30%+ πάνω από μ.ο. αγοράς` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
@@ -540,14 +536,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Πάγια / Μήνα',  value: fe(calc.totalMonthly),  sub: fe(calc.totalMonthly * 12) + '/έτος',              neg: false },
-          { label: 'Εκκρεμείς',     value: fe(calc.totalUnpaid),   sub: bills.filter(b => !b.paid).length + ' λογαριασμοί', neg: calc.totalUnpaid > 0 },
-          { label: 'Πληρωμένοι',    value: fe(calc.totalPaid),     sub: bills.filter(b => b.paid).length + ' λογαριασμοί',  neg: false },
-          { label: 'Μέσο Μηνιαίο',  value: fe(calc.avgMonthly),    sub: 'βάσει ιστορικού',                                  neg: false },
+          { label: 'Πάγια / Μήνα',  value: fe(calc.totalMonthly, 0),  sub: fe(calc.totalMonthly * 12, 0) + '/έτος',              neg: false },
+          { label: 'Εκκρεμείς',     value: fe(calc.totalUnpaid, 0),   sub: bills.filter(b => !b.paid).length + ' λογαριασμοί', neg: calc.totalUnpaid > 0 },
+          { label: 'Πληρωμένοι',    value: fe(calc.totalPaid, 0),     sub: bills.filter(b => b.paid).length + ' λογαριασμοί',  neg: false },
+          { label: 'Μέσο Μηνιαίο',  value: fe(calc.avgMonthly, 0),    sub: 'βάσει ιστορικού',                                  neg: false },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.neg ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1, marginBottom: 6 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: k.neg ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 6 }}>{k.value}</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{k.sub}</div>
           </div>
         ))}
@@ -570,7 +566,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           </button>
           {!showForm ? (
             <button onClick={() => setShowForm(true)}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη Λογαριασμού
             </button>
           ) : (
@@ -597,7 +593,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, flex: 1 }}>{c.label}</span>
-                    {current > 0 && <span style={{ fontSize: 10, color: over ? 'var(--negative)' : near ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily: T.font.mono }}>{current.toLocaleString('el-GR')}€</span>}
+                    {current > 0 && <span style={{ fontSize: 10, color: over ? 'var(--negative)' : near ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{current.toLocaleString('el-GR')}€</span>}
                   </div>
                   <NumberInput
                     label=""
@@ -656,7 +652,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '9px 16px', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
             <button onClick={addBill} disabled={!form.name || !form.amount || saving}
-              style={{ background: (!form.name || !form.amount || saving) ? 'var(--bg-elevated)' : 'var(--accent)', color: (!form.name || !form.amount || saving) ? 'var(--text-tertiary)' : '#000', border: 'none', borderRadius: T.radius.btn, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: (!form.name || !form.amount || saving) ? 'var(--bg-elevated)' : 'var(--accent)', color: (!form.name || !form.amount || saving) ? 'var(--text-tertiary)' : 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '9px 20px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               {saving ? 'Αποθήκευση...' : 'Προσθήκη'}
             </button>
           </div>
@@ -667,13 +663,13 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Λογαριασμοί & Πάγια</span>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono }}>{bills.length} εγγραφές</span>
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{bills.length} εγγραφές</span>
         </div>
         {bills.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν λογαριασμοί</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24 }}>Πρόσθεσε τα πάγια έξοδα του ακινήτου σου</div>
-            <button onClick={() => setShowForm(true)} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
+            <button onClick={() => setShowForm(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>+ Προσθήκη Λογαριασμού</button>
           </div>
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
@@ -712,14 +708,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                         </div>
                         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' as const }}>
                           {b.period && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{b.period}</span>}
-                          {b.kwh && <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.mono }}>{b.kwh} kWh</span>}
+                          {b.kwh && <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{b.kwh} kWh</span>}
                           {b.due_date && <span style={{ fontSize: 10, fontFamily: T.font.sans, color: daysLeft !== null && daysLeft < 0 ? 'var(--negative)' : daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
                             {daysLeft !== null && daysLeft < 0 ? `${Math.abs(daysLeft)}ημ. καθυστέρηση` : daysLeft === 0 ? 'Λήγει σήμερα' : daysLeft !== null ? `σε ${daysLeft}ημ.` : new Date(b.due_date).toLocaleDateString('el-GR')}
                           </span>}
                           {b.notes && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>· {b.notes}</span>}
                         </div>
                       </div>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, whiteSpace: 'nowrap' as const }}>{fe(b.amount, 2)}</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(b.amount, 2)}</span>
                       {!b.paid && (
                         <button onClick={() => togglePaid(b.id)} style={{ fontSize: 10, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid var(--positive)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600 }}>
                           Πληρώθηκε
@@ -775,7 +771,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 3, gap: 2, border: '1px solid var(--border-subtle)' }}>
               {[{ id: 'area', label: 'Τάση' }, { id: 'bar', label: 'Μηνιαίο' }, { id: 'category', label: 'Κατηγορίες' }].map(v => (
                 <button key={v.id} onClick={() => setChartView(v.id as any)}
-                  style={{ padding: '5px 12px', borderRadius: T.radius.badge + 2, border: 'none', background: chartView === v.id ? 'var(--accent)' : 'transparent', color: chartView === v.id ? '#000' : 'var(--text-secondary)', fontSize: 11, fontWeight: chartView === v.id ? 700 : 400, cursor: 'pointer', transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                  style={{ padding: '5px 12px', borderRadius: T.radius.badge + 2, border: 'none', background: chartView === v.id ? 'var(--accent)' : 'transparent', color: chartView === v.id ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 11, fontWeight: chartView === v.id ? 700 : 400, cursor: 'pointer', transition: 'all 0.15s', fontFamily: T.font.sans }}>
                   {v.label}
                 </button>
               ))}
@@ -848,20 +844,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         const insur    = calc.byCategory.find(c => c.value === 'insurance');
         const internet = calc.byCategory.find(c => c.value === 'internet');
         if (elec && elec.monthly > 50)
-          advice.push({ type: 'tip', title: 'Εξοικονόμηση ρεύματος', body: `Με ${fe(elec.monthly)}/μήνα, αλλαγή σε νυχτερινή ζώνη (ΔΕΗ Γ1Ν) εξοικονομεί έως 15%. Ετήσια εξοικονόμηση: ~${fe(elec.monthly * 12 * 0.15)}.` });
+          advice.push({ type: 'tip', title: 'Εξοικονόμηση ρεύματος', body: `Με ${fe(elec.monthly, 0)}/μήνα, αλλαγή σε νυχτερινή ζώνη (ΔΕΗ Γ1Ν) εξοικονομεί έως 15%. Ετήσια εξοικονόμηση: ~${fe(elec.monthly * 12 * 0.15, 0)}.` });
         if (!insur)
           advice.push({ type: 'warning', title: 'Δεν υπάρχει ασφάλεια κατοικίας', body: 'Υποχρεωτική για δανειολήπτες. Hellas Direct Basic από 8.90€/μήνα — καλύψεις πυρκαγιά + κλοπή.' });
         if (internet && internet.monthly > 25)
-          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly)}/μήνα. Ελέγξτε Inalan/Enterwave — fiber από 17€/μήνα χωρίς δέσμευση (ΕΕΤΤ 360°).` });
+          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Ελέγξτε Inalan/Enterwave — fiber από 17€/μήνα χωρίς δέσμευση (ΕΕΤΤ 360°).` });
         if (calc.overdue.length > 0)
-          advice.push({ type: 'warning', title: `${calc.overdue.length} ληξιπρόθεσμος/-οί λογαριασμός/-ιοί`, body: `Συνολικό εκκρεμές: ${fe(calc.overdue.reduce((s, b) => s + b.amount, 0))}. Πλήρωσε σήμερα για αποφυγή προστίμων.` });
+          advice.push({ type: 'warning', title: `${calc.overdue.length} ληξιπρόθεσμος/-οί λογαριασμός/-ιοί`, body: `Συνολικό εκκρεμές: ${fe(calc.overdue.reduce((s, b) => s + b.amount, 0), 0)}. Πλήρωσε σήμερα για αποφυγή προστίμων.` });
         if (calc.totalMonthly > 200)
-          advice.push({ type: 'tip', title: 'Υψηλά πάγια έξοδα', body: `${fe(calc.totalMonthly)}/μήνα είναι πάνω από τον μέσο όρο. Ετήσιο κόστος: ${fe(calc.totalMonthly * 12)}. Εξετάστε αναθεώρηση παρόχων.` });
+          advice.push({ type: 'tip', title: 'Υψηλά πάγια έξοδα', body: `${fe(calc.totalMonthly, 0)}/μήνα είναι πάνω από τον μέσο όρο. Ετήσιο κόστος: ${fe(calc.totalMonthly * 12, 0)}. Εξετάστε αναθεώρηση παρόχων.` });
         if (advice.length === 0) return null;
         const colors = {
-          tip:     { bg: 'rgba(26,115,232,0.06)',  border: 'rgba(26,115,232,0.2)',  color: 'var(--info)',     dot: '#1a73e8' },
-          warning: { bg: 'rgba(197,34,31,0.06)',   border: 'rgba(197,34,31,0.2)',   color: 'var(--negative)', dot: '#c5221f' },
-          saving:  { bg: 'rgba(52,168,83,0.06)',   border: 'rgba(52,168,83,0.2)',   color: 'var(--positive)', dot: '#34a853' },
+          tip:     { bg: 'rgba(26,115,232,0.06)',  border: 'rgba(26,115,232,0.2)',  color: 'var(--info)',     dot: 'var(--info)' },
+          warning: { bg: 'rgba(197,34,31,0.06)',   border: 'rgba(197,34,31,0.2)',   color: 'var(--negative)', dot: 'var(--negative)' },
+          saving:  { bg: 'rgba(52,168,83,0.06)',   border: 'rgba(52,168,83,0.2)',   color: 'var(--positive)', dot: 'var(--positive)' },
         };
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
@@ -895,7 +891,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', color: calc.overdue.length > 0 ? 'var(--negative)' : 'var(--positive)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: k.color, fontFamily: T.font.mono, marginBottom: 4 }}>{k.value}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, fontFamily: T.font.sans }}>{k.label}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>
               </div>
@@ -917,10 +913,10 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{c.label}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {budget > 0 && <span style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget)}</span>}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(c.monthly)}/μήνα</span>
-                    {c.benchmark > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: T.font.mono, width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
-                    {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μ.ο. {fe(c.benchmark)}</span>}
+                    {budget > 0 && <span style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.monthly, 0)}/μήνα</span>
+                    {c.benchmark > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
+                    {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μ.ο. {fe(c.benchmark, 0)}</span>}
                   </div>
                 </div>
                 <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
@@ -953,7 +949,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               ].map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{k.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1, marginBottom: 3 }}>{k.value}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 3 }}>{k.value}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>
                 </div>
               ))}
@@ -1005,8 +1001,8 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                         />
                       </td>
                     ))}
-                    <td style={{ padding: '4px 8px', fontWeight: 700, color: rowTotal > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: 11 }}>
-                      {rowTotal > 0 ? fe(rowTotal) : '—'}
+                    <td style={{ padding: '4px 8px', fontWeight: 700, color: rowTotal > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderBottom: '1px solid var(--border-subtle)', textAlign: 'right', fontSize: 11 }}>
+                      {rowTotal > 0 ? fe(rowTotal, 0) : '—'}
                     </td>
                   </tr>
                 );
@@ -1014,12 +1010,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <tr style={{ background: 'var(--bg-elevated)' }}>
                 <td style={{ padding: 8, fontWeight: 700, fontSize: 11, fontFamily: T.font.sans }}>Σύνολο</td>
                 {calc.historyTotals.map((t, i) => (
-                  <td key={i} style={{ padding: '5px 2px', fontWeight: 700, color: t > 0 ? (t > calc.avgMonthly * 1.2 ? 'var(--negative)' : 'var(--positive)') : 'var(--text-tertiary)', fontFamily: T.font.mono, textAlign: 'center', fontSize: 10 }}>
+                  <td key={i} style={{ padding: '5px 2px', fontWeight: 700, color: t > 0 ? (t > calc.avgMonthly * 1.2 ? 'var(--negative)' : 'var(--positive)') : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'center', fontSize: 10 }}>
                     {t > 0 ? Math.round(t) : '—'}
                   </td>
                 ))}
-                <td style={{ padding: 8, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, textAlign: 'right', fontSize: 11 }}>
-                  {fe(calc.historyTotals.reduce((a, b) => a + b, 0))}
+                <td style={{ padding: 8, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontSize: 11 }}>
+                  {fe(calc.historyTotals.reduce((a, b) => a + b, 0), 0)}
                 </td>
               </tr>
             </tbody>
@@ -1032,7 +1028,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             { label: 'Φθηνότερος',   value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', color: 'var(--positive)' },
           ].map((k, i) => (
             <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.mono }}>{k.value}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, marginTop: 2, fontFamily: T.font.sans }}>{k.label}</div>
             </div>
           ))}
@@ -1054,7 +1050,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             const isToday = today.getDate() === day && today.getMonth() === currentMonth;
             return (
               <div key={day} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
-                <div style={{ width: 34, height: 34, borderRadius: T.radius.badge + 2, background: isToday ? 'var(--accent)' : 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: isToday ? '#000' : 'var(--text-primary)', flexShrink: 0, fontFamily: T.font.mono }}>
+                <div style={{ width: 34, height: 34, borderRadius: T.radius.badge + 2, background: isToday ? 'var(--accent)' : 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: isToday ? 'var(--accent-text)' : 'var(--text-primary)', flexShrink: 0, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
                   {day}
                 </div>
                 <div style={{ flex: 1 }}>
@@ -1067,7 +1063,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           <span style={{ fontSize: 11, color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none', fontFamily: T.font.sans }}>{b.name}</span>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: b.paid ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono }}>{fe(b.amount, 2)}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: b.paid ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
                           <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 3, background: b.paid ? 'rgba(52,168,83,0.1)' : 'rgba(197,34,31,0.1)', color: b.paid ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans }}>{b.paid ? 'Πληρώθηκε' : 'ΕΚΚΡΕΜΕΣ'}</span>
                         </div>
                       </div>

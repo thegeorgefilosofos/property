@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { T, fe } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const fk = (n: number) => `${n.toFixed(4)} €`;
 // FIX: was 'Ιούνιος 2026' — updated to reflect latest confirmed source data (DEI July 2026 extraction, Protergia/Zenith/Enerwave June 2026)
 const LAST_UPDATED = 'Ιούλιος 2026';
@@ -14,16 +14,11 @@ const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%
 const ERT    = 0.00856;  // Ειδικό Ρυθμιστικό Τέλος
 const ETMEAR = 0.0152;   // ΑΠΕ τέλος
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
   width: '100%', background: isCurrent ? 'rgba(212,175,66,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge, padding: '6px 4px', color: 'var(--text-primary)',
-  fontSize: 11, fontFamily: T.font.mono, outline: 'none', textAlign: 'center',
+  fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center',
   boxSizing: 'border-box', transition: 'all 0.15s', cursor: 'pointer',
 });
 
@@ -511,20 +506,20 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             )}
             {tariff.type !== 'dynamic' && tariff.type !== 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                   Χρέωση ημέρας:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_day)} / kWh</strong>
                 </span>
                 {tariff.kwh_night != null && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                     Χρέωση νύχτας:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_night)} / kWh</strong>
                   </span>
                 )}
                 {tariff.kwh_tier2 && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                     Άνω των {tariff.tier2_threshold} kWh:{'  '}<strong style={{ color: tariffBc.color }}>{fk(tariff.kwh_tier2)} / kWh</strong>
                   </span>
                 )}
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                   Μηνιαίο πάγιο:{'  '}<strong>{tariff.no_fixed ? '0,00 €' : `${fixedToUse.toFixed(2)} € / μήνα`}</strong>
                 </span>
               </div>
@@ -532,11 +527,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {/* FIX: new — fixed_monthly tariffs previously showed nothing here at all (the block above explicitly excludes them) */}
             {tariff.type === 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                   Σταθερό μηνιαίο κόστος:{'  '}<strong style={{ color: tariffBc.color }}>{fe(tariff.flat_monthly || 0)} / μήνα</strong>
                 </span>
                 {tariff.flat_annual_kwh != null && (
-                  <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
                     Όριο κατανάλωσης:{'  '}<strong>{tariff.flat_annual_kwh.toLocaleString('el-GR')} kWh / έτος</strong>
                   </span>
                 )}
@@ -595,7 +590,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: i === 0 ? 20 : 14, fontWeight: 700, color: k.color, fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: i === 0 ? 20 : 14, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -633,7 +628,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     padding: '6px 16px', borderRadius: T.radius.pill, border: 'none', cursor: 'pointer',
                     fontSize: 11, fontWeight: 700, fontFamily: T.font.sans,
                     background: segmentFilter === seg ? 'var(--accent)' : 'transparent',
-                    color: segmentFilter === seg ? '#1a1a1a' : 'var(--text-secondary)',
+                    color: segmentFilter === seg ? 'var(--accent-text)' : 'var(--text-secondary)',
                     transition: 'all 0.15s',
                   }}>
                   {seg === 'residential' ? 'Οικιακό' : 'Επιχειρηματικό'}
@@ -645,7 +640,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             <div style={{ background: 'rgba(52,168,83,0.05)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
+                Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
               </span>
             </div>
           )}
@@ -672,23 +667,23 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                       <td style={{ padding: '8px 10px' }}>
                         <span style={{ fontSize: 8, fontWeight: 700, color: rowBc.color, background: rowBc.border, padding: '2px 8px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{t.badge}</span>
                       </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
+                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
                         {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? 'VNM' : `${fk(t.kwh_day)}`}
                       </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
+                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
                         {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed) — now shows — instead */}
                         {t.type === 'fixed_monthly' ? '—' : t.no_fixed ? '0 €' : `${(t.fixed_ebill != null ? t.fixed_ebill : t.fixed).toFixed(2)} €`}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {t.contract_months ? `${t.contract_months} μήνες` : 'Χωρίς δέσμευση'}
                       </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, color: isBest ? 'var(--positive)' : isCur ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap' as const }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isBest ? 'var(--positive)' : isCur ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap' as const }}>
                         {t.type === 'dynamic' ? 'Ωριαίο' : fe(t.monthly)}
                       </td>
-                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' as const }}>
+                      <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' as const }}>
                         {t.type === 'dynamic' ? '—' : fe(t.monthly * 12)}
                       </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, whiteSpace: 'nowrap' as const,
+                      <td style={{ padding: '8px 10px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const,
                         color: isCur ? 'var(--text-tertiary)' : t.diff < 0 ? 'var(--positive)' : t.diff > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
                         {isCur ? '—' : t.diff === 0 ? '—' : `${t.diff < 0 ? '' : '+'}${fe(t.diff)}`}
                       </td>
