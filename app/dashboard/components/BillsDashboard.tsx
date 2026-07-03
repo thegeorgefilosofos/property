@@ -18,6 +18,8 @@ const T = {
 const fe = (n: number, d = 0) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const MONTHS_GR = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
+const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+
 interface BillEntry {
   id: string; property_id?: string; user_id?: string;
   category: string; name: string; amount: number;
@@ -115,7 +117,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   const pending = bills.filter(b => !b.paid);
   const recurring = bills.filter(b => b.recurring);
 
-  // ── SHEET 1: Σύνοψη ──────────────────────────────────────────────────────────
   const summaryData: (string | number | null | undefined)[][] = [
     ['PROPERTY OS — ΑΝΑΦΟΡΑ ΛΟΓΑΡΙΑΣΜΩΝ & ΠΑΓΙΩΝ ΔΑΠΑΝΩΝ', null, null, null, null],
     [''],
@@ -153,7 +154,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
   XLSX.utils.book_append_sheet(wb, ws1, 'Σύνοψη');
 
-  // ── SHEET 2: Αναλυτικά ───────────────────────────────────────────────────────
   const headers2 = ['Κατηγορία','Ονομασία / Πάροχος','Ποσό (€)','ΦΠΑ %','Περίοδος','Ημερομηνία Λήξης','Τύπος','Κατάσταση','Ημέρες έως Λήξη','Κατανάλωση (kWh)','Σημειώσεις'];
   const detailRows: (string | number | null | undefined)[][] = [headers2, ...bills
     .sort((a, b) => {
@@ -182,7 +182,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   ws2['!cols'] = [{ wch: 18 }, { wch: 34 }, { wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 36 }];
   XLSX.utils.book_append_sheet(wb, ws2, 'Αναλυτικά');
 
-  // ── SHEET 3: Εκκρεμείς & Ληξιπρόθεσμοι ──────────────────────────────────────
   const pendingData: (string | number | null | undefined)[][] = [
     ['ΕΚΚΡΕΜΕΙΣ & ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ', null, null, null, null, null],
     [`${pending.length} εκκρεμείς · ${overdue.length} ληξιπρόθεσμοι · Εξαγωγή: ${today}`, null, null, null, null, null],
@@ -212,7 +211,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   ws3['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 34 }, { wch: 12 }, { wch: 22 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, ws3, 'Εκκρεμείς');
 
-  // ── SHEET 4: Πάγια Κόστη ─────────────────────────────────────────────────────
   if (recurring.length > 0) {
     const recurData: (string | number | null | undefined)[][] = [
       ['ΠΑΓΙΑ ΚΟΣΤΗ — ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
@@ -236,7 +234,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     XLSX.utils.book_append_sheet(wb, ws4, 'Πάγια Κόστη');
   }
 
-  // ── SHEET 5: Ιστορικό ────────────────────────────────────────────────────────
   const histData: (string | number | null | undefined)[][] = [
     ['ΙΣΤΟΡΙΚΟ ΚΟΣΤΟΥΣ ' + year, null, null, null],
     [`Ακίνητο: ${propertyName} · Μέσος Όρος: ${avgMonthly.toFixed(2)} € / μήνα`, null, null, null],
@@ -259,7 +256,6 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   XLSX.writeFile(wb, filename);
 }
 
-// Custom recharts tooltip
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -276,7 +272,6 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// Shared history input style — design-system compliant inline input
 const histInputStyle = (isCurrent: boolean): React.CSSProperties => ({
   width: '100%',
   background: isCurrent ? 'rgba(212,175,66,0.06)' : 'var(--bg-base)',
@@ -310,7 +305,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const [showBudgets, setShowBudgets] = useState(false);
   const [form, setForm] = useState({
     category: 'electricity', name: '', amount: '', kwh: '',
-    period: '', period_custom: '', due_date: '', recurring: true,
+    period: '', date_from: '', due_date: '', recurring: true,
     notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '',
   });
   const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
@@ -336,17 +331,14 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     if (data?.data) setBudgets(data.data as Record<string, string>);
   }, [propertyId]);
 
-  // ── Realtime subscription — instant updates when bills change ──────────────
   useEffect(() => {
     if (!propertyId) return;
     let mounted = true;
 
-    // Initial load
     loadBills();
     loadHistory();
     loadBudgets();
 
-    // Subscribe to bills table changes
     const channel = supabase
       .channel(`dashboard_bills_${propertyId}`)
       .on(
@@ -390,7 +382,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const addBill = async () => {
     if (!form.name || !form.amount) return;
     setSaving(true);
-    const period = form.period === 'custom' ? form.period_custom : form.period;
+    const period = form.period === 'custom'
+      ? (form.date_from && form.due_date ? `${fmtDateGR(form.date_from)} — ${fmtDateGR(form.due_date)}` : '')
+      : form.period;
     const payload = {
       property_id: propertyId, user_id: userId,
       category: form.category, name: form.name, amount: parseFloat(form.amount),
@@ -414,7 +408,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         } catch (_) {}
       }
     }
-    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', period_custom: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '' });
+    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', date_from: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '' });
     setShowForm(false);
     setSaving(false);
   };
@@ -514,7 +508,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {/* ── Notification strip ──────────────────────────────────────────── */}
       {calc.alerts.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           {(['danger','warning','info'] as const).map(type => {
@@ -545,7 +538,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* ── KPI row ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Πάγια / Μήνα',  value: fe(calc.totalMonthly),  sub: fe(calc.totalMonthly * 12) + '/έτος',              neg: false },
@@ -561,7 +553,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         ))}
       </div>
 
-      {/* ── Action row ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 10 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <BillsPDFExport data={{ propertyName, propertyAddress, bills, totalMonthly: calc.totalMonthly, totalAnnual: calc.totalMonthly * 12, avgMonthly: calc.avgMonthly, historyTotals: calc.historyTotals }}/>
@@ -591,7 +582,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       </div>
 
-      {/* ── Budget limits panel ─────────────────────────────────────────── */}
       {showBudgets && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           {secHdr('Όρια Budget ανά Κατηγορία')}
@@ -625,7 +615,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* ── Add Form ────────────────────────────────────────────────────── */}
       {showForm && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 18, fontFamily: T.font.sans }}>Νέος Λογαριασμός / Πάγιο</div>
@@ -635,14 +624,13 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <NumberInput label="Ποσό (€)" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
-          {/* Period row — Από/Έως only for custom, Ημερομηνία Λήξης otherwise */}
           <div style={{ display: 'grid', gridTemplateColumns: form.period === 'custom' ? '1fr 1fr 1fr auto 1fr' : '1fr 1fr auto 1fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
             <CustomSelect label="Περίοδος" value={form.period} onChange={v => {
               sf('period', v);
-              if (v !== 'custom') sf('period_custom', '');
+              if (v !== 'custom') sf('date_from', '');
             }} options={PERIOD_OPTIONS}/>
             {form.period === 'custom' ? (
-              <DatePicker label="Ημερομηνία Έναρξης" value={(form as any).date_from || ''} onChange={v => sf('date_from' as any, v)}/>
+              <DatePicker label="Ημερομηνία Έναρξης" value={form.date_from} onChange={v => sf('date_from', v)}/>
             ) : (
               <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
@@ -655,7 +643,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           {form.category === 'electricity' && (
             <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
-              {/* FIX: 2+2 grid — prevents overflow on narrow panels */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <NumberInput label="Κατανάλωση (kWh)" value={(form as any)['kwh']}         onChange={v => sf('kwh', v)}         suffix="kWh" step={0.01}/>
                 <NumberInput label="ΕΡΤ (€)"           value={(form as any)['ert']}         onChange={v => sf('ert', v)}         suffix="€"   step={0.01}/>
@@ -676,7 +663,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* ── Bills List ──────────────────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
@@ -739,7 +725,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           Πληρώθηκε
                         </button>
                       )}
-                      {/* Duplicate */}
                       <button
                         title="Αντιγραφή λογαριασμού"
                         onClick={() => {
@@ -749,7 +734,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                             amount: String(b.amount || ''),
                             kwh: String(b.kwh || ''),
                             period: '',
-                            period_custom: '',
+                            date_from: '',
                             due_date: '',
                             recurring: b.recurring || false,
                             notes: b.notes || '',
@@ -768,7 +753,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                         </svg>
                       </button>
-                      {/* Delete */}
                       <button onClick={() => deleteBill(b.id)} style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(197,34,31,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--negative)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
@@ -783,7 +767,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         )}
       </div>
 
-      {/* ── Charts ──────────────────────────────────────────────────────── */}
       {(calc.historyTotals.some(v => v > 0) || calc.byCategory.length > 0) && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
@@ -859,7 +842,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* ── Smart Advice ────────────────────────────────────────────────── */}
       {calc.byCategory.length > 0 && (() => {
         const advice: { type: 'tip' | 'warning' | 'saving'; title: string; body: string }[] = [];
         const elec     = calc.byCategory.find(c => c.value === 'electricity');
@@ -902,7 +884,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         );
       })()}
 
-      {/* ── Smart Insights ──────────────────────────────────────────────── */}
       {calc.byCategory.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           {secHdr('Smart Insights')}
@@ -952,7 +933,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       )}
 
-      {/* ── Ετήσιος Απολογισμός ─────────────────────────────────────────── */}
       {calc.historyTotals.some(v => v > 0) && (() => {
         const ytd       = calc.historyTotals.slice(0, currentMonth + 1).reduce((a, b) => a + b, 0);
         const projected = calc.avgMonthly * 12;
@@ -990,7 +970,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         );
       })()}
 
-      {/* ── History Input Table ─────────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         {secHdr(`Ιστορικό ${currentYear}`)}
         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 14, fontFamily: T.font.sans }}>Καταχώρησε τα ποσά από τους λογαριασμούς σου ανά μήνα για να δεις τα γραφήματα.</div>
@@ -1060,7 +1039,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
       </div>
 
-      {/* ── Payment Calendar ─────────────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         {secHdr(`Ημερολόγιο Πληρωμών — ${MONTHS_GR[currentMonth]}`)}
         {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (

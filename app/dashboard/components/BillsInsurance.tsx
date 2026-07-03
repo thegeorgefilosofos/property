@@ -623,7 +623,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {/* ── Property details for live quotes ──────────────────────────── */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
-            Στοιχεία Ακινήτου — για Live Σύγκριση Ασφαλιστικών
+            Στοιχεία Ακινήτου — για Συγκριτική Εκτίμηση Ασφαλίστρων
           </div>
           {crossProperty.sqm && !insSqm && (
             <div style={{ fontSize: 10, color: 'var(--positive)', fontFamily: T.font.sans, marginBottom: 8 }}>
@@ -648,7 +648,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--warning)' : liveQuotes.length > 0 ? 'var(--positive)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                  {quotesLoading ? 'Υπολογισμός quotes...' : `Live Σύγκριση — ${liveQuotes.length} προγράμματα`}
+                  {quotesLoading ? 'Υπολογισμός quotes...' : `Συγκριτική Εκτίμηση —${liveQuotes.length} προγράμματα`}
                 </span>
                 <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
                   Εκτίμηση βάσει στοιχείων
@@ -743,7 +743,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
         {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
           <div style={{ background: 'rgba(212,175,66,0.05)', border: '1px solid rgba(212,175,66,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Συμπλήρωσε εμβαδόν + αξία κτηρίου για live σύγκριση ασφαλιστικών προγραμμάτων
+            Συμπλήρωσε εμβαδόν + αξία κτηρίου για Συγκριτική Εκτίμηση Ασφαλίστρων προγραμμάτων
           </div>
         )}
 

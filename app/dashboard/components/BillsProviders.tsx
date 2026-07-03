@@ -323,7 +323,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       {/* ── Internet & Σταθερό Τηλέφωνο ──────────────────────────────────── */}
       <div style={card}>
         {secHdr('Internet & Σταθερό Τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση →' })}
-        <div style={g4}>
+        <div style={g2}>
           <CustomSelect label="Πάροχος" value={s.internetProvider}
             onChange={v => upd({ internetProvider: v, internetPlanId: '', internetPrice: '', internetSpeed: '' })}
             options={INTERNET_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
@@ -437,7 +437,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                         <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontSize: 10 }}>{plan.speed}</td>
                         <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--positive)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.note}</td>
+                        <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
                         <td style={{ padding: '7px 10px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' as const }}>{fe(plan.price)}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontSize: 10, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
                       </tr>

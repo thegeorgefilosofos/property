@@ -50,7 +50,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   maintenance: 'Συντήρηση', other: 'Άλλο',
 };
 
-// Reusable input field
 const Field = ({
   label, value, onChange, type = 'text',
 }: {
@@ -120,7 +119,9 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       const res  = await fetch('/api/anthropic', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6', max_tokens: 1000,
+          // FIX: 'claude-sonnet-4-6' was not a valid model identifier.
+          // Current Claude API model strings: claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5-20251001.
+          model: 'claude-sonnet-5', max_tokens: 1000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Ανάλυσε αυτόν τον λογαριασμό.' }] }],
         }),
@@ -129,6 +130,14 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
       const clean = text.replace(/```json?|```/g, '').trim();
       const extracted: ExtractedBill = JSON.parse(clean);
+
+      // FIX: validate that the AI actually extracted something usable. Without
+      // this, a failed/empty API response would silently populate the editor
+      // with a blank/zero form instead of surfacing an error message.
+      if (!extracted || (!extracted.amount && !extracted.provider)) {
+        throw new Error('empty_extraction');
+      }
+
       setResult(extracted);
       setEdited({ ...extracted });
     } catch (_) {
@@ -172,7 +181,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
     setEdited(null); setSaving(false); setError('');
   };
 
-  // ── Done ──────────────────────────────────────────────────────────────────
   if (step === 'done') {
     return (
       <div style={{ textAlign: 'center', padding: 60, fontFamily: T.font.sans }}>
@@ -201,7 +209,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>
           Σάρωση & Ανάλυση Λογαριασμού
@@ -213,12 +220,10 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
 
       <div style={{ display: 'grid', gridTemplateColumns: step === 'review' && image ? '1fr 1fr' : '1fr', gap: 24 }}>
 
-        {/* ── Left column: upload / image preview ─────────────────────────── */}
         <div>
           {step === 'upload' ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
-              {/* Camera card */}
               <div
                 onClick={() => cameraRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 168, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}
@@ -233,7 +238,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               </div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && loadImage(e.target.files[0])}/>
 
-              {/* Upload card */}
               <div
                 onClick={() => fileRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 168, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}
@@ -280,7 +284,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
           )}
         </div>
 
-        {/* ── Right column: extracted data editor ─────────────────────────── */}
         {step === 'review' && edited && !scanning && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -333,7 +336,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                 <Field label="Σημειώσεις" value={edited.notes} onChange={v => setEdited(p => ({ ...p!, notes: v }))}/>
               )}
 
-              {/* Save bar */}
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, fontFamily: T.font.sans }}>

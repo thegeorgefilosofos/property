@@ -27,29 +27,17 @@ interface ParsedTransaction {
 
 // ── Comprehensive Greek bank/merchant matcher ─────────────────────────────────
 const MATCHERS = [
-  // Ρεύμα
   { keywords: ['ΔΕΗ','DEH','ΔΗΜΟΣΙΑ ΕΠΙΧΕΙΡΗΣΗ ΗΛΕΚΤΡΙΣΜΟΥ','ΗΡΩΝ ΗΛΕΚΤΡΙΣΜΟΣ','HERON ENERGY','PROTERGIA','VOLTERRA','NRG BILLING','ZENITH ENERGY','ELIN ENERGY','WATT+VOLT','SKY ENERGY'], category: 'electricity', label: 'Ρεύμα', confidence: 'high' as const },
-  // Νερό
   { keywords: ['ΕΥΔΑΠ','EYDAP','ΕΥΑΘ','EYATH','ΔΕΥΑ','ΕΤΑΙΡΕΙΑ ΥΔΡΕΥΣΗΣ','ΥΔΡΕΥΣΗ'], category: 'water', label: 'Νερό', confidence: 'high' as const },
-  // Τηλεπικοινωνίες
   { keywords: ['COSMOTE','OTE AE','NOVA BROADBAND','NOVA SA','FORTHNET','VODAFONE ΕΛΛΑΔΟΣ','WIND HELLAS','HOL SA','CYTA HELLAS','INALAN','ENTERWAVE','WIND MOBILE'], category: 'internet', label: 'Internet & Τηλεφωνία', confidence: 'high' as const },
-  // Streaming
   { keywords: ['NETFLIX','DISNEY PLUS','SPOTIFY AB','AMAZON PRIME','AMAZON DIGITAL','MAX HBO','YOUTUBE PREMIUM','GOOGLE YOUTUBE','ANT1 PLUS','COSMOTE TV','APPLE TV+','APPLE.COM/BILL'], category: 'streaming', label: 'Streaming & Συνδρομές', confidence: 'high' as const },
-  // Cloud / Software
   { keywords: ['ICLOUD','APPLE ICLOUD','GOOGLE ONE','GOOGLE STORAGE','MICROSOFT 365','MICROSOFT ONLINE','DROPBOX','ADOBE SYSTEMS','CANVA'], category: 'streaming', label: 'Cloud & Λογισμικό', confidence: 'high' as const },
-  // ΑΑΔΕ / Φόροι
   { keywords: ['ΑΑΔΕ','AADE','ENFIA','ΕΝΦΙΑ','ΕΦΟΡΙΑ ΑΘΗΝΩΝ','ΔΗΜΟΣΙΑ ΕΣΟΔΑ','ΕΦΚΑ','ΙΚΑ','ΤΕΒΕ'], category: 'taxes', label: 'ΕΝΦΙΑ & Φόροι', confidence: 'high' as const },
-  // Δημοτικά
   { keywords: ['ΔΗΜΟΣ ΑΘΗΝΑΙΩΝ','ΔΗΜΟΤΙΚΑ ΤΕΛΗ','ΔΗΜΟΤΙΚΗ','ΔΗΜΟΣ ΘΕΣΣΑΛΟΝΙΚΗΣ','ΔΗΜΟΤΙΚΗ ΑΡΧΗ','ΔΗΜΟΣ'], category: 'municipal', label: 'Δημοτικά Τέλη', confidence: 'medium' as const },
-  // Φυσικό Αέριο
   { keywords: ['EDA ATTIKIS','ΕΔΑ ΑΤΤΙΚΗΣ','EDA THESS','DEPA','ΦΥΣΙΚΟ ΑΕΡΙΟ','GAS DISTRIBUTION','HERON GAS','PROTERGIA GAS'], category: 'gas', label: 'Φυσικό Αέριο', confidence: 'high' as const },
-  // Ασφάλεια
   { keywords: ['HELLAS DIRECT','INTERAMERICAN','EUROLIFE FFH','EUROLIFE','GENERALI HELLAS','AXA ASFALISTIKI','ΕΘΝΙΚΗ ΑΣΦΑΛΙΣΤΙΚΗ','ALLIANZ HELLAS','ERGO ΑΣΦΑΛΙΣΤΙΚΗ','GROUPAMA'], category: 'insurance', label: 'Ασφάλεια', confidence: 'high' as const },
-  // Security
   { keywords: ['ELTRAK SECURITY','G4S HELLAS','VANINFO','DSP SECURITY','SECURITAS','ΕΤΑΙΡΕΙΑ ΑΣΦΑΛΕΙΑΣ','ALARM'], category: 'security', label: 'Ασφάλεια & Security', confidence: 'medium' as const },
-  // Κοινόχρηστα
   { keywords: ['ΚΟΙΝΟΧΡΗΣΤΑ','ΚΤΗΡΙΟ','ΔΙΑΧΕΙΡΙΣΗΣ','ΚΤΗΡΙΟ','MYBILLYS','MY CONDO','COMFY'], category: 'common', label: 'Κοινόχρηστα', confidence: 'medium' as const },
-  // Ενοίκιο
   { keywords: ['ΜΙΣΘΩΜΑ','ΕΝΟΙΚΙΟ','RENT','ENARC','ΜΙΣΘΩΣΗ'], category: 'rent_income', label: 'Ενοίκιο', confidence: 'medium' as const },
 ] as const;
 
@@ -62,17 +50,14 @@ function categorizeTransaction(desc: string) {
   return { category: 'other', label: 'Άλλο', confidence: 'low' as const, matched: '' };
 }
 
-// ── Flexible CSV / XLSX / text parser ────────────────────────────────────────
 function parseCSV(text: string): ParsedTransaction[] {
   const lines = text.split('\n').filter(l => l.trim());
   const results: ParsedTransaction[] = [];
   for (let i = 1; i < lines.length; i++) {
-    // Handle comma, semicolon, tab delimiters + quoted fields
     const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)|;|\t/).map(c => c.trim().replace(/^"|"$/g, ''));
     if (cols.length < 3) continue;
     let date = '', desc = '', amount = 0, debit = true;
     for (const col of cols) {
-      // Date: DD/MM/YYYY, YYYY-MM-DD, DD.MM.YYYY, DD-MM-YYYY
       if (!date && /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(col)) {
         const parts = col.split(/[\/\-\.]/);
         if (parts.length === 3) {
@@ -80,7 +65,6 @@ function parseCSV(text: string): ParsedTransaction[] {
           date = `${y.length === 2 ? '20' + y : y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
         }
       }
-      // Amount
       if (!amount) {
         const clean = col.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
         const n = parseFloat(clean);
@@ -88,7 +72,6 @@ function parseCSV(text: string): ParsedTransaction[] {
           amount = Math.abs(n); debit = n < 0 || col.startsWith('-');
         }
       }
-      // Description — longest non-date, non-amount string
       if (col.length > 4 && !/^\d+[,\.]?\d*$/.test(col) && !/^\d{1,2}[\/\-]\d{1,2}/.test(col)) {
         if (!desc || col.length > desc.length) desc = col;
       }
@@ -100,7 +83,6 @@ function parseCSV(text: string): ParsedTransaction[] {
   return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-// ── XLSX parser using SheetJS ────────────────────────────────────────────────
 async function parseXLSX(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
   const XLSX = await import('xlsx');
   const wb   = XLSX.read(buffer, { type: 'array', cellDates: true });
@@ -128,9 +110,7 @@ const CATEGORY_OPTIONS = [
 const CONFIDENCE_DOT = { high: 'var(--positive)', medium: 'var(--warning)', low: 'var(--text-tertiary)' };
 const CONFIDENCE_LBL = { high: 'Σίγουρο', medium: 'Πιθανό', low: 'Άγνωστο' };
 
-// Greek banks — comprehensive list
 const BANKS = [
-  // Ελληνικές Τράπεζες — αλφαβητική σειρά
   'Alpha Bank',
   'Attica Bank',
   'Credia (Παγκρήτια)',
@@ -139,11 +119,9 @@ const BANKS = [
   'Optima Bank',
   'Τράπεζα Πειραιώς',
   'Τράπεζα Θεσσαλίας',
-  // Νεοτράπεζες
   'N26',
   'Revolut',
   'Wise',
-  // Ψηφιακές Πληρωμές
   'Apple Pay',
   'Google Pay',
   'Payzy (Cosmote)',
@@ -171,28 +149,27 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
     try {
       setImporting(true);
 
-      // ── CSV / TXT ───────────────────────────────────────────────────────
       if (['csv','txt'].includes(ext)) {
         const text = await file.text();
         const txs  = parseCSV(text);
         if (!txs.length) { setError('Δεν βρέθηκαν συναλλαγές. Βεβαιώσου ότι το αρχείο έχει κεφαλίδες (ημερομηνία, περιγραφή, ποσό).'); return; }
         setTransactions(txs); setStep('review');
 
-      // ── XLSX / XLS / ODS ────────────────────────────────────────────────
       } else if (['xlsx','xls','ods'].includes(ext)) {
         const buf = await file.arrayBuffer();
         const txs = await parseXLSX(buf);
         if (!txs.length) { setError('Δεν βρέθηκαν συναλλαγές στο αρχείο Excel.'); return; }
         setTransactions(txs); setStep('review');
 
-      // ── PDF — Claude AI extraction ────────────────────────────────────────
       } else if (ext === 'pdf') {
         const arrayBuffer = await file.arrayBuffer();
         const base64      = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
         const response    = await fetch('/api/anthropic', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-6', max_tokens: 2000,
+            // FIX: 'claude-sonnet-4-6' was not a valid model identifier.
+            // Current Claude API model strings: claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5-20251001.
+            model: 'claude-sonnet-5', max_tokens: 2000,
             system: `Εξάγαγε ΟΛΕΣ τις χρεωστικές συναλλαγές από αυτό το τραπεζικό αντίγραφο. 
 Επέστρεψε ΜΟΝΟ valid JSON array χωρίς markdown ή backticks:
 [{"date":"YYYY-MM-DD","description":"ΚΕΦΑΛΑΙΑ","amount":12.50,"debit":true}]
@@ -213,7 +190,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         });
         setTransactions(txs); setStep('review');
 
-      // ── Images — Claude AI vision ─────────────────────────────────────────
       } else if (['jpg','jpeg','png','heic','webp','bmp'].includes(ext)) {
         const arrayBuffer = await file.arrayBuffer();
         const base64      = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
@@ -221,7 +197,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         const response    = await fetch('/api/anthropic', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-6', max_tokens: 2000,
+            // FIX: 'claude-sonnet-4-6' was not a valid model identifier.
+            // Current Claude API model strings: claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5-20251001.
+            model: 'claude-sonnet-5', max_tokens: 2000,
             system: `Εξάγαγε συναλλαγές ή στοιχεία λογαριασμού από αυτή την εικόνα.
 Αν είναι τραπεζικό αντίγραφο: JSON array [{"date":"YYYY-MM-DD","description":"...","amount":12.50,"debit":true}]
 Αν είναι λογαριασμός (ΔΕΗ/ΕΥΔΑΠ κτλ): JSON object {"provider":"...","amount":45.50,"due_date":"YYYY-MM-DD","period":"...","category":"electricity"}
@@ -236,7 +214,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         const text  = (data.content || []).find((c: any) => c.type === 'text')?.text || '{}';
         const clean = text.replace(/```json?|```/g,'').trim();
         const raw   = JSON.parse(clean);
-        // Handle both array (bank statement) and object (single bill)
         const arr   = Array.isArray(raw) ? raw : [raw];
         const txs   = arr.map((r: any, i: number) => {
           const cat = categorizeTransaction(r.description || r.provider || '');
@@ -282,7 +259,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const { error: err } = await supabase.from('bills').insert(rows);
       if (err) throw err;
 
-      // Also insert into expenses for cross-app sync
       await Promise.allSettled(selected.filter(t => t.debit).map(t =>
         supabase.from('expenses').insert({
           property_id: propertyId, user_id: userId,
@@ -305,7 +281,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
   const selectedCnt = transactions.filter(t => t.selected).length;
   const totalAmt    = transactions.filter(t => t.selected && t.debit).reduce((s, t) => s + t.amount, 0);
 
-  // ── Done screen ────────────────────────────────────────────────────────────
   if (step === 'done') return (
     <div style={{ textAlign: 'center', padding: 60, fontFamily: T.font.sans }}>
       <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(52,168,83,0.12)', border: '1px solid rgba(52,168,83,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
@@ -324,7 +299,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Εισαγωγή Τραπεζικού Λογαριασμού</div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Αυτόματη αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ — CSV, Excel, PDF, εικόνες</div>
@@ -332,7 +306,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
       {step === 'upload' && (
         <>
-          {/* Bank selector */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, letterSpacing: "0.3px", color: "var(--text-secondary)", marginBottom: 8, fontFamily: T.font.sans }}>Τράπεζα <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-tertiary)" }}>(προαιρετικό)</span></label>
             <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)}
@@ -342,7 +315,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             </select>
           </div>
 
-          {/* Drop zone */}
           <div
             onDrop={handleDrop}
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -377,7 +349,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             <div style={{ background: 'rgba(197,34,31,0.07)', border: '1px solid rgba(197,34,31,0.25)', borderRadius: T.radius.inner, padding: '12px 16px', fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>{error}</div>
           )}
 
-          {/* Instructions */}
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', padding: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες ${selectedBank}` : 'Εξαγωγή Κινήσεων ανά Τράπεζα'}</div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες εξαγωγής για ${selectedBank} — ακολούθησε τα παρακάτω βήματα` : 'Επίλεξε τράπεζα παραπάνω ή πάτα οποιαδήποτε κάρτα για αναλυτικές οδηγίες'}</div>
@@ -423,7 +394,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                   );
                 }
 
-                // No bank selected — show compact grid of all banks
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     {Object.entries(ALL_BANK_INSTRUCTIONS).map(([name, info], i) => (
@@ -445,7 +415,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
       {step === 'review' && transactions.length > 0 && (
         <>
-          {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
             {[
               { label: 'Συναλλαγές',    value: String(transactions.length) },
@@ -460,7 +429,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             ))}
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
               style={{ fontSize: 11, padding: '7px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
@@ -478,7 +446,6 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             </button>
           </div>
 
-          {/* Transaction list */}
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
             {filtered.map((tx, i) => (
               <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(212,175,66,0.03)' : 'transparent', transition: 'background 0.1s' }}>
