@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, ReactNode } from 'react';
+import { T } from '@/components/Theme';
 
 // Google MD3 form styles
 const mdInputBase: React.CSSProperties = {
@@ -143,7 +144,7 @@ export function NumberInput({
             padding: focused ? '9px 15px' : '10px 16px',
             color: 'var(--text-primary)',
             fontSize: 14,
-            fontFamily: "'Roboto Mono', monospace",
+            fontFamily: T.font.mono,
             letterSpacing: '0.25px',
             minWidth: 0,
           }}
@@ -409,7 +410,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                     borderRadius: '50%',
                     border: 'none',
                     background: isSelected ? 'var(--accent)' : 'transparent',
-                    color: isSelected ? '#fff' : isToday ? 'var(--accent)' : 'var(--text-primary)',
+                    color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
                     fontFamily: "'Google Sans', sans-serif",
                     fontSize: 13,
                     fontWeight: isToday ? 700 : 400,
@@ -436,7 +437,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               Εκκαθάριση
             </button>
             <button onClick={() => { onChange(today); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: '#fff', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Σήμερα
             </button>
           </div>
