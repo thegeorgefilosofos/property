@@ -180,15 +180,6 @@ const PROVIDERS = [
     ] as unknown as Tariff[],
   },
   {
-    value: 'elpedison', label: 'Elpedison', url: 'https://www.elpedison.gr',
-    tariffs: [
-      { id: 'elp_bright',       name: 'Elpedison Bright',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1690, kwh_night: null, fixed: 3.00, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Χαμηλό πάγιο.' },
-      { id: 'elp_one',          name: 'Elpedison One Home',     badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1706, kwh_night: null, fixed: 5.00, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
-      // ── Επαγγελματικά ──────────────────────────────────────────────────
-      { id: 'elp_biz_one', name: 'Elpedison One Business', badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1750, kwh_night: null, flat_monthly: null, fixed: 5.00, fixed_ebill: null, contract_months: 0, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
-    ] as unknown as Tariff[],
-  },
-  {
     value: 'volton', label: 'Volton', url: 'https://volton.gr',
     tariffs: [
       // ── Οικιακά ────────────────────────────────────────────────────────
