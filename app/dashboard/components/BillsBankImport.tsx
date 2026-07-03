@@ -2,16 +2,12 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { T, fe } from '@/components/Theme';
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
 const mdLabel: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.5px',
   textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans,
 };
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 interface ParsedTransaction {
   id:          string;
@@ -290,7 +286,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{imported} συναλλαγές προστέθηκαν στους Λογαριασμούς</div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>Τα δεδομένα ενημέρωσαν και τις Δαπάνες αυτόματα</div>
       <button onClick={() => { setStep('upload'); setTransactions([]); setImported(0); setError(''); }}
-        style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+        style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
         Νέα Εισαγωγή
       </button>
     </div>
@@ -385,7 +381,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                       <div style={{ display: 'flex', gap: 0, flexDirection: 'column' }}>
                         {selected.steps.map((step, si) => (
                           <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: si < selected.steps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, flexShrink: 0 }}>{si + 1}</div>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{si + 1}</div>
                             <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{step}</span>
                           </div>
                         ))}
@@ -424,7 +420,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 16px' }}>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)' }}>{k.value}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -441,7 +437,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             <button onClick={() => { setStep('upload'); setTransactions([]); setError(''); }}
               style={{ fontSize: 11, padding: '7px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>← Πίσω</button>
             <button onClick={importSelected} disabled={importing || selectedCnt === 0}
-              style={{ fontSize: 12, fontWeight: 700, padding: '8px 24px', borderRadius: T.radius.btn, border: 'none', background: selectedCnt > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCnt > 0 ? '#000' : 'var(--text-tertiary)', cursor: selectedCnt > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
+              style={{ fontSize: 12, fontWeight: 700, padding: '8px 24px', borderRadius: T.radius.btn, border: 'none', background: selectedCnt > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: selectedCnt > 0 ? 'var(--accent-text)' : 'var(--text-tertiary)', cursor: selectedCnt > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
               {importing ? 'Εισαγωγή...' : `Εισαγωγή ${selectedCnt} συναλλαγών`}
             </button>
           </div>
@@ -467,7 +463,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                   {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
                 <div style={{ textAlign: 'right', minWidth: 80 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
                     {tx.debit ? '-' : '+'}{fe(tx.amount)}
                   </div>
                 </div>
