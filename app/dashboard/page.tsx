@@ -187,7 +187,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
             {form.value && form.target_rent && (
               <div style={{background:'var(--md-primary-container)',borderRadius:12,padding:'14px 18px'}}>
                 <div style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--md-on-primary-container)',marginBottom:4}}>Εκτιμώμενη Μεικτή Απόδοση</div>
-                <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:24,fontWeight:400,color:'var(--md-on-primary-container)'}}>{((parseFloat(form.target_rent)*12/parseFloat(form.value))*100).toFixed(1)}%</div>
+                <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:24,fontWeight:400,color:'var(--md-on-primary-container)',fontVariantNumeric:'tabular-nums'}}>{((parseFloat(form.target_rent)*12/parseFloat(form.value))*100).toFixed(1)}%</div>
               </div>
             )}
           </div>
@@ -237,7 +237,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
         </div>
         {otherProperties.length === 0 ? (
           <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
-            <p style={{fontSize:32,marginBottom:12}}>🏠</p>
+            <p style={{fontSize:32,marginBottom:12}}></p>
             <p style={{fontFamily:"'Roboto',sans-serif",fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
           </div>
         ) : (
@@ -264,7 +264,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
               </div>
             )}
             <div style={{padding:'12px 16px',background:'var(--warning-dim)',borderRadius:12}}>
-              <p style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--warning)'}}>⚠️ Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
+              <p style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--warning)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
@@ -329,7 +329,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ημ.`):fmtEur(propValue), color: daysToExpiry!=null?(daysToExpiry<0?'var(--negative)':daysToExpiry<60?'var(--warning)':'var(--text-primary)'):'var(--text-primary)' },
         ].map((k,i) => (
           <div key={i} className="kpi-card">
-            <div className="kpi-value" style={{color:k.color,fontFamily:"'Roboto Mono',monospace"}}>{k.value}</div>
+            <div className="kpi-value" style={{color:k.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
           </div>
         ))}
@@ -356,7 +356,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:8,height:8,borderRadius:2,background:catColors[i],flexShrink:0}}/>
                     <div style={{flex:1,fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
-                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',flexShrink:0}}>{fmtEur(amt)}</div>
+                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
                   </div>
                 ))}
               </div>
@@ -403,7 +403,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
                 {bills.slice(0,5).map(b => (
                   <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <div style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
-                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)'}}>{fmtEur(b.avg_amount||b.amount)}</div>
+                    <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(b.avg_amount||b.amount)}</div>
                   </div>
                 ))}
               </div>
@@ -422,7 +422,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
           ].map((k,i) => (
             <div key={i} style={{textAlign:'center',padding:16,background:(k as any).accent?'var(--md-primary-container)':'var(--md-surface-container)',borderRadius:12}}>
-              <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:20,fontWeight:400,color:(k as any).accent?'var(--md-on-primary-container)':k.color,marginBottom:6}}>{k.value}</div>
+              <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:20,fontWeight:400,color:(k as any).accent?'var(--md-on-primary-container)':k.color,marginBottom:6,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
               <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:11,fontWeight:500,color:(k as any).accent?'var(--md-on-primary-container)':'var(--text-secondary)',letterSpacing:'0.5px',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           ))}
@@ -571,7 +571,7 @@ export default function Dashboard() {
 
         {!selected ? (
           <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:24}}>
-            <div style={{fontSize:48,opacity:0.15}}>🏠</div>
+            <div style={{fontSize:48,opacity:0.15}}></div>
             <div style={{fontFamily:"'Roboto',sans-serif",fontSize:16,color:'var(--text-secondary)',letterSpacing:'0.5px'}}>Πρόσθεσε το πρώτο σου ακίνητο για να ξεκινήσεις</div>
             <button className="btn btn-primary" onClick={()=>setShowAddModal(true)}>+ Προσθήκη Ακινήτου</button>
           </div>
