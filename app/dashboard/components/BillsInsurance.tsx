@@ -4,15 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { T, fe } from '@/components/Theme';
 
 const INSURANCEMARKET_URL = 'https://www.insurancemarket.gr/asfaleia-katoikias';
 const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
-
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 // ─── Insurance data ────────────────────────────────────────────────────────────
 const INSURANCE_COMPANIES = [
@@ -585,7 +580,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: i === 3 && total > 0 ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: i === 3 && total > 0 ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -598,7 +593,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--info)', fontFamily: T.font.sans, marginBottom: 3 }}>
-              🔗 Σύνδεση ΑΑΔΕ — Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
+              Σύνδεση ΑΑΔΕ — Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
               {aadeConnected
@@ -687,7 +682,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(212,175,66,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
                       <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
                       {q.savings !== undefined && q.savings > 0 && (
                         <div style={{ fontSize: 9, color: 'var(--positive)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)}/μήνα</div>
@@ -723,9 +718,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                           <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
                           <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? '✓' : '—'}</td>
                           <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
-                          <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, whiteSpace: 'nowrap' as const, color: q.savings !== undefined && q.savings > 0 ? 'var(--positive)' : q.savings !== undefined && q.savings < 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
+                          <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: q.savings !== undefined && q.savings > 0 ? 'var(--positive)' : q.savings !== undefined && q.savings < 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
                             {q.savings !== undefined && q.savings !== 0 ? `${q.savings > 0 ? '+' : ''}${fe(q.savings)}` : '—'}
                           </td>
                         </tr>
@@ -845,13 +840,13 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', borderRadius: T.radius.badge, padding: '6px 10px' }}>
                       <div onClick={() => updateS(svc.value, 'splitActive', !active.splitActive)}
                         style={{ width: 30, height: 17, borderRadius: T.radius.pill, background: active.splitActive ? 'var(--accent)' : 'var(--border-default)', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-                        <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? '#000' : '#fff', transition: 'left 0.2s' }}/>
+                        <div style={{ position: 'absolute', top: 2.5, left: active.splitActive ? 14 : 2.5, width: 12, height: 12, borderRadius: '50%', background: active.splitActive ? 'var(--accent-text)' : '#fff', transition: 'left 0.2s' }}/>
                       </div>
                       <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Διαμοιρασμός κόστους</span>
                       {active.splitActive && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <input type="number" min="2" max="10" value={active.splitPeople || 2} onChange={e => updateS(svc.value, 'splitPeople', Math.max(2, parseInt(e.target.value) || 2))}
-                            style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, outline: 'none', textAlign: 'center' }}/>
+                            style={{ width: 44, background: 'var(--bg-elevated)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '3px 6px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center' }}/>
                           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>άτομα</span>
                         </div>
                       )}
@@ -860,7 +855,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     <DatePicker label="Ημερομηνία ανανέωσης" value={active.renewalDate} onChange={v => updateS(svc.value, 'renewalDate', v)}/>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-subtle)', marginTop: 2 }}>
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{active.splitActive && (active.splitPeople || 2) > 1 ? `Μερίδιό σου (÷${active.splitPeople})` : 'Μηνιαίο κόστος'}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(myShare)} / μήνα</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</span>
                     </div>
                   </div>
                 )}
@@ -875,7 +870,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{(activeStreaming || []).map(a => STREAMING.find(s => s.value === a.service)?.label).join(' · ')}</div>
             </div>
             <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(streamingCost)}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(streamingCost)}</div>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>ανά μήνα</div>
             </div>
           </div>
@@ -904,7 +899,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                     <select value={active.planId} onChange={e => updateC(svc.value, 'planId', e.target.value)} style={{ ...miniSelectStyle, fontSize: 9, padding: '4px 6px' }}>
                       {(svc.plans ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.mono }}>{fe(myShare)} / μήνα</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(myShare)} / μήνα</div>
                   </div>
                 ) : (
                   <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>από {fe(svc.plans[0].price)}</div>
@@ -926,7 +921,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={() => { if (newSubName && newSubPrice) { u({ otherSubs: [...(otherSubs || []), { name: newSubName, price: newSubPrice, renewalDate: newSubRenewal }] }); setNewSubName(''); setNewSubPrice(''); setNewSubRenewal(''); } }}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 24px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
               + Προσθήκη
             </button>
           </div>
@@ -940,7 +935,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{new Date(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? ` — σε ${daysLeft} ημέρες` : ''}</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(parseFloat(s.price))} / μήνα</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
                 <button onClick={() => u({ otherSubs: (otherSubs || []).filter((_: any, j: number) => j !== i) })}
                   style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
@@ -956,8 +951,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               </div>
             </div>
             <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(total)} / μήνα</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginTop: 3 }}>{fe(total * 12)} / έτος</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(total)} / μήνα</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(total * 12)} / έτος</div>
             </div>
           </div>
         )}

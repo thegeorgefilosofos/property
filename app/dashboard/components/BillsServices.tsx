@@ -4,13 +4,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { T, fe } from '@/components/Theme';
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 // FIX: history input style with hover
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
@@ -21,7 +17,7 @@ const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSPropert
   padding: '6px 4px',
   color: 'var(--text-primary)',
   fontSize: 11,
-  fontFamily: T.font.mono,
+  fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums',
   outline: 'none',
   textAlign: 'center',
   boxSizing: 'border-box',
@@ -256,7 +252,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
           {/* FIX: only show if active AND cost is a positive number */}
           {active && typeof cost === 'number' && cost > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 8 }}>{fe(cost)} / μήνα</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginLeft: 8 }}>{fe(cost)} / μήνα</span>
           )}
         </div>
       </div>
@@ -305,7 +301,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -375,7 +371,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   {isPast ? 'ΠΛΗΡ.' : isNext ? 'ΕΠΟΜ.' : ''}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: isNext ? 700 : 500, color: isNext ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{d.label}</div>
-                <div style={{ fontSize: 10, color: isNext ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, marginTop: 2 }}>{d.month}</div>
+                <div style={{ fontSize: 10, color: isNext ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{d.month}</div>
                 {isNext && dLeft >= 0 && dLeft <= 90 && (
                   <div style={{ fontSize: 9, color: 'var(--accent)', fontFamily: T.font.sans, marginTop: 3, fontWeight: 700 }}>{dLeft} ημ.</div>
                 )}
@@ -434,7 +430,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{r.note}</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: T.font.mono }}>-{r.pct}%</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>-{r.pct}%</span>
                     </div>
                   );
                 })}
@@ -446,7 +442,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     suffix="€" step={50}/>
                   <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία Αναγωγή</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
                   </div>
                 </div>
               )}
@@ -460,11 +456,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τελικός ΕΝΦΙΑ</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Δόση (~6 δόσεις)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
                       </div>
                     </div>
                     {[
@@ -474,14 +470,14 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     ].map((row, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{row.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: T.font.mono, color: row.pos ? 'var(--positive)' : 'var(--text-primary)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: row.pos ? 'var(--positive)' : 'var(--text-primary)' }}>
                           {row.val > 0 ? '+' : ''}{fe(row.val)}
                         </span>
                       </div>
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο ΕΝΦΙΑ</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>{fe(enfiaResult.final)}</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 14 }}>
@@ -491,7 +487,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       return (
                         <div key={i} style={{ background: isNext ? 'rgba(212,175,66,0.1)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
                           <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--positive)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--positive)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
                         </div>
                       );
@@ -537,7 +533,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* Result: compact inline pill — same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(212,175,66,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, lineHeight: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
               </span>
               <div>
@@ -561,7 +557,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             return (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'pointer' }}
                 onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}>
-                <div style={{ fontSize: 7, color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, height: 12, display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ fontSize: 7, color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end' }}>
                   {val > 0 ? Math.round(val) : ''}
                 </div>
                 <div style={{ width: '100%', height: `${Math.max(pct * 42, 2)}px`, background: isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'rgba(26,115,232,0.7)' : 'rgba(26,115,232,0.45)', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
@@ -605,9 +601,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             </div>
             {cleaningM > 0 && (
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
-                Μηνιαίο: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(cleaningM)}</strong>
+                Μηνιαίο: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(cleaningM)}</strong>
                 {s.cleaningHours && s.cleaningCostPerVisit && parseFloat(s.cleaningHours) > 0 && (
-                  <span style={{ marginLeft: 14 }}>Ωριαίο: <strong style={{ fontFamily: T.font.mono }}>{fe(parseFloat(s.cleaningCostPerVisit) / parseFloat(s.cleaningHours))} / ώρα</strong></span>
+                  <span style={{ marginLeft: 14 }}>Ωριαίο: <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.cleaningCostPerVisit) / parseFloat(s.cleaningHours))} / ώρα</strong></span>
                 )}
               </div>
             )}
@@ -664,8 +660,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             </div>
             {s.acServiceCost && s.acUnits && parseFloat(s.acServiceCost) > 0 && (
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
-                Ετήσιο σέρβις: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1))}</strong>
-                <span style={{ marginLeft: 14 }}>Μηνιαία αναγωγή: <strong style={{ fontFamily: T.font.mono }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1) / 12)}</strong></span>
+                Ετήσιο σέρβις: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1))}</strong>
+                <span style={{ marginLeft: 14 }}>Μηνιαία αναγωγή: <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1) / 12)}</strong></span>
               </div>
             )}
           </>
@@ -714,7 +710,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <NumberInput  label="Κόστος (€)" value={newCost} onChange={setNewCost} suffix="€" step={10}/>
             <CustomSelect label="Συχνότητα"  value={newFreq} onChange={setNewFreq} options={FREQ}/>
             <button onClick={addOther}
-              style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '0 20px', height: 40, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
               + Προσθήκη
             </button>
           </div>
@@ -728,7 +724,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <span style={{ fontSize: 9, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{FREQ.find(f => f.value === o.freq)?.label}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.mono }}>{fe(toMonthly(o.cost, o.freq))} / μήνα</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(toMonthly(o.cost, o.freq))} / μήνα</span>
               <button onClick={() => delOther(i)}
                 style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>✕</button>
             </div>
@@ -755,8 +751,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{r.label}</span>
                 <div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(r.amount)} / μήνα</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.mono }}>{fe(r.amount * 12)} / έτος</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount)} / μήνα</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
               <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
@@ -767,8 +763,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο Υπηρεσιών</span>
             <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
             </div>
           </div>
         </div>
