@@ -35,7 +35,7 @@ function KPI({label,value,color,sub}:{label:string;value:string;color?:string;su
   return (
     <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'12px 14px'}}>
       <p style={{...labelStyle,marginBottom:6}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Roboto Mono',monospace",color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
+      <p style={{fontSize:16,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Roboto',sans-serif"}}>{sub}</p>}
     </div>
   )
@@ -147,7 +147,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           ].map(item=>(
             <div key={item.l} style={{textAlign:'center' as const}}>
               <p style={{...labelStyle,marginBottom:2}}>{item.l}</p>
-              <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",color:market.isLoading?'var(--border-default)':item.c,fontWeight:700}}>
+              <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':item.c,fontWeight:700}}>
                 {market.isLoading?'…':fmtPct(item.v)}
               </p>
             </div>
@@ -164,7 +164,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             </p>
           </div>
           {market.rate_changed&&(
-            <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:'var(--warning-dim)',border:'1px solid rgba(227,116,0,0.3)',borderRadius:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:'var(--warning-dim)',border:'1px solid var(--warning-border)',borderRadius:8}}>
               <span style={{fontSize:11,color:'var(--warning)',fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>Euribor άλλαξε</span>
             </div>
           )}
@@ -197,7 +197,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
       {tab==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-            <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:36,background:filterSpiti?'var(--positive-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'rgba(24,128,56,0.3)':'var(--border-subtle)'}`,borderRadius:20,cursor:'pointer',color:filterSpiti?'var(--positive)':'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>
+            <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:36,background:filterSpiti?'var(--positive-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'var(--positive-border)':'var(--border-subtle)'}`,borderRadius:20,cursor:'pointer',color:filterSpiti?'var(--positive)':'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>
               Σπίτι μου ΙΙ
             </button>
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily:"'Roboto',sans-serif"}}>
@@ -227,10 +227,10 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                         </div>
                       </td>
                       {['fixed_3yr','fixed_5yr','fixed_10yr','fixed_15yr','fixed_20yr'].map(k=>(
-                        <td key={k} style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{(bank as any)[k]||'—'}%</td>
+                        <td key={k} style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{(bank as any)[k]||'—'}%</td>
                       ))}
-                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--positive)'}}>{bank.variable_spread_min!==undefined?`+${bank.variable_spread_min}–${bank.variable_spread_max}%`:'—'}</td>
-                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{bank.max_ltv}%</td>
+                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--positive)'}}>{bank.variable_spread_min!==undefined?`+${bank.variable_spread_min}–${bank.variable_spread_max}%`:'—'}</td>
+                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{bank.max_ltv}%</td>
                       <td style={{padding:'9px 10px'}}>
                         {bank.spiti_mou
                           ?<span style={{fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>Ναι</span>
@@ -260,7 +260,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                       <p style={{fontSize:16,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:6,lineHeight:1}}>{bank.bank_name||bank.name}</p>
                       <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
                         {bank.note&&<span style={{fontSize:11,padding:'2px 10px',borderRadius:20,background:`${bank.color}18`,color:bank.color,fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{bank.note}</span>}
-                        {bank.spiti_mou&&<span style={{fontSize:11,padding:'2px 10px',borderRadius:20,background:'rgba(46,125,50,0.1)',color:'var(--positive)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Σπίτι μου ΙΙ</span>}
+                        {bank.spiti_mou&&<span style={{fontSize:11,padding:'2px 10px',borderRadius:20,background:'var(--positive-soft)',color:'var(--positive)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                       </div>
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   ].map((stat,si)=>(
                     <div key={stat.label} style={{padding:'16px 20px',borderRight:si<3?'1px solid var(--border-subtle)':'none'}}>
                       <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:8}}>{stat.label}</p>
-                      <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",color:stat.color,fontWeight:700,lineHeight:1,marginBottom:4}}>{stat.value}</p>
+                      <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:stat.color,fontWeight:700,lineHeight:1,marginBottom:4}}>{stat.value}</p>
                       {stat.sub&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{stat.sub}</p>}
                     </div>
                   ))}
@@ -350,17 +350,17 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   <p style={{...labelStyle,marginBottom:10}}>Βασικά Στοιχεία</p>
                   <div style={{display:'flex',flexDirection:'column',gap:6}}>
                     {[
-                      prog.max_amount&&['Μέγιστο ποσό',fmtEur(prog.max_amount),prog.color.startsWith('var')?'#1565C0':prog.color,16],
-                      prog.max_ltv&&['Μέγιστο LTV',`${prog.max_ltv}%`,'#1565C0',14],
+                      prog.max_amount&&['Μέγιστο ποσό',fmtEur(prog.max_amount),prog.color.startsWith('var')?'var(--info)':prog.color,16],
+                      prog.max_ltv&&['Μέγιστο LTV',`${prog.max_ltv}%`,'var(--info)',14],
                       (prog as any).max_sqm&&['Μέγιστα τετραγωνικά',`${(prog as any).max_sqm} τ.μ.`,'var(--text-primary)',12],
                       (prog as any).age_max&&['Ηλικία δικαιούχου',`${(prog as any).age_min}–${(prog as any).age_max} ετών`,'var(--text-primary)',12],
-                      (prog.duration&&prog.duration!=='null')&&['Διάρκεια',prog.duration,'#424242',12],
+                      (prog.duration&&prog.duration!=='null')&&['Διάρκεια',prog.duration,'var(--text-secondary)',12],
                       prog.deadline&&['Προθεσμία',(prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline),prog.deadline_urgent?'var(--negative)':'var(--positive)',13],
-                      (prog.total_budget&&prog.total_budget!=='null'&&prog.total_budget!=='-')&&['Προϋπολογισμός',prog.total_budget,'#1565C0',13],
+                      (prog.total_budget&&prog.total_budget!=='null'&&prog.total_budget!=='-')&&['Προϋπολογισμός',prog.total_budget,'var(--info)',13],
                     ].filter(Boolean).map((item:any)=>(
                       <div key={item[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid var(--border-subtle)'}}>
                         <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{item[0]}</span>
-                        <span style={{fontSize:item[3],fontFamily:"'Roboto Mono',monospace",color:item[2],fontWeight:item[3]>12?700:500}}>{item[1]}</span>
+                        <span style={{fontSize:item[3],fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:item[2],fontWeight:item[3]>12?700:500}}>{item[1]}</span>
                       </div>
                     ))}
                   </div>
@@ -368,7 +368,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               </div>
               {(prog as any).how_it_works&&<div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:8}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Roboto',sans-serif"}}>{(prog as any).how_it_works}</p></div>}
               {prog.extra&&<div style={{padding:'10px 14px',background:prog.color.startsWith('var')?'var(--accent-dim)':`${prog.color}12`,border:prog.color.startsWith('var')?'1px solid var(--border-accent)':`1px solid ${prog.color}28`,borderRadius:8,marginBottom:8}}><p style={{fontSize:12,color:prog.color,lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{prog.extra}</p></div>}
-              {prog.savings_example&&<div style={{padding:'10px 14px',background:'rgba(46,125,50,0.08)',border:'1px solid rgba(46,125,50,0.25)',borderRadius:8,marginBottom:10}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{prog.savings_example}</p></div>}
+              {prog.savings_example&&<div style={{padding:'10px 14px',background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:8,marginBottom:10}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{prog.savings_example}</p></div>}
               <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
                 {(prog.participating_banks||prog.banks||[]).map((b:string)=><span key={b} style={{fontSize:11,padding:'3px 9px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>{b}</span>)}
               </div>
@@ -422,7 +422,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               </div>
               <div style={{textAlign:'right' as const}}>
                 <p style={{...labelStyle,marginBottom:3}}>Βαθμολογία δανείου</p>
-                <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",color:scoreColor,fontWeight:700}}>{score}/100</p>
+                <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:scoreColor,fontWeight:700}}>{score}/100</p>
                 <p style={{fontSize:11,color:scoreColor,fontFamily:"'Google Sans',sans-serif"}}>{scoreLabel}</p>
               </div>
             </div>
@@ -448,7 +448,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {/* LTV */}
                 <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',borderLeft:`3px solid ${ltv>85?'var(--negative)':ltv>70?'var(--warning)':'var(--positive)'}`,borderRadius:8,border:'1px solid var(--border-subtle)'}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:ltv>85?'rgba(197,34,31,0.1)':ltv>70?'rgba(227,116,0,0.1)':'rgba(24,128,56,0.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:ltv>85?'var(--negative-soft)':ltv>70?'var(--warning-soft)':'var(--positive-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ltv>85?'var(--negative)':ltv>70?'var(--warning)':'var(--positive)'} strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
                   </div>
                   <div>
@@ -508,7 +508,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
 
                 {(advType==='first_home'||(advBorr==='young'||advBorr==='family'))&&spitiSaving>5000&&(
                   <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',borderLeft:'3px solid var(--positive)',borderRadius:8,border:'1px solid var(--border-subtle)'}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:'rgba(24,128,56,0.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:'var(--positive-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </div>
                     <div>
@@ -536,7 +536,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   {l:'Γέφυρα 3 — Επιδότηση δόσης',el:cs.rateType==='variable',reason:cs.rateType==='variable'?'Κυμαινόμενο επιτόκιο — ελέγξτε εισοδηματικά κριτήρια':'Εφαρμόζεται μόνο σε κυμαινόμενα',badge:'50% αύξησης δόσης'},
                 ].map(item=>(
                   <div key={item.l} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:`3px solid ${item.el?'var(--positive)':'var(--border-subtle)'}`,borderRadius:8}}>
-                    <div style={{width:22,height:22,borderRadius:'50%',background:item.el?'rgba(24,128,56,0.15)':'var(--negative-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <div style={{width:22,height:22,borderRadius:'50%',background:item.el?'var(--positive-soft)':'var(--negative-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                       {item.el
                         ?<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                         :<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -546,7 +546,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                       <p style={{fontSize:13,color:item.el?'var(--text-primary)':'var(--text-secondary)',fontWeight:item.el?500:400,fontFamily:"'Google Sans',sans-serif"}}>{item.l}</p>
                       <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Roboto',sans-serif"}}>{item.reason}</p>
                     </div>
-                    {item.el&&<span style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",color:'var(--positive)',background:'var(--positive-dim)',padding:'4px 10px',borderRadius:8,border:'1px solid rgba(24,128,56,0.18)',whiteSpace:'nowrap' as const,fontWeight:500}}>{item.badge}</span>}
+                    {item.el&&<span style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--positive)',background:'var(--positive-dim)',padding:'4px 10px',borderRadius:8,border:'1px solid var(--positive-border)',whiteSpace:'nowrap' as const,fontWeight:500}}>{item.badge}</span>}
                   </div>
                 ))}
               </div>
@@ -562,7 +562,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                 return(
                   <div key={bank.id||bank.bank_id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',marginBottom:7,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:i===0?`3px solid var(--info)`:'3px solid transparent',borderRadius:8}}>
                     <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent)':'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <span style={{fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:700,color:i===0?'#fff':'var(--text-secondary)'}}>{medals[i]}</span>
+                      <span style={{fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:700,color:i===0?'var(--accent-text)':'var(--text-secondary)'}}>{medals[i]}</span>
                     </div>
                     <div style={{flex:1}}>
                       <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{bank.bank_name||bank.name}</p>
@@ -572,10 +572,10 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                       </p>
                     </div>
                     <div style={{textAlign:'right' as const}}>
-                      <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",color:'var(--text-secondary)',fontWeight:700}}>{fmtEur(m)}/μήνα</p>
+                      <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:700}}>{fmtEur(m)}/μήνα</p>
                       {i===0
                         ?<p style={{fontSize:10,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif"}}>Καλύτερο στην αγορά</p>
-                        :<p style={{fontSize:10,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}}>Συνολικοί τόκοι: {fmtEur(ti)}</p>
+                        :<p style={{fontSize:10,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Συνολικοί τόκοι: {fmtEur(ti)}</p>
                       }
                     </div>
                     <button onClick={()=>setTab('calculator')} style={{padding:'0 12px',height:32,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,cursor:'pointer',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>Επιλογή</button>
@@ -626,16 +626,16 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           <div style={cardStyle}>
             <SectionLabel label="Πώς Λειτουργεί Ένα Στεγαστικό Δάνειο στην Ελλάδα"/>
             {[
-              {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--info)',dim:'rgba(26,115,232,0.08)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr — αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
-              {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--positive)',dim:'rgba(46,125,50,0.08)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων — η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ — βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
-              {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--warning)',dim:'rgba(227,116,0,0.08)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
-              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--info)',dim:'rgba(26,115,232,0.08)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής — ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
-              {step:5,title:'Έγκριση Δανείου',time:'3-10 εργάσιμες',color:'var(--positive)',dim:'rgba(46,125,50,0.08)',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζητήστε γραπτώς τον λόγο. Επανεξετάστε μετά από 6 μήνες ή αλλάξτε τράπεζα.',warning:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
-              {step:6,title:'Συμβόλαιο & Εκταμίευση',time:'1-2 εβδομάδες',color:'var(--warning)',dim:'rgba(227,116,0,0.08)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές & ασφαλιστικές ενημερότητες λήγουν γρήγορα (15-30 μέρες) — έχετε τα μαζί σας.',url:null},
+              {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr — αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
+              {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--positive)',dim:'var(--positive-soft)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων — η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ — βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
+              {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
+              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής — ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
+              {step:5,title:'Έγκριση Δανείου',time:'3-10 εργάσιμες',color:'var(--positive)',dim:'var(--positive-soft)',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζητήστε γραπτώς τον λόγο. Επανεξετάστε μετά από 6 μήνες ή αλλάξτε τράπεζα.',warning:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
+              {step:6,title:'Συμβόλαιο & Εκταμίευση',time:'1-2 εβδομάδες',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές & ασφαλιστικές ενημερότητες λήγουν γρήγορα (15-30 μέρες) — έχετε τα μαζί σας.',url:null},
             ].map((step,i,arr)=>(
               <div key={i} style={{display:'flex',gap:16,alignItems:'flex-start',paddingBottom:20,borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none',marginBottom:i<arr.length-1?20:0}}>
                 <div style={{width:34,height:34,borderRadius:'50%',background:(step as any).dim||'var(--accent-dim)',border:`2px solid ${step.color}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <span style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",color:step.color,fontWeight:700}}>{step.step}</span>
+                  <span style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:step.color,fontWeight:700}}>{step.step}</span>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
@@ -643,10 +643,10 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                     <span style={{fontSize:10,color:'var(--text-secondary)',background:'var(--bg-surface)',padding:'2px 8px',borderRadius:8,border:'1px solid var(--border-subtle)',fontFamily:"'Google Sans',sans-serif"}}>{step.time}</span>
                   </div>
                   <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,marginBottom:8,fontFamily:"'Roboto',sans-serif"}}>{step.desc}</p>
-                  <div style={{padding:'8px 12px',background:'rgba(46,125,50,0.09)',border:'1px solid rgba(46,125,50,0.25)',borderRadius:8,marginBottom:6}}>
+                  <div style={{padding:'8px 12px',background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:8,marginBottom:6}}>
                     <p style={{fontSize:12,color:'var(--positive)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{step.tip}</p>
                   </div>
-                  <div style={{padding:'8px 12px',background:'rgba(230,81,0,0.08)',border:'1px solid rgba(230,81,0,0.25)',borderRadius:8}}>
+                  <div style={{padding:'8px 12px',background:'var(--warning-soft)',border:'1px solid var(--warning-border)',borderRadius:8}}>
                     <p style={{fontSize:12,color:'var(--warning)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{step.warning}</p>
                   </div>
                   {step.url&&<a href={step.url} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:8,fontSize:12,color:'var(--info)',textDecoration:'none',fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>Επίσημη πηγή →</a>}
@@ -719,7 +719,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               ].map(item=>(
                 <div key={item.l}>
                   <p style={{...labelStyle,marginBottom:3}}>{item.l}</p>
-                  <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",color:item.c,fontWeight:700}}>{item.v}</p>
+                  <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{item.v}</p>
                 </div>
               ))}
             </div>
@@ -846,9 +846,9 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                 </div>
                 {loan.start_date&&(
                   <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',gap:24,flexWrap:'wrap'}}>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}}>{loan.start_date}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Αποπλ. μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}}>~{elapsed}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}}>~{rem}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{loan.start_date}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Αποπλ. μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
                   </div>
                 )}
               </div>
