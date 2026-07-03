@@ -2,12 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
+import { T, fe } from '@/components/Theme';
 
 interface ExtractedBill {
   provider:      string;
@@ -199,7 +194,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
           Βρίσκεται στην Επισκόπηση Λογαριασμών
         </div>
         <button onClick={reset}
-          style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+          style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
           Σάρωσε Νέο
         </button>
       </div>
@@ -341,14 +336,14 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, fontFamily: T.font.sans }}>
                     {CATEGORY_LABELS[edited.category] || edited.category}{edited.period ? ` · ${edited.period}` : ''}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>
                     {fe(edited.amount)}
                   </div>
                 </div>
                 <button
                   onClick={saveBill}
                   disabled={saving || !edited.amount}
-                  style={{ background: edited.amount > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: edited.amount > 0 ? '#000' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: edited.amount > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}
+                  style={{ background: edited.amount > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: edited.amount > 0 ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: edited.amount > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}
                 >
                   {saving ? 'Αποθήκευση...' : 'Αποθήκευση →'}
                 </button>

@@ -3,16 +3,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect } from './UIComponents';
+import { T, fe } from '@/components/Theme';
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
 const mdLabel: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.5px',
   textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans,
 };
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 interface Property { id: string; name: string; address: string; city?: string; type: string; sqm?: number; }
 interface PropertyCosts { propertyId: string; providers: number; insurance: number; services: number; common: number; total: number; unpaid: number; }
@@ -184,7 +180,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
               Ακύρωση
             </button>
             <button onClick={createProperty} disabled={creating}
-              style={{ padding: '8px 24px', borderRadius: T.radius.btn, border: 'none', background: creating ? 'var(--bg-elevated)' : 'var(--accent)', color: creating ? 'var(--text-tertiary)' : '#000', cursor: creating ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans }}>
+              style={{ padding: '8px 24px', borderRadius: T.radius.btn, border: 'none', background: creating ? 'var(--bg-elevated)' : 'var(--accent)', color: creating ? 'var(--text-tertiary)' : 'var(--accent-text)', cursor: creating ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans }}>
               {creating ? 'Δημιουργία...' : 'Δημιουργία Ακινήτου'}
             </button>
           </div>
@@ -200,7 +196,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν ακίνητα</div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 24 }}>Πρόσθεσε το πρώτο σου ακίνητο για να ξεκινήσεις</div>
           <button onClick={() => setShowCreate(true)}
-            style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+            style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
             Προσθήκη Ακινήτου
           </button>
         </div>
@@ -210,7 +206,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
         <div style={{ textAlign: 'center', padding: '40px 0', fontFamily: T.font.sans }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 20 }}>Πρόσθεσε τουλάχιστον ένα ακόμη ακίνητο για συγκριτική ανάλυση κόστους</div>
           <button onClick={() => setShowCreate(true)}
-            style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
+            style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
             Προσθήκη Ακινήτου
           </button>
         </div>
@@ -240,7 +236,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: i === 2 ? 13 : 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: i === 2 ? T.font.sans : T.font.mono, lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: i === 2 ? 13 : 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: i === 2 ? T.font.sans : T.font.mono, fontVariantNumeric: i === 2 ? 'normal' : 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -267,7 +263,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Μηνιαίο κόστος</span>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: isTop ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(c.total || 0, 0)}</span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: isTop ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.total || 0, 0)}</span>
                     </div>
                     <div style={{ height: 5, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: isTop ? 'var(--negative)' : isCur ? 'var(--accent)' : 'rgba(26,115,232,0.6)', borderRadius: 3, transition: 'width 0.5s ease' }}/>
@@ -280,13 +276,13 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                           <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: CAT_COLORS[cat], flexShrink: 0 }}/>
                             <span style={{ fontSize: 10, color: 'var(--text-secondary)', flex: 1, fontFamily: T.font.sans }}>{CAT_LABELS[cat]}</span>
-                            <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(val, 0)}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(val, 0)}</span>
                           </div>
                         );
                       })}
                     </div>
                     <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      {(c.unpaid || 0) > 0 && <div style={{ fontSize: 10, color: 'var(--negative)', fontFamily: T.font.sans }}>Ανεξόφλητα: <strong style={{ fontFamily: T.font.mono }}>{fe(c.unpaid, 0)}</strong></div>}
+                      {(c.unpaid || 0) > 0 && <div style={{ fontSize: 10, color: 'var(--negative)', fontFamily: T.font.sans }}>Ανεξόφλητα: <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.unpaid, 0)}</strong></div>}
                       {!isCur && onNavigate && (
                         <button onClick={() => onNavigate(prop.id)}
                           style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.pill, padding: '4px 14px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>Μετάβαση</button>
@@ -319,11 +315,11 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                           <div style={{ fontWeight: isCur ? 700 : 500, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{prop.name}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 1, fontFamily: T.font.sans }}>{prop.address}</div>
                         </td>
-                        <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontSize: 10 }}>{prop.sqm ?? '—'}</td>
-                        {CAT_KEYS.map(cat => <td key={cat} style={{ padding: '10px 14px', fontFamily: T.font.mono, color: (c as any)[cat] > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{(c as any)[cat] > 0 ? fe((c as any)[cat], 0) : '—'}</td>)}
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: rank === 0 ? 'var(--negative)' : isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(c.total || 0, 0)}</td>
-                        <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontSize: 10, whiteSpace: 'nowrap' }}>{fe((c.total || 0) * 12, 0)}</td>
-                        <td style={{ padding: '10px 14px', color: (c.unpaid || 0) > 0 ? 'var(--negative)' : 'var(--text-tertiary)', fontFamily: T.font.mono }}>{(c.unpaid || 0) > 0 ? fe(c.unpaid, 0) : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{prop.sqm ?? '—'}</td>
+                        {CAT_KEYS.map(cat => <td key={cat} style={{ padding: '10px 14px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: (c as any)[cat] > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{(c as any)[cat] > 0 ? fe((c as any)[cat], 0) : '—'}</td>)}
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: rank === 0 ? 'var(--negative)' : isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fe(c.total || 0, 0)}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10, whiteSpace: 'nowrap' }}>{fe((c.total || 0) * 12, 0)}</td>
+                        <td style={{ padding: '10px 14px', color: (c.unpaid || 0) > 0 ? 'var(--negative)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{(c.unpaid || 0) > 0 ? fe(c.unpaid, 0) : '—'}</td>
                       </tr>
                     );
                   })}
@@ -331,10 +327,10 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                 <tfoot>
                   <tr style={{ background: 'var(--bg-elevated)' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: T.font.sans, color: 'var(--text-primary)' }} colSpan={2}>Σύνολο</td>
-                    {CAT_KEYS.map(cat => <td key={cat} style={{ padding: '10px 14px', fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fe(properties.reduce((s, p) => s + ((costs[p.id] as any)?.[cat] || 0), 0), 0)}</td>)}
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{fe(totalAll, 0)}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(totalAll * 12, 0)}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>{fe(properties.reduce((s, p) => s + (costs[p.id]?.unpaid || 0), 0), 0)}</td>
+                    {CAT_KEYS.map(cat => <td key={cat} style={{ padding: '10px 14px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fe(properties.reduce((s, p) => s + ((costs[p.id] as any)?.[cat] || 0), 0), 0)}</td>)}
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalAll, 0)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalAll * 12, 0)}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(properties.reduce((s, p) => s + (costs[p.id]?.unpaid || 0), 0), 0)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -352,7 +348,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                   <div key={prop.id} style={{ marginBottom: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: isCur ? 700 : 500, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{prop.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)' }}>{fe(c.total || 0, 0)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(c.total || 0, 0)}</span>
                     </div>
                     <div style={{ display: 'flex', height: 22, borderRadius: T.radius.badge, overflow: 'hidden', background: 'var(--bg-elevated)' }}>
                       {CAT_KEYS.map(cat => {

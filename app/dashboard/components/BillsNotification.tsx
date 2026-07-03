@@ -3,12 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput, DatePicker, CustomSelect } from './UIComponents';
+import { T, fe } from '@/components/Theme';
 
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
 
 type Severity = 'critical' | 'warning' | 'info' | 'tip';
@@ -446,7 +442,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
               Ακύρωση
             </button>
             <button onClick={saveReminder} disabled={saving || !newTitle.trim() || !newDueDate}
-              style={{ padding: '8px 24px', fontSize: 12, fontWeight: 700, borderRadius: T.radius.btn, border: 'none', background: newTitle.trim() && newDueDate ? 'var(--accent)' : 'var(--bg-elevated)', color: newTitle.trim() && newDueDate ? '#000' : 'var(--text-tertiary)', cursor: newTitle.trim() && newDueDate ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
+              style={{ padding: '8px 24px', fontSize: 12, fontWeight: 700, borderRadius: T.radius.btn, border: 'none', background: newTitle.trim() && newDueDate ? 'var(--accent)' : 'var(--bg-elevated)', color: newTitle.trim() && newDueDate ? 'var(--accent-text)' : 'var(--text-tertiary)', cursor: newTitle.trim() && newDueDate ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}>
               {saving ? 'Αποθήκευση...' : 'Αποθήκευση'}
             </button>
           </div>
@@ -501,7 +497,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
                     </span>
                   )}
                   {n.amount && n.amount > 0 && (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: n.severity === 'critical' ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: n.severity === 'critical' ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
                       {fe(n.amount)}
                     </span>
                   )}

@@ -3,12 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect } from './UIComponents';
-
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
+import { T, fe } from '@/components/Theme';
 
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
@@ -241,7 +236,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono }}>+{fe(actual - budget)}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget)}</span>
                 <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({fe(actual)} vs {fe(budget)})</span>
               </div>
             );
@@ -259,7 +254,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         ] as const).map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.color, fontFamily: T.font.mono, lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -276,7 +271,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                 {/* My share */}
                 <div title={`Εγώ: ${myShare.toFixed(0)}%`}
                   style={{ flex: myShare, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: myShare > 5 ? undefined : 0, overflow: 'hidden', borderRadius: 6 }}>
-                  {myShare > 10 && <span style={{ fontSize: 11, fontWeight: 700, color: '#000', whiteSpace: 'nowrap' }}>Εγώ {myShare.toFixed(0)}%</span>}
+                  {myShare > 10 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)', whiteSpace: 'nowrap' }}>Εγώ {myShare.toFixed(0)}%</span>}
                 </div>
                 {/* Participants */}
                 {participants.map(p => (
@@ -315,7 +310,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               <CustomSelect label="Σχέση" value={newRole} onChange={setNewRole} options={ROLE_OPTIONS}/>
               <NumberInput label="Ποσοστό (%)" value={newShare} onChange={setNewShare} suffix="%" step={5}/>
               <button onClick={addParticipant} disabled={!newName.trim()}
-                style={{ height: 40, padding: '0 18px', background: newName.trim() ? 'var(--accent)' : 'var(--bg-overlay)', color: newName.trim() ? '#000' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, cursor: newName.trim() ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                style={{ height: 40, padding: '0 18px', background: newName.trim() ? 'var(--accent)' : 'var(--bg-overlay)', color: newName.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, cursor: newName.trim() ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
                 + Προσθήκη
               </button>
             </div>
@@ -336,7 +331,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
             {secHdr('Σύνολο Μήνα')}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
               <span>{fe(actualTotal)}</span>
               <span style={{ color: 'var(--text-tertiary)' }}>/ {fe(masterBudget)}</span>
             </div>
@@ -352,7 +347,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             {participants.length > 0 && (
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Το δικό μου μερίδιο ({myShare.toFixed(0)}%)</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{fe(masterBudget * myShare / 100)}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(masterBudget * myShare / 100)}</span>
               </div>
             )}
           </div>
@@ -384,10 +379,10 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                   ) : (
                     <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
                       {actual > 0
-                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, color: isOver ? 'var(--negative)' : 'var(--text-primary)' }}>{fe(actual, 0)}</span>
+                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isOver ? 'var(--negative)' : 'var(--text-primary)' }}>{fe(actual, 0)}</span>
                         : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>/ {fe(budget, 0)}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>/ {fe(budget, 0)}</span>
                       {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'rgba(197,34,31,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>+{fe(actual - budget, 0)}</span>}
                       {isWarn && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>{pct.toFixed(0)}%</span>}
                     </div>
@@ -411,7 +406,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '340'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="340"/>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.mono }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
             </div>
           </div>
         )}
