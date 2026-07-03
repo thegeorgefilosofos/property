@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { T, fe } from '@/components/Theme';
 
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const fk = (n: number) => `${n.toFixed(4)} €`;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,11 +25,6 @@ const fk = (n: number) => `${n.toFixed(4)} €`;
 // ─────────────────────────────────────────────────────────────────────────────
 const LAST_VERIFIED = 'Ιούλιος 2026';
 const DEFAULT_TTF_EUR_MWH = 33; // Ενδεικτική τιμή TTF €/MWh — ο χρήστης τη διορθώνει
-
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
 
 type PriceStatus = 'verified' | 'indicative' | 'formula';
 
@@ -335,11 +330,11 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο Κόστος (προμήθεια)</div>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο Κόστος (εκτίμηση)</div>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-primary)', lineHeight: 1 }}>{fe(effective * 12)}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>{fe(effective * 12)}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο Διανομής</div>
@@ -404,10 +399,10 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>
             {tariff.sourceNote && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>Πηγή: {tariff.sourceNote}</div>}
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
-              <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: bc(tariff.badge).color }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
-              <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>Αρχικό πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
+              <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: bc(tariff.badge).color }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
+              <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Αρχικό πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
               {tariff.dual_fuel_discount && (
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--positive)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
+                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
               )}
             </div>
             {tariff.fixedNote && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{tariff.fixedNote}</div>}
@@ -425,7 +420,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
                   style={{ padding: '6px 16px', borderRadius: T.radius.pill, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
                     background: segmentFilter === seg ? 'var(--accent)' : 'transparent',
-                    color: segmentFilter === seg ? '#1a1a1a' : 'var(--text-secondary)' }}>
+                    color: segmentFilter === seg ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
                   {seg === 'residential' ? 'Οικιακό' : 'Επιχειρηματικό'}
                 </button>
               ))}
@@ -436,7 +431,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
             <div style={{ background: 'rgba(52,168,83,0.05)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το φθηνότερο τιμολόγιο — επιβεβαίωσε πάντα την τρέχουσα προσφορά στον πάροχο.
+                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το φθηνότερο τιμολόγιο — επιβεβαίωσε πάντα την τρέχουσα προσφορά στον πάροχο.
               </span>
             </div>
           )}
@@ -467,11 +462,11 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span title={t.sourceNote} style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, background: pb.bg, border: `1px solid ${pb.border}`, color: pb.color, cursor: 'help' }}>{pb.label}</span>
                       </td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono }}>{fk(t.rate)}</td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono }}>{fe(t.fixed)}</td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontWeight: 700, color: 'var(--accent)' }}>{fe(t.monthly)}</td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, color: 'var(--text-tertiary)' }}>{fe(t.monthly * 12)}</td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, color: diff === 0 ? 'var(--text-tertiary)' : diff > 0 ? 'var(--negative)' : 'var(--positive)' }}>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fk(t.rate)}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(t.fixed)}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--accent)' }}>{fe(t.monthly)}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{fe(t.monthly * 12)}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: diff === 0 ? 'var(--text-tertiary)' : diff > 0 ? 'var(--negative)' : 'var(--positive)' }}>
                         {diff === 0 ? '—' : diff > 0 ? `+${fe(diff)}` : fe(diff)}
                       </td>
                     </tr>
