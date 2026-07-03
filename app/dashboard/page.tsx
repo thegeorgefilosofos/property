@@ -287,21 +287,37 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [chk, setChk] = useState<{ due_date:string|null; status:string; priority:string }[]>([]);
+  const [inv, setInv] = useState<{ warranty_expiry:string|null; condition:string|null }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = useCallback(async () => {
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv }] = await Promise.all([
+      supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
+      supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
+      supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
+      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
+      supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
+      supabase.from('inventory_items').select('warranty_expiry,condition').eq('property_id',prop.id),
+    ]);
+    setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
+    setChk(ci||[]); setInv(iv||[]); setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prop.id, userId, year]);
+
   useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten }] = await Promise.all([
-        supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
-        supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
-        supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
-        supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
-      ]);
-      setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null); setLoading(false);
-    };
-    fetch();
-  }, [prop.id]);
+    setLoading(true); load();
+    // Real-time: κάθε αλλαγή σε άλλα tabs ενημερώνει ζωντανά την Επισκόπηση
+    const ch = supabase.channel(`overview_${prop.id}`)
+      .on('postgres_changes', { event:'*', schema:'public', table:'bills',             filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'expenses',          filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'tenants',           filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'maintenance_tasks', filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'checklist_items',   filter:`property_id=eq.${prop.id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prop.id, load]);
 
   const totalExpYTD = expenses.reduce((s,e)=>s+e.amount,0);
   const rent = tenant?.monthly_rent || prop.target_rent || 0;
@@ -317,6 +333,31 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const catColors = ['var(--accent)','var(--positive)','var(--info)','var(--warning)','var(--negative)'];
+
+  // ── Cross-tab live alerts — επερχόμενα γεγονότα & εκκρεμότητες ──────────────
+  const daysUntil = (d: string | null | undefined) => d ? Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000) : null;
+  const alerts: { tone: 'negative' | 'warning' | 'info' | 'positive'; label: string; sub?: string }[] = [];
+  if (daysToExpiry != null) {
+    if (daysToExpiry < 0) alerts.push({ tone:'negative', label:'Η σύμβαση ενοικίασης έχει λήξει', sub:`Έληξε πριν ${Math.abs(daysToExpiry)} ημέρες — απαιτείται ανανέωση` });
+    else if (daysToExpiry <= 60) alerts.push({ tone:'warning', label:'Λήξη σύμβασης ενοικίασης', sub:`Σε ${daysToExpiry} ημέρες` });
+  }
+  const unpaid  = bills.filter(b => !b.paid);
+  const overdue = unpaid.filter(b => { const x = daysUntil((b as any).due_date); return x != null && x < 0; });
+  if (overdue.length) alerts.push({ tone:'negative', label:`${overdue.length} ληξιπρόθεσμοι λογαριασμοί`, sub:'Εκκρεμεί πληρωμή' });
+  else if (unpaid.length) alerts.push({ tone:'warning', label:`${unpaid.length} εκκρεμείς λογαριασμοί`, sub:'Προς πληρωμή' });
+  const tasksOverdue = tasks.filter(t => { const x = daysUntil(t.due_date); return x != null && x < 0; });
+  const tasksSoon    = tasks.filter(t => { const x = daysUntil(t.due_date); return x != null && x >= 0 && x <= 15; });
+  if (tasksOverdue.length) alerts.push({ tone:'negative', label:`${tasksOverdue.length} εκπρόθεσμες εργασίες συντήρησης` });
+  else if (tasksSoon.length) alerts.push({ tone:'warning', label:`${tasksSoon.length} εργασίες συντήρησης σύντομα`, sub:'Εντός 15 ημερών' });
+  const chkOverdue  = chk.filter(c => { const x = daysUntil(c.due_date); return x != null && x < 0; });
+  const chkCritical = chk.filter(c => c.priority === 'critical' && c.status === 'pending');
+  if (chkOverdue.length) alerts.push({ tone:'negative', label:`${chkOverdue.length} εκπρόθεσμα στοιχεία στο Checklist` });
+  else if (chkCritical.length) alerts.push({ tone:'warning', label:`${chkCritical.length} κρίσιμα στοιχεία στο Checklist`, sub:'Απαιτούν προσοχή' });
+  const warrantySoon = inv.filter(i => { const x = daysUntil(i.warranty_expiry); return x != null && x >= 0 && x <= 90; });
+  const badCond      = inv.filter(i => i.condition === 'Κακή' || i.condition === 'Εκτός Λειτουργίας');
+  if (warrantySoon.length) alerts.push({ tone:'info', label:`${warrantySoon.length} εγγυήσεις λήγουν σύντομα`, sub:'Εντός 90 ημερών — δες την Απογραφή' });
+  if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
+  if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη — δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
 
   if (loading) return <div style={{color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontSize:14,textAlign:'center',padding:60}}>Φόρτωση...</div>;
 
@@ -335,6 +376,22 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
             <div className="kpi-label">{k.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Ζωντανές ειδοποιήσεις — ενημερώνονται real-time από όλα τα tabs */}
+      <div className="card" style={{marginBottom:16}}>
+        <div className="section-label"><span className="section-dot"/> Επερχόμενα & Ειδοποιήσεις</div>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {alerts.map((a,i) => (
+            <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,background:`var(--${a.tone}-soft)`,border:`1px solid var(--${a.tone}-border)`,borderRadius:10,padding:'10px 14px'}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:`var(--${a.tone})`,marginTop:6,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>{a.label}</div>
+                {a.sub && <div style={{fontFamily:"'Roboto',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:2}}>{a.sub}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16,marginBottom:16}}>
