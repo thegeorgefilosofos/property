@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { NumberInput, CustomSelect, Toggle } from './UIComponents';
+import { T, fe } from '@/components/Theme';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -60,8 +61,6 @@ function calcRentalTax(gross:number, deductible:number) {
   const eff = taxable>0 ? (tax/taxable)*100 : 0;
   return { tax, taxable, effectiveRate:eff, netAfterTax:gross-tax, breakdown, advance:tax*0.55 };
 }
-
-const fe = (n:number) => `${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
 
 type S = {
   owner_name:string; owner_afm:string; owner_phone:string; owner_email:string;
@@ -151,19 +150,19 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   },[e2Rent,e2Deductible]);
 
   // Shared styles
-  const card = { background:'#12121f', border:'1px solid #242438', borderRadius:12, padding:20 } as const;
+  const card = { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:20 } as const;
   const cardGap = { ...card, marginBottom:16 };
-  const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'#5a5a70',display:'block',marginBottom:6,fontFamily:"'Google Sans',sans-serif" } as const;
-  const inp = { background:'#08080d',border:'1px solid #242438',borderRadius:6,padding:'8px 12px',color:'#e2e2f0',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Roboto',sans-serif" } as const;
+  const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Google Sans',sans-serif" } as const;
+  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Roboto',sans-serif" } as const;
   const sectionTitle = (t:string) => (
     <div style={{ fontFamily:"'Google Sans',sans-serif",fontSize:10,textTransform:'uppercase',
-      letterSpacing:'0.1em',color:'#b8953e',marginBottom:16,fontWeight:500 }}>{t}</div>
+      letterSpacing:'0.1em',color:'var(--accent)',marginBottom:16,fontWeight:500 }}>{t}</div>
   );
-  const statRow = (label:string, value:string, color='#e2e2f0', bold=false) => (
+  const statRow = (label:string, value:string, color='var(--text-primary)', bold=false) => (
     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
-      padding:'8px 0',borderBottom:'1px solid #242438' }}>
-      <span style={{ fontSize:12,color:'#9090a0',fontFamily:"'Roboto',sans-serif" }}>{label}</span>
-      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Roboto Mono',monospace" }}>{value}</span>
+      padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
+      <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{label}</span>
+      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
 
@@ -175,15 +174,15 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   ] as const;
 
   return (
-    <div style={{ fontFamily:"'Roboto',sans-serif", color:'#e2e2f0' }}>
+    <div style={{ fontFamily:"'Roboto',sans-serif", color:'var(--text-primary)' }}>
 
       {/* Section nav */}
       <div style={{ display:'flex',gap:6,marginBottom:20 }}>
         {NAV.map(n => (
           <button key={n.id} onClick={()=>setActiveSection(n.id as any)}
-            style={{ padding:'9px 18px',borderRadius:20,border:`1px solid ${activeSection===n.id?'#b8953e':'#242438'}`,
-              background:activeSection===n.id?'rgba(184,149,62,0.12)':'transparent',
-              color:activeSection===n.id?'#b8953e':'#9090a0',cursor:'pointer',fontSize:12,
+            style={{ padding:'9px 18px',borderRadius:20,border:`1px solid ${activeSection===n.id?'var(--accent)':'var(--border-subtle)'}`,
+              background:activeSection===n.id?'var(--accent-soft)':'transparent',
+              color:activeSection===n.id?'var(--accent)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
               fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
             {n.label}
           </button>
@@ -243,10 +242,10 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </div>
 
           <button onClick={save}
-            style={{ width:'100%',background:'#b8953e',color:'#08080d',border:'none',borderRadius:8,
+            style={{ width:'100%',background:'var(--accent)',color:'var(--accent-text)',border:'none',borderRadius:8,
               padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",
               textTransform:'uppercase',letterSpacing:'0.1em' }}>
-            {saved ? '✓ Αποθηκεύτηκε' : 'Αποθήκευση Ρυθμίσεων'}
+            {saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση Ρυθμίσεων'}
           </button>
 
           <NotificationSettings userId={userId} propertyId={propertyId}/>
@@ -257,15 +256,15 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
       {activeSection==='fma' && (
         <div>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
-            <div style={{ fontSize:11,color:'#9090a0',fontFamily:"'Google Sans',sans-serif" }}>
+            <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif" }}>
               Φόρος Μεταβίβασης Ακινήτων — Εκτίμηση 2024
             </div>
-            <div style={{ display:'flex',background:'#0a0a12',border:'1px solid #242438',borderRadius:8,padding:4,gap:4 }}>
+            <div style={{ display:'flex',background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:4,gap:4 }}>
               {(['buy','sell'] as const).map(m=>(
                 <button key={m} onClick={()=>setFmaMode(m)}
                   style={{ height:30,padding:'0 16px',borderRadius:6,border:'none',
-                    background:fmaMode===m?'#b8953e':'transparent',
-                    color:fmaMode===m?'#08080d':'#9090a0',cursor:'pointer',fontSize:12,
+                    background:fmaMode===m?'var(--accent)':'transparent',
+                    color:fmaMode===m?'var(--accent-text)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
                     fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
                   {m==='buy'?'Αγορά':'Πώληση'}
                 </button>
@@ -284,8 +283,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     <div><label style={lbl}>Αντικειμενική Αξία (€)</label>
                       <input type="number" style={inp} value={objVal} onChange={e=>setObjVal(e.target.value)} placeholder="π.χ. 120000"/></div>
                     {buyCalc && buyCalc.taxBase>=(parseFloat(objVal)||0) && parseFloat(objVal)>parseFloat(contractVal) && (
-                      <div style={{ fontSize:11,color:'#f59e0b',background:'rgba(245,158,11,0.1)',
-                        border:'1px solid rgba(245,158,11,0.3)',borderRadius:8,padding:'8px 12px' }}>
+                      <div style={{ fontSize:11,color:'var(--warning)',background:'var(--warning-soft)',
+                        border:'1px solid var(--warning-border)',borderRadius:8,padding:'8px 12px' }}>
                         ΦΜΑ υπολογίζεται επί αντικειμενικής ({fe(parseFloat(objVal))})
                       </div>
                     )}
@@ -301,7 +300,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {label:'Στεγαστικό Δάνειο', on:needsMortgage, set:setNeedsMortgage},
                     ].map((opt,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                        <span style={{ fontSize:12,color:'#c0c0d0',fontFamily:"'Roboto',sans-serif" }}>{opt.label}</span>
+                        <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{opt.label}</span>
                         <Toggle on={opt.on} onChange={opt.set} size="sm"/>
                       </div>
                     ))}
@@ -310,8 +309,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                         <input type="number" style={inp} value={mortgageAmt} onChange={e=>setMortgageAmt(e.target.value)}/></div>
                     )}
                     {isFirstHome && (
-                      <div style={{ fontSize:11,color:'#4ade80',background:'rgba(74,222,128,0.08)',
-                        border:'1px solid rgba(74,222,128,0.2)',borderRadius:8,padding:'8px 12px' }}>
+                      <div style={{ fontSize:11,color:'var(--positive)',background:'var(--positive-soft)',
+                        border:'1px solid var(--positive-border)',borderRadius:8,padding:'8px 12px' }}>
                         Αφορολόγητο ποσό: έως €200.000. ΦΜΑ μόνο για το υπερβάλλον.
                       </div>
                     )}
@@ -324,44 +323,44 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'#ef4444',fontFamily:"'Roboto Mono',monospace",marginBottom:4 }}>{fe(buyCalc.total)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'#9090a0' }}>Συνολικό Κόστος Αγοράς</div>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
+                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
                       </div>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'#f59e0b',fontFamily:"'Roboto Mono',monospace",marginBottom:4 }}>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
                           {buyCalc.cv>0?((buyCalc.total/buyCalc.cv)*100).toFixed(1):'—'}%
                         </div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'#9090a0' }}>Επί Αξίας</div>
+                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Επί Αξίας</div>
                       </div>
                     </div>
                     <div style={cardGap}>
                       {sectionTitle('Ανάλυση')}
-                      {statRow(`ΦΜΑ 3%${isFirstHome?' (μειωμένο)':''}`, fe(buyCalc.fma), '#ef4444')}
+                      {statRow(`ΦΜΑ 3%${isFirstHome?' (μειωμένο)':''}`, fe(buyCalc.fma), 'var(--negative)')}
                       {statRow('Συμβολαιογράφος', fe(buyCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου 24%', fe(buyCalc.notaryVat), '#f59e0b')}
+                      {statRow('ΦΠΑ Συμβολαιογράφου 24%', fe(buyCalc.notaryVat), 'var(--warning)')}
                       {buyCalc.lawyer>0 && statRow('Δικηγόρος', fe(buyCalc.lawyer))}
-                      {buyCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου 24%', fe(buyCalc.lawyerVat), '#f59e0b')}
+                      {buyCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου 24%', fe(buyCalc.lawyerVat), 'var(--warning)')}
                       {buyCalc.broker>0 && statRow('Μεσίτης 2%', fe(buyCalc.broker))}
-                      {buyCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη 24%', fe(buyCalc.brokerVat), '#f59e0b')}
+                      {buyCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη 24%', fe(buyCalc.brokerVat), 'var(--warning)')}
                       {statRow('Τέλος Μεταγραφής 0.5%', fe(buyCalc.reg))}
                       {buyCalc.mortg>0 && statRow('Έξοδα Υποθήκης ~1%', fe(buyCalc.mortg))}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Σύνολο Εξόδων</span>
-                        <span style={{ fontSize:18,fontWeight:700,color:'#ef4444',fontFamily:"'Roboto Mono',monospace" }}>{fe(buyCalc.total)}</span>
+                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
                       </div>
                     </div>
-                    <div style={{ ...card,border:'1px solid #b8953e',background:'rgba(184,149,62,0.06)' }}>
+                    <div style={{ ...card,border:'1px solid var(--accent)',background:'var(--accent-soft)' }}>
                       {sectionTitle('Συνολικό Κεφάλαιο')}
                       {statRow('Τίμημα Ακινήτου', fe(buyCalc.cv))}
-                      {statRow('Έξοδα Αγοράς', fe(buyCalc.total), '#ef4444')}
+                      {statRow('Έξοδα Αγοράς', fe(buyCalc.total), 'var(--negative)')}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Συνολικό Κεφάλαιο</span>
-                        <span style={{ fontSize:22,fontWeight:700,color:'#b8953e',fontFamily:"'Roboto Mono',monospace" }}>{fe(buyCalc.cv+buyCalc.total)}</span>
+                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div style={{ ...card,textAlign:'center',padding:48,color:'#5a5a70' }}>
+                  <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
                     <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif" }}>Συμπλήρωσε την αξία του ακινήτου</div>
                   </div>
                 )}
@@ -385,11 +384,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   {sectionTitle('Επιλογές')}
                   <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
                     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                      <span style={{ fontSize:12,color:'#c0c0d0' }}>Μεσίτης (2% + ΦΠΑ)</span>
+                      <span style={{ fontSize:12,color:'var(--text-secondary)' }}>Μεσίτης (2% + ΦΠΑ)</span>
                       <Toggle on={sellBroker} onChange={setSellBroker} size="sm"/>
                     </div>
                     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                      <span style={{ fontSize:12,color:'#c0c0d0' }}>Δικηγόρος</span>
+                      <span style={{ fontSize:12,color:'var(--text-secondary)' }}>Δικηγόρος</span>
                       <Toggle on={sellLawyer} onChange={setSellLawyer} size="sm"/>
                     </div>
                   </div>
@@ -400,37 +399,37 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'#ef4444',fontFamily:"'Roboto Mono',monospace",marginBottom:4 }}>{fe(sellCalc.total)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'#9090a0' }}>Έξοδα Πώλησης</div>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
+                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
                       </div>
-                      <div style={{ ...card,textAlign:'center',background:'rgba(74,222,128,0.06)',borderColor:'rgba(74,222,128,0.2)' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'#4ade80',fontFamily:"'Roboto Mono',monospace",marginBottom:4 }}>{fe(sellCalc.net)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'#9090a0' }}>Καθαρά Έσοδα</div>
+                      <div style={{ ...card,textAlign:'center',background:'var(--positive-soft)',borderColor:'var(--positive-border)' }}>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
+                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Καθαρά Έσοδα</div>
                       </div>
                     </div>
                     <div style={cardGap}>
                       {sectionTitle('Ανάλυση')}
                       {statRow('Συμβολαιογράφος', fe(sellCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου', fe(sellCalc.notaryVat), '#f59e0b')}
+                      {statRow('ΦΠΑ Συμβολαιογράφου', fe(sellCalc.notaryVat), 'var(--warning)')}
                       {sellCalc.lawyer>0 && statRow('Δικηγόρος', fe(sellCalc.lawyer))}
-                      {sellCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου', fe(sellCalc.lawyerVat), '#f59e0b')}
+                      {sellCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου', fe(sellCalc.lawyerVat), 'var(--warning)')}
                       {sellCalc.broker>0 && statRow('Μεσίτης 2%', fe(sellCalc.broker))}
-                      {sellCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη', fe(sellCalc.brokerVat), '#f59e0b')}
+                      {sellCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη', fe(sellCalc.brokerVat), 'var(--warning)')}
                       {statRow('Πιστοποιητικά & ΔΟΥ', fe(150))}
-                      {sellCalc.gainTax>0 && statRow(`Φόρος Κέρδους 15% (${sellCalc.yrs}χρ κατοχή)`, fe(sellCalc.gainTax), '#ef4444')}
+                      {sellCalc.gainTax>0 && statRow(`Φόρος Κέρδους 15% (${sellCalc.yrs}χρ κατοχή)`, fe(sellCalc.gainTax), 'var(--negative)')}
                       {sellCalc.gain>0 && sellCalc.gainTax===0 && (
-                        <div style={{ fontSize:11,color:'#4ade80',background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.2)',borderRadius:8,padding:'8px 12px',margin:'4px 0' }}>
+                        <div style={{ fontSize:11,color:'var(--positive)',background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:8,padding:'8px 12px',margin:'4px 0' }}>
                           Κέρδος {fe(sellCalc.gain)} — Αφορολόγητο ({sellCalc.yrs} χρόνια κατοχής)
                         </div>
                       )}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Καθαρά Έσοδα</span>
-                        <span style={{ fontSize:20,fontWeight:700,color:'#4ade80',fontFamily:"'Roboto Mono',monospace" }}>{fe(sellCalc.net)}</span>
+                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div style={{ ...card,textAlign:'center',padding:48,color:'#5a5a70' }}>
+                  <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
                     <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif" }}>Συμπλήρωσε την τιμή πώλησης</div>
                   </div>
                 )}
@@ -447,9 +446,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 {title:'Νέα Ακίνητα (ΦΠΑ)',desc:'Ακίνητα με άδεια μετά το 2006: ΦΠΑ 24% αντί ΦΜΑ 3%. Απαλλαγή έως 31/12/2024.'},
                 {title:'Κτηματολόγιο',desc:'Σε περιοχές με ενεργό κτηματολόγιο απαιτείται εγγραφή. Κόστος ~0.5% επί αξίας.'},
               ].map((n,i)=>(
-                <div key={i} style={{ background:'#0a0a12',border:'1px solid #242438',borderRadius:8,padding:'12px 14px' }}>
-                  <div style={{ fontSize:12,fontWeight:500,color:'#b8953e',fontFamily:"'Google Sans',sans-serif",marginBottom:6 }}>{n.title}</div>
-                  <div style={{ fontSize:11,color:'#9090a0',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
+                <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'12px 14px' }}>
+                  <div style={{ fontSize:12,fontWeight:500,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",marginBottom:6 }}>{n.title}</div>
+                  <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
                 </div>
               ))}
             </div>
@@ -460,7 +459,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
       {/* ── Ε2 HELPER ── */}
       {activeSection==='e2' && (
         <div>
-          <div style={{ ...cardGap,border:'1px solid rgba(184,149,62,0.3)',background:'rgba(184,149,62,0.04)' }}>
+          <div style={{ ...cardGap,border:'1px solid var(--accent-border)',background:'var(--accent-soft)' }}>
             <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14 }}>
               {sectionTitle('Εκτίμηση Φόρου Εισοδήματος Ακινήτων')}
               <select value={e2Year} onChange={e=>setE2Year(e.target.value)}
@@ -488,34 +487,34 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 <div>
                   <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
                     {[
-                      {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'#4ade80'},
-                      {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'#f59e0b'},
-                      {label:'Φόρος',value:fe(e2Result.tax),color:'#ef4444'},
-                      {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'#b8953e'},
+                      {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'var(--positive)'},
+                      {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'var(--warning)'},
+                      {label:'Φόρος',value:fe(e2Result.tax),color:'var(--negative)'},
+                      {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'var(--accent)'},
                     ].map((k,i)=>(
-                      <div key={i} style={{ background:'#0a0a12',border:'1px solid #242438',borderRadius:10,padding:'12px 14px' }}>
-                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Roboto Mono',monospace",marginBottom:3 }}>{k.value}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'#5a5a70' }}>{k.label}</div>
+                      <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'12px 14px' }}>
+                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
+                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-tertiary)' }}>{k.label}</div>
                       </div>
                     ))}
                   </div>
                   {/* Bracket breakdown */}
-                  <div style={{ background:'#0a0a12',border:'1px solid #242438',borderRadius:10,padding:14 }}>
+                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14 }}>
                     {sectionTitle('Κλιμάκωση')}
                     {e2Result.breakdown.map((b,i)=>(
                       <div key={i} style={{ marginBottom:10 }}>
                         <div style={{ display:'flex',justifyContent:'space-between',marginBottom:3 }}>
-                          <span style={{ fontSize:11,color:'#9090a0' }}>{b.label}</span>
-                          <span style={{ fontSize:12,fontWeight:600,color:'#ef4444',fontFamily:"'Roboto Mono',monospace" }}>{fe(b.tax)}</span>
+                          <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{b.label}</span>
+                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
                         </div>
-                        <div style={{ height:4,background:'#242438',borderRadius:2 }}>
-                          <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'#ef4444',borderRadius:2 }}/>
+                        <div style={{ height:4,background:'var(--border-subtle)',borderRadius:2 }}>
+                          <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--negative)',borderRadius:2 }}/>
                         </div>
                       </div>
                     ))}
-                    <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid #242438' }}>
-                      <span style={{ fontSize:11,color:'#9090a0' }}>Πραγματικός Συντελεστής</span>
-                      <span style={{ fontSize:13,fontWeight:700,color:'#ef4444',fontFamily:"'Roboto Mono',monospace" }}>
+                    <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid var(--border-subtle)' }}>
+                      <span style={{ fontSize:11,color:'var(--text-secondary)' }}>Πραγματικός Συντελεστής</span>
+                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>
                         {e2Result.effectiveRate.toFixed(1)}%
                       </span>
                     </div>
@@ -524,36 +523,36 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
                 {/* Right: E2 codes + deadlines */}
                 <div>
-                  <div style={{ background:'#0a0a12',border:'1px solid #242438',borderRadius:10,padding:14,marginBottom:14 }}>
+                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,marginBottom:14 }}>
                     {sectionTitle('Κωδικοί Ε2 — Τι να γράψεις')}
                     {[
-                      {code:'Κωδ. 101',label:'Ακαθάριστα Μισθώματα',value:fe(parseFloat(e2Rent)||0),color:'#4ade80'},
-                      {code:'Κωδ. 102',label:'Εκπιπτόμενες Δαπάνες',value:fe(parseFloat(e2Deductible)||0),color:'#60a5fa'},
-                      {code:'Κωδ. 103',label:'Καθαρό Φορολογητέο',value:fe(e2Result.taxable),color:'#f59e0b'},
-                      {code:'Κωδ. 401',label:'Φόρος Εισοδήματος',value:fe(e2Result.tax),color:'#ef4444'},
-                      {code:'Προκαταβολή 55%',label:'Επόμενο έτος',value:fe(e2Result.advance),color:'#f59e0b'},
+                      {code:'Κωδ. 101',label:'Ακαθάριστα Μισθώματα',value:fe(parseFloat(e2Rent)||0),color:'var(--positive)'},
+                      {code:'Κωδ. 102',label:'Εκπιπτόμενες Δαπάνες',value:fe(parseFloat(e2Deductible)||0),color:'var(--info)'},
+                      {code:'Κωδ. 103',label:'Καθαρό Φορολογητέο',value:fe(e2Result.taxable),color:'var(--warning)'},
+                      {code:'Κωδ. 401',label:'Φόρος Εισοδήματος',value:fe(e2Result.tax),color:'var(--negative)'},
+                      {code:'Προκαταβολή 55%',label:'Επόμενο έτος',value:fe(e2Result.advance),color:'var(--warning)'},
                     ].map((row,i)=>(
-                      <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid #242438' }}>
+                      <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
-                          <span style={{ fontSize:9,fontWeight:700,color:'#b8953e',fontFamily:"'Google Sans',sans-serif",marginRight:8 }}>{row.code}</span>
-                          <span style={{ fontSize:11,color:'#9090a0' }}>{row.label}</span>
+                          <span style={{ fontSize:9,fontWeight:700,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",marginRight:8 }}>{row.code}</span>
+                          <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{row.label}</span>
                         </div>
-                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Roboto Mono',monospace" }}>{row.value}</span>
+                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div style={{ background:'#0a0a12',border:'1px solid #242438',borderRadius:10,padding:14,marginBottom:14 }}>
+                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,marginBottom:14 }}>
                     {sectionTitle('Σημαντικές Προθεσμίες')}
                     {[
-                      {label:'Υποβολή Ε1/Ε2',desc:'30 Ιουνίου κάθε χρόνο',color:'#b8953e'},
-                      {label:'Καταχώρηση Μισθωτηρίου',desc:'Εντός 30 ημερών από υπογραφή',color:'#ef4444'},
-                      {label:'Ηλεκτρονική Πληρωμή',desc:'Έκπτωση 5% αν πληρώσεις online',color:'#4ade80'},
+                      {label:'Υποβολή Ε1/Ε2',desc:'30 Ιουνίου κάθε χρόνο',color:'var(--accent)'},
+                      {label:'Καταχώρηση Μισθωτηρίου',desc:'Εντός 30 ημερών από υπογραφή',color:'var(--negative)'},
+                      {label:'Ηλεκτρονική Πληρωμή',desc:'Έκπτωση 5% αν πληρώσεις online',color:'var(--positive)'},
                     ].map((d,i)=>(
-                      <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #242438' }}>
+                      <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
                           <div style={{ fontSize:12,fontWeight:500,color:d.color,fontFamily:"'Google Sans',sans-serif" }}>{d.label}</div>
-                          <div style={{ fontSize:11,color:'#9090a0' }}>{d.desc}</div>
+                          <div style={{ fontSize:11,color:'var(--text-secondary)' }}>{d.desc}</div>
                         </div>
                       </div>
                     ))}
@@ -561,8 +560,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
                   <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer"
                     style={{ display:'flex',alignItems:'center',gap:6,padding:'10px 14px',
-                      background:'rgba(184,149,62,0.08)',border:'1px solid rgba(184,149,62,0.3)',
-                      borderRadius:8,textDecoration:'none',color:'#b8953e',fontSize:12,
+                      background:'var(--accent-soft)',border:'1px solid var(--accent-border)',
+                      borderRadius:8,textDecoration:'none',color:'var(--accent)',fontSize:12,
                       fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     AADE.gr — Φορολογία Ακινήτων
@@ -570,7 +569,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign:'center',padding:'32px',color:'#5a5a70' }}>
+              <div style={{ textAlign:'center',padding:'32px',color:'var(--text-tertiary)' }}>
                 <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif",marginBottom:6 }}>
                   Συμπλήρωσε τα ετήσια μισθώματα για υπολογισμό
                 </div>
@@ -579,7 +578,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             )}
           </div>
 
-          <div style={{ fontSize:11,color:'#5a5a70',textAlign:'center',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>
+          <div style={{ fontSize:11,color:'var(--text-tertiary)',textAlign:'center',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>
             Εκτίμηση βάσει ισχύουσας νομοθεσίας. Δεν αποτελεί επίσημη φορολογική συμβουλή. Συμβουλευτείτε λογιστή.
           </div>
         </div>
