@@ -83,10 +83,10 @@ body {
   --bg-hover:      rgba(60,64,67,0.08);
   --bg-active:     rgba(26,115,232,0.12);
 
-  --accent:        #1967D2;
-  --accent-dim:    rgba(25,103,210,0.12);
-  --accent-hover:  #185abc;
-  --accent-text:   #ffffff;
+  --accent:        #b8860b;   /* Gold brand — Midnight Prestige */
+  --accent-dim:    rgba(184,134,11,0.12);
+  --accent-hover:  #9a6f09;
+  --accent-text:   #1a1a1a;
 
   --positive:      #188038;
   --positive-dim:  rgba(24,128,56,0.12);
@@ -96,6 +96,19 @@ body {
   --warning-dim:   rgba(227,116,0,0.12);
   --info:          #1967D2;
   --info-dim:      rgba(25,103,210,0.12);
+
+  /* Σημασιολογικοί τόνοι — soft (φόντο) + border, παράγονται από τον ρόλο.
+     Ορίζονται μία φορά· το color-mix ξαναϋπολογίζεται ανά mode μέσω var(). */
+  --accent-soft:     color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-border:   color-mix(in srgb, var(--accent) 28%, transparent);
+  --info-soft:       color-mix(in srgb, var(--info) 9%, transparent);
+  --info-border:     color-mix(in srgb, var(--info) 24%, transparent);
+  --positive-soft:   color-mix(in srgb, var(--positive) 10%, transparent);
+  --positive-border: color-mix(in srgb, var(--positive) 26%, transparent);
+  --warning-soft:    color-mix(in srgb, var(--warning) 11%, transparent);
+  --warning-border:  color-mix(in srgb, var(--warning) 26%, transparent);
+  --negative-soft:   color-mix(in srgb, var(--negative) 10%, transparent);
+  --negative-border: color-mix(in srgb, var(--negative) 26%, transparent);
 
   --text-primary:   #202124;   /* Google exact */
   --text-secondary: #5f6368;
@@ -169,10 +182,10 @@ body {
   --bg-hover:      rgba(232,234,237,0.08);
   --bg-active:     rgba(168,199,250,0.12);
 
-  --accent:        #aecbfa;
-  --accent-dim:    rgba(174,203,250,0.15);
-  --accent-hover:  #d2e3fc;
-  --accent-text:   #0a2d6b;
+  --accent:        #d4af42;   /* Gold brand — Midnight Prestige (dark) */
+  --accent-dim:    rgba(212,175,66,0.15);
+  --accent-hover:  #e0c05a;
+  --accent-text:   #1a1a1a;
 
   --positive:      #81c995;
   --positive-dim:  rgba(129,201,149,0.15);

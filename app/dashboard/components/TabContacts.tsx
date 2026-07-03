@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
 import { DatePicker } from './UIComponents'
+import { T } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -30,10 +31,6 @@ type SortMode = 'recent' | 'alpha' | 'rating'
 type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
-const T = {
-  radius: { card: '16px', inner: '10px', badge: '6px', btn: '10px', pill: '100px' },
-  font: { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-}
 const iStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: T.radius.inner,
   border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)',
@@ -201,7 +198,7 @@ const PRESET_TAGS = ['Αξιόπιστος', 'VIP', 'Ακριβός', 'Γρήγ�
 const REMINDER_LABELS: Record<number, string> = { 0: 'Καμία', 7: '7 ημέρες', 14: '14 ημέρες', 30: '30 ημέρες', 60: '60 ημέρες', 90: '90 ημέρες' }
 const STATUS_OPTIONS = [
   { value: 'active',      label: 'Ενεργός',       color: 'var(--positive)', bg: 'rgba(52,199,89,0.12)',  dot: 'var(--positive)' },
-  { value: 'pending',     label: 'Σε αναμονή',    color: '#f59e0b',        bg: 'rgba(245,158,11,0.12)', dot: '#f59e0b' },
+  { value: 'pending',     label: 'Σε αναμονή',    color: 'var(--warning)', bg: 'rgba(245,158,11,0.12)', dot: 'var(--warning)' },
   { value: 'inactive',    label: 'Ανενεργός',     color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)', dot: 'var(--text-tertiary)' },
   { value: 'problematic', label: 'Προβληματικός', color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)',  dot: 'var(--negative)' },
 ]
@@ -255,8 +252,8 @@ function StarRating({ value, onChange }: { value: number; onChange?: (n: number)
     <div style={{ display: 'flex', gap: 3 }}>
       {[1,2,3,4,5].map(n => (
         <Star key={n} size={onChange ? 22 : 13}
-          fill={n <= (hover || value) ? '#f59e0b' : 'none'}
-          color={n <= (hover || value) ? '#f59e0b' : 'var(--border-default)'}
+          fill={n <= (hover || value) ? 'var(--warning)' : 'none'}
+          color={n <= (hover || value) ? 'var(--warning)' : 'var(--border-default)'}
           onClick={() => onChange && onChange(n === value ? 0 : n)}
           onMouseEnter={() => onChange && setHover(n)} onMouseLeave={() => onChange && setHover(0)}
           style={{ cursor: onChange ? 'pointer' : 'default', flexShrink: 0 }} />
@@ -314,7 +311,7 @@ function NotesLog({ log, onChange }: { log: { id: string; text: string; ts: stri
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέα σημείωση..." style={{ ...iStyle, flex: 1 }} />
-        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
+        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
         {log.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Δεν υπάρχουν σημειώσεις ακόμα</div>}
@@ -346,7 +343,7 @@ function AvatarUpload({ avatarUrl, initials, color, onChange }: { avatarUrl: str
       <div style={{ position: 'relative', flexShrink: 0 }}>
         {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '2px solid ' + color + '60' }} />
           : <div style={{ width: 68, height: 68, borderRadius: '50%', background: color + '20', border: '2px solid ' + color + '50', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color, fontFamily: T.font.sans }}>{initials || '?'}</div>}
-        <button type="button" onClick={() => fileRef.current?.click()} style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontSize: 13, fontWeight: 700 }}>
+        <button type="button" onClick={() => fileRef.current?.click()} style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700 }}>
           {uploading ? '…' : '+'}
         </button>
       </div>
@@ -451,7 +448,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
                 {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? totalExpenses.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : '—', color: 'var(--negative)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--accent)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.mono, marginBottom: 4 }}>{s.value}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
                   </div>
                 ))}
@@ -522,7 +519,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Αποθήκευση Δαπάνης'}</button>
+          <button type="button" onClick={save} disabled={saving || !amount} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Αποθήκευση Δαπάνης'}</button>
         </div>
       </div>
     </div>
@@ -545,7 +542,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-          <button type="button" onClick={save} disabled={saving} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Προσθήκη στο Ημερολόγιο'}</button>
+          <button type="button" onClick={save} disabled={saving} style={{ flex: 2, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Αποθήκευση...' : 'Προσθήκη στο Ημερολόγιο'}</button>
         </div>
       </div>
     </div>
@@ -865,7 +862,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : color, borderRadius: '16px 0 0 16px' }} />
       {bulkMode && <div style={{ position: 'absolute', top: 13, left: 10 }}><input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
-      {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: '#f59e0b', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
+      {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
       {hov && !bulkMode && (
         <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 5 }}>
           {contact.phone && (
@@ -940,7 +937,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
           {extra.afm && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
-          {extra.iban && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span style={{ color: '#f59e0b', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
+          {extra.iban && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span style={{ color: 'var(--warning)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
           {extra.iban2 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN2 ···{extra.iban2.slice(-4)}</span>}
           {extra.next_appointment && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'rgba(255,59,48,0.1)' : color + '12', border: '1px solid ' + (overdue ? 'rgba(255,59,48,0.3)' : color + '30'), color: overdue ? 'var(--negative)' : color }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
           {extra.last_contact && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Τελ. επαφή {fmtDate(extra.last_contact)}</span>}
@@ -1104,7 +1101,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
           <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
           <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
           <button type="button" onClick={() => exportContactsPDF(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
-          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
+          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
         </div>
       </div>
 
@@ -1167,7 +1164,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
         </select>
         <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 14px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? '#000' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
+            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 14px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
           ))}
         </div>
       </div>
@@ -1192,7 +1189,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
           <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.2" style={{ margin: '0 auto 18px', display: 'block', opacity: 0.35 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
           <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν επαφές</div>
           <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς<br />και όλες τις επαφές του ακινήτου.</div>
-          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: T.radius.pill, padding: '0 28px', height: 42, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Πρόσθεσε την πρώτη επαφή</button>
+          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 28px', height: 42, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Πρόσθεσε την πρώτη επαφή</button>
         </div>
       ) : processed.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-secondary)', fontSize: 14 }}>Δεν βρέθηκαν αποτελέσματα.</div>
@@ -1319,10 +1316,10 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
                     <div><FL>IBAN (δεύτερος)</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Δεύτερος IBAN αν υπάρχει" /></div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)' }}>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#f59e0b' }}>IRIS</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--warning)' }}>IRIS</div>
                         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>Άμεσες πληρωμές μέσω IRIS</div>
                       </div>
-                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} colorOn="#f29900" />
+                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} colorOn="var(--warning)" />
                     </div>
                   </div>
 
@@ -1376,7 +1373,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
             <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
               <button type="button" onClick={closeModal} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' }}>Ακύρωση</button>
-              <button type="button" onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: saving ? 'var(--border-default)' : 'var(--accent)', color: '#000', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
+              <button type="button" onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: saving ? 'var(--border-default)' : 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
                 {saving ? 'Αποθήκευση...' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
               </button>
             </div>

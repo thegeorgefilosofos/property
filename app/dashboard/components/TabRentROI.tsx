@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, Toggle } from './UIComponents';
 import RentComparables from './RentComparables';
 import RentROIReport from './RentROIReport';
+import { T, fe } from '@/components/Theme';
 
 interface Props {
   propertyId: string;
@@ -153,14 +154,13 @@ function toMonths(val: string, unit: string): number {
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const fp = (n: number, d = 2) => `${n.toFixed(d)}%`;
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
   background: 'var(--bg-elevated)',
   border: '1px solid var(--border-subtle)',
-  borderRadius: 12,
+  borderRadius: T.radius.card,
   padding: 20,
   marginBottom: 16,
   minWidth: 0,
@@ -169,7 +169,7 @@ const cardStyle: React.CSSProperties = {
 const innerStyle: React.CSSProperties = {
   background: 'var(--bg-surface)',
   border: '1px solid var(--border-subtle)',
-  borderRadius: 8,
+  borderRadius: T.radius.inner,
   padding: 14,
   minWidth: 0,
   overflow: 'hidden',
@@ -212,7 +212,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", letterSpacing: '-0.5px' }}>{value}</div>
+        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{value}</div>
         {badge && (
           <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: `${badge.color}18`, padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
             {badge.text}
@@ -232,7 +232,7 @@ function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
       <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 500, color, fontFamily: "'Roboto Mono', monospace", textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 500, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -259,7 +259,7 @@ function ScoreBar({ label, score, max = 100, color }: { label: string; score: nu
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
         <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace" }}>{score.toFixed(0)}/{max}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{score.toFixed(0)}/{max}</span>
       </div>
       <div style={{ height: 5, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.min((score / max) * 100, 100)}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
@@ -286,7 +286,7 @@ function Gauge({ value, max = 15, label, color = 'var(--accent)' }: { value: num
           <path d={`M ${sx} ${sy} A ${r} ${r} 0 ${la} 1 ${ax} ${ay}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" style={{ transition: 'all 0.6s ease' }} />
         )}
         <circle cx={ax} cy={ay} r="4" fill={color} />
-        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text-primary)" fontFamily="'Roboto Mono', monospace">{value.toFixed(1)}%</text>
+        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text-primary)" fontFamily="'Roboto Mono', monospace" style={{ fontVariantNumeric: 'tabular-nums' }}>{value.toFixed(1)}%</text>
       </svg>
       <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", marginTop: -2, maxWidth: 100, margin: '0 auto' }}>{label}</div>
     </div>
@@ -699,7 +699,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         {calc.DSCR > 0 && <Gauge value={Math.min(calc.DSCR * 50, 100)} max={100} label={`Κάλυψη Δανείου ${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} />}
         {/* Score */}
         <div style={{ textAlign: 'center', minWidth: 100 }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", lineHeight: 1 }}>{calc.totalScore}</div>
+          <div style={{ fontSize: 32, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
           <div style={{ fontSize: 12, fontWeight: 500, color: calc.scoreColor, marginBottom: 2, fontFamily: "'Google Sans', sans-serif" }}>{calc.scoreLabel}</div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Google Sans', sans-serif" }}>Βαθμολογία /100</div>
         </div>
@@ -715,7 +715,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               flex: 1, padding: '8px 4px', borderRadius: 7, border: 'none', cursor: 'pointer',
               fontSize: 12, fontWeight: 500, fontFamily: "'Google Sans', sans-serif", whiteSpace: 'nowrap',
               background: activeTab === t.id ? 'var(--accent)' : 'transparent',
-              color: activeTab === t.id ? '#fff' : 'var(--text-secondary)',
+              color: activeTab === t.id ? 'var(--accent-text)' : 'var(--text-secondary)',
               transition: 'all 0.2s',
             }}
           >
@@ -756,7 +756,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Toggle on={electronic} onChange={setElectronic} label="Ηλεκτρονική Πληρωμή" labelOff="Μετρητά" />
                 {electronic && calc.electronicSaving > 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 500, fontFamily: "'Roboto Mono', monospace" }}>εξοικονόμηση {fe(calc.electronicSaving)}/έτος</span>
+                  <span style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 500, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>εξοικονόμηση {fe(calc.electronicSaving)}/έτος</span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -781,7 +781,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={saveConfig} disabled={saving}
-              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 24px', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.7 : 1, fontFamily: "'Google Sans', sans-serif" }}
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 20, padding: '9px 24px', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.7 : 1, fontFamily: "'Google Sans', sans-serif" }}
             >
               {savedOk === 'config' ? 'Αποθηκεύτηκε' : saving ? 'Αποθήκευση...' : 'Αποθήκευση'}
             </button>
@@ -812,7 +812,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Βαθμολογία Ακινήτου" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div style={{ textAlign: 'center', padding: '20px 0', borderRight: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 56, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", lineHeight: 1 }}>{calc.totalScore}</div>
+              <div style={{ fontSize: 56, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: calc.scoreColor, marginBottom: 4, fontFamily: "'Google Sans', sans-serif" }}>{calc.scoreLabel}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Google Sans', sans-serif" }}>συνολική βαθμολογία / 100</div>
             </div>
@@ -847,7 +847,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { label: 'Πραγματική Απόδοση (με κόστη απόκτησης)', value: fp(calc.trueYield), bench: `Αγορά: ${bench.market_gross}%`, good: calc.trueYield >= parseFloat(bench.market_gross) },
             ].map((b, i) => (
               <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${b.good ? 'var(--positive)' : 'var(--warning)'}` }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: b.good ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Roboto Mono', monospace", marginBottom: 4 }}>{b.value}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: b.good ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{b.value}</div>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2, fontFamily: "'Google Sans', sans-serif" }}>{b.label}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>{b.bench}</div>
               </div>
@@ -949,7 +949,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 }}>
                   <span style={{ fontSize: 11, color: r.c ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{r.range}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: r.c ? 'var(--accent)' : 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace" }}>{r.rate}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: r.c ? 'var(--accent)' : 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{r.rate}</span>
                     {r.c && <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif" }}>εδώ</span>}
                   </div>
                 </div>
@@ -1021,7 +1021,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif", marginRight: 8 }}>{row.code}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{row.label}</span>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "'Roboto Mono', monospace" }}>{row.value}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -1037,7 +1037,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               ].map((item, i) => (
                 <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{item.label}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: "'Roboto Mono', monospace" }}>{item.value}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{item.value}</span>
                 </div>
               ))}
               <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer"
@@ -1150,7 +1150,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <SectionLabel label="Airbnb vs Μακροχρόνια Μίσθωση" />
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontFamily: "'Roboto', sans-serif" }}>Διαφορά καθαρού εισοδήματος / έτος</div>
-              <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Roboto Mono', monospace", color: abb.diff > 0 ? 'var(--positive)' : 'var(--negative)', marginBottom: 8 }}>
+              <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', color: abb.diff > 0 ? 'var(--positive)' : 'var(--negative)', marginBottom: 8 }}>
                 {abb.diff > 0 ? '+' : ''}{fe(abb.diff)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>
@@ -1221,7 +1221,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
             <button
               onClick={saveLoan}
-              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 24px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif" }}
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 20, padding: '9px 24px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif" }}
             >
               {savedOk === 'loan' ? 'Αποθηκεύτηκε' : 'Αποθήκευση Δανείου'}
             </button>
@@ -1409,13 +1409,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             ].map((r, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{r.label}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto Mono', monospace" }}>{r.now}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: r.up ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Roboto Mono', monospace" }}>→ {r.fut}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{r.now}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: r.up ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>→ {r.fut}</span>
               </div>
             ))}
             <div style={{ marginTop: 16, ...innerStyle }}>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: "'Roboto', sans-serif" }}>Συνολική Απόδοση σε {sc2.years} χρόνια</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Roboto Mono', monospace" }}>{fe(scen.total)}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{fe(scen.total)}</div>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Ενοίκια + Υπεραξία</div>
             </div>
           </div>

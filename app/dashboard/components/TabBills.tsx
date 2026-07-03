@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { T, fe } from '@/components/Theme';
 
 // ── Static imports — all components must be static for Next.js App Router ────
 import BillsDashboard    from './BillsDashboard';
@@ -44,12 +45,6 @@ interface StripData {
   notifCount:   number;
   lastUpdate:   number;
 }
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
-  font:   { sans: "Inter, 'Google Sans', sans-serif", mono: "'JetBrains Mono', monospace" },
-};
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
 const ICONS: Record<string, string> = {
@@ -148,7 +143,6 @@ export default function TabBills({
     if (found) setActiveTab(found.id);
   }, []);
 
-  const fe = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
   const timeSince = () => {
     if (!strip.lastUpdate) return '';
     const sec = Math.floor((Date.now() - strip.lastUpdate) / 1000);
@@ -180,16 +174,16 @@ export default function TabBills({
             Live
           </span>
           {strip.tenantName && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{strip.tenantName}</span>}
-          {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(strip.totalMonthly)} / μήνα</span>}
+          {strip.totalMonthly > 0 && <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.totalMonthly, 0)} / μήνα</span>}
           {strip.overdueCount > 0 && (
             <button onClick={() => setActiveTab('dashboard')}
-              style={{ padding: '4px 12px', background: 'rgba(197,34,31,0.08)', border: '1px solid rgba(197,34,31,0.3)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ padding: '4px 12px', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--negative)', cursor: 'pointer', fontFamily: T.font.sans }}>
               {strip.overdueCount} ληξιπρόθεσμα
             </button>
           )}
           {liveNotifCount > 0 && (
             <button onClick={() => setActiveTab('notifications')}
-              style={{ padding: '4px 12px', background: 'rgba(242,153,0,0.08)', border: '1px solid rgba(242,153,0,0.3)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--warning)', cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ padding: '4px 12px', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--warning)', cursor: 'pointer', fontFamily: T.font.sans }}>
               {liveNotifCount} {liveNotifCount === 1 ? 'ειδοποίηση' : 'ειδοποιήσεις'}
             </button>
           )}
@@ -209,7 +203,7 @@ export default function TabBills({
                 const hasBadge = tab.id === 'notifications' && liveNotifCount > 0 && !isActive;
                 return (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: T.radius.inner, border: 'none', cursor: 'pointer', position: 'relative', fontSize: 11, fontWeight: isActive ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#000' : 'var(--text-secondary)' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: T.radius.inner, border: 'none', cursor: 'pointer', position: 'relative', fontSize: 11, fontWeight: isActive ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)' }}
                     onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
                     onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
                     <TabIcon name={tab.icon} size={12}/>

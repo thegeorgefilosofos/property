@@ -6,6 +6,7 @@ import {
   Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
   SegmentControl, FREQ_OPTIONS,
 } from './UIComponents';
+import { T } from '@/components/Theme';
 
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
@@ -91,17 +92,17 @@ export const s = {
   g3:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
   g4:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
   badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius:'5px', fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid ${color}33` } as React.CSSProperties),
-  tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:'Inter,sans-serif', transition:'all 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),
+  tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:T.font.sans, transition:'all 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),
   kpi:      { background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'14px 16px', textAlign:'center' as const } as React.CSSProperties,
-  kpiV:     { fontSize:'20px', fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, fontFamily:"'JetBrains Mono',monospace" } as React.CSSProperties,
+  kpiV:     { fontSize:'20px', fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' } as React.CSSProperties,
   kpiL:     { fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginTop:'5px' } as React.CSSProperties,
   th:       { fontSize:'9px', letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', padding:'8px 12px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left' as const, fontWeight:400 } as React.CSSProperties,
   td:       { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-primary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
   tdM:      { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-secondary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
-  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'8px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:'Inter,sans-serif', cursor:'pointer', fontWeight:700 } as React.CSSProperties,
-  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'8px 14px', fontSize:'11px', fontFamily:'Inter,sans-serif', cursor:'pointer' } as React.CSSProperties,
-  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:'Inter,sans-serif', cursor:'pointer', fontWeight:600 } as React.CSSProperties,
-  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:'Inter,sans-serif', cursor:'pointer' } as React.CSSProperties,
+  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'8px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:T.font.sans, cursor:'pointer', fontWeight:700 } as React.CSSProperties,
+  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
+  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer', fontWeight:600 } as React.CSSProperties,
+  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
 };
 
 // ─── Streaming Configurator ───────────────────────────────────────────────────
@@ -152,7 +153,7 @@ export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | n
             { label:'Αποτέλεσμα', val:(profit>=0?'+':'')+fmt(profit), color:profit>=0?'var(--positive)':'var(--negative)' },
           ].map(({ label, val, color }) => (
             <div key={label} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:'14px', fontWeight:700, color, fontFamily:"'JetBrains Mono',monospace" }}>{val}</div>
+              <div style={{ fontSize:'14px', fontWeight:700, color, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{val}</div>
               <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>{label}</div>
             </div>
           ))}
@@ -187,7 +188,7 @@ export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null;
             key={v}
             onClick={() => sel(v)}
             style={{
-              padding:'8px 14px', fontSize:'11px', fontFamily:'Inter,sans-serif',
+              padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans,
               cursor:'pointer', borderRadius:'8px',
               border:`1px solid ${pkg===v ? 'var(--accent)' : 'var(--border-default)'}`,
               background: pkg===v ? 'var(--accent-dim)' : 'transparent',
@@ -209,7 +210,7 @@ export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null;
             <NumberInput label="Χρέωση ενοικ." value={value.total_tenant.toString()} onChange={v=>upd('total_tenant',parseFloat(v)||0)} suffix="€"/>
             <div style={{ display:'flex', alignItems:'center', paddingTop:'18px' }}>
               <div style={{ textAlign:'center', flex:1 }}>
-                <div style={{ fontSize:'16px', fontWeight:700, color:profit>=0?'var(--positive)':'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>
+                <div style={{ fontSize:'16px', fontWeight:700, color:profit>=0?'var(--positive)':'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>
                   {profit>=0?'+':''}{fmt(profit)}
                 </div>
                 <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αποτέλεσμα/μήνα</div>
@@ -240,9 +241,9 @@ export function InvestmentCalc({ title, amount }: { title: string; amount: numbe
         <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)' }}>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--text-primary)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(amount)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αρχικό Ποσό</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:"'JetBrains Mono',monospace" }}>+{fmt(gain)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος ({years} έτη)</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(future)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελικό Ποσό</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(amount)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αρχικό Ποσό</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>+{fmt(gain)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος ({years} έτη)</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(future)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελικό Ποσό</div></div>
       </div>
     </div>
   );
@@ -276,12 +277,12 @@ export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
           options={[3,6,12,18,24,36].map(n=>({ value:String(n), label:`${n} μήνες` }))}
         />
         <NumberInput label="Έκπτωση %" value={discount} onChange={setDiscount} suffix="%" step={0.5} max={100}/>
-        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Πλήρης Αξία</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--text-primary)', padding:'9px 0', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(full)}</div></div>
-        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Τελικό Ποσό</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', padding:'9px 0', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(discounted)}</div></div>
+        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Πλήρης Αξία</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--text-primary)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(full)}</div></div>
+        <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Τελικό Ποσό</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(discounted)}</div></div>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)', marginBottom:'14px' }}>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος Ενοικιαστή</div></div>
-        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Χασούρα Ιδιοκτήτη</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος Ενοικιαστή</div></div>
+        <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Χασούρα Ιδιοκτήτη</div></div>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:invest?'14px':0 }}>
         <Toggle on={invest} onChange={setInvest} label="Επένδυση του ποσού" />
@@ -291,7 +292,7 @@ export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
           <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
           <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
           <div style={{ textAlign:'center', paddingTop:'18px' }}>
-            <div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', fontFamily:"'JetBrains Mono',monospace" }}>{fmt(future)}</div>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(future)}</div>
             <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελική Αξία +{fmt(investGain)}</div>
           </div>
         </div>
