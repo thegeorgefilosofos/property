@@ -57,13 +57,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
+    <div className="auth-split" style={{
       minHeight: '100vh', background: '#080810', display: 'flex',
       fontFamily: "'Inter',-apple-system,BlinkMacSystemFont,sans-serif",
     }}>
 
       {/* LEFT */}
-      <div style={{
+      <div className="auth-aside" style={{
         width: '46%', minWidth: 400,
         background: '#05050d',
         borderRight: '1px solid #0f0f22',
@@ -150,7 +150,7 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT */}
-      <div style={{
+      <div className="auth-main" style={{
         flex: 1, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: '48px 40px',
       }}>

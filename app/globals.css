@@ -1401,6 +1401,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .svc-cost-row > *:nth-child(4) { grid-column: 2 / 3; }
 }
 
+/* Σελίδες Σύνδεσης/Εγγραφής: το marketing panel κρύβεται σε κινητό,
+   η φόρμα παίρνει όλο το πλάτος — καμία οριζόντια κύλιση. */
+@media (max-width: 860px) {
+  .auth-aside { display: none !important; }
+  .auth-main  { flex: 1 1 100% !important; width: 100% !important; padding: 32px 20px !important; }
+}
+
 /* Απόκρυψη μπάρας κύλισης στα οριζόντια tabs (μένει λειτουργική η κύλιση) */
 .app-tabs::-webkit-scrollbar { height: 0; }
 .app-tabs { scrollbar-width: none; }
