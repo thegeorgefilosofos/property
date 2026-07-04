@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, type KPIItem } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -1074,6 +1074,16 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
   const preferred = contacts.filter(c => c._extra?.preferred)
   const overdueContacts = contacts.filter(c => c._extra?.next_appointment && isOverdue(c._extra.next_appointment))
   const allTags = [...new Set(contacts.flatMap(c => c._extra?.tags || []))]
+  const tenantsCount = contacts.filter(c => ROLE_META[c.role]?.groupId === 'tenants').length
+  const technicalCount = contacts.filter(c => ROLE_META[c.role]?.groupId === 'technical').length
+  const providersCount = contacts.filter(c => ['electricity', 'telecom'].includes(ROLE_META[c.role]?.groupId || '')).length
+  const kpiItems: KPIItem[] = [
+    { label: 'Σύνολο Επαφών', value: fn(contacts.length) },
+    { label: 'Ενοικιαστές', value: fn(tenantsCount), tone: 'info' },
+    { label: 'Τεχνικοί & Μάστορες', value: fn(technicalCount), tone: 'warning' },
+    { label: 'Πάροχοι Ρεύματος & Internet', value: fn(providersCount) },
+    { label: 'Προτιμώμενες', value: fn(preferred.length), tone: preferred.length > 0 ? 'accent' : 'neutral' },
+  ]
   const initials = form.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
   const formColor = ROLE_META[form.role]?.groupColor || 'var(--text-tertiary)'
   const modalTabs = [{ id: 'basic' as const, label: 'Βασικά' }, { id: 'contact' as const, label: 'Επικοινωνία' }, { id: 'professional' as const, label: 'Επαγγελματικά' }, { id: 'tags' as const, label: 'Ετικέτες' }, { id: 'notes' as const, label: 'Σημειώσεις' }, { id: 'files' as const, label: 'Αρχεία' }]
@@ -1083,25 +1093,24 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
       {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(212,175,66,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
-      {overdueContacts.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,59,48,0.07)', border: '1px solid rgba(255,59,48,0.25)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 22 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)' }}>{overdueContacts.length} επαφές με ληγμένο ραντεβού: </span><span style={{ fontSize: 12, color: 'var(--negative)' }}>{overdueContacts.map(c => c.full_name).join(', ')}</span></div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 26 }}>
-        <div>
-          <h2 style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.5px' }}>Επαφές Ακινήτου</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '5px 0 0' }}>{contacts.length} επαφές{preferred.length > 0 ? ` · ${preferred.length} προτιμώμενες` : ''}{overdueContacts.length > 0 ? ` · ${overdueContacts.length} ληγμένα` : ''}</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <PageTitle
+        title="Επαφές"
+        sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
+        right={<>
           <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
           <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
           <button type="button" onClick={() => exportContactsPDF(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
           <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
-        </div>
-      </div>
+        </>}
+      />
+
+      {contacts.length > 0 && <KPIGrid items={kpiItems} />}
+
+      {overdueContacts.length > 0 && (
+        <InfoBanner tone="warning">
+          <strong style={{ color: 'var(--text-primary)' }}>{overdueContacts.length} επαφές με ληγμένο ραντεβού: </strong>{overdueContacts.map(c => c.full_name).join(', ')}
+        </InfoBanner>
+      )}
 
       {bulkMode && selected.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.3)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 18, flexWrap: 'wrap' }}>
@@ -1115,7 +1124,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
       {preferred.length > 0 && (
         <div style={{ marginBottom: 22, padding: '16px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 13 }}>Γρήγορη Πρόσβαση</div>
+          <SecHdr label="Γρήγορη Πρόσβαση" />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {preferred.map(c => {
               const meta = ROLE_META[c.role] || { groupColor: 'var(--text-tertiary)', label: c.role, GroupIcon: Users }
