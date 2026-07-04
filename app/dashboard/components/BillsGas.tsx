@@ -327,7 +327,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       {/* ── Επισκόπηση κόστους ── */}
       <div style={card}>
         {secHdr('Φυσικό Αέριο — Τρέχον Κόστος', `Τελευταία επαλήθευση δεδομένων: ${LAST_VERIFIED}`)}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο Κόστος (προμήθεια)</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
@@ -346,7 +346,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       {/* ── Στοιχεία σύνδεσης ── */}
       <div style={card}>
         {secHdr('Στοιχεία Σύνδεσης & Πάροχος')}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Διαχειριστής Δικτύου (ΕΔΑ)" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
           <CustomSelect label="Τύπος Θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
             options={[
@@ -355,17 +355,17 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
               { value: 'combi',          label: 'Συνδυαστικό (Αέριο + Άλλη Πηγή)' },
             ]}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος Φυσικού Αερίου" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
           <CustomSelect label="Πρόγραμμα" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
           <NumberInput label="Μηνιαία Κατανάλωση (kWh)" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
           <NumberInput label="Πραγματικό Κόστος / Μήνα (€)" value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginTop: 14 }}>
           <DatePicker label="Έναρξη Σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
           <NumberInput label="Διάρκεια Σύμβασης (μήνες)" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
         </div>

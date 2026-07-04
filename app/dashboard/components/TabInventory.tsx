@@ -436,7 +436,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 <label style={labelStyle}>Ονομασία *</label>
                 <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 <div><label style={labelStyle}>Κατηγορία</label><CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/></div>
                 <div><label style={labelStyle}>Κατάσταση</label><CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/></div>
                 <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
@@ -481,7 +481,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {(form.provenance==='new'||form.provenance==='discount')&&(
                 <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:12,border:'1px solid var(--border-accent)',display:'flex',flexDirection:'column',gap:12}}>
                   <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Στοιχεία Τιμής</p>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
                     <div><label style={labelStyle}>Αρχική Τιμή (€)</label><NumberInput value={String(form.original_price||0)} onChange={v=>set('original_price',parseFloat(v)||0)} suffix="€" min={0}/></div>
                     <div><label style={labelStyle}>Έκπτωση (%)</label><NumberInput value={String(form.discount_pct||0)} onChange={v=>set('discount_pct',parseFloat(v)||0)} suffix="%" min={0} max={100}/></div>
                   </div>
@@ -499,7 +499,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                   )}
                 </div>
               )}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 {!(form.provenance==='new'||form.provenance==='discount')&&(
                   <div><label style={labelStyle}>Αξία Αγοράς / Εκτίμηση (€)</label><NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></div>
                 )}
@@ -515,7 +515,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {form.purchase_date&&form.purchase_value&&(
                 <div style={{padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:12,border:'1px solid var(--border-subtle)'}}>
                   <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:12}}>Απόσβεση</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                     {[
                       {label:'Τρέχουσα Αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem)),color:'var(--positive)'},
                       {label:'Απόσβεση',value:`${calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem)}%`,color:'var(--warning)'},
@@ -536,7 +536,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               <div style={{padding:'10px 14px',background:'var(--info-dim)',borderRadius:10,border:'1px solid var(--info)'}}>
                 <p style={{fontSize:12,color:'var(--info)',fontFamily:"'Roboto',sans-serif"}}>Βρείτε τα στοιχεία στην ετικέτα ενέργειας ή στο εγχειρίδιο.</p>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 <div><label style={labelStyle}>Ενεργειακή Κλάση</label><CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/></div>
                 <div><label style={labelStyle}>Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
                 <div><label style={labelStyle}>Ώρες Χρήσης / Ημέρα</label><NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρ/ημ" min={0} max={24}/></div>
@@ -545,7 +545,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {liveKwh>0&&(
                 <div style={{background:'var(--bg-elevated)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border-subtle)'}}>
                   <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Εκτιμώμενη Κατανάλωση</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
                     {[{label:'kWh/μήνα',value:`${liveKwh.toFixed(1)}`},{label:'kWh/έτος',value:`${(liveKwh*12).toFixed(0)}`},{label:'Κόστος/μήνα',value:fmtEurC(liveKwh*0.22)},{label:'Κόστος/έτος',value:fmtEurC(liveKwh*0.22*12)}].map((k,i)=>(
                       <div key={i} style={{textAlign:'center',padding:'10px 6px',background:'var(--bg-surface)',borderRadius:8}}>
                         <p style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{k.value}</p>
@@ -658,7 +658,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
           </div>
         )}
         <SectionLabel label="Νέα Επισκευή"/>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
           <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={form.repair_date} onChange={v=>setForm(f=>({...f,repair_date:v}))}/></div>
           <div><label style={labelStyle}>Κόστος (€)</label><NumberInput value={String(form.cost)} onChange={v=>setForm(f=>({...f,cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
           <div style={{gridColumn:'1/-1'}}>
@@ -722,7 +722,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
         <p style={{fontSize:20,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:8}}>Ξεκινήστε την Απογραφή</p>
         <p style={{fontSize:14,color:'var(--text-secondary)',maxWidth:360,lineHeight:1.7,margin:'0 auto',fontFamily:"'Roboto',sans-serif"}}>Καταγράψτε τον εξοπλισμό για παρακολούθηση αξίας, ρεύματος και εγγυήσεων.</p>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,maxWidth:480,width:'100%'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,maxWidth:480,width:'100%'}}>
         {[{t:'Προσθέστε Αντικείμενο',d:'Έπιπλα, συσκευές, ηλεκτρονικά'},{t:'Βάλτε Κατανάλωση',d:'Υπολογισμός κόστους ρεύματος'},{t:'Ορίστε Εγγύηση',d:'Υπενθύμιση πριν λήξει'}].map((s,i)=>(
           <div key={i} style={{padding:'20px 14px',background:'var(--bg-elevated)',borderRadius:14,border:'1px solid var(--border-subtle)'}}>
             <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:4}}>{s.t}</p>
@@ -735,7 +735,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:10}}>
         <StatCard label="Αντικείμενα" value={String(items.length)} sub={`${byCategory.length} κατηγορίες`}/>
         <StatCard label="Τρέχουσα Αξία" value={fmtEur(totalCurrent)} color="var(--positive)" sub="Μετά απόσβεση"/>
         <StatCard label="Ασφαλιστέα Αξία" value={fmtEur(Math.round(totalCurrent*1.1))} color="var(--info)" sub="+10% buffer"/>
@@ -805,7 +805,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
           )}
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
         {[
           {title:'Πλήρης Απόσβεση',color:'var(--negative)',items:fullyDep,render:(item:InventoryItem)=><span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--negative)'}}>{item.replacement_cost?fmtEur(item.replacement_cost):'—'}</span>},
           {title:'Εγγυήσεις ≤90 Μέρες',color:'var(--warning)',items:warrantySoon,render:(item:InventoryItem)=><Badge label={warrantyStatus(item.warranty_expiry).label} color={warrantyStatus(item.warranty_expiry).color}/>},
@@ -944,7 +944,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                     </div>
                   )}
                   <DepBar pct={depPct} left={left}/>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
                     <div style={{padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:10,textAlign:'center'}}>
                       <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--positive)',marginBottom:2}}>{fmtEur(curVal)}</p>
                       <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>Τρέχουσα αξία</p>
@@ -1054,7 +1054,7 @@ function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:s
   )
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
         <StatCard label="Ληγμένες" value={String(expired.length)} color="var(--negative)"/>
         <StatCard label="Λήγουν ≤90 Μέρες" value={String(soon.length)} color="var(--warning)"/>
         <StatCard label="Σε Ισχύ" value={String(valid.length)} color="var(--positive)"/>
@@ -1110,7 +1110,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
           <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Σύγκριση Πρωτοκόλλων</p>
           <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Πίσω</button>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
           {[{v:cmpA,sv:setCmpA},{v:cmpB,sv:setCmpB}].map(({v,sv},i)=>(
             <div key={i}>
               <label style={labelStyle}>Πρωτόκολλο {i===0?'Α':'Β'}</label>
@@ -1120,7 +1120,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         </div>
         {hA&&hB&&(
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:0,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
               {['Αντικείμενο',`${hA.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hA.tenant_name}`,`${hB.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hB.tenant_name}`].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</p>)}
             </div>
             {allNames.map(name=>{
@@ -1128,7 +1128,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
               const cA=sA?.condition_at_handover||'—'; const cB=sB?.condition_at_handover||'—'
               const degraded=cA!==cB&&cA!=='—'&&cB!=='—'&&condOrder.indexOf(cB)>condOrder.indexOf(cA)
               return (
-                <div key={name} style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,padding:'10px 14px',background:degraded?'var(--negative-dim)':'var(--bg-elevated)',borderRadius:8,marginBottom:4,border:`1px solid ${degraded?'var(--negative-border)':'var(--border-subtle)'}`}}>
+                <div key={name} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:0,padding:'10px 14px',background:degraded?'var(--negative-dim)':'var(--bg-elevated)',borderRadius:8,marginBottom:4,border:`1px solid ${degraded?'var(--negative-border)':'var(--border-subtle)'}`}}>
                   <p style={{fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{name}{degraded&&<span style={{fontSize:10,color:'var(--negative)',marginLeft:6}}>↓</span>}</p>
                   <div>{cA!=='—'?<Badge label={cA} color={CONDITION_COLOR[cA]||'var(--text-tertiary)'}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
                   <div>{cB!=='—'?<Badge label={cB} color={CONDITION_COLOR[cB]||'var(--text-tertiary)'}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
@@ -1146,14 +1146,14 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
         <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Πίσω</button>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
         {(['check_in','check_out'] as const).map(t=>(
           <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:12,cursor:'pointer',fontWeight:500,fontFamily:"'Google Sans',sans-serif",fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition:'all 0.2s'}}>
             {t==='check_in'?'Check-In — Είσοδος':'Check-Out — Έξοδος'}
           </button>
         ))}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
         <div><label style={labelStyle}>Ονοματεπώνυμο *</label><TextInput value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label style={labelStyle}>Τηλέφωνο</label><TextInput value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>
@@ -1284,7 +1284,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
         <SectionLabel label="Πρόγραμμα Συντήρησης"/>
         <button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>+ Νέα Εργασία</button>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
         <StatCard label="Σε Καθυστέρηση" value={String(overdue.length)} color="var(--negative)"/>
         <StatCard label="Επόμενες 30 Μέρες" value={String(soon.length)} color="var(--warning)"/>
         <StatCard label="Προγραμματισμένες" value={String(upcoming.length)} color="var(--positive)"/>
@@ -1292,7 +1292,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
       {schedules.length===0&&(
         <div style={cardStyle}>
           <SectionLabel label="Προτεινόμενες Εργασίες"/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
             {DEFAULT_MAINTENANCE.map((s,i)=>(
               <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:10}}>
                 <div>
@@ -1311,7 +1311,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
       {adding&&(
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
           <SectionLabel label="Νέα Εργασία Συντήρησης"/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
             <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Εργασία *</label><TextInput value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
             <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'— Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
             <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
@@ -1355,7 +1355,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <SectionLabel label="Εξαγωγές Δεδομένων"/>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
           {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία — ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},

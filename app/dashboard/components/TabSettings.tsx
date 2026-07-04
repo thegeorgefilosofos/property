@@ -244,7 +244,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           {/* Owner */}
           <div style={cardGap}>
             {sectionTitle('Ιδιοκτήτης')}
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
               <div style={{ gridColumn:'1/3' }}>
                 <label style={lbl}>Ονοματεπώνυμο</label>
                 <input style={inp} value={s.owner_name} onChange={e=>setS(p=>({...p,owner_name:e.target.value}))}/>
@@ -262,7 +262,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           {/* Providers */}
           <div style={cardGap}>
             {sectionTitle('Πάροχοι')}
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
               {([['electricity_provider','Ρεύμα'],['water_provider','Νερό'],['internet_provider','Internet'],['internet_plan','Πρόγραμμα']] as [keyof S,string][]).map(([k,l])=>(
                 <div key={k}><label style={lbl}>{l}</label><input style={inp} value={s[k]} onChange={e=>setS(p=>({...p,[k]:e.target.value}))}/></div>
               ))}
@@ -272,7 +272,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           {/* Management & Insurance */}
           <div style={cardGap}>
             {sectionTitle('Διαχείριση & Ασφάλεια')}
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
               {([['property_manager','Διαχειριστής'],['property_manager_phone','Τηλέφωνο Διαχειριστή'],['insurance_company','Ασφαλιστική'],['insurance_policy','Αρ. Πολίτικής']] as [keyof S,string][]).map(([k,l])=>(
                 <div key={k}><label style={lbl}>{l}</label><input style={inp} value={s[k]} onChange={e=>setS(p=>({...p,[k]:e.target.value}))}/></div>
               ))}
@@ -396,7 +396,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </div>
 
           {fmaMode==='buy' ? (
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
               <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
                 <div style={cardGap}>
                   {sectionTitle('Στοιχεία Ακινήτου')}
@@ -444,7 +444,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               <div>
                 {buyCalc ? (
                   <>
-                    <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
+                    <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
                         <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
@@ -490,7 +490,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               </div>
             </div>
           ) : (
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
               <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
                 <div style={cardGap}>
                   {sectionTitle('Στοιχεία Πώλησης')}
@@ -520,7 +520,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               <div>
                 {sellCalc ? (
                   <>
-                    <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
+                    <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
                         <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
@@ -563,7 +563,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           {/* Info notes */}
           <div style={{ ...cardGap,marginTop:14 }}>
             {sectionTitle('Σημαντικές Πληροφορίες')}
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10 }}>
               {[
                 {title:'Πρώτη Κατοικία',desc:'Αφορολόγητο ΦΜΑ έως €200.000 για ανύπαντρους, έως €275.000 για έγγαμους.'},
                 {title:'Νέα Ακίνητα (ΦΠΑ)',desc:'Ακίνητα με άδεια μετά το 2006: ΦΠΑ 24% αντί ΦΜΑ 3%. Απαλλαγή έως 31/12/2024.'},
@@ -591,7 +591,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   .map(y=><option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:16 }}>
               <div>
                 <label style={lbl}>Ετήσια Μισθώματα {e2Year} (€)</label>
                 <input type="number" style={inp} value={e2Rent} onChange={e=>setE2Rent(e.target.value)}
@@ -605,10 +605,10 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             </div>
 
             {e2Result ? (
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
+              <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
                 {/* Left: KPIs */}
                 <div>
-                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
+                  <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                     {[
                       {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'var(--positive)'},
                       {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'var(--warning)'},

@@ -217,7 +217,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
 
         <div>
           {step === 'upload' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
 
               <div
                 onClick={() => cameraRef.current?.click()}
@@ -289,7 +289,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 <Field label="Πάροχος" value={edited.provider} onChange={v => setEdited(p => ({ ...p!, provider: v }))}/>
                 <div>
                   <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Κατηγορία</label>
@@ -303,7 +303,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 <Field label="Ποσό (€)" type="number" value={edited.amount} onChange={v => setEdited(p => ({ ...p!, amount: parseFloat(v) || 0 }))}/>
                 <Field label="Ημερομηνία Λήξης" type="date" value={edited.due_date} onChange={v => setEdited(p => ({ ...p!, due_date: v }))}/>
               </div>
@@ -313,7 +313,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               {edited.category === 'electricity' && (
                 <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
                   <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
                     <Field label="Κατανάλωση (kWh)" type="number" value={edited.kwh    || ''} onChange={v => setEdited(p => ({ ...p!, kwh:     parseFloat(v) || undefined }))}/>
                     <Field label="ΕΡΤ (€)"          type="number" value={edited.ert    || ''} onChange={v => setEdited(p => ({ ...p!, ert:     parseFloat(v) || undefined }))}/>
                     <Field label="ΕΤΜΕΑΡ (€)"        type="number" value={edited.etmear || ''} onChange={v => setEdited(p => ({ ...p!, etmear:  parseFloat(v) || undefined }))}/>
@@ -322,7 +322,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 <Field label="ΦΠΑ %" type="number" value={edited.vat_rate || ''} onChange={v => setEdited(p => ({ ...p!, vat_rate: parseFloat(v) || 6 }))}/>
                 <Field label="Αριθμός Λογαριασμού" value={edited.account_num || ''} onChange={v => setEdited(p => ({ ...p!, account_num: v }))}/>
               </div>

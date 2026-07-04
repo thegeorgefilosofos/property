@@ -319,7 +319,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       {/* Quick Presets */}
       <div style={cardStyle}>
         <SectionLabel label="Γρήγορα Προφίλ" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>Κλικ για αυτόματη συμπλήρωση</span>}/>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
           {PRESETS.map(p=>(
             <button key={p.id} onClick={()=>applyPreset(p)} style={{padding:'12px 14px',background:activePreset===p.id?p.color:'var(--bg-surface)',border:`1px solid ${activePreset===p.id?p.border:'var(--border-subtle)'}`,borderRadius:12,cursor:'pointer',textAlign:'left' as const,transition:'all 0.2s'}}>
               <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:6}}>
@@ -335,13 +335,13 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </div>
 
       {/* Property + Loan type */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
         <div style={cardStyle}>
           <SectionLabel label="Στοιχεία Ακινήτου"/>
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
             <CustomSelect label="Τύπος Ακινήτου" value={propType} onChange={v=>{setPropType(v);setActivePreset(null)}} options={PROP_TYPE_OPTIONS}/>
             <CustomSelect label="Περιοχή" value={area} onChange={v=>{setArea(v);setActivePreset(null)}} options={AREA_OPTIONS}/>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
               <NumberInput label="Τιμή Αγοράς (€)" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
               <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="τμ"/>
             </div>
@@ -381,7 +381,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </div>
 
       {/* Loan params */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
         <div style={cardStyle}>
           <SectionLabel label="Στοιχεία Δανείου"/>
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
@@ -429,7 +429,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </div>
 
       {/* KPIs */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
         <KPI label="Μηνιαία Δόση" value={fmtEur(monthly)} color="var(--accent)"/>
         <KPI label="Σύνολο Τόκων" value={fmtEur(totalInt)} color="var(--negative)" sub={`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`}/>
         <KPI label="Συνολική Αποπληρωμή" value={fmtEur(total)}/>
@@ -535,7 +535,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </Section>
 
       <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="LIVE">
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση — χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--positive)',bg:'var(--positive-dim)',border:'var(--positive-border)'},
             {label:'Κυμαινόμενο Επιτόκιο',rate:market.euribor_3m+R,m:varMonthly,pros:['Σήμερα χαμηλότερο κόστος','Ωφελείσαι αν Euribor πέσει','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--info)',bg:'var(--info-dim)',border:'var(--info-border)'},
@@ -566,7 +566,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </Section>
 
       <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub="Εκτίμηση εξοικονόμησης — deadline 31/08/2026">
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σπίτι μου ΙΙ (εκτίμηση)',rate:spitiR,m:spitiM,ti:spitiM*Y*12-LA,c:'var(--positive)',bg:'var(--positive-dim)',border:'var(--positive-border)'},
             {label:'Κανονικό Δάνειο',rate:effRate,m:monthly,ti:totalInt,c:'var(--negative)',bg:'var(--negative-dim)',border:'var(--negative-border)'},
@@ -592,7 +592,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
 
       <Section title="Δανειοληπτική Ικανότητα & DTI" sub="Μέγιστο δάνειο βάσει εισοδήματος">
         <div style={{marginBottom:12}}><NumberInput label="Μηνιαίο Καθαρό Εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
           <KPI label="Μέγιστη δόση/μήνα" value={fmtEur(INC*BORROWER_PROFILES[borrower].income_ratio)} color="var(--accent)" sub={`${(BORROWER_PROFILES[borrower].income_ratio*100).toFixed(0)}% εισοδήματος`}/>
           <KPI label="Μέγιστο δάνειο" value={fmtEur(maxLoan)} color={maxLoan>=LA?'var(--positive)':'var(--negative)'}/>
           <KPI label="DTI Ratio" value={monthly>0?fmtPct1((monthly/INC)*100):'—'} color={(monthly/INC)>0.4?'var(--negative)':(monthly/INC)>0.35?'var(--warning)':'var(--positive)'} sub="Δόση / Εισόδημα"/>
@@ -605,12 +605,12 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
           <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
             <p style={{...labelStyle,marginBottom:12}}>{isNewBuilding?'ΦΠΑ 24%':isCommercial?'ΦΜΑ 3% + Χαρτόσημο':'ΦΜΑ 3%'}</p>
             {!isNewBuilding&&(
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:12}}>
                 <CustomSelect label="Οικογενειακή Κατάσταση" value={marital} onChange={v=>setMarital(v as any)} options={MARITAL_OPTIONS}/>
                 <CustomSelect label="Εξαρτώμενα Τέκνα" value={children} onChange={setChildren} options={CHILDREN_OPTIONS}/>
               </div>
             )}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10}}>
               {isNewBuilding?(
                 <>
                   <KPI label="ΦΠΑ 24%" value={fmtEur(vatOwed)} color="var(--negative)" sub="Αντί ΦΜΑ"/>
@@ -675,13 +675,13 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </Section>
 
       <Section title="Ανάλυση Αναχρηματοδότησης" sub="Break-even — πότε αξίζει η μεταφορά">
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
           <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="χρ"/>
           <NumberInput label="Νέο επιτόκιο (%)" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
           <NumberInput label="Κόστος μεταφοράς (€)" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
           <KPI label="Τρέχουσα δόση" value={fmtEur(currM)} color="var(--negative)"/>
           <KPI label="Νέα δόση" value={fmtEur(newM)} color="var(--positive)" sub={`${fmtEur(mSav)}/μήνα`}/>
           <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} color={refSav>0?'var(--accent)':'var(--negative)'} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
@@ -711,7 +711,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       </Section>
 
       <Section title="Απαραίτητα Έγγραφα" sub={`${LOAN_TYPES[loanType].label} · ${propTypeLabel}`}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
           <div>
             <p style={{...labelStyle,marginBottom:10}}>Γενικά Δικαιολογητικά</p>
             {LOAN_TYPES[loanType].docs.map((d,i)=>(
@@ -766,7 +766,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       {/* Full acquisition cost */}
       <div style={cardStyle}>
         <SectionLabel label="Πλήρης Ανάλυση Κόστους Απόκτησης" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{propTypeLabel}{SQM>0?` · ${SQM}τμ`:''} · {areaLabel}</span>}/>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8,marginBottom:14}}>
           {[
             {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος Μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας',hi:false},
             {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή κλίμακα',hi:false},

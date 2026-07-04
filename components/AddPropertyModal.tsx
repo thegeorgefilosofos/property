@@ -247,7 +247,7 @@ export default function AddPropertyModal({ userId, onClose, onAdd }: Props) {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 16 }}>
             <div>
               <label style={labelStyle}>Τ.Μ. *</label>
               <input

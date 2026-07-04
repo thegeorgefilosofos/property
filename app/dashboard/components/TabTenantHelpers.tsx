@@ -88,9 +88,9 @@ export const s = {
   sec:      { fontSize:'9px', letterSpacing:'0.18em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' },
   dot:      (c='var(--accent)') => ({ width:'4px', height:'4px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
   divider:  { borderTop:'1px solid var(--border-subtle)', margin:'18px 0' } as React.CSSProperties,
-  g2:       { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' } as React.CSSProperties,
-  g3:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
-  g4:       { display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'14px' } as React.CSSProperties,
+  g2:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'14px' } as React.CSSProperties,
+  g3:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'14px' } as React.CSSProperties,
+  g4:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:'14px' } as React.CSSProperties,
   badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius:'5px', fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid ${color}33` } as React.CSSProperties),
   tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:T.font.sans, transition:'all 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),
   kpi:      { background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'14px 16px', textAlign:'center' as const } as React.CSSProperties,
@@ -146,7 +146,7 @@ export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | n
         ))}
       </div>
       {inc.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
           {[
             { label:'Κόστος Ιδιοκτήτη/μήνα', val:fmt(totalOwner), color:'var(--negative)' },
             { label:'Χρέωση Ενοικιαστή/μήνα', val:fmt(totalTenant), color:'var(--accent)' },
@@ -240,7 +240,7 @@ export function InvestmentCalc({ title, amount }: { title: string; amount: numbe
         <NumberInput label="Απόδοση %/έτος" value={rate} onChange={setRate} suffix="%" step={0.1} max={100}/>
         <NumberInput label="Περίοδος (έτη)" value={years} onChange={setYears} suffix="έτη" step={0.5}/>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)' }}>
         <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(amount)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αρχικό Ποσό</div></div>
         <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>+{fmt(gain)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος ({years} έτη)</div></div>
         <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(future)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Τελικό Ποσό</div></div>
@@ -280,7 +280,7 @@ export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
         <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Πλήρης Αξία</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--text-primary)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(full)}</div></div>
         <div><div style={{ fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-secondary)', marginBottom:'5px' }}>Τελικό Ποσό</div><div style={{ fontSize:'16px', fontWeight:700, color:'var(--accent)', padding:'9px 0', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(discounted)}</div></div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)', marginBottom:'14px' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-surface)', borderRadius:'8px', border:'1px solid var(--border-subtle)', marginBottom:'14px' }}>
         <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Κέρδος Ενοικιαστή</div></div>
         <div style={{ textAlign:'center' }}><div style={{ fontSize:'14px', fontWeight:700, color:'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(ownerLoss)}</div><div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Χασούρα Ιδιοκτήτη</div></div>
       </div>

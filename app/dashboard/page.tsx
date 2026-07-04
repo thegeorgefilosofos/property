@@ -169,12 +169,12 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
         {step === 1 ? (
           <div style={{display:'flex',flexDirection:'column',gap:16}}>
             <div><label style={mdLabel}>Ονομασία Ακινήτου *</label><input style={mdInput} value={form.name} onChange={e=>sf('name',e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={focusInput} onBlur={blurInput}/></div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
               <div><label style={mdLabel}>Τύπος Ακινήτου</label><select style={mdSel} value={form.prop_type} onChange={e=>sf('prop_type',e.target.value)}>{PROP_TYPES.map(t=><option key={t} value={t}>{PROP_TYPE_LABELS[t]}</option>)}</select></div>
               <div><label style={mdLabel}>Κατάσταση</label><select style={mdSel} value={form.status_detail} onChange={e=>sf('status_detail',e.target.value)}>{Object.entries(STATUS_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div>
             </div>
             <div><label style={mdLabel}>Διεύθυνση</label><input style={mdInput} value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={focusInput} onBlur={blurInput}/></div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:16}}>
               <div><label style={mdLabel}>Εμβαδόν (τετραγωνικά μέτρα)</label><input style={mdInput} type="number" value={form.sqm} onChange={e=>sf('sqm',e.target.value)} placeholder="35" onFocus={focusInput} onBlur={blurInput}/></div>
               <div><label style={mdLabel}>Όροφος</label><input style={mdInput} type="number" value={form.floor} onChange={e=>sf('floor',e.target.value)} placeholder="2" onFocus={focusInput} onBlur={blurInput}/></div>
               <div><label style={mdLabel}>Έτος Κατασκευής</label><input style={mdInput} type="number" value={form.year_built} onChange={e=>sf('year_built',e.target.value)} placeholder="1995" onFocus={focusInput} onBlur={blurInput}/></div>
@@ -182,11 +182,11 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
           </div>
         ) : (
           <div style={{display:'flex',flexDirection:'column',gap:16}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
               <div><label style={mdLabel}>Εμπορική Αξία (€)</label><input style={mdInput} type="number" value={form.value} onChange={e=>sf('value',e.target.value)} placeholder="145.000" onFocus={focusInput} onBlur={blurInput}/></div>
               <div><label style={mdLabel}>Τιμή Αγοράς (€)</label><input style={mdInput} type="number" value={form.purchase_price} onChange={e=>sf('purchase_price',e.target.value)} placeholder="120.000" onFocus={focusInput} onBlur={blurInput}/></div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
               <div><label style={mdLabel}>Στόχος Ενοικίου (€/μήνα)</label><input style={mdInput} type="number" value={form.target_rent} onChange={e=>sf('target_rent',e.target.value)} placeholder="820" onFocus={focusInput} onBlur={blurInput}/></div>
               <div><label style={mdLabel}>Ποσοστό Ιδιοκτησίας (%)</label><input style={mdInput} type="number" value={form.ownership} onChange={e=>sf('ownership',e.target.value)} placeholder="100" onFocus={focusInput} onBlur={blurInput}/></div>
             </div>
