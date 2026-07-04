@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/Theme'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
   Calendar, List, BarChart2, Check, FileText,
@@ -909,7 +910,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {showAutoPull&&<AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load}/>}
 
-      {loading&&<div style={{ textAlign:'center', padding:40 }}><p style={{ fontSize:14, fontFamily:"'Google Sans',sans-serif", color:'var(--text-secondary)' }}>Φόρτωση...</p></div>}
+      {loading&&<Spinner label="Φόρτωση…" />}
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>

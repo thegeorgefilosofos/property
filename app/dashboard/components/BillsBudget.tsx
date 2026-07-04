@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect } from './UIComponents';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Spinner } from '@/components/Theme';
 
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
@@ -193,7 +193,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
     </div>
   );
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση...</div>;
+  if (loading) return <Spinner label="Φόρτωση…" />;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>

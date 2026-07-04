@@ -694,10 +694,27 @@ export default function Dashboard() {
         </header>
 
         {!selected ? (
-          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:24}}>
-            <div style={{fontSize:48,opacity:0.15}}></div>
-            <div style={{fontFamily:"'Roboto',sans-serif",fontSize:16,color:'var(--text-secondary)',letterSpacing:'0.5px'}}>Πρόσθεσε το πρώτο σου ακίνητο για να ξεκινήσεις</div>
-            <button className="btn btn-primary" onClick={()=>setShowAddModal(true)}>+ Προσθήκη Ακινήτου</button>
+          <div className="app-content" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{maxWidth:560,width:'100%',textAlign:'center'}}>
+              <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+                <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+              </div>
+              <h1 style={{fontFamily:"'Google Sans',sans-serif",fontSize:26,fontWeight:800,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
+              <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή — όλα σε ένα σημείο.</p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
+                {[
+                  {t:'Αποδόσεις & Φόρος 2026',d:'Μεικτή/καθαρή απόδοση, φόρος βάσει κλίμακας'},
+                  {t:'Λογαριασμοί & Ενέργεια',d:'Σύγκριση 11 παρόχων ρεύματος/αερίου'},
+                  {t:'Ενοικιαστής & Συμβόλαιο',d:'Πληρωμές, λήξεις, εγγύηση, ιστορικό'},
+                ].map((f,i)=>(
+                  <div key={i} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'14px 16px'}}>
+                    <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>
+                    <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5}}>{f.d}</div>
+                  </div>
+                ))}
+              </div>
+              <button className="btn btn-primary" onClick={()=>setShowAddModal(true)} style={{fontSize:14,height:44,padding:'0 28px'}}>+ Προσθήκη πρώτου ακινήτου</button>
+            </div>
           </div>
         ) : (
           <>
