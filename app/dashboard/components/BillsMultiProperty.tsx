@@ -298,6 +298,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           {/* Table */}
           {view === 'table' && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+              <div className="table-wrap">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 700 }}>
                 <thead>
                   <tr>{['Ακίνητο','Τ.μ.',...CAT_KEYS.map(k => CAT_LABELS[k]),'Σύνολο / μήνα','Σύνολο / έτος','Ανεξόφλητα'].map((h, i) => (
@@ -334,6 +335,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                   </tr>
                 </tfoot>
               </table>
+              </div>
             </div>
           )}
 

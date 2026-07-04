@@ -209,6 +209,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           <div style={cardStyle}>
             <SectionLabel label="Σύγκριση Επιτοκίων — Ιούνιος 2026"/>
             <div style={{overflowX:'auto'}}>
+              <div className="table-wrap">
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
                 <thead>
                   <tr style={{borderBottom:'1px solid var(--border-subtle)'}}>
@@ -241,6 +242,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
             <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Roboto',sans-serif"}}>
               Ενδεικτικά επιτόκια ({updStr}). →{' '}

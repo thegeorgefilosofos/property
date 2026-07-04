@@ -1882,6 +1882,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               </div>
             ))}
           </div>
+          <div className="table-wrap">
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
             <thead>
               <tr>
@@ -1910,6 +1911,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               ))}
             </tbody>
           </table>
+          </div>
           <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif", lineHeight:1.5 }}>
             Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας. Συμβουλευτείτε λογιστή για επίσημη χρήση.
           </div>
@@ -1988,6 +1990,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                   </div>
                 </div>
                 <div style={{ overflowX:'auto' }}>
+                  <div className="table-wrap">
                   <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                     <thead>
                       <tr>
@@ -2085,6 +2088,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             );

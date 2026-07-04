@@ -473,6 +473,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
         <div style={cardStyle}>
           <SectionLabel label="Σύγκριση Σεναρίων"/>
           <div style={{overflowX:'auto',marginBottom:16}}>
+            <div className="table-wrap">
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
               <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Ποσό','Επιτόκιο','Χρόνια','Δόση/μήνα','Σύν. Τόκοι','Διαφορά',''].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</th>)}</tr></thead>
               <tbody>
@@ -507,6 +508,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
                 })}
               </tbody>
             </table>
+            </div>
           </div>
           {scenChart.length>0&&(
             <ResponsiveContainer width="100%" height={100}>
@@ -656,6 +658,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
             </BarChart>
           </ResponsiveContainer>
         </div>
+        <div className="table-wrap">
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
           <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Επιτόκιο','Δόση/μήνα','Αύξηση','DTI'].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</th>)}</tr></thead>
           <tbody>
@@ -671,6 +674,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
             })}
           </tbody>
         </table>
+        </div>
         {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--positive-dim)',border:'1px solid var(--positive-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια — προστατευμένοι από ανατιμήσεις Euribor</p></div>}
       </Section>
 
@@ -691,6 +695,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
 
       <Section title="Πίνακας Αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`}>
         <div style={{overflowX:'auto'}}>
+          <div className="table-wrap">
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
             <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Μήνας','Δόση','Κεφάλαιο','Τόκος','Υπόλοιπο','Σύν. Τόκοι'].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'right',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</th>)}</tr></thead>
             <tbody>
@@ -707,6 +712,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
               {amort.length>24&&<tr><td colSpan={6} style={{padding:10,textAlign:'center',color:'var(--text-tertiary)',fontSize:11,fontFamily:"'Roboto',sans-serif"}}>... {amort.length-24} ακόμα δόσεις</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       </Section>
 
