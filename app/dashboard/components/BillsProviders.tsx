@@ -137,11 +137,11 @@ const SECURITY_COMPANIES = [
 ];
 
 const BENCHMARKS = {
-  internet: { avg: 22.50, label: 'Μ.Ο. Ελλάδας'              },
-  water:    { avg: 12.00, label: 'Μ.Ο. Αττικής — ~24 € / 2 μήνες' },
-  heating:  { avg: 70.00, label: 'Μ.Ο. χειμώνα'               },
-  gas:      { avg: 40.00, label: 'Μ.Ο. οικιακό'               },
-  security: { avg: 18.00, label: 'Μ.Ο. αγοράς'                },
+  internet: { avg: 22.50, label: 'Μέσος Όρος Ελλάδας'              },
+  water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής — ~24 € / 2 μήνες' },
+  heating:  { avg: 70.00, label: 'Μέσος Όρος χειμώνα'               },
+  gas:      { avg: 40.00, label: 'Μέσος Όρος οικιακό'               },
+  security: { avg: 18.00, label: 'Μέσος Όρος αγοράς'                },
 };
 
 const DEFAULTS = {
@@ -226,7 +226,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
           <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--text-primary)' }}>
-            {isHigh ? `+${((current / avg - 1) * 100).toFixed(0)}% πάνω από μ.ο.` : isLow ? `-${((1 - current / avg) * 100).toFixed(0)}% κάτω από μ.ο.` : 'Στο μέσο όρο'}
+            {isHigh ? `+${((current / avg - 1) * 100).toFixed(0)}% πάνω από τον μέσο όρο` : isLow ? `-${((1 - current / avg) * 100).toFixed(0)}% κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
           </span>
         </div>
         <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
@@ -234,7 +234,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           <div style={{ height: '100%', width: `${pct}%`, background: isHigh ? 'var(--negative)' : isLow ? 'var(--positive)' : 'var(--accent)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μ.ο. {avg} €</span><span>{(avg * 2).toFixed(0)} €</span>
+          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{(avg * 2).toFixed(0)} €</span>
         </div>
       </div>
     );
@@ -329,9 +329,9 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
               }}
               options={[{ value: '', label: '— Επιλογή προγράμματος —' }, ...planOptions]}/>
           ) : (
-            <TextInput label="Ονομασία Προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="π.χ. Fiber 500"/>
+            <TextInput label="Ονομασία Προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Παράδειγμα: Fiber 500"/>
           )}
-          <TextInput   label="Ταχύτητα"            value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="π.χ. 500/200 Mbps"/>
+          <TextInput   label="Ταχύτητα"            value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
           <NumberInput label="Μηνιαίο Κόστος (€)"  value={s.internetPrice} onChange={v => upd({ internetPrice: v })} suffix="€" step={1}/>
         </div>
 
@@ -407,7 +407,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                 </div>
               ))}
             </div>
-            <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="π.χ. 100 λεπτά διεθνή, αποκλείονται premium..."/>
+            <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="Παράδειγμα: 100 λεπτά διεθνή, αποκλείονται premium..."/>
           </div>
         )}
 
@@ -457,7 +457,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 12 }}>
                 <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
                   options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
-                <TextInput   label="Πρόγραμμα / Πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="π.χ. Cosmote TV Start"/>
+                <TextInput   label="Πρόγραμμα / Πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
                 <NumberInput label="Μηνιαίο Κόστος (€)"   value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
               </div>
               <Toggle on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })} label="Sports Package ενεργό" labelOff="Χωρίς Sports Package"/>
@@ -525,7 +525,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {heatingM > 0 && (
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' as const, marginBottom: 6 }}>
-              {[{ label: 'Μέσο Μηνιαίο', value: fe(heatingM) },{ label: 'Εκτ. Ετήσιο', value: fe(heatingM * 12) }].map((k, i) => (
+              {[{ label: 'Μέσο Μηνιαίο', value: fe(heatingM) },{ label: 'Εκτιμώμενο Ετήσιο', value: fe(heatingM * 12) }].map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
@@ -533,7 +533,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
               ))}
             </div>
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              Μ.Ο.: Φυσικό αέριο ~0.08 €/kWh · Πετρέλαιο ~0.10 €/kWh · Αντλία θερμότητας ~0.06 €/kWh — 2026
+              Μέσος Όρος: Φυσικό αέριο ~0.08 €/kWh · Πετρέλαιο ~0.10 €/kWh · Αντλία θερμότητας ~0.06 €/kWh — 2026
             </div>
           </div>
         )}
@@ -556,7 +556,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {secHdr('Security & Συναγερμός')}
         <div style={g3}>
           <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
-          <TextInput    label="Πρόγραμμα / Πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="π.χ. Basic Monitor"/>
+          <TextInput    label="Πρόγραμμα / Πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>
           <NumberInput  label="Μηνιαίο Κόστος (€)" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>
         </div>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 12 }}>

@@ -195,7 +195,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {[
           { label: 'Διαχείριση / μήνα',  value: mgmtMonthly > 0 ? fe(mgmtMonthly) : 'Δωρεάν' },
           { label: 'Ταμείο / μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : '—' },
-          { label: 'Μ.Ο. Κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : '—' },
+          { label: 'Μέσος Όρος Κοινοχρήστων',  value: monthlyAvg > 0 ? fe(monthlyAvg) : '—' },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -299,7 +299,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Έκτακτες Εισφορές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="π.χ. Ανακαίνιση ταράτσας"/>
+            <TextInput   label="Αιτία"       value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
             <NumberInput label="Ποσό (€)"    value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
           </div>
@@ -367,7 +367,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(212,175,66,0.4)', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
-                μ.ο. {monthlyAvg.toFixed(0)}
+                μέσος όρος {monthlyAvg.toFixed(0)}
               </span>
             </div>
           )}
@@ -448,7 +448,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           {[
             { label: 'Διαχείριση',         amount: mgmtMonthly,                  skip: !mgmtMonthly },
             { label: 'Εισφορά Ταμείου',    amount: parseFloat(fundMonthly) || 0, skip: !(parseFloat(fundMonthly) || 0) },
-            { label: 'Μ.Ο. Κοινοχρήστων',  amount: monthlyAvg,                   skip: !monthlyAvg  },
+            { label: 'Μέσος Όρος Κοινοχρήστων',  amount: monthlyAvg,                   skip: !monthlyAvg  },
           ].filter(r => !r.skip && r.amount > 0).map((r, i) => (
             <div key={i} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>

@@ -108,7 +108,7 @@ const calcAgeDisplay = (d: string) => {
   const m = Math.floor((ms%(1000*60*60*24*365))/(1000*60*60*24*30))
   if (y===0) return `${m} μήνες`
   if (m===0) return `${y} χρόνια`
-  return `${y} χρόν. ${m} μήν.`
+  return `${y} χρόνια ${m} μήνες`
 }
 const calcMonthlyKwh = (item: InventoryItem) => {
   if (!item.power_watts||!item.daily_hours_use) return 0
@@ -205,7 +205,7 @@ const DepBar = ({pct,left}:{pct:number;left:number}) => {
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
         <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Απόσβεση {pct}%</span>
         {left>0
-          ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{left} χρόν.</span>
+          ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{left} χρόνια</span>
           :<span style={{fontSize:9,color:'var(--negative)',fontWeight:700,fontFamily:"'Google Sans',sans-serif"}}>Πλήρης</span>
         }
       </div>
@@ -451,13 +451,13 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               <MultiPhotoUpload photos={form.photos||[]} primary={form.photo_url||''} onAdd={u=>set('photos',[...(form.photos||[]),u])} onRemove={u=>{const p=(form.photos||[]).filter(x=>x!==u);set('photos',p);if(form.photo_url===u)set('photo_url',p[0]||'')}} onSetPrimary={u=>set('photo_url',u)}/>
               <div>
                 <label style={labelStyle}>Ονομασία *</label>
-                <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="π.χ. Πλυντήριο Ρούχων Bosch WAU28"/>
+                <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div><label style={labelStyle}>Κατηγορία</label><CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/></div>
                 <div><label style={labelStyle}>Κατάσταση</label><CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/></div>
-                <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="π.χ. Bosch"/></div>
-                <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="π.χ. WAU28PI0GR"/></div>
+                <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
+                <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="Παράδειγμα: WAU28PI0GR"/></div>
                 <div><label style={labelStyle}>Σειριακός Αριθμός</label><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></div>
                 <div><label style={labelStyle}>Λήξη Εγγύησης</label><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></div>
               </div>
@@ -526,8 +526,8 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                   {replRange&&!form.replacement_cost&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Roboto',sans-serif"}}>Εκτίμηση: {fmtEur(replRange.min)}–{fmtEur(replRange.max)}</p>}
                 </div>
                 <div><label style={labelStyle}>Ημερομηνία Αγοράς</label><DatePicker value={form.purchase_date||''} onChange={v=>{set('purchase_date',v);if(discountedPrice>0)set('purchase_value',discountedPrice)}}/></div>
-                <div><label style={labelStyle}>Κατάστημα / Πηγή</label><TextInput value={form.store_vendor||''} onChange={v=>set('store_vendor',v)} placeholder="π.χ. Κωτσόβολος, Amazon"/></div>
-                <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="π.χ. ΑΠΥ-2024-001"/></div>
+                <div><label style={labelStyle}>Κατάστημα / Πηγή</label><TextInput value={form.store_vendor||''} onChange={v=>set('store_vendor',v)} placeholder="Παράδειγμα: Κωτσόβολος, Amazon"/></div>
+                <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
               </div>
               {form.purchase_date&&form.purchase_value&&(
                 <div style={{padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:12,border:'1px solid var(--border-subtle)'}}>
@@ -589,7 +589,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 <Toggle on={form.smart_device||false} onChange={(v:boolean)=>set('smart_device',v)}/>
               </div>
               {form.smart_device&&(
-                <div><label style={labelStyle}>App / Σύστημα Ελέγχου</label><TextInput value={form.smart_notes||''} onChange={v=>set('smart_notes',v)} placeholder="π.χ. Shelly 1PM + Home Assistant"/></div>
+                <div><label style={labelStyle}>App / Σύστημα Ελέγχου</label><TextInput value={form.smart_notes||''} onChange={v=>set('smart_notes',v)} placeholder="Παράδειγμα: Shelly 1PM + Home Assistant"/></div>
               )}
               <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:12,border:'1px solid var(--border-accent)'}}>
                 <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:12}}>Προτεινόμενα Smart Devices</p>
@@ -681,7 +681,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
           <div style={{gridColumn:'1/-1'}}>
             <label style={labelStyle}>Τεχνικός / Συνεργείο</label>
             <div style={{display:'flex',gap:8}}>
-              <div style={{flex:1}}><TextInput value={form.technician} onChange={v=>setForm(f=>({...f,technician:v}))} placeholder="π.χ. Ηλεκτρολόγος Γεωργίου"/></div>
+              <div style={{flex:1}}><TextInput value={form.technician} onChange={v=>setForm(f=>({...f,technician:v}))} placeholder="Παράδειγμα: Ηλεκτρολόγος Γεωργίου"/></div>
               {contacts.length>0&&(
                 <div ref={pickerRef} style={{position:'relative',flexShrink:0}}>
                   <button type="button" onClick={()=>setShowContactPicker(s=>!s)} style={{padding:'0 12px',height:40,borderRadius:8,border:'1px solid var(--border-subtle)',background:showContactPicker?'var(--accent-dim)':'var(--bg-elevated)',color:showContactPicker?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Επαφές</button>
@@ -1171,7 +1171,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         ))}
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-        <div><label style={labelStyle}>Ονοματεπώνυμο *</label><TextInput value={tenantName} onChange={setTenantName} placeholder="π.χ. Ιωάννης Παπαδόπουλος"/></div>
+        <div><label style={labelStyle}>Ονοματεπώνυμο *</label><TextInput value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label style={labelStyle}>Τηλέφωνο</label><TextInput value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>
         <div><label style={labelStyle}>Σημειώσεις</label><TextInput value={notes} onChange={setNotes} placeholder="Γενικές παρατηρήσεις..."/></div>
@@ -1329,9 +1329,9 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
           <SectionLabel label="Νέα Εργασία Συντήρησης"/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Εργασία *</label><TextInput value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="π.χ. Ετήσιος έλεγχος λέβητα"/></div>
+            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Εργασία *</label><TextInput value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
             <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'— Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
-            <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήν." min={1} max={60}/></div>
+            <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
             <div><label style={labelStyle}>Τελευταία Εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>
             <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
           </div>

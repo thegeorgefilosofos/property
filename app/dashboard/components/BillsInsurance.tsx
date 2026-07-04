@@ -662,8 +662,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           )}
           {/* FIX: 2+2 grid — Πόλη label doesn't overflow */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-            <NumberInput label="Εμβαδόν (τ.μ.)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
-            <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="π.χ. Αθήνα, Θεσσαλονίκη..."/>
+            <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
+            <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη..."/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Αξία Κτηρίου (€)"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
@@ -754,7 +754,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
                   <thead>
-                    <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές Καταστροφές','Εκτ. Μηνιαίο','Εκτ. Ετήσιο','Εξοικ./μήνα'].map((h, i) => (
+                    <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές Καταστροφές','Εκτιμώμενο Μηνιαίο','Εκτιμώμενο Ετήσιο','Εξοικονόμηση/μήνα'].map((h, i) => (
                       <th key={i} style={{ fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
                     ))}</tr>
                   </thead>
@@ -840,7 +840,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               </div>
               {insEditCovers && (
                 <div>
-                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="π.χ. Πυρκαγιά, Κλοπή, Σεισμός..."
+                  <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός..."
                     style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
                   <div style={{ display: 'flex', gap: 16 }}>
                     <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός" labelOff="Χωρίς Σεισμό"/>
@@ -964,7 +964,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {secHdr('Άλλες Πάγιες Συνδρομές')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="π.χ. Canva Pro, Adobe, Antivirus..."/>
+            <TextInput   label="Ονομασία"         value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro, Adobe, Antivirus..."/>
             <NumberInput label="Κόστος / μήνα (€)" value={newSubPrice}  onChange={setNewSubPrice}   suffix="€" step={1}/>
             <DatePicker  label="Ημερομηνία Ανανέωσης"    value={newSubRenewal} onChange={setNewSubRenewal}/>
           </div>
