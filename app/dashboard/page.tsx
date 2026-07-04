@@ -21,6 +21,7 @@ import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
 import PaymentLinks from './components/PaymentLinks';
+import { printPropertyStatement } from './components/statement';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -393,6 +394,21 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
 
   return (
     <div>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+        <button onClick={()=>printPropertyStatement({
+          propName: prop.name, address: prop.address||undefined,
+          propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
+          status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
+          sqm: prop.sqm||undefined, monthlyRent: rent, annualRent, grossYield, netYield,
+          expensesYTD: totalExpYTD, categories: catEntries,
+        })}
+          style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
+          onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          Αναφορά (PDF)
+        </button>
+      </div>
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent), color:'var(--accent)' },
