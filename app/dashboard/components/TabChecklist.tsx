@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, type KPIItem } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -1490,6 +1490,14 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
   const usedCats = CATEGORIES.filter(c => items.some(i => i.category === c.id))
   const hasFilters = filterStatus !== 'all' || filterCat !== 'all' || filterPri !== 'all' || !!search
 
+  const kpiItems: KPIItem[] = [
+    { label: 'Σύνολο Εργασιών', value: fn(stats.total) },
+    { label: 'Ολοκληρωμένα', value: fn(stats.done), tone: 'positive', sub: `${stats.pct}% πρόοδος` },
+    { label: 'Εκπρόθεσμα', value: fn(stats.overdue), tone: stats.overdue > 0 ? 'negative' : 'neutral' },
+    { label: 'Κρίσιμα Εκκρεμή', value: fn(stats.critical), tone: stats.critical > 0 ? 'warning' : 'neutral' },
+    { label: 'Ποσοστό Ολοκλήρωσης', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'accent' },
+  ]
+
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
 
@@ -1504,12 +1512,46 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         </div>
       )}
 
+      <PageTitle
+        title="Checklist"
+        sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
+        right={
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => setHideCompleted(h => !h)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+              {hideCompleted ? 'Εμφάνιση ολοκληρωμένων' : 'Απόκρυψη ολοκληρωμένων'}
+            </button>
+            <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'var(--accent-soft)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>{bulkMode ? 'Έξοδος' : 'Επιλογή'}</button>
+            <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Templates</button>
+            <button type="button" onClick={loadAADECalendar}
+              style={{ padding: '8px 13px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
+              ΑΑΔΕ {new Date().getFullYear()}
+            </button>
+            <button type="button" onClick={() => exportChecklistExcel(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Excel</button>
+            <button type="button" onClick={() => exportChecklistPDF(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
+            <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
+            <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              + Νέο Task
+            </button>
+          </div>
+        }
+      />
+
+      <KPIGrid items={kpiItems} />
+
       {stats.overdue > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 22 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)' }}>{stats.overdue} ληγμένα tasks</span>{stats.critical > 0 && <span style={{ fontSize: 12, color: 'var(--negative)' }}> · {stats.critical} κρίσιμα εκκρεμή</span>}</div>
-          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Εμφάνιση</button>
-        </div>
+        <InfoBanner tone="negative">
+          <span style={{ fontWeight: 600, color: 'var(--negative)' }}>{stats.overdue} εκπρόθεσμες εργασίες</span>
+          {stats.critical > 0 && <span> · {stats.critical} κρίσιμα εκκρεμή</span>}
+          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ marginLeft: 10, padding: '3px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontSize: 11, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Εμφάνιση</button>
+        </InfoBanner>
+      )}
+
+      {stats.overdue === 0 && stats.critical > 0 && (
+        <InfoBanner tone="warning">
+          <span style={{ fontWeight: 600, color: 'var(--warning)' }}>{stats.critical} κρίσιμες εργασίες σε εκκρεμότητα</span> χρειάζονται προσοχή.
+        </InfoBanner>
       )}
 
       {smartSuggestions.length > 0 && (
@@ -1557,33 +1599,6 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           )}
         </div>
       )}
-
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22, gap: 16 }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontFamily: T.font.sans, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>Checklist Ακινήτου</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '4px 0 0', fontFamily: T.font.sans }}>{stats.total} tasks · {stats.done} ολοκληρωμένα · {stats.pct}% πρόοδος</p>
-        </div>
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '75%' }}>
-          <button type="button" onClick={() => setHideCompleted(h => !h)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
-            {hideCompleted ? 'Εμφάνιση done' : 'Κρύψε done'}
-          </button>
-          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'var(--accent-soft)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>{bulkMode ? 'Έξοδος' : 'Επιλογή'}</button>
-          <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Templates</button>
-          <button type="button" onClick={loadAADECalendar}
-            style={{ padding: '8px 13px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
-            ΑΑΔΕ {new Date().getFullYear()}
-          </button>
-          <button type="button" onClick={() => exportChecklistExcel(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Excel</button>
-          <button type="button" onClick={() => exportChecklistPDF(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
-          <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
-          <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-            + Νέο Task
-          </button>
-        </div>
-      </div>
 
       {/* Progress */}
       {stats.total > 0 && (

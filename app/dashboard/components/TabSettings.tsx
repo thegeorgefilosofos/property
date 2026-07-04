@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { NumberInput, CustomSelect, Toggle } from './UIComponents';
-import { T, fe } from '@/components/Theme';
+import { T, fe, PageTitle, InfoBanner } from '@/components/Theme';
+import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -79,7 +80,12 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'settings'|'fma'|'e2'>('settings');
+  const [activeSection, setActiveSection] = useState<'settings'|'prefs'|'fma'|'e2'>('settings');
+
+  // App preferences state
+  const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
+  const [prefsSaved, setPrefsSaved] = useState(false);
+  const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // FMA state
   const [fmaMode, setFmaMode]             = useState<'buy'|'sell'>('buy');
@@ -109,6 +115,29 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   async function save() {
     await supabase.from('property_settings').upsert({ ...s, property_id:propertyId, user_id:userId },{ onConflict:'property_id' });
     setSaved(true); setTimeout(()=>setSaved(false),2000);
+  }
+
+  // ── App preferences: load on mount, debounce-save on change ──
+  useEffect(() => { loadPrefs(); }, [propertyId]);
+  async function loadPrefs() {
+    const { data } = await supabase.from('bills_settings').select('data')
+      .eq('property_id',propertyId).eq('section','app_preferences').maybeSingle();
+    if (data?.data) setPrefs(p => ({ ...p, ...data.data }));
+    else setPrefs(DEFAULT_PREFERENCES);
+  }
+  function updatePrefs(partial: Partial<AppPreferences>) {
+    setPrefs(prev => {
+      const next = { ...prev, ...partial };
+      if (prefsTimer.current) clearTimeout(prefsTimer.current);
+      prefsTimer.current = setTimeout(async () => {
+        await supabase.from('bills_settings').upsert({
+          property_id: propertyId, user_id: String(userId),
+          section: 'app_preferences', data: next, updated_at: new Date().toISOString(),
+        }, { onConflict: 'property_id,section' });
+        setPrefsSaved(true); setTimeout(()=>setPrefsSaved(false),1800);
+      }, 800);
+      return next;
+    });
   }
 
   // FMA calculations
@@ -155,8 +184,12 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Google Sans',sans-serif" } as const;
   const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Roboto',sans-serif" } as const;
   const sectionTitle = (t:string) => (
-    <div style={{ fontFamily:"'Google Sans',sans-serif",fontSize:10,textTransform:'uppercase',
-      letterSpacing:'0.1em',color:'var(--accent)',marginBottom:16,fontWeight:500 }}>{t}</div>
+    <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,
+      borderBottom:'1px solid var(--border-subtle)' }}>
+      <div style={{ width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0 }}/>
+      <div style={{ fontFamily:"'Google Sans',sans-serif",fontSize:10,textTransform:'uppercase',
+        letterSpacing:'0.06em',color:'var(--text-secondary)',fontWeight:700 }}>{t}</div>
+    </div>
   );
   const statRow = (label:string, value:string, color='var(--text-primary)', bold=false) => (
     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
@@ -166,15 +199,31 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
     </div>
   );
 
+  const prefRow = (label:string, description:string|null, control:ReactNode) => (
+    <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,
+      padding:'12px 0',borderBottom:'1px solid var(--border-subtle)' }}>
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontSize:13,color:'var(--text-primary)',fontFamily:"'Roboto',sans-serif" }}>{label}</div>
+        {description && (
+          <div style={{ fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif",marginTop:4,lineHeight:1.5 }}>{description}</div>
+        )}
+      </div>
+      <div style={{ flexShrink:0 }}>{control}</div>
+    </div>
+  );
+
   // Nav tabs
   const NAV = [
     { id:'settings', label:'Ρυθμίσεις' },
+    { id:'prefs',    label:'Προτιμήσεις' },
     { id:'fma',      label:'ΦΜΑ — Αγορά / Πώληση' },
     { id:'e2',       label:'Ε2 — Εισόδημα Ακινήτων' },
   ] as const;
 
   return (
     <div style={{ fontFamily:"'Roboto',sans-serif", color:'var(--text-primary)' }}>
+
+      <PageTitle title="Ρυθμίσεις" sub="Στοιχεία ακινήτου, προτιμήσεις εφαρμογής και φορολογικά εργαλεία"/>
 
       {/* Section nav */}
       <div style={{ display:'flex',gap:6,marginBottom:20 }}>
@@ -249,6 +298,80 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </button>
 
           <NotificationSettings userId={userId} propertyId={propertyId}/>
+        </div>
+      )}
+
+      {/* ── ΠΡΟΤΙΜΗΣΕΙΣ & ΔΥΝΑΤΟΤΗΤΕΣ ── */}
+      {activeSection==='prefs' && (
+        <div className="space-y-5">
+          <div style={{ marginBottom:16 }}>
+            <InfoBanner tone="info">
+              {prefs.rememberAcrossProperties
+                ? 'Οι προτιμήσεις αποθηκεύονται αυτόματα και εφαρμόζονται σε όλα τα ακίνητά σου, καθώς η μνήμη είναι ενεργή.'
+                : 'Οι προτιμήσεις αποθηκεύονται αυτόματα για αυτό το ακίνητο. Ενεργοποίησε τη μνήμη για να εφαρμόζονται σε όλα τα ακίνητα.'}
+            </InfoBanner>
+          </div>
+
+          {/* Ειδοποιήσεις */}
+          <div style={cardGap}>
+            {sectionTitle('Ειδοποιήσεις')}
+            {prefRow('Ζωντανές ειδοποιήσεις στην Επισκόπηση',
+              'Εμφάνιση ζωντανών ειδοποιήσεων στην αρχική οθόνη επισκόπησης.',
+              <Toggle on={prefs.liveNotifications} onChange={v=>updatePrefs({ liveNotifications:v })} size="sm"/>)}
+            {prefRow('Ειδοποιήσεις λήξεων & προθεσμιών',
+              'Υπενθυμίσεις για λήξεις ασφαλίσεων, μισθωτηρίων και φορολογικές προθεσμίες.',
+              <Toggle on={prefs.deadlineAlerts} onChange={v=>updatePrefs({ deadlineAlerts:v })} size="sm"/>)}
+          </div>
+
+          {/* Αρχείο & Καταχωρήσεις */}
+          <div style={cardGap}>
+            {sectionTitle('Αρχείο & Καταχωρήσεις')}
+            {prefRow('Αυτόματη πρόταση κατηγορίας βάσει παρόχου',
+              'Πρόταση κατηγορίας δαπάνης αυτόματα, ανάλογα με τον πάροχο που επιλέγεις.',
+              <Toggle on={prefs.autoSuggestCategory} onChange={v=>updatePrefs({ autoSuggestCategory:v })} size="sm"/>)}
+            {prefRow('Επιβεβαίωση πριν τη διαγραφή',
+              'Ερώτηση επιβεβαίωσης πριν τη διαγραφή καταχωρήσεων.',
+              <Toggle on={prefs.confirmBeforeDelete} onChange={v=>updatePrefs({ confirmBeforeDelete:v })} size="sm"/>)}
+          </div>
+
+          {/* Εμφάνιση */}
+          <div style={cardGap}>
+            {sectionTitle('Εμφάνιση')}
+            {prefRow('Συμπαγής προβολή',
+              'Πυκνότερη διάταξη με λιγότερα κενά για περισσότερες πληροφορίες στην οθόνη.',
+              <Toggle on={prefs.compactView} onChange={v=>updatePrefs({ compactView:v })} size="sm"/>)}
+            {prefRow('Εμφάνιση έξυπνων συμβουλών',
+              'Εμφάνιση χρήσιμων συμβουλών και υποδείξεων μέσα στην εφαρμογή.',
+              <Toggle on={prefs.showSmartTips} onChange={v=>updatePrefs({ showSmartTips:v })} size="sm"/>)}
+            {prefRow('Δεκαδικά στα ποσά',
+              'Πλήθος δεκαδικών ψηφίων για την εμφάνιση των χρηματικών ποσών.',
+              <div style={{ width:220 }}>
+                <CustomSelect value={prefs.decimals}
+                  onChange={v=>updatePrefs({ decimals: v as AppPreferences['decimals'] })}
+                  options={[
+                    { value:'0', label:'Χωρίς δεκαδικά (1.234 €)' },
+                    { value:'2', label:'Δύο δεκαδικά (1.234,56 €)' },
+                  ]}/>
+              </div>)}
+          </div>
+
+          {/* Μνήμη & Δεδομένα */}
+          <div style={cardGap}>
+            {sectionTitle('Μνήμη & Δεδομένα')}
+            {prefRow('Να θυμάται τις προτιμήσεις μου σε όλα τα ακίνητα',
+              'Όταν είναι ενεργό, οι προτιμήσεις σου αποθηκεύονται και μεταφέρονται αυτόματα σε κάθε ακίνητο, ώστε να μη χρειάζεται να τις ρυθμίζεις ξανά.',
+              <Toggle on={prefs.rememberAcrossProperties} onChange={v=>updatePrefs({ rememberAcrossProperties:v })} size="sm"/>)}
+          </div>
+
+          <div style={{ height:20,display:'flex',alignItems:'center',justifyContent:'flex-end' }}>
+            {prefsSaved && (
+              <span style={{ fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif",
+                display:'inline-flex',alignItems:'center',gap:6 }}>
+                <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
+                Αποθηκεύτηκε
+              </span>
+            )}
+          </div>
         </div>
       )}
 
