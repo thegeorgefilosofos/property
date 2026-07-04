@@ -235,7 +235,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
   const monthPaid=events.filter(e=>e.status==='paid')
 
   return (
-    <div style={{ display:'flex', gap:12 }}>
+    <div className="cal-layout" style={{ display:'flex', gap:12 }}>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
@@ -293,7 +293,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
           </div>
         </div>
       </div>
-      <div style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
           <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
           {upcoming7.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Roboto',sans-serif" }}>Κανένα εκκρεμές</p>}

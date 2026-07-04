@@ -1386,6 +1386,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); }
 }
 
+/* Ημερολόγιο: το πλάι (200px) πηγαίνει από κάτω σε πλήρες πλάτος σε στενές οθόνες */
+@media (max-width: 768px) {
+  .cal-layout { flex-direction: column; }
+  .cal-rail   { width: 100% !important; }
+}
+
+/* Γραμμή κόστους υπηρεσίας (Ενοικιαστής): τα δύο πεδία πάνε από κάτω σε κινητό */
+@media (max-width: 560px) {
+  .svc-cost-row {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+  }
+  .svc-cost-row > *:nth-child(3),
+  .svc-cost-row > *:nth-child(4) { grid-column: 2 / 3; }
+}
+
 /* Απόκρυψη μπάρας κύλισης στα οριζόντια tabs (μένει λειτουργική η κύλιση) */
 .app-tabs::-webkit-scrollbar { height: 0; }
 .app-tabs { scrollbar-width: none; }
