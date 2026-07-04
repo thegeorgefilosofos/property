@@ -16,6 +16,7 @@ import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import AddPropertyWizard from './components/AddPropertyWizard';
+import { useAppPreferences } from './components/useAppPreferences';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -285,6 +286,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 // Overview Tab
 function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   const supabase = createClient();
+  const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -381,7 +383,8 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         ))}
       </div>
 
-      {/* Ζωντανές ειδοποιήσεις — ενημερώνονται real-time από όλα τα tabs */}
+      {/* Ζωντανές ειδοποιήσεις — ελέγχονται από τις Προτιμήσεις (Ρυθμίσεις) */}
+      {prefs.liveNotifications && (
       <div className="card" style={{marginBottom:16}}>
         <div className="section-label"><span className="section-dot"/> Επερχόμενα & Ειδοποιήσεις</div>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -396,6 +399,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           ))}
         </div>
       </div>
+      )}
 
       <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16,marginBottom:16}}>
         <div className="card">
