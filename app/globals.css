@@ -1357,7 +1357,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* ── ΚΙΝΗΤΟ (≤640px): πυκνότερη διάταξη ─────────────────────────────────── */
 @media (max-width: 640px) {
-  .app-topbar { height: 56px; padding: 0 12px; gap: 8px; }
+  .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
   .app-tabs   { padding: 0 8px; }
   .app-tab    { padding: 0 12px; height: 46px; font-size: 13px; }
   .app-content { padding: 14px 12px 28px; }

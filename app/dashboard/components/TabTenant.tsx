@@ -1369,6 +1369,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {extras.length===0?(
                 <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν έκτακτες χρεώσεις</div>
               ):(
+                <div className="table-wrap">
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead><tr>{['Ημερομηνία','Περιγραφή','Κατηγορία','Ποσό','Κατάσταση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
                   <tbody>
@@ -1389,6 +1390,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           )}

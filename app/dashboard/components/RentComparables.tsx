@@ -230,6 +230,7 @@ export default function RentComparables({
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr>
@@ -286,6 +287,7 @@ export default function RentComparables({
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
