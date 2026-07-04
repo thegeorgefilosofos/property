@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Spinner } from '@/components/Theme';
 
 const fk = (n: number) => `${n.toFixed(4)} €`;
 
@@ -311,7 +311,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
     .map(t => ({ value: t.id, label: `${t.name} — ${t.badge} — ${fk(tariffKwh(t))}/kWh` }));
   const networkOptions  = NETWORK_OPERATORS.map(n => ({ value: n.value, label: `${n.label} (${n.region})` }));
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση...</div>;
+  if (loading) return <Spinner label="Φόρτωση…" />;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>

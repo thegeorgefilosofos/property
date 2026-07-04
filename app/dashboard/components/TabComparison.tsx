@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn } from '@/components/Theme';
+import { T, fe, fn, Spinner } from '@/components/Theme';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -103,7 +103,7 @@ export default function TabComparison({ properties, userId }: Props) {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 13 }}>Φόρτωση…</div>
+        <Spinner label="Φόρτωση…" />
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8, overflowX: 'auto' }}>
           <div className="table-wrap">

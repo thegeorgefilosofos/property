@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, KPIGrid } from '@/components/Theme';
+import { T, fd, KPIGrid, Spinner } from '@/components/Theme';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
 import { useAppPreferences } from './useAppPreferences';
 
@@ -301,7 +301,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
 
       {/* Content */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 13 }}>Φόρτωση…</div>
+        <Spinner label="Φόρτωση…" />
       ) : visible.length === 0 ? (
         <div style={card}>
           <div style={{ textAlign: 'center' as const, padding: '40px 20px', color: 'var(--text-tertiary)' }}>

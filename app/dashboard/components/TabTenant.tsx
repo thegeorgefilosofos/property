@@ -15,7 +15,7 @@ import {
   ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, type KPIItem } from '@/components/Theme';
 
 // ─── Design tokens — shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
@@ -604,7 +604,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
           </div>
         )}
 
-        {loading&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:12, fontFamily:T.font.sans }}>Φόρτωση...</div>}
+        {loading&&<Spinner label="Φόρτωση…" />}
         {!loading&&logs.length===0&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρήσεις επικοινωνίας</div>}
         {!loading&&logs.map(log=>(
           <div key={log.id} style={{ display:'flex', gap:14, alignItems:'flex-start', padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
@@ -702,7 +702,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
           </div>
         )}
 
-        {loading&&<div style={{ textAlign:'center', padding:40, color:'var(--text-tertiary)', fontSize:12, fontFamily:T.font.sans }}>Φόρτωση...</div>}
+        {loading&&<Spinner label="Φόρτωση…" />}
         {!loading&&comparables.length===0&&(
           <div style={{ textAlign:'center', padding:48 }}>
             <div style={{ fontSize:36, marginBottom:14, opacity:0.15 }}>◫</div>
@@ -905,10 +905,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
 
   if(loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:400 }}>
-      <div style={{ textAlign:'center' as const }}>
-        <div style={{ width:32, height:32, border:'2px solid var(--border-subtle)', borderTop:`2px solid var(--accent)`, borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 12px' }}/>
-        <div style={{ fontSize:11, color:'var(--text-tertiary)', letterSpacing:'0.14em', textTransform:'uppercase' as const, fontFamily:T.font.sans }}>Φόρτωση</div>
-      </div>
+      <Spinner label="Φόρτωση…" />
     </div>
   );
 
