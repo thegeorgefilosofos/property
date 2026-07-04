@@ -4,6 +4,28 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fd, KPIGrid } from '@/components/Theme';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
+import { useAppPreferences } from './useAppPreferences';
+
+// Έξυπνη πρόταση κατηγορίας εγγράφου βάσει του παρόχου που πληκτρολογεί ο χρήστης
+const SUPPLIER_CATEGORY_RULES: { re: RegExp; cat: string }[] = [
+  { re: /ΕΥΔΑΠ|ΕΥΑΘ|ΔΕΥΑ|νερ[όο]/i,                                     cat: 'Λογαριασμός Νερού' },
+  { re: /φυσικ[όο]\s*αέριο|ΔΕΠΑ|fysiko|αερίου/i,                          cat: 'Λογαριασμός Φυσικού Αερίου' },
+  { re: /cosmote|vodafone|nova|wind|forthnet|internet|τηλέφων/i,          cat: 'Τηλέφωνο / Internet' },
+  { re: /hellas\s*direct|interamerican|magenta|ergo|allianz|anytime|generali|ασφάλ|ασφαλιστ/i, cat: 'Ασφαλιστήριο Συμβόλαιο' },
+  { re: /απεντόμω|μυοκτον|απολύμαν/i,                                     cat: 'Απεντόμωση / Μυοκτονία' },
+  { re: /καθαρισμ/i,                                                       cat: 'Τιμολόγιο Καθαρισμού' },
+  { re: /πισίν/i,                                                          cat: 'Συντήρηση Πισίνας' },
+  { re: /ανελκυστ|ασανσέρ/i,                                               cat: 'Συντήρηση Ανελκυστήρα' },
+  { re: /security|ασφαλεία|φύλαξ/i,                                        cat: 'Εταιρεία Ασφαλείας' },
+  { re: /κοινόχρηστ|διαχείρισ/i,                                           cat: 'Κοινόχρηστα' },
+  { re: /ΕΝΦΙΑ|ΑΑΔΕ|φόρο|φορολ/i,                                          cat: 'ΕΝΦΙΑ / Φορολογικά' },
+  { re: /ΔΕΗ|protergia|ήρων|ηρων|heron|nrg|elin|ελίν|volton|enerwave|zenith|ζενίθ|ρεύμα|ρευμα/i, cat: 'Λογαριασμός Ρεύματος' },
+];
+const suggestCategory = (supplier: string): string | null => {
+  const s = supplier.trim();
+  if (!s) return null;
+  return SUPPLIER_CATEGORY_RULES.find(r => r.re.test(s))?.cat ?? null;
+};
 
 interface Props { propertyId: string; userId: string; }
 
@@ -77,6 +99,7 @@ function SecHead({ label, sub, right }: { label: string; sub?: string; right?: R
 
 export default function TabDocuments({ propertyId, userId }: Props) {
   const supabase = createClient();
+  const { prefs } = useAppPreferences(propertyId);
   const [tab, setTab] = useState<'photo' | 'document'>('photo');
   const [rows, setRows] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +159,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
   };
 
   const del = async (r: DocRow) => {
+    if (prefs.confirmBeforeDelete && !window.confirm('Να διαγραφεί οριστικά αυτό το αρχείο;')) return;
     await supabase.storage.from('property-files').remove([r.file_path]);
     await supabase.from('property_documents').delete().eq('id', r.id);
     if (lightbox?.id === r.id) setLightbox(null);
@@ -214,7 +238,11 @@ export default function TabDocuments({ propertyId, userId }: Props) {
           <div>
             <label style={labelStyle}>Προμηθευτής / Πάροχος</label>
             <input list="supplier-suggestions" value={form.supplier}
-              onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
+              onChange={e => { const v = e.target.value; setForm(f => {
+                const next = { ...f, supplier: v };
+                if (prefs.autoSuggestCategory && tab === 'document') { const c = suggestCategory(v); if (c && categories.includes(c)) next.category = c; }
+                return next;
+              }); }}
               placeholder="για παράδειγμα ΔΕΗ, ΕΥΔΑΠ, COSMOTE, Hellas Direct…" style={inputStyle}/>
             <datalist id="supplier-suggestions">
               {COMMON_SUPPLIERS.map(s => <option key={s} value={s}/>)}
