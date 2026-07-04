@@ -1042,11 +1042,11 @@ body {
   color: var(--text-secondary);
 }
 
-/* KPI grid */
+/* KPI grid — ρευστό: γεμίζει όσες στήλες χωράνε, πέφτει σε 2/1 σε κινητό */
 .kpi-grid  { display: grid; gap: 12px; margin-bottom: 24px; }
-.kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
-.kpi-grid-5 { grid-template-columns: repeat(5, 1fr); }
-.kpi-grid-6 { grid-template-columns: repeat(6, 1fr); }
+.kpi-grid-4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.kpi-grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
+.kpi-grid-6 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
 
 /* Section label */
 .section-label {
@@ -1066,10 +1066,10 @@ body {
   flex-shrink: 0;
 }
 
-/* Utility grids */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+/* Utility grids — ρευστά ώστε να «σπάνε» σε κινητό χωρίς οριζόντια κύλιση */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 16px; }
 
 /* ══════════════════════════════════════════════════════════════
    MD3 MOTION — Google's exact easing curves
@@ -1285,3 +1285,107 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   --fin-negative-bg:     rgba(242,139,130,0.15);
   --fin-neutral:         #9aa0a6;
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE / MOBILE — Το app γίνεται πλήρως εύχρηστο σε κινητό & tablet.
+   Στρατηγική:
+   • ≤1024px: το πλαϊνό μενού γίνεται συρόμενο (off-canvas drawer) με κουμπί ☰.
+   • ≤640px:  πυκνότερα κενά, dialogs σε πλήρες πλάτος, inputs 16px (χωρίς zoom iOS).
+   • Καμία οριζόντια κύλιση σελίδας — τα πλέγματα «σπάνε» μόνα τους.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Κουμπί ☰ και σκίαση drawer — κρυφά σε desktop */
+.nav-toggle { display: none; }
+.app-scrim  { display: none; }
+
+/* Βοηθητικές: εμφάνιση ανά συσκευή */
+.mobile-only  { display: none; }
+.desktop-only { display: initial; }
+
+/* Πλέγματα Επισκόπησης (τα inline του dashboard μεταφέρθηκαν εδώ ως κλάσεις) */
+.grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-5    { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+
+/* Ασφαλής περιοχή για «notch» κινητών */
+@supports (padding: max(0px)) {
+  .app-topbar { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+}
+
+/* ── TABLET & ΚΑΤΩ (≤1024px): πλαϊνό μενού → συρόμενο drawer ─────────────── */
+@media (max-width: 1024px) {
+  .app-shell { position: relative; }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 280px;
+    max-width: 86vw;
+    z-index: 1200;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+    box-shadow: var(--shadow-xl);
+  }
+  .app-sidebar.open { transform: translateX(0); }
+
+  .app-scrim {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .app-scrim.open { opacity: 1; pointer-events: auto; }
+
+  .app-main { width: 100%; max-width: 100vw; overflow-x: hidden; }
+
+  /* Κουμπί ☰ στο topbar */
+  .nav-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; flex-shrink: 0;
+    margin-left: -8px;
+    border: none; background: transparent; cursor: pointer;
+    border-radius: 50%;
+    color: var(--text-primary);
+    transition: background 0.2s;
+  }
+  .nav-toggle:hover { background: var(--bg-hover); }
+  .nav-toggle svg { width: 24px; height: 24px; }
+
+  .grid-main { grid-template-columns: 1fr; }
+}
+
+/* ── ΚΙΝΗΤΟ (≤640px): πυκνότερη διάταξη ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .app-topbar { height: 56px; padding: 0 12px; gap: 8px; }
+  .app-tabs   { padding: 0 8px; }
+  .app-tab    { padding: 0 12px; height: 46px; font-size: 13px; }
+  .app-content { padding: 14px 12px 28px; }
+
+  /* Τίτλος ακινήτου στο topbar — να μη «σπρώχνει» τα υπόλοιπα */
+  .app-topbar .prop-title { font-size: 18px; }
+
+  /* Dialogs σε (σχεδόν) πλήρη οθόνη */
+  .md-scrim  { padding: 12px; align-items: flex-end; }
+  .md-dialog { max-width: 100%; border-radius: 20px; max-height: 94vh; padding: 20px; }
+
+  /* Κάρτες λίγο πιο συμπαγείς */
+  .card { padding: 16px; }
+
+  /* Πίνακες που δεν χωρούν → οριζόντια κύλιση μέσα σε wrapper */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; }
+  .table-wrap > table { min-width: 480px; }
+
+  /* Στόχοι αφής ≥44px για κύρια κουμπιά */
+  .btn { min-height: 44px; }
+
+  /* Inputs 16px για να ΜΗΝ κάνει zoom το iOS στο focus */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Ετήσιος απολογισμός: 5 πλακίδια → πλέγμα που «σπάει» */
+  .grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); }
+}
+
+/* Απόκρυψη μπάρας κύλισης στα οριζόντια tabs (μένει λειτουργική η κύλιση) */
+.app-tabs::-webkit-scrollbar { height: 0; }
+.app-tabs { scrollbar-width: none; }
