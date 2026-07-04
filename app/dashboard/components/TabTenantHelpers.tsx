@@ -121,8 +121,8 @@ export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | n
     <div>
       <div style={{ display:'flex', flexDirection:'column', gap:'6px', marginBottom:'12px' }}>
         {svcs.map((svc, i) => (
-          <div key={svc.name} style={{
-            display:'grid', gridTemplateColumns:'auto 1fr 120px 120px',
+          <div key={svc.name} className="svc-cost-row" style={{
+            display:'grid', gridTemplateColumns:'auto minmax(0,1fr) 120px 120px',
             alignItems:'center', gap:'12px', padding:'10px 14px',
             background: svc.included ? 'var(--accent-dim)' : 'var(--bg-elevated)',
             border: `1px solid ${svc.included ? 'var(--border-accent)' : 'var(--border-subtle)'}`,

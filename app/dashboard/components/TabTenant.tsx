@@ -711,6 +711,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
           </div>
         )}
         {!loading&&comparables.length>0&&(
+          <div className="table-wrap">
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr>{['Διεύθυνση','Εμβαδόν','Ενοίκιο','Τιμή ανά τετραγωνικό','Πηγή','Διαφορά',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr>
@@ -737,6 +738,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
@@ -1308,6 +1310,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                 <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρημένες πληρωμές</div>
               ):(
                 <>
+                  <div className="table-wrap">
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Ημερομηνία Πληρωμής','Καθυστέρηση','Σημείωση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
                     <tbody>
@@ -1329,6 +1332,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                   <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:14, paddingTop:14, display:'flex', gap:20, flexWrap:'wrap' as const }}>
                     <span style={{ fontSize:12, color:'var(--positive)', fontFamily:T.font.sans }}>Εισπραχθέντα: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>
                     {payments.some(p=>!p.paid)&&<span style={{ fontSize:12, color:'var(--negative)', fontFamily:T.font.sans }}>Εκκρεμή: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>}

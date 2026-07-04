@@ -980,7 +980,8 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
           })}
         </div>
       ):(
-        <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:12,border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+        <div style={{overflowX:'auto',margin:'0 -4px',WebkitOverflowScrolling:'touch'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:12,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:620}}>
           <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px auto',gap:8,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
             {['Αντικείμενο','Κατηγορία','Κλάση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</p>)}
           </div>
@@ -1011,6 +1012,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
               </div>
             )
           })}
+        </div>
         </div>
       )}
     </div>
