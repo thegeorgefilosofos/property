@@ -7,6 +7,7 @@ import { NumberInput, CustomSelect, Toggle } from './UIComponents';
 import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
+import Billing from './Billing';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -81,7 +82,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'settings'|'account'|'prefs'|'fma'|'e2'>('settings');
+  const [activeSection, setActiveSection] = useState<'settings'|'account'|'billing'|'prefs'|'fma'|'e2'>('settings');
   const [accountEmail, setAccountEmail] = useState('');
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -219,6 +220,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const NAV = [
     { id:'settings', label:'Ρυθμίσεις' },
     { id:'account',  label:'Λογαριασμός' },
+    { id:'billing',  label:'Συνδρομή & Χρέωση' },
     { id:'prefs',    label:'Προτιμήσεις' },
     { id:'fma',      label:'ΦΜΑ — Αγορά / Πώληση' },
     { id:'e2',       label:'Ε2 — Εισόδημα Ακινήτων' },
@@ -266,6 +268,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 </div>
                 <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο ακίνητο είναι δωρεάν για 3 μήνες. Μετά, από €1.99/μήνα — χωρίς δέσμευση.</div>
               </div>
+              <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
             </div>
           </div>
 
@@ -281,6 +284,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </div>
         </div>
       )}
+
+      {/* ── BILLING ── */}
+      {activeSection==='billing' && <Billing userId={userId} />}
 
       {/* ── SETTINGS ── */}
       {activeSection==='settings' && (
