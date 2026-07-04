@@ -19,6 +19,7 @@ import AddPropertyWizard from './components/AddPropertyWizard';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
+import AIInsights from './components/AIInsights';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -422,6 +423,15 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           ))}
         </div>
       </div>
+      )}
+
+      {prefs.showSmartTips && (
+        <AIInsights ctx={{
+          propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
+          address: prop.address||undefined, value: propValue||undefined, sqm: prop.sqm||undefined,
+          monthlyRent: rent, grossYield, netYield, expensesYTD: totalExpYTD, annualRent,
+          daysToLeaseEnd: daysToExpiry, status: STATUS_LABELS[prop.status_detail||'']||undefined,
+        }}/>
       )}
 
       <div className="grid-main">

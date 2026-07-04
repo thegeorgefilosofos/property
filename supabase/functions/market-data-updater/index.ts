@@ -71,9 +71,10 @@ const ENERGY_TARIFFS = [
   { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_standard', name:'Value Standard',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1590,  kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
   { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_lite2',    name:'Value Lite 2.0',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.16267, kwh_night:null, flat_monthly:null, fixed:0,    fixed_ebill:null, contract_months:0,  no_fixed:true,  dynamic:false },
   { provider:'protergia', provider_label:'Protergia', tariff_id:'prot_dynamic',  name:'Dynamic One Home',    badge:'ΔΥΝΑΜΙΚΟ',type:'dynamic',  kwh_day:0,       kwh_night:null, flat_monthly:null, fixed:0,    fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:true  },
-  // Volterra ────────────────────────────────────────────────────────────────
-  { provider:'volterra', provider_label:'Volterra', tariff_id:'volt_easy',   name:'Volterra Easy',   badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1610, kwh_night:null, flat_monthly:null, fixed:6.50, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
-  { provider:'volterra', provider_label:'Volterra', tariff_id:'volt_stable', name:'Volterra Stable', badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1490, kwh_night:null, flat_monthly:null, fixed:7.00, fixed_ebill:null, contract_months:24, no_fixed:false, dynamic:false },
+  // (Volterra: καταργήθηκε — ο πάροχος δεν λειτουργεί πλέον στη λιανική.)
+  // ΣΗΜΕΙΩΣΗ: αυτός ο πίνακας είναι υποσύνολο/παλαιότερος του πλήρους καταλόγου
+  // στο app (BillsElectricity.tsx — 11 πάροχοι, οικιακά+επαγγελματικά). Πριν
+  // ενεργοποιηθεί το DB-first διάβασμα, πρέπει να συγχρονιστεί με εκείνο τον κατάλογο.
   // NRG ─────────────────────────────────────────────────────────────────────
   { provider:'nrg', provider_label:'NRG', tariff_id:'nrg_now',    name:'NRG Now Οικιακό', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1595, kwh_night:null, flat_monthly:null, fixed:6.90, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
   { provider:'nrg', provider_label:'NRG', tariff_id:'nrg_adjust', name:'NRG adjust 1.0',  badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1580, kwh_night:null, flat_monthly:null, fixed:9.90, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
