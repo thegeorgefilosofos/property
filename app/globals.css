@@ -1052,19 +1052,22 @@ body {
 .kpi-grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
 .kpi-grid-6 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
 
-/* Section label */
+/* Section label — ΤΑΥΤΙΖΕΤΑΙ με το SecHdr του Theme.tsx ώστε οι επικεφαλίδες
+   ενοτήτων να δείχνουν ΙΔΙΕΣ σε όλα τα tabs (τελεία + uppercase + λεπτή γραμμή). */
 .section-label {
   font-family: 'Google Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
 }
 .section-dot {
-  width: 4px; height: 4px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--accent);
   flex-shrink: 0;
