@@ -15,6 +15,7 @@ import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
+import AddPropertyWizard from './components/AddPropertyWizard';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -665,7 +666,7 @@ export default function Dashboard() {
         )}
       </main>
 
-      {showAddModal&&user&&<AddPropertyModal userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
+      {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
     </div>
   );
