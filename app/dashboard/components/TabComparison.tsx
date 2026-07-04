@@ -90,16 +90,49 @@ export default function TabComparison({ properties, userId }: Props) {
     return vals.reduce((best, x) => (m.dir === 'high' ? x.v > best.v : x.v < best.v) ? x : best).id;
   };
 
+  // ── Εξαγωγή CSV (μορφή Ελληνικού Excel: διαχωριστικό «;», κόμμα δεκαδικών,
+  //    UTF-8 BOM ώστε να φαίνονται σωστά τα ελληνικά). Χρήσιμο για λογιστή. ──
+  const exportCSV = () => {
+    const money = (n: number) => String(Math.round(n));               // ακέραια ευρώ, χωρίς χιλιάδες
+    const dec1  = (n: number) => n.toFixed(1).replace('.', ',');       // π.χ. 5,2
+    const cols = ['Ακίνητο', 'Κατάσταση', 'Εμπορική Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Μηνιαίοι Λογαριασμοί (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Εκτ. Φόρος 15% (€)'];
+    const rows = rowsData.map(r => {
+      const annualRent = r.rent * 12;
+      const netYear = r.netMonthly * 12;
+      const tax = annualRent * 0.15;
+      return [r.p.name, STATUS_LABELS[r.p.status_detail || ''] || r.p.prop_type || '', money(r.value), money(r.sqm), money(r.perSqm), money(r.rent), money(annualRent), dec1(r.grossYield), money(r.monthlyBills), money(r.expensesYTD), money(r.netMonthly), money(netYear), money(tax)];
+    });
+    // Γραμμή συνόλων χαρτοφυλακίου
+    const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
+    const totAnnualRent = sum(r => r.rent * 12);
+    rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), money(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(totAnnualRent * 0.15)]);
+    const esc = (v: string) => /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    const csv = [cols, ...rows].map(r => r.map(c => esc(String(c))).join(';')).join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `xartofylakio_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   const th: React.CSSProperties = { fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Σύγκριση Ακινήτων</h1>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-          {properties.length} ακίνητα — αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Σύγκριση Ακινήτων</h1>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+            {properties.length} ακίνητα — αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
+          </div>
         </div>
+        {!loading && (
+          <button onClick={exportCSV} title="Εξαγωγή για λογιστή (CSV)" style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Εξαγωγή CSV
+          </button>
+        )}
       </div>
 
       {loading ? (
