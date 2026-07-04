@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Spinner } from '@/components/Theme'
+import { Spinner, ExportButton } from '@/components/Theme'
+import { downloadCsv, csvEur, csvDate } from './exportCsv'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
   Calendar, List, BarChart2, Check, FileText,
@@ -869,6 +870,14 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         <button onClick={()=>window.print()} style={toolBtn(false)}>
           <Printer size={14}/>Print
         </button>
+        <ExportButton disabled={filtered.length===0} onClick={()=>downloadCsv(
+          `imerologio_${new Date().toISOString().slice(0,10)}`,
+          ['Ημερομηνία','Τίτλος','Κατηγορία','Ποσό (€)','Κατάσταση'],
+          [...filtered].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map(e=>[
+            csvDate(e.event_date), e.title, CATEGORIES[e.category]?.label||e.category,
+            csvEur(e.amount), STATUSES[e.status]?.label||e.status,
+          ])
+        )}/>
         <button onClick={()=>openNew()} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:'var(--accent)', border:'none', borderRadius:20, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily:"'Google Sans',sans-serif", fontWeight:500, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
           <Plus size={14}/>Προσθήκη
         </button>
