@@ -22,7 +22,7 @@ const INSURANCE_COMPANIES = [
     ] },
   { value: 'interamerican', label: 'Interamerican',             url: 'https://www.interamerican.gr/idiotes/proionta-ypiresies/katoikia', agent_label: 'Ασφαλιστής Interamerican',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Κατοικία με Δάνειο'],
-    note: '4 προγράμματα — BASIC / EXTRA / COMFORT / TOTAL. Τιμή βάσει τ.μ. και ασφαλιζόμενου κεφαλαίου.',
+    note: '4 προγράμματα — BASIC / EXTRA / COMFORT / TOTAL. Τιμή βάσει τετραγωνικών μέτρων και ασφαλιζόμενου κεφαλαίου.',
     plans: [
       { id: 'im_basic',    name: 'HOME BASIC',              monthly: 10.00, annual: 100, covers: ['Πυρκαγιά','Κεραυνός','Καπνός','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
       { id: 'im_extra',    name: 'HOME EXTRA',              monthly: 14.50, annual: 145, covers: ['Πυρκαγιά','Κλοπή','Φυσικά Φαινόμενα','Αστική Ευθύνη','Δαπάνες Μεταστέγασης'], earthquake: false, flood: true,  natural: true  },
@@ -440,7 +440,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   (otherSubs || []).forEach(s => { if (s.renewalDate) checkRenewal(s.name, s.renewalDate, 7); });
 
   // ── Auto-detect insurance property type από property settings ──────────────
-  // prop_type στη βάση είναι ελληνικό label (π.χ. 'Κατοικία', 'Επαγγελματικό Ακίνητο')
+  // prop_type στη βάση είναι ελληνικό label (για παράδειγμα 'Κατοικία', 'Επαγγελματικό Ακίνητο')
   // status_detail === 'rented' σημαίνει ενοικιαζόμενο — αυτό υπερισχύει του prop_type
   const detectedPropertyType = crossProperty.isRented
     ? 'Ενοικιαζόμενη'
@@ -461,7 +461,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name} — ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
 
   // ── Sync-back: properties table (single source of truth για υπόλοιπο app) ──
-  // Το TabOverview/Property card διαβάζει properties.insurance_company κ.λπ.
+  // Το TabOverview/Property card διαβάζει properties.insurance_company και άλλα
   // Χωρίς αυτό το sync, το BillsInsurance και το property card δείχνουν διαφορετικά στοιχεία.
   const propertySyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {

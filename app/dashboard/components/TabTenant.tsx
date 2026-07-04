@@ -15,7 +15,7 @@ import {
   ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, type KPIItem } from '@/components/Theme';
 
 // ─── Design tokens — shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
@@ -60,9 +60,9 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function SectionTitle({ children, dot='var(--accent)' }: { children: React.ReactNode; dot?: string }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-      <div style={{ width:3, height:14, borderRadius:2, background:dot, flexShrink:0 }}/>
-      <span style={{ fontSize:'10px', letterSpacing:'0.18em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600 }}>{children}</span>
+    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+      <div style={{ width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0 }}/>
+      <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
     </div>
   );
 }
@@ -429,7 +429,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
           {useCustom&&(
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό Αναπροσαρμογής (%)</div>
-              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="π.χ. 3.5" step="0.1"
+              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="για παράδειγμα 3.5" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:16 }}/>
             </div>
           )}
@@ -589,7 +589,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό..." style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="για παράδειγμα Θετικό, αρνητικό..." style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
@@ -676,7 +676,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
         {showAdd&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:12 }}>
-              {[['Διεύθυνση','address','π.χ. Ερμού 12, Αθήνα','text'],['Ενοίκιο (€)','rent','750','number'],['Εμβαδόν (τ.μ.)','sqm','50','number']].map(([lbl,key,ph,type])=>(
+              {[['Διεύθυνση','address','για παράδειγμα Ερμού 12, Αθήνα','text'],['Ενοίκιο (€)','rent','750','number'],['Εμβαδόν (τετραγωνικά μέτρα)','sqm','50','number']].map(([lbl,key,ph,type])=>(
                 <div key={key as string}>
                   <div style={{ ...labelStyle, marginBottom:8 }}>{lbl as string}</div>
                   <input type={type as string} value={(form as any)[key as string]} onChange={e=>setForm(f=>({...f,[key as string]:e.target.value}))} placeholder={ph as string} style={inputStyle}/>
@@ -713,7 +713,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
         {!loading&&comparables.length>0&&(
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
-              <tr>{['Διεύθυνση','Εμβαδόν','Ενοίκιο','Τιμή/τ.μ.','Πηγή','Διαφορά',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr>
+              <tr>{['Διεύθυνση','Εμβαδόν','Ενοίκιο','Τιμή ανά τετραγωνικό','Πηγή','Διαφορά',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {comparables.map((c:any)=>{
@@ -722,9 +722,9 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
                 return (
                   <tr key={c.id}>
                     <td style={s.td}>{c.address}</td>
-                    <td style={s.tdM}>{c.sqm?`${c.sqm} τ.μ.`:'—'}</td>
+                    <td style={s.tdM}>{c.sqm?`${c.sqm} τετραγωνικά μέτρα`:'—'}</td>
                     <td style={{ ...s.td, fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{c.rent.toLocaleString('el-GR')} €</td>
-                    <td style={s.tdM}>{perSqm?`${perSqm.toFixed(0)} €/τ.μ.`:'—'}</td>
+                    <td style={s.tdM}>{perSqm?`${perSqm.toFixed(0)} € ανά τετραγωνικό`:'—'}</td>
                     <td style={s.tdM}>{c.link?<a href={c.link} target="_blank" rel="noopener noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>{c.source} →</a>:c.source}</td>
                     <td style={{ ...s.td, textAlign:'right' as const }}>
                       <span style={{ fontSize:12, fontWeight:700, color:diff>0?'var(--negative)':diff<0?'var(--positive)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>
@@ -924,6 +924,19 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     {id:'docs',label:'Συμβόλαιο'},
   ];
 
+  // ── Σύνοψη κορυφής (KPIs + ειδοποιήσεις) — μόνο παρουσίαση, χωρίς νέα λογική ──
+  const leaseDaysLeft = tenant ? daysLeft(tenant.lease_end) : null;
+  const unpaidPayments = payments.filter(p=>!p.paid);
+  const unpaidTotal = unpaidPayments.reduce((a,p)=>a+p.amount,0);
+  const hasLeaseDoc = !!(tenant?.lease_doc_url || tenant?.lease_doc_external_url);
+  const tenantKPIs:KPIItem[] = tenant ? [
+    { label:'Μηνιαίο Ενοίκιο', value:fe(tenant.monthly_rent||0), tone:'accent' },
+    { label:'Εγγύηση', value:fe(tenant.deposit_amount||0), tone: tenant.deposit_returned?'positive':'info', sub: tenant.deposit_returned?'Επεστράφη':undefined },
+    { label:'Ημέρες ως τη Λήξη Σύμβασης', value: leaseDaysLeft==null?'—':leaseDaysLeft<0?'Έληξε':fn(leaseDaysLeft), tone: leaseDaysLeft==null?'neutral':leaseDaysLeft<0?'negative':leaseDaysLeft<60?'warning':'positive', sub: leaseDaysLeft!=null&&leaseDaysLeft>=0?'ημέρες':undefined },
+    { label:'Κατάσταση Πληρωμής', value: unpaidPayments.length>0?'Εκκρεμεί':'Πληρωμένο', tone: unpaidPayments.length>0?'negative':'positive', sub: unpaidPayments.length>0?`${fn(unpaidPayments.length)} εκκρεμείς — ${fe(unpaidTotal)}`:undefined },
+    { label:'Ημερομηνία Λήξης Μίσθωσης', value: tenant.lease_end?fd(tenant.lease_end):'—', tone:'neutral' },
+  ] : [];
+
   return (
     <div style={{ fontFamily:T.font.sans, color:'var(--text-primary)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -971,11 +984,11 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               </div>
               <div style={{ ...s.g3, marginBottom:16 }}>
                 <TextInput label="Τηλέφωνο Εργασίας" value={form.phone_work} onChange={v=>sf('phone_work',v)}/>
-                <TextInput label="Εθνικότητα" value={form.nationality} onChange={v=>sf('nationality',v)} placeholder="π.χ. Ελληνική"/>
-                <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="π.χ. Μηχανικός"/>
+                <TextInput label="Εθνικότητα" value={form.nationality} onChange={v=>sf('nationality',v)} placeholder="για παράδειγμα Ελληνική"/>
+                <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="για παράδειγμα Μηχανικός"/>
               </div>
               <div style={{ ...s.g3, marginBottom:16 }}>
-                <TextInput label="Εργοδότης" value={form.employer} onChange={v=>sf('employer',v)} placeholder="π.χ. ΕΛΤΑ Α.Ε."/>
+                <TextInput label="Εργοδότης" value={form.employer} onChange={v=>sf('employer',v)} placeholder="για παράδειγμα ΕΛΤΑ Α.Ε."/>
                 <TextInput label="ΑΦΜ" value={form.afm} onChange={v=>sf('afm',v)}/>
                 <TextInput label="IBAN" value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000..."/>
               </div>
@@ -995,7 +1008,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
                   <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Fixed Term','Flexible','ETF','P2P Lending','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
-                  <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="π.χ. Scramble, VWCE..."/>
+                  <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="για παράδειγμα Scramble, VWCE..."/>
                 </div>
               )}
               <InvestmentCalc title="Αναλυτής Απόδοσης Εγγύησης" amount={form.deposit_amount?Math.max(0,parseFloat(form.deposit_amount)):null}/>
@@ -1038,8 +1051,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {form.all_inclusive&&(
                 <>
                   <div style={{ ...s.g3, marginBottom:16 }}>
-                    <TextInput label="Πάροχος Ρεύματος" value={form.electricity_provider} onChange={v=>sf('electricity_provider',v)} placeholder="π.χ. ΔΕΗ, Heron"/>
-                    <TextInput label="Είδος Τιμολογίου" value={form.electricity_tariff} onChange={v=>sf('electricity_tariff',v)} placeholder="π.χ. G1, Νυχτερινό"/>
+                    <TextInput label="Πάροχος Ρεύματος" value={form.electricity_provider} onChange={v=>sf('electricity_provider',v)} placeholder="για παράδειγμα ΔΕΗ, Heron"/>
+                    <TextInput label="Είδος Τιμολογίου" value={form.electricity_tariff} onChange={v=>sf('electricity_tariff',v)} placeholder="για παράδειγμα G1, Νυχτερινό"/>
                     <NumberInput label="Τιμή kWh" value={form.kwh_price} onChange={v=>sf('kwh_price',v)} suffix="€" step={0.001}/>
                   </div>
                   <div style={{ ...s.g3, marginBottom:16 }}>
@@ -1048,8 +1061,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                     <NumberInput label="Κόστος Internet / Μήνα" value={form.internet_cost} onChange={v=>sf('internet_cost',v)} suffix="€"/>
                   </div>
                   <div style={{ ...s.g2, marginBottom:16 }}>
-                    <TextInput label="Πάροχος Internet" value={form.internet_provider} onChange={v=>sf('internet_provider',v)} placeholder="π.χ. Cosmote, Wind"/>
-                    <TextInput label="Πρόγραμμα Internet" value={form.internet_plan} onChange={v=>sf('internet_plan',v)} placeholder="π.χ. 300Mbps Fiber"/>
+                    <TextInput label="Πάροχος Internet" value={form.internet_provider} onChange={v=>sf('internet_provider',v)} placeholder="για παράδειγμα Cosmote, Wind"/>
+                    <TextInput label="Πρόγραμμα Internet" value={form.internet_plan} onChange={v=>sf('internet_plan',v)} placeholder="για παράδειγμα 300Mbps Fiber"/>
                   </div>
                 </>
               )}
@@ -1073,7 +1086,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               ))}
               <Textarea label="Σημειώσεις Συντηρήσεων" value={form.annual_services_notes} onChange={v=>sf('annual_services_notes',v)}/>
               <div style={s.divider}/>
-              <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
+              <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="για παράδειγμα Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
             </>
           )}
 
@@ -1089,7 +1102,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                 <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
                 <div><div style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης EV</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
               </div>
-              <Textarea label="Σημειώσεις Parking" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β..."/>
+              <Textarea label="Σημειώσεις Parking" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="για παράδειγμα Θέση Νο. 12, υπόγειο Β..."/>
             </>
           )}
 
@@ -1119,24 +1132,37 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       {/* ── VIEW ── */}
       {tenant&&!isForm&&(
         <>
-          {/* Tenant Header */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
-            <div>
-              <div style={{ fontSize:24, fontFamily:T.font.sans, fontWeight:400, color:'var(--text-primary)', marginBottom:6, letterSpacing:'-0.3px' }}>{tenant.full_name}</div>
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
-                {tenant.profession&&<StatusBadge label={tenant.profession} color="var(--text-secondary)" bg="var(--bg-elevated)"/>}
-                {tenant.employer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{tenant.employer}</span>}
-                {tenant.nationality&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>· {tenant.nationality}</span>}
-                {tenant.email&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{tenant.email}</span>}
-                {tenant.phone&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>· {tenant.phone}</span>}
-                {tenant.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>ΑΦΜ {tenant.afm}</span>}
-              </div>
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
+          {/* Page Title */}
+          <PageTitle
+            title="Ενοικιαστής"
+            sub="Πλήρης παρακολούθηση μίσθωσης, πληρωμών, επικοινωνίας και ανάλυσης αγοράς"
+            right={<>
               <button style={s.btnGhost} onClick={openEdit}>Επεξεργασία</button>
               <button style={s.btnDng} onClick={async()=>{if(!confirm(`Οριστική διαγραφή "${tenant.full_name}";`))return;await supabase.from('rent_payments').delete().eq('property_id',propertyId).eq('user_id',userId);await supabase.from('tenants').delete().eq('id',tenant.id);setTenant(null);setPayments([]);setExtras([]);}}>Διαγραφή</button>
+            </>}
+          />
+
+          {/* Tenant Identity */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:24, fontFamily:T.font.sans, fontWeight:400, color:'var(--text-primary)', marginBottom:6, letterSpacing:'-0.3px' }}>{tenant.full_name}</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
+              {tenant.profession&&<StatusBadge label={tenant.profession} color="var(--text-secondary)" bg="var(--bg-elevated)"/>}
+              {tenant.employer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{tenant.employer}</span>}
+              {tenant.nationality&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>· {tenant.nationality}</span>}
+              {tenant.email&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{tenant.email}</span>}
+              {tenant.phone&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>· {tenant.phone}</span>}
+              {tenant.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>ΑΦΜ {tenant.afm}</span>}
             </div>
           </div>
+
+          {/* KPI Summary */}
+          <KPIGrid items={tenantKPIs}/>
+
+          {/* Alerts */}
+          {leaseDaysLeft!=null&&leaseDaysLeft<0&&<InfoBanner tone="negative">Το μισθωτήριο έχει λήξει — απαιτείται ανανέωση ή διαδικασία αποχώρησης.</InfoBanner>}
+          {leaseDaysLeft!=null&&leaseDaysLeft>=0&&leaseDaysLeft<=60&&<InfoBanner tone="warning">Το μισθωτήριο λήγει σε {fn(leaseDaysLeft)} ημέρες — ξεκίνησε εγκαίρως τη διαδικασία ανανέωσης.</InfoBanner>}
+          {unpaidPayments.length>0&&<InfoBanner tone="negative">Υπάρχουν {fn(unpaidPayments.length)} εκκρεμείς πληρωμές ενοικίου συνολικού ποσού {fe(unpaidTotal)}.</InfoBanner>}
+          {!hasLeaseDoc&&<InfoBanner tone="info">Δεν έχει καταχωρηθεί έγγραφο μισθωτηρίου — ανέβασε PDF ή πρόσθεσε εξωτερικό σύνδεσμο στην καρτέλα «Συμβόλαιο».</InfoBanner>}
 
           {/* View Tabs */}
           <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24, overflowX:'auto' as const, scrollbarWidth:'none' as const }}>
@@ -1270,7 +1296,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <div style={{ ...s.g3, marginBottom:14 }}>
                     <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} label="Ναι" labelOff="Όχι"/></div>
                     {payF.paid&&<DateField label="Ημερομηνία Πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
-                    <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="π.χ. Μερική πληρωμή"/>
+                    <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="για παράδειγμα Μερική πληρωμή"/>
                   </div>
                   <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
                     <button style={s.btnGhost} onClick={()=>setAddPay(false)}>Ακύρωση</button>
@@ -1322,7 +1348,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {addExtra&&(
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
                   <div style={{ ...s.g3, marginBottom:14 }}>
-                    <div style={{ gridColumn:'1/3' }}><TextInput label="Περιγραφή" value={exF.description} onChange={v=>setExF(f=>({...f,description:v}))} placeholder="π.χ. Φθορά ψυγείου"/></div>
+                    <div style={{ gridColumn:'1/3' }}><TextInput label="Περιγραφή" value={exF.description} onChange={v=>setExF(f=>({...f,description:v}))} placeholder="για παράδειγμα Φθορά ψυγείου"/></div>
                     <NumberInput label="Ποσό" value={exF.amount} onChange={v=>setExF(f=>({...f,amount:v}))} suffix="€"/>
                   </div>
                   <div style={{ ...s.g3, marginBottom:14 }}>

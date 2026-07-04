@@ -1181,7 +1181,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
         <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
           {activeTab === 'basic' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="π.χ. Service καλοριφέρ" /></div>
+              <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
                 <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>

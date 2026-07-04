@@ -125,7 +125,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['Λήγουν εντός 7 ημερών', dueSoon.length, null, 'Πάγιοι Λογαριασμοί', recurring.length],
     [''],
     ['━━━ ΚΑΤΑΝΟΜΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ ━━━', null, null, null, null],
-    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μ.Ο. Αγοράς (€)', 'Απόκλιση %', '% Συνόλου'],
+    ['Κατηγορία', 'Λογαριασμοί', 'Μηνιαίο (€)', 'Ετήσιο (€)', 'Μέσος Όρος Αγοράς (€)', 'Απόκλιση %', '% Συνόλου'],
     ...byCategory
       .sort((a: any, b: any) => b.monthly - a.monthly)
       .map((c: any) => {
@@ -137,7 +137,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['━━━ ΙΣΤΟΡΙΚΟ ΚΟΣΤΟΥΣ ' + year + ' ━━━', null, null, null, null, null, null, null, null, null, null, null, null, null],
     ['', ...MONTHS_SH, 'Σύνολο Έτους'],
     ['Κόστος (€)', ...historyTotals, historyTotals.reduce((a, b) => a + b, 0)],
-    ['Σε σχέση με Μ.Ο.', ...historyTotals.map(v => v > 0 ? Math.round((v / avgMonthly - 1) * 100) + '%' : '—'), null],
+    ['Σε σχέση με τον Μέσο Όρο', ...historyTotals.map(v => v > 0 ? Math.round((v / avgMonthly - 1) * 100) + '%' : '—'), null],
     [''],
     ['━━━ ΕΙΔΟΠΟΙΗΣΕΙΣ ━━━', null, null, null, null],
     overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ — ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${overdue.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
@@ -616,7 +616,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 18, fontFamily: T.font.sans }}>Νέος Λογαριασμός / Πάγιο</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr 1fr 1.4fr', gap: 10, marginBottom: 12 }}>
             <CustomSelect label="Κατηγορία Λογαριασμού" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS}/>
-            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="π.χ. ΔΕΗ Πράσινο Ιουνίου"/>
+            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="για παράδειγμα ΔΕΗ Πράσινο Ιουνίου"/>
             <NumberInput label="Ποσό (€)" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
@@ -634,7 +634,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
-            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση..."/>
+            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="για παράδειγμα δόση..."/>
           </div>
           {form.category === 'electricity' && (
             <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>

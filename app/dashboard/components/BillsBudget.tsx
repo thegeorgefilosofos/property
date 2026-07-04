@@ -23,7 +23,7 @@ type CatKey = typeof CATS[number]['key'];
 interface Participant {
   id:    string;
   name:  string;
-  role:  string; // π.χ. Σύζυγος, Οικογένεια, Ενοικιαστής, Εταίρος
+  role:  string; // για παράδειγμα Σύζυγος, Οικογένεια, Ενοικιαστής, Εταίρος
   share: number; // percentage 0-100
   color: string;
 }
@@ -306,7 +306,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Πρόσθεσε Συμμετέχοντα</div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10, alignItems: 'flex-end' }}>
-              <TextInput label="Όνομα" value={newName} onChange={setNewName} placeholder="π.χ. Μαρία, Οικογένεια"/>
+              <TextInput label="Όνομα" value={newName} onChange={setNewName} placeholder="για παράδειγμα Μαρία, Οικογένεια"/>
               <CustomSelect label="Σχέση" value={newRole} onChange={setNewRole} options={ROLE_OPTIONS}/>
               <NumberInput label="Ποσοστό (%)" value={newShare} onChange={setNewShare} suffix="%" step={5}/>
               <button onClick={addParticipant} disabled={!newName.trim()}
