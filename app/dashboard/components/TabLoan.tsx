@@ -269,7 +269,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                     <button onClick={()=>setTab('calculator')} style={{padding:'0 16px',height:34,borderRadius:20,background:bank.color,border:'none',color:'#fff',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',fontWeight:500}}>Υπολόγισε</button>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)'}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'}}>
                   {[
                     {label:'Σταθερό 5 ετών',value:`${fixed5}%`,color:'var(--text-primary)',sub:null},
                     {label:'Κυμαινόμενο spread',value:bank.variable_spread_min?`+${bank.variable_spread_min}%`:'—',color:'var(--text-primary)',sub:varRate?`= ${varRate} σήμερα`:null},
@@ -336,7 +336,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                 </div>
                 <a href={prog.url} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:5,padding:'0 13px',height:32,background:prog.color.startsWith('var')?'var(--accent-dim)':`${prog.color}18`,border:prog.color.startsWith('var')?'1px solid var(--border-accent)':`1px solid ${prog.color}35`,borderRadius:20,color:prog.color,fontSize:12,fontFamily:"'Google Sans',sans-serif",textDecoration:'none',fontWeight:500,flexShrink:0,marginLeft:14}}>Επίσκεψη</a>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:14,marginBottom:12}}>
                 <div>
                   <p style={{...labelStyle,marginBottom:10}}>Κριτήρια Επιλεξιμότητας</p>
                   {(prog.criteria||[]).map((c:string,i:number)=>(
@@ -429,7 +429,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
 
             <div style={cardStyle}>
               <SectionLabel label="Στοιχεία Ανάλυσης" right={<span style={{fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif"}}>Συγχρονισμένο από Calculator</span>}/>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10}}>
                 <CustomSelect label="Σκοπός Δανείου" value={advType} onChange={v=>setAdvType(v as LoanType)} options={LOAN_TYPE_OPTIONS}/>
                 <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
                 <div>
@@ -659,7 +659,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           {/* Rejection reasons */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
             <SectionLabel label="Γιατί Απορρίπτεται Μια Αίτηση — Τι να Ελέγξετε Πρώτα"/>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
               {[
                 {title:'Εγγραφή στον Τειρεσία',desc:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση άνω των 90 ημερών αρκεί. Τυχόν οφειλές πρέπει να τακτοποιηθούν πριν από οποιαδήποτε αίτηση.',url:'https://www.tiresias.gr'},
                 {title:'Χαμηλό εισόδημα / Υψηλό DTI',desc:'Η δόση δεν πρέπει να υπερβαίνει το 35-40% του καθαρού εισοδήματος. Επαγγελματίες με χαμηλές δηλώσεις είναι ο κύριος λόγος απόρριψης.',url:null},
@@ -680,7 +680,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           {/* Special borrower categories */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
             <SectionLabel label="Ειδικές Κατηγορίες Δανειοληπτών"/>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη Ένοπλων Δυνάμεων και Σωμάτων Ασφαλείας. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι Εξωτερικού',desc:'Max LTV 55-70%. Απαιτούνται επίσημες μεταφράσεις, αποδεικτικό κατοικίας εξωτερικού, εισοδήματα από ξένη χώρα. Ισχύουν ΣΑΔΦ.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
@@ -740,7 +740,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points={showGloss?"18 15 12 9 6 15":"6 9 12 15 18 9"}/></svg>
             </button>
             {showGloss&&(
-              <div style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <div style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
                 {GLOSSARY.map((item,i)=>(
                   <div key={i} style={{padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                     <p style={{fontSize:12,color:'var(--text-secondary)',fontWeight:500,marginBottom:4,fontFamily:"'Roboto Mono',monospace"}}>{item.term}</p>
@@ -837,7 +837,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   </div>
                   <button onClick={()=>deleteLoan(loan.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--border-default)',padding:4,display:'flex',borderRadius:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,marginBottom:12}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:8,marginBottom:12}}>
                   <KPI label="Ποσό" value={fmtEur(loan.amount)} color="var(--accent)"/>
                   <KPI label="Επιτόκιο" value={fmtPct(loan.rate)} color="var(--info)" sub={loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό'}/>
                   <KPI label="Δόση/μήνα" value={fmtEur(m)} color="var(--positive)"/>

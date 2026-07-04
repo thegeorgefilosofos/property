@@ -120,7 +120,7 @@ export default function RentComparables({
   const condLabel = (v: string) => CONDITIONS.find(c => c.value === v)?.label || v;
   const srcLabel = (v: string) => SOURCES.find(s => s.value === v)?.label || v;
 
-  const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 };
+  const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 12, marginBottom: 12 };
 
   return (
     <div style={cardStyle}>
@@ -144,7 +144,7 @@ export default function RentComparables({
 
       {/* Summary KPIs */}
       {comps.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
           {[
             { label: 'Μέσο Ενοίκιο Αγοράς', value: fe(avgRent), color: 'var(--info)' },
             { label: 'Μέσο € ανά τετραγωνικό', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} € ανά τετραγωνικό` : '—', color: 'var(--accent)' },

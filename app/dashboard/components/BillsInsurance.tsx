@@ -283,9 +283,9 @@ function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, 
 export default function BillsInsurance({ propertyId, userId = '' }: { propertyId: string; userId?: string }) {
   const supabase = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 };
-  const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 };
-  const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 };
+  const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
+  const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
+  const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
 
   // ── Cross-tab: checklist renewal ─────────────────────────────────────────
   const [checklistRenewal, setChecklistRenewal] = useState<{ daysLeft: number | null } | null>(null);
@@ -606,7 +606,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       ))}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Ασφάλεια Κατοικίας', value: fe(insCost)       },
           { label: 'Streaming & Media',   value: fe(streamingCost) },
@@ -661,11 +661,11 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             </div>
           )}
           {/* FIX: 2+2 grid — Πόλη label doesn't overflow */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
             <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη..."/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Αξία Κτηρίου (€)"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
             <NumberInput label="Αξία Περιεχομένου (€)" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
           </div>
@@ -721,7 +721,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
             {/* Top 3 deals */}
             {!quotesLoading && filteredQuotes.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8, marginBottom: showQuotes ? 12 : 0 }}>
                 {filteredQuotes.slice(0, 3).map((q, i) => {
                   const isCurrent = q.company === insProvider && q.plan === insPlanId;
                   const isBest    = i === 0;
@@ -862,7 +862,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       {/* ── Streaming & Ψυχαγωγία ────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Streaming & Ψυχαγωγία')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
           {STREAMING.map(svc => {
             const active  = (activeStreaming || []).find(a => a.service === svc.value);
             const plan    = svc.plans.find(p => p.id === active?.planId);
@@ -929,7 +929,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       {/* ── Cloud & Λογισμικό ────────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Cloud & Λογισμικό')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 8, marginBottom: 14 }}>
           {CLOUD.map(svc => {
             const active  = (activeCloud || []).find(a => a.service === svc.value);
             const plan    = svc.plans.find(p => p.id === active?.planId);

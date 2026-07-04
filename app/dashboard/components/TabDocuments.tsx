@@ -232,7 +232,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
           sub={tab === 'photo'
             ? 'Ανέβασε φωτογραφίες ως απόδειξη κατάστασης — για ενοικίαση, πώληση ή τον ασφαλιστή'
             : 'Ανέβασε οποιοδήποτε αρχείο (PDF, εικόνα, Word, Excel…) και ταξινόμησέ το ανά πάροχο και κατηγορία'}/>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Κατηγορία" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
             options={categories.map(c => ({ value: c, label: c }))}/>
           <div>
