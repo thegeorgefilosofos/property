@@ -436,15 +436,18 @@ body {
 ══════════════════════════════════════════════════════════════ */
 
 /* Elevated card (Google's default) */
+/* ΕΝΙΑΙΑ κάρτα — μία και μόνη αισθητική για ΟΛΟ το app (Google outlined):
+   λεπτό border, ίδια ακτίνα 14, χωρίς βαριά σκιά. Ταυτίζεται με το <Card> του
+   Theme.tsx ώστε global .card και component Card να δείχνουν πανομοιότυπα. */
 .card {
   background: var(--bg-surface);
-  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
   padding: 16px;
-  box-shadow: var(--shadow-sm);
-  border: none;
-  transition: box-shadow 0.2s cubic-bezier(0.2,0,0,1);
+  box-shadow: none;
+  transition: border-color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1);
 }
-.card:hover { box-shadow: var(--shadow-md); }
+.card:hover { box-shadow: var(--shadow-sm); }
 
 /* Filled card */
 .card-filled {
@@ -466,30 +469,31 @@ body {
 .card-sm { padding: 12px; border-radius: 8px; }
 .card-lg { padding: 24px; border-radius: 16px; }
 
-/* KPI / Metric card */
+/* KPI / Metric card — ταυτίζεται με το KPIGrid του Theme.tsx (μία αισθητική) */
 .kpi-card {
-  background: var(--bg-surface);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: none;
 }
-.kpi-card:hover { box-shadow: var(--shadow-md); }
 .kpi-value {
-  font-family: 'Google Sans', sans-serif;
+  font-family: 'Roboto Mono', monospace;
   font-size: 22px;
-  font-weight: 400;
-  line-height: 28px;
+  font-weight: 700;
+  line-height: 1;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .kpi-label {
-  font-family: 'Roboto', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.4px;
-  color: var(--text-secondary);
+  font-family: 'Google Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 /* card-accent kept for compatibility */
@@ -1488,3 +1492,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cmdk-item.active { background: var(--md-secondary-container); }
 .cmdk-item-hint { margin-left: auto; font-size: 11px; color: var(--text-tertiary); }
 .cmdk-empty { padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 13px; font-family: 'Google Sans', sans-serif; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE EXTREMES — άψογο από 320px έως 100 ίντσες
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Ultra-wide (>1780px): κεντράρισμα περιεχομένου ώστε να ΜΗΝ «τεντώνει»
+   ατέρμονα σε 4K/5K/100-inch οθόνες — όπως Gmail/Drive. */
+@media (min-width: 1780px) {
+  .app-content > * { max-width: 1720px; margin-left: auto; margin-right: auto; }
+}
+
+/* Πολύ μικρά κινητά (≤360px — iPhone SE, LG Optimus L70, κ.ά.) */
+@media (max-width: 360px) {
+  .app-content { padding-left: 10px; padding-right: 10px; }
+  .app-tab     { padding: 0 10px; font-size: 12px; }
+  .kpi-value   { font-size: 19px; }
+  .card        { padding: 14px; }
+  .cmdk-input  { font-size: 15px; }
+  .bottom-nav-item { font-size: 9px; }
+}
+
+/* Foldables πολύ στενά (≤280px — Galaxy Fold κλειστό) — τελευταίο δίχτυ ασφαλείας */
+@media (max-width: 300px) {
+  .app-topbar .prop-title, .app-topbar h1 { font-size: 15px; }
+  .kpi-value { font-size: 17px; }
+}
