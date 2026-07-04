@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { NumberInput, CustomSelect, Toggle } from './UIComponents';
-import { T, fe, PageTitle, InfoBanner } from '@/components/Theme';
+import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
+import { downloadCsv } from './exportCsv';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -80,7 +81,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'settings'|'prefs'|'fma'|'e2'>('settings');
+  const [activeSection, setActiveSection] = useState<'settings'|'account'|'prefs'|'fma'|'e2'>('settings');
+  const [accountEmail, setAccountEmail] = useState('');
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
   // App preferences state
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
@@ -215,6 +218,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   // Nav tabs
   const NAV = [
     { id:'settings', label:'Ρυθμίσεις' },
+    { id:'account',  label:'Λογαριασμός' },
     { id:'prefs',    label:'Προτιμήσεις' },
     { id:'fma',      label:'ΦΜΑ — Αγορά / Πώληση' },
     { id:'e2',       label:'Ε2 — Εισόδημα Ακινήτων' },
@@ -237,6 +241,46 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </button>
         ))}
       </div>
+
+      {/* ── ACCOUNT ── */}
+      {activeSection==='account' && (
+        <div>
+          <div style={cardGap}>
+            {sectionTitle('Λογαριασμός')}
+            {statRow('Email', accountEmail || '—')}
+            {statRow('Γλώσσα', 'Ελληνικά')}
+            {statRow('Νόμισμα', 'Ευρώ (€)')}
+            {prefRow('Εμφάνιση', 'Αλλάζεις φωτεινό/σκοτεινό θέμα από το εικονίδιο πάνω δεξιά.', <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Google Sans',sans-serif" }}>Πάνω δεξιά</span>)}
+            <div style={{ marginTop:16 }}>
+              <Btn variant="secondary" onClick={async()=>{ await supabase.auth.signOut(); window.location.href='/login'; }}>Αποσύνδεση</Btn>
+            </div>
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Συνδρομή')}
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap' }}>
+              <div>
+                <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:100,padding:'4px 12px' }}>
+                  <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
+                  <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif" }}>Δωρεάν δοκιμή</span>
+                </div>
+                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο ακίνητο είναι δωρεάν για 3 μήνες. Μετά, από €1.99/μήνα — χωρίς δέσμευση.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Δεδομένα')}
+            {prefRow('Εξαγωγή ρυθμίσεων ακινήτου', 'Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV.',
+              <Btn variant="secondary" onClick={()=>{
+                const rows = Object.entries(s as Record<string,unknown>).map(([k,v]) => [k, v==null?'':String(v)]);
+                downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0,10)}`, ['Πεδίο','Τιμή'], rows);
+              }}>Εξαγωγή CSV</Btn>
+            )}
+            <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά tab από το κουμπί «Εξαγωγή CSV».</InfoBanner>
+          </div>
+        </div>
+      )}
 
       {/* ── SETTINGS ── */}
       {activeSection==='settings' && (

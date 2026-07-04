@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd, Spinner } from '@/components/Theme'
+import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd, Spinner, ExportButton } from '@/components/Theme'
+import { downloadCsv, csvEur, csvDate } from './exportCsv'
 
 const supabase = createSupabaseClient()
 
@@ -895,6 +896,14 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
           </button>
         ))}
         <span style={{marginLeft:'auto',fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{filtered.length} αντικείμενα</span>
+        <ExportButton disabled={filtered.length===0} onClick={()=>downloadCsv(
+          `apografi_${new Date().toISOString().slice(0,10)}`,
+          ['Αντικείμενο','Κατηγορία','Δωμάτιο','Μάρκα','Κατάσταση','Ημ. Αγοράς','Τιμή Αγοράς (€)','Τρέχουσα Αξία (€)','Εγγύηση έως'],
+          filtered.map(item=>[
+            item.name, item.category, item.room||'', item.brand||'', item.condition,
+            csvDate(item.purchase_date), csvEur(item.purchase_value), csvEur(calcCurrentValue(item)), csvDate(item.warranty_expiry),
+          ])
+        )}/>
       </div>
       {filtered.length===0?(
         <div style={{textAlign:'center',padding:'60px 0',color:'var(--text-tertiary)'}}>

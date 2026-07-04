@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
+import { downloadCsv } from './exportCsv'
 
 const supabase = createSupabaseClient()
 
@@ -1186,6 +1187,20 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               </button>
             )
           })}
+        </div>
+      )}
+
+      {contacts.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} επαφές</span>
+          <ExportButton disabled={processed.length === 0} onClick={() => downloadCsv(
+            `epafes_${new Date().toISOString().slice(0, 10)}`,
+            ['Όνομα', 'Ρόλος', 'Κατηγορία', 'Τηλέφωνο', 'Email', 'Σημειώσεις'],
+            processed.map(c => [
+              c.full_name, ROLE_META[c.role]?.label || c.role, ROLE_META[c.role]?.groupLabel || '',
+              c.phone || '', c.email || '', (c._freeNotes || '').replace(/\n/g, ' '),
+            ])
+          )} />
         </div>
       )}
 

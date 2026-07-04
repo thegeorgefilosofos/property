@@ -15,7 +15,8 @@ import {
   ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
+import { downloadCsv, csvEur, csvDate } from './exportCsv';
 
 // ─── Design tokens — shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
@@ -1282,7 +1283,17 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
             <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
                 <SectionTitle>Ιστορικό Πληρωμών Ενοικίου</SectionTitle>
-                <button style={s.btnSm} onClick={()=>setAddPay(v=>!v)}>{addPay?'Κλείσιμο':'+ Νέα Πληρωμή'}</button>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(
+                    `enoikiastis_${new Date().toISOString().slice(0,10)}`,
+                    ['Περίοδος','Ποσό (€)','Κατάσταση','Ημ. Πληρωμής','Καθυστέρηση (ημέρες)','Σημειώσεις'],
+                    payments.map(p=>[
+                      `${MONTHS_FULL[p.period_month-1]} ${p.period_year}`, csvEur(p.amount),
+                      p.paid?'Εξοφλήθη':'Εκκρεμεί', csvDate(p.paid_date), p.days_late||0, (p.notes||'').replace(/\n/g,' '),
+                    ])
+                  )}/>
+                  <button style={s.btnSm} onClick={()=>setAddPay(v=>!v)}>{addPay?'Κλείσιμο':'+ Νέα Πληρωμή'}</button>
+                </div>
               </div>
               {addPay&&(
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
