@@ -20,6 +20,7 @@ import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import PaymentLinks from './components/PaymentLinks';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -433,6 +434,8 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           daysToLeaseEnd: daysToExpiry, status: STATUS_LABELS[prop.status_detail||'']||undefined,
         }}/>
       )}
+
+      <PaymentLinks />
 
       <div className="grid-main">
         <div className="card">
