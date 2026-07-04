@@ -401,7 +401,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
       </div>
       )}
 
-      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16,marginBottom:16}}>
+      <div className="grid-main">
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
@@ -430,7 +430,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+      <div className="grid-3" style={{marginBottom:16}}>
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -479,7 +479,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
 
       <div className="card">
         <div className="section-label"><span className="section-dot"/> Ετήσιος Απολογισμός {year}</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12}}>
+        <div className="grid-5">
           {[
             { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--positive)' },
             { label:'Συνολικές Δαπάνες', value:fmtEur(totalExpYTD), color:'var(--negative)' },
@@ -509,6 +509,7 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
 
   const inventoryAlerts = useInventoryAlerts(selected?.id||null, user?.id||null);
   const checklistAlerts = useChecklistAlerts(selected?.id||null);
@@ -556,8 +557,10 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
+      {/* Σκίαση πίσω από το συρόμενο μενού (μόνο κινητό/tablet) */}
+      <div className={`app-scrim ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
       {/* Sidebar */}
-      <aside className="app-sidebar">
+      <aside className={`app-sidebar ${sidebarOpen?'open':''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-mark">P</div>
           <span className="sidebar-logo-text">Property OS</span>
@@ -566,7 +569,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
           {properties.map(p => (
-            <div key={p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');}}>
+            <div key={p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
               <span className="prop-item-name">{p.name}</span>
             </div>
@@ -581,7 +584,7 @@ export default function Dashboard() {
         <div className="sidebar-section" style={{flex:1}}>
           <div className="sidebar-section-label">Πλοήγηση</div>
           {NAV_ITEMS.map(item => { const badge=getBadge(item.id); return (
-            <button key={item.id} className={`sidebar-item ${nav===item.id?'active':''}`} onClick={()=>setNav(item.id)} disabled={!selected}>
+            <button key={item.id} className={`sidebar-item ${nav===item.id?'active':''}`} onClick={()=>{setNav(item.id);setSidebarOpen(false);}} disabled={!selected}>
               <span className="sidebar-item-label">{item.label}</span>
               {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Google Sans',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
             </button>
@@ -601,6 +604,9 @@ export default function Dashboard() {
       {/* Main */}
       <main className="app-main">
         <header className="app-topbar">
+          <button className="nav-toggle" onClick={()=>setSidebarOpen(v=>!v)} aria-label="Μενού">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
           {selected ? (
             <>
               <div style={{flex:1}}>
