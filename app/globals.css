@@ -1384,6 +1384,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   /* Ετήσιος απολογισμός: 5 πλακίδια → πλέγμα που «σπάει» */
   .grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); }
+
+  /* Εναλλαγή ορατότητας ανά συσκευή */
+  .desktop-only { display: none !important; }
+  .mobile-only  { display: initial !important; }
 }
 
 /* Ημερολόγιο: το πλάι (200px) πηγαίνει από κάτω σε πλήρες πλάτος σε στενές οθόνες */
@@ -1411,3 +1415,76 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Απόκρυψη μπάρας κύλισης στα οριζόντια tabs (μένει λειτουργική η κύλιση) */
 .app-tabs::-webkit-scrollbar { height: 0; }
 .app-tabs { scrollbar-width: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LOADERS / SKELETONS — αντικαθιστούν τα «Φόρτωση...» με Google-style shimmer
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-overlay) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE BOTTOM NAVIGATION — φυσική πλοήγηση κινητού για τα βασικά tabs
+   ══════════════════════════════════════════════════════════════════════════ */
+.bottom-nav { display: none; }
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    box-shadow: 0 -1px 3px rgba(0,0,0,0.06);
+  }
+  .app-content { padding-bottom: 80px; }
+}
+.bottom-nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 2px; border: none; background: none; cursor: pointer;
+  color: var(--text-tertiary); font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 500;
+  min-height: 48px; border-radius: 12px; transition: color 0.15s;
+}
+.bottom-nav-item.active { color: var(--accent); }
+.bottom-nav-item svg { width: 22px; height: 22px; }
+.bottom-nav-badge {
+  position: absolute; top: 2px; right: 50%; margin-right: -18px;
+  min-width: 8px; height: 8px; border-radius: 50%; background: var(--negative);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMMAND PALETTE (⌘K) — καθολική γρήγορη πλοήγηση/αναζήτηση
+   ══════════════════════════════════════════════════════════════════════════ */
+.cmdk-scrim {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1500;
+  display: flex; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px;
+  animation: cmdk-in 0.12s ease;
+}
+@keyframes cmdk-in { from { opacity: 0; } to { opacity: 1; } }
+.cmdk {
+  width: 100%; max-width: 560px; background: var(--bg-surface);
+  border: 1px solid var(--border-default); border-radius: 16px;
+  box-shadow: var(--shadow-xl); overflow: hidden; display: flex; flex-direction: column;
+}
+.cmdk-input {
+  width: 100%; border: none; outline: none; background: transparent;
+  padding: 16px 18px; font-size: 16px; color: var(--text-primary);
+  font-family: 'Google Sans', sans-serif; border-bottom: 1px solid var(--border-subtle);
+}
+.cmdk-list { max-height: 52vh; overflow-y: auto; padding: 6px; }
+.cmdk-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer;
+  font-size: 14px; color: var(--text-primary); font-family: 'Google Sans', sans-serif;
+  border-radius: 10px;
+}
+.cmdk-item.active { background: var(--md-secondary-container); }
+.cmdk-item-hint { margin-left: auto; font-size: 11px; color: var(--text-tertiary); }
+.cmdk-empty { padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 13px; font-family: 'Google Sans', sans-serif; }
