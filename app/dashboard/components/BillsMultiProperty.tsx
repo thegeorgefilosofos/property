@@ -164,13 +164,13 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 24, marginBottom: 20 }}>
           {secHdr('Προσθήκη Νέου Ακινήτου')}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-            <TextInput label="Όνομα Ακινήτου" value={newProp.name} onChange={v => setNewProp(p => ({ ...p, name: v }))} placeholder="π.χ. Αρύββου 45"/>
-            <TextInput label="Διεύθυνση" value={newProp.address} onChange={v => setNewProp(p => ({ ...p, address: v }))} placeholder="π.χ. Αρύββου 45, Βύρωνας"/>
+            <TextInput label="Όνομα Ακινήτου" value={newProp.name} onChange={v => setNewProp(p => ({ ...p, name: v }))} placeholder="για παράδειγμα Αρύββου 45"/>
+            <TextInput label="Διεύθυνση" value={newProp.address} onChange={v => setNewProp(p => ({ ...p, address: v }))} placeholder="για παράδειγμα Αρύββου 45, Βύρωνας"/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
-            <TextInput   label="Πόλη"       value={newProp.city}  onChange={v => setNewProp(p => ({ ...p, city: v  }))} placeholder="π.χ. Αθήνα"/>
+            <TextInput   label="Πόλη"       value={newProp.city}  onChange={v => setNewProp(p => ({ ...p, city: v  }))} placeholder="για παράδειγμα Αθήνα"/>
             <CustomSelect label="Τύπος"     value={newProp.type}  onChange={v => setNewProp(p => ({ ...p, type: v  }))} options={PROPERTY_TYPES}/>
-            <NumberInput  label="Εμβαδόν (τ.μ.)" value={newProp.sqm} onChange={v => setNewProp(p => ({ ...p, sqm: v }))} suffix="τ.μ." step={5}/>
+            <NumberInput  label="Εμβαδόν (τετραγωνικά μέτρα)" value={newProp.sqm} onChange={v => setNewProp(p => ({ ...p, sqm: v }))} suffix="τετραγωνικά μέτρα" step={5}/>
             <CustomSelect label="Κατάσταση" value={newProp.status} onChange={v => setNewProp(p => ({ ...p, status: v }))} options={[{ value: 'rented', label: 'Ενοικιάζεται' },{ value: 'vacant', label: 'Κενό' },{ value: 'owner_use', label: 'Ιδιοχρησία' },{ value: 'for_sale', label: 'Προς Πώληση' }]}/>
           </div>
           {createError && <div style={{ fontSize: 12, color: 'var(--negative)', marginBottom: 12, fontFamily: T.font.sans }}>{createError}</div>}
@@ -259,7 +259,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2, fontFamily: T.font.sans }}>{prop.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{prop.address}</div>
-                      {prop.sqm && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{prop.sqm} τ.μ.{perSqm ? ` · ${fe(perSqm, 1)} / τ.μ. / μήνα` : ''}</div>}
+                      {prop.sqm && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{prop.sqm} τετραγωνικά μέτρα{perSqm ? ` · ${fe(perSqm, 1)} / τετραγωνικά μέτρα / μήνα` : ''}</div>}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Μηνιαίο κόστος</span>

@@ -215,7 +215,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
             <label style={labelStyle}>Προμηθευτής / Πάροχος</label>
             <input list="supplier-suggestions" value={form.supplier}
               onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
-              placeholder="π.χ. ΔΕΗ, ΕΥΔΑΠ, COSMOTE, Hellas Direct…" style={inputStyle}/>
+              placeholder="για παράδειγμα ΔΕΗ, ΕΥΔΑΠ, COSMOTE, Hellas Direct…" style={inputStyle}/>
             <datalist id="supplier-suggestions">
               {COMMON_SUPPLIERS.map(s => <option key={s} value={s}/>)}
             </datalist>
@@ -224,11 +224,11 @@ export default function TabDocuments({ propertyId, userId }: Props) {
         </div>
         <div style={{ marginBottom: 14 }}>
           <TextInput label="Τίτλος / Περιγραφή" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))}
-            placeholder={tab === 'photo' ? 'π.χ. Σαλόνι — βόρειος τοίχος' : 'π.χ. ΔΕΗ Ιανουάριος 2026'}/>
+            placeholder={tab === 'photo' ? 'για παράδειγμα Σαλόνι — βόρειος τοίχος' : 'για παράδειγμα ΔΕΗ Ιανουάριος 2026'}/>
         </div>
         <div style={{ marginBottom: 14 }}>
           <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))}
-            placeholder="Προαιρετικές σημειώσεις (π.χ. εκκρεμεί πληρωμή, φθορά στο πάτωμα…)"/>
+            placeholder="Προαιρετικές σημειώσεις (για παράδειγμα εκκρεμεί πληρωμή, φθορά στο πάτωμα…)"/>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
           <button onClick={() => fileRef.current?.click()} disabled={uploading}

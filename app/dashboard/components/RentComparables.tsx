@@ -147,7 +147,7 @@ export default function RentComparables({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
           {[
             { label: 'Μέσο Ενοίκιο Αγοράς', value: fe(avgRent), color: 'var(--info)' },
-            { label: 'Μέσο €/τ.μ.', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} €/τ.μ.` : '—', color: 'var(--accent)' },
+            { label: 'Μέσο € ανά τετραγωνικό', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} € ανά τετραγωνικό` : '—', color: 'var(--accent)' },
             { label: 'Ενοίκιό σου', value: actualRent > 0 ? fe(actualRent) : '—', color: 'var(--text-primary)' },
             {
               label: 'vs Αγορά',
@@ -182,19 +182,19 @@ export default function RentComparables({
             Νέο Συγκριτικό Ακίνητο
           </div>
           <div style={g4}>
-            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="π.χ. 2άρι Παγκράτι" />
-            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="π.χ. Παγκράτι" />
-            <NumberInput label="Τετραγωνικά (τ.μ.)" value={String(form.sqm || '')} onChange={v => sf('sqm', v)} suffix="τ.μ." step={5} />
+            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="για παράδειγμα 2άρι Παγκράτι" />
+            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="για παράδειγμα Παγκράτι" />
+            <NumberInput label="Τετραγωνικά (τετραγωνικά μέτρα)" value={String(form.sqm || '')} onChange={v => sf('sqm', v)} suffix="τετραγωνικά μέτρα" step={5} />
             <NumberInput label="Ενοίκιο €/μήνα" value={String(form.rent || '')} onChange={v => sf('rent', v)} suffix="€" step={50} />
           </div>
           <div style={g4}>
             <CustomSelect label="Πηγή" value={form.source || 'spitogatos'} onChange={v => sf('source', v)} options={SOURCES} />
             <CustomSelect label="Κατάσταση Ακινήτου" value={form.condition || 'good'} onChange={v => sf('condition', v)} options={CONDITIONS} />
-            <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ" />
+            <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="για παράδειγμα < 500μ" />
             <div>
-              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", display: 'block', marginBottom: 6 }}>€/τ.μ. (αυτόματο)</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", display: 'block', marginBottom: 6 }}>€ ανά τετραγωνικό (αυτόματο)</span>
               <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Roboto Mono', monospace" }}>
-                {form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} €/τ.μ.` : '—'}
+                {form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} € ανά τετραγωνικό` : '—'}
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function RentComparables({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr>
-                {['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€/τ.μ.', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', ''].map((h, i) => (
+                {['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€ ανά τετραγωνικό', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', ''].map((h, i) => (
                   <th key={i} style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
                     {h}
                   </th>
@@ -255,7 +255,7 @@ export default function RentComparables({
                       {c.distance && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif", marginTop: 1 }}>{c.distance}</div>}
                     </td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.area || '—'}</td>
-                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τ.μ.` : '—'}</td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τετραγωνικά μέτρα` : '—'}</td>
                     <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Roboto Mono', monospace", fontSize: 12 }}>{fe(c.rent)}</td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto Mono', monospace", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
                     <td style={{ padding: '9px 8px' }}>
