@@ -39,7 +39,7 @@ const STEPS = [
 const FAQ = [
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων και μικρά μεσιτικά γραφεία στην Ελλάδα, από 1 έως 15 ακίνητα κάθε τύπου — κατοικία, επαγγελματικός χώρος, αποθήκη, οικόπεδο.' },
   { q: 'Χρειάζομαι γνώσεις λογιστικής;', a: 'Όχι. Το Property OS κάνει τους υπολογισμούς για σένα — αποδόσεις, φόρους, αποσβέσεις — και σου δίνει έτοιμες εξαγωγές για τον λογιστή σου.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο είναι δωρεάν για 3 μήνες. Μετά, από €1.99 τον μήνα. Χωρίς ετήσια δέσμευση, ακύρωση όποτε θες.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από €2,99 τον μήνα. Χωρίς ετήσια δέσμευση, ακύρωση όποτε θες.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα (Row Level Security), με κρυπτογραφημένη σύνδεση και αποθήκευση σε υποδομή enterprise.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Απόλυτα — το app είναι πλήρως responsive και δουλεύει άψογα σε κινητό, tablet, laptop και μεγάλες οθόνες.' },
 ];
@@ -66,7 +66,7 @@ export default function Landing() {
 
       {/* ── Hero ── */}
       <section style={{ ...wrap, paddingTop: 'clamp(56px, 9vw, 110px)', paddingBottom: 'clamp(48px, 7vw, 90px)', textAlign: 'center' }}>
-        <div style={chip}><span style={{ width: 6, height: 6, borderRadius: '50%', background: GOLD }} />3 μήνες δωρεάν · χωρίς κάρτα</div>
+        <div style={chip}><span style={{ width: 6, height: 6, borderRadius: '50%', background: GOLD }} />Πρώτος μήνας δωρεάν · χωρίς κάρτα</div>
         <h1 style={{ fontSize: 'clamp(34px, 6.5vw, 68px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '24px auto 20px', maxWidth: 900 }}>
           Το ακίνητό σου.<br /><span style={{ color: GOLD }}>Υπό απόλυτο έλεγχο.</span>
         </h1>
@@ -80,7 +80,7 @@ export default function Landing() {
 
         {/* Stat bar */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 1, maxWidth: 720, margin: '56px auto 0', background: LINE, border: `1px solid ${LINE}`, borderRadius: 16, overflow: 'hidden' }}>
-          {[['11', 'πάροχοι ενέργειας'], ['15', 'ακίνητα / λογαριασμό'], ['2026', 'φορολογική κλίμακα'], ['€1.99', 'ανά μήνα']].map(([n, l], i) => (
+          {[['11', 'πάροχοι ενέργειας'], ['15', 'ακίνητα / λογαριασμό'], ['2026', 'φορολογική κλίμακα'], ['€2,99', 'ανά μήνα']].map(([n, l], i) => (
             <div key={i} style={{ background: PANEL, padding: '20px 12px' }}>
               <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 700, color: GOLD }}>{n}</div>
               <div style={{ fontSize: 12, color: FAINT, marginTop: 4 }}>{l}</div>
@@ -147,12 +147,13 @@ export default function Landing() {
         <div style={{ maxWidth: 460, margin: '0 auto', background: PANEL, border: `1px solid rgba(26,115,232,0.35)`, borderRadius: 20, padding: 'clamp(28px, 4vw, 40px)', textAlign: 'center' }}>
           <div style={chip}>Προσφορά εκκίνησης</div>
           <div style={{ margin: '22px 0 6px', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
-            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 'clamp(40px, 7vw, 56px)', fontWeight: 700, color: GOLD }}>€1.99</span>
+            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 'clamp(40px, 7vw, 56px)', fontWeight: 700, color: GOLD }}>€2,99</span>
             <span style={{ fontSize: 16, color: MUTED }}>/ μήνα</span>
           </div>
-          <div style={{ fontSize: 14, color: MUTED, marginBottom: 24 }}>μετά τους <strong style={{ color: TEXT }}>3 πρώτους μήνες δωρεάν</strong></div>
+          <div style={{ fontSize: 14, color: MUTED, marginBottom: 6 }}>με <strong style={{ color: TEXT }}>τον πρώτο μήνα δωρεάν</strong></div>
+          <div style={{ fontSize: 13, color: FAINT, marginBottom: 24 }}>ή <strong style={{ color: TEXT }}>€29,90 / έτος</strong> — 2 μήνες δώρο</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', marginBottom: 28 }}>
-            {['Το πρώτο ακίνητο δωρεάν για 90 ημέρες', 'Έως 15 ακίνητα κάθε τύπου', 'Όλες οι δυνατότητες, χωρίς κλειδώματα', 'Χωρίς ετήσια δέσμευση — ακύρωση όποτε θες'].map((t, i) => (
+            {['Πρώτος μήνας δωρεάν, χωρίς κάρτα', 'Έως 15 ακίνητα κάθε τύπου', 'Όλες οι δυνατότητες, χωρίς κλειδώματα', 'Χωρίς ετήσια δέσμευση — ακύρωση όποτε θες'].map((t, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ color: GOLD, fontWeight: 800 }}>✓</span>
                 <span style={{ fontSize: 14, color: TEXT }}>{t}</span>
@@ -182,7 +183,7 @@ export default function Landing() {
       <section style={{ ...wrap, paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
         <div style={{ background: 'linear-gradient(135deg, rgba(26,115,232,0.12), rgba(26,115,232,0.03))', border: `1px solid rgba(26,115,232,0.3)`, borderRadius: 24, padding: 'clamp(36px, 6vw, 64px)', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 14px' }}>Πάρε τον έλεγχο των ακινήτων σου σήμερα</h2>
-          <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Δωρεάν για 3 μήνες. Χωρίς κάρτα. Χωρίς δέσμευση.</p>
+          <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Δωρεάν ο πρώτος μήνας. Χωρίς κάρτα. Χωρίς δέσμευση.</p>
           <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '15px 34px', borderRadius: 100 }}>Δημιούργησε τον λογαριασμό σου →</Link>
         </div>
       </section>
@@ -194,9 +195,11 @@ export default function Landing() {
             <div style={{ width: 22, height: 22, borderRadius: 6, background: GOLD, color: BG, fontWeight: 800, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
             <span style={{ fontSize: 13, color: MUTED }}>Property OS — {new Date().getFullYear()}</span>
           </div>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             <Link href="/login" style={{ color: FAINT, textDecoration: 'none', fontSize: 13 }}>Σύνδεση</Link>
             <Link href="/signup" style={{ color: FAINT, textDecoration: 'none', fontSize: 13 }}>Εγγραφή</Link>
+            <Link href="/privacy" style={{ color: FAINT, textDecoration: 'none', fontSize: 13 }}>Απόρρητο</Link>
+            <Link href="/terms" style={{ color: FAINT, textDecoration: 'none', fontSize: 13 }}>Όροι</Link>
           </div>
         </div>
       </footer>

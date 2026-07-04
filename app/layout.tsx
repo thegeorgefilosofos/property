@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "./ThemeProvider";
+import CookieConsent from "./CookieConsent";
 
 export const metadata: Metadata = {
   title: "Property OS",
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           {children}
+          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>
