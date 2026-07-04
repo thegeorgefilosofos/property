@@ -17,6 +17,8 @@ import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import AddPropertyWizard from './components/AddPropertyWizard';
 import { useAppPreferences } from './components/useAppPreferences';
+import { CommandPalette, type CommandItem } from './components/CommandPalette';
+import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -63,6 +65,16 @@ const NAV_ITEMS = [
   { id:'contacts',   label:'Επαφές' },
   { id:'documents',  label:'Αρχείο' },
   { id:'settings',   label:'Ρυθμίσεις' },
+];
+
+// Κάτω μπάρα κινητού — 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
+const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
+const BOTTOM_NAV = [
+  { id:'overview', label:'Επισκόπηση', icon: ic('M3 9.5 12 3l9 6.5|M5 10v10h14V10') },
+  { id:'bills',    label:'Λογαριασμοί', icon: ic('M4 3h16v18l-3-2-3 2-3-2-3 2V3|M8 8h8|M8 12h8') },
+  { id:'expenses', label:'Δαπάνες',    icon: ic('M3 12h4l3 8 4-16 3 8h4') },
+  { id:'calendar', label:'Ημερολόγιο', icon: ic('M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4') },
+  { id:'more',     label:'Μενού',      icon: ic('M4 6h16|M4 12h16|M4 18h16') },
 ];
 
 const fmt = (n:number|null|undefined, decimals=0) =>
@@ -364,7 +376,18 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
   if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
   if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη — δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
 
-  if (loading) return <div style={{color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontSize:14,textAlign:'center',padding:60}}>Φόρτωση...</div>;
+  if (loading) return (
+    <div>
+      <SkeletonKPIs n={5} />
+      <div className="grid-main">
+        <div className="card"><Skeleton w={140} h={11} style={{marginBottom:16}}/><Skeleton h={120} r={10}/></div>
+        <div className="card"><Skeleton w={120} h={11} style={{marginBottom:16}}/><Skeleton h={120} r={10}/></div>
+      </div>
+      <div className="grid-3" style={{marginBottom:16}}>
+        {[0,1,2].map(i=><div key={i} className="card"><Skeleton w={110} h={11} style={{marginBottom:16}}/><Skeleton h={90} r={10}/></div>)}
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -510,6 +533,16 @@ export default function Dashboard() {
   const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
+  const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
+
+  // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setCmdkOpen(v => !v); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const inventoryAlerts = useInventoryAlerts(selected?.id||null, user?.id||null);
   const checklistAlerts = useChecklistAlerts(selected?.id||null);
@@ -554,6 +587,21 @@ export default function Dashboard() {
   const statusColor = selected ? (STATUS_COLORS[selected.status_detail||'']||'var(--text-secondary)') : 'var(--text-secondary)';
   const statusLabel = selected ? (STATUS_LABELS[selected.status_detail||'']||selected.status_detail) : '';
   const getBadge = (id: string) => { if (id==='inventory'&&inventoryAlerts>0) return inventoryAlerts; if (id==='checklist'&&checklistAlerts>0) return checklistAlerts; return 0; };
+
+  // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
+  const cmdItems: CommandItem[] = [
+    ...NAV_ITEMS.map(item => ({
+      id: `nav-${item.id}`, label: item.label, hint: 'Μετάβαση', group: 'Πλοήγηση',
+      keywords: item.id, action: () => { if (selected) setNav(item.id); },
+    })),
+    ...properties.map(p => ({
+      id: `prop-${p.id}`, label: p.name, hint: 'Ακίνητο', group: 'Ακίνητα',
+      keywords: `${p.address||''} ${PROP_TYPE_LABELS[p.prop_type||'']||''}`,
+      action: () => { setSelected(p); setNav('overview'); },
+    })),
+    { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => setShowAddModal(true) },
+    { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
+  ];
 
   return (
     <div className="app-shell">
@@ -634,6 +682,10 @@ export default function Dashboard() {
               {nav==='inventory'&&properties.length>1&&(
                 <button onClick={()=>setShowCopyInventory(true)} style={{height:36,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
               )}
+              <button onClick={()=>setCmdkOpen(true)} title="Αναζήτηση (⌘K)" aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <span className="desktop-only" style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:5,padding:'1px 5px'}}>⌘K</span>
+              </button>
               <ThemeToggle />
             </>
           ) : (
@@ -675,6 +727,26 @@ export default function Dashboard() {
           </>
         )}
       </main>
+
+      {/* Κάτω μπάρα πλοήγησης — μόνο σε κινητό (≤768px, μέσω CSS) */}
+      {selected && (
+        <nav className="bottom-nav">
+          {BOTTOM_NAV.map(item => {
+            const isActive = item.id !== 'more' && nav === item.id;
+            const onTap = item.id === 'more' ? () => setSidebarOpen(true) : () => setNav(item.id);
+            const badge = item.id === 'more' && (inventoryAlerts + checklistAlerts) > 0;
+            return (
+              <button key={item.id} className={`bottom-nav-item ${isActive?'active':''}`} onClick={onTap} style={{position:'relative'}}>
+                {badge && <span className="bottom-nav-badge"/>}
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      <CommandPalette open={cmdkOpen} onClose={()=>setCmdkOpen(false)} items={cmdItems} />
 
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
