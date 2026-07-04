@@ -219,6 +219,28 @@ const PROVIDERS = [
     ] as unknown as Tariff[],
   },
   {
+    value: 'wattvolt', label: 'Watt+Volt', url: 'https://www.watt-volt.gr',
+    tariffs: [
+      // ── Οικιακά ────────────────────────────────────────────────────────
+      { id: 'wv_home_standard', name: 'Home Standard',          badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1480, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο βασικό (+ ΜΔΚΑ). Χωρίς δέσμευση. Επιβεβαίωσε τρέχουσα τιμή στο watt-volt.gr.' },
+      { id: 'wv_home_blue',     name: 'Home Blue Σταθερό 12M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1450, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 12μηνο. Τελευταία γνωστή ένδειξη — επιβεβαίωσε τρέχουσα τιμή/όρους.' },
+      { id: 'wv_home_special',  name: 'Home Ειδικό (Γ1)',       badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1650, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Ανακοινώνεται κάθε 1η του μήνα.' },
+      // ── Επαγγελματικά ──────────────────────────────────────────────────
+      { id: 'wv_biz_standard',  name: 'Business Standard',      badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό (Γ21). Επιβεβαίωσε τρέχουσα τιμή.' },
+      { id: 'wv_biz_blue',      name: 'Business Blue Σταθερό',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590, kwh_night: null, flat_monthly: null, fixed: 12.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό 12μηνο επαγγελματικό.' },
+    ] as unknown as Tariff[],
+  },
+  {
+    value: 'eunice', label: 'Eunice Power', url: 'https://eunice-power.gr',
+    tariffs: [
+      // ── Οικιακά (100% καθαρή ενέργεια από ΑΠΕ) ─────────────────────────
+      { id: 'eun_home_core',    name: 'Home Core',              badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0980, kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: '100% καθαρή ενέργεια. Τιμή 0.098€/kWh (+ ΜΔΚΑ) με έκπτωση συνέπειας. Πάγιο 7€.' },
+      { id: 'eun_home_special', name: 'Ειδικό Τιμολόγιο Home',  badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1600, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Ανακοινώνεται κάθε 1η του μήνα.' },
+      // ── Επαγγελματικά ──────────────────────────────────────────────────
+      { id: 'eun_biz_secure',   name: 'Small Business Secure',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1650, kwh_night: null, flat_monthly: null, fixed: 4.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό μικρής επιχείρησης. Πάγιο 4€.' },
+    ] as unknown as Tariff[],
+  },
+  {
     value: 'fysiko_aerio', label: 'Φυσικό Αέριο Ελλάδος', url: 'https://www.gaselli.gr',
     tariffs: [
       { id: 'fa_oikia',         name: 'Oikia Green',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.14265, kwh_night: null, fixed: 5.00, contract_months: 0, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Ανακοινώνεται κάθε 1η μήνα.' },
