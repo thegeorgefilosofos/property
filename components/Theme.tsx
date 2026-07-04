@@ -92,8 +92,11 @@ export function PageTitle({ title, sub, right }: { title: string; sub?: string; 
 export interface KPIItem { label: string; value: string; sub?: string; tone?: Tone }
 
 export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
+  // Ρευστό πλέγμα: γεμίζει όσες στήλες χωράνε (min 150px) και «σπάει» μόνο του
+  // σε 2 ή 1 στήλες σε tablet/κινητό — χωρίς media queries, δουλεύει παντού.
+  const cols = columns ?? items.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)`, gap: 10, marginBottom: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 10, marginBottom: 16 }}>
       {items.map((k, i) => (
         <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -190,6 +193,10 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 }
 
 // ═══ Grid helpers — τα g2/g3/g4 των Bills, μία φορά για όλους ══════════════
-export const g2: CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 };
-export const g3: CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 };
-export const g4: CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 };
+// Ρευστά πλέγματα: «auto-fit + minmax(min(100%, Xpx))» ώστε σε στενές οθόνες
+// (κινητό/tablet) να πέφτουν αυτόματα σε λιγότερες στήλες ή μία, ενώ σε desktop
+// κρατούν την επιθυμητή διάταξη. Το «min(100%, …)» εγγυάται ότι ποτέ δεν
+// ξεπερνούν το πλάτος του γονέα (μηδενική οριζόντια κύλιση).
+export const g2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
+export const g3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
+export const g4: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };

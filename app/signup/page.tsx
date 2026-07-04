@@ -30,13 +30,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{
+    <div className="auth-split" style={{
       minHeight: '100vh', background: '#080810',
       display: 'flex',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     }}>
       {/* Left branding */}
-      <div style={{
+      <div className="auth-aside" style={{
         width: '45%', background: '#0a0a18',
         borderRight: '1px solid #16162a',
         display: 'flex', flexDirection: 'column',
@@ -80,7 +80,7 @@ export default function SignupPage() {
       </div>
 
       {/* Right form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+      <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
         <div style={{ width: '100%', maxWidth: 380 }}>
 
           {done ? (

@@ -221,7 +221,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
       )}
 
       {/* KPI Strip */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:10, marginBottom:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap:10, marginBottom:20 }}>
         <KpiCard label="Βασικό Ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--accent)"/>
         <KpiCard label="Σύνολο Μηνιαίως" value={fmt(totalTenant)} color="var(--positive)"/>
         <KpiCard label="Κόστη Ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--negative)"/>
@@ -231,7 +231,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
       </div>
 
       {/* Score + Profile */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16, marginBottom:16 }}>
         {/* Tenant Score */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
           <SectionTitle>Tenant Score</SectionTitle>
@@ -273,7 +273,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
               <div style={{ height:'100%', width:`${completePct}%`, background:completePct>=80?'var(--positive)':completePct>=50?'var(--accent)':'var(--warning)', borderRadius:3, transition:'width 0.8s ease' }}/>
             </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 16px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'2px 16px' }}>
             {[['Ονοματεπώνυμο',!!tenant.full_name],['Email',!!tenant.email],['Τηλέφωνο',!!tenant.phone],['ΑΦΜ',!!tenant.afm],['IBAN',!!tenant.iban],['Εγγύηση',!!tenant.deposit_amount],['Έναρξη Μίσθωσης',!!tenant.lease_start],['Ενοίκιο',!!tenant.monthly_rent]].map(([lbl,ok],i)=>(
               <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{lbl as string}</span>
@@ -289,7 +289,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
         <SectionTitle>Ιστορικό Πληρωμών — Τελευταίοι 12 Μήνες</SectionTitle>
         <PaymentBars payments={payments}/>
         {payments.length>0&&(
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginTop:20 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
             <KpiCard label="Πληρωμές" value={`${paidPay.length}/${payments.length}`} color="var(--positive)"/>
             <KpiCard label="Ποσοστό Εξόφλησης" value={`${((paidPay.length/payments.length)*100).toFixed(0)}%`} color="var(--accent)"/>
             <KpiCard label="Μέση Καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
@@ -381,7 +381,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
         <p style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.8, fontFamily:T.font.sans, marginBottom:14 }}>
           Ο <strong style={{ color:'var(--text-primary)' }}>Τιμάριθμος Δαπανών Εκπαίδευσης (ΤΔΕ)</strong> είναι ο επίσημος δείκτης που χρησιμοποιεί η ΕΛΣΤΑΤ για να μετρήσει τη μεταβολή του κόστους ζωής σε ετήσια βάση. Βάσει του Αστικού Κώδικα (άρθρο 288 ΑΚ), ο εκμισθωτής έχει δικαίωμα να αναπροσαρμόσει το μίσθωμα μία φορά τον χρόνο, εφόσον αυτό προβλέπεται στη σύμβαση.
         </p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
           {[{label:'Νομική Βάση',value:'Αρ. 288 ΑΚ'},{label:'Συχνότητα',value:'Μία φορά/έτος'},{label:'Πηγή',value:'ΕΛΣΤΑΤ'}].map((item,i)=>(
             <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:T.radius.inner, padding:'12px 14px', textAlign:'center' as const }}>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{item.value}</div>
@@ -399,7 +399,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
         />
       )}
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
         {/* Calculator */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
           <SectionTitle>Υπολογιστής Αναπροσαρμογής</SectionTitle>
@@ -436,7 +436,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
 
           {/* TDE History Grid */}
           <div style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΤΔΕ (ΕΛΣΤΑΤ)</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap:5 }}>
             {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).map(([year,rate])=>{
               const active=parseInt(year)===parseInt(yr);
               return (
@@ -455,7 +455,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
           {rent>0&&(
             <>
               {/* Result Cards */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:10, marginBottom:14 }}>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
                   <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον Μίσθωμα</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmtE(rent)}</div>
@@ -544,7 +544,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
       {/* Quick Actions */}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
         <SectionTitle>Γρήγορη Επικοινωνία</SectionTitle>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10, marginBottom:14 }}>
           {tenant.phone&&(
             <a href={`tel:${tenant.phone}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)', transition:'border-color 0.15s' }}>
               <div style={{ width:36, height:36, borderRadius:18, background:'var(--positive-dim)', border:'1px solid var(--positive)33', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
@@ -576,7 +576,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 
         {showAdd&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:12 }}>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος Επικοινωνίας</div>
                 <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value as any}))} style={inputStyle}>
@@ -656,7 +656,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
   return (
     <div>
       {comparables.length>0&&(
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:16 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:16 }}>
           <KpiCard label="Τρέχον Ενοίκιο" value={fmt(rent)} color="var(--accent)"/>
           <KpiCard label="Μέσος Όρος Αγοράς" value={`${Math.round(avgMarket).toLocaleString('el-GR')} €`} color="var(--text-primary)"/>
           <KpiCard label={rentDiff>0?'Πάνω από Αγορά':'Κάτω από Αγορά'} value={`${rentDiff>0?'+':''}${Math.round(rentDiff).toLocaleString('el-GR')} € (${rentDiffPct.toFixed(1)}%)`} color={rentDiff>0?'var(--positive)':rentDiff<0?'var(--warning)':'var(--text-secondary)'}/>
@@ -711,6 +711,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
           </div>
         )}
         {!loading&&comparables.length>0&&(
+          <div className="table-wrap">
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr>{['Διεύθυνση','Εμβαδόν','Ενοίκιο','Τιμή ανά τετραγωνικό','Πηγή','Διαφορά',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr>
@@ -737,6 +738,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
@@ -1308,6 +1310,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                 <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρημένες πληρωμές</div>
               ):(
                 <>
+                  <div className="table-wrap">
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Ημερομηνία Πληρωμής','Καθυστέρηση','Σημείωση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
                     <tbody>
@@ -1329,6 +1332,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                   <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:14, paddingTop:14, display:'flex', gap:20, flexWrap:'wrap' as const }}>
                     <span style={{ fontSize:12, color:'var(--positive)', fontFamily:T.font.sans }}>Εισπραχθέντα: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>
                     {payments.some(p=>!p.paid)&&<span style={{ fontSize:12, color:'var(--negative)', fontFamily:T.font.sans }}>Εκκρεμή: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>}
@@ -1365,6 +1369,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {extras.length===0?(
                 <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν έκτακτες χρεώσεις</div>
               ):(
+                <div className="table-wrap">
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead><tr>{['Ημερομηνία','Περιγραφή','Κατηγορία','Ποσό','Κατάσταση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
                   <tbody>
@@ -1385,6 +1390,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           )}

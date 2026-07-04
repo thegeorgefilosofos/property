@@ -443,7 +443,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
           {loading ? <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-secondary)', fontSize: 13 }}>Φόρτωση ιστορικού...</div> : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
                 {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? totalExpenses.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : '—', color: 'var(--negative)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--accent)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
@@ -1330,7 +1330,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                     <div><FL>Τελευταία Επαφή</FL><DatePicker value={form.extra.last_contact || ''} onChange={v => setExtra('last_contact', v)} /></div>
                     <div><FL>Επόμενο Ραντεβού</FL><DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} /></div>
                   </div>

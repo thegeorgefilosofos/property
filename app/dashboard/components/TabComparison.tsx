@@ -106,6 +106,7 @@ export default function TabComparison({ properties, userId }: Props) {
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 13 }}>Φόρτωση…</div>
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 8, overflowX: 'auto' }}>
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 120 + properties.length * 160 }}>
             <thead>
               <tr>
@@ -137,6 +138,7 @@ export default function TabComparison({ properties, userId }: Props) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>

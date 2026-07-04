@@ -168,9 +168,9 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'providers', DEFAULTS);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const g2: React.CSSProperties   = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 };
-  const g3: React.CSSProperties   = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 };
-  const g4: React.CSSProperties   = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 };
+  const g2: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
+  const g3: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
+  const g4: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
@@ -246,7 +246,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Internet & TV',                   value: fe(internetCost + tvCost), accent: false },
           { label: 'Νερό & Θέρμανση',                 value: fe(waterM + heatingM),     accent: false },
@@ -266,7 +266,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 16 }}>
         {secHdr('Δημοτικά Τέλη — Υπολογισμός Ποσοστού')}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
           <NumberInput
             label="Ποσοστό % (αν το γνωρίζεις)"
             value={s.dimotika}
@@ -454,7 +454,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           {s.hasTV && (
             <>
               {/* FIX: 3 cols + separate toggle row — avoids Sports Package label truncation */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
                 <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
                   options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
                 <TextInput   label="Πρόγραμμα / Πακέτο"  value={s.tvPlan}  onChange={v => upd({ tvPlan: v })}  placeholder="Παράδειγμα: Cosmote TV Start"/>
@@ -470,7 +470,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <div style={card}>
         {secHdr('Νερό')}
         {/* FIX: 2+2 layout — prevents label overflow on narrow screens */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
           <CustomSelect
             label="Συχνότητα Χρέωσης"
@@ -488,7 +488,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             onChange={v => upd({ waterBiMonthly: v, waterMonthly: v ? String(((parseFloat(v) || 0) / (parseInt(s.waterPeriodMonths || '2') || 2)).toFixed(2)) : '' })}
             suffix="€" step={5}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <NumberInput  label="Μηνιαία Αναγωγή (€)"   value={s.waterMonthly}  onChange={v => upd({ waterMonthly: v })}  suffix="€"      step={2}/>
           <NumberInput  label="Άτομα στο ακίνητο"      value={s.waterPersons}  onChange={v => upd({ waterPersons: v })}  suffix="άτομα"  step={1}/>
         </div>

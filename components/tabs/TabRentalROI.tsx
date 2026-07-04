@@ -261,7 +261,7 @@ export default function TabRentalROI({ property, userId }: Props) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
                   gap: 16,
                 }}
               >
@@ -293,7 +293,7 @@ export default function TabRentalROI({ property, userId }: Props) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
                   gap: 16,
                 }}
               >
