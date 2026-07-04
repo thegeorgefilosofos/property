@@ -424,14 +424,14 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
       {showCreate && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.01em' }}>Νέα Υπενθύμιση</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 12 }}>
             <TextInput label="Τίτλος" value={newTitle} onChange={setNewTitle} placeholder="για παράδειγμα Λήξη Ασφαλιστηρίου, Επιθεώρηση Πυρασφάλειας..."/>
             <DatePicker label="Ημερομηνία" value={newDueDate} onChange={setNewDueDate}/>
           </div>
           <div style={{ marginBottom: 12 }}>
             <TextInput label="Περιγραφή (προαιρετικό)" value={newBody} onChange={setNewBody} placeholder="για παράδειγμα Επικοινώνησε με ασφαλιστικό..."/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 16 }}>
             <CustomSelect label="Σημαντικότητα" value={newSeverity} onChange={setNewSeverity} options={SEV_OPTIONS}/>
             <CustomSelect label="Αφορά" value={newAudience} onChange={setNewAudience} options={AUDIENCE_OPTIONS}/>
             <CustomSelect label="Επανάληψη" value={newRepeat} onChange={setNewRepeat} options={REPEAT_OPTIONS}/>

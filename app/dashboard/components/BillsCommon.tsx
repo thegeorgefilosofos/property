@@ -191,7 +191,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       )}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Διαχείριση / μήνα',  value: mgmtMonthly > 0 ? fe(mgmtMonthly) : 'Δωρεάν' },
           { label: 'Ταμείο / μήνα',      value: parseFloat(fundMonthly) > 0 ? fe(parseFloat(fundMonthly)) : '—' },
@@ -209,7 +209,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Διαχείριση Κτηρίου')}
 
         {/* FIX: 3 cols so DatePicker has enough room — was 4 cols causing overflow */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Τύπος Διαχείρισης"  value={mgmtType}   onChange={sMgmt}  options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο Κόστος (€)" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
           <NumberInput  label="Ημέρα Χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
@@ -227,7 +227,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         {/* Comparison cards */}
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Σύγκριση Επιλογών</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8 }}>
           {MGMT_CARDS.map(opt => {
             const isCur    = mgmtType === opt.key;
             const isHov    = hoveredCard === opt.key && !isCur;
@@ -267,11 +267,11 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Ταμείο Κτηρίου')}
 
         {/* FIX: 2+2 grid layout so DatePicker label doesn't overflow */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <NumberInput label="Υπόλοιπο Ταμείου (€)" value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
           <NumberInput label="Μερίδιό Μου (%)"        value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <NumberInput label="Μηνιαία Εισφορά (€)"   value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
           <DatePicker  label="Τελευταία Ενημέρωση"    value={fundLastDate} onChange={sFundD}/>
         </div>
@@ -406,7 +406,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         </div>
 
         {/* Input grid — hover + focus styles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
           {MONTHS_GR.map((m, i) => (
             <div key={i}>
               <label style={{ fontSize: 8, color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-secondary)' : 'var(--text-tertiary)', display: 'block', marginBottom: 3, textAlign: 'center', fontFamily: T.font.sans, fontWeight: i === currentMonth ? 700 : 400, transition: 'color 0.15s' }}>{m}</label>
@@ -426,7 +426,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         </div>
 
         {monthlyAvg > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 14 }}>
             {[
               { label: 'Μέσο Μηνιαίο',      value: fe(monthlyAvg),                                         color: 'var(--text-primary)' },
               { label: 'Ακριβότερος Μήνας',  value: fe(Math.max(...history.map(v => parseFloat(v) || 0))), color: 'var(--negative)'     },

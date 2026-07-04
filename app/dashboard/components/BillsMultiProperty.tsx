@@ -163,11 +163,11 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
       {showCreate && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 24, marginBottom: 20 }}>
           {secHdr('Προσθήκη Νέου Ακινήτου')}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <TextInput label="Όνομα Ακινήτου" value={newProp.name} onChange={v => setNewProp(p => ({ ...p, name: v }))} placeholder="για παράδειγμα Αρύββου 45"/>
             <TextInput label="Διεύθυνση" value={newProp.address} onChange={v => setNewProp(p => ({ ...p, address: v }))} placeholder="για παράδειγμα Αρύββου 45, Βύρωνας"/>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 16 }}>
             <TextInput   label="Πόλη"       value={newProp.city}  onChange={v => setNewProp(p => ({ ...p, city: v  }))} placeholder="για παράδειγμα Αθήνα"/>
             <CustomSelect label="Τύπος"     value={newProp.type}  onChange={v => setNewProp(p => ({ ...p, type: v  }))} options={PROPERTY_TYPES}/>
             <NumberInput  label="Εμβαδόν (τετραγωνικά μέτρα)" value={newProp.sqm} onChange={v => setNewProp(p => ({ ...p, sqm: v }))} suffix="τετραγωνικά μέτρα" step={5}/>
@@ -227,7 +227,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           </div>
 
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 20 }}>
             {[
               { label: 'Συνολικό / μήνα',   value: fe(totalAll, 0)                                                        },
               { label: 'Μέσο / ακίνητο',    value: fe(avg, 0)                                                             },
@@ -298,6 +298,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           {/* Table */}
           {view === 'table' && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+              <div className="table-wrap">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 700 }}>
                 <thead>
                   <tr>{['Ακίνητο','Τ.μ.',...CAT_KEYS.map(k => CAT_LABELS[k]),'Σύνολο / μήνα','Σύνολο / έτος','Ανεξόφλητα'].map((h, i) => (
@@ -334,6 +335,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                   </tr>
                 </tfoot>
               </table>
+              </div>
             </div>
           )}
 

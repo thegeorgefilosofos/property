@@ -391,7 +391,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                 }
 
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 6 }}>
                     {Object.entries(ALL_BANK_INSTRUCTIONS).map(([name, info], i) => (
                       <div key={i} onClick={() => setSelectedBank(name)}
                         style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '8px 12px', cursor: 'pointer', transition: 'all 0.15s' }}
@@ -411,7 +411,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
       {step === 'review' && transactions.length > 0 && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
             {[
               { label: 'Συναλλαγές',    value: String(transactions.length) },
               { label: 'Επιλεγμένες',   value: String(selectedCnt)         },

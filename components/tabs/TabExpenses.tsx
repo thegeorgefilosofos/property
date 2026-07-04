@@ -246,7 +246,7 @@ export default function TabExpenses({ property, userId }: Props) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
               gap: 16,
             }}
           >
@@ -356,6 +356,7 @@ export default function TabExpenses({ property, userId }: Props) {
       ) : (
         <div style={{ ...cardStyle, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
+            <div className="table-wrap">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
@@ -482,6 +483,7 @@ export default function TabExpenses({ property, userId }: Props) {
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
         </div>
       )}

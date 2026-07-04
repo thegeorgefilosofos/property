@@ -246,7 +246,7 @@ const ELEC_DEFAULTS = {
 export default function BillsElectricity({ propertyId, userId, onNavigateTab }: { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void }) {
   const supabase   = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const g2: React.CSSProperties   = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 };
+  const g2: React.CSSProperties   = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
   const currentMonth = new Date().getMonth();
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
 
@@ -428,7 +428,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {/* ── Provider + Tariff + Contract ── */}
       <div style={card}>
         {secHdr('Πάροχος & Τιμολόγιο')}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Πάροχος</div>
             <select value={provider} onChange={e => {
@@ -563,7 +563,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         </div>
 
         {tariff.type !== 'dynamic' && kwh > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 14 }}>
             {[
               { label: 'Εκτιμώμενο / μήνα', value: fe(calcMonthly),       color: 'var(--accent)' },
               { label: 'Ετήσιο Κόστος',      value: fe(calcMonthly * 12), color: 'var(--text-primary)' },

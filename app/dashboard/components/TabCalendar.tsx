@@ -235,7 +235,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
   const monthPaid=events.filter(e=>e.status==='paid')
 
   return (
-    <div style={{ display:'flex', gap:12 }}>
+    <div className="cal-layout" style={{ display:'flex', gap:12 }}>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
@@ -293,7 +293,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
           </div>
         </div>
       </div>
-      <div style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
           <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
           {upcoming7.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Roboto',sans-serif" }}>Κανένα εκκρεμές</p>}
@@ -382,7 +382,7 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
   const paidAmt=events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12 }}>
         {[
           { label:'Σύνολο εκκρεμή', value:totalAmt>0?totalAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--accent)' },
           { label:'Ήδη πληρώθηκαν', value:paidAmt>0?paidAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--positive)' },
@@ -590,7 +590,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
             <label style={lbl}>Τίτλος *</label>
             <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="για παράδειγμα Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
             <div>
               <label style={lbl}>Κατηγορία</label>
               <select style={{...inp,appearance:'none' as any,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center',paddingRight:36}} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value as EventCategory}))}>
@@ -604,7 +604,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
               </select>
             </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
             <div>
               <label style={lbl}>Ημερομηνία *</label>
               <input type="date" style={inp} value={form.event_date} onChange={e=>setForm(f=>({...f,event_date:e.target.value}))}/>
@@ -787,7 +787,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
       {/* KPI Bar */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:12 }}>
         {[
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--positive)', icon:<AlertTriangle size={14}/>},

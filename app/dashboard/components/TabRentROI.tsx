@@ -1068,7 +1068,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 <NumberInput label="Πληρότητα %" value={(airbnb as any)[s.oKey]} onChange={(v: string) => sa(s.oKey, v)} suffix="%" step={5} />
                 <div style={{ marginBottom: 12 }}>
                   <span style={labelStyle}>Διάρκεια Σεζόν</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 6 }}>
                     <NumberInput label="" value={(airbnb as any)[s.dKey]} onChange={(v: string) => sa(s.dKey, v)} suffix="" step={0.5} />
                     <select
                       value={(airbnb as any)[s.uKey]}
