@@ -15,7 +15,7 @@ const ERT    = 0.00856;  // Ειδικό Ρυθμιστικό Τέλος
 const ETMEAR = 0.0152;   // ΑΠΕ τέλος
 
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
-  width: '100%', background: isCurrent ? 'rgba(212,175,66,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  width: '100%', background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge, padding: '6px 4px', color: 'var(--text-primary)',
   fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', outline: 'none', textAlign: 'center',
@@ -252,7 +252,7 @@ const BADGE_COLORS: Record<string, { bg: string; color: string; border: string }
   'ΠΡΑΣΙΝΟ':  { bg: 'rgba(52,168,83,0.1)',  color: 'var(--positive)', border: 'rgba(52,168,83,0.25)'  },
   'ΚΙΤΡΙΝΟ':  { bg: 'rgba(242,153,0,0.1)',  color: 'var(--warning)',  border: 'rgba(242,153,0,0.25)'  },
   'ΜΠΛΕ':     { bg: 'rgba(26,115,232,0.1)', color: 'var(--info)',     border: 'rgba(26,115,232,0.25)' },
-  'VNM':      { bg: 'rgba(212,175,66,0.1)', color: 'var(--accent)',   border: 'rgba(212,175,66,0.25)' },
+  'VNM':      { bg: 'rgba(26,115,232,0.1)', color: 'var(--accent)',   border: 'rgba(26,115,232,0.25)' },
   'ΔΥΝΑΜΙΚΟ': { bg: 'rgba(139,92,246,0.1)', color: '#8b5cf6',         border: 'rgba(139,92,246,0.25)' },
   // FIX: 'FLAT' badge δεν είχε χρώμα — έπεφτε στο γκρι fallback. Τώρα distinct teal.
   'FLAT':     { bg: 'rgba(6,182,212,0.1)',  color: '#06b6d4',         border: 'rgba(6,182,212,0.25)'  },
@@ -429,7 +429,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED} — Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
         </div>
         <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.25)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
+          style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
           Σύγκριση ΡΑΑΕΥ →
         </a>
       </div>
@@ -661,7 +661,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   const isBest  = i === 0;
                   const isCur   = t.isCurrent;
                   return (
-                    <tr key={t.id} style={{ background: isCur ? 'rgba(212,175,66,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: isCur ? 'rgba(26,115,232,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {isCur && <span style={{ fontSize: 7, color: 'var(--accent)', marginRight: 6, fontWeight: 800, textTransform: 'uppercase' as const }}>▶ ΤΡΕΧΟΝ</span>}
                         {!isCur && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}

@@ -269,7 +269,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 
 const histInputStyle = (isCurrent: boolean): React.CSSProperties => ({
   width: '100%',
-  background: isCurrent ? 'rgba(212,175,66,0.06)' : 'var(--bg-base)',
+  background: isCurrent ? 'rgba(26,115,232,0.06)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge,
   padding: '5px 3px',
@@ -554,7 +554,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setShowBudgets(s => !s)}
-            style={{ padding: '8px 16px', borderRadius: T.radius.btn, border: `1px solid ${showBudgets ? 'var(--accent)' : 'var(--border-subtle)'}`, background: showBudgets ? 'rgba(212,175,66,0.1)' : 'transparent', color: showBudgets ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            style={{ padding: '8px 16px', borderRadius: T.radius.btn, border: `1px solid ${showBudgets ? 'var(--accent)' : 'var(--border-subtle)'}`, background: showBudgets ? 'rgba(26,115,232,0.1)' : 'transparent', color: showBudgets ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
             Όρια Budget
           </button>
           {!showForm ? (
@@ -778,8 +778,8 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                 <AreaChart data={calc.areaData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#d4af42" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#d4af42" stopOpacity={0}/>
+                      <stop offset="5%"  stopColor="var(--accent)" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false}/>
@@ -787,7 +787,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `${v}€` : ''}/>
                   <Tooltip content={<ChartTooltip/>}/>
                   {calc.avgMonthly > 0 && <ReferenceLine y={calc.avgMonthly} stroke="var(--text-tertiary)" strokeDasharray="4 4" label={{ value: `μέσος όρος ${Math.round(calc.avgMonthly)}€`, position: 'right', fontSize: 9, fill: 'var(--text-tertiary)' }}/>}
-                  <Area type="monotone" dataKey="Σύνολο" stroke="#d4af42" strokeWidth={2} fill="url(#colorTotal)" dot={{ r: 3, fill: '#d4af42' }} activeDot={{ r: 5 }}/>
+                  <Area type="monotone" dataKey="Σύνολο" stroke="var(--accent)" strokeWidth={2} fill="url(#colorTotal)" dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }}/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>

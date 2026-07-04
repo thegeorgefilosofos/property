@@ -189,7 +189,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       const pct   = val / maxH;
       const isCur = i === currentMonth;
       const barH  = Math.max(pct * 64, val > 0 ? 4 : 1);
-      const color = isCur ? '#b8860b' : val > data.avgMonthly * 1.2 ? '#b3261e' : '#1e3a5f';
+      const color = isCur ? 'var(--accent)' : val > data.avgMonthly * 1.2 ? '#b3261e' : '#1e3a5f';
       return `
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
           <div style="font-size:8.5px;font-family:'Roboto Mono',monospace;color:${isCur ? '#8a6508' : '#64748b'};font-weight:${isCur ? '700' : '400'};white-space:nowrap">${val > 0 ? fe(val, 0) : ''}</div>
@@ -234,7 +234,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
     th{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;padding:8px 12px;background:#f4f6f9;border-bottom:2px solid #dbe1e8;text-align:left}
     .card{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#fff;break-inside:avoid;page-break-inside:avoid}
     .section-title{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#111827;padding:13px 18px;border-bottom:1px solid #e8eaed;background:#fff}
-    .section-title .bar{width:4px;height:16px;border-radius:2px;background:#b8860b;flex-shrink:0}
+    .section-title .bar{width:4px;height:16px;border-radius:2px;background:var(--accent);flex-shrink:0}
     .muted{color:#94a3b8;font-weight:500;letter-spacing:0;text-transform:none;font-size:9.5px;margin-left:auto}
   </style>
 </head>
@@ -253,7 +253,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
     <div style="background:#111827;color:#fff;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
       <div>
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-          <span style="width:10px;height:10px;border-radius:2px;background:#b8860b;display:inline-block"></span>
+          <span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>
           <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#d9b24a">Property OS</span>
         </div>
         <div style="font-size:23px;font-weight:800;letter-spacing:-0.02em;line-height:1.15">${esc(data.propertyName)}</div>

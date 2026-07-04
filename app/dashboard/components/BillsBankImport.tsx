@@ -316,8 +316,8 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onClick={() => fileRef.current?.click()}
-            style={{ border: `1px solid ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius: T.radius.card, padding: '44px 32px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(212,175,66,0.03)' : 'var(--bg-elevated)', transition: 'all 0.2s', marginBottom: 20 }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+            style={{ border: `1px solid ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius: T.radius.card, padding: '44px 32px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(26,115,232,0.03)' : 'var(--bg-elevated)', transition: 'all 0.2s', marginBottom: 20 }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
             onMouseLeave={e => { if (!dragOver) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; } }}>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
               <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -395,7 +395,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                     {Object.entries(ALL_BANK_INSTRUCTIONS).map(([name, info], i) => (
                       <div key={i} onClick={() => setSelectedBank(name)}
                         style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '8px 12px', cursor: 'pointer', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-base)'; }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{name}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{info.sub} · {info.format}</div>
@@ -444,7 +444,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
             {filtered.map((tx, i) => (
-              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(212,175,66,0.03)' : 'transparent', transition: 'background 0.1s' }}>
+              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(26,115,232,0.03)' : 'transparent', transition: 'background 0.1s' }}>
                 <input type="checkbox" checked={tx.selected} onChange={() => toggleTx(tx.id)}
                   style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--accent)' }}/>
                 <div style={{ flex: 1, minWidth: 0 }}>

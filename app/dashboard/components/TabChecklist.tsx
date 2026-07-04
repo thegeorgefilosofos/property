@@ -56,7 +56,7 @@ const CATEGORIES = [
   { id: 'renovation', label: 'Ανακαίνιση',            color: 'var(--info)', dot: '#1967d2' },
   { id: 'purchase',   label: 'Αγορά Ακινήτου',        color: 'var(--info)', dot: '#185fa5' },
   { id: 'airbnb',     label: 'Short-term / Airbnb',   color: 'var(--negative)', dot: '#d93025' },
-  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)', dot: '#d4af42' },
+  { id: 'financial',  label: 'Οικονομικά',            color: 'var(--accent)', dot: 'var(--accent)' },
   { id: 'other',      label: 'Άλλο',                  color: 'var(--text-secondary)', dot: '#888' },
 ]
 const PRIORITIES = [
@@ -480,12 +480,12 @@ function exportChecklistPDF(items: ChecklistItem[]) {
 body{font-family:'Roboto',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:#d4af42}
+.logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
 .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
 .meta-r{text-align:right}.meta-title{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
 .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
 .sec-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
-.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#d4af42;flex-shrink:0}
+.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
 .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
@@ -583,7 +583,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Google Sans',sans-serif;font-size:20px;font-weight:700;color:#1a73e8}.logo span{color:#d4af42}
+.logo{font-family:'Google Sans',sans-serif;font-size:20px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
 .logo-sub{font-size:10px;color:#5f6368;margin-top:2px}
 .hdr-right{text-align:right}
 .hdr-title{font-family:'Google Sans',sans-serif;font-size:16px;font-weight:500;color:#202124}

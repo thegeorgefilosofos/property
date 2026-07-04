@@ -450,7 +450,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                   const isBest = i === 0;
                   const diff   = t.monthly - bestMonthly;
                   return (
-                    <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(212,175,66,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(26,115,232,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
                         {!t.isCurrent && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
                         {t.providerLabel}

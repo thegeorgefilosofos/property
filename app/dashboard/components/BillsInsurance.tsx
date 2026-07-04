@@ -692,7 +692,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   { key: 'natural',   label: 'Φυσικές Καταστροφές' },
                 ].map(f => (
                   <button key={f.key} onClick={() => setQuotesFilter(f.key as any)}
-                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'rgba(212,175,66,0.1)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
+                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'rgba(26,115,232,0.1)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
                     {f.label}
                   </button>
                 ))}
@@ -728,9 +728,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   return (
                     <div key={q.plan}
                       onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                      style={{ background: isCurrent ? 'rgba(212,175,66,0.07)' : isBest ? 'rgba(52,168,83,0.05)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'rgba(52,168,83,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
+                      style={{ background: isCurrent ? 'rgba(26,115,232,0.07)' : isBest ? 'rgba(52,168,83,0.05)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'rgba(52,168,83,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
                       {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΛΥΤΕΡΗ ΤΙΜΗ</div>}
-                      {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(212,175,66,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
+                      {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
                       <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
@@ -763,7 +763,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                       const isCur = q.company === insProvider && q.plan === insPlanId;
                       return (
                         <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                          style={{ cursor: 'pointer', background: isCur ? 'rgba(212,175,66,0.08)' : 'transparent', transition: 'background 0.15s' }}>
+                          style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
                           <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
                           <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
@@ -788,7 +788,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         )}
 
         {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
-          <div style={{ background: 'rgba(212,175,66,0.05)', border: '1px solid rgba(212,175,66,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+          <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Συμπλήρωσε εμβαδόν + αξία κτηρίου για Συγκριτική Εκτίμηση Ασφαλίστρων προγραμμάτων
           </div>
         )}

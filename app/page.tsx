@@ -1,9 +1,10 @@
 import Link from 'next/link';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Landing page — δημόσια σελίδα προορισμού (world-class, premium «Midnight
-// Prestige»). Πλήρως ρευστή (clamp + auto-fit) ώστε να είναι άψογη από 320px
-// έως 100 ίντσες. Server component — το FAQ χρησιμοποιεί native <details> (0 JS).
+// Landing page — δημόσια σελίδα προορισμού, στην αισθητική Google (γαλάζιο
+// accent, theme-aware μέσω των tokens του app). Πλήρως ρευστή (clamp + auto-fit)
+// ώστε να είναι άψογη από 320px έως 100 ίντσες. Server component — το FAQ
+// χρησιμοποιεί native <details> (0 JS).
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const metadata = {
@@ -11,13 +12,14 @@ export const metadata = {
   description: 'Επαγγελματική πλατφόρμα για Έλληνες ιδιοκτήτες & μικρά γραφεία: αποδόσεις, δαπάνες, λογαριασμοί, σύγκριση παρόχων ενέργειας, φορολογία 2026, ενοικιαστές — όλα σε ένα.',
 };
 
-const GOLD = '#d4af42';
-const BG = '#080810';
-const PANEL = '#0c0c18';
-const TEXT = '#e8e8f4';
-const MUTED = '#8f8fb5';
-const FAINT = '#5a5a80';
-const LINE = '#1a1a30';
+// Χρώματα από τα design tokens του app (Google γαλάζιο, theme-aware light/dark)
+const GOLD = 'var(--accent)';
+const BG = 'var(--bg-base)';
+const PANEL = 'var(--bg-surface)';
+const TEXT = 'var(--text-primary)';
+const MUTED = 'var(--text-secondary)';
+const FAINT = 'var(--text-tertiary)';
+const LINE = 'var(--border-subtle)';
 
 const FEATURES = [
   { t: 'Πλήρης οικονομική εικόνα', d: 'Έσοδα, δαπάνες, μεικτή & καθαρή απόδοση σε πραγματικό χρόνο — μετά από φόρους, λειτουργικά και αποσβέσεις.', i: 'M3 12h4l3 8 4-16 3 8h4' },
@@ -43,7 +45,7 @@ const FAQ = [
 ];
 
 const wrap: React.CSSProperties = { maxWidth: 1180, margin: '0 auto', padding: '0 clamp(20px, 5vw, 48px)' };
-const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(212,175,66,0.10)', border: '1px solid rgba(212,175,66,0.25)', borderRadius: 100, padding: '6px 14px', fontSize: 12, color: GOLD, fontWeight: 600, letterSpacing: '0.02em' };
+const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(26,115,232,0.10)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: 100, padding: '6px 14px', fontSize: 12, color: GOLD, fontWeight: 600, letterSpacing: '0.02em' };
 const ic = (d: string) => <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
 
 export default function Landing() {
@@ -51,7 +53,7 @@ export default function Landing() {
     <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Google Sans','Inter',-apple-system,sans-serif", overflowX: 'hidden' }}>
 
       {/* ── Nav ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(8,8,16,0.82)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${LINE}` }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-surface) 82%, transparent)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${LINE}` }}>
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: BG, fontWeight: 800, fontSize: 15 }}>P</div>
@@ -93,7 +95,7 @@ export default function Landing() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
           {FEATURES.map((f, i) => (
             <div key={i} style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 24 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(212,175,66,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>{ic(f.i)}</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(26,115,232,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>{ic(f.i)}</div>
               <h3 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.01em' }}>{f.t}</h3>
               <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
             </div>
@@ -113,7 +115,7 @@ export default function Landing() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[['ΔΕΗ myHome Enter', 'ΜΠΛΕ', '142 €'], ['Protergia Value Flow', 'ΚΙΤΡΙΝΟ', '128 €'], ['Ήρων Blue Smart', 'ΜΠΛΕ', '135 €']].map(([n, b, p], i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: BG, border: `1px solid ${i === 1 ? 'rgba(212,175,66,0.4)' : LINE}`, borderRadius: 12, padding: '14px 16px' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: BG, border: `1px solid ${i === 1 ? 'rgba(26,115,232,0.4)' : LINE}`, borderRadius: 12, padding: '14px 16px' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{n}</div>
                   <div style={{ fontSize: 11, color: FAINT, marginTop: 2 }}>{b}{i === 1 ? ' · Φθηνότερο' : ''}</div>
@@ -142,7 +144,7 @@ export default function Landing() {
       {/* ── Pricing ── */}
       <section style={{ ...wrap, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
         <SectionHead over="Τιμολόγηση" title="Απλή, δίκαιη, χωρίς εκπλήξεις" />
-        <div style={{ maxWidth: 460, margin: '0 auto', background: PANEL, border: `1px solid rgba(212,175,66,0.35)`, borderRadius: 20, padding: 'clamp(28px, 4vw, 40px)', textAlign: 'center' }}>
+        <div style={{ maxWidth: 460, margin: '0 auto', background: PANEL, border: `1px solid rgba(26,115,232,0.35)`, borderRadius: 20, padding: 'clamp(28px, 4vw, 40px)', textAlign: 'center' }}>
           <div style={chip}>Προσφορά εκκίνησης</div>
           <div style={{ margin: '22px 0 6px', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
             <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 'clamp(40px, 7vw, 56px)', fontWeight: 700, color: GOLD }}>€1.99</span>
@@ -178,7 +180,7 @@ export default function Landing() {
 
       {/* ── Final CTA ── */}
       <section style={{ ...wrap, paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
-        <div style={{ background: 'linear-gradient(135deg, rgba(212,175,66,0.12), rgba(212,175,66,0.03))', border: `1px solid rgba(212,175,66,0.3)`, borderRadius: 24, padding: 'clamp(36px, 6vw, 64px)', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(26,115,232,0.12), rgba(26,115,232,0.03))', border: `1px solid rgba(26,115,232,0.3)`, borderRadius: 24, padding: 'clamp(36px, 6vw, 64px)', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 14px' }}>Πάρε τον έλεγχο των ακινήτων σου σήμερα</h2>
           <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Δωρεάν για 3 μήνες. Χωρίς κάρτα. Χωρίς δέσμευση.</p>
           <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '15px 34px', borderRadius: 100 }}>Δημιούργησε τον λογαριασμό σου →</Link>
