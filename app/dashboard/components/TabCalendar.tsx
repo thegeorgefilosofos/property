@@ -588,7 +588,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div>
             <label style={lbl}>Τίτλος *</label>
-            <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="π.χ. Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
+            <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="για παράδειγμα Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
             <div>
@@ -628,7 +628,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.recurring?12:0 }}>
               <div>
                 <p style={{ fontFamily:"'Google Sans',sans-serif", fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</p>
-                <p style={{ fontFamily:"'Roboto',sans-serif", fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.25px' }}>Ενοίκιο, δόση, ΕΝΦΙΑ κ.λπ.</p>
+                <p style={{ fontFamily:"'Roboto',sans-serif", fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.25px' }}>Ενοίκιο, δόση, ΕΝΦΙΑ και άλλα</p>
               </div>
               <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:52, height:32, borderRadius:16, border:`2px solid ${form.recurring?'var(--accent)':'var(--border-default)'}`, background:form.recurring?'var(--accent)':'transparent', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
                 <span style={{ position:'absolute', top:'50%', transform:'translateY(-50%)', width:form.recurring?24:16, height:form.recurring?24:16, borderRadius:'50%', background:form.recurring?'var(--accent-text)':'var(--text-secondary)', left:form.recurring?'calc(100% - 26px)':'2px', transition:'all 0.2s' }}/>

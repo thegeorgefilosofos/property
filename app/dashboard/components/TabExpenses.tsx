@@ -219,7 +219,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
   return (
     <div ref={ref} style={{ position:'relative' }}>
       <div style={{ display:'flex', gap:6 }}>
-        <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="π.χ. Αντικατάσταση ψυγείου Bosch" /></div>
+        <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="για παράδειγμα Αντικατάσταση ψυγείου Bosch" /></div>
         {contacts.length > 0 && (
           <button type="button" onClick={() => setShow(s=>!s)}
             style={{ padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily:"'Google Sans', sans-serif" }}>
@@ -416,7 +416,7 @@ function ExpenseForm({
           <label style={labelStyle}>Περιγραφή</label>
           <ContactPicker value={form.description} onChange={v => sf('description',v)} propertyId={propertyId} />
         </div>
-        <TextInput label="Κατάστημα / Πάροχος" value={form.store_vendor} onChange={v => sf('store_vendor',v)} placeholder="π.χ. Κωτσόβολος, ΔΕΗ" />
+        <TextInput label="Κατάστημα / Πάροχος" value={form.store_vendor} onChange={v => sf('store_vendor',v)} placeholder="για παράδειγμα Κωτσόβολος, ΔΕΗ" />
       </div>
 
       {/* Τιμή */}
@@ -488,7 +488,7 @@ function ExpenseForm({
           <Toggle on={form.paid} onChange={v => sf('paid',v)} label="Ναι" labelOff="Όχι" />
         </div>
       </div>
-      <Textarea label="Σημειώσεις" value={form.notes} onChange={v => sf('notes',v)} placeholder="π.χ. Αγοράστηκε στα Black Friday, εγγύηση έως 05/2028..." />
+      <Textarea label="Σημειώσεις" value={form.notes} onChange={v => sf('notes',v)} placeholder="για παράδειγμα Αγοράστηκε στα Black Friday, εγγύηση έως 05/2028..." />
 
       {/* Attachment URL */}
       <div style={{ marginTop:12 }}>
@@ -1512,7 +1512,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif", fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
         <input
           value={quickDesc} onChange={e=>setQuickDesc(e.target.value)}
-          placeholder="Τί αγόρασες; (π.χ. Λογαριασμός ΔΕΗ)"
+          placeholder="Τί αγόρασες; (για παράδειγμα Λογαριασμός ΔΕΗ)"
           onKeyDown={e=>{ if(e.key==='Enter'&&quickAmt) quickSave(); }}
           style={{ flex:3, minWidth:160, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Roboto', sans-serif", outline:'none' }}
         />

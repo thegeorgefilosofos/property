@@ -88,7 +88,7 @@ export function NumberInput({
 
   // FIX: calculate suffix padding based on string length
   // Short suffixes (€, %, η, ω) → 12px each side
-  // Medium (kWh, τ.μ., Mbps) → 10px each side, slightly more space
+  // Medium (kWh, τετραγωνικά μέτρα, Mbps) → 10px each side, slightly more space
   // Long (άτομα, kWp, τεμ.) → 8px each side, ensure min content fits
   const getSuffixPadding = (s: string) => {
     const len = s.length;

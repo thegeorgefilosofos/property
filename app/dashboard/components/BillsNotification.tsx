@@ -425,11 +425,11 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--accent)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.01em' }}>Νέα Υπενθύμιση</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput label="Τίτλος" value={newTitle} onChange={setNewTitle} placeholder="π.χ. Λήξη Ασφαλιστηρίου, Επιθεώρηση Πυρασφάλειας..."/>
+            <TextInput label="Τίτλος" value={newTitle} onChange={setNewTitle} placeholder="για παράδειγμα Λήξη Ασφαλιστηρίου, Επιθεώρηση Πυρασφάλειας..."/>
             <DatePicker label="Ημερομηνία" value={newDueDate} onChange={setNewDueDate}/>
           </div>
           <div style={{ marginBottom: 12 }}>
-            <TextInput label="Περιγραφή (προαιρετικό)" value={newBody} onChange={setNewBody} placeholder="π.χ. Επικοινώνησε με ασφαλιστικό..."/>
+            <TextInput label="Περιγραφή (προαιρετικό)" value={newBody} onChange={setNewBody} placeholder="για παράδειγμα Επικοινώνησε με ασφαλιστικό..."/>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
             <CustomSelect label="Σημαντικότητα" value={newSeverity} onChange={setNewSeverity} options={SEV_OPTIONS}/>

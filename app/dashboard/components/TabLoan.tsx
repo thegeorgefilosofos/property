@@ -352,7 +352,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                     {[
                       prog.max_amount&&['Μέγιστο ποσό',fmtEur(prog.max_amount),prog.color.startsWith('var')?'var(--info)':prog.color,16],
                       prog.max_ltv&&['Μέγιστο LTV',`${prog.max_ltv}%`,'var(--info)',14],
-                      (prog as any).max_sqm&&['Μέγιστα τετραγωνικά',`${(prog as any).max_sqm} τ.μ.`,'var(--text-primary)',12],
+                      (prog as any).max_sqm&&['Μέγιστα τετραγωνικά',`${(prog as any).max_sqm} τετραγωνικά μέτρα`,'var(--text-primary)',12],
                       (prog as any).age_max&&['Ηλικία δικαιούχου',`${(prog as any).age_min}–${(prog as any).age_max} ετών`,'var(--text-primary)',12],
                       (prog.duration&&prog.duration!=='null')&&['Διάρκεια',prog.duration,'var(--text-secondary)',12],
                       prog.deadline&&['Προθεσμία',(prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline),prog.deadline_urgent?'var(--negative)':'var(--positive)',13],
