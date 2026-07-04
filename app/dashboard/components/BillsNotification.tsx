@@ -402,13 +402,13 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
             const cnt = s === 'all' ? allNotifs.filter(n => !dismissed.has(n.id)).length : allNotifs.filter(n => !dismissed.has(n.id) && n.severity === s).length;
             return (
               <button key={s} onClick={() => setFilter(s)}
-                style={{ fontSize: 10, padding: '5px 12px', borderRadius: T.radius.pill, border: `1px solid ${filter === s ? 'var(--accent)' : 'var(--border-subtle)'}`, background: filter === s ? 'rgba(212,175,66,0.1)' : 'transparent', color: filter === s ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: filter === s ? 700 : 400, fontFamily: T.font.sans }}>
+                style={{ fontSize: 10, padding: '5px 12px', borderRadius: T.radius.pill, border: `1px solid ${filter === s ? 'var(--accent)' : 'var(--border-subtle)'}`, background: filter === s ? 'rgba(26,115,232,0.1)' : 'transparent', color: filter === s ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: filter === s ? 700 : 400, fontFamily: T.font.sans }}>
                 {s === 'all' ? 'Όλες' : SEV[s].label}{cnt > 0 && <span style={{ marginLeft: 4, fontSize: 9, fontWeight: 700, color: filter === s ? 'var(--accent)' : 'var(--text-tertiary)' }}>{cnt}</span>}
               </button>
             );
           })}
           <button onClick={() => setShowCreate(v => !v)}
-            style={{ fontSize: 10, padding: '5px 14px', borderRadius: T.radius.pill, border: `1px solid ${showCreate ? 'var(--accent)' : 'var(--border-default)'}`, background: showCreate ? 'rgba(212,175,66,0.08)' : 'transparent', color: showCreate ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: showCreate ? 700 : 500, fontFamily: T.font.sans }}>
+            style={{ fontSize: 10, padding: '5px 14px', borderRadius: T.radius.pill, border: `1px solid ${showCreate ? 'var(--accent)' : 'var(--border-default)'}`, background: showCreate ? 'rgba(26,115,232,0.08)' : 'transparent', color: showCreate ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: showCreate ? 700 : 500, fontFamily: T.font.sans }}>
             + Νέα Υπενθύμιση
           </button>
           {visible.length > 0 && (
@@ -461,7 +461,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
             <button onClick={() => setShowCreate(true)}
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.2)', borderRadius: T.radius.pill, padding: '8px 20px', cursor: 'pointer', fontFamily: T.font.sans }}>
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.pill, padding: '8px 20px', cursor: 'pointer', fontFamily: T.font.sans }}>
               + Πρόσθεσε Υπενθύμιση
             </button>
             {dismissed.size > 0 && (

@@ -152,7 +152,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
         </div>
         <button onClick={() => onChange(!val)} style={{
           width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer',
-          background: val ? '#d4af42' : '#242438', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+          background: val ? 'var(--accent)' : '#242438', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
         }}>
           <span style={{ position: 'absolute', top: 3, left: val ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }}/>
         </button>
@@ -161,7 +161,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
   }
 
   const catColors: Record<string, string> = {
-    financial: '#d4af42', bills: '#60a5fa', maintenance: '#34d399',
+    financial: 'var(--accent)', bills: '#60a5fa', maintenance: '#34d399',
     contract: '#a78bfa', tenant: '#fb923c', reminder: '#9ca3af',
   }
   const catLabels: Record<string, string> = {
@@ -220,7 +220,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
                           <RotateCcw size={9}/>{s.recurring_interval === 'annual' ? 'Ετήσιο' : s.recurring_interval === 'monthly' ? 'Μηνιαίο' : 'Τριμηνιαίο'}
                         </span>
                       )}
-                      {s.amount && <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#d4af42' }}>~{s.amount}€</span>}
+                      {s.amount && <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>~{s.amount}€</span>}
                     </div>
                     <p style={{ fontSize: 11, color: '#5a5a70' }}>💡 {s.reason}</p>
                   </div>
@@ -263,8 +263,8 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
       {/* ── Email Notifications ── */}
       <div style={{ background: '#12121f', border: '1px solid #242438', borderRadius: 10, padding: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 32, height: 32, background: 'rgba(212,175,66,0.1)', border: '1px solid rgba(212,175,66,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bell size={15} color="#d4af42"/>
+          <div style={{ width: 32, height: 32, background: 'rgba(26,115,232,0.1)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Bell size={15} color="var(--accent)"/>
           </div>
           <div>
             <p style={{ fontSize: 13, color: '#e2e2f0', fontWeight: 600 }}>Email Ειδοποιήσεις</p>
@@ -307,7 +307,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
         <button onClick={save} disabled={saving} style={{
           width: '100%', marginTop: 16,
-          background: saved ? '#34d399' : '#d4af42', color: '#08080d',
+          background: saved ? '#34d399' : 'var(--accent)', color: '#08080d',
           border: 'none', borderRadius: 7, padding: '10px 0',
           fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
           textTransform: 'uppercase', letterSpacing: '0.1em',

@@ -222,7 +222,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               <div
                 onClick={() => cameraRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 168, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
               >
                 <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
@@ -236,7 +236,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               <div
                 onClick={() => fileRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 168, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(212,175,66,0.03)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
               >
                 <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
@@ -256,7 +256,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                 style={{ width: '100%', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', maxHeight: 500, objectFit: 'contain', background: '#fff' }}
               />
               {scanning && (
-                <div style={{ marginTop: 12, background: 'rgba(212,175,66,0.06)', border: '1px solid rgba(212,175,66,0.2)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ marginTop: 12, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }}/>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
                     <strong style={{ color: 'var(--accent)' }}>Claude AI</strong> αναλύει τον λογαριασμό...

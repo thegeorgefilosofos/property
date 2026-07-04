@@ -83,10 +83,10 @@ body {
   --bg-hover:      rgba(60,64,67,0.08);
   --bg-active:     rgba(26,115,232,0.12);
 
-  --accent:        #b8860b;   /* Gold brand — Midnight Prestige */
-  --accent-dim:    rgba(184,134,11,0.12);
-  --accent-hover:  #9a6f09;
-  --accent-text:   #1a1a1a;
+  --accent:        #1a73e8;   /* Google Blue — brand accent (light) */
+  --accent-dim:    rgba(26,115,232,0.12);
+  --accent-hover:  #1765cc;
+  --accent-text:   #ffffff;
 
   --positive:      #188038;
   --positive-dim:  rgba(24,128,56,0.12);
@@ -182,10 +182,10 @@ body {
   --bg-hover:      rgba(232,234,237,0.08);
   --bg-active:     rgba(168,199,250,0.12);
 
-  --accent:        #d4af42;   /* Gold brand — Midnight Prestige (dark) */
-  --accent-dim:    rgba(212,175,66,0.15);
-  --accent-hover:  #e0c05a;
-  --accent-text:   #1a1a1a;
+  --accent:        #8ab4f8;   /* Google Blue — brand accent (dark) */
+  --accent-dim:    rgba(138,180,248,0.15);
+  --accent-hover:  #aecbfa;
+  --accent-text:   #0a2647;
 
   --positive:      #81c995;
   --positive-dim:  rgba(129,201,149,0.15);
@@ -1189,10 +1189,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --bg-overlay:    #3c4043;
     --bg-hover:      rgba(232,234,237,0.08);
     --bg-active:     rgba(168,199,250,0.12);
-    --accent:        #aecbfa;
-    --accent-dim:    rgba(174,203,250,0.15);
-    --accent-hover:  #d2e3fc;
-    --accent-text:   #0a2d6b;
+    --accent:        #8ab4f8;
+    --accent-dim:    rgba(138,180,248,0.15);
+    --accent-hover:  #aecbfa;
+    --accent-text:   #0a2647;
     --positive:      #81c995;
     --positive-dim:  rgba(129,201,149,0.15);
     --negative:      #f28b82;
