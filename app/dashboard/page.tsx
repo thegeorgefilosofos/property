@@ -22,6 +22,7 @@ import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
+import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -299,7 +300,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
+function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: string; onNavigate: (tab: string) => void }) {
   const supabase = createClient();
   const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
@@ -409,6 +410,15 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           Αναφορά (PDF)
         </button>
       </div>
+
+      <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
+        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση — για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
+        { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
+        { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
+        { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
+        { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
+      ] as SetupStep[]}/>
+
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent), color:'var(--accent)' },
@@ -756,7 +766,7 @@ export default function Dashboard() {
               );})}
             </nav>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={setNav}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
