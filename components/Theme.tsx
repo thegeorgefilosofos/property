@@ -27,7 +27,55 @@ export const T = {
     mono: "'Roboto Mono', 'JetBrains Mono', monospace",
   },
   sp: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 },
+  // Καμπύλες κίνησης Google (Material 3) — μία πηγή για όλα τα transitions.
+  ease: { standard: 'cubic-bezier(0.2, 0, 0, 1)', emphasized: 'cubic-bezier(0.3, 0, 0, 1)', decel: 'cubic-bezier(0, 0, 0, 1)' },
 } as const;
+
+// ── Τυπογραφική κλίμακα — ΜΙΑ πηγή αλήθειας για μεγέθη/βάρη/spacing.
+// Στόχος: «Google οπτική» ομοιομορφία — ίδιοι τίτλοι/ετικέτες/τιμές παντού.
+// Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
+export const TT = {
+  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
+  h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
+  h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
+  // Ετικέτα ενότητας — η uppercase «τελεία» των Bills, τυποποιημένη.
+  label:   { fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)' },
+  body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)' },
+  bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)' },
+  caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)' },
+  // Αριθμοί/ποσά — πάντα mono + tabular για ευθυγράμμιση.
+  kpi:     { fontFamily: T.font.mono, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, color: 'var(--text-primary)' },
+  mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
+} as const;
+
+// ═══ Skeleton — placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση...») ══════════
+export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
+  return <div className="skeleton" style={{ width: w, height: h, borderRadius: r, ...style }} />;
+}
+
+// ═══ SkeletonKPIs — σειρά από skeleton κάρτες μετρικών ═════════════════════
+export function SkeletonKPIs({ n = 4 }: { n?: number }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+          <Skeleton w={70} h={9} style={{ marginBottom: 12 }} />
+          <Skeleton w={90} h={20} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══ Spinner — κυκλικός δείκτης φόρτωσης (Google style) ════════════════════
+export function Spinner({ size = 22, label }: { size?: number; label?: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 40 }}>
+      <div style={{ width: size, height: size, borderRadius: '50%', border: `${Math.max(2, size / 12)}px solid var(--border-subtle)`, borderTopColor: 'var(--accent)', animation: 'spin 0.7s linear infinite' }} />
+      {label && <span style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>{label}</span>}
+    </div>
+  );
+}
 
 // ── Μορφοποίηση ποσών (μία υλοποίηση για όλη την εφαρμογή) ─────────────────
 export const fe = (n: number, d = 2) =>

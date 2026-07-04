@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
+import { Spinner } from '@/components/Theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -1947,7 +1948,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* List */}
       {loading ? (
-        <div style={{ textAlign:'center', padding:48, color:'var(--text-tertiary)', fontSize:12, fontFamily:"'Google Sans', sans-serif", textTransform:'uppercase' }}>Φόρτωση...</div>
+        <Spinner label="Φόρτωση…" />
       ) : processed.length === 0 ? (
         <div style={{ textAlign:'center', padding:64, color:'var(--text-tertiary)' }}>
           <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>

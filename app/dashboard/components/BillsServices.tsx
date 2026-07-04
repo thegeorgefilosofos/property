@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Spinner } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -223,7 +223,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const delOther   = (i: number) => upd({ otherServices: (s.otherServices || []).filter((_: any, j: number) => j !== i) });
   const updHistory = (i: number, v: string) => { const n = [...(s.dimotikaHistory || [])]; n[i] = v; upd({ dimotikaHistory: n }); };
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση...</div>;
+  if (loading) return <Spinner label="Φόρτωση…" />;
 
   // ── Section header ────────────────────────────────────────────────────────
   const secHdr = (label: string, sub?: string, link?: { url: string; text: string }) => (

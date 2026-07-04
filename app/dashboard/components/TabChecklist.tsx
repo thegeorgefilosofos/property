@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, type KPIItem } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, type KPIItem } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -1694,7 +1694,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
 
       {/* Content */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>Φόρτωση...</div>
+        <Spinner label="Φόρτωση…" />
       ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px dashed var(--border-default)' }}>
           <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.2" style={{ margin: '0 auto 18px', display: 'block', opacity: 0.35 }}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" /></svg>

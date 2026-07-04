@@ -75,7 +75,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 60 }}>
           <div style={{
-            width: 32, height: 32, background: '#c9a84c',
+            width: 32, height: 32, background: '#d4af42',
             borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{ color: '#05050d', fontSize: 16, fontWeight: 800 }}>P</span>
@@ -84,8 +84,8 @@ export default function LoginPage() {
             Property OS
           </span>
           <span style={{
-            fontSize: 10, color: '#c9a84c',
-            background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)',
+            fontSize: 10, color: '#d4af42',
+            background: 'rgba(212,175,66,.1)', border: '1px solid rgba(212,175,66,.2)',
             borderRadius: 4, padding: '2px 8px', letterSpacing: '0.06em', fontWeight: 600,
           }}>BETA</span>
         </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
             lineHeight: 1.1, margin: '0 0 20px', color: '#e8e8f4',
           }}>
             Το ακίνητό σου.<br />
-            <span style={{ color: '#c9a84c' }}>Υπό έλεγχο.</span>
+            <span style={{ color: '#d4af42' }}>Υπό έλεγχο.</span>
           </h1>
           <p style={{
             fontSize: 14, color: '#52527a', lineHeight: 1.72,
@@ -118,7 +118,7 @@ export default function LoginPage() {
               marginBottom: i < PILLARS.length - 1 ? 20 : 0,
               borderBottom: i < PILLARS.length - 1 ? '1px solid #0d0d20' : 'none',
             }}>
-              <div style={{ background: '#c9a84c', borderRadius: 1, opacity: 0.5 }} />
+              <div style={{ background: '#d4af42', borderRadius: 1, opacity: 0.5 }} />
               <div>
                 <p style={{
                   fontSize: 11, fontWeight: 700, color: '#b8b8d8',
@@ -140,7 +140,7 @@ export default function LoginPage() {
           marginTop: 44, paddingTop: 28,
           borderTop: '1px solid #0d0d20',
         }}>
-          <p style={{ fontSize: 12, color: '#c9a84c', fontWeight: 600, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+          <p style={{ fontSize: 12, color: '#d4af42', fontWeight: 600, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
             Δωρεάν για 3 μήνες
           </p>
           <p style={{ fontSize: 11, color: '#2e2e52', margin: 0, lineHeight: 1.7 }}>
@@ -157,7 +157,7 @@ export default function LoginPage() {
         <div style={{ width: '100%', maxWidth: 360 }}>
 
           <p style={{
-            fontSize: 11, fontWeight: 600, color: '#c9a84c',
+            fontSize: 11, fontWeight: 600, color: '#d4af42',
             letterSpacing: '0.08em', textTransform: 'uppercase',
             margin: '0 0 12px',
           }}>
@@ -171,7 +171,7 @@ export default function LoginPage() {
           </h2>
           <p style={{ fontSize: 13, color: '#48486a', margin: '0 0 36px', lineHeight: 1.5 }}>
             Δεν έχεις λογαριασμό;{' '}
-            <Link href="/signup" style={{ color: '#c9a84c', textDecoration: 'none', fontWeight: 500 }}>
+            <Link href="/signup" style={{ color: '#d4af42', textDecoration: 'none', fontWeight: 500 }}>
               Εγγραφή δωρεάν
             </Link>
           </p>
@@ -191,7 +191,7 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="onoma@email.com"
                 style={field}
-                onFocus={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,.45)'}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(212,175,66,.45)'}
                 onBlur={e => e.currentTarget.style.borderColor = '#1c1c34'}
               />
             </div>
@@ -204,7 +204,7 @@ export default function LoginPage() {
                 }}>
                   Κωδικός
                 </label>
-                <span style={{ fontSize: 12, color: '#c9a84c', cursor: 'pointer' }}>
+                <span style={{ fontSize: 12, color: '#d4af42', cursor: 'pointer' }}>
                   Ξέχασες τον κωδικό;
                 </span>
               </div>
@@ -213,7 +213,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 style={field}
-                onFocus={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,.45)'}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(212,175,66,.45)'}
                 onBlur={e => e.currentTarget.style.borderColor = '#1c1c34'}
               />
             </div>
@@ -229,7 +229,7 @@ export default function LoginPage() {
 
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '13px',
-              background: loading ? '#7a6230' : '#c9a84c',
+              background: loading ? '#7a6230' : '#d4af42',
               border: 'none', borderRadius: 8,
               color: '#05050d', fontSize: 14, fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',

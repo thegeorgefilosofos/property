@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
-import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd } from '@/components/Theme'
+import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd, Spinner } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -1520,7 +1520,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       </div>
 
       {loading
-        ?<div style={{textAlign:'center',padding:'80px 0',color:'var(--text-tertiary)'}}><p style={{fontSize:13,fontFamily:"'Roboto',sans-serif"}}>Φόρτωση απογραφής...</p></div>
+        ?<Spinner label="Φόρτωση…" />
         :(
           <>
             {activeTab==='overview'&&<OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice}/>}
