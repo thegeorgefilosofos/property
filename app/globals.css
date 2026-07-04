@@ -1521,3 +1521,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .app-topbar .prop-title, .app-topbar h1 { font-size: 15px; }
   .kpi-value { font-size: 17px; }
 }
+
+/* Landing FAQ: κρύψε τον προεπιλεγμένο δείκτη του <summary> */
+summary::-webkit-details-marker { display: none; }
+summary::marker { content: ""; }
