@@ -170,7 +170,7 @@ const GROUPS = [
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
       { value: 'pest', label: 'Απεντόμωση / Μυοκτονία' },
       { value: 'cleaning', label: 'Καθαρισμός' },
-      { value: 'cleaning_ext', label: 'Καθαρισμός Εξωτ. Χώρων' },
+      { value: 'cleaning_ext', label: 'Καθαρισμός Εξωτερικών Χώρων' },
       { value: 'security', label: 'Ασφάλεια / Φύλαξη' },
     ],
   },
@@ -486,7 +486,7 @@ function printContactCard(contact: Contact) {
     <div class="role">${meta.label}</div>
     <div class="status" style="background:${status.bg};color:${status.color}">${status.label}</div><hr>
     ${contact.phone ? `<div class="row"><span class="label">Τηλέφωνο</span><span>${contact.phone}${extra.whatsapp ? '<span class="badge" style="background:#dcfce7;color:#166534">WA</span>' : ''}${extra.viber ? '<span class="badge" style="background:#ede9fe;color:#5b21b6">VB</span>' : ''}</span></div>` : ''}
-    ${extra.phone2 ? `<div class="row"><span class="label">2ο Τηλ.</span><span>${extra.phone2}</span></div>` : ''}
+    ${extra.phone2 ? `<div class="row"><span class="label">2ο Τηλέφωνο</span><span>${extra.phone2}</span></div>` : ''}
     ${contact.email ? `<div class="row"><span class="label">Email</span><span>${contact.email}</span></div>` : ''}
     ${extra.website ? `<div class="row"><span class="label">Ιστοσελίδα</span><span>${extra.website}</span></div>` : ''}
     ${extra.office_address ? `<div class="row"><span class="label">Διεύθυνση</span><span>${extra.office_address}</span></div>` : ''}
@@ -512,7 +512,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
           <div><h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Νέα Δαπάνη</h3><p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{contact.full_name}</p></div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="π.χ. 150" type="number" /></div>
+          <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" /></div>
           <div><FL>Περιγραφή</FL><Inp value={description} onChange={setDescription} placeholder="Περιγραφή εργασίας" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
@@ -1243,14 +1243,14 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               {modalTab === 'basic' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <AvatarUpload avatarUrl={form.extra.avatar_url || ''} initials={initials} color={formColor} onChange={v => setExtra('avatar_url', v)} />
-                  <div><FL>Ονοματεπώνυμο / Επωνυμία *</FL><Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="π.χ. Γιώργης Παπαδόπουλος ή ΔΕΗ ΑΕ" /></div>
+                  <div><FL>Ονοματεπώνυμο / Επωνυμία *</FL><Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργης Παπαδόπουλος ή ΔΕΗ ΑΕ" /></div>
                   <div>
                     <FL>Κατηγορία / Ρόλος</FL>
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
                       {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                   </div>
-                  <div><FL>Υπο-ειδικότητα (προαιρετικό)</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="π.χ. Ειδικός σε κεντρική θέρμανση" /></div>
+                  <div><FL>Υπο-ειδικότητα (προαιρετικό)</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: Ειδικός σε κεντρική θέρμανση" /></div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                     <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη Επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εμφάνιση στη γρήγορη πρόσβαση</div></div>
                     <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
@@ -1271,8 +1271,8 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
               {modalTab === 'contact' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><FL>Κύριο Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="π.χ. 2101234567" /></div>
-                  <div><FL>Δεύτερο Τηλέφωνο / Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="π.χ. 6941234567" /></div>
+                  <div><FL>Κύριο Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="Παράδειγμα: 2101234567" /></div>
+                  <div><FL>Δεύτερο Τηλέφωνο / Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="Παράδειγμα: 6941234567" /></div>
 
                   {/* WhatsApp & Viber — λειτουργικά */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
@@ -1297,15 +1297,15 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
                   <div><FL>Email</FL><Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" /></div>
                   <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
-                  <div><FL>Διεύθυνση Γραφείου</FL><Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="π.χ. Σταδίου 15, Αθήνα" /></div>
-                  <div><FL>Ωράριο Εργασίας</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="π.χ. Δευτέρα-Παρασκευή 09:00-17:00" /></div>
+                  <div><FL>Διεύθυνση Γραφείου</FL><Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Παράδειγμα: Σταδίου 15, Αθήνα" /></div>
+                  <div><FL>Ωράριο Εργασίας</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Παράδειγμα: Δευτέρα-Παρασκευή 09:00-17:00" /></div>
                 </div>
               )}
 
               {modalTab === 'professional' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><FL>ΑΦΜ</FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="π.χ. 123456789" /></div>
-                  <div><FL>Αριθμός Μητρώου / Άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="π.χ. Αρ. Αδείας Μεσίτη 123" /></div>
+                  <div><FL>ΑΦΜ</FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="Παράδειγμα: 123456789" /></div>
+                  <div><FL>Αριθμός Μητρώου / Άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="Παράδειγμα: Αριθμός Αδείας Μεσίτη 123" /></div>
 
                   {/* IBAN Section */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '16px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 14 }}>
