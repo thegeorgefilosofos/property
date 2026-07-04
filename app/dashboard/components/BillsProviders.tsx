@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Spinner } from '@/components/Theme';
 
 const INTERNET_PROVIDERS = [
   { value: 'cosmote',   label: 'Cosmote',   url: 'https://www.cosmote.gr',    color: '#009fe3' },
@@ -240,7 +240,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
     );
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση...</div>;
+  if (loading) return <Spinner label="Φόρτωση…" />;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>

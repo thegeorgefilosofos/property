@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect } from './UIComponents';
-import { T, fe } from '@/components/Theme';
+import { T, fe, Spinner } from '@/components/Theme';
 
 const mdLabel: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.5px',
@@ -124,7 +124,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
     </div>
   );
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Φόρτωση ακινήτων...</div>;
+  if (loading) return <Spinner label="Φόρτωση…" />;
 
   const sorted    = [...properties].sort((a, b) => sortBy === 'total' ? (costs[b.id]?.total || 0) - (costs[a.id]?.total || 0) : sortBy === 'name' ? a.name.localeCompare(b.name) : (b.sqm || 0) - (a.sqm || 0));
   const maxTotal  = Math.max(...properties.map(p => costs[p.id]?.total || 0), 1);

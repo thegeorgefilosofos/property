@@ -43,20 +43,20 @@ export default function SignupPage() {
         justifyContent: 'space-between', padding: '48px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, background: '#c9a84c', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, background: '#d4af42', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: '#080810', fontSize: 14, fontWeight: 800 }}>P</span>
           </div>
           <span style={{ color: '#e8e8f4', fontSize: 15, fontWeight: 600, letterSpacing: '-0.02em' }}>Property OS</span>
         </div>
 
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#c9a84c18', border: '1px solid #c9a84c30', borderRadius: 20, padding: '4px 12px', marginBottom: 24 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#c9a84c' }}/>
-            <span style={{ fontSize: 11, color: '#c9a84c', fontWeight: 500, letterSpacing: '0.04em' }}>3 μήνες δωρεάν</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#d4af4218', border: '1px solid #d4af4230', borderRadius: 20, padding: '4px 12px', marginBottom: 24 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af42' }}/>
+            <span style={{ fontSize: 11, color: '#d4af42', fontWeight: 500, letterSpacing: '0.04em' }}>3 μήνες δωρεάν</span>
           </div>
           <h1 style={{ fontSize: 36, fontWeight: 700, color: '#e8e8f4', letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 16px' }}>
             Ξεκίνα να<br/>
-            <span style={{ color: '#c9a84c' }}>κερδίζεις</span><br/>
+            <span style={{ color: '#d4af42' }}>κερδίζεις</span><br/>
             περισσότερα.
           </h1>
           <p style={{ fontSize: 14, color: '#6868a0', lineHeight: 1.6, margin: 0, maxWidth: 280 }}>
@@ -72,7 +72,7 @@ export default function SignupPage() {
             { i: '✓', l: 'Διαχείριση ενοικιαστή & συμβολαίου' },
           ].map(f => (
             <div key={f.l} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: '#c9a84c', fontSize: 12, fontWeight: 700 }}>{f.i}</span>
+              <span style={{ color: '#d4af42', fontSize: 12, fontWeight: 700 }}>{f.i}</span>
               <span style={{ fontSize: 13, color: '#9090b8' }}>{f.l}</span>
             </div>
           ))}
@@ -85,12 +85,12 @@ export default function SignupPage() {
 
           {done ? (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 56, height: 56, background: '#c9a84c18', border: '1px solid #c9a84c30', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 24 }}>✓</div>
+              <div style={{ width: 56, height: 56, background: '#d4af4218', border: '1px solid #d4af4230', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 24 }}>✓</div>
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#e8e8f4', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Έλεγξε το email σου</h2>
               <p style={{ fontSize: 14, color: '#6868a0', lineHeight: 1.6, margin: '0 0 24px' }}>
                 Στείλαμε επιβεβαίωση στο <strong style={{ color: '#9090b8' }}>{email}</strong>. Κλικ στον σύνδεσμο για να ενεργοποιήσεις τον λογαριασμό σου.
               </p>
-              <Link href="/login" style={{ display: 'inline-block', padding: '10px 24px', background: '#c9a84c', borderRadius: 8, color: '#080810', fontSize: 14, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+              <Link href="/login" style={{ display: 'inline-block', padding: '10px 24px', background: '#d4af42', borderRadius: 8, color: '#080810', fontSize: 14, fontWeight: 600, textDecoration: 'none', letterSpacing: '-0.01em' }}>
                 Πήγαινε στη Σύνδεση →
               </Link>
             </div>
@@ -99,7 +99,7 @@ export default function SignupPage() {
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#e8e8f4', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Δημιουργία λογαριασμού</h2>
               <p style={{ fontSize: 13, color: '#6868a0', margin: '0 0 32px' }}>
                 Έχεις ήδη λογαριασμό;{' '}
-                <Link href="/login" style={{ color: '#c9a84c', textDecoration: 'none', fontWeight: 500 }}>Σύνδεση</Link>
+                <Link href="/login" style={{ color: '#d4af42', textDecoration: 'none', fontWeight: 500 }}>Σύνδεση</Link>
               </p>
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -107,14 +107,14 @@ export default function SignupPage() {
                   <label style={{ fontSize: 12, color: '#9090b8', fontWeight: 500, display: 'block', marginBottom: 6 }}>Email</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="name@company.com" required style={inp}
-                    onFocus={e => e.target.style.borderColor='#c9a84c'}
+                    onFocus={e => e.target.style.borderColor='#d4af42'}
                     onBlur={e => e.target.style.borderColor='#1e1e38'}/>
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: '#9090b8', fontWeight: 500, display: 'block', marginBottom: 6 }}>Κωδικός</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                     placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} style={inp}
-                    onFocus={e => e.target.style.borderColor='#c9a84c'}
+                    onFocus={e => e.target.style.borderColor='#d4af42'}
                     onBlur={e => e.target.style.borderColor='#1e1e38'}/>
                 </div>
 
@@ -126,7 +126,7 @@ export default function SignupPage() {
 
                 <button type="submit" disabled={loading} style={{
                   width: '100%', padding: '11px',
-                  background: loading ? '#8a6328' : '#c9a84c',
+                  background: loading ? '#8a6328' : '#d4af42',
                   border: 'none', borderRadius: 8,
                   color: '#080810', fontSize: 14, fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer',
