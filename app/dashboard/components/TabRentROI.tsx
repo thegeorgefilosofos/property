@@ -73,7 +73,7 @@ const LOAN_TYPES = [
 const COMPANY_HQ = [
   { value: 'none', label: 'Φυσικό Πρόσωπο' },
   { value: 'greece', label: 'Εταιρεία — Ελλάδα' },
-  { value: 'eu', label: 'Εταιρεία — Ευρωπαϊκή Ένωση (π.χ. Κύπρος, Βουλγαρία)' },
+  { value: 'eu', label: 'Εταιρεία — Ευρωπαϊκή Ένωση (για παράδειγμα Κύπρος, Βουλγαρία)' },
   { value: 'uk', label: 'Εταιρεία — Ηνωμένο Βασίλειο' },
   { value: 'uae', label: 'Εταιρεία — Ηνωμένα Αραβικά Εμιράτα' },
   { value: 'usa', label: 'Εταιρεία — Ηνωμένες Πολιτείες Αμερικής' },
@@ -835,7 +835,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => sb('euribor', v)} suffix="%" step={0.1} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <NumberInput label="Σύγκριση ETF (π.χ. VUAA — απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
+            <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA — απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
             {[
@@ -1199,7 +1199,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <div style={cardStyle}>
           <SectionLabel label="Στοιχεία Δανείου" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 12 }}>
-            <TextInput label="Τράπεζα / Ίδρυμα" value={loan.bank_name} onChange={v => sl('bank_name', v)} placeholder="π.χ. Alpha Bank" />
+            <TextInput label="Τράπεζα / Ίδρυμα" value={loan.bank_name} onChange={v => sl('bank_name', v)} placeholder="Παράδειγμα: Alpha Bank" />
             <CustomSelect label="Τύπος Δανείου" value={loan.loan_type} onChange={v => sl('loan_type', v)} options={LOAN_TYPES} />
             <NumberInput label="Αρχικό Κεφάλαιο" value={loan.original_amount} onChange={v => sl('original_amount', v)} suffix="€" step={1000} />
             <NumberInput label="Υπόλοιπο Κεφαλαίου" value={loan.remaining_balance} onChange={v => sl('remaining_balance', v)} suffix="€" step={1000} />
@@ -1207,8 +1207,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 12 }}>
             <NumberInput label="Επιτόκιο % (ετήσιο)" value={loan.interest_rate} onChange={v => sl('interest_rate', v)} suffix="%" step={0.1} />
             <NumberInput label="Μηνιαία Δόση" value={loan.monthly_payment} onChange={v => sl('monthly_payment', v)} suffix="€" step={10} />
-            <NumberInput label="Διάρκεια (μήνες)" value={loan.loan_term_months} onChange={v => sl('loan_term_months', v)} suffix="μήν" />
-            <NumberInput label="Μήνες που Πληρώθηκαν" value={loan.paid_months} onChange={v => sl('paid_months', v)} suffix="μήν" />
+            <NumberInput label="Διάρκεια (μήνες)" value={loan.loan_term_months} onChange={v => sl('loan_term_months', v)} suffix="μήνες" />
+            <NumberInput label="Μήνες που Πληρώθηκαν" value={loan.paid_months} onChange={v => sl('paid_months', v)} suffix="μήνες" />
           </div>
           <div style={g2}>
             <DatePicker label="Ημερομηνία Έναρξης" value={loan.start_date} onChange={v => sl('start_date', v)} />
@@ -1217,7 +1217,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ marginBottom: 12 }}>
             <Toggle on={loan.is_fixed_rate} onChange={v => sl('is_fixed_rate', v)} label="Σταθερό Επιτόκιο" labelOff="Κυμαινόμενο (EURIBOR + spread)" />
           </div>
-          <Textarea label="Σημειώσεις" value={loan.notes} onChange={v => sl('notes', v)} placeholder="π.χ. EURIBOR 3M + 1.5%, ανατιμολόγηση κάθε 3 μήνες" />
+          <Textarea label="Σημειώσεις" value={loan.notes} onChange={v => sl('notes', v)} placeholder="Παράδειγμα: EURIBOR 3M + 1.5%, ανατιμολόγηση κάθε 3 μήνες" />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
             <button
               onClick={saveLoan}
@@ -1250,9 +1250,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 { label: 'Μέγιστο Δάνειο', value: '€190.000 (90% της αξίας)' },
                 { label: 'Μέγιστη Αξία Ακινήτου', value: '€250.000' },
                 { label: 'Άτοκο Ποσοστό', value: '50% (75% για τριτεκνούχους)' },
-                { label: 'Καταληκτική Ημ. Αίτησης', value: '31 Μαΐου 2026' },
-                { label: 'Καταληκτική Ημ. Σύμβασης', value: '31 Αυγούστου 2026' },
-                { label: 'Συνεργαζόμενες Τράπεζες', value: 'Alpha, Εθνική, Πειραιώς, Eurobank κ.ά.' },
+                { label: 'Καταληκτική Ημερομηνία Αίτησης', value: '31 Μαΐου 2026' },
+                { label: 'Καταληκτική Ημερομηνία Σύμβασης', value: '31 Αυγούστου 2026' },
+                { label: 'Συνεργαζόμενες Τράπεζες', value: 'Alpha, Εθνική, Πειραιώς, Eurobank και άλλες' },
               ].map((r, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0, fontFamily: "'Roboto', sans-serif" }}>{r.label}</span>
@@ -1284,7 +1284,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           </div>
           <div style={g2}>
             <NumberInput label="Δάνειο Φωτοβολταϊκών / Αντλίας Θερμότητας" value={loan.green_loan} onChange={v => sl('green_loan', v)} suffix="€" step={500} />
-            <TextInput label="Περιγραφή" value={loan.green_loan_desc} onChange={v => sl('green_loan_desc', v)} placeholder="π.χ. Φωτοβολταϊκά 5kWp + αντλία θερμότητας" />
+            <TextInput label="Περιγραφή" value={loan.green_loan_desc} onChange={v => sl('green_loan_desc', v)} placeholder="Παράδειγμα: Φωτοβολταϊκά 5kWp + αντλία θερμότητας" />
           </div>
           <div style={g3}>
             {[

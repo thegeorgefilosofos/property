@@ -51,17 +51,17 @@ const ZONE_TAX: Record<string, number> = {
   '3000_3500':13.00,'3500_4000':14.50,'over_4000':16.00,
 };
 const ZONE_OPTIONS = [
-  { value: 'under_500',  label: 'Κάτω από 500 €/τ.μ.'   },
-  { value: '500_750',    label: '500 – 750 €/τ.μ.'       },
-  { value: '750_1000',   label: '750 – 1.000 €/τ.μ.'    },
-  { value: '1000_1250',  label: '1.000 – 1.250 €/τ.μ.'  },
-  { value: '1250_1500',  label: '1.250 – 1.500 €/τ.μ.'  },
-  { value: '1500_2000',  label: '1.500 – 2.000 €/τ.μ.'  },
-  { value: '2000_2500',  label: '2.000 – 2.500 €/τ.μ.'  },
-  { value: '2500_3000',  label: '2.500 – 3.000 €/τ.μ.'  },
-  { value: '3000_3500',  label: '3.000 – 3.500 €/τ.μ.'  },
-  { value: '3500_4000',  label: '3.500 – 4.000 €/τ.μ.'  },
-  { value: 'over_4000',  label: 'Άνω των 4.000 €/τ.μ.'  },
+  { value: 'under_500',  label: 'Κάτω από 500 € ανά τετραγωνικό'   },
+  { value: '500_750',    label: '500 – 750 € ανά τετραγωνικό'       },
+  { value: '750_1000',   label: '750 – 1.000 € ανά τετραγωνικό'    },
+  { value: '1000_1250',  label: '1.000 – 1.250 € ανά τετραγωνικό'  },
+  { value: '1250_1500',  label: '1.250 – 1.500 € ανά τετραγωνικό'  },
+  { value: '1500_2000',  label: '1.500 – 2.000 € ανά τετραγωνικό'  },
+  { value: '2000_2500',  label: '2.000 – 2.500 € ανά τετραγωνικό'  },
+  { value: '2500_3000',  label: '2.500 – 3.000 € ανά τετραγωνικό'  },
+  { value: '3000_3500',  label: '3.000 – 3.500 € ανά τετραγωνικό'  },
+  { value: '3500_4000',  label: '3.500 – 4.000 € ανά τετραγωνικό'  },
+  { value: 'over_4000',  label: 'Άνω των 4.000 € ανά τετραγωνικό'  },
 ];
 const FLOOR_COEF: Record<string, number> = { basement: 0.90, ground: 1.00, first: 1.01, second: 1.02, third: 1.03, fourth: 1.04, fifth_plus: 1.05 };
 const FLOOR_OPTIONS = [
@@ -81,7 +81,7 @@ const REDUCTIONS = [
   { key: 'three_children', label: 'Τρίτεκνοι',              pct: 25, note: 'Α.Φ.Μ. τριτέκνου γονέα'        },
   { key: 'four_children',  label: 'Πολύτεκνοι',             pct: 50, note: 'Α.Φ.Μ. πολυτέκνου γονέα'       },
   { key: 'disability',     label: 'Αναπηρία 80%+',          pct: 50, note: 'Βεβαίωση ΚΕΠΑ'                 },
-  { key: 'insurance',      label: 'Ασφάλεια φυσ. κινδύνων', pct: 15, note: 'Α.1005/2026 — 10-20% έκπτωση'  },
+  { key: 'insurance',      label: 'Ασφάλεια φυσικών κινδύνων', pct: 15, note: 'Α.1005/2026 — 10-20% έκπτωση'  },
 ];
 const SUPPL_BRACKETS = [
   { limit: 100_000, rate: 0 },{ limit: 200_000, rate: 0.001 },{ limit: 300_000, rate: 0.002 },
@@ -297,7 +297,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           { label: 'Υπηρεσίες / μήνα',     value: fe(totalServices)                        },
           { label: 'Υπηρεσίες / έτος',     value: fe(totalServices * 12)                   },
           { label: 'ΕΝΦΙΑ / μήνα',          value: enfiaM > 0 ? fe(enfiaM) : '—'           },
-          { label: 'Δημοτικά Τέλη μ.ο. / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
+          { label: 'Δημοτικά Τέλη (μέσος όρος) / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : '—' },
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -368,12 +368,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             return (
               <div key={i} style={{ background: isNext ? 'rgba(212,175,66,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
-                  {isPast ? 'ΠΛΗΡ.' : isNext ? 'ΕΠΟΜ.' : ''}
+                  {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: isNext ? 700 : 500, color: isNext ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{d.label}</div>
                 <div style={{ fontSize: 10, color: isNext ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{d.month}</div>
                 {isNext && dLeft >= 0 && dLeft <= 90 && (
-                  <div style={{ fontSize: 9, color: 'var(--accent)', fontFamily: T.font.sans, marginTop: 3, fontWeight: 700 }}>{dLeft} ημ.</div>
+                  <div style={{ fontSize: 9, color: 'var(--accent)', fontFamily: T.font.sans, marginTop: 3, fontWeight: 700 }}>{dLeft} ημέρες</div>
                 )}
               </div>
             );
@@ -398,11 +398,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             {/* Left: inputs */}
             <div>
               <div style={g2}>
-                <NumberInput label="Εμβαδόν (τ.μ.)"              value={s.enfiaSqm}      onChange={v => upd({ enfiaSqm: v })}      suffix="τ.μ."/>
+                <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"              value={s.enfiaSqm}      onChange={v => upd({ enfiaSqm: v })}      suffix="τετραγωνικά"/>
                 <NumberInput label="Ποσοστό Ιδιοκτησίας (%)"     value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <CustomSelect label="Τιμή Ζώνης (€/τ.μ.)" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
+                <CustomSelect label="Τιμή Ζώνης (€ ανά τετραγωνικό)" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
               </div>
               <div style={g2}>
                 <CustomSelect label="Όροφος"    value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
@@ -545,7 +545,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
-          Ιστορικό Δημοτικών Τελών / μήνα — Μ.Ο.: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
+          Ιστορικό Δημοτικών Τελών / μήνα — Μέσος Όρος: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
           {MONTHS_GR.map((m, i) => {
@@ -590,14 +590,14 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {s.hasCleaning && (
           <>
             <div style={g4}>
-              <TextInput    label="Εταιρεία / Όνομα"        value={s.cleaningContact}      onChange={v => upd({ cleaningContact: v })}      placeholder="π.χ. Μαρία Α."/>
+              <TextInput    label="Εταιρεία / Όνομα"        value={s.cleaningContact}      onChange={v => upd({ cleaningContact: v })}      placeholder="Παράδειγμα: Μαρία Α."/>
               <TextInput    label="Τηλέφωνο"                 value={s.cleaningPhone}        onChange={v => upd({ cleaningPhone: v })}        placeholder="69xxxxxxxx"/>
               <CustomSelect label="Συχνότητα"               value={s.cleaningFreq}         onChange={v => upd({ cleaningFreq: v })}         options={FREQ}/>
               <NumberInput  label="Κόστος / Επίσκεψη (€)" value={s.cleaningCostPerVisit} onChange={v => upd({ cleaningCostPerVisit: v })} suffix="€" step={5}/>
             </div>
             <div style={g2}>
               <NumberInput label="Ώρες ανά Επίσκεψη" value={s.cleaningHours} onChange={v => upd({ cleaningHours: v })} suffix="ώρες" step={0.5}/>
-              <TextInput   label="Σημειώσεις"         value={s.cleaningNotes} onChange={v => upd({ cleaningNotes: v })} placeholder="π.χ. κάθε Τετάρτη"/>
+              <TextInput   label="Σημειώσεις"         value={s.cleaningNotes} onChange={v => upd({ cleaningNotes: v })} placeholder="Παράδειγμα: κάθε Τετάρτη"/>
             </div>
             {cleaningM > 0 && (
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
@@ -616,7 +616,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {svcHdr('Κηπουρός', s.hasGarden, v => upd({ hasGarden: v }), gardenM)}
         {s.hasGarden && (
           <div style={g4}>
-            <TextInput    label="Κηπουρός / Εταιρεία"      value={s.gardenContact} onChange={v => upd({ gardenContact: v })} placeholder="π.χ. Νίκος Κ."/>
+            <TextInput    label="Κηπουρός / Εταιρεία"      value={s.gardenContact} onChange={v => upd({ gardenContact: v })} placeholder="Παράδειγμα: Νίκος Κ."/>
             <TextInput    label="Τηλέφωνο"                   value={s.gardenPhone}   onChange={v => upd({ gardenPhone: v })}   placeholder="69xxxxxxxx"/>
             <CustomSelect label="Συχνότητα"                 value={s.gardenFreq}    onChange={v => upd({ gardenFreq: v })}    options={FREQ}/>
             <NumberInput  label="Κόστος / Επίσκεψη (€)"   value={s.gardenCost}    onChange={v => upd({ gardenCost: v })}   suffix="€" step={10}/>
@@ -651,12 +651,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <div style={g4}>
               <TextInput   label="Τεχνικός / Εταιρεία"           value={s.acContact}     onChange={v => upd({ acContact: v })}     placeholder="Παναγιώτης Τ."/>
               <TextInput   label="Τηλέφωνο"                        value={s.acPhone}       onChange={v => upd({ acPhone: v })}       placeholder="69xxxxxxxx"/>
-              <NumberInput label="Αριθμός Κλιματιστικών"           value={s.acUnits}       onChange={v => upd({ acUnits: v })}       suffix="τεμ." step={1}/>
+              <NumberInput label="Αριθμός Κλιματιστικών"           value={s.acUnits}       onChange={v => upd({ acUnits: v })}       suffix="τεμάχια" step={1}/>
               <NumberInput label="Κόστος Συντήρησης / Τεμάχιο (€)"  value={s.acServiceCost} onChange={v => upd({ acServiceCost: v })} suffix="€" step={10}/>
             </div>
             <div style={g2}>
               <DatePicker label="Τελευταία Συντήρηση" value={s.acLastService} onChange={v => upd({ acLastService: v })}/>
-              <TextInput  label="Σημειώσεις"        value={s.acNotes}      onChange={v => upd({ acNotes: v })}      placeholder="π.χ. Κάθε Απρίλιο"/>
+              <TextInput  label="Σημειώσεις"        value={s.acNotes}      onChange={v => upd({ acNotes: v })}      placeholder="Παράδειγμα: Κάθε Απρίλιο"/>
             </div>
             {s.acServiceCost && s.acUnits && parseFloat(s.acServiceCost) > 0 && (
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
@@ -679,7 +679,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <NumberInput label="Μηνιαία Συντήρηση (€)"  value={s.elevatorMonthly}        onChange={v => upd({ elevatorMonthly: v })}        suffix="€" step={5}/>
               <DatePicker  label="Τελευταία Συντήρηση"  value={s.elevatorLastInspection} onChange={v => upd({ elevatorLastInspection: v })}/>
             </div>
-            <TextInput label="Σημειώσεις" value={s.elevatorNotes} onChange={v => upd({ elevatorNotes: v })} placeholder="π.χ. Ετήσιος έλεγχος ΕΛΟΤ..."/>
+            <TextInput label="Σημειώσεις" value={s.elevatorNotes} onChange={v => upd({ elevatorNotes: v })} placeholder="Παράδειγμα: Ετήσιος έλεγχος ΕΛΟΤ..."/>
           </>
         )}
       </div>
@@ -702,7 +702,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {secHdr('Άλλες Υπηρεσίες')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="π.χ. Βαφή, Υδραυλικός..."/>
+            <TextInput label="Υπηρεσία"         value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή, Υδραυλικός..."/>
             <TextInput label="Τεχνικός / Εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο ή Εταιρεία"/>
             <TextInput label="Τηλέφωνο"          value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
           </div>
@@ -738,7 +738,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {secHdr('Σύνοψη Υπηρεσιών')}
           {([
             { label: 'ΕΝΦΙΑ 2026',              amount: enfiaM      },
-            { label: 'Δημοτικά Τέλη (μ.ο.)',    amount: dimotikaAvg },
+            { label: 'Δημοτικά Τέλη (μέσος όρος)',    amount: dimotikaAvg },
             { label: 'Καθαρισμός',              amount: cleaningM   },
             { label: 'Κηπουρός',                amount: gardenM     },
             { label: 'Πισίνα',                  amount: poolM       },

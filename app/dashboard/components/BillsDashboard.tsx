@@ -464,7 +464,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     byCategory.forEach(c => {
       const budget = parseFloat(budgets[c.value] || '0');
       if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — υπέρβαση budget (${fe(budget, 0)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — 30%+ πάνω από μ.ο. αγοράς` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — 30%+ πάνω από τον μέσο όρο αγοράς` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
@@ -710,7 +710,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           {b.period && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{b.period}</span>}
                           {b.kwh && <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{b.kwh} kWh</span>}
                           {b.due_date && <span style={{ fontSize: 10, fontFamily: T.font.sans, color: daysLeft !== null && daysLeft < 0 ? 'var(--negative)' : daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
-                            {daysLeft !== null && daysLeft < 0 ? `${Math.abs(daysLeft)}ημ. καθυστέρηση` : daysLeft === 0 ? 'Λήγει σήμερα' : daysLeft !== null ? `σε ${daysLeft}ημ.` : new Date(b.due_date).toLocaleDateString('el-GR')}
+                            {daysLeft !== null && daysLeft < 0 ? `${Math.abs(daysLeft)} ημέρες καθυστέρηση` : daysLeft === 0 ? 'Λήγει σήμερα' : daysLeft !== null ? `σε ${daysLeft} ημέρες` : new Date(b.due_date).toLocaleDateString('el-GR')}
                           </span>}
                           {b.notes && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>· {b.notes}</span>}
                         </div>
@@ -793,7 +793,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false}/>
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `${v}€` : ''}/>
                   <Tooltip content={<ChartTooltip/>}/>
-                  {calc.avgMonthly > 0 && <ReferenceLine y={calc.avgMonthly} stroke="var(--text-tertiary)" strokeDasharray="4 4" label={{ value: `μ.ο. ${Math.round(calc.avgMonthly)}€`, position: 'right', fontSize: 9, fill: 'var(--text-tertiary)' }}/>}
+                  {calc.avgMonthly > 0 && <ReferenceLine y={calc.avgMonthly} stroke="var(--text-tertiary)" strokeDasharray="4 4" label={{ value: `μέσος όρος ${Math.round(calc.avgMonthly)}€`, position: 'right', fontSize: 9, fill: 'var(--text-tertiary)' }}/>}
                   <Area type="monotone" dataKey="Σύνολο" stroke="#d4af42" strokeWidth={2} fill="url(#colorTotal)" dot={{ r: 3, fill: '#d4af42' }} activeDot={{ r: 5 }}/>
                 </AreaChart>
               </ResponsiveContainer>
@@ -830,7 +830,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                       <Cell key={index} fill={entry.pct > 25 ? '#c5221f' : entry.color}/>
                     ))}
                   </Bar>
-                  <Bar dataKey="benchmark" name="Μ.Ο. Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
+                  <Bar dataKey="benchmark" name="Μέσος Όρος Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -885,7 +885,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           {secHdr('Smart Insights')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { label: 'Πάγια / τ.μ. / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} €/τ.μ.` : '—', sub: 'Μ.Ο. αγοράς ~3.50 €/τ.μ.', color: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'var(--negative)' : 'var(--positive)' },
+              { label: 'Πάγια ανά τετραγωνικό / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} € ανά τετραγωνικό` : '—', sub: 'Μέσος όρος αγοράς ~3.50 € ανά τετραγωνικό', color: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'var(--negative)' : 'var(--positive)' },
               { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            color: 'var(--accent)'   },
               { label: 'Ακριβότερος μήνας',       value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', color: 'var(--negative)' },
               { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', color: calc.overdue.length > 0 ? 'var(--negative)' : 'var(--positive)' },
@@ -916,7 +916,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     {budget > 0 && <span style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.monthly, 0)}/μήνα</span>
                     {c.benchmark > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
-                    {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μ.ο. {fe(c.benchmark, 0)}</span>}
+                    {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μέσος όρος {fe(c.benchmark, 0)}</span>}
                   </div>
                 </div>
                 <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
@@ -944,7 +944,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 14 }}>
               {[
                 { label: 'Δαπάνες YTD',         value: fe(ytd, 0),       sub: `${currentMonth + 1} μήνες` },
-                { label: 'Πρόβλεψη Έτους',       value: fe(projected, 0), sub: 'βάσει μ.ο.'               },
+                { label: 'Πρόβλεψη Έτους',       value: fe(projected, 0), sub: 'βάσει μέσου όρου'               },
                 { label: 'Εκτιμώμενο Υπόλοιπο', value: fe(remaining, 0), sub: `${12 - currentMonth - 1} μήνες` },
               ].map((k, i) => (
                 <div key={i}>
