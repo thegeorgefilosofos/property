@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
-import { Spinner } from '@/components/Theme';
+import { Spinner, ExportButton } from '@/components/Theme';
+import { downloadCsv, csvEur, csvDate } from './exportCsv';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -1944,6 +1945,26 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <CustomSelect label="Πληρώνει" value={filterPaidBy} onChange={setFilterPaidBy} options={paidByOpts} />
         <CustomSelect label="Κατάσταση" value={filterPaid} onChange={setFilterPaid} options={paidOpts} />
         <CustomSelect label="Ταξινόμηση" value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
+      </div>
+
+      {/* Toolbar: πλήθος + εξαγωγή */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Google Sans',sans-serif" }}>{processed.length} δαπάνες</div>
+        <ExportButton disabled={processed.length===0} onClick={() => {
+          const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
+          const paidByLabel = (v:string|null) => v==='tenant'?'Ενοικιαστής':v==='owner'?'Ιδιοκτήτης':(v||'');
+          downloadCsv(
+            `dapanes_${new Date().toISOString().slice(0,10)}`,
+            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
+            processed.map(e => [
+              csvDate(e.date), e.description, e.category,
+              EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
+              csvEur(e.amount), paidByLabel(e.paid_by), pmLabel(e.payment_method),
+              csvEur(e.vat_amount), csvEur(e.cashback_amount), e.installments || '',
+              e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
+            ])
+          );
+        }} />
       </div>
 
       {/* List */}
