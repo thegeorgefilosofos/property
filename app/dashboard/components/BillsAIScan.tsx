@@ -23,16 +23,16 @@ interface ExtractedBill {
 const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικών λογαριασμών κοινής ωφέλειας.
 Εξάγαγε τα στοιχεία από τον λογαριασμό και επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
 {
-  "provider": "όνομα παρόχου (π.χ. ΔΕΗ, ΕΥΔΑΠ, COSMOTE)",
+  "provider": "όνομα παρόχου (για παράδειγμα ΔΕΗ, ΕΥΔΑΠ, COSMOTE)",
   "category": "electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|other",
   "amount": αριθμός (συνολικό ποσό πληρωμής σε ευρώ),
   "due_date": "YYYY-MM-DD ή κενό",
-  "period": "π.χ. Ιούν 2026 ή 01/04-30/06/2026",
+  "period": "για παράδειγμα Ιούν 2026 ή 01/04-30/06/2026",
   "kwh": αριθμός ή null,
   "ert": αριθμός ή null,
   "etmear": αριθμός ή null,
   "dimotika": αριθμός ή null,
-  "vat_rate": αριθμός (π.χ. 6 ή 24),
+  "vat_rate": αριθμός (για παράδειγμα 6 ή 24),
   "account_num": "αριθμός λογαριασμού αν φαίνεται",
   "notes": "οτιδήποτε σημαντικό",
   "confidence": αριθμός 0-100

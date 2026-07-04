@@ -343,11 +343,11 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
             <CustomSelect label="Περιοχή" value={area} onChange={v=>{setArea(v);setActivePreset(null)}} options={AREA_OPTIONS}/>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <NumberInput label="Τιμή Αγοράς (€)" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
-              <NumberInput label="Εμβαδόν (τ.μ.)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="τμ"/>
+              <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="τμ"/>
             </div>
             {sqmPrice>0&&(
               <div style={{padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',justifyContent:'space-between'}}>
-                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Τιμή ανά τ.μ.</span>
+                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Τιμή ανά τετραγωνικό μέτρο</span>
                 <span style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(sqmPrice)}/τμ</span>
               </div>
             )}
@@ -396,9 +396,9 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
             <DatePicker label="Ημερομηνία Έναρξης" value={startDate} onChange={setStartDate}/>
             <div>
               <CustomSelect label="Τράπεζα" value={bankId} onChange={setBankId} options={BANK_OPTIONS} placeholder="— Επιλέξτε τράπεζα —"/>
-              {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="π.χ. Παγκρήτια Τράπεζα"/></div>}
+              {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="για παράδειγμα Παγκρήτια Τράπεζα"/></div>}
             </div>
-            <Textarea label="Σημειώσεις" value={notes} onChange={setNotes} placeholder="π.χ. 3ος όροφος, άποψη, ανακαινισμένο..." rows={2}/>
+            <Textarea label="Σημειώσεις" value={notes} onChange={setNotes} placeholder="για παράδειγμα 3ος όροφος, άποψη, ανακαινισμένο..." rows={2}/>
           </div>
         </div>
 
