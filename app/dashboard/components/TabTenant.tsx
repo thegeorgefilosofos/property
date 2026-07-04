@@ -15,7 +15,7 @@ import {
   ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, type KPIItem } from '@/components/Theme';
 
 // ─── Design tokens — shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
@@ -60,9 +60,9 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function SectionTitle({ children, dot='var(--accent)' }: { children: React.ReactNode; dot?: string }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-      <div style={{ width:3, height:14, borderRadius:2, background:dot, flexShrink:0 }}/>
-      <span style={{ fontSize:'10px', letterSpacing:'0.18em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600 }}>{children}</span>
+    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+      <div style={{ width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0 }}/>
+      <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
     </div>
   );
 }
@@ -924,6 +924,19 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     {id:'docs',label:'Συμβόλαιο'},
   ];
 
+  // ── Σύνοψη κορυφής (KPIs + ειδοποιήσεις) — μόνο παρουσίαση, χωρίς νέα λογική ──
+  const leaseDaysLeft = tenant ? daysLeft(tenant.lease_end) : null;
+  const unpaidPayments = payments.filter(p=>!p.paid);
+  const unpaidTotal = unpaidPayments.reduce((a,p)=>a+p.amount,0);
+  const hasLeaseDoc = !!(tenant?.lease_doc_url || tenant?.lease_doc_external_url);
+  const tenantKPIs:KPIItem[] = tenant ? [
+    { label:'Μηνιαίο Ενοίκιο', value:fe(tenant.monthly_rent||0), tone:'accent' },
+    { label:'Εγγύηση', value:fe(tenant.deposit_amount||0), tone: tenant.deposit_returned?'positive':'info', sub: tenant.deposit_returned?'Επεστράφη':undefined },
+    { label:'Ημέρες ως τη Λήξη Σύμβασης', value: leaseDaysLeft==null?'—':leaseDaysLeft<0?'Έληξε':fn(leaseDaysLeft), tone: leaseDaysLeft==null?'neutral':leaseDaysLeft<0?'negative':leaseDaysLeft<60?'warning':'positive', sub: leaseDaysLeft!=null&&leaseDaysLeft>=0?'ημέρες':undefined },
+    { label:'Κατάσταση Πληρωμής', value: unpaidPayments.length>0?'Εκκρεμεί':'Πληρωμένο', tone: unpaidPayments.length>0?'negative':'positive', sub: unpaidPayments.length>0?`${fn(unpaidPayments.length)} εκκρεμείς — ${fe(unpaidTotal)}`:undefined },
+    { label:'Ημερομηνία Λήξης Μίσθωσης', value: tenant.lease_end?fd(tenant.lease_end):'—', tone:'neutral' },
+  ] : [];
+
   return (
     <div style={{ fontFamily:T.font.sans, color:'var(--text-primary)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -1119,24 +1132,37 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       {/* ── VIEW ── */}
       {tenant&&!isForm&&(
         <>
-          {/* Tenant Header */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
-            <div>
-              <div style={{ fontSize:24, fontFamily:T.font.sans, fontWeight:400, color:'var(--text-primary)', marginBottom:6, letterSpacing:'-0.3px' }}>{tenant.full_name}</div>
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
-                {tenant.profession&&<StatusBadge label={tenant.profession} color="var(--text-secondary)" bg="var(--bg-elevated)"/>}
-                {tenant.employer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{tenant.employer}</span>}
-                {tenant.nationality&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>· {tenant.nationality}</span>}
-                {tenant.email&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{tenant.email}</span>}
-                {tenant.phone&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>· {tenant.phone}</span>}
-                {tenant.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>ΑΦΜ {tenant.afm}</span>}
-              </div>
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
+          {/* Page Title */}
+          <PageTitle
+            title="Ενοικιαστής"
+            sub="Πλήρης παρακολούθηση μίσθωσης, πληρωμών, επικοινωνίας και ανάλυσης αγοράς"
+            right={<>
               <button style={s.btnGhost} onClick={openEdit}>Επεξεργασία</button>
               <button style={s.btnDng} onClick={async()=>{if(!confirm(`Οριστική διαγραφή "${tenant.full_name}";`))return;await supabase.from('rent_payments').delete().eq('property_id',propertyId).eq('user_id',userId);await supabase.from('tenants').delete().eq('id',tenant.id);setTenant(null);setPayments([]);setExtras([]);}}>Διαγραφή</button>
+            </>}
+          />
+
+          {/* Tenant Identity */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:24, fontFamily:T.font.sans, fontWeight:400, color:'var(--text-primary)', marginBottom:6, letterSpacing:'-0.3px' }}>{tenant.full_name}</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
+              {tenant.profession&&<StatusBadge label={tenant.profession} color="var(--text-secondary)" bg="var(--bg-elevated)"/>}
+              {tenant.employer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{tenant.employer}</span>}
+              {tenant.nationality&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>· {tenant.nationality}</span>}
+              {tenant.email&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{tenant.email}</span>}
+              {tenant.phone&&<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>· {tenant.phone}</span>}
+              {tenant.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>ΑΦΜ {tenant.afm}</span>}
             </div>
           </div>
+
+          {/* KPI Summary */}
+          <KPIGrid items={tenantKPIs}/>
+
+          {/* Alerts */}
+          {leaseDaysLeft!=null&&leaseDaysLeft<0&&<InfoBanner tone="negative">Το μισθωτήριο έχει λήξει — απαιτείται ανανέωση ή διαδικασία αποχώρησης.</InfoBanner>}
+          {leaseDaysLeft!=null&&leaseDaysLeft>=0&&leaseDaysLeft<=60&&<InfoBanner tone="warning">Το μισθωτήριο λήγει σε {fn(leaseDaysLeft)} ημέρες — ξεκίνησε εγκαίρως τη διαδικασία ανανέωσης.</InfoBanner>}
+          {unpaidPayments.length>0&&<InfoBanner tone="negative">Υπάρχουν {fn(unpaidPayments.length)} εκκρεμείς πληρωμές ενοικίου συνολικού ποσού {fe(unpaidTotal)}.</InfoBanner>}
+          {!hasLeaseDoc&&<InfoBanner tone="info">Δεν έχει καταχωρηθεί έγγραφο μισθωτηρίου — ανέβασε PDF ή πρόσθεσε εξωτερικό σύνδεσμο στην καρτέλα «Συμβόλαιο».</InfoBanner>}
 
           {/* View Tabs */}
           <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24, overflowX:'auto' as const, scrollbarWidth:'none' as const }}>
