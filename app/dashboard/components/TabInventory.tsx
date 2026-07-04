@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
+import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd } from '@/components/Theme'
 
 const supabase = createSupabaseClient()
 
@@ -157,26 +158,8 @@ const labelStyle: React.CSSProperties = {
   display:'block',
   marginBottom:6,
 }
-const sectionLabelStyle: React.CSSProperties = {
-  fontSize:12,
-  fontWeight:500,
-  fontFamily:"'Google Sans', sans-serif",
-  color:'var(--text-secondary)',
-  textTransform:'uppercase' as const,
-  letterSpacing:'0.5px',
-  display:'flex',
-  alignItems:'center',
-  gap:6,
-}
-
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
-  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-    <div style={sectionLabelStyle}>
-      <span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block',flexShrink:0}}/>
-      {label}
-    </div>
-    {right}
-  </div>
+  <SecHdr label={label} right={right}/>
 )
 
 const StatCard = ({label,value,color,sub,accent}:{label:string;value:string;color?:string;sub?:string;accent?:boolean}) => (
@@ -1473,6 +1456,10 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
   const warnCount=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
   const actionCount=items.filter(needsAction).length
+  const totalValue=items.reduce((s,i)=>s+calcCurrentValue(i),0)
+  const warrantyExpiringCount=items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}).length
+  const badConditionCount=items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας').length
+  const nextMaintenanceDate=schedules.map(s=>s.next_due).filter(Boolean).sort()[0]||''
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
@@ -1481,15 +1468,10 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
 
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:16,borderBottom:'1px solid var(--border-subtle)',marginBottom:0}}>
-        <div>
-          <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <p style={{fontSize:24,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Απογραφή</p>
-            {actionCount>0&&<span style={{padding:'2px 10px',borderRadius:20,background:'var(--warning-dim)',color:'var(--warning)',fontSize:10,fontWeight:500,fontFamily:"'Google Sans',sans-serif",border:'1px solid var(--warning-border)'}}>{actionCount} χρειάζονται δράση</span>}
-          </div>
-          <p style={{fontSize:13,color:'var(--text-secondary)',marginTop:3,fontFamily:"'Roboto',sans-serif"}}>Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης</p>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <PageTitle
+        title="Απογραφή"
+        sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
+        right={<>
           <button onClick={()=>setShowBulkImport(true)} style={{padding:'0 12px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Μαζική Εισαγωγή</button>
           <div style={{display:'flex',alignItems:'center',background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:8,overflow:'hidden'}}>
             <span style={{padding:'0 10px',fontSize:10,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:"'Google Sans',sans-serif"}}>kWh €</span>
@@ -1500,10 +1482,28 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
               style={{width:60,background:'transparent',border:'none',outline:'none',padding:'8px 10px',fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',textAlign:'right'}}
             />
           </div>
-        </div>
-      </div>
+        </>}
+      />
 
-      <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginBottom:24}}>
+      {!loading&&(items.length===0
+        ? <InfoBanner tone="info">Δεν υπάρχουν ακόμη αντικείμενα στην απογραφή. Προσθέστε το πρώτο αντικείμενο ή χρησιμοποιήστε τη Μαζική Εισαγωγή για να ξεκινήσετε.</InfoBanner>
+        : <>
+            <KPIGrid items={[
+              {label:'Σύνολο Αντικειμένων',value:fn(items.length)},
+              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:'Τρέχουσα αξία μετά απόσβεση'},
+              {label:'Εγγυήσεις που Λήγουν',value:fn(warrantyExpiringCount),tone:warrantyExpiringCount>0?'warning':'neutral',sub:'Εντός 90 ημερών'},
+              {label:'Αντικείμενα σε Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
+              {label:'Επόμενη Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστέρηση`:undefined},
+            ]}/>
+            {actionCount>0&&<InfoBanner tone="warning">{fn(actionCount)} {actionCount===1?'αντικείμενο χρειάζεται':'αντικείμενα χρειάζονται'} την προσοχή σας (εγγύηση, κατάσταση ή απόσβεση).</InfoBanner>}
+            {warrantyExpiringCount>0&&<InfoBanner tone="warning">{fn(warrantyExpiringCount)} {warrantyExpiringCount===1?'εγγύηση λήγει':'εγγυήσεις λήγουν'} εντός των επόμενων 90 ημερών.</InfoBanner>}
+            {badConditionCount>0&&<InfoBanner tone="negative">{fn(badConditionCount)} {badConditionCount===1?'αντικείμενο βρίσκεται':'αντικείμενα βρίσκονται'} σε κακή κατάσταση ή εκτός λειτουργίας.</InfoBanner>}
+            {overdueCount>0&&<InfoBanner tone="negative">{fn(overdueCount)} {overdueCount===1?'εργασία συντήρησης έχει':'εργασίες συντήρησης έχουν'} καθυστερήσει.</InfoBanner>}
+            {warnCount>0&&<InfoBanner tone="warning">{fn(warnCount)} {warnCount===1?'εργασία συντήρησης προγραμματίζεται':'εργασίες συντήρησης προγραμματίζονται'} εντός των επόμενων 30 ημερών.</InfoBanner>}
+          </>
+      )}
+
+      <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
         {TABS.map(tab=>(
           <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
             style={{padding:'12px 18px',fontSize:13,fontWeight:activeTab===tab.key?500:400,fontFamily:"'Google Sans',sans-serif",color:activeTab===tab.key?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${activeTab===tab.key?'var(--accent)':'transparent'}`,borderLeft:'none',borderRight:'none',borderTop:'none',background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,marginBottom:-1}}
