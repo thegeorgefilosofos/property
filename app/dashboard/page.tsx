@@ -43,7 +43,7 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
   maisonette:'Μεζονέτα', office:'Γραφείο', shop:'Κατάστημα',
   warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
-  storage:'Αποθήκη Κτ.', villa:'Βίλα', other:'Άλλο',
+  storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','warehouse','land','parking','storage','villa','other'];
 
@@ -166,16 +166,16 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
         </div>
         {step === 1 ? (
           <div style={{display:'flex',flexDirection:'column',gap:16}}>
-            <div><label style={mdLabel}>Ονομασία Ακινήτου *</label><input style={mdInput} value={form.name} onChange={e=>sf('name',e.target.value)} placeholder="π.χ. Αράββου 45" onFocus={focusInput} onBlur={blurInput}/></div>
+            <div><label style={mdLabel}>Ονομασία Ακινήτου *</label><input style={mdInput} value={form.name} onChange={e=>sf('name',e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={focusInput} onBlur={blurInput}/></div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
               <div><label style={mdLabel}>Τύπος Ακινήτου</label><select style={mdSel} value={form.prop_type} onChange={e=>sf('prop_type',e.target.value)}>{PROP_TYPES.map(t=><option key={t} value={t}>{PROP_TYPE_LABELS[t]}</option>)}</select></div>
               <div><label style={mdLabel}>Κατάσταση</label><select style={mdSel} value={form.status_detail} onChange={e=>sf('status_detail',e.target.value)}>{Object.entries(STATUS_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div>
             </div>
-            <div><label style={mdLabel}>Διεύθυνση</label><input style={mdInput} value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="π.χ. Αράββου 45, Βύρωνας" onFocus={focusInput} onBlur={blurInput}/></div>
+            <div><label style={mdLabel}>Διεύθυνση</label><input style={mdInput} value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={focusInput} onBlur={blurInput}/></div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
-              <div><label style={mdLabel}>Εμβαδόν (τ.μ.)</label><input style={mdInput} type="number" value={form.sqm} onChange={e=>sf('sqm',e.target.value)} placeholder="35" onFocus={focusInput} onBlur={blurInput}/></div>
+              <div><label style={mdLabel}>Εμβαδόν (τετραγωνικά μέτρα)</label><input style={mdInput} type="number" value={form.sqm} onChange={e=>sf('sqm',e.target.value)} placeholder="35" onFocus={focusInput} onBlur={blurInput}/></div>
               <div><label style={mdLabel}>Όροφος</label><input style={mdInput} type="number" value={form.floor} onChange={e=>sf('floor',e.target.value)} placeholder="2" onFocus={focusInput} onBlur={blurInput}/></div>
-              <div><label style={mdLabel}>Έτος Κατ/σκευής</label><input style={mdInput} type="number" value={form.year_built} onChange={e=>sf('year_built',e.target.value)} placeholder="1995" onFocus={focusInput} onBlur={blurInput}/></div>
+              <div><label style={mdLabel}>Έτος Κατασκευής</label><input style={mdInput} type="number" value={form.year_built} onChange={e=>sf('year_built',e.target.value)} placeholder="1995" onFocus={focusInput} onBlur={blurInput}/></div>
             </div>
           </div>
         ) : (
@@ -430,7 +430,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <tbody>
-              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τ.μ.`:null],['Διεύθυνση',prop.address],['Αντικ. Αξία',fmtEur(prop.obj_value)],['ΕΠΑ Κλάση',prop.pea_class]].filter(([,v])=>v).map(([k,v],i) => (
+              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Διεύθυνση',prop.address],['Αντικειμενική Αξία',fmtEur(prop.obj_value)],['ΕΠΑ Κλάση',prop.pea_class]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
                   <td style={{padding:'8px 0',fontFamily:"'Roboto',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Roboto',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
@@ -617,7 +617,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
-                  {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address].filter(Boolean).join(' · ')}
+                  {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address].filter(Boolean).join(' · ')}
                 </div>
               </div>
               {nav==='inventory'&&properties.length>1&&(
