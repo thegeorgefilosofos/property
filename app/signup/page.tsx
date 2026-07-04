@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [consent, setConsent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,13 +55,13 @@ export default function SignupPage() {
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 100, padding: '4px 12px', marginBottom: 22 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
-            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>3 μήνες δωρεάν</span>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>Πρώτος μήνας δωρεάν</span>
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 16px' }}>
             Ξεκίνα να<br /><span style={{ color: 'var(--accent)' }}>κερδίζεις</span> περισσότερα.
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
-            Το πρώτο σου ακίνητο είναι δωρεάν για 3 μήνες. Μετά, από €1.99 τον μήνα — χωρίς δέσμευση.
+            Το πρώτο σου ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από €2,99 τον μήνα — χωρίς δέσμευση.
           </p>
         </div>
 
@@ -114,7 +115,16 @@ export default function SignupPage() {
                   </div>
                 )}
 
-                <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginTop: 2 }}>
+                  <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Αποδέχομαι τους{' '}
+                    <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους Χρήσης</Link>{' '}και την{' '}
+                    <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική Απορρήτου</Link>.
+                  </span>
+                </label>
+
+                <button type="submit" disabled={loading || !consent} style={{ width: '100%', padding: '13px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent) ? 'not-allowed' : 'pointer', opacity: (loading || !consent) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν →'}
                 </button>
               </form>
@@ -124,12 +134,9 @@ export default function SignupPage() {
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Χωρίς χρέωση σήμερα</span>
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>Δεν χρειάζεται κάρτα για να ξεκινήσεις. Πληρώνεις μόνο μετά τους 3 δωρεάν μήνες, αν συνεχίσεις.</p>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>Δεν χρειάζεται κάρτα για να ξεκινήσεις. Πληρώνεις μόνο μετά τον πρώτο δωρεάν μήνα, αν συνεχίσεις.</p>
               </div>
 
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 20, lineHeight: 1.6 }}>
-                Συνεχίζοντας αποδέχεσαι τους Όρους Χρήσης και την Πολιτική Απορρήτου.
-              </p>
             </>
           )}
         </div>

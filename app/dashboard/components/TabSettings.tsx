@@ -266,7 +266,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
                   <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif" }}>Δωρεάν δοκιμή</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο ακίνητο είναι δωρεάν για 3 μήνες. Μετά, από €1.99/μήνα — χωρίς δέσμευση.</div>
+                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από €2,99/μήνα — χωρίς δέσμευση.</div>
               </div>
               <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
             </div>

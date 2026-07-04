@@ -80,8 +80,8 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, margin: '0 0 6px' }}>Δωρεάν για 3 μήνες</p>
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.7 }}>Το πρώτο ακίνητο χωρίς χρέωση για 90 ημέρες. Από €1.99/μήνα μετά — χωρίς ετήσια δέσμευση, ακύρωση όποτε θες.</p>
+          <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, margin: '0 0 6px' }}>Δωρεάν ο πρώτος μήνας</p>
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.7 }}>Το πρώτο ακίνητο χωρίς χρέωση τον πρώτο μήνα. Από €2,99/μήνα μετά — χωρίς ετήσια δέσμευση, ακύρωση όποτε θες.</p>
         </div>
       </div>
 
@@ -121,7 +121,9 @@ export default function LoginPage() {
           </form>
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 24, lineHeight: 1.6 }}>
-            Συνεχίζοντας αποδέχεσαι τους Όρους Χρήσης και την Πολιτική Απορρήτου.
+            Συνεχίζοντας αποδέχεσαι τους{' '}
+            <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Όρους Χρήσης</Link>{' '}και την{' '}
+            <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Πολιτική Απορρήτου</Link>.
           </p>
         </div>
       </div>
