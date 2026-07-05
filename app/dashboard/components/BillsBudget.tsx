@@ -215,11 +215,11 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setShowSplit(v => !v)}
-            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 500, borderRadius: T.radius.btn, border: `1px solid ${showSplit ? 'var(--accent)' : 'var(--border-default)'}`, background: showSplit ? 'rgba(212,175,66,0.08)' : 'transparent', color: showSplit ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 500, borderRadius: T.radius.btn, border: `1px solid ${showSplit ? 'var(--accent)' : 'var(--border-default)'}`, background: showSplit ? 'rgba(26,115,232,0.08)' : 'transparent', color: showSplit ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
             Διαμοιρασμός{participants.length > 0 ? ` (${participants.length})` : ''}
           </button>
           <button onClick={() => setEditMode(v => !v)}
-            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
             {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
           </button>
         </div>

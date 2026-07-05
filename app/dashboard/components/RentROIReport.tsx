@@ -69,7 +69,7 @@ export default function RentROIReport({
             color: #1a73e8;
             letter-spacing: -0.3px;
           }
-          .logo span { color: #d4af42; }
+          .logo span { color: var(--accent); }
           .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Roboto', sans-serif; }
           .meta-title { font-family: 'Google Sans', sans-serif; font-weight: 500; color: #1a1a2e; font-size: 13px; margin-bottom: 2px; }
 
@@ -95,7 +95,7 @@ export default function RentROIReport({
             width: 5px;
             height: 5px;
             border-radius: 50%;
-            background: #d4af42;
+            background: var(--accent);
             flex-shrink: 0;
           }
 
@@ -129,7 +129,7 @@ export default function RentROIReport({
           .negative { color: #c5221f; }
           .warning { color: #b45309; }
           .accent { color: #1a73e8; }
-          .gold { color: #d4af42; }
+          .gold { color: var(--accent); }
           .muted { color: #5f6368; }
 
           /* Stat rows */

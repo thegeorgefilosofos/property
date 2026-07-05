@@ -30,7 +30,7 @@ const MGMT_CARDS = [
 
 const histInputStyle = (isCurrent: boolean, isHovered: boolean): React.CSSProperties => ({
   width: '100%',
-  background: isCurrent ? 'rgba(212,175,66,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge,
   padding: '6px 4px',
@@ -176,7 +176,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <style>{`
         .mgmt-card { transition: all 0.15s; }
         .mgmt-card:hover { border-color: var(--border-default) !important; background: var(--bg-surface) !important; }
-        .mgmt-card.active:hover { border-color: var(--accent) !important; background: rgba(212,175,66,0.1) !important; }
+        .mgmt-card.active:hover { border-color: var(--accent) !important; background: rgba(26,115,232,0.1) !important; }
         .hist-bar { transition: opacity 0.15s; }
         .hist-bar:hover { opacity: 0.85; }
       `}</style>
@@ -238,7 +238,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 onMouseEnter={() => setHoveredCard(opt.key)}
                 onMouseLeave={() => setHoveredCard(null)}
                 style={{
-                  background: isCur ? 'rgba(212,175,66,0.07)' : isHov ? 'var(--bg-surface)' : 'var(--bg-elevated)',
+                  background: isCur ? 'rgba(26,115,232,0.07)' : isHov ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                   border: `1px solid ${isCur ? 'var(--accent)' : isHov ? 'var(--border-default)' : 'var(--border-subtle)'}`,
                   borderRadius: T.radius.inner, padding: '12px 14px',
                   cursor: 'pointer', position: 'relative',
@@ -365,7 +365,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {/* Bar chart — with hover highlight */}
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(212,175,66,0.4)', pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(26,115,232,0.4)', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 8, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
                 μέσος όρος {monthlyAvg.toFixed(0)}
               </span>

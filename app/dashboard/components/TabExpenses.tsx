@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } from './UIComponents';
 import ExpenseAnalytics from './ExpenseAnalytics';
-import { Spinner } from '@/components/Theme';
+import { Spinner, ExportButton } from '@/components/Theme';
+import { downloadCsv, csvEur, csvDate } from './exportCsv';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -51,7 +52,7 @@ const EXPENSE_GROUPS: Record<string, { label: string; categories: string[]; taxD
 };
 
 const GROUP_COLORS: Record<string, string> = {
-  fixed:'#D4AF42', renovation:'#5B8DEF', appliances:'#34D97B',
+  fixed:'var(--accent)', renovation:'#5B8DEF', appliances:'#34D97B',
   appliance_lease:'#8B5CF6', maintenance:'#FB923C', vehicle_lease:'#F59E0B',
   commercial:'#EC4899', broker:'#06B6D4', legal:'#F97316',
   travel:'#10B981', exhibition:'#A78BFA', tax:'#EF4444', other:'#6B7280',
@@ -885,13 +886,13 @@ function exportPDF(expenses: Expense[], propertyName: string) {
     .page{padding:28px 32px;max-width:940px;margin:0 auto}
     /* Header */
     .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-    .logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:#d4af42}
+    .logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
     .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
     .meta-r{text-align:right}.meta-title{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
     .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
     /* Section titles */
     .sec-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
-    .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#d4af42;flex-shrink:0}
+    .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
     .sec{margin-bottom:20px}
     /* KPIs */
     .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
@@ -1944,6 +1945,26 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <CustomSelect label="Πληρώνει" value={filterPaidBy} onChange={setFilterPaidBy} options={paidByOpts} />
         <CustomSelect label="Κατάσταση" value={filterPaid} onChange={setFilterPaid} options={paidOpts} />
         <CustomSelect label="Ταξινόμηση" value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
+      </div>
+
+      {/* Toolbar: πλήθος + εξαγωγή */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Google Sans',sans-serif" }}>{processed.length} δαπάνες</div>
+        <ExportButton disabled={processed.length===0} onClick={() => {
+          const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
+          const paidByLabel = (v:string|null) => v==='tenant'?'Ενοικιαστής':v==='owner'?'Ιδιοκτήτης':(v||'');
+          downloadCsv(
+            `dapanes_${new Date().toISOString().slice(0,10)}`,
+            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
+            processed.map(e => [
+              csvDate(e.date), e.description, e.category,
+              EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
+              csvEur(e.amount), paidByLabel(e.paid_by), pmLabel(e.payment_method),
+              csvEur(e.vat_amount), csvEur(e.cashback_amount), e.installments || '',
+              e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
+            ])
+          );
+        }} />
       </div>
 
       {/* List */}

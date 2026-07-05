@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
+import { downloadCsv } from './exportCsv'
 
 const supabase = createSupabaseClient()
 
@@ -277,7 +278,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
       {tags.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {tags.map(t => (
-            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.12)', border: '1px solid rgba(212,175,66,0.3)', fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
+            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.12)', border: '1px solid rgba(26,115,232,0.3)', fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>
               {t}<button type="button" onClick={() => onChange(tags.filter(x => x !== t))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center', padding: 0 }}><X size={12} /></button>
             </span>
           ))}
@@ -295,7 +296,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα..." style={{ ...iStyle, flex: 1 }} />
-        <button type="button" onClick={() => add(input)} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: '1px solid var(--accent)', background: 'rgba(212,175,66,0.1)', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
+        <button type="button" onClick={() => add(input)} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: '1px solid var(--accent)', background: 'rgba(26,115,232,0.1)', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
   )
@@ -380,7 +381,7 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{f.size} · {new Date(f.uploaded).toLocaleDateString('el-GR')}</div>
             </div>
-            <a href={f.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid rgba(212,175,66,0.3)', background: 'rgba(212,175,66,0.08)', whiteSpace: 'nowrap' }}>Άνοιγμα</a>
+            <a href={f.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid rgba(26,115,232,0.3)', background: 'rgba(26,115,232,0.08)', whiteSpace: 'nowrap' }}>Άνοιγμα</a>
             <button type="button" onClick={() => onChange(files.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' }}><X size={15} /></button>
           </div>
         ))}
@@ -764,12 +765,12 @@ function exportContactsPDF(contacts: Contact[]) {
 body{font-family:'Roboto',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:#d4af42}
+.logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
 .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
 .meta-r{text-align:right}.meta-title{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
 .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
 .sec-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
-.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#d4af42;flex-shrink:0}
+.sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
 .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
@@ -801,7 +802,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sec-title">Σύνοψη</div>
   <div class="kpi-row">
     ${kpiHtml(String(contacts.length), 'Σύνολο Επαφών', '#1a73e8')}
-    ${kpiHtml(String(preferred.length), 'Προτιμώμενες', '#d4af42')}
+    ${kpiHtml(String(preferred.length), 'Προτιμώμενες', 'var(--accent)')}
     ${kpiHtml(String(contacts.filter(c => c._extra?.whatsapp).length), 'WhatsApp', '#25d366')}
     ${kpiHtml(String(contacts.filter(c => c._extra?.viber).length), 'Viber', '#7360f2')}
     ${kpiHtml(String(contacts.filter(c => c._extra?.iban).length), 'Με IBAN', '#1e7e34')}
@@ -856,7 +857,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => { setHov(false); setShowActions(false) }}
-      style={{ background: 'var(--bg-surface)', border: '1px solid ' + (selected ? 'rgba(212,175,66,0.5)' : hov ? color + '50' : overdue ? 'rgba(255,59,48,0.35)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: '18px 18px 16px', position: 'relative', overflow: 'hidden', boxShadow: hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
+      style={{ background: 'var(--bg-surface)', border: '1px solid ' + (selected ? 'rgba(26,115,232,0.5)' : hov ? color + '50' : overdue ? 'rgba(255,59,48,0.35)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: '18px 18px 16px', position: 'relative', overflow: 'hidden', boxShadow: hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : color, borderRadius: '16px 0 0 16px' }} />
       {bulkMode && <div style={{ position: 'absolute', top: 13, left: 10 }}><input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
@@ -911,11 +912,11 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           <StatusBadge status={extra.status || 'active'} />
           {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
-          {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.15)', border: '1px solid rgba(212,175,66,0.3)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
+          {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.15)', border: '1px solid rgba(26,115,232,0.3)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
         </div>
         {(extra.tags || []).length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.1)', border: '1px solid rgba(212,175,66,0.22)', color: 'var(--accent)' }}>{t}</span>)}
+            {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.1)', border: '1px solid rgba(26,115,232,0.22)', color: 'var(--accent)' }}>{t}</span>)}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 10 }}>
@@ -939,7 +940,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
           {extra.iban2 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN2 ···{extra.iban2.slice(-4)}</span>}
           {extra.next_appointment && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'rgba(255,59,48,0.1)' : color + '12', border: '1px solid ' + (overdue ? 'rgba(255,59,48,0.3)' : color + '30'), color: overdue ? 'var(--negative)' : color }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
           {extra.last_contact && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Τελ. επαφή {fmtDate(extra.last_contact)}</span>}
-          {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.2)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
+          {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.2)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
           {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', color: 'var(--info)' }}>{(extra.files || []).length} αρχεία</span>}
         </div>
         {contact._freeNotes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, padding: '7px 11px', marginBottom: 14, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{contact._freeNotes}</div>}
@@ -961,7 +962,7 @@ function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode }:
   const statusMeta = STATUS_OPTIONS.find(s => s.value === (extra.status || 'active')) || STATUS_OPTIONS[0]
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: hov ? 'var(--bg-elevated)' : selected ? 'rgba(212,175,66,0.04)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)' }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: hov ? 'var(--bg-elevated)' : selected ? 'rgba(26,115,232,0.04)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)' }}>
       {bulkMode && <input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)', flexShrink: 0 }} />}
       <div style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : statusMeta.dot, flexShrink: 0 }} />
       <div style={{ width: 200, minWidth: 0 }}>
@@ -970,7 +971,7 @@ function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode }:
       </div>
       <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || '—'}</div>
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || '—'}</div>
-      <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'rgba(212,175,66,0.1)', color: 'var(--accent)', border: '1px solid rgba(212,175,66,0.22)' }}>{t}</span>)}</div>
+      <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.1)', color: 'var(--accent)', border: '1px solid rgba(26,115,232,0.22)' }}>{t}</span>)}</div>
       <StatusBadge status={extra.status || 'active'} />
       <div style={{ display: 'flex', gap: 6, opacity: hov ? 1 : 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
@@ -1091,13 +1092,13 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1080, margin: '0 auto', fontFamily: T.font.sans }}>
 
-      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(212,175,66,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
+      {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(26,115,232,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
       <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
         right={<>
-          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(212,175,66,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
+          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
           <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
           <button type="button" onClick={() => exportContactsPDF(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
           <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
@@ -1113,7 +1114,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
       )}
 
       {bulkMode && selected.size > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(212,175,66,0.08)', border: '1px solid rgba(212,175,66,0.3)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.3)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 18, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{selected.size} επιλεγμένες</span>
           <button type="button" onClick={bulkEmail} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>Email σε όλες</button>
           <button type="button" onClick={bulkDelete} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: '1px solid rgba(255,59,48,0.35)', background: 'rgba(255,59,48,0.07)', fontSize: 12, color: 'var(--negative)', cursor: 'pointer' }}>Διαγραφή επιλεγμένων</button>
@@ -1186,6 +1187,20 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               </button>
             )
           })}
+        </div>
+      )}
+
+      {contacts.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{processed.length} επαφές</span>
+          <ExportButton disabled={processed.length === 0} onClick={() => downloadCsv(
+            `epafes_${new Date().toISOString().slice(0, 10)}`,
+            ['Όνομα', 'Ρόλος', 'Κατηγορία', 'Τηλέφωνο', 'Email', 'Σημειώσεις'],
+            processed.map(c => [
+              c.full_name, ROLE_META[c.role]?.label || c.role, ROLE_META[c.role]?.groupLabel || '',
+              c.phone || '', c.email || '', (c._freeNotes || '').replace(/\n/g, ' '),
+            ])
+          )} />
         </div>
       )}
 
@@ -1338,7 +1353,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
                     <FL>Υπενθύμιση Επικοινωνίας</FL>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                       {([0, 7, 14, 30, 60, 90] as const).map(d => { const active = (form.extra.reminder_days || 0) === d; return (
-                        <button key={d} type="button" onClick={() => { setExtra('reminder_days', d); setExtra('reminder_set', d > 0 ? new Date(Date.now() + d * 86400000).toISOString().split('T')[0] : '') }} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'rgba(212,175,66,0.12)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: active ? 700 : 400 }}>
+                        <button key={d} type="button" onClick={() => { setExtra('reminder_days', d); setExtra('reminder_set', d > 0 ? new Date(Date.now() + d * 86400000).toISOString().split('T')[0] : '') }} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'rgba(26,115,232,0.12)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: active ? 700 : 400 }}>
                           {REMINDER_LABELS[d]}
                         </button>
                       )})}

@@ -229,6 +229,19 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
   return <button type={type ?? 'button'} onClick={disabled ? undefined : onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
 }
 
+// ═══ ExportButton — κοινό κουμπί εξαγωγής CSV (ίδιο σε όλα τα tabs) ════════
+export function ExportButton({ onClick, label = 'Εξαγωγή CSV', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
+  return (
+    <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε CSV (ανοίγει με Excel)" disabled={disabled}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' }}
+      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      {label}
+    </button>
+  );
+}
+
 // ═══ EmptyState — κενή κατάσταση με πρόσκληση σε δράση (όχι σκέτο «κενό») ══
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (

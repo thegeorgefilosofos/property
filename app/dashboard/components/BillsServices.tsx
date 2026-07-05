@@ -11,7 +11,7 @@ const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιο
 // FIX: history input style with hover
 const histInputStyle = (isCurrent: boolean, isHovered = false): React.CSSProperties => ({
   width: '100%',
-  background: isCurrent ? 'rgba(212,175,66,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
+  background: isCurrent ? 'rgba(26,115,232,0.09)' : isHovered ? 'var(--bg-elevated)' : 'var(--bg-base)',
   border: `1px solid ${isCurrent ? 'var(--accent)' : isHovered ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   borderRadius: T.radius.badge,
   padding: '6px 4px',
@@ -366,7 +366,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             const isNext = d === nextDeadline;
             const dLeft  = Math.ceil((new Date(d.date).getTime() - today.getTime()) / 86400000);
             return (
-              <div key={i} style={{ background: isNext ? 'rgba(212,175,66,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
+              <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
                   {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
                 </div>
@@ -485,7 +485,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       const isPast = new Date(d.date) < today;
                       const isNext = d === nextDeadline;
                       return (
-                        <div key={i} style={{ background: isNext ? 'rgba(212,175,66,0.1)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
+                        <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
                           <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
                           <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--positive)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
@@ -509,7 +509,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
                     </a>
                     <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(212,175,66,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(212,175,66,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
                       ΕΝΦΙΑ 2026 →
                     </a>
                   </div>
@@ -532,7 +532,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
           {/* Result: compact inline pill — same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(212,175,66,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
               </span>
