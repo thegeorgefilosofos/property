@@ -23,6 +23,8 @@ import AIInsights from './components/AIInsights';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
+import ObligationsPanel from './components/ObligationsPanel';
+import PortalShare from './components/PortalShare';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -452,6 +454,8 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
       )}
 
+      <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
+
       {prefs.showSmartTips && (
         <AIInsights ctx={{
           propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
@@ -460,6 +464,8 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           daysToLeaseEnd: daysToExpiry, status: STATUS_LABELS[prop.status_detail||'']||undefined,
         }}/>
       )}
+
+      <PortalShare propertyId={prop.id} userId={userId} />
 
       <PaymentLinks />
 
