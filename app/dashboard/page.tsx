@@ -25,6 +25,7 @@ import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
+import OccupancyPanel from './components/OccupancyPanel';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -465,10 +466,6 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         }}/>
       )}
 
-      <PortalShare propertyId={prop.id} userId={userId} />
-
-      <PaymentLinks />
-
       <div className="grid-main">
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
@@ -562,6 +559,12 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           );})}
         </div>
       </div>
+
+      {/* Διαχείριση & Εργαλεία — δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
+      <div style={{marginTop:8,marginBottom:12,fontFamily:"'Google Sans',sans-serif",fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
+      <PortalShare propertyId={prop.id} userId={userId} />
+      <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
+      <PaymentLinks />
     </div>
   );
 }
@@ -605,6 +608,9 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = '/login'; return; }
       setUser(user);
+      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση — idempotent.
+      const refBy = (user.user_metadata as any)?.referred_by;
+      if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       await fetchProperties(user.id);
       setLoading(false);
     };
