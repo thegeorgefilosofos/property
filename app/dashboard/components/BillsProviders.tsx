@@ -427,7 +427,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                     return (
                       <tr key={plan.id}
                         onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
-                        style={{ cursor: 'pointer', background: isCur ? 'rgba(212,175,66,0.08)' : 'transparent', transition: 'background 0.15s' }}>
+                        style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
                         <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
                         <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--positive)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>

@@ -83,10 +83,10 @@ body {
   --bg-hover:      rgba(60,64,67,0.08);
   --bg-active:     rgba(26,115,232,0.12);
 
-  --accent:        #b8860b;   /* Gold brand — Midnight Prestige */
-  --accent-dim:    rgba(184,134,11,0.12);
-  --accent-hover:  #9a6f09;
-  --accent-text:   #1a1a1a;
+  --accent:        #1a73e8;   /* Google Blue — brand accent (light) */
+  --accent-dim:    rgba(26,115,232,0.12);
+  --accent-hover:  #1765cc;
+  --accent-text:   #ffffff;
 
   --positive:      #188038;
   --positive-dim:  rgba(24,128,56,0.12);
@@ -182,10 +182,10 @@ body {
   --bg-hover:      rgba(232,234,237,0.08);
   --bg-active:     rgba(168,199,250,0.12);
 
-  --accent:        #d4af42;   /* Gold brand — Midnight Prestige (dark) */
-  --accent-dim:    rgba(212,175,66,0.15);
-  --accent-hover:  #e0c05a;
-  --accent-text:   #1a1a1a;
+  --accent:        #8ab4f8;   /* Google Blue — brand accent (dark) */
+  --accent-dim:    rgba(138,180,248,0.15);
+  --accent-hover:  #aecbfa;
+  --accent-text:   #0a2647;
 
   --positive:      #81c995;
   --positive-dim:  rgba(129,201,149,0.15);
@@ -436,15 +436,18 @@ body {
 ══════════════════════════════════════════════════════════════ */
 
 /* Elevated card (Google's default) */
+/* ΕΝΙΑΙΑ κάρτα — μία και μόνη αισθητική για ΟΛΟ το app (Google outlined):
+   λεπτό border, ίδια ακτίνα 14, χωρίς βαριά σκιά. Ταυτίζεται με το <Card> του
+   Theme.tsx ώστε global .card και component Card να δείχνουν πανομοιότυπα. */
 .card {
   background: var(--bg-surface);
-  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
   padding: 16px;
-  box-shadow: var(--shadow-sm);
-  border: none;
-  transition: box-shadow 0.2s cubic-bezier(0.2,0,0,1);
+  box-shadow: none;
+  transition: border-color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1);
 }
-.card:hover { box-shadow: var(--shadow-md); }
+.card:hover { box-shadow: var(--shadow-sm); }
 
 /* Filled card */
 .card-filled {
@@ -466,30 +469,31 @@ body {
 .card-sm { padding: 12px; border-radius: 8px; }
 .card-lg { padding: 24px; border-radius: 16px; }
 
-/* KPI / Metric card */
+/* KPI / Metric card — ταυτίζεται με το KPIGrid του Theme.tsx (μία αισθητική) */
 .kpi-card {
-  background: var(--bg-surface);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: none;
 }
-.kpi-card:hover { box-shadow: var(--shadow-md); }
 .kpi-value {
-  font-family: 'Google Sans', sans-serif;
+  font-family: 'Roboto Mono', monospace;
   font-size: 22px;
-  font-weight: 400;
-  line-height: 28px;
+  font-weight: 700;
+  line-height: 1;
   letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .kpi-label {
-  font-family: 'Roboto', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.4px;
-  color: var(--text-secondary);
+  font-family: 'Google Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 /* card-accent kept for compatibility */
@@ -1048,19 +1052,22 @@ body {
 .kpi-grid-5 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
 .kpi-grid-6 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
 
-/* Section label */
+/* Section label — ΤΑΥΤΙΖΕΤΑΙ με το SecHdr του Theme.tsx ώστε οι επικεφαλίδες
+   ενοτήτων να δείχνουν ΙΔΙΕΣ σε όλα τα tabs (τελεία + uppercase + λεπτή γραμμή). */
 .section-label {
   font-family: 'Google Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
 }
 .section-dot {
-  width: 4px; height: 4px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--accent);
   flex-shrink: 0;
@@ -1182,10 +1189,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --bg-overlay:    #3c4043;
     --bg-hover:      rgba(232,234,237,0.08);
     --bg-active:     rgba(168,199,250,0.12);
-    --accent:        #aecbfa;
-    --accent-dim:    rgba(174,203,250,0.15);
-    --accent-hover:  #d2e3fc;
-    --accent-text:   #0a2d6b;
+    --accent:        #8ab4f8;
+    --accent-dim:    rgba(138,180,248,0.15);
+    --accent-hover:  #aecbfa;
+    --accent-text:   #0a2647;
     --positive:      #81c995;
     --positive-dim:  rgba(129,201,149,0.15);
     --negative:      #f28b82;
@@ -1488,3 +1495,33 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cmdk-item.active { background: var(--md-secondary-container); }
 .cmdk-item-hint { margin-left: auto; font-size: 11px; color: var(--text-tertiary); }
 .cmdk-empty { padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 13px; font-family: 'Google Sans', sans-serif; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE EXTREMES — άψογο από 320px έως 100 ίντσες
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Ultra-wide (>1780px): κεντράρισμα περιεχομένου ώστε να ΜΗΝ «τεντώνει»
+   ατέρμονα σε 4K/5K/100-inch οθόνες — όπως Gmail/Drive. */
+@media (min-width: 1780px) {
+  .app-content > * { max-width: 1720px; margin-left: auto; margin-right: auto; }
+}
+
+/* Πολύ μικρά κινητά (≤360px — iPhone SE, LG Optimus L70, κ.ά.) */
+@media (max-width: 360px) {
+  .app-content { padding-left: 10px; padding-right: 10px; }
+  .app-tab     { padding: 0 10px; font-size: 12px; }
+  .kpi-value   { font-size: 19px; }
+  .card        { padding: 14px; }
+  .cmdk-input  { font-size: 15px; }
+  .bottom-nav-item { font-size: 9px; }
+}
+
+/* Foldables πολύ στενά (≤280px — Galaxy Fold κλειστό) — τελευταίο δίχτυ ασφαλείας */
+@media (max-width: 300px) {
+  .app-topbar .prop-title, .app-topbar h1 { font-size: 15px; }
+  .kpi-value { font-size: 17px; }
+}
+
+/* Landing FAQ: κρύψε τον προεπιλεγμένο δείκτη του <summary> */
+summary::-webkit-details-marker { display: none; }
+summary::marker { content: ""; }

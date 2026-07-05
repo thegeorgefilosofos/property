@@ -20,6 +20,9 @@ import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import PaymentLinks from './components/PaymentLinks';
+import { printPropertyStatement } from './components/statement';
+import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -86,7 +89,7 @@ const fmtEur = (n:number|null|undefined) => n == null ? '—' : `${fmt(n)} €`;
 const mdInput: React.CSSProperties = {
   width:'100%', padding:'10px 16px', height:40, borderRadius:4,
   border:'1px solid var(--border-default)', background:'var(--bg-surface)',
-  color:'var(--text-primary)', fontSize:14, fontFamily:"'Roboto',sans-serif",
+  color:'var(--text-primary)', fontSize:14, fontFamily:"'Google Sans',sans-serif",
   letterSpacing:'0.25px', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s',
 };
 const mdLabel: React.CSSProperties = {
@@ -172,7 +175,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
           <div>
             <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:24,fontWeight:400,color:'var(--text-primary)',lineHeight:'32px'}}>Νέο Ακίνητο</div>
-            <div style={{fontFamily:"'Roboto',sans-serif",fontSize:14,color:'var(--text-secondary)',marginTop:4,letterSpacing:'0.25px'}}>Βήμα {step} από 2 — {step===1?'Βασικά Στοιχεία':'Οικονομικά'}</div>
+            <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:14,color:'var(--text-secondary)',marginTop:4,letterSpacing:'0.25px'}}>Βήμα {step} από 2 — {step===1?'Βασικά Στοιχεία':'Οικονομικά'}</div>
           </div>
           <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✕</button>
         </div>
@@ -205,7 +208,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
             </div>
             {form.value && form.target_rent && (
               <div style={{background:'var(--md-primary-container)',borderRadius:12,padding:'14px 18px'}}>
-                <div style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--md-on-primary-container)',marginBottom:4}}>Εκτιμώμενη Μεικτή Απόδοση</div>
+                <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--md-on-primary-container)',marginBottom:4}}>Εκτιμώμενη Μεικτή Απόδοση</div>
                 <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:24,fontWeight:400,color:'var(--md-on-primary-container)',fontVariantNumeric:'tabular-nums'}}>{((parseFloat(form.target_rent)*12/parseFloat(form.value))*100).toFixed(1)}%</div>
               </div>
             )}
@@ -250,14 +253,14 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
             <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:22,fontWeight:400,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
-            <p style={{fontFamily:"'Roboto',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
+            <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
           <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✕</button>
         </div>
         {otherProperties.length === 0 ? (
           <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
             <p style={{fontSize:32,marginBottom:12}}></p>
-            <p style={{fontFamily:"'Roboto',sans-serif",fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
+            <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:14}}>Δεν υπάρχουν άλλα ακίνητα</p>
           </div>
         ) : (
           <>
@@ -269,7 +272,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
                     <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)',flexShrink:0}}/>
                     <div>
                       <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
-                      <p style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
+                      <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
                     </div>
                     {sourceId===p.id&&<span style={{marginLeft:'auto',color:'var(--accent)',fontSize:16}}>✓</span>}
                   </div>
@@ -279,11 +282,11 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
             {preview.length > 0 && (
               <div style={{padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:12}}>
                 <p style={{...mdLabel,marginBottom:8}}>Προεπισκόπηση ({preview.length}+ αντικείμενα)</p>
-                {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
+                {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily:"'Google Sans',sans-serif",fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
               </div>
             )}
             <div style={{padding:'12px 16px',background:'var(--warning-dim)',borderRadius:12}}>
-              <p style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--warning)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
+              <p style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,color:'var(--warning)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
@@ -297,7 +300,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
+function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: string; onNavigate: (tab: string) => void }) {
   const supabase = createClient();
   const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
@@ -392,6 +395,30 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
 
   return (
     <div>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+        <button onClick={()=>printPropertyStatement({
+          propName: prop.name, address: prop.address||undefined,
+          propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
+          status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
+          sqm: prop.sqm||undefined, monthlyRent: rent, annualRent, grossYield, netYield,
+          expensesYTD: totalExpYTD, categories: catEntries,
+        })}
+          style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
+          onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)';}}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          Αναφορά (PDF)
+        </button>
+      </div>
+
+      <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
+        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση — για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
+        { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
+        { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
+        { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
+        { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
+      ] as SetupStep[]}/>
+
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent), color:'var(--accent)' },
@@ -417,7 +444,7 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
               <div style={{width:6,height:6,borderRadius:'50%',background:`var(--${a.tone})`,marginTop:6,flexShrink:0}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>{a.label}</div>
-                {a.sub && <div style={{fontFamily:"'Roboto',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:2}}>{a.sub}</div>}
+                {a.sub && <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:2}}>{a.sub}</div>}
               </div>
             </div>
           ))}
@@ -434,6 +461,8 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         }}/>
       )}
 
+      <PaymentLinks />
+
       <div className="grid-main">
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
@@ -449,12 +478,12 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Κατηγορίες Δαπανών</div>
           {catEntries.length===0
-            ? <div style={{fontFamily:"'Roboto',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες</div>
+            ? <div style={{fontFamily:"'Google Sans',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {catEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:8,height:8,borderRadius:2,background:catColors[i],flexShrink:0}}/>
-                    <div style={{flex:1,fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
+                    <div style={{flex:1,fontFamily:"'Google Sans',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
                     <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtEur(amt)}</div>
                   </div>
                 ))}
@@ -470,8 +499,8 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
             <tbody>
               {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Διεύθυνση',prop.address],['Αντικειμενική Αξία',fmtEur(prop.obj_value)],['ΕΠΑ Κλάση',prop.pea_class]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
-                  <td style={{padding:'8px 0',fontFamily:"'Roboto',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
-                  <td style={{padding:'8px 0',fontFamily:"'Roboto',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
+                  <td style={{padding:'8px 0',fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
+                  <td style={{padding:'8px 0',fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
                 </tr>
               ))}
             </tbody>
@@ -480,14 +509,14 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Επόμενες Εργασίες</div>
           {tasks.length===0
-            ? <div style={{fontFamily:"'Roboto',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
+            ? <div style={{fontFamily:"'Google Sans',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {tasks.map(t => { const pc=t.priority==='high'?'var(--negative)':t.priority==='medium'?'var(--warning)':'var(--text-tertiary)'; return (
                   <div key={t.id} style={{display:'flex',alignItems:'flex-start',gap:10}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:pc,marginTop:6,flexShrink:0}}/>
                     <div>
-                      <div style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-primary)',lineHeight:'20px'}}>{t.title}</div>
-                      {t.due_date&&<div style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--text-tertiary)',marginTop:2}}>{new Date(t.due_date).toLocaleDateString('el-GR')}</div>}
+                      <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,color:'var(--text-primary)',lineHeight:'20px'}}>{t.title}</div>
+                      {t.due_date&&<div style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--text-tertiary)',marginTop:2}}>{new Date(t.due_date).toLocaleDateString('el-GR')}</div>}
                     </div>
                   </div>
                 );})}
@@ -497,11 +526,11 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Μέσοι Λογαριασμοί</div>
           {bills.length===0
-            ? <div style={{fontFamily:"'Roboto',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν λογαριασμοί</div>
+            ? <div style={{fontFamily:"'Google Sans',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν λογαριασμοί</div>
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {bills.slice(0,5).map(b => (
                   <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{fontFamily:"'Roboto',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
+                    <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>{b.type}</div>
                     <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(b.avg_amount||b.amount)}</div>
                   </div>
                 ))}
@@ -519,12 +548,12 @@ function OverviewTab({ prop, userId }: { prop: Property; userId: string }) {
             { label:'Εκτ. Φόρος (15%)', value:fmtEur(annualRent*0.15), color:'var(--warning)' },
             { label:'Καθαρό Αποτέλεσμα', value:fmtEur(annualRent-totalExpYTD-annualRent*0.15), color:'var(--text-primary)' },
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
-          ].map((k,i) => (
-            <div key={i} style={{textAlign:'center',padding:16,background:(k as any).accent?'var(--md-primary-container)':'var(--md-surface-container)',borderRadius:12}}>
-              <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:20,fontWeight:400,color:(k as any).accent?'var(--md-on-primary-container)':k.color,marginBottom:6,fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
-              <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:11,fontWeight:500,color:(k as any).accent?'var(--md-on-primary-container)':'var(--text-secondary)',letterSpacing:'0.5px',textTransform:'uppercase'}}>{k.label}</div>
+          ].map((k,i) => { const acc=(k as any).accent; return (
+            <div key={i} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
+              <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{k.value}</div>
+              <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
-          ))}
+          );})}
         </div>
       </div>
     </div>
@@ -677,7 +706,7 @@ export default function Dashboard() {
                     {statusDropdown && (
                       <div style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',borderRadius:4,padding:'8px 0',zIndex:100,minWidth:180,boxShadow:'var(--shadow-lg)'}}>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => (
-                          <button key={k} onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'10px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Roboto',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <button key={k} onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'10px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Google Sans',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                             <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>{v}
                           </button>
                         ))}
@@ -685,7 +714,7 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-                <div style={{fontFamily:"'Roboto',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
+                <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address].filter(Boolean).join(' · ')}
                 </div>
               </div>
@@ -699,7 +728,7 @@ export default function Dashboard() {
               <ThemeToggle />
             </>
           ) : (
-            <><div style={{flex:1,fontFamily:"'Roboto',sans-serif",fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
+            <><div style={{flex:1,fontFamily:"'Google Sans',sans-serif",fontSize:14,color:'var(--text-secondary)'}}>Δεν έχεις προσθέσει ακίνητο ακόμα</div><ThemeToggle /></>
           )}
         </header>
 
@@ -737,7 +766,7 @@ export default function Dashboard() {
               );})}
             </nav>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={setNav}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}

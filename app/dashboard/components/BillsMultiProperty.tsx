@@ -151,7 +151,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
           )}
           {properties.length > 1 && (['cards','table','chart'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
-              style={{ padding: '6px 14px', fontSize: 11, borderRadius: T.radius.btn, border: `1px solid ${view === v ? 'var(--accent)' : 'var(--border-default)'}`, background: view === v ? 'rgba(212,175,66,0.1)' : 'transparent', color: view === v ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: view === v ? 700 : 400, fontFamily: T.font.sans }}>
+              style={{ padding: '6px 14px', fontSize: 11, borderRadius: T.radius.btn, border: `1px solid ${view === v ? 'var(--accent)' : 'var(--border-default)'}`, background: view === v ? 'rgba(26,115,232,0.1)' : 'transparent', color: view === v ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: view === v ? 700 : 400, fontFamily: T.font.sans }}>
               {v === 'cards' ? 'Κάρτες' : v === 'table' ? 'Πίνακας' : 'Γράφημα'}
             </button>
           ))}
@@ -220,7 +220,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ταξινόμηση</span>
             {(['total','name','sqm'] as const).map(s => (
               <button key={s} onClick={() => setSortBy(s)}
-                style={{ padding: '5px 12px', fontSize: 10, borderRadius: T.radius.pill, border: `1px solid ${sortBy === s ? 'var(--accent)' : 'var(--border-subtle)'}`, background: sortBy === s ? 'rgba(212,175,66,0.1)' : 'transparent', color: sortBy === s ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: sortBy === s ? 700 : 400, fontFamily: T.font.sans }}>
+                style={{ padding: '5px 12px', fontSize: 10, borderRadius: T.radius.pill, border: `1px solid ${sortBy === s ? 'var(--accent)' : 'var(--border-subtle)'}`, background: sortBy === s ? 'rgba(26,115,232,0.1)' : 'transparent', color: sortBy === s ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: sortBy === s ? 700 : 400, fontFamily: T.font.sans }}>
                 {s === 'total' ? 'Κόστος' : s === 'name' ? 'Όνομα' : 'Τετραγωνικά'}
               </button>
             ))}
@@ -253,7 +253,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                 const perSqm = prop.sqm && c.total ? c.total / prop.sqm : null;
                 return (
                   <div key={prop.id} style={{ background: isCur ? 'var(--bg-surface)' : 'var(--bg-elevated)', border: `1px solid ${isCur ? 'var(--accent)' : isTop ? 'rgba(197,34,31,0.2)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: 18, position: 'relative', transition: 'all 0.15s' }}>
-                    {isCur && <div style={{ position: 'absolute', top: 12, right: 12, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(212,175,66,0.1)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Τρέχον</div>}
+                    {isCur && <div style={{ position: 'absolute', top: 12, right: 12, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Τρέχον</div>}
                     {isTop && !isCur && <div style={{ position: 'absolute', top: 12, right: 12, fontSize: 8, fontWeight: 700, color: 'var(--negative)', background: 'rgba(197,34,31,0.08)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Ακριβότερο</div>}
                     {isBot && !isCur && <div style={{ position: 'absolute', top: 12, right: 12, fontSize: 8, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.08)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Οικονομικότερο</div>}
                     <div style={{ marginBottom: 14 }}>
@@ -310,7 +310,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                     const c = costs[prop.id] || {} as PropertyCosts;
                     const isCur = prop.id === currentPropertyId;
                     return (
-                      <tr key={prop.id} style={{ background: isCur ? 'rgba(212,175,66,0.04)' : 'transparent', cursor: !isCur && onNavigate ? 'pointer' : 'default' }}
+                      <tr key={prop.id} style={{ background: isCur ? 'rgba(26,115,232,0.04)' : 'transparent', cursor: !isCur && onNavigate ? 'pointer' : 'default' }}
                         onClick={() => !isCur && onNavigate && onNavigate(prop.id)}>
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ fontWeight: isCur ? 700 : 500, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{prop.name}</div>

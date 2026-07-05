@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { CustomSelect } from './UIComponents'
+import { ExportButton } from '@/components/Theme'
+import { downloadCsv, csvEur, csvDec, csvDate } from './exportCsv'
 import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms } from '../../hooks/useMarketData'
 import {
@@ -812,6 +814,24 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
       {/* ═══ SAVED ═══ */}
       {tab==='saved'&&(
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+            <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Google Sans',sans-serif"}}>{saved.length} δάνεια</span>
+            <ExportButton disabled={saved.length===0} onClick={()=>downloadCsv(
+              `daneio_${new Date().toISOString().slice(0,10)}`,
+              ['Τράπεζα','Τύπος Δανείου','Ποσό (€)','Επιτόκιο (%)','Τύπος Επιτοκίου','Διάρκεια (έτη)','Δόση/μήνα (€)','Συνολικοί Τόκοι (€)','LTV (%)','Έναρξη','Κατάσταση','Σημειώσεις'],
+              saved.map(loan=>{
+                const m=calcMonthly(loan.amount,loan.rate,loan.years)
+                const ti=m*loan.years*12-loan.amount
+                const ltv=loan.property_value>0?(loan.amount/loan.property_value)*100:0
+                return [
+                  loan.bank, LOAN_TYPES[loan.loan_type as LoanType]?.label||loan.loan_type,
+                  csvEur(loan.amount), csvDec(loan.rate), loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό',
+                  loan.years, csvEur(m), csvEur(ti), csvDec(ltv,1),
+                  csvDate(loan.start_date), loan.status==='active'?'Ενεργό':'Ανενεργό', (loan.notes||'').replace(/\n/g,' '),
+                ]
+              })
+            )}/>
+          </div>
           {saved.length===0&&(
             <div style={{textAlign:'center',padding:'60px 0'}}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-default)" strokeWidth="1.5" style={{margin:'0 auto 14px',display:'block'}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
