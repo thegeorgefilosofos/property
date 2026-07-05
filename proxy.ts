@@ -30,17 +30,23 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  // Δημόσιες σελίδες — προσβάσιμες ΧΩΡΙΣ σύνδεση (landing + νομικά + auth).
+  // Το /privacy & /terms ΠΡΕΠΕΙ να είναι δημόσια (απαίτηση GDPR).
+  const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms"]);
+  // Η πύλη ενοικιαστή (/portal/<token>) είναι δημόσια — πρόσβαση χωρίς login.
+  const isPublic = PUBLIC.has(pathname) || pathname.startsWith("/portal/");
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
-  if (!user && !isAuthPage) {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
+  // Συνδεδεμένος χρήστης σε σελίδα σύνδεσης/εγγραφής → πάει στο dashboard.
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

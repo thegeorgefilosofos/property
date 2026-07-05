@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, CustomSelect } from './UIComponents';
-import { T, fe } from '@/components/Theme';
+import { T, fe, InfoBanner } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -203,6 +203,11 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
         ))}
       </div>
+
+      {/* ── Οδηγός ευθύνης: ποιος πληρώνει τι (ελληνικό πλαίσιο) ──────────── */}
+      <InfoBanner tone="info">
+        <strong>Ποιος πληρώνει τι:</strong> τα <strong>λειτουργικά κοινόχρηστα</strong> (καθαρισμός, ρεύμα/λάμπες κλιμακοστασίου, ασανσέρ, κηπουρός, αμοιβή διαχειριστή) βαρύνουν τον <strong>ενοικιαστή</strong>. Οι <strong>έκτακτες/κεφαλαιουχικές δαπάνες</strong> (επισκευή στέγης/ασανσέρ, μονώσεις, αντικαταστάσεις) και το <strong>αποθεματικό</strong> βαρύνουν τον <strong>ιδιοκτήτη</strong>. Οι έκτακτες εισφορές παρακάτω μεταφέρονται αυτόματα στις Δαπάνες σου.
+      </InfoBanner>
 
       {/* ── Διαχείριση Κτηρίου ───────────────────────────────────────────── */}
       <div style={card}>
