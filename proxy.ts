@@ -33,7 +33,8 @@ export async function proxy(request: NextRequest) {
   // Δημόσιες σελίδες — προσβάσιμες ΧΩΡΙΣ σύνδεση (landing + νομικά + auth).
   // Το /privacy & /terms ΠΡΕΠΕΙ να είναι δημόσια (απαίτηση GDPR).
   const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms"]);
-  const isPublic = PUBLIC.has(pathname);
+  // Η πύλη ενοικιαστή (/portal/<token>) είναι δημόσια — πρόσβαση χωρίς login.
+  const isPublic = PUBLIC.has(pathname) || pathname.startsWith("/portal/");
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   if (!user && !isPublic) {
