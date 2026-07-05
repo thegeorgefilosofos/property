@@ -10,23 +10,48 @@ const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιο
 const MGMT_TYPES = [
   { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
   { value: 'office',      label: 'Γραφείο Διαχείρισης'       },
-  { value: 'billys',      label: 'Billys — 3 € / μήνα'       },
+  { value: 'billys',      label: 'Ψηφιακή Πλατφόρμα'         },
   { value: 'none',        label: 'Χωρίς Διαχειριστή'         },
 ];
 
 const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> = {
   traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής — εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
   office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης — επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
-  billys:      { monthly: 3, desc: 'Billys — ψηφιακή διαχείριση, online πληρωμές, αυτόματες ειδοποιήσεις.',    url: 'https://www.billys.gr' },
+  billys:      { monthly: 0, desc: 'Ψηφιακή πλατφόρμα κοινοχρήστων — online έκδοση, ειδοποιήσεις, πληρωμές. Δες τη σύγκριση παρόχων παρακάτω.', url: 'https://billys.gr' },
   none:        { monthly: 0, desc: 'Αυτοδιαχείριση — μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
 };
 
 const MGMT_CARDS = [
   { key: 'traditional', costLabel: 'Εθελοντής',   nameLabel: 'Παραδοσιακός Διαχειριστής', url: '' },
-  { key: 'office',      costLabel: 'Αμοιβή',       nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
-  { key: 'billys',      costLabel: '3 € / μήνα',   nameLabel: 'Billys',                    url: 'https://www.billys.gr' },
+  { key: 'office',      costLabel: '20–50 €/μήνα', nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
+  { key: 'billys',      costLabel: 'από 0 €',      nameLabel: 'Ψηφιακή Πλατφόρμα',         url: '' },
   { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
 ] as const;
+
+// Ελληνικές πλατφόρμες έκδοσης/διαχείρισης κοινοχρήστων — τιμές ενδεικτικές (2026).
+// Οι περισσότερες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας.
+const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }[] = [
+  { name: 'Billys',            price: 'Δωρεάν – 29 €/μήνα', note: 'Δωρεάν έκδοση. Smart: τραπεζικός λογ. πολυκατοικίας, ψηφοφορίες, ειδοποιήσεις οφειλών. Safe: αστική ευθύνη διαχειριστή.', url: 'https://billys.gr' },
+  { name: 'Proper',            price: 'Δωρεάν',             note: 'Δωρεάν έκδοση κοινοχρήστων + υπηρεσίες διαχείρισης στην Αττική.', url: 'https://proper.gr' },
+  { name: 'Outgo',             price: 'Δωρεάν – ~86 €/έτος', note: '1 δωρεάν έκδοση/μήνα. Συνδρομή ανάλογα με τα διαμερίσματα.', url: 'https://outgo.gr' },
+  { name: 'Κοινόχρηστα24',     price: 'Οικονομικό',         note: '35+ χρόνια στον χώρο. Online υπολογισμός & έκδοση.', url: 'https://www.koinoxrista24.gr' },
+  { name: 'e-apps Κοινόχρηστα', price: 'από 19,90 €/έτος',   note: 'Χαμηλό ετήσιο κόστος, online συνδρομή.', url: 'https://e-apps.gr/app-review/koino' },
+  { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός & εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
+];
+
+// Ανάλυση κοινοχρήστων ανά κατηγορία — λογική κατανομής με χιλιοστά (Billys-style).
+// payer: ποιος επιβαρύνεται κατά τον νόμο/έθιμο (ενοικιαστής=λειτουργικά, ιδιοκτήτης=κεφαλαιουχικά).
+const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner' }[] = [
+  { key: 'cleaning',    label: 'Καθαρισμός',              payer: 'tenant' },
+  { key: 'power',       label: 'Ρεύμα κοινοχρήστων',      payer: 'tenant' },
+  { key: 'elevator',    label: 'Ασανσέρ (λειτουργία)',    payer: 'tenant' },
+  { key: 'heating',     label: 'Θέρμανση / πετρέλαιο',    payer: 'tenant' },
+  { key: 'water',       label: 'Ύδρευση κοινοχρήστων',    payer: 'tenant' },
+  { key: 'garden',      label: 'Κηπουρός / πράσινο',      payer: 'tenant' },
+  { key: 'manager',     label: 'Αμοιβή διαχειριστή',      payer: 'tenant' },
+  { key: 'maintenance', label: 'Συντήρηση / επισκευές',   payer: 'owner'  },
+  { key: 'reserve',     label: 'Αποθεματικό κτηρίου',     payer: 'owner'  },
+];
 
 const histInputStyle = (isCurrent: boolean, isHovered: boolean): React.CSSProperties => ({
   width: '100%',
@@ -68,6 +93,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const [extraDate,    setExtraDate]    = useState('');
   const [extras,       setExtras]       = useState<{ reason: string; amount: string; date: string; transferredToExpenses?: boolean }[]>([]);
   const [history,      setHistory]      = useState<string[]>(Array(12).fill(''));
+  const [millesimi,    setMillesimi]    = useState('');
+  const [catData,      setCatData]      = useState<Record<string, string>>({});
   const [transferMsg,  setTransferMsg]  = useState<string | null>(null);
   const [transferring, setTransferring] = useState<number | null>(null);
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
@@ -89,6 +116,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         if (d.fundLastDate)              setFundLastDate(d.fundLastDate as string);
         if (d.extras)                    setExtras(d.extras as typeof extras);
         if (d.history)                   setHistory(d.history as string[]);
+        if (d.millesimi !== undefined)   setMillesimi(String(d.millesimi ?? ''));
+        if (d.catData)                   setCatData(d.catData as Record<string, string>);
       }
     })();
   }, [propertyId]);
@@ -106,8 +135,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   }, [propertyId, userId]);
 
   const upd = useCallback((patch: Record<string, unknown>) => {
-    save({ mgmtType, mgmtCost, mgmtDueDay, fundBalance, fundMyPct, fundMonthly, fundLastDate, extras, history, ...patch });
-  }, [mgmtType, mgmtCost, mgmtDueDay, fundBalance, fundMyPct, fundMonthly, fundLastDate, extras, history, save]);
+    save({ mgmtType, mgmtCost, mgmtDueDay, fundBalance, fundMyPct, fundMonthly, fundLastDate, extras, history, millesimi, catData, ...patch });
+  }, [mgmtType, mgmtCost, mgmtDueDay, fundBalance, fundMyPct, fundMonthly, fundLastDate, extras, history, millesimi, catData, save]);
 
   const sMgmt    = (v: string) => { setMgmtType(v);    upd({ mgmtType: v    }); };
   const sMgmtC   = (v: string) => { setMgmtCost(v);    upd({ mgmtCost: v    }); };
@@ -118,6 +147,10 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const sFundD   = (v: string) => { setFundLastDate(v); upd({ fundLastDate: v }); };
   const sHist    = (i: number, v: string) => {
     const n = [...history]; n[i] = v; setHistory(n); upd({ history: n });
+  };
+  const sMill    = (v: string) => { setMillesimi(v); upd({ millesimi: v }); };
+  const sCat     = (key: string, v: string) => {
+    const n = { ...catData, [key]: v }; setCatData(n); upd({ catData: n });
   };
 
   const addExtra = () => {
@@ -164,6 +197,19 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const totalExtras  = extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const fundMonths   = fundMonthly && myFundShare > 0 ? Math.floor(myFundShare / (parseFloat(fundMonthly) || 1)) : 0;
 
+  // Ανάλυση κοινοχρήστων ανά κατηγορία — κατανομή με χιλιοστά (Billys logic)
+  const millRatio    = (parseFloat(millesimi) || 0) / 1000;          // μερίδιο ιδιοκτησίας
+  const catRows      = COMMON_CATEGORIES.map(c => {
+    const building = parseFloat(catData[c.key]) || 0;                // μηνιαίο σύνολο κτηρίου
+    const myShare  = building * millRatio;                            // το μερίδιό μου
+    return { ...c, building, myShare };
+  });
+  const catBuildingTotal = catRows.reduce((s, r) => s + r.building, 0);
+  const myCatTotal       = catRows.reduce((s, r) => s + r.myShare, 0);
+  const tenantBurden     = catRows.filter(r => r.payer === 'tenant').reduce((s, r) => s + r.myShare, 0);
+  const ownerBurden      = catRows.filter(r => r.payer === 'owner').reduce((s, r) => s + r.myShare, 0);
+  const hasCatData       = catBuildingTotal > 0;
+
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
@@ -208,6 +254,71 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <InfoBanner tone="info">
         <strong>Ποιος πληρώνει τι:</strong> τα <strong>λειτουργικά κοινόχρηστα</strong> (καθαρισμός, ρεύμα/λάμπες κλιμακοστασίου, ασανσέρ, κηπουρός, αμοιβή διαχειριστή) βαρύνουν τον <strong>ενοικιαστή</strong>. Οι <strong>έκτακτες/κεφαλαιουχικές δαπάνες</strong> (επισκευή στέγης/ασανσέρ, μονώσεις, αντικαταστάσεις) και το <strong>αποθεματικό</strong> βαρύνουν τον <strong>ιδιοκτήτη</strong>. Οι έκτακτες εισφορές παρακάτω μεταφέρονται αυτόματα στις Δαπάνες σου.
       </InfoBanner>
+
+      {/* ── Ανάλυση Κοινοχρήστων ανά Κατηγορία (χιλιοστά — Billys logic) ──── */}
+      <div style={card}>
+        {secHdr('Ανάλυση Κοινοχρήστων ανά Κατηγορία')}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 16 }}>
+          <NumberInput label="Τα χιλιοστά μου (‰)" value={millesimi} onChange={sMill} suffix="‰" step={1} max={1000}/>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Το μερίδιό μου</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{(millRatio * 100).toFixed(2).replace('.', ',')}%</div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 16, border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
+            Καταχώρησε το <strong>μηνιαίο σύνολο του κτηρίου</strong> για κάθε κατηγορία. Το μερίδιό σου υπολογίζεται αυτόματα με βάση τα <strong>χιλιοστά</strong> σου — όπως στην κατανομή κοινοχρήστων της πολυκατοικίας.
+          </div>
+        </div>
+
+        {/* Επικεφαλίδα πίνακα */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 88px', gap: 10, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4 }}>
+          {['Κατηγορία', 'Σύνολο κτηρίου', 'Μερίδιό μου', 'Βαρύνει'].map((h, i) => (
+            <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, textAlign: i === 0 ? 'left' : i === 3 ? 'center' : 'right' }}>{h}</div>
+          ))}
+        </div>
+
+        {catRows.map(r => (
+          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 88px', gap: 10, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
+            <input
+              type="number" inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)} placeholder="0"
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '7px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
+            <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : '—'}</div>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '3px 8px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const,
+                background: r.payer === 'tenant' ? 'var(--accent-soft)' : 'var(--warning-soft)',
+                border: `1px solid ${r.payer === 'tenant' ? 'var(--accent-border)' : 'var(--warning-border)'}`,
+                color: r.payer === 'tenant' ? 'var(--accent)' : 'var(--warning)' }}>
+                {r.payer === 'tenant' ? 'Ενοικιαστής' : 'Ιδιοκτήτης'}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {hasCatData && millRatio > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 16 }}>
+            {[
+              { label: 'Το σύνολό μου / μήνα',   value: fe(myCatTotal),   color: 'var(--text-primary)' },
+              { label: 'Βαρύνει ενοικιαστή',     value: fe(tenantBurden), color: 'var(--accent)'       },
+              { label: 'Βαρύνει εσένα',          value: fe(ownerBurden),  color: 'var(--warning)'      },
+            ].map((k, i) => (
+              <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {hasCatData && millRatio === 0 && (
+          <div style={{ textAlign: 'center', padding: '14px 0 4px', fontSize: 11, color: 'var(--warning)', fontFamily: T.font.sans }}>
+            Συμπλήρωσε τα χιλιοστά σου παραπάνω για να υπολογιστεί το μερίδιό σου.
+          </div>
+        )}
+      </div>
 
       {/* ── Διαχείριση Κτηρίου ───────────────────────────────────────────── */}
       <div style={card}>
@@ -265,6 +376,31 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             );
           })}
         </div>
+
+        {/* Οδηγός ελληνικών πλατφορμών κοινοχρήστων — εμφανίζεται στην «Ψηφιακή Πλατφόρμα» */}
+        {mgmtType === 'billys' && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ελληνικές Πλατφόρμες Κοινοχρήστων</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
+              {KOIN_PLATFORMS.map(p => (
+                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'block', textDecoration: 'none', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{p.price}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{p.note}</div>
+                  <span style={{ fontSize: 9, color: 'var(--info)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη →</span>
+                </a>
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+              Ενδεικτικές τιμές (2026). Οι περισσότερες πλατφόρμες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας — δες τον εκάστοτε ιστότοπο για ακριβή τιμολόγηση.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Ταμείο Κτηρίου ───────────────────────────────────────────────── */}

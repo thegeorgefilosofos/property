@@ -38,9 +38,14 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   const url = token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${token}` : '';
   const copy = () => { if (url) { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } };
-  const markDone = async (id: string) => { await supabase.from('maintenance_requests').update({ status: 'done' }).eq('id', id); load(); };
+  const setStatus = async (id: string, status: string) => { await supabase.from('maintenance_requests').update({ status }).eq('id', id); load(); };
 
   const pending = reqs.filter(r => r.status !== 'done');
+  const STATUS_META: Record<string, { label: string; tone: string }> = {
+    new:         { label: 'Νέο',          tone: 'negative' },
+    in_progress: { label: 'Σε εξέλιξη',   tone: 'warning' },
+    done:        { label: 'Ολοκληρώθηκε', tone: 'positive' },
+  };
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
@@ -78,16 +83,27 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '8px 0' }}>Κανένα αίτημα ακόμη.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {reqs.slice(0, 6).map(r => (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: r.status === 'done' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${r.status === 'done' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: 10, padding: '10px 12px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textDecoration: r.status === 'done' ? 'line-through' : 'none', opacity: r.status === 'done' ? 0.6 : 1 }}>{r.title}</div>
-                        {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.5 }}>{r.description}</div>}
-                        <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>{fd(r.created_at)}{r.contact ? ` · ${r.contact}` : ''}</div>
+                  {reqs.slice(0, 8).map(r => {
+                    const st = STATUS_META[r.status] || STATUS_META.new;
+                    const done = r.status === 'done';
+                    return (
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: done ? 'var(--bg-elevated)' : `var(--${st.tone}-soft)`, border: `1px solid ${done ? 'var(--border-subtle)' : `var(--${st.tone}-border)`}`, borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>{r.title}</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: `var(--${st.tone})`, background: `var(--${st.tone}-soft)`, border: `1px solid var(--${st.tone}-border)`, borderRadius: T.radius.badge, padding: '2px 7px', fontFamily: T.font.sans }}>{st.label}</span>
+                          </div>
+                          {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{r.description}</div>}
+                          <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>{fd(r.created_at)}{r.contact ? ` · ${r.contact}` : ''}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+                          {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--warning-border)', background: 'var(--bg-surface)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
+                          {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)', background: 'var(--bg-surface)', color: 'var(--positive)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
+                          {done && <button onClick={() => setStatus(r.id, 'new')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Επαναφορά</button>}
+                        </div>
                       </div>
-                      {r.status !== 'done' && <button onClick={() => markDone(r.id)} style={{ flexShrink: 0, height: 28, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Ολοκληρώθηκε</button>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>

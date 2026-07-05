@@ -51,7 +51,7 @@ export function ThemeSwitcher() {
   const { theme, mode, setTheme, toggleMode } = useTheme();
 
   const themes: { key: 'midnight'|'obsidian'|'violet'; color: string; label: string }[] = [
-    { key: 'midnight', color: '#D4AF42', label: 'Midnight Prestige' },
+    { key: 'midnight', color: '#1a73e8', label: 'Google Blue' },
     { key: 'obsidian', color: '#00C49A', label: 'Obsidian & Teal'   },
     { key: 'violet',   color: '#8B5CF6', label: 'Violet Premium'    },
   ];
