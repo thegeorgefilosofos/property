@@ -344,6 +344,10 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   }, [prop.id, load]);
 
   const totalExpYTD = expenses.reduce((s,e)=>s+e.amount,0);
+  // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
+  // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
+  const paidExpYTD = expenses.filter(e => (e as any).paid !== false).reduce((s,e)=>s+e.amount,0);
+  const pendingExpYTD = totalExpYTD - paidExpYTD;
   const rent = tenant?.monthly_rent || prop.target_rent || 0;
   const annualRent = rent * 12; const propValue = prop.value || 0;
   const grossYield = propValue > 0 ? (annualRent/propValue)*100 : 0;
@@ -558,6 +562,20 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
             </div>
           );})}
         </div>
+        {pendingExpYTD > 0 && (
+          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--positive)',display:'inline-block'}}/>
+              <span style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Πληρωμένα</span>
+              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(paidExpYTD)}</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--warning)',display:'inline-block'}}/>
+              <span style={{fontFamily:"'Google Sans',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
+              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--warning)'}}>{fmtEur(pendingExpYTD)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Διαχείριση & Εργαλεία — δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
