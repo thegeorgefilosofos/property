@@ -466,12 +466,6 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         }}/>
       )}
 
-      <PortalShare propertyId={prop.id} userId={userId} />
-
-      <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
-
-      <PaymentLinks />
-
       <div className="grid-main">
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
@@ -565,6 +559,12 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           );})}
         </div>
       </div>
+
+      {/* Διαχείριση & Εργαλεία — δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
+      <div style={{marginTop:8,marginBottom:12,fontFamily:"'Google Sans',sans-serif",fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
+      <PortalShare propertyId={prop.id} userId={userId} />
+      <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
+      <PaymentLinks />
     </div>
   );
 }
