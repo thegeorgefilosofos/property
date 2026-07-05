@@ -106,6 +106,23 @@ const CATEGORY_OPTIONS = [
 const CONFIDENCE_DOT = { high: 'var(--positive)', medium: 'var(--warning)', low: 'var(--text-tertiary)' };
 const CONFIDENCE_LBL = { high: 'Σίγουρο', medium: 'Πιθανό', low: 'Άγνωστο' };
 
+// Αντιστοίχιση κατηγορίας → ομάδα/κατηγορία Δαπανών (ίδια λογική με το AI scan,
+// ώστε οι εισαγωγές τράπεζας να μπαίνουν στη σωστή ομάδα εξόδων και στην Επισκόπηση).
+const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
+  electricity: { group: 'fixed',       cat: 'Ρεύμα' },
+  water:       { group: 'fixed',       cat: 'Νερό' },
+  gas:         { group: 'fixed',       cat: 'Φυσικό Αέριο' },
+  internet:    { group: 'fixed',       cat: 'Internet' },
+  streaming:   { group: 'fixed',       cat: 'Άλλη Πάγια' },
+  insurance:   { group: 'fixed',       cat: 'Ασφάλεια Κτιρίου' },
+  taxes:       { group: 'fixed',       cat: 'ΕΝΦΙΑ' },
+  municipal:   { group: 'fixed',       cat: 'Δημοτικά Τέλη' },
+  security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
+  common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
+  maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
+  other:       { group: 'other',       cat: 'Άλλο' },
+};
+
 const BANKS = [
   'Alpha Bank',
   'Attica Bank',
@@ -255,16 +272,20 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const { error: err } = await supabase.from('bills').insert(rows);
       if (err) throw err;
 
-      await Promise.allSettled(selected.filter(t => t.debit).map(t =>
-        supabase.from('expenses').insert({
+      await Promise.allSettled(selected.filter(t => t.debit).map(t => {
+        const m = EXPENSE_MAP[t.category] || EXPENSE_MAP.other;
+        return supabase.from('expenses').insert({
           property_id: propertyId, user_id: userId,
           amount:      t.amount,
           description: t.description.slice(0, 100),
           date:        t.date,
-          category:    CATEGORY_OPTIONS.find(c => c.value === t.category)?.label || t.category,
-          expense_group: 'bills',
-        })
-      ));
+          category:    m.cat,
+          expense_group: m.group,
+          paid_by:     'owner',
+          paid:        true,
+          notes:       `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}`,
+        });
+      }));
 
       setImported(rows.length); setStep('done');
       onImported?.(rows.length);
