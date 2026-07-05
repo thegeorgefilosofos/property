@@ -90,7 +90,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     ${row('Ακαθάριστα έσοδα (ενοίκια)', eur(c.annualRent), false, '#188038')}
     ${row('Συνολικές δαπάνες', `− ${eur(c.expensesYTD)}`, false, '#c5221f')}
     ${row('Εκτιμώμενος φόρος (15%)', `− ${eur(tax)}`, false, '#e37400')}
-    ${row('Καθαρό αποτέλεσμα', eur(net), true, net >= 0 ? '#188038' : '#c5221f')}
+    ${row('Καθαρό αποτέλεσμα', `${net < 0 ? '− ' : ''}${eur(Math.abs(net))}`, true, net >= 0 ? '#188038' : '#c5221f')}
   </table>
 
   <div class="sec"><span class="dot"></span> Ανάλυση Δαπανών ${c.year}</div>
