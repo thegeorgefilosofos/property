@@ -724,7 +724,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
         <p style={{fontSize:14,color:'var(--text-secondary)',maxWidth:360,lineHeight:1.7,margin:'0 auto',fontFamily:"'Roboto',sans-serif"}}>Καταγράψτε τον εξοπλισμό για παρακολούθηση αξίας, ρεύματος και εγγυήσεων.</p>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,maxWidth:480,width:'100%'}}>
-        {[{t:'Προσθέστε Αντικείμενο',d:'Έπιπλα, συσκευές, ηλεκτρονικά'},{t:'Βάλτε Κατανάλωση',d:'Υπολογισμός κόστους ρεύματος'},{t:'Ορίστε Εγγύηση',d:'Υπενθύμιση πριν λήξει'}].map((s,i)=>(
+        {[{t:'Πρόσθεσε Αντικείμενο',d:'Έπιπλα, συσκευές, ηλεκτρονικά'},{t:'Βάλε Κατανάλωση',d:'Υπολογισμός κόστους ρεύματος'},{t:'Ορίστε Εγγύηση',d:'Υπενθύμιση πριν λήξει'}].map((s,i)=>(
           <div key={i} style={{padding:'20px 14px',background:'var(--bg-elevated)',borderRadius:14,border:'1px solid var(--border-subtle)'}}>
             <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:4}}>{s.t}</p>
             <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{s.d}</p>
@@ -743,7 +743,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
         <StatCard label="Επισκευές" value={fmtEur(totalRepairs)} color="var(--warning)"/>
         {electricItems.length>0
           ?<StatCard label="Ρεύμα/Μήνα" value={fmtEurC(totalMonthlyCost)} color="var(--accent)" sub={`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh/μήνα`} accent/>
-          :<StatCard label="Ρεύμα" value="—" sub="Προσθέστε Watt"/>
+          :<StatCard label="Ρεύμα" value="—" sub="Πρόσθεσε Watt"/>
         }
       </div>
       {totalDiscount>0&&(
@@ -778,7 +778,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
           {electricItems.length===0?(
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-tertiary)'}}>
               <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>Δεν υπάρχουν δεδομένα</p>
-              <p style={{fontSize:11,fontFamily:"'Roboto',sans-serif"}}>Προσθέστε Watt στις ηλεκτρικές συσκευές</p>
+              <p style={{fontSize:11,fontFamily:"'Roboto',sans-serif"}}>Πρόσθεσε Watt στις ηλεκτρικές συσκευές</p>
             </div>
           ):(
             <>
@@ -907,8 +907,8 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       </div>
       {filtered.length===0?(
         <div style={{textAlign:'center',padding:'60px 0',color:'var(--text-tertiary)'}}>
-          <p style={{fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>{items.length===0?'Δεν έχετε καταχωρήσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}</p>
-          <p style={{fontSize:12,fontFamily:"'Roboto',sans-serif"}}>{items.length===0?'Πατήστε "+ Νέο" για να ξεκινήσετε':'Δοκιμάστε διαφορετικά φίλτρα'}</p>
+          <p style={{fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>{items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}</p>
+          <p style={{fontSize:12,fontFamily:"'Roboto',sans-serif"}}>{items.length===0?'Πάτησε «+ Νέο» για να ξεκινήσεις':'Δοκίμασε διαφορετικά φίλτρα'}</p>
         </div>
       ):viewMode==='grid'?(
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))',gap:16}}>
@@ -1074,7 +1074,7 @@ function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:s
       <WSection title="Λήγουν Σύντομα (≤90 Μέρες)" color="var(--warning)" list={soon}/>
       <WSection title="Ληγμένες" color="var(--negative)" list={expired}/>
       <WSection title="Σε Ισχύ" color="var(--positive)" list={valid}/>
-      {withW.length===0&&<div style={{textAlign:'center',padding:'60px 0'}}><p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Δεν έχετε καταχωρήσει ημερομηνίες εγγύησης</p></div>}
+      {withW.length===0&&<div style={{textAlign:'center',padding:'60px 0'}}><p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Δεν έχεις καταχωρίσει ημερομηνίες εγγύησης</p></div>}
     </div>
   )
 }
@@ -1497,7 +1497,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       />
 
       {!loading&&(items.length===0
-        ? <InfoBanner tone="info">Δεν υπάρχουν ακόμη αντικείμενα στην απογραφή. Προσθέστε το πρώτο αντικείμενο ή χρησιμοποιήστε τη Μαζική Εισαγωγή για να ξεκινήσετε.</InfoBanner>
+        ? <InfoBanner tone="info">Δεν υπάρχουν ακόμη αντικείμενα στην απογραφή. Πρόσθεσε το πρώτο αντικείμενο ή χρησιμοποίησε τη Μαζική Εισαγωγή για να ξεκινήσεις.</InfoBanner>
         : <>
             <KPIGrid items={[
               {label:'Σύνολο Αντικειμένων',value:fn(items.length)},
@@ -1506,7 +1506,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
               {label:'Αντικείμενα σε Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
               {label:'Επόμενη Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστέρηση`:undefined},
             ]}/>
-            {actionCount>0&&<InfoBanner tone="warning">{fn(actionCount)} {actionCount===1?'αντικείμενο χρειάζεται':'αντικείμενα χρειάζονται'} την προσοχή σας (εγγύηση, κατάσταση ή απόσβεση).</InfoBanner>}
+            {actionCount>0&&<InfoBanner tone="warning">{fn(actionCount)} {actionCount===1?'αντικείμενο χρειάζεται':'αντικείμενα χρειάζονται'} την προσοχή σου (εγγύηση, κατάσταση ή απόσβεση).</InfoBanner>}
             {warrantyExpiringCount>0&&<InfoBanner tone="warning">{fn(warrantyExpiringCount)} {warrantyExpiringCount===1?'εγγύηση λήγει':'εγγυήσεις λήγουν'} εντός των επόμενων 90 ημερών.</InfoBanner>}
             {badConditionCount>0&&<InfoBanner tone="negative">{fn(badConditionCount)} {badConditionCount===1?'αντικείμενο βρίσκεται':'αντικείμενα βρίσκονται'} σε κακή κατάσταση ή εκτός λειτουργίας.</InfoBanner>}
             {overdueCount>0&&<InfoBanner tone="negative">{fn(overdueCount)} {overdueCount===1?'εργασία συντήρησης έχει':'εργασίες συντήρησης έχουν'} καθυστερήσει.</InfoBanner>}

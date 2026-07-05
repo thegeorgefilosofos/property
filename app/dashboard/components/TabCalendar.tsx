@@ -499,7 +499,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
         </button>
       </div>
       <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Bills tab'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Maintenance tasks'},{key:'rent',label:'Ενοίκιο',icon:<Euro size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
+        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Από τους λογαριασμούς'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Εργασίες συντήρησης'},{key:'rent',label:'Ενοίκιο',icon:<Euro size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
           const active=sources[key as keyof typeof sources]
           return (
             <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--positive-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--positive)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
