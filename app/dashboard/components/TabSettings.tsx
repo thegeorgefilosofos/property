@@ -8,6 +8,7 @@ import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
+import Referral from './Referral';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -282,6 +283,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             )}
             <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά tab από το κουμπί «Εξαγωγή CSV».</InfoBanner>
           </div>
+
+          <Referral userId={userId} />
         </div>
       )}
 
