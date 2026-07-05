@@ -117,6 +117,20 @@ export default function RentComparables({
     : 0;
   const diff = actualRent > 0 && avgRent > 0 ? ((actualRent - avgRent) / avgRent) * 100 : 0;
 
+  // Θέση στην αγορά — εύρος (χαμηλό/υψηλό) + διάμεσος από τα comparables
+  const rentsSorted = comps.map(c => c.rent).filter(r => r > 0).sort((a, b) => a - b);
+  const minRent = rentsSorted[0] || 0;
+  const maxRent = rentsSorted[rentsSorted.length - 1] || 0;
+  const medianRent = rentsSorted.length
+    ? (rentsSorted.length % 2
+        ? rentsSorted[(rentsSorted.length - 1) / 2]
+        : (rentsSorted[rentsSorted.length / 2 - 1] + rentsSorted[rentsSorted.length / 2]) / 2)
+    : 0;
+  // Θέση του ενοικίου σου μέσα στο εύρος (0–100%), clamped
+  const posPct = maxRent > minRent && actualRent > 0
+    ? Math.max(0, Math.min(100, ((actualRent - minRent) / (maxRent - minRent)) * 100))
+    : 50;
+
   const condLabel = (v: string) => CONDITIONS.find(c => c.value === v)?.label || v;
   const srcLabel = (v: string) => SOURCES.find(s => s.value === v)?.label || v;
 
@@ -160,6 +174,34 @@ export default function RentComparables({
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>{k.label}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Θέση στην αγορά — εύρος + διάμεσος + η θέση σου */}
+      {comps.length >= 2 && maxRent > minRent && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>Θέση στην αγορά</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace" }}>{fe(medianRent)}</strong></span>
+          </div>
+          {/* Track */}
+          <div style={{ position: 'relative', height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginBottom: 10 }}>
+            {/* διάμεσος marker */}
+            <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${maxRent > minRent ? ((medianRent - minRent) / (maxRent - minRent)) * 100 : 50}%`, width: 2, background: 'var(--border-strong)', transform: 'translateX(-1px)' }} />
+            {/* η θέση σου */}
+            {actualRent > 0 && (
+              <div style={{ position: 'absolute', top: '50%', left: `${posPct}%`, width: 14, height: 14, borderRadius: '50%', background: diff >= 0 ? 'var(--positive)' : 'var(--warning)', border: '2px solid var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)' }} />
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto Mono', monospace" }}>
+            <span>{fe(minRent)}</span>
+            <span>{fe(maxRent)}</span>
+          </div>
+          {actualRent > 0 && (
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", lineHeight: 1.5 }}>
+              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Roboto Mono', monospace" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
+            </div>
+          )}
         </div>
       )}
 
