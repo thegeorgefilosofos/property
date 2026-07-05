@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import AlreadySignedIn from '../AlreadySignedIn'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Σύνδεση — στα χρώματα του app (design tokens, theme-aware light/dark).
@@ -23,6 +24,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+  }, [])
+
+  async function signOut() {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setSessionEmail(null); setSigningOut(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -88,6 +103,9 @@ export default function LoginPage() {
       {/* RIGHT — form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 380 }}>
+          {sessionEmail ? (
+            <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
+          ) : (<>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px', fontFamily: "'Google Sans',sans-serif" }}>Σύνδεση</p>
           <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Καλωσόρισες πίσω</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 32px', lineHeight: 1.5 }}>
@@ -125,6 +143,7 @@ export default function LoginPage() {
             <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Όρους Χρήσης</Link>{' '}και την{' '}
             <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Πολιτική Απορρήτου</Link>.
           </p>
+          </>)}
         </div>
       </div>
     </div>
