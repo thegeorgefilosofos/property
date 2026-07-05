@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import AlreadySignedIn from '../AlreadySignedIn'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή — στα χρώματα του app (design tokens, theme-aware). Συλλέγει και το
@@ -17,7 +18,20 @@ export default function SignupPage() {
   const [done, setDone] = useState(false)
   const [consent, setConsent] = useState(false)
   const [refCode, setRefCode] = useState('')
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
   useEffect(() => { try { const r = new URLSearchParams(window.location.search).get('ref'); if (r) setRefCode(r); } catch {} }, [])
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+  }, [])
+
+  async function signOut() {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setSessionEmail(null); setSigningOut(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -80,7 +94,9 @@ export default function SignupPage() {
       {/* RIGHT — form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
-          {done ? (
+          {sessionEmail ? (
+            <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="signup" />
+          ) : done ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ width: 56, height: 56, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 24, color: 'var(--positive)' }}>✓</div>
               <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Έλεγξε το email σου</h2>

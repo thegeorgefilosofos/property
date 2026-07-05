@@ -35,7 +35,6 @@ export async function proxy(request: NextRequest) {
   const PUBLIC = new Set(["/", "/login", "/signup", "/privacy", "/terms"]);
   // Η πύλη ενοικιαστή (/portal/<token>) είναι δημόσια — πρόσβαση χωρίς login.
   const isPublic = PUBLIC.has(pathname) || pathname.startsWith("/portal/");
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -43,12 +42,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Συνδεδεμένος χρήστης σε σελίδα σύνδεσης/εγγραφής → πάει στο dashboard.
-  if (user && isAuthPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
+  // Σημείωση: ΔΕΝ ανακατευθύνουμε πλέον αυτόματα τον συνδεδεμένο χρήστη από τις
+  // σελίδες σύνδεσης/εγγραφής. Οι ίδιες οι σελίδες δείχνουν ευγενικά ότι είναι ήδη
+  // συνδεδεμένος και προσφέρουν «Μετάβαση στον πίνακα» ή «Αποσύνδεση» (αλλαγή λογαριασμού).
 
   return supabaseResponse;
 }
