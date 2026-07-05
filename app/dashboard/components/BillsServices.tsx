@@ -301,7 +301,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         ].map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -442,7 +442,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     suffix="€" step={50}/>
                   <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μηνιαία Αναγωγή</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{enfiaM > 0 ? fe(enfiaM) : '—'}</div>
                   </div>
                 </div>
               )}
@@ -456,11 +456,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 14 }}>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τελικός ΕΝΦΙΑ</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Δόση (~6 δόσεις)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
                       </div>
                     </div>
                     {[
@@ -477,7 +477,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο ΕΝΦΙΑ</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 6, marginBottom: 14 }}>
@@ -533,7 +533,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* Result: compact inline pill — same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {dimotikaPct > 0 ? `${dimotikaPct.toFixed(1)}%` : '—'}
               </span>
               <div>
@@ -763,7 +763,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο Υπηρεσιών</span>
             <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
             </div>
           </div>

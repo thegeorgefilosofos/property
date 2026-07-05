@@ -51,7 +51,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
   const kpi = (label: string, value: string, tone = 'var(--text-primary)') => (
     <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
       <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: tone, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: tone, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
     </div>
   );
 
