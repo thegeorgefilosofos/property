@@ -23,6 +23,7 @@ import AIInsights from './components/AIInsights';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
+import ObligationsPanel from './components/ObligationsPanel';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -451,6 +452,8 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         </div>
       </div>
       )}
+
+      <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
 
       {prefs.showSmartTips && (
         <AIInsights ctx={{
