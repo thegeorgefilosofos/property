@@ -10,23 +10,34 @@ const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιο
 const MGMT_TYPES = [
   { value: 'traditional', label: 'Παραδοσιακός Διαχειριστής' },
   { value: 'office',      label: 'Γραφείο Διαχείρισης'       },
-  { value: 'billys',      label: 'Billys — 3 € / μήνα'       },
+  { value: 'billys',      label: 'Ψηφιακή Πλατφόρμα'         },
   { value: 'none',        label: 'Χωρίς Διαχειριστή'         },
 ];
 
 const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> = {
   traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής — εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
   office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης — επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
-  billys:      { monthly: 3, desc: 'Billys — ψηφιακή διαχείριση, online πληρωμές, αυτόματες ειδοποιήσεις.',    url: 'https://www.billys.gr' },
+  billys:      { monthly: 0, desc: 'Ψηφιακή πλατφόρμα κοινοχρήστων — online έκδοση, ειδοποιήσεις, πληρωμές. Δες τη σύγκριση παρόχων παρακάτω.', url: 'https://billys.gr' },
   none:        { monthly: 0, desc: 'Αυτοδιαχείριση — μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
 };
 
 const MGMT_CARDS = [
   { key: 'traditional', costLabel: 'Εθελοντής',   nameLabel: 'Παραδοσιακός Διαχειριστής', url: '' },
-  { key: 'office',      costLabel: 'Αμοιβή',       nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
-  { key: 'billys',      costLabel: '3 € / μήνα',   nameLabel: 'Billys',                    url: 'https://www.billys.gr' },
+  { key: 'office',      costLabel: '20–50 €/μήνα', nameLabel: 'Γραφείο Διαχείρισης',       url: '' },
+  { key: 'billys',      costLabel: 'από 0 €',      nameLabel: 'Ψηφιακή Πλατφόρμα',         url: '' },
   { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
 ] as const;
+
+// Ελληνικές πλατφόρμες έκδοσης/διαχείρισης κοινοχρήστων — τιμές ενδεικτικές (2026).
+// Οι περισσότερες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας.
+const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }[] = [
+  { name: 'Billys',            price: 'Δωρεάν – 29 €/μήνα', note: 'Δωρεάν έκδοση. Smart: τραπεζικός λογ. πολυκατοικίας, ψηφοφορίες, ειδοποιήσεις οφειλών. Safe: αστική ευθύνη διαχειριστή.', url: 'https://billys.gr' },
+  { name: 'Proper',            price: 'Δωρεάν',             note: 'Δωρεάν έκδοση κοινοχρήστων + υπηρεσίες διαχείρισης στην Αττική.', url: 'https://proper.gr' },
+  { name: 'Outgo',             price: 'Δωρεάν – ~86 €/έτος', note: '1 δωρεάν έκδοση/μήνα. Συνδρομή ανάλογα με τα διαμερίσματα.', url: 'https://outgo.gr' },
+  { name: 'Κοινόχρηστα24',     price: 'Οικονομικό',         note: '35+ χρόνια στον χώρο. Online υπολογισμός & έκδοση.', url: 'https://www.koinoxrista24.gr' },
+  { name: 'e-apps Κοινόχρηστα', price: 'από 19,90 €/έτος',   note: 'Χαμηλό ετήσιο κόστος, online συνδρομή.', url: 'https://e-apps.gr/app-review/koino' },
+  { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός & εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
+];
 
 // Ανάλυση κοινοχρήστων ανά κατηγορία — λογική κατανομής με χιλιοστά (Billys-style).
 // payer: ποιος επιβαρύνεται κατά τον νόμο/έθιμο (ενοικιαστής=λειτουργικά, ιδιοκτήτης=κεφαλαιουχικά).
@@ -365,6 +376,31 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             );
           })}
         </div>
+
+        {/* Οδηγός ελληνικών πλατφορμών κοινοχρήστων — εμφανίζεται στην «Ψηφιακή Πλατφόρμα» */}
+        {mgmtType === 'billys' && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ελληνικές Πλατφόρμες Κοινοχρήστων</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
+              {KOIN_PLATFORMS.map(p => (
+                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'block', textDecoration: 'none', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-subtle)'}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{p.price}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{p.note}</div>
+                  <span style={{ fontSize: 9, color: 'var(--info)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη →</span>
+                </a>
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+              Ενδεικτικές τιμές (2026). Οι περισσότερες πλατφόρμες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας — δες τον εκάστοτε ιστότοπο για ακριβή τιμολόγηση.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Ταμείο Κτηρίου ───────────────────────────────────────────────── */}

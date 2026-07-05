@@ -8,7 +8,7 @@ import {
   Calendar, List, BarChart2, Check, FileText,
   Zap, Shield, User, Bell, Filter, Download,
   ChevronDown, Edit2, Trash2, RotateCcw,
-  DollarSign, Wrench, RefreshCw, ToggleLeft, ToggleRight,
+  Euro, Wrench, RefreshCw, ToggleLeft, ToggleRight,
   Printer, Square, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info,
 } from 'lucide-react'
@@ -34,7 +34,7 @@ interface FormState {
 
 // Google-aligned category colors
 const CATEGORIES: Record<EventCategory, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  financial:   { label: 'Οικονομικά',   color: 'var(--accent)',    bg: 'var(--accent-dim)',    border: 'var(--border-accent)', icon: <DollarSign size={11}/> },
+  financial:   { label: 'Οικονομικά',   color: 'var(--accent)',    bg: 'var(--accent-dim)',    border: 'var(--border-accent)', icon: <Euro size={11}/> },
   bills:       { label: 'Λογαριασμοί', color: 'var(--info)',      bg: 'var(--info-dim)',      border: 'var(--info)',          icon: <Zap size={11}/> },
   maintenance: { label: 'Συντήρηση',   color: 'var(--positive)',  bg: 'var(--positive-dim)',  border: 'var(--positive)',      icon: <Wrench size={11}/> },
   contract:    { label: 'Συμβόλαιο',   color: '#8b5cf6',          bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', icon: <FileText size={11}/> },
@@ -499,7 +499,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
         </button>
       </div>
       <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Bills tab'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Maintenance tasks'},{key:'rent',label:'Ενοίκιο',icon:<DollarSign size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
+        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Bills tab'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Maintenance tasks'},{key:'rent',label:'Ενοίκιο',icon:<Euro size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
           const active=sources[key as keyof typeof sources]
           return (
             <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--positive-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--positive)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
