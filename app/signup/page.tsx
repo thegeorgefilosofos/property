@@ -60,15 +60,15 @@ export default function SignupPage() {
             <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>Πρώτος μήνας δωρεάν</span>
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 3vw, 38px)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 16px' }}>
-            Ξεκίνα να<br /><span style={{ color: 'var(--accent)' }}>κερδίζεις</span> περισσότερα.
+            Πάρε τον έλεγχο<br />των <span style={{ color: 'var(--accent)' }}>ακινήτων</span> σου.
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
-            Το πρώτο σου ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από €2,99 τον μήνα — χωρίς δέσμευση.
+            Το πρώτο σου ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από 2,99 € τον μήνα, χωρίς δέσμευση.
           </p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {['Έως 15 ακίνητα — κάθε τύπος', 'Αποδόσεις & φορολογία 2026', 'Δαπάνες, λογαριασμοί, ημερολόγιο', 'Σύγκριση παρόχων ενέργειας', 'Διαχείριση ενοικιαστή & συμβολαίου'].map(t => (
+          {['Έως 15 ακίνητα, κάθε τύπου', 'Αποδόσεις και φορολογία 2026', 'Δαπάνες, λογαριασμοί, ημερολόγιο', 'Σύγκριση παρόχων ενέργειας', 'Διαχείριση ενοικιαστή και συμβολαίου'].map(t => (
             <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 800 }}>✓</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t}</span>

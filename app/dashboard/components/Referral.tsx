@@ -45,7 +45,7 @@ export default function Referral({ userId }: { userId: string }) {
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)', fontFamily: T.font.mono, lineHeight: 1 }}>{count}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)', fontFamily: T.font.num, lineHeight: 1 }}>{count}</div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>εγγραφές με τον κωδικό σου</div>
         </div>
         <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>

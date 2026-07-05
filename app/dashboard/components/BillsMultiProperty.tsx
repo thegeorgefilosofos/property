@@ -263,7 +263,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Μηνιαίο κόστος</span>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: isTop ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.total || 0, 0)}</span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: isTop ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(c.total || 0, 0)}</span>
                     </div>
                     <div style={{ height: 5, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: isTop ? 'var(--negative)' : isCur ? 'var(--accent)' : 'rgba(26,115,232,0.6)', borderRadius: 3, transition: 'width 0.5s ease' }}/>

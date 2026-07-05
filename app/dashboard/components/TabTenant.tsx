@@ -246,7 +246,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
                   style={{ transition:'stroke-dasharray 1s ease' }}/>
               </svg>
               <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
-                <div style={{ fontSize:24, fontWeight:700, color:score.color, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{score.score}</div>
+                <div style={{ fontSize:24, fontWeight:700, color:score.color, fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{score.score}</div>
                 <div style={{ fontSize:8, color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase' as const }}>/100</div>
               </div>
             </div>
@@ -408,7 +408,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
           {/* Current rent display */}
           <div style={{ background:'var(--bg-elevated)', borderRadius:T.radius.inner, padding:'16px 18px', marginBottom:18 }}>
             <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον Μηνιαίο Μίσθωμα</div>
-            <div style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{fmtE(rent)}</div>
+            <div style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{fmtE(rent)}</div>
             {tenant.lease_end&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:4 }}>Λήξη: {fmtDate(tenant.lease_end)}</div>}
           </div>
 
@@ -459,11 +459,11 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:10, marginBottom:14 }}>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
                   <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον Μίσθωμα</div>
-                  <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmtE(rent)}</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(rent)}</div>
                 </div>
                 <div style={{ background:'var(--positive-dim)', border:'1px solid var(--positive)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
                   <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Νέο Μίσθωμα</div>
-                  <div style={{ fontSize:18, fontWeight:700, color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmtE(newRent)}</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:'var(--positive)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(newRent)}</div>
                 </div>
               </div>
 

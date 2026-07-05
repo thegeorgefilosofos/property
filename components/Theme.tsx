@@ -25,6 +25,9 @@ export const T = {
     // Οι γραμματοσειρές που φορτώνει το app (globals.css): Google Sans + Roboto Mono.
     sans: "'Google Sans', 'Inter', system-ui, sans-serif",
     mono: "'Roboto Mono', 'JetBrains Mono', monospace",
+    // Μεγάλοι αριθμοί «κεφαλίδας» (KPI): σφιχτή sans με tabular ψηφία — χωρίς τα
+    // πλατιά κενά του monospace γύρω από κόμμα/τελεία. Το mono μένει για πυκνούς πίνακες.
+    num:  "'Google Sans', 'Inter', system-ui, sans-serif",
   },
   sp: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 },
   // Καμπύλες κίνησης Google (Material 3) — μία πηγή για όλα τα transitions.
@@ -43,8 +46,8 @@ export const TT = {
   body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)' },
   bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)' },
   caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)' },
-  // Αριθμοί/ποσά — πάντα mono + tabular για ευθυγράμμιση.
-  kpi:     { fontFamily: T.font.mono, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, lineHeight: 1, color: 'var(--text-primary)' },
+  // Μεγάλοι αριθμοί KPI: σφιχτή sans (num) + tabular. Το πυκνό mono μένει για πίνακες.
+  kpi:     { fontFamily: T.font.num, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, letterSpacing: '-0.01em', lineHeight: 1, color: 'var(--text-primary)' },
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
@@ -150,7 +153,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
       {items.map((k, i) => (
         <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', lineHeight: 1 }}>{k.value}</div>
           {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 5, fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
       ))}
