@@ -123,7 +123,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
   const activePrograms = PROGRAMS
 
   const TABS = [
-    {id:'calculator',label:'Calculator'},
+    {id:'calculator',label:'Υπολογιστής'},
     {id:'banks',label:'Τράπεζες'},
     {id:'programs',label:'Κρατικά Προγράμματα'},
     {id:'advisor',label:'Advisor'},
@@ -432,7 +432,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             </div>
 
             <div style={cardStyle}>
-              <SectionLabel label="Στοιχεία Ανάλυσης" right={<span style={{fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif"}}>Συγχρονισμένο από Calculator</span>}/>
+              <SectionLabel label="Στοιχεία Ανάλυσης" right={<span style={{fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif"}}>Συγχρονισμένο από τον Υπολογιστή</span>}/>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10}}>
                 <CustomSelect label="Σκοπός Δανείου" value={advType} onChange={v=>setAdvType(v as LoanType)} options={LOAN_TYPE_OPTIONS}/>
                 <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
@@ -836,8 +836,8 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             <div style={{textAlign:'center',padding:'60px 0'}}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-default)" strokeWidth="1.5" style={{margin:'0 auto 14px',display:'block'}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               <p style={{fontSize:15,color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif",fontWeight:400}}>Δεν υπάρχουν αποθηκευμένα δάνεια</p>
-              <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Roboto',sans-serif"}}>Χρησιμοποιήστε τον Calculator για να υπολογίσετε και αποθηκεύσετε δάνεια.</p>
-              <button onClick={()=>setTab('calculator')} style={{marginTop:14,padding:'0 18px',height:36,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",fontWeight:500,cursor:'pointer'}}>Πηγαίνετε στον Calculator</button>
+              <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Roboto',sans-serif"}}>Χρησιμοποίησε τον Υπολογιστή Δανείου για να υπολογίσεις και να αποθηκεύσεις δάνεια.</p>
+              <button onClick={()=>setTab('calculator')} style={{marginTop:14,padding:'0 18px',height:36,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",fontWeight:500,cursor:'pointer'}}>Άνοιξε τον Υπολογιστή Δανείου</button>
             </div>
           )}
           {saved.map(loan=>{

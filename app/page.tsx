@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing page — δημόσια σελίδα προορισμού, στην αισθητική Google (γαλάζιο
@@ -39,7 +40,7 @@ const STEPS = [
 const FAQ = [
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων στην Ελλάδα, από ένα έως δεκαπέντε ακίνητα κάθε τύπου: κατοικία, επαγγελματικός χώρος, αποθήκη ή οικόπεδο. Είτε έχεις ένα διαμέρισμα είτε ένα μικρό χαρτοφυλάκιο, το Property OS προσαρμόζεται σε σένα.' },
   { q: 'Χρειάζομαι γνώσεις λογιστικής;', a: 'Όχι. Το Property OS κάνει τους υπολογισμούς για σένα: αποδόσεις, φόρους, αποσβέσεις. Και σου δίνει έτοιμες εξαγωγές για να τις στείλεις στον λογιστή σου.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο είναι δωρεάν τον πρώτο μήνα. Μετά, από 2,99 € τον μήνα. Χωρίς ετήσια δέσμευση, ακυρώνεις όποτε θέλεις.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα, με όλες τις δυνατότητες. Αν προσθέσεις δεύτερο ακίνητο, το κόστος είναι 2,99 € τον μήνα ή 29,90 € τον χρόνο για όλα σου τα ακίνητα, χωρίς ετήσια δέσμευση.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Ο κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα, με κρυπτογραφημένη σύνδεση και αποθήκευση σε ασφαλή υποδομή. Κανείς άλλος δεν έχει πρόσβαση στα ακίνητά σου.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Ναι. Η εφαρμογή προσαρμόζεται πλήρως και δουλεύει άψογα σε κινητό, tablet, υπολογιστή και μεγάλες οθόνες.' },
 ];
@@ -48,7 +49,10 @@ const wrap: React.CSSProperties = { maxWidth: 1180, margin: '0 auto', padding: '
 const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(26,115,232,0.10)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: 100, padding: '6px 14px', fontSize: 12, color: GOLD, fontWeight: 600, letterSpacing: '0.02em' };
 const ic = (d: string) => <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
 
-export default function Landing() {
+export default async function Landing() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const loggedIn = !!user;
   return (
     <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Google Sans','Inter',-apple-system,sans-serif", overflowX: 'hidden' }}>
 
@@ -59,14 +63,18 @@ export default function Landing() {
             <div style={{ width: 30, height: 30, borderRadius: 8, background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: BG, fontWeight: 800, fontSize: 15 }}>P</div>
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Property OS</span>
           </div>
-          <Link href="/login" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
-          <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+          {loggedIn ? (
+            <Link href="/dashboard" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς μου →</Link>
+          ) : (<>
+            <Link href="/login" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
+            <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+          </>)}
         </nav>
       </header>
 
       {/* ── Hero ── */}
       <section style={{ ...wrap, paddingTop: 'clamp(56px, 9vw, 110px)', paddingBottom: 'clamp(48px, 7vw, 90px)', textAlign: 'center' }}>
-        <div style={chip}><span style={{ width: 6, height: 6, borderRadius: '50%', background: GOLD }} />Πρώτος μήνας δωρεάν · χωρίς κάρτα</div>
+        <div style={chip}><span style={{ width: 6, height: 6, borderRadius: '50%', background: GOLD }} />Το πρώτο σου ακίνητο, δωρεάν για πάντα · χωρίς κάρτα</div>
         <h1 style={{ fontSize: 'clamp(34px, 6.5vw, 68px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '24px auto 20px', maxWidth: 900 }}>
           Το ακίνητό σου.<br /><span style={{ color: GOLD }}>Υπό απόλυτο έλεγχο.</span>
         </h1>
@@ -74,8 +82,12 @@ export default function Landing() {
           Δες καθαρά τι σου αποδίδει κάθε ακίνητο, πού πάνε τα έξοδά σου και τι φόρο θα πληρώσεις. Αποδόσεις, δαπάνες, ενέργεια, φορολογία και ενοικιαστές, όλα οργανωμένα σε ένα σημείο.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Δημιούργησε λογαριασμό →</Link>
-          <Link href="/login" style={{ background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: `1px solid ${LINE}` }}>Έχω ήδη λογαριασμό</Link>
+          {loggedIn ? (
+            <Link href="/dashboard" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
+          ) : (<>
+            <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Δημιούργησε λογαριασμό →</Link>
+            <Link href="/login" style={{ background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: `1px solid ${LINE}` }}>Έχω ήδη λογαριασμό</Link>
+          </>)}
         </div>
 
         {/* Stat bar */}
@@ -143,25 +155,52 @@ export default function Landing() {
 
       {/* ── Pricing ── */}
       <section style={{ ...wrap, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
-        <SectionHead over="Τιμολόγηση" title="Απλή, δίκαιη, χωρίς εκπλήξεις" />
-        <div style={{ maxWidth: 460, margin: '0 auto', background: PANEL, border: `1px solid rgba(26,115,232,0.35)`, borderRadius: 20, padding: 'clamp(28px, 4vw, 40px)', textAlign: 'center' }}>
-          <div style={chip}>Προσφορά εκκίνησης</div>
-          <div style={{ margin: '22px 0 6px', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(40px, 7vw, 56px)', fontWeight: 800, letterSpacing: '-0.03em', color: GOLD }}>2,99&nbsp;€</span>
-            <span style={{ fontSize: 16, color: MUTED }}>τον μήνα</span>
+        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο αν μεγαλώσεις." />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16, maxWidth: 760, margin: '0 auto', alignItems: 'stretch' }}>
+
+          {/* Free tier */}
+          <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 20, padding: 'clamp(24px, 3vw, 32px)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Δωρεάν</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18 }}>Για να ξεκινήσεις με το πρώτο σου ακίνητο</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(34px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: TEXT }}>0&nbsp;€</span>
+              <span style={{ fontSize: 15, color: MUTED }}>για πάντα</span>
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
+              {['1 ακίνητο, κάθε τύπου', 'Όλες οι δυνατότητες, χωρίς κλειδώματα', 'Αποδόσεις, δαπάνες, ενέργεια, φορολογία', 'Χωρίς κάρτα, χωρίς λήξη'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: GOLD, fontWeight: 800 }}>✓</span>
+                  <span style={{ fontSize: 14, color: TEXT }}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <Link href="/signup" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Ξεκίνα δωρεάν</Link>
           </div>
-          <div style={{ fontSize: 14, color: MUTED, marginBottom: 6 }}>με <strong style={{ color: TEXT }}>τον πρώτο μήνα δωρεάν</strong></div>
-          <div style={{ fontSize: 13, color: FAINT, marginBottom: 24 }}>ή <strong style={{ color: TEXT }}>29,90 € τον χρόνο</strong>, με 2 μήνες δώρο</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', marginBottom: 28 }}>
-            {['Πρώτος μήνας δωρεάν, χωρίς κάρτα', 'Έως 15 ακίνητα κάθε τύπου', 'Όλες οι δυνατότητες, χωρίς κλειδώματα', 'Χωρίς ετήσια δέσμευση, ακυρώνεις όποτε θέλεις'].map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: GOLD, fontWeight: 800 }}>✓</span>
-                <span style={{ fontSize: 14, color: TEXT }}>{t}</span>
-              </div>
-            ))}
+
+          {/* Pro tier */}
+          <div style={{ background: PANEL, border: `1.5px solid rgba(26,115,232,0.5)`, borderRadius: 20, padding: 'clamp(24px, 3vw, 32px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 16, right: 16, ...chip, padding: '4px 10px', fontSize: 11 }}>Για 2+ ακίνητα</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD, marginBottom: 4 }}>Pro</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18 }}>Για όσους διαχειρίζονται περισσότερα ακίνητα</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(34px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: GOLD }}>2,99&nbsp;€</span>
+              <span style={{ fontSize: 15, color: MUTED }}>τον μήνα</span>
+            </div>
+            <div style={{ fontSize: 13, color: FAINT }}>ή <strong style={{ color: TEXT }}>29,90 € τον χρόνο</strong>, με 2 μήνες δώρο</div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
+              {['Από 2 έως 15 ακίνητα', 'Όλα όσα έχει το δωρεάν πλάνο', 'Συγκρίσεις μεταξύ των ακινήτων σου', 'Χωρίς ετήσια δέσμευση, ακυρώνεις όποτε θέλεις'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: GOLD, fontWeight: 800 }}>✓</span>
+                  <span style={{ fontSize: 14, color: TEXT }}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <Link href="/signup" style={{ display: 'block', textAlign: 'center', background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
           </div>
-          <Link href="/signup" style={{ display: 'block', background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
         </div>
+        <p style={{ textAlign: 'center', fontSize: 13, color: FAINT, margin: '24px auto 0', maxWidth: 520, lineHeight: 1.6 }}>
+          Πληρώνεις μόνο όταν προσθέσεις δεύτερο ακίνητο. Το πρώτο σου μένει δωρεάν, για πάντα.
+        </p>
       </section>
 
       {/* ── FAQ ── */}
@@ -183,7 +222,7 @@ export default function Landing() {
       <section style={{ ...wrap, paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
         <div style={{ background: 'linear-gradient(135deg, rgba(26,115,232,0.12), rgba(26,115,232,0.03))', border: `1px solid rgba(26,115,232,0.3)`, borderRadius: 24, padding: 'clamp(36px, 6vw, 64px)', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 14px' }}>Πάρε τον έλεγχο των ακινήτων σου σήμερα</h2>
-          <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Δωρεάν ο πρώτος μήνας. Χωρίς κάρτα. Χωρίς δέσμευση.</p>
+          <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Το πρώτο σου ακίνητο, δωρεάν για πάντα. Χωρίς κάρτα, χωρίς δέσμευση.</p>
           <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '15px 34px', borderRadius: 100 }}>Δημιούργησε τον λογαριασμό σου →</Link>
         </div>
       </section>

@@ -243,7 +243,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
 
           {/* Cards */}
           {view === 'cards' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 300px),1fr))', gap: 12 }}>
               {sorted.map((prop, rank) => {
                 const c     = costs[prop.id] || {} as PropertyCosts;
                 const isCur = prop.id === currentPropertyId;
