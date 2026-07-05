@@ -1975,9 +1975,14 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
           </div>
-          <div style={{ fontSize:12, fontFamily:"'Google Sans', sans-serif" }}>
-            {search ? `Δεν βρέθηκαν αποτελέσματα για "${search}"` : 'Δεν υπάρχουν δαπάνες'}
+          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>
+            {search ? `Δεν βρέθηκαν αποτελέσματα για «${search}»` : 'Δεν έχεις καταχωρίσει δαπάνες ακόμα'}
           </div>
+          {!search && (
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginTop:4, fontFamily:"'Roboto', sans-serif" }}>
+              Πρόσθεσε την πρώτη σου δαπάνη για να ξεκινήσει η παρακολούθηση εξόδων και αποδόσεων.
+            </div>
+          )}
         </div>
       ) : (
         <>
