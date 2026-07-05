@@ -16,33 +16,63 @@ interface ExtractedBill {
   dimotika?:     number;
   vat_rate?:     number;
   account_num?:  string;
+  cubic_meters?: number;   // κυβικά νερού/αερίου (m³)
+  meter_prev?:   number;   // προηγούμενη ένδειξη μετρητή
+  meter_current?:number;   // τρέχουσα ένδειξη μετρητή
+  energy_charge?:number;   // χρέωση ενέργειας/κατανάλωσης (€)
+  network_charge?:number;  // χρεώσεις δικτύου/μεταφοράς (€)
+  millesimi?:    number;   // χιλιοστά διαμερίσματος (κοινόχρηστα)
   notes?:        string;
   confidence:    number;
 }
 
-const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικών λογαριασμών κοινής ωφέλειας.
-Εξάγαγε τα στοιχεία από τον λογαριασμό και επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
+const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικών λογαριασμών κοινής ωφέλειας (ΔΕΗ/πάροχοι ρεύματος, ΕΥΔΑΠ/ύδρευση, φυσικό αέριο, κοινόχρηστα πολυκατοικίας, ΟΤΕ/COSMOTE, ασφάλειες).
+Διάβασε ΠΡΟΣΕΚΤΙΚΑ όλα τα νούμερα και επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
 {
-  "provider": "όνομα παρόχου (για παράδειγμα ΔΕΗ, ΕΥΔΑΠ, COSMOTE)",
+  "provider": "όνομα παρόχου (π.χ. ΔΕΗ, ΕΥΔΑΠ, Ζενίθ, COSMOTE)",
   "category": "electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|other",
-  "amount": αριθμός (συνολικό ποσό πληρωμής σε ευρώ),
-  "due_date": "YYYY-MM-DD ή κενό",
-  "period": "για παράδειγμα Ιούν 2026 ή 01/04-30/06/2026",
-  "kwh": αριθμός ή null,
+  "amount": αριθμός (ΣΥΝΟΛΙΚΟ πληρωτέο ποσό σε ευρώ),
+  "due_date": "YYYY-MM-DD (λήξη πληρωμής) ή κενό",
+  "period": "περίοδος κατανάλωσης, π.χ. Ιούν 2026 ή 01/04-30/06/2026",
+  "kwh": κιλοβατώρες ρεύματος (μόνο για ρεύμα) ή null,
   "ert": αριθμός ή null,
   "etmear": αριθμός ή null,
-  "dimotika": αριθμός ή null,
-  "vat_rate": αριθμός (για παράδειγμα 6 ή 24),
-  "account_num": "αριθμός λογαριασμού αν φαίνεται",
-  "notes": "οτιδήποτε σημαντικό",
-  "confidence": αριθμός 0-100
-}`;
+  "dimotika": δημοτικά τέλη/φόρος σε € ή null,
+  "cubic_meters": κυβικά μέτρα κατανάλωσης νερού Ή αερίου (m³) ή null,
+  "meter_prev": προηγούμενη ένδειξη μετρητή ή null,
+  "meter_current": τρέχουσα ένδειξη μετρητή ή null,
+  "energy_charge": καθαρή χρέωση ενέργειας/κατανάλωσης σε € ή null,
+  "network_charge": χρεώσεις δικτύου/μεταφοράς/διανομής σε € ή null,
+  "millesimi": χιλιοστά συνιδιοκτησίας του διαμερίσματος (μόνο σε ειδοποιητήριο κοινοχρήστων) ή null,
+  "vat_rate": ΦΠΑ % (π.χ. 6 ή 24),
+  "account_num": "αριθμός παροχής/λογαριασμού αν φαίνεται",
+  "notes": "οτιδήποτε άλλο σημαντικό (π.χ. τρόπος πληρωμής, ρυθμίσεις)",
+  "confidence": 0-100
+}
+ΚΑΝΟΝΕΣ: Για ύδρευση συμπλήρωσε cubic_meters. Για κοινόχρηστα βάλε category "common" και, αν υπάρχει, τα millesimi. Για ρεύμα συμπλήρωσε kwh. Χρησιμοποίησε τελεία για δεκαδικά. Αν κάτι δεν υπάρχει, βάλε null.`;
 
 const CATEGORY_LABELS: Record<string, string> = {
   electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet',
   insurance: 'Ασφάλεια', streaming: 'Streaming & Συνδρομές', taxes: 'ΕΝΦΙΑ & Φόροι',
   municipal: 'Δημοτικά Τέλη', security: 'Security / Συναγερμός', common: 'Κοινόχρηστα',
   maintenance: 'Συντήρηση', other: 'Άλλο',
+};
+
+// Αντιστοίχιση κατηγορίας λογαριασμού → ομάδα/κατηγορία Δαπανών (ώστε να ρέει
+// αυτόματα στα Έξοδα και στην Επισκόπηση με μία σάρωση).
+const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
+  electricity: { group: 'fixed',       cat: 'Ρεύμα' },
+  water:       { group: 'fixed',       cat: 'Νερό' },
+  gas:         { group: 'fixed',       cat: 'Φυσικό Αέριο' },
+  internet:    { group: 'fixed',       cat: 'Internet' },
+  insurance:   { group: 'fixed',       cat: 'Ασφάλεια Κτιρίου' },
+  streaming:   { group: 'fixed',       cat: 'Άλλη Πάγια' },
+  taxes:       { group: 'fixed',       cat: 'ΕΝΦΙΑ' },
+  municipal:   { group: 'fixed',       cat: 'Δημοτικά Τέλη' },
+  security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
+  common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
+  maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
+  other:       { group: 'other',       cat: 'Άλλο' },
 };
 
 const Field = ({
@@ -142,26 +172,68 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
     }
   };
 
+  const [savedInfo, setSavedInfo] = useState<string[]>([]);
+
   const saveBill = async () => {
     if (!edited) return;
     setSaving(true);
+    const today = new Date().toISOString().split('T')[0];
+    const done: string[] = [];
     try {
-      await supabase.from('bills').insert({
-        property_id: propertyId,
-        user_id:     userId,
-        category:    edited.category,
-        name:        `${edited.provider}${edited.period ? ` — ${edited.period}` : ''}`,
-        amount:      edited.amount,
-        paid:        false,
-        due_date:    edited.due_date || null,
-        kwh:         edited.kwh     || null,
-        ert:         edited.ert     || null,
-        etmear:      edited.etmear  || null,
-        dimotika:    edited.dimotika || null,
-        vat_rate:    String(edited.vat_rate || 6),
-        notes:       `AI σάρωση · ${edited.notes || ''} · Λογαριασμός: ${edited.account_num || '—'}`,
-        recurring:   false,
+      // Δομημένη σημείωση με ό,τι διάβασε το AI (κατανάλωση, ενδείξεις, χιλιοστά)
+      const consumption = [
+        edited.kwh ? `${edited.kwh} kWh` : '',
+        edited.cubic_meters ? `${edited.cubic_meters} m³` : '',
+        (edited.meter_prev != null && edited.meter_current != null) ? `Ένδειξη ${edited.meter_prev}→${edited.meter_current}` : '',
+        edited.millesimi ? `${edited.millesimi}‰` : '',
+      ].filter(Boolean).join(' · ');
+      const notes = [`AI σάρωση`, consumption, edited.notes || '', edited.account_num ? `Παροχή: ${edited.account_num}` : '']
+        .filter(Boolean).join(' · ');
+
+      // 1) Λογαριασμός → πίνακας bills (τροφοδοτεί την Επισκόπηση Λογαριασμών)
+      const { error: billErr } = await supabase.from('bills').insert({
+        property_id: propertyId, user_id: userId,
+        category: edited.category,
+        name: `${edited.provider}${edited.period ? ` — ${edited.period}` : ''}`,
+        amount: edited.amount, paid: false, due_date: edited.due_date || null,
+        kwh: edited.kwh || null, ert: edited.ert || null, etmear: edited.etmear || null,
+        dimotika: edited.dimotika || null, vat_rate: String(edited.vat_rate || 6),
+        notes, recurring: false,
       });
+      if (billErr) throw billErr;
+      done.push('Λογαριασμοί');
+
+      // 2) Έξοδο → πίνακας expenses (ρέει σε Έξοδα + Επισκόπηση)
+      const map = EXPENSE_MAP[edited.category] || EXPENSE_MAP.other;
+      const { error: expErr } = await supabase.from('expenses').insert({
+        property_id: propertyId, user_id: userId,
+        description: `${map.cat} — ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
+        amount: edited.amount, category: map.cat, expense_group: map.group,
+        date: edited.due_date || today, paid_by: 'owner', paid: false,
+        notes: `Από σάρωση λογαριασμού${consumption ? ` · ${consumption}` : ''}`,
+      });
+      if (!expErr) done.push('Έξοδα');
+
+      // 3) Κοινόχρηστα → ενημέρωση πεδίου Κοινόχρηστα (χιλιοστά + ιστορικό μήνα)
+      if (edited.category === 'common') {
+        const { data: cur } = await supabase.from('bills_settings').select('data')
+          .eq('property_id', propertyId).eq('section', 'common').maybeSingle();
+        const d = (cur?.data as Record<string, unknown>) || {};
+        const history = Array.isArray(d.history) ? [...(d.history as string[])] : Array(12).fill('');
+        const m = new Date().getMonth();
+        if (edited.amount) history[m] = String(edited.amount);
+        const nextData = {
+          ...d,
+          history,
+          ...(edited.millesimi && !d.millesimi ? { millesimi: String(edited.millesimi) } : {}),
+        };
+        const { error: cErr } = await supabase.from('bills_settings').upsert(
+          { property_id: propertyId, user_id: String(userId), section: 'common', data: nextData, updated_at: new Date().toISOString() },
+          { onConflict: 'property_id,section' });
+        if (!cErr) done.push('Κοινόχρηστα');
+      }
+
+      setSavedInfo(done);
       setStep('done');
       onSaved?.();
     } catch (_) {
@@ -187,11 +259,15 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
           Λογαριασμός Αποθηκεύτηκε
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
           {edited?.provider} — {fe(edited?.amount || 0)}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>
-          Βρίσκεται στην Επισκόπηση Λογαριασμών
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+          {(savedInfo.length ? savedInfo : ['Λογαριασμοί']).map(s => (
+            <span key={s} style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.25)', borderRadius: T.radius.pill, padding: '4px 12px', fontFamily: T.font.sans }}>
+              ✓ {s}
+            </span>
+          ))}
         </div>
         <button onClick={reset}
           style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
@@ -318,6 +394,40 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                     <Field label="ΕΡΤ (€)"          type="number" value={edited.ert    || ''} onChange={v => setEdited(p => ({ ...p!, ert:     parseFloat(v) || undefined }))}/>
                     <Field label="ΕΤΜΕΑΡ (€)"        type="number" value={edited.etmear || ''} onChange={v => setEdited(p => ({ ...p!, etmear:  parseFloat(v) || undefined }))}/>
                     <Field label="Δημοτικά Τέλη (€)" type="number" value={edited.dimotika || ''} onChange={v => setEdited(p => ({ ...p!, dimotika: parseFloat(v) || undefined }))}/>
+                  </div>
+                </div>
+              )}
+
+              {edited.category === 'water' && (
+                <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Νερού</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 8 }}>
+                    <Field label="Κατανάλωση (m³)"     type="number" value={edited.cubic_meters  || ''} onChange={v => setEdited(p => ({ ...p!, cubic_meters:  parseFloat(v) || undefined }))}/>
+                    <Field label="Ένδειξη προηγ."       type="number" value={edited.meter_prev    || ''} onChange={v => setEdited(p => ({ ...p!, meter_prev:    parseFloat(v) || undefined }))}/>
+                    <Field label="Ένδειξη τρέχουσα"     type="number" value={edited.meter_current || ''} onChange={v => setEdited(p => ({ ...p!, meter_current: parseFloat(v) || undefined }))}/>
+                  </div>
+                </div>
+              )}
+
+              {edited.category === 'gas' && (
+                <div style={{ background: 'rgba(242,153,0,0.04)', border: '1px solid rgba(242,153,0,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Αερίου</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 8 }}>
+                    <Field label="Κατανάλωση (m³)"     type="number" value={edited.cubic_meters  || ''} onChange={v => setEdited(p => ({ ...p!, cubic_meters:  parseFloat(v) || undefined }))}/>
+                    <Field label="Χρέωση ενέργειας (€)" type="number" value={edited.energy_charge || ''} onChange={v => setEdited(p => ({ ...p!, energy_charge: parseFloat(v) || undefined }))}/>
+                    <Field label="Χρεώσεις δικτύου (€)" type="number" value={edited.network_charge || ''} onChange={v => setEdited(p => ({ ...p!, network_charge: parseFloat(v) || undefined }))}/>
+                  </div>
+                </div>
+              )}
+
+              {edited.category === 'common' && (
+                <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Κοινοχρήστων</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
+                    <Field label="Χιλιοστά διαμ/τος (‰)" type="number" value={edited.millesimi || ''} onChange={v => setEdited(p => ({ ...p!, millesimi: parseFloat(v) || undefined }))}/>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 8, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                    Το ποσό και τα χιλιοστά θα ενημερώσουν αυτόματα την καρτέλα <strong>Κοινόχρηστα</strong>.
                   </div>
                 </div>
               )}
