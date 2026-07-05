@@ -18,13 +18,13 @@ interface BillingData {
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
-  address: '', city: '', postal_code: '', country: 'GR', phone: '', plan: 'trial', billing_cycle: 'monthly',
+  address: '', city: '', postal_code: '', country: 'GR', phone: '', plan: 'free', billing_cycle: 'monthly',
 };
 
 const PLANS = [
-  { id: 'trial',   name: 'Δωρεάν δοκιμή',  price: '0 €',       per: '1ος μήνας',   note: '1 ακίνητο, όλες οι δυνατότητες', cycle: 'monthly' },
-  { id: 'monthly', name: 'Pro Μηνιαίο',    price: '2,99 €',    per: 'ανά μήνα',  note: 'Έως 15 ακίνητα, χωρίς δέσμευση', cycle: 'monthly' },
-  { id: 'annual',  name: 'Pro Ετήσιο',     price: '29,90 €',   per: 'ανά έτος',  note: '2 μήνες δώρο — έως 15 ακίνητα', cycle: 'annual' },
+  { id: 'free',    name: 'Δωρεάν',       price: '0 €',       per: 'για πάντα', note: '1 ακίνητο, όλες οι δυνατότητες', cycle: 'monthly' },
+  { id: 'monthly', name: 'Pro Μηνιαίο',  price: '2,99 €',    per: 'ανά μήνα',  note: 'Από 2 έως 15 ακίνητα, χωρίς δέσμευση', cycle: 'monthly' },
+  { id: 'annual',  name: 'Pro Ετήσιο',   price: '29,90 €',   per: 'ανά έτος',  note: '2 μήνες δώρο, από 2 έως 15 ακίνητα', cycle: 'annual' },
 ];
 
 export default function Billing({ userId }: { userId: string }) {
@@ -120,7 +120,7 @@ export default function Billing({ userId }: { userId: string }) {
       <div style={card}>
         {secHdr('Πληρωμή')}
         <InfoBanner tone="info">
-          Η πληρωμή με κάρτα ενεργοποιείται πολύ σύντομα (Stripe). Μέχρι τότε ο λογαριασμός σου παραμένει σε <strong>δωρεάν δοκιμή</strong> — συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης ώστε η ενεργοποίηση να γίνει με ένα κλικ.
+          Το πρώτο σου ακίνητο είναι <strong>δωρεάν για πάντα</strong>. Η πληρωμή με κάρτα για 2+ ακίνητα ενεργοποιείται πολύ σύντομα (Stripe). Συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης ώστε η ενεργοποίηση να γίνει με ένα κλικ.
         </InfoBanner>
         <div style={{ marginTop: 4 }}>
           <button disabled title="Σύντομα με Stripe"

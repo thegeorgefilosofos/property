@@ -80,8 +80,8 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, margin: '0 0 6px' }}>Δωρεάν ο πρώτος μήνας</p>
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.7 }}>Το πρώτο ακίνητο χωρίς χρέωση τον πρώτο μήνα. Μετά από 2,99 € τον μήνα, χωρίς ετήσια δέσμευση, ακυρώνεις όποτε θέλεις.</p>
+          <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, margin: '0 0 6px' }}>Το πρώτο ακίνητο, δωρεάν για πάντα</p>
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.7 }}>Ξεκίνα δωρεάν με ένα ακίνητο, για πάντα. Από το δεύτερο και πάνω, 2,99 € τον μήνα ή 29,90 € τον χρόνο, χωρίς δέσμευση.</p>
         </div>
       </div>
 
