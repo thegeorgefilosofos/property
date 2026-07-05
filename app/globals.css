@@ -478,11 +478,11 @@ body {
   box-shadow: none;
 }
 .kpi-value {
-  font-family: 'Roboto Mono', monospace;
+  font-family: 'Google Sans', 'Inter', system-ui, sans-serif;
   font-size: 22px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   margin-bottom: 8px;
