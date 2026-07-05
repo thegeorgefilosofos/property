@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing page — δημόσια σελίδα προορισμού, στην αισθητική Google (γαλάζιο
@@ -48,7 +49,10 @@ const wrap: React.CSSProperties = { maxWidth: 1180, margin: '0 auto', padding: '
 const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(26,115,232,0.10)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: 100, padding: '6px 14px', fontSize: 12, color: GOLD, fontWeight: 600, letterSpacing: '0.02em' };
 const ic = (d: string) => <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
 
-export default function Landing() {
+export default async function Landing() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const loggedIn = !!user;
   return (
     <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Google Sans','Inter',-apple-system,sans-serif", overflowX: 'hidden' }}>
 
@@ -59,8 +63,12 @@ export default function Landing() {
             <div style={{ width: 30, height: 30, borderRadius: 8, background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: BG, fontWeight: 800, fontSize: 15 }}>P</div>
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Property OS</span>
           </div>
-          <Link href="/login" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
-          <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+          {loggedIn ? (
+            <Link href="/dashboard" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς μου →</Link>
+          ) : (<>
+            <Link href="/login" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
+            <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+          </>)}
         </nav>
       </header>
 
@@ -74,8 +82,12 @@ export default function Landing() {
           Δες καθαρά τι σου αποδίδει κάθε ακίνητο, πού πάνε τα έξοδά σου και τι φόρο θα πληρώσεις. Αποδόσεις, δαπάνες, ενέργεια, φορολογία και ενοικιαστές, όλα οργανωμένα σε ένα σημείο.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Δημιούργησε λογαριασμό →</Link>
-          <Link href="/login" style={{ background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: `1px solid ${LINE}` }}>Έχω ήδη λογαριασμό</Link>
+          {loggedIn ? (
+            <Link href="/dashboard" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
+          ) : (<>
+            <Link href="/signup" style={{ background: GOLD, color: BG, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Δημιούργησε λογαριασμό →</Link>
+            <Link href="/login" style={{ background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: `1px solid ${LINE}` }}>Έχω ήδη λογαριασμό</Link>
+          </>)}
         </div>
 
         {/* Stat bar */}
