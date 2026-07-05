@@ -22,7 +22,7 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 const GROUP_COLORS: Record<string, string> = {
-  fixed: '#D4AF42', renovation: '#5B8DEF', appliances: '#34D97B',
+  fixed: '#1a73e8', renovation: '#5B8DEF', appliances: '#34D97B',
   appliance_lease: '#8B5CF6', vehicle_lease: '#F59E0B',
   commercial: '#EC4899', broker: '#06B6D4', legal: '#F97316',
   travel: '#10B981', exhibition: '#A78BFA', tax: '#EF4444',

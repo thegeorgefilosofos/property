@@ -12,7 +12,7 @@ function buildEmail(events: any[], reminderType: string) {
     '7days': '7 μέρες', '3days': '3 μέρες', '1day': 'αύριο', 'today': 'ΣΗΜΕΡΑ', 'overdue': 'εκπρόθεσμα',
   }
   const catColors: Record<string, string> = {
-    financial: '#d4af42', bills: '#60a5fa', maintenance: '#34d399', contract: '#a78bfa', tenant: '#fb923c', reminder: '#9ca3af',
+    financial: '#1a73e8', bills: '#4285f4', maintenance: '#34a853', contract: '#a142f4', tenant: '#f29900', reminder: '#5f6368',
   }
   const catLabels: Record<string, string> = {
     financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση', contract: 'Συμβόλαιο', tenant: 'Ενοικιαστής', reminder: 'Υπενθύμιση',
@@ -26,15 +26,15 @@ function buildEmail(events: any[], reminderType: string) {
     const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('el-GR') : ''
     return `
       <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #1e1e30;">
+        <td style="padding:12px 0;border-bottom:1px solid #e8eaed;">
           <span style="display:inline-block;width:4px;height:36px;background:${color};border-radius:2px;vertical-align:middle;margin-right:10px;"></span>
           <span style="vertical-align:middle;">
-            <span style="display:block;font-size:14px;color:#e2e2f0;font-weight:500;">${e.title}</span>
-            <span style="display:block;font-size:11px;color:#5a5a70;font-family:monospace;">${label} · ${dateStr}</span>
+            <span style="display:block;font-size:14px;color:#202124;font-weight:500;">${e.title}</span>
+            <span style="display:block;font-size:11px;color:#80868b;font-family:monospace;">${label} · ${dateStr}</span>
           </span>
         </td>
-        <td style="padding:10px 0;border-bottom:1px solid #1e1e30;text-align:right;vertical-align:middle;">
-          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#d4af42;font-weight:600;">${Number(e.amount).toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>` : '<span style="color:#3a3a54;">—</span>'}
+        <td style="padding:12px 0;border-bottom:1px solid #e8eaed;text-align:right;vertical-align:middle;">
+          ${e.amount ? `<span style="font-family:monospace;font-size:14px;color:#202124;font-weight:600;">${Number(e.amount).toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</span>` : '<span style="color:#bdc1c6;">—</span>'}
         </td>
       </tr>`
   }).join('')
@@ -43,26 +43,26 @@ function buildEmail(events: any[], reminderType: string) {
     ? `⚠️ Property OS — ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
     : `🔔 Property OS — ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#08080d;font-family:-apple-system,sans-serif;">
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Google Sans',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-      <div style="width:36px;height:36px;background:#d4af42;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
-        <span style="color:#08080d;font-weight:800;font-size:18px;">P</span>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
+        <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#e2e2f0;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
     </div>
-    <div style="background:${isUrgent ? 'rgba(248,113,113,0.1)' : 'rgba(212,175,66,0.08)'};border:1px solid ${isUrgent ? 'rgba(248,113,113,0.3)' : 'rgba(212,175,66,0.25)'};border-radius:10px;padding:16px 20px;margin-bottom:24px;">
-      <p style="margin:0 0 4px;font-size:11px;color:${isUrgent ? '#f87171' : '#d4af42'};font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">${isUrgent ? '⚠ Απαιτείται Δράση' : '🔔 Υπενθύμιση'}</p>
-      <p style="margin:0;font-size:15px;color:#e2e2f0;font-weight:500;">${events.length} γεγονότα ${reminderType === 'overdue' ? 'είναι εκπρόθεσμα' : reminderType === 'today' ? 'πρέπει να διεκπεραιωθούν σήμερα' : `λήγουν σε ${typeLabel[reminderType]}`}</p>
-      ${totalAmount > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#d4af42;font-family:monospace;">Σύνολο: ${totalAmount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>` : ''}
-    </div>
-    <div style="background:#12121f;border:1px solid #242438;border-radius:10px;padding:0 20px;margin-bottom:24px;">
+    <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:24px;">
+      <div style="background:${isUrgent ? 'rgba(217,48,37,0.08)' : 'rgba(26,115,232,0.08)'};border:1px solid ${isUrgent ? 'rgba(217,48,37,0.25)' : 'rgba(26,115,232,0.22)'};border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+        <p style="margin:0 0 4px;font-size:11px;color:${isUrgent ? '#d93025' : '#1a73e8'};font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${isUrgent ? '⚠ Απαιτείται Δράση' : '🔔 Υπενθύμιση'}</p>
+        <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${events.length} γεγονότα ${reminderType === 'overdue' ? 'είναι εκπρόθεσμα' : reminderType === 'today' ? 'πρέπει να διεκπεραιωθούν σήμερα' : `λήγουν σε ${typeLabel[reminderType]}`}</p>
+        ${totalAmount > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#1a73e8;font-family:monospace;font-weight:600;">Σύνολο: ${totalAmount.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>` : ''}
+      </div>
       <table style="width:100%;border-collapse:collapse;">${eventRows}</table>
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS →</a>
+      </div>
     </div>
-    <div style="text-align:center;margin-bottom:28px;">
-      <a href="https://propertyos-psi.vercel.app/dashboard" style="display:inline-block;background:#d4af42;color:#08080d;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:13px;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;">Άνοιγμα Property OS →</a>
-    </div>
-    <p style="text-align:center;font-size:11px;color:#3a3a54;font-family:monospace;">Property OS · Αυτόματη ειδοποίηση ημερολογίου</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Αυτόματη ειδοποίηση ημερολογίου</p>
   </div>
 </body></html>`
 
