@@ -113,6 +113,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
   const [saving,   setSaving]   = useState(false);
   const [step,     setStep]     = useState<'upload' | 'review' | 'done'>('upload');
   const [error,    setError]    = useState('');
+  const [savedInfo, setSavedInfo] = useState<string[]>([]);
 
   const loadImage = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf' && !file.name.match(/\.(csv|xlsx|xls|txt)$/i)) {
@@ -172,8 +173,6 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
     }
   };
 
-  const [savedInfo, setSavedInfo] = useState<string[]>([]);
-
   const saveBill = async () => {
     if (!edited) return;
     setSaving(true);
@@ -204,15 +203,25 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       done.push('Λογαριασμοί');
 
       // 2) Έξοδο → πίνακας expenses (ρέει σε Έξοδα + Επισκόπηση)
+      // Προστασία διπλοεγγραφής: αν υπάρχει ήδη έξοδο ίδιου ποσού/κατηγορίας/ημέρας
+      // (π.χ. από εισαγωγή τράπεζας ή προηγούμενη σάρωση), δεν ξαναδημιουργείται.
       const map = EXPENSE_MAP[edited.category] || EXPENSE_MAP.other;
-      const { error: expErr } = await supabase.from('expenses').insert({
-        property_id: propertyId, user_id: userId,
-        description: `${map.cat} — ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
-        amount: edited.amount, category: map.cat, expense_group: map.group,
-        date: edited.due_date || today, paid_by: 'owner', paid: false,
-        notes: `Από σάρωση λογαριασμού${consumption ? ` · ${consumption}` : ''}`,
-      });
-      if (!expErr) done.push('Έξοδα');
+      const expDate = edited.due_date || today;
+      const { data: dup } = await supabase.from('expenses').select('id')
+        .eq('property_id', propertyId).eq('category', map.cat)
+        .eq('amount', edited.amount).eq('date', expDate).limit(1);
+      if (dup && dup.length) {
+        done.push('Έξοδα (υπάρχει ήδη)');
+      } else {
+        const { error: expErr } = await supabase.from('expenses').insert({
+          property_id: propertyId, user_id: userId,
+          description: `${map.cat} — ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
+          amount: edited.amount, category: map.cat, expense_group: map.group,
+          date: expDate, paid_by: 'owner', paid: false,
+          notes: `Από σάρωση λογαριασμού${consumption ? ` · ${consumption}` : ''}`,
+        });
+        if (!expErr) done.push('Έξοδα');
+      }
 
       // 3) Κοινόχρηστα → ενημέρωση πεδίου Κοινόχρηστα (χιλιοστά + ιστορικό μήνα)
       if (edited.category === 'common') {
@@ -245,7 +254,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
 
   const reset = () => {
     setStep('upload'); setImage(''); setResult(null);
-    setEdited(null); setSaving(false); setError('');
+    setEdited(null); setSaving(false); setError(''); setSavedInfo([]);
   };
 
   if (step === 'done') {

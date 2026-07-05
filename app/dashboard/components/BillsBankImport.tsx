@@ -272,8 +272,20 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const { error: err } = await supabase.from('bills').insert(rows);
       if (err) throw err;
 
+      // Προστασία διπλοεγγραφής εξόδων: φέρε τα υπάρχοντα έξοδα στο εύρος ημερομηνιών
+      // και παράλειψε όσα ταιριάζουν (ίδιο ποσό/κατηγορία/ημέρα) — π.χ. από σάρωση.
+      const dates = selected.map(t => t.date).sort();
+      const { data: existing } = await supabase.from('expenses')
+        .select('amount,category,date')
+        .eq('property_id', propertyId)
+        .gte('date', dates[0]).lte('date', dates[dates.length - 1]);
+      const seen = new Set((existing || []).map(e => `${e.amount}|${e.category}|${e.date}`));
+
       await Promise.allSettled(selected.filter(t => t.debit).map(t => {
         const m = EXPENSE_MAP[t.category] || EXPENSE_MAP.other;
+        const key = `${t.amount}|${m.cat}|${t.date}`;
+        if (seen.has(key)) return Promise.resolve();   // υπάρχει ήδη — μη διπλοεγγραφή
+        seen.add(key);
         return supabase.from('expenses').insert({
           property_id: propertyId, user_id: userId,
           amount:      t.amount,
