@@ -605,6 +605,9 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = '/login'; return; }
       setUser(user);
+      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση — idempotent.
+      const refBy = (user.user_metadata as any)?.referred_by;
+      if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       await fetchProperties(user.id);
       setLoading(false);
     };
