@@ -336,7 +336,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, fontFamily: T.font.sans }}>
                     {CATEGORY_LABELS[edited.category] || edited.category}{edited.period ? ` · ${edited.period}` : ''}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>
                     {fe(edited.amount)}
                   </div>
                 </div>

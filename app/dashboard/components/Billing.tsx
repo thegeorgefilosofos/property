@@ -84,7 +84,7 @@ export default function Billing({ userId }: { userId: string }) {
                   {active && <span style={{ color: 'var(--accent)', fontSize: 16 }}>✓</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono }}>{p.price}</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num }}>{p.price}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{p.per}</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans, lineHeight: 1.4 }}>{p.note}</div>
