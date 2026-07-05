@@ -1111,7 +1111,7 @@ function TemplateModal({ onSelect, onClose }: { onSelect: (key: string) => void;
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα Templates</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Φόρτωσε έτοιμη λίστα tasks με ένα κλικ</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Φόρτωσε έτοιμη λίστα εργασιών με ένα κλικ</p>
             </div>
             <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}>✕</button>
           </div>
@@ -1166,7 +1166,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {[
               { id: 'basic' as const, label: 'Βασικά' },
-              { id: 'subtasks' as const, label: `Υπο-tasks${form.subtasks.length > 0 ? ` (${subDone}/${form.subtasks.length})` : ''}` },
+              { id: 'subtasks' as const, label: `Υπο-εργασίες${form.subtasks.length > 0 ? ` (${subDone}/${form.subtasks.length})` : ''}` },
               { id: 'comments' as const, label: `Σχόλια${form.comments.length > 0 ? ` (${form.comments.length})` : ''}` },
               { id: 'tags' as const, label: 'Ετικέτες' },
               { id: 'advanced' as const, label: 'Εξαρτήσεις' },
@@ -1213,7 +1213,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
           )}
           {activeTab === 'subtasks' && (
             <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Χωρίσε το task σε μικρότερα βήματα.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Χώρισε την εργασία σε μικρότερα βήματα.</p>
               {form.subtasks.length > 0 && (
                 <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
@@ -1250,7 +1250,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
           {activeTab === 'advanced' && (
             <div>
               <FL>Εξάρτηση από άλλο Task</FL>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>Το task εμφανίζεται ως κλειδωμένο μέχρι το επιλεγμένο να ολοκληρωθεί.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>Η εργασία εμφανίζεται ως κλειδωμένη μέχρι να ολοκληρωθεί η επιλεγμένη.</p>
               <select value={form.depends_on} onChange={e => setForm(f => ({ ...f, depends_on: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
                 <option value="">— Χωρίς εξάρτηση —</option>
                 {allItems.filter(i => i.id !== item?.id).map(i => (
@@ -1343,9 +1343,9 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
     if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
       suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής — δημιούργησε check-in checklist', templateKey: 'checkin' })
     if (!(itemData || []).some((i: any) => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
-      suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Δεν υπάρχουν maintenance tasks ακόμα', templateKey: 'maintenance' })
+      suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Δεν υπάρχουν εργασίες συντήρησης ακόμα', templateKey: 'maintenance' })
     if (!(itemData || []).some((i: any) => i.category === 'legal'))
-      suggestions.push({ title: 'Νομικά / ΑΑΔΕ', reason: 'Δεν υπάρχουν νομικά tasks', templateKey: 'legal' })
+      suggestions.push({ title: 'Νομικά / ΑΑΔΕ', reason: 'Δεν υπάρχουν νομικές εργασίες', templateKey: 'legal' })
     setSmartSuggestions(suggestions.slice(0, 2))
 
     // Cross-tab: fetch tenant info, loan, ΕΝΦΙΑ bill status (safe — all errors caught)
@@ -1507,7 +1507,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 20, padding: '32px 48px', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--positive)', marginBottom: 8 }}>100% Ολοκληρώθηκε!</div>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Όλα τα tasks έχουν ολοκληρωθεί</div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Όλες οι εργασίες έχουν ολοκληρωθεί</div>
           </div>
         </div>
       )}
@@ -1638,7 +1638,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       {/* Bulk bar */}
       {bulkMode && selected.size === 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', marginBottom: 14, background: 'var(--accent-soft)', border: '1px solid var(--border-accent)', borderRadius: T.radius.inner }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>Κάνε κλικ στα tasks για να τα επιλέξεις</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>Κάνε κλικ στις εργασίες για να τις επιλέξεις</span>
           <button type="button" onClick={() => setSelected(new Set(filtered.map(i => i.id)))} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Επιλογή όλων ({filtered.length})</button>
           <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ padding: '5px 10px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 16, color: 'var(--text-secondary)', cursor: 'pointer' }}>✕</button>
         </div>
@@ -1698,7 +1698,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px dashed var(--border-default)' }}>
           <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.2" style={{ margin: '0 auto 18px', display: 'block', opacity: 0.35 }}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" /></svg>
-          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν tasks ακόμα</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν εργασίες ακόμα</div>
           <div style={{ color: 'var(--text-secondary)', marginBottom: 28, fontSize: 14, lineHeight: 1.6 }}>Ξεκίνα με ένα έτοιμο template<br />ή πρόσθεσε χειροκίνητα.</div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Templates</button>
@@ -1724,7 +1724,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
                 <BoardCard key={item.id} item={item} onToggle={() => toggleItem(item)} onEdit={() => { setEditItem(item); setShowAddModal(true) }} />
               ))}
               {boardCols[s.value as keyof typeof boardCols].length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 12, borderRadius: T.radius.inner, border: '1px dashed var(--border-subtle)' }}>Κανένα task</div>
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 12, borderRadius: T.radius.inner, border: '1px dashed var(--border-subtle)' }}>Καμία εργασία</div>
               )}
             </div>
           ))}

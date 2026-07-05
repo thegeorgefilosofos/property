@@ -606,7 +606,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
           </>
         ) : (
           <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>
-            Δεν έχει οριστεί budget
+            Δεν έχει οριστεί προϋπολογισμός
           </span>
         )}
       </div>

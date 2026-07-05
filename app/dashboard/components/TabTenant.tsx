@@ -949,7 +949,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:'80px 32px', textAlign:'center' as const }}>
           <div style={{ fontSize:40, opacity:0.08, marginBottom:20 }}>◫</div>
           <div style={{ fontSize:16, color:'var(--text-primary)', fontFamily:T.font.sans, fontWeight:500, marginBottom:8 }}>Κανένας ενοικιαστής</div>
-          <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:28, lineHeight:1.6 }}>Προσθέστε ενοικιαστή για πλήρη παρακολούθηση μίσθωσης,<br/>πληρωμών, επικοινωνίας και ανάλυσης αγοράς</div>
+          <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:28, lineHeight:1.6 }}>Πρόσθεσε ενοικιαστή για πλήρη παρακολούθηση μίσθωσης,<br/>πληρωμών, επικοινωνίας και ανάλυσης αγοράς</div>
           <button style={{ ...s.btnGold, fontSize:13, padding:'12px 28px', borderRadius:T.radius.pill }} onClick={openAdd}>+ Νέος Ενοικιαστής</button>
         </div>
       )}

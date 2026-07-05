@@ -139,7 +139,7 @@ export default function RentComparables({
   return (
     <div style={cardStyle}>
       <SectionLabel
-        label="Συγκριτικά Ακίνητα (Comparables)"
+        label="Συγκριτικά Ακίνητα Αγοράς"
         right={
           <button
             onClick={() => setShowForm(v => !v)}
@@ -267,7 +267,7 @@ export default function RentComparables({
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", marginBottom: 4 }}>Δεν έχεις προσθέσει comparables ακόμα</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", marginBottom: 4 }}>Δεν έχεις προσθέσει συγκρίσιμα ακίνητα ακόμα</div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Βρες παρόμοια ακίνητα στο Spitogatos ή XE και πρόσθεσέ τα για σύγκριση</div>
         </div>
       ) : (
