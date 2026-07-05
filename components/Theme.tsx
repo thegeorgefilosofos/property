@@ -78,8 +78,10 @@ export function Spinner({ size = 22, label }: { size?: number; label?: string })
 }
 
 // ── Μορφοποίηση ποσών (μία υλοποίηση για όλη την εφαρμογή) ─────────────────
+// Χρησιμοποιεί αδιάσπαστο διάστημα (U+00A0) πριν το €, ώστε το ποσό να μη
+// «σπάει» ποτέ σε δύο γραμμές (π.χ. «1.234,56» πάνω και «€» κάτω) — google-level.
 export const fe = (n: number, d = 2) =>
-  `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
+  `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
 // Ακέραιοι/αριθμοί χωρίς σύμβολο νομίσματος
 export const fn = (n: number, d = 0) =>
