@@ -11,23 +11,23 @@ interface Expense {
 
 interface Props { expenses: Expense[]; }
 
-const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+const MONTHS_S = ['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ'];
 
 const GROUP_LABELS: Record<string, string> = {
   fixed: 'Πάγιες', renovation: 'Ανακαίνιση', appliances: 'Συσκευές',
-  appliance_lease: 'Leasing Συσκ.', vehicle_lease: 'Leasing Οχημ.',
+  appliance_lease: 'Leasing συσκευών', vehicle_lease: 'Leasing οχημάτων',
   commercial: 'Εμπορικό', broker: 'Μεσιτικά', legal: 'Νομικά',
   travel: 'Μετακινήσεις', exhibition: 'Εκθέσεις', tax: 'Φόροι',
   maintenance: 'Συντήρηση', other: 'Άλλα',
 };
 
-// Premium, cohesive παλέτα (μουτ, Google-aligned) — όχι νέον/θόρυβος.
-const GROUP_COLORS: Record<string, string> = {
-  fixed: '#1a73e8', maintenance: '#5f6368', renovation: '#7c4dff',
-  appliances: '#00897b', appliance_lease: '#3949ab', vehicle_lease: '#00acc1',
-  commercial: '#5e35b1', broker: '#26a69a', legal: '#8e24aa',
-  travel: '#43a047', exhibition: '#6d4c41', tax: '#e8710a', other: '#9aa0a6',
-};
+// ── Παλέτα: μία διαβάθμιση του accent προς ουδέτερο (καμία «ουράνια-τόξο» χρωματολογία).
+// Καθαρή, ήρεμη, premium· το χρώμα δείχνει ιεραρχία μεγέθους, όχι θόρυβο.
+function ramp(i: number, n: number): string {
+  if (n <= 1) return 'var(--accent)';
+  const w = Math.round(84 - (i / (n - 1)) * 60); // 84% → 24% accent, υπόλοιπο ουδέτερο
+  return `color-mix(in srgb, var(--accent) ${w}%, var(--text-tertiary))`;
+}
 
 function parseLocalDate(s: string): Date {
   if (!s) return new Date();
@@ -35,95 +35,129 @@ function parseLocalDate(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
-const fmtEur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
-const fmtEur2 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const NBSP = ' ';
+const fmtEur = (n: number) => `${Math.round(n).toLocaleString('el-GR')}${NBSP}€`;
+const fmtEur2 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${NBSP}€`;
+const num = (n: number): React.CSSProperties => ({ fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' } as React.CSSProperties);
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
   background: 'var(--bg-elevated)',
   border: '1px solid var(--border-subtle)',
-  borderRadius: 12,
-  padding: 16,
+  borderRadius: 14,
+  padding: 18,
 };
 
 const SectionLabel = ({ label }: { label: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
     <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
-    <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
       {label}
     </span>
   </div>
 );
 
-// ─── Donut Chart ──────────────────────────────────────────────────────────────
-function DonutChart({ data, size = 110 }: { data: { label: string; value: number; color: string }[]; size?: number }) {
+// ─── Donut ──────────────────────────────────────────────────────────────────
+function DonutChart({ data, size = 128 }: { data: { label: string; value: number; color: string }[]; size?: number }) {
   const total = data.reduce((s, d) => s + d.value, 0);
+  const r = size / 2 - 11, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r;
+  const sw = size * 0.11;
   if (!total) return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', border: `${sw}px solid var(--border-subtle)`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
       Κενό
     </div>
   );
   let offset = 0;
-  const r = size / 2 - 10, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={size * 0.12} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-subtle)" strokeWidth={sw} />
       {data.filter(d => d.value > 0).map((d, i) => {
         const pct = d.value / total, dash = pct * C, gap = C - dash;
         const el = (
           <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color}
-            strokeWidth={size * 0.12} strokeDasharray={`${dash} ${gap}`}
+            strokeWidth={sw} strokeLinecap="round" strokeDasharray={`${Math.max(dash - 2, 0.1)} ${gap + 2}`}
             strokeDashoffset={-offset * C} style={{ transition: 'stroke-dasharray 0.5s' }}
             transform={`rotate(-90 ${cx} ${cy})`} />
         );
         offset += pct; return el;
       })}
-      <text x={cx} y={cy + 4} textAnchor="middle" fontSize={size * 0.11} fontWeight="700"
-        fill="var(--text-primary)" fontFamily="'Inter', sans-serif">
-        {fmtEur(total).replace(' €', '')}
+      <text x={cx} y={cy - 1} textAnchor="middle" fontSize={size * 0.145} fontWeight="700"
+        fill="var(--text-primary)" fontFamily="'Inter', sans-serif" style={{ letterSpacing: '-0.02em' }}>
+        {Math.round(total).toLocaleString('el-GR')}
       </text>
-      <text x={cx} y={cy + 4 + size * 0.1} textAnchor="middle" fontSize={size * 0.07}
-        fill="var(--text-secondary)" fontFamily="'Inter', sans-serif">€</text>
+      <text x={cx} y={cy + size * 0.11} textAnchor="middle" fontSize={size * 0.075}
+        fill="var(--text-tertiary)" fontFamily="'Inter', sans-serif">€ σύνολο</text>
     </svg>
   );
 }
 
-// ─── Bar Chart ────────────────────────────────────────────────────────────────
-function BarChart({ data, height = 100 }: { data: { label: string; value: number; color?: string }[]; height?: number }) {
+// ─── Οριζόντιες μπάρες κατάταξης (αντικαθιστά τις «τεντωμένες» κάθετες όταν υπάρχει 1 ομάδα) ───
+function RankBars({ data, total }: { data: { label: string; value: number; color: string }[]; total: number }) {
   const max = Math.max(...data.map(d => d.value), 1);
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height, width: '100%' }}>
-      {data.map((d, i) => (
-        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-            {d.value > 0 ? fmtEur(d.value).replace(' €', '') : ''}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {data.map((d, i) => {
+        const pct = total > 0 ? (d.value / total) * 100 : 0;
+        return (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '112px 1fr auto', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</span>
+            </div>
+            <div style={{ height: 8, background: 'var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.max((d.value / max) * 100, d.value > 0 ? 2 : 0)}%`, background: d.color, borderRadius: 100, transition: 'width 0.5s cubic-bezier(.2,0,0,1)' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', ...num(d.value) }}>{fmtEur(d.value)}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', ...num(pct), minWidth: 34, textAlign: 'right' }}>{pct.toFixed(0)}%</span>
+            </div>
           </div>
-          <div style={{ width: '100%', borderRadius: '3px 3px 0 0', height: `${Math.max((d.value / max) * 80, d.value > 0 ? 4 : 0)}%`, background: d.color || 'var(--accent)', opacity: d.value > 0 ? 1 : 0.15, transition: 'height 0.4s', minHeight: d.value > 0 ? '3px' : '0' }} />
-          <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{d.label}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-// ─── Trend Line ───────────────────────────────────────────────────────────────
-function TrendLine({ data, height = 60, color = 'var(--accent)' }: { data: number[]; height?: number; color?: string }) {
-  if (data.length < 2) return null;
+// ─── Κάθετες μπάρες 12 μηνών (ουδέτερες· ο τρέχων μήνας διακριτικά με accent) ───
+function MonthBars({ data, labels, currentIdx, height = 132 }: { data: number[]; labels: string[]; currentIdx: number; height?: number }) {
+  const max = Math.max(...data, 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height, width: '100%' }}>
+      {data.map((v, i) => {
+        const isCur = i === currentIdx;
+        return (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end', minWidth: 0 }}>
+            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', ...num(v), whiteSpace: 'nowrap', opacity: v > 0 ? 1 : 0 }}>
+              {v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v)}
+            </div>
+            <div title={fmtEur(v)} style={{ width: '100%', maxWidth: 34, borderRadius: '4px 4px 0 0', height: `${Math.max((v / max) * 100, v > 0 ? 3 : 0)}%`, background: isCur ? 'var(--accent)' : 'var(--border-strong)', transition: 'height 0.45s cubic-bezier(.2,0,0,1)', minHeight: v > 0 ? 3 : 0 }} />
+            <div style={{ fontSize: 9, color: isCur ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontWeight: isCur ? 700 : 400, fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap' }}>{labels[i]}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Σωρευτική καμπύλη (ήρεμη, accent· όχι κόκκινο) ───
+function Area({ data, height = 72 }: { data: number[]; height?: number }) {
+  if (data.length < 2) return <div style={{ height, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Inter', sans-serif" }}>Χρειάζονται τουλάχιστον δύο μήνες</div>;
   const W = 300, max = Math.max(...data, 1);
-  const pt = (v: number, i: number) => `${(i / (data.length - 1)) * (W - 20) + 10},${height - 10 - ((v / max) * (height - 20))}`;
+  const pt = (v: number, i: number) => `${(i / (data.length - 1)) * (W - 16) + 8},${height - 8 - ((v / max) * (height - 16))}`;
   const pts = data.map((v, i) => pt(v, i)).join(' ');
-  const fill = [`10,${height - 10}`, ...data.map((v, i) => pt(v, i)), `${W - 10},${height - 10}`].join(' ');
+  const fill = [`8,${height - 8}`, ...data.map((v, i) => pt(v, i)), `${W - 8},${height - 8}`].join(' ');
+  const [lx, ly] = pt(data[data.length - 1], data.length - 1).split(',');
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none">
       <defs>
-        <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        <linearGradient id="ea-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={fill} fill="url(#tg)" />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {data.map((v, i) => { const [x, y] = pt(v, i).split(','); return v > 0 ? <circle key={i} cx={x} cy={y} r={3} fill={color} /> : null; })}
+      <polygon points={fill} fill="url(#ea-area)" />
+      <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r={3.5} fill="var(--accent)" />
     </svg>
   );
 }
@@ -131,8 +165,8 @@ function TrendLine({ data, height = 60, color = 'var(--accent)' }: { data: numbe
 // ─── Period filter ────────────────────────────────────────────────────────────
 type Period = '3m' | '6m' | '12m' | 'ytd' | 'all';
 const PERIODS: { value: Period; label: string }[] = [
-  { value: '3m', label: '3Μ' }, { value: '6m', label: '6Μ' },
-  { value: '12m', label: '12Μ' }, { value: 'ytd', label: 'Φέτος' }, { value: 'all', label: 'Όλα' },
+  { value: '3m', label: '3 μήνες' }, { value: '6m', label: '6 μήνες' },
+  { value: '12m', label: '12 μήνες' }, { value: 'ytd', label: 'Φέτος' }, { value: 'all', label: 'Όλα' },
 ];
 
 function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
@@ -145,12 +179,13 @@ function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
   return expenses.filter(e => parseLocalDate(e.date) >= cutoff);
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-function KPICard({ label, value, color, small = false }: { label: string; value: string; color: string; small?: boolean }) {
+// ─── KPI (ουδέτερος αριθμός· χρώμα μόνο ως διακριτικό σήμα εξοικονόμησης) ───
+function KPICard({ label, value, hint, positive = false }: { label: string; value: string; hint?: string; positive?: boolean }) {
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ fontSize: small ? 12 : 15, fontWeight: 700, color, fontFamily: "'Inter', sans-serif", marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-      <div style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.5px', textTransform: 'uppercase' as const, fontFamily: "'Inter', sans-serif", lineHeight: 1.3 }}>{label}</div>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px', minWidth: 0 }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: positive ? 'var(--positive)' : 'var(--text-primary)', ...num(0), marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' as const, fontFamily: "'Inter', sans-serif", lineHeight: 1.3 }}>{label}</div>
+      {hint && <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif", marginTop: 3 }}>{hint}</div>}
     </div>
   );
 }
@@ -190,10 +225,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       if (monthsAgo >= 0 && monthsAgo < 12) monthlyData[11 - monthsAgo] += e.amount;
     });
 
-    const maxVal = Math.max(...monthlyData);
-    const topMonthIdx = maxVal > 0 ? monthlyData.lastIndexOf(maxVal) : -1;
-    const topMonthLabel = topMonthIdx >= 0 ? monthlyLabels[topMonthIdx] : '—';
-
+    const monthsWithData = monthlyData.filter(v => v > 0).length;
     const ytdData: number[] = [];
     let cum = 0;
     for (let m = 0; m <= thisMonth; m++) {
@@ -211,7 +243,8 @@ export default function ExpenseAnalytics({ expenses }: Props) {
     exp.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
     const topCat = Object.entries(byCat).sort(([, a], [, b]) => b - a)[0];
     const recurringTotal = exp.filter(e => e.is_recurring).reduce((s, e) => s + e.amount, 0);
-    const avgMonthly = total / 12;
+    // Μέσος όρος ΜΟΝΟ στους μήνες με κίνηση (ρεαλιστικός, όχι /12 που «αραιώνει»)
+    const avgMonthly = monthsWithData > 0 ? total / monthsWithData : 0;
     const projectedAnnual = avgMonthly * 12;
     const cashbackROI = total > 0 ? (totalCashback / total) * 100 : 0;
     const curMonthTotal = monthlyData[11] || 0;
@@ -219,218 +252,184 @@ export default function ExpenseAnalytics({ expenses }: Props) {
     const momChange = prevMonthTotal > 0 ? ((curMonthTotal - prevMonthTotal) / prevMonthTotal) * 100 : 0;
 
     return {
-      total, totalCashback, totalDiscount, totalVat, totalSavings,
+      total, totalCashback, totalDiscount, totalVat, totalSavings, monthsWithData,
       byOwner, byTenant, bySplit, byCompany, byGroup, monthlyData, monthlyLabels,
-      ytdData, byPayment, topCat, topMonthLabel, topMonthIdx, recurringTotal,
+      ytdData, byPayment, topCat, recurringTotal,
       avgMonthly, projectedAnnual, cashbackROI, curMonthTotal, prevMonthTotal, momChange,
     };
   }, [filtered, expenses, thisYear, thisMonth]);
 
   if (expenses.length === 0) return null;
 
-  const paidByData = [
-    { label: 'Ιδιοκτήτης', value: stats.byOwner, color: 'var(--warning)' },
-    { label: 'Ενοικιαστής', value: stats.byTenant, color: 'var(--info)' },
-    { label: '50/50', value: stats.bySplit, color: 'var(--accent)' },
-    { label: 'Εταιρεία', value: stats.byCompany, color: 'var(--positive)' },
-  ].filter(d => d.value > 0);
+  const payers = [
+    { key: 'owner', label: 'Ιδιοκτήτης', value: stats.byOwner },
+    { key: 'tenant', label: 'Ενοικιαστής', value: stats.byTenant },
+    { key: 'split', label: 'Μοιρασμένα (50/50)', value: stats.bySplit },
+    { key: 'company', label: 'Εταιρεία', value: stats.byCompany },
+  ].filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+  const paidByData = payers.map((p, i) => ({ ...p, color: ramp(i, payers.length) }));
 
   const groupData = Object.entries(stats.byGroup)
     .sort(([, a], [, b]) => b - a).slice(0, 8)
-    .map(([k, v]) => ({ label: GROUP_LABELS[k] || k, value: v, color: GROUP_COLORS[k] || 'var(--text-secondary)' }));
-
-  const monthBarData = stats.monthlyData.map((v, i) => ({
-    label: stats.monthlyLabels[i], value: v,
-    color: i === stats.topMonthIdx ? 'var(--negative)' : i === 11 ? 'var(--accent)' : 'var(--border-default)',
-  }));
+    .map(([k, v], i, arr) => ({ label: GROUP_LABELS[k] || k, value: v, color: ramp(i, arr.length) }));
 
   const pmLabels: Record<string, string> = {
-    cash: 'Μετρητά', debit_cb: 'Χρεωστ. (CB)', debit_no_cb: 'Χρεωστική',
-    credit_free: 'Πιστ. Άτοκες', credit_interest: 'Πιστ. Έντοκες',
+    cash: 'Μετρητά', debit_cb: 'Χρεωστική με επιστροφή', debit_no_cb: 'Χρεωστική',
+    credit_free: 'Πιστωτική άτοκα', credit_interest: 'Πιστωτική έντοκα',
     klarna: 'Klarna', tbi: 'TBI', snappi: 'Snappi', kotsovolos: 'Κωτσόβολος',
-    plaisio4: 'Πλαίσιο x4', local_store: 'Τοπικό Κατ.', promissory: 'Γραμμάτια',
-    bank_transfer: 'Τραπεζική Μεταφ.', check: 'Επιταγή', cash_black: 'Αδήλωτα', family: 'Οικογένεια',
+    plaisio4: 'Πλαίσιο x4', local_store: 'Τοπικό κατάστημα', promissory: 'Γραμμάτια',
+    bank_transfer: 'Τραπεζική μεταφορά', check: 'Επιταγή', cash_black: 'Αδήλωτα', family: 'Οικογένεια',
   };
+
+  // Μήνυμα σε σχέση με τον προηγούμενο μήνα — σε καθαρά ελληνικά, χωρίς «MoM».
+  const momText = (() => {
+    if (stats.prevMonthTotal <= 0) return null;
+    if (stats.curMonthTotal <= 0) return { tone: 'muted', text: `Καμία δαπάνη ${MONTHS_S[thisMonth]} ακόμη. Τον ${MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]} είχες ${fmtEur(stats.prevMonthTotal)}.` };
+    const diff = stats.curMonthTotal - stats.prevMonthTotal;
+    const pct = Math.abs(stats.momChange).toFixed(0);
+    if (Math.abs(stats.momChange) < 3) return { tone: 'muted', text: `Σταθερά σε σχέση με τον προηγούμενο μήνα (${fmtEur(stats.curMonthTotal)}).` };
+    return diff > 0
+      ? { tone: 'up', text: `${pct}% περισσότερα από τον προηγούμενο μήνα (+${fmtEur(diff)}).` }
+      : { tone: 'down', text: `${pct}% λιγότερα από τον προηγούμενο μήνα (−${fmtEur(Math.abs(diff))}).` };
+  })();
 
   return (
     <div style={{ marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Unpaid alert */}
+      {/* Εκκρεμείς */}
       {unpaid.length > 0 && (
-        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--negative)', borderRadius: 10, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--negative)', fontFamily: "'Inter', sans-serif" }}>
-            {unpaid.length} εκκρεμείς δαπάνες
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
+            <strong>{unpaid.length}</strong> {unpaid.length === 1 ? 'δαπάνη μένει' : 'δαπάνες μένουν'} να εξοφληθούν
           </span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>— {fmtEur2(unpaidTotal)} αναμένουν εξόφληση</span>
+          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', ...num(unpaidTotal) }}>{fmtEur2(unpaidTotal)}</span>
         </div>
       )}
 
-      {/* Header + period filter */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      {/* Header + περίοδος */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
-          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>
-            Ανάλυση Δαπανών
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter', sans-serif" }}>
+            Ανάλυση δαπανών
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 3, background: 'var(--bg-surface)', borderRadius: 8, padding: 3 }}>
-          {PERIODS.map(p => (
-            <button key={p.value} onClick={() => setPeriod(p.value)}
-              style={{
-                padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                fontSize: 11, fontWeight: 500, fontFamily: "'Inter', sans-serif",
-                background: period === p.value ? 'var(--accent)' : 'transparent',
-                color: period === p.value ? '#fff' : 'var(--text-secondary)',
-                transition: 'all 0.15s',
-              }}>
-              {p.label}
-            </button>
-          ))}
+        <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: 3 }}>
+          {PERIODS.map(p => {
+            const on = period === p.value;
+            return (
+              <button key={p.value} onClick={() => setPeriod(p.value)}
+                style={{
+                  padding: '6px 14px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: on ? 700 : 500, fontFamily: "'Inter', sans-serif",
+                  background: on ? 'var(--accent)' : 'transparent',
+                  color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+                  transition: 'background 0.15s, color 0.15s',
+                }}>
+                {p.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
-        <KPICard label="Μέση μηνιαία" value={fmtEur(stats.avgMonthly)} color="var(--text-primary)" />
-        <KPICard label="Εκτιμ. ετήσιο" value={fmtEur(stats.projectedAnnual)} color="var(--text-primary)" />
-        <KPICard label="Επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} color="var(--text-primary)" />
-        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} color={stats.totalSavings > 0 ? 'var(--positive)' : 'var(--text-primary)'} />
-        <KPICard label="Κορυφαία κατηγορία" value={stats.topCat ? stats.topCat[0] : '—'} color="var(--text-primary)" small />
-        <KPICard label="Ακριβότερος μήνας" value={stats.topMonthLabel} color="var(--text-primary)" small />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 14 }}>
+        <KPICard label="Μέσος όρος τον μήνα" value={fmtEur(stats.avgMonthly)} hint={`σε ${stats.monthsWithData} ${stats.monthsWithData === 1 ? 'μήνα' : 'μήνες'} με κινήσεις`} />
+        <KPICard label="Πρόβλεψη έτους" value={fmtEur(stats.projectedAnnual)} hint="με βάση τον ρυθμό σου" />
+        <KPICard label="Πάγιες / επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} />
+        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} positive={stats.totalSavings > 0} hint={stats.totalSavings > 0 ? 'επιστροφές & εκπτώσεις' : undefined} />
+        {stats.topCat && <KPICard label="Μεγαλύτερη κατηγορία" value={stats.topCat[0]} hint={fmtEur(stats.topCat[1])} />}
       </div>
 
-      {/* MoM */}
-      {stats.prevMonthTotal > 0 && (
-        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 20 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-            {MONTHS_S[thisMonth]}: <strong style={{ color: 'var(--accent)', fontFamily: "'Inter', sans-serif" }}>{fmtEur(stats.curMonthTotal)}</strong>
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-            {MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]}: <strong style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>{fmtEur(stats.prevMonthTotal)}</strong>
-          </span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: stats.momChange > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>
-            {stats.momChange > 0 ? '+' : ''}{stats.momChange.toFixed(1)}% MoM
-          </span>
+      {/* Σε σχέση με τον προηγούμενο μήνα */}
+      {momText && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: momText.tone === 'up' ? 'var(--warning)' : momText.tone === 'down' ? 'var(--positive)' : 'var(--text-tertiary)' }} />
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>{momText.text}</span>
         </div>
       )}
 
-      {/* Row 1: donuts + YTD */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 14, marginBottom: 14 }}>
+      {/* Row 1: κατανομές + σωρευτική */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14, marginBottom: 14 }}>
 
-        {/* By payer */}
+        {/* Ανά πληρωτή */}
         <div style={cardStyle}>
-          <SectionLabel label="Κατανομή ανά Πληρωτή" />
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <DonutChart data={paidByData} size={110} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          <SectionLabel label="Ποιος πληρώνει" />
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+            <DonutChart data={paidByData} size={124} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               {paidByData.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", flexShrink: 0 }}>{fmtEur(d.value)}</div>
-                </div>
-              ))}
-              {stats.total > 0 && (
-                <div style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border-subtle)', fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                  Ιδιοκτ.: <strong style={{ color: 'var(--warning)' }}>{((stats.byOwner / stats.total) * 100).toFixed(0)}%</strong>
-                  {stats.byTenant > 0 && <> · Ενοικ.: <strong style={{ color: 'var(--info)' }}>{((stats.byTenant / stats.total) * 100).toFixed(0)}%</strong></>}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* By group */}
-        <div style={cardStyle}>
-          <SectionLabel label="Κατανομή ανά Ομάδα" />
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            <DonutChart data={groupData} size={110} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 120, overflowY: 'auto', minWidth: 0 }}>
-              {groupData.map((d, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: d.color, fontFamily: "'Inter', sans-serif", flexShrink: 0 }}>{((d.value / stats.total) * 100).toFixed(0)}%</div>
+                  <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', ...num(d.value), flexShrink: 0 }}>{fmtEur(d.value)}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* YTD cumulative */}
+        {/* Ανά ομάδα */}
         <div style={cardStyle}>
-          <SectionLabel label={`Σωρευτικές ${thisYear}`} />
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--negative)', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px' }}>
+          <SectionLabel label="Πού πάνε τα χρήματα" />
+          {groupData.length > 0
+            ? <RankBars data={groupData} total={stats.total} />
+            : <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Καμία κίνηση στην περίοδο</div>}
+        </div>
+
+        {/* Σωρευτικές έτους */}
+        <div style={cardStyle}>
+          <SectionLabel label={`Σύνολο από την αρχή του ${thisYear}`} />
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', ...num(0), letterSpacing: '-0.02em' }}>
               {fmtEur(stats.ytdData[stats.ytdData.length - 1] || 0)}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, fontFamily: "'Inter', sans-serif" }}>
-              YTD (Ιαν – {MONTHS_S[thisMonth]})
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: "'Inter', sans-serif" }}>
+              Ιανουάριος έως {MONTHS_S[thisMonth]}
             </div>
           </div>
-          <TrendLine data={stats.ytdData} height={70} color="var(--negative)" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Ιαν</span>
-            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>{MONTHS_S[thisMonth]}</span>
-          </div>
+          <Area data={stats.ytdData} height={72} />
         </div>
       </div>
 
-      {/* Row 2: monthly bars + payment methods */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+      {/* Row 2: 12 μήνες + τρόποι πληρωμής */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14, marginBottom: 14 }}>
 
         <div style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <SectionLabel label="Δαπάνες Τελευταίων 12 Μηνών" />
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-              Μέγιστο: <strong style={{ color: 'var(--negative)' }}>{fmtEur(Math.max(...stats.monthlyData))}</strong>
-            </div>
-          </div>
-          <BarChart data={monthBarData} height={110} />
+          <SectionLabel label="Δαπάνες ανά μήνα" />
+          <MonthBars data={stats.monthlyData} labels={stats.monthlyLabels} currentIdx={11} height={132} />
         </div>
 
         <div style={cardStyle}>
-          <SectionLabel label="Τρόποι Πληρωμής" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SectionLabel label="Τρόποι πληρωμής" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Object.entries(stats.byPayment).sort(([, a], [, b]) => b - a).slice(0, 6).map(([m, amt], i) => {
               const pct = stats.total > 0 ? (amt / stats.total) * 100 : 0;
               return (
                 <div key={i}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{pmLabels[m] || m}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>{fmtEur(amt)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{pmLabels[m] || m}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-primary)', ...num(amt), fontWeight: 500 }}>{fmtEur(amt)}</span>
                   </div>
-                  <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
+                  <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 100, transition: 'width 0.4s' }} />
                   </div>
                 </div>
               );
             })}
+            {Object.keys(stats.byPayment).length === 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Δεν έχει καταχωρηθεί τρόπος πληρωμής</div>
+            )}
             {stats.totalCashback > 0 && (
-              <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>Cashback ROI</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>{stats.cashbackROI.toFixed(2)}%</span>
+              <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>Επιστροφή χρημάτων (cashback)</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--positive)', ...num(0) }}>{fmtEur(stats.totalCashback)}</span>
               </div>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Row 3: group bars */}
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-          <SectionLabel label="Δαπάνες ανά Ομάδα" />
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {groupData.slice(0, 5).map((d, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color }} />
-                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{d.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <BarChart data={groupData} height={100} />
       </div>
     </div>
   );
