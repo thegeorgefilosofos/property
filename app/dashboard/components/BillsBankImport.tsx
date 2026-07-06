@@ -309,16 +309,26 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         else unmatched.push(t);
       }
 
-      // 1) Συμφώνησε τα ταιριασμένα — μαρκάρισμα «Πληρώθηκε» παντού
+      // 1) Συμφώνησε τα ταιριασμένα — μαρκάρισμα «Πληρώθηκε» παντού.
+      // Προτεραιότητα σε ΑΚΡΙΒΗ σύνδεση μέσω bill_id· αν δεν βρεθεί (παλιά δεδομένα
+      // χωρίς σύνδεσμο), fallback σε ταίριασμα ποσού+κατηγορίας.
       if (matched.length) {
         await supabase.from('bills').update({ paid: true }).in('id', matched.map(r => r.billId));
         for (const r of matched) {
           const em = EXPENSE_MAP[r.cat] || EXPENSE_MAP.other;
-          await supabase.from('expenses').update({ paid: true })
-            .eq('property_id', propertyId).eq('category', em.cat)
-            .eq('amount', r.billAmount).eq('paid', false);
-          await supabase.from('calendar_events').update({ status: 'paid' })
-            .eq('property_id', propertyId).eq('amount', r.billAmount).eq('status', 'pending');
+          const { data: expHit } = await supabase.from('expenses').update({ paid: true })
+            .eq('bill_id', r.billId).eq('paid', false).select('id');
+          if (!expHit || !expHit.length) {
+            await supabase.from('expenses').update({ paid: true })
+              .eq('property_id', propertyId).eq('category', em.cat)
+              .eq('amount', r.billAmount).eq('paid', false).is('bill_id', null);
+          }
+          const { data: evHit } = await supabase.from('calendar_events').update({ status: 'paid' })
+            .eq('bill_id', r.billId).eq('status', 'pending').select('id');
+          if (!evHit || !evHit.length) {
+            await supabase.from('calendar_events').update({ status: 'paid' })
+              .eq('property_id', propertyId).eq('amount', r.billAmount).eq('status', 'pending').is('bill_id', null);
+          }
         }
       }
 

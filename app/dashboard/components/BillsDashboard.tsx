@@ -13,6 +13,17 @@ import { T, fe, Spinner } from '@/components/Theme';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
+// Κατηγορία λογαριασμού → ομάδα/κατηγορία Δαπανών (ίδια λογική με scan/τράπεζα).
+const BILL_GROUP: Record<string, { group: string; cat: string }> = {
+  electricity:{group:'fixed',cat:'Ρεύμα'}, water:{group:'fixed',cat:'Νερό'}, gas:{group:'fixed',cat:'Φυσικό Αέριο'},
+  internet:{group:'fixed',cat:'Internet'}, insurance:{group:'fixed',cat:'Ασφάλεια Κτιρίου'}, streaming:{group:'fixed',cat:'Άλλη Πάγια'},
+  taxes:{group:'fixed',cat:'ΕΝΦΙΑ'}, municipal:{group:'fixed',cat:'Δημοτικά Τέλη'}, security:{group:'fixed',cat:'Σύστημα Συναγερμού'},
+  common:{group:'fixed',cat:'Κοινόχρηστα'}, maintenance:{group:'maintenance',cat:'Γενική Συντήρηση'},
+  elevator:{group:'maintenance',cat:'Συντήρηση Ασανσέρ'}, pool:{group:'maintenance',cat:'Καθαρισμός Πισίνας'},
+  gardener:{group:'maintenance',cat:'Κηπουρός'}, cleaner:{group:'maintenance',cat:'Καθαριότητα'},
+  plumber:{group:'maintenance',cat:'Υδραυλικός'}, electrician:{group:'maintenance',cat:'Ηλεκτρολόγος'},
+};
+
 const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
 interface BillEntry {
@@ -415,12 +426,21 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const newPaid = !bill.paid;
     setBills(prev => prev.map(b => b.id === id ? { ...b, paid: newPaid } : b));
     await supabase.from('bills').update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq('id', id);
-    if (newPaid) {
+
+    // Cascade (undo-safe): το συνδεδεμένο έξοδο & γεγονός ημερολογίου ακολουθούν
+    // την κατάσταση του λογαριασμού μέσω bill_id. Καμία διπλοεγγραφή.
+    const { data: expHit } = await supabase.from('expenses').update({ paid: newPaid }).eq('bill_id', id).select('id');
+    await supabase.from('calendar_events').update({ status: newPaid ? 'paid' : 'pending' }).eq('bill_id', id);
+
+    // Αν το σημειώνουμε πληρωμένο και ΔΕΝ υπάρχει συνδεδεμένο έξοδο (π.χ.
+    // χειροκίνητος λογαριασμός), δημιούργησέ το με τη σωστή ομάδα ώστε να μετρήσει.
+    if (newPaid && (!expHit || !expHit.length)) {
+      const g = BILL_GROUP[bill.category] || { group: 'fixed', cat: cat(bill.category).label };
       try {
         await supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId, amount: bill.amount,
+          property_id: propertyId, user_id: userId, bill_id: id, amount: bill.amount,
           description: bill.name, date: new Date().toISOString().split('T')[0],
-          category: cat(bill.category).label, expense_group: 'bills',
+          category: g.cat, expense_group: g.group, paid_by: 'owner', paid: true,
         });
       } catch (_) {}
     }
