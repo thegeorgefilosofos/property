@@ -575,11 +575,11 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
             {info.label}
           </div>
           <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-            <span style={{ fontSize:16, fontWeight:700, color: over ? 'var(--negative)' : 'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+            <span style={{ fontSize:16, fontWeight:700, color: over ? 'var(--warning)' : 'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>
               {fmtEur0(spent)}
             </span>
             {budget > 0 && (
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
                 / {fmtEur0(budget)}
               </span>
             )}
@@ -587,8 +587,8 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           {mom !== null && (
-            <span style={{ fontSize:10, fontWeight:500, color: mom > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
-              {mom > 0 ? '+' : ''}{mom.toFixed(0)}% vs πέρσι
+            <span style={{ fontSize:10, fontWeight:500, color: mom > 0 ? 'var(--warning)' : 'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
+              {mom > 0 ? '+' : '−'}{Math.abs(mom).toFixed(0)}% από πέρσι
             </span>
           )}
           {editing ? (
@@ -606,7 +606,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
           ) : (
             <button onClick={() => { setVal(String(budget)); setEditing(true); }}
               style={{ fontSize:10, color:'var(--accent)', background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500, padding:0 }}>
-              {budget > 0 ? 'Αλλαγή' : '+ Ορισμός Budget'}
+              {budget > 0 ? 'Αλλαγή' : '+ Όρισε όριο'}
             </button>
           )}
         </div>
@@ -1589,22 +1589,21 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           {yoyData.lastYTD > 0 && (
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:16 }}>
               <div>
-                <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:4 }}>
-                  Σύγκριση Έτους
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter', sans-serif", marginBottom:6 }}>
+                  Φέτος έναντι πέρσι, ίδια περίοδος
                 </div>
-                <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
+                <div style={{ display:'flex', gap:18, alignItems:'baseline' }}>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(yoyData.thisYTD)}</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.thisYTD)}</div>
                     <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{yoyData.thisYear}</div>
                   </div>
-                  <div style={{ fontSize:10, color:'var(--text-tertiary)' }}>vs</div>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(yoyData.lastYTD)}</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(yoyData.lastYTD)}</div>
                     <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{yoyData.lastYear}</div>
                   </div>
                   {yoyData.change !== null && (
-                    <div style={{ fontSize:13, fontWeight:700, color:yoyData.change>0?'var(--negative)':'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
-                      {yoyData.change>0?'+':''}{yoyData.change.toFixed(1)}%
+                    <div style={{ fontSize:13, fontWeight:600, color:yoyData.change>0?'var(--warning)':'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
+                      {yoyData.change>0?'+':'−'}{Math.abs(yoyData.change).toFixed(0)}%
                     </div>
                   )}
                 </div>
@@ -1613,11 +1612,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           )}
           {cashbackStats.ytdCashback > 0 && (
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--positive)', borderRadius:10, padding:'12px 16px' }}>
-              <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:4 }}>
-                Cashback Φέτος
+              <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter', sans-serif", marginBottom:6 }}>
+                Επιστροφές χρημάτων φέτος
               </div>
               <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
-                <div style={{ fontSize:16, fontWeight:700, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>+{fmtEur(cashbackStats.ytdCashback)}</div>
+                <div style={{ fontSize:16, fontWeight:700, color:'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>{fmtEur(cashbackStats.ytdCashback)}</div>
                 <div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>{cashbackStats.cashbackCount} αγορές</div>
                 {cashbackStats.bestCashback && (
                   <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>
@@ -1686,51 +1685,61 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         type Card = { icon:string; title:string; value:string; sub:string; accent:string; urgent?:boolean };
         const cards: Card[] = [];
 
-        // MoM
+        // Σε σχέση με τον προηγούμενο μήνα (χωρίς παραπλανητικό «-100%» όταν δεν έχει μπει τίποτα ακόμη)
         if (lastMonthTotal > 0) {
-          const up = momChange > 0;
-          cards.push({
-            icon: up ? 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' : 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
-            title: `${MONTHS_GR[thisMonth]} vs ${MONTHS_GR[lastMonth]}`,
-            value: `${up?'+':''}${momChange.toFixed(1)}%`,
-            sub: `${fmtEur(thisMonthTotal)} αυτόν τον μήνα`,
-            accent: up ? 'var(--negative)' : 'var(--positive)',
-            urgent: momChange > 25,
-          });
+          if (thisMonthTotal <= 0) {
+            cards.push({
+              icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
+              title: MONTHS_GR[thisMonth],
+              value: 'Καμία δαπάνη ακόμη',
+              sub: `Τον προηγούμενο μήνα είχες ${fmtEur(lastMonthTotal)}`,
+              accent: 'var(--text-secondary)',
+            });
+          } else {
+            const up = momChange > 0;
+            cards.push({
+              icon: up ? 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' : 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+              title: `Σε σχέση με τον ${MONTHS_GR[lastMonth]}`,
+              value: `${up?'+':'−'}${Math.abs(momChange).toFixed(0)}%`,
+              sub: `${fmtEur(thisMonthTotal)} τώρα, ${fmtEur(lastMonthTotal)} τον προηγούμενο μήνα`,
+              accent: up ? 'var(--negative)' : 'var(--positive)',
+              urgent: momChange > 25,
+            });
+          }
         }
 
-        // Projected annual
+        // Πρόβλεψη έτους
         if (projectedAnnual > 0) {
           cards.push({
             icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
-            title: 'Εκτίμηση Έτους',
+            title: 'Πρόβλεψη έτους',
             value: fmtEur(projectedAnnual),
-            sub: `Βάσει ${monthsElapsed} μηνών — μέσος ${fmtEur(avgMonthly)}/μήνα`,
+            sub: `Με βάση ${monthsElapsed} ${monthsElapsed===1?'μήνα':'μήνες'}, μέσος όρος ${fmtEur(avgMonthly)} τον μήνα`,
             accent: 'var(--info)',
           });
         }
 
-        // Breakeven
+        // Ενοίκιο ισοσκελισμού
         if (totalMonthly > 0) {
           const ok = targetRent > 0 && breakevenRent <= targetRent;
           const bad = targetRent > 0 && breakevenRent > targetRent;
           cards.push({
             icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 0-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1m-6 0h16',
-            title: 'Breakeven Ενοίκιο',
-            value: fmtEur(breakevenRent)+'/μήνα',
-            sub: targetRent > 0 ? `Στόχος: ${fmtEur(targetRent)} — ${ok?'εντός':'εκτός'} στόχου` : 'Ορίσε στόχο ενοικίου στις Ρυθμίσεις',
+            title: 'Ενοίκιο ισοσκελισμού',
+            value: `${fmtEur(breakevenRent)}/μήνα`,
+            sub: targetRent > 0 ? `Καλύπτει όλα τα έξοδα. Στόχος σου: ${fmtEur(targetRent)} (${ok?'εντός':'εκτός'})` : 'Το ενοίκιο που καλύπτει όλα τα έξοδα. Όρισε στόχο στις Ρυθμίσεις.',
             accent: bad ? 'var(--negative)' : ok ? 'var(--positive)' : 'var(--text-secondary)',
             urgent: bad,
           });
         }
 
-        // Deductible
+        // Εκπιπτόμενες δαπάνες
         if (ytdTotal > 0) {
           cards.push({
             icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z',
-            title: 'Εκπιπτόμενες',
-            value: `${deductiblePct.toFixed(0)}% (${fmtEur(deductibleAmt)})`,
-            sub: `Εκτ. φόρος 15%: ${fmtEur(deductibleAmt*0.15)}`,
+            title: 'Εκπιπτόμενες δαπάνες',
+            value: `${deductiblePct.toFixed(0)}%`,
+            sub: `${fmtEur(deductibleAmt)} εκπίπτουν. Εκτιμώμενο όφελος φόρου: ${fmtEur(deductibleAmt*0.15)}`,
             accent: 'var(--positive)',
           });
         }
@@ -1739,7 +1748,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         if (recurringMonthly > 0) {
           cards.push({
             icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15',
-            title: 'Πάγιες / Μήνα',
+            title: 'Πάγιες τον μήνα',
             value: fmtEur(recurringMonthly),
             sub: `${recurringExp.length} επαναλαμβανόμενες καταχωρήσεις`,
             accent: 'var(--accent)',
@@ -1750,9 +1759,9 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         if (topCat) {
           cards.push({
             icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
-            title: `Κορυφαία — ${MONTHS_GR[thisMonth]}`,
+            title: `Μεγαλύτερη κατηγορία, ${MONTHS_GR[thisMonth]}`,
             value: topCat[0],
-            sub: fmtEur(topCat[1]),
+            sub: `${fmtEur(topCat[1])} αυτόν τον μήνα`,
             accent: 'var(--warning)',
           });
         }
@@ -1783,9 +1792,9 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         if (loanPayment > 0) {
           cards.push({
             icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z',
-            title: 'Δόση Δανείου',
-            value: fmtEur(loanPayment)+'/μήνα',
-            sub: 'Από το tab Δάνειο',
+            title: 'Δόση δανείου',
+            value: `${fmtEur(loanPayment)}/μήνα`,
+            sub: 'Από την καρτέλα Δάνειο',
             accent: 'var(--text-secondary)',
           });
         }
@@ -1811,21 +1820,22 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,minmax(0,1fr))', gap:8 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:10 }}>
               {cards.map((card, i) => (
-                <div key={i} style={{ background:'var(--bg-surface)', border:`1px solid ${card.urgent?card.accent:'var(--border-subtle)'}`, borderLeft:`3px solid ${card.accent}`, borderRadius:8, padding:'12px 14px' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={card.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div key={i} style={{ background:card.urgent?'var(--warning-soft)':'var(--bg-surface)', border:`1px solid ${card.urgent?'var(--warning-border)':'var(--border-subtle)'}`, borderRadius:12, padding:'14px 16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d={card.icon} />
                     </svg>
-                    <span style={{ fontSize:10, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", textTransform:'uppercase', letterSpacing:'0.4px' }}>
+                    <span style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", textTransform:'uppercase', letterSpacing:'0.05em', flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {card.title}
                     </span>
+                    {card.urgent && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }} />}
                   </div>
-                  <div style={{ fontSize:14, fontWeight:700, color:card.accent, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {card.value}
                   </div>
-                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", lineHeight:1.4 }}>
+                  <div style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", lineHeight:1.45 }}>
                     {card.sub}
                   </div>
                 </div>
@@ -1839,7 +1849,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {showBudgets && (
         <div style={{ ...cardStyle, marginBottom:16 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-            <SectionLabel label="Budget vs Πραγματικές Δαπάνες" />
+            <SectionLabel label="Προϋπολογισμός έναντι πραγματικών" />
             {Object.values(budgets).some(v=>v>0) && (() => {
               const totalBudget = Object.values(budgets).reduce((s,v)=>s+v,0);
               const totalSpent = Object.keys(budgets).reduce((s,g)=>s+(spentByGroup[g]||0),0);
@@ -1884,7 +1894,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               </div>
               {/* Budget tips */}
               <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--info)', borderRadius:8, padding:'10px 14px', fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
-                <strong style={{ color:'var(--info)' }}>Συμβουλή:</strong> Κλίκαρε "+ Ορισμός Budget" σε κάθε κατηγορία για να θέσεις ετήσιο ή μηνιαίο στόχο. Η πρόοδος ενημερώνεται σε πραγματικό χρόνο.
+                <strong style={{ color:'var(--text-primary)' }}>Συμβουλή:</strong> Πάτησε «+ Όρισε όριο» σε κάθε κατηγορία για να βάλεις μηνιαίο ή ετήσιο στόχο. Η πρόοδος ενημερώνεται αυτόματα.
               </div>
             </>
           )}
@@ -1897,12 +1907,12 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <SectionLabel label="Φορολογική Ανάλυση Δαπανών" />
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:10, marginBottom:16 }}>
             {[
-              { label:'Εκπιπτόμενες Δαπάνες', value:fmtEur(deductible), color:'var(--positive)', sub:`${total>0?((deductible/total)*100).toFixed(0):0}% του συνόλου` },
-              { label:'Μη Εκπιπτόμενες', value:fmtEur(total-deductible), color:'var(--negative)', sub:`${total>0?(((total-deductible)/total)*100).toFixed(0):0}% του συνόλου` },
-              { label:'Εκτιμώμενος Φόρος (15%)', value:fmtEur(deductible*0.15), color:'var(--warning)', sub:'Εκτίμηση βάσει εκπιπτόμενων' },
+              { label:'Εκπιπτόμενες δαπάνες', value:fmtEur(deductible), color:'var(--positive)', sub:`${total>0?((deductible/total)*100).toFixed(0):0}% του συνόλου` },
+              { label:'Μη εκπιπτόμενες', value:fmtEur(total-deductible), color:'var(--text-primary)', sub:`${total>0?(((total-deductible)/total)*100).toFixed(0):0}% του συνόλου` },
+              { label:'Εκτιμώμενο όφελος φόρου (15%)', value:fmtEur(deductible*0.15), color:'var(--text-primary)', sub:'Πόσο σε γλιτώνουν στη φορολογία' },
             ].map((k,i) => (
-              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'14px 16px' }}>
-                <div style={{ fontSize:17, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{k.value}</div>
+              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
+                <div style={{ fontSize:18, fontWeight:700, color:k.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4 }}>{k.value}</div>
                 <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:2 }}>{k.label}</div>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{k.sub}</div>
               </div>
@@ -1926,8 +1936,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {EXPENSE_GROUPS[g]?.label||g}
                     </div>
                   </td>
-                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:'var(--text-primary)' }}>{fmtEur(row.amount)}</td>
-                  <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--warning)' }}>{row.vat>0?fmtEur(row.vat):'—'}</td>
+                  <td style={{ padding:'9px 10px', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:600, color:'var(--text-primary)' }}>{fmtEur(row.amount)}</td>
+                  <td style={{ padding:'9px 10px', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{row.vat>0?fmtEur(row.vat):'—'}</td>
                   <td style={{ padding:'9px 10px' }}>
                     <span style={{ fontSize:10, fontWeight:500, padding:'3px 10px', borderRadius:20, fontFamily:"'Inter', sans-serif", background:row.deductible?'var(--positive-dim)':'var(--bg-surface)', color:row.deductible?'var(--positive)':'var(--text-tertiary)'                    }}>
                       {row.deductible ? 'Εκπιπτόμενη' : 'Μη εκπιπτόμενη'}
@@ -2034,10 +2044,10 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                         <div style={{ width:80, height:4, background:'var(--border-subtle)', borderRadius:2, overflow:'hidden' }}>
                           <div style={{ height:'100%', width:`${pct}%`, background:over?'var(--negative)':pct>80?'var(--warning)':'var(--positive)', borderRadius:2 }} />
                         </div>
-                        <span style={{ fontSize:10, color:over?'var(--negative)':'var(--text-tertiary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{pct.toFixed(0)}%</span>
+                        <span style={{ fontSize:10, color:over?'var(--warning)':'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>{pct.toFixed(0)}%</span>
                       </div>
                     )}
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--negative)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{fmtEur(groupTotal)}</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{fmtEur(groupTotal)}</span>
                   </div>
                 </div>
                 <div style={{ overflowX:'auto' }}>
@@ -2045,7 +2055,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                   <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                     <thead>
                       <tr>
-                        {['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Κατάστημα','Πληρωμή','ΦΠΑ','Cashback','Τιμή',''].map((h,i) => (
+                        {['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Κατάστημα','Πληρωμή','ΦΠΑ','Επιστροφή','Ποσό',''].map((h,i) => (
                           <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
                         ))}
                       </tr>
@@ -2054,7 +2064,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {groupExp.map(e => {
                         const pm = PAYMENT_METHODS.find(p => p.value===e.payment_method);
                         const paidByLabel = PAID_BY_OPTIONS.find(p => p.value===e.paid_by)?.label||e.paid_by;
-                        const paidByColor = e.paid_by==='tenant'?'var(--info)':e.paid_by==='split'?'var(--accent)':'var(--warning)';
+                        const paidByColor = e.paid_by==='tenant'?'var(--info)':e.paid_by==='split'?'var(--accent)':e.paid_by==='company'?'var(--positive)':'var(--text-tertiary)';
                         const isEditing = editingId===e.id;
                         const freqLabel: Record<string,string> = { monthly:'Μηνιαία', quarterly:'Τριμην.', biannual:'Εξαμην.', annual:'Ετήσια' };
                         return (
@@ -2147,15 +2157,15 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 18px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
             <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
               {[
-                { label:'Σύνολο', value:fmtEur(total), color:'var(--negative)' },
-                { label:'Ιδιοκτήτης', value:fmtEur(totalOwner), color:'var(--warning)' },
-                ...(totalTenant>0?[{ label:'Ενοικιαστής', value:fmtEur(totalTenant), color:'var(--info)' }]:[]),
-                ...(totalCashback>0?[{ label:'Cashback', value:`+${fmtEur(totalCashback)}`, color:'var(--positive)' }]:[]),
-                ...(totalVat>0?[{ label:'ΦΠΑ', value:fmtEur(totalVat), color:'var(--accent)' }]:[]),
-                { label:'Εκπιπτόμενες', value:fmtEur(deductible), color:'var(--positive)' },
+                { label:'Σύνολο', value:fmtEur(total), color:'var(--text-primary)' },
+                { label:'Ιδιοκτήτης', value:fmtEur(totalOwner), color:'var(--text-primary)' },
+                ...(totalTenant>0?[{ label:'Ενοικιαστής', value:fmtEur(totalTenant), color:'var(--text-primary)' }]:[]),
+                ...(totalCashback>0?[{ label:'Επιστροφή', value:fmtEur(totalCashback), color:'var(--positive)' }]:[]),
+                ...(totalVat>0?[{ label:'ΦΠΑ', value:fmtEur(totalVat), color:'var(--text-primary)' }]:[]),
+                { label:'Εκπιπτόμενες', value:fmtEur(deductible), color:deductible>0?'var(--positive)':'var(--text-primary)' },
               ].map((item,i) => (
                 <span key={i} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
-                  {item.label}: <strong style={{ color:item.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>{item.value}</strong>
+                  {item.label}: <strong style={{ color:item.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{item.value}</strong>
                 </span>
               ))}
             </div>
