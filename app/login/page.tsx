@@ -7,7 +7,7 @@ import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Σύνδεση — στα χρώματα του app (design tokens, theme-aware light/dark).
+// Σύνδεση, στα χρώματα του app (design tokens, theme-aware light/dark).
 // Δύο στήλες σε desktop· σε κινητό το marketing panel κρύβεται (auth-* classes).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -80,10 +80,10 @@ export default function LoginPage() {
   return (
     <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
 
-      {/* LEFT — κοινό marketing panel (AuthAside) */}
+      {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside />
 
-      {/* RIGHT — form */}
+      {/* RIGHT, form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           {sessionEmail ? (

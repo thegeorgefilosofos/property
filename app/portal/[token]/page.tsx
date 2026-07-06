@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Tenant Portal — δημόσια σελίδα ενοικιαστή (χωρίς login). Διαβάζει δεδομένα
+// Tenant Portal, δημόσια σελίδα ενοικιαστή (χωρίς login). Διαβάζει δεδομένα
 // μέσω ασφαλούς RPC (get_portal_data) και δέχεται αίτημα βλάβης. Theme-aware,
 // responsive. Καμία πρόσβαση σε δεδομένα ιδιοκτήτη πέραν των απαραίτητων.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -95,7 +95,7 @@ export default function TenantPortal() {
 
             <div style={card}>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Αίτημα βλάβης / επικοινωνία</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>Στείλε αίτημα στον ιδιοκτήτη — θα το δει άμεσα στο πάνελ διαχείρισης.</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>Στείλε αίτημα στον ιδιοκτήτη, θα το δει άμεσα στο πάνελ διαχείρισης.</div>
 
               {sent ? (
                 <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>

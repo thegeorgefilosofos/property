@@ -82,7 +82,7 @@ function ChartTip({active,payload,label}:any) {
 
 const PROPERTY_TYPES = [
   {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα', notary_pct:0.013, stamp:0, vat_possible:false},
-  {value:'new_residence',label:'Νεόδμητη Κατοικία',     desc:'Άδεια μετά το 2006 — ΦΠΑ 24%',      notary_pct:0.015, stamp:0, vat_possible:true},
+  {value:'new_residence',label:'Νεόδμητη Κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%',      notary_pct:0.015, stamp:0, vat_possible:true},
   {value:'store',        label:'Κατάστημα / Γραφείο',   desc:'Επαγγελματική χρήση',                notary_pct:0.015, stamp:0.036, vat_possible:false},
   {value:'warehouse',    label:'Αποθήκη / Βιομηχανικό', desc:'Βιομηχανική / αποθήκευση',          notary_pct:0.015, stamp:0.036, vat_possible:false},
   {value:'land',         label:'Οικόπεδο / Γη',         desc:'Εντός ή εκτός σχεδίου',             notary_pct:0.012, stamp:0, vat_possible:false},
@@ -124,7 +124,7 @@ const CHILDREN_OPTIONS  = [0,1,2,3,4,5].map(n=>({value:String(n),label:n===0?'Χ
 const PROP_TYPE_OPTIONS = PROPERTY_TYPES.map(p=>({value:p.value,label:p.label,description:p.desc}))
 
 const PRESETS = [
-  {id:'first_buyer',label:'Νέος Αγοραστής',desc:'Πρώτη κατοικία — Σπίτι μου ΙΙ',color:'var(--positive-dim)',border:'var(--positive-border)',textColor:'var(--positive)',values:{loanAmount:'150000',propValue:'185000',sqm:'80',rate:'1.80',years:'25',rateType:'fixed' as RateType,loanType:'first_home' as LoanType,borrower:'young' as BorrowerType,fixedPeriod:'5',propType:'residence',area:'center_athens'}},
+  {id:'first_buyer',label:'Νέος Αγοραστής',desc:'Πρώτη κατοικία, Σπίτι μου ΙΙ',color:'var(--positive-dim)',border:'var(--positive-border)',textColor:'var(--positive)',values:{loanAmount:'150000',propValue:'185000',sqm:'80',rate:'1.80',years:'25',rateType:'fixed' as RateType,loanType:'first_home' as LoanType,borrower:'young' as BorrowerType,fixedPeriod:'5',propType:'residence',area:'center_athens'}},
   {id:'investor',label:'Επενδυτής',desc:'Ακίνητο προς ενοικίαση',color:'var(--info-dim)',border:'var(--info-border)',textColor:'var(--info)',values:{loanAmount:'200000',propValue:'280000',sqm:'90',rate:'3.20',years:'20',rateType:'fixed' as RateType,loanType:'investment' as LoanType,borrower:'individual' as BorrowerType,fixedPeriod:'5',propType:'residence',area:'south_suburbs'}},
   {id:'commercial',label:'Επαγγελματικό',desc:'Κατάστημα / Γραφείο',color:'var(--warning-dim)',border:'var(--warning-border)',textColor:'var(--warning)',values:{loanAmount:'150000',propValue:'220000',sqm:'50',rate:'3.80',years:'15',rateType:'fixed' as RateType,loanType:'commercial' as LoanType,borrower:'professional' as BorrowerType,fixedPeriod:'5',propType:'store',area:'center_athens'}},
   {id:'renovation',label:'Ανακαίνιση',desc:'Ενεργειακή αναβάθμιση',color:'var(--accent-dim)',border:'var(--border-accent)',textColor:'var(--accent)',values:{loanAmount:'25000',propValue:'200000',sqm:'85',rate:'2.90',years:'15',rateType:'fixed' as RateType,loanType:'energy' as LoanType,borrower:'individual' as BorrowerType,fixedPeriod:'5',propType:'residence',area:'center_athens'}},
@@ -290,7 +290,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
   function delScen(id:string){setScenarios(s=>s.filter(x=>x.id!==id))}
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
   function applyHist(h:CalcHistory){setLoanAmount(String(h.amount));setRate(String(h.rate));setYears(String(h.years));setLoanType(h.loanType);setActivePreset(null)}
-  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τμ, ${areaLabel}${notes?` — ${notes}`:''}`});setSaving(false)}
+  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τμ, ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false)}
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -539,7 +539,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="LIVE">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
-            {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση — χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--positive)',bg:'var(--positive-dim)',border:'var(--positive-border)'},
+            {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--positive)',bg:'var(--positive-dim)',border:'var(--positive-border)'},
             {label:'Κυμαινόμενο Επιτόκιο',rate:market.euribor_3m+R,m:varMonthly,pros:['Σήμερα χαμηλότερο κόστος','Ωφελείσαι αν Euribor πέσει','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--info)',bg:'var(--info-dim)',border:'var(--info-border)'},
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
@@ -567,7 +567,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
         </ResponsiveContainer>
       </Section>
 
-      <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub="Εκτίμηση εξοικονόμησης — deadline 31/08/2026">
+      <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub="Εκτίμηση εξοικονόμησης, deadline 31/08/2026">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σπίτι μου ΙΙ (εκτίμηση)',rate:spitiR,m:spitiM,ti:spitiM*Y*12-LA,c:'var(--positive)',bg:'var(--positive-dim)',border:'var(--positive-border)'},
@@ -599,10 +599,10 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
           <KPI label="Μέγιστο δάνειο" value={fmtEur(maxLoan)} color={maxLoan>=LA?'var(--positive)':'var(--negative)'}/>
           <KPI label="DTI Ratio" value={monthly>0?fmtPct1((monthly/INC)*100):'—'} color={(monthly/INC)>0.4?'var(--negative)':(monthly/INC)>0.35?'var(--warning)':'var(--positive)'} sub="Δόση / Εισόδημα"/>
         </div>
-        {maxLoan<LA&&<div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Υπέρβαση κατά {fmtEur(LA-maxLoan)} — μειώστε ποσό ή αυξήστε διάρκεια</p></div>}
+        {maxLoan<LA&&<div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Υπέρβαση κατά {fmtEur(LA-maxLoan)}, μειώστε ποσό ή αυξήστε διάρκεια</p></div>}
       </Section>
 
-      <Section title="Φορολογική Ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια — ΑΑΔΕ 2026">
+      <Section title="Φορολογική Ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026">
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
             <p style={{...labelStyle,marginBottom:12}}>{isNewBuilding?'ΦΠΑ 24%':isCommercial?'ΦΜΑ 3% + Χαρτόσημο':'ΦΜΑ 3%'}</p>
@@ -627,7 +627,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
                 </>
               )}
             </div>
-            {loanType==='first_home'&&PV<=fmaEx&&!isNewBuilding&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--positive-dim)',border:'1px solid var(--positive-border)',borderRadius:8}}><p style={{fontSize:13,color:'var(--positive)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ — εξοικονόμηση {fmtEur(PV*0.03)}</p></div>}
+            {loanType==='first_home'&&PV<=fmaEx&&!isNewBuilding&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--positive-dim)',border:'1px solid var(--positive-border)',borderRadius:8}}><p style={{fontSize:13,color:'var(--positive)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*0.03)}</p></div>}
           </div>
           {loanType==='investment'&&(
             <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
@@ -675,10 +675,10 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
           </tbody>
         </table>
         </div>
-        {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--positive-dim)',border:'1px solid var(--positive-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--positive)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια — προστατευμένοι από ανατιμήσεις Euribor</p></div>}
+        {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--positive-dim)',border:'1px solid var(--positive-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--positive)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια, προστατευμένοι από ανατιμήσεις Euribor</p></div>}
       </Section>
 
-      <Section title="Ανάλυση Αναχρηματοδότησης" sub="Break-even — πότε αξίζει η μεταφορά">
+      <Section title="Ανάλυση Αναχρηματοδότησης" sub="Break-even, πότε αξίζει η μεταφορά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
           <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="χρ"/>

@@ -1,7 +1,7 @@
 'use client';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BillsPDFExport — Επαγγελματική Αναφορά Λογαριασμών (Έκδοση 2.0)
+// BillsPDFExport, Επαγγελματική Αναφορά Λογαριασμών (Έκδοση 2.0)
 //
 // Τι αλλάζει σε σχέση με την προηγούμενη έκδοση:
 // • Πλήρης δομή εγγράφου: Εξώφυλλο-κεφαλίδα → Executive Summary → Εκκρεμότητες
@@ -10,14 +10,14 @@
 // • Σωστή σελιδοποίηση Α4: κάθε ενότητα δεν «σπάει» στη μέση (break-inside:avoid),
 //   επαναλαμβανόμενες κεφαλίδες πινάκων ανά σελίδα (thead display:table-header-group).
 // • Καθαρή τυπογραφία εγγράφου (Inter + Roboto Mono), διακριτική χρυσή ταυτότητα.
-// • Όλα τα δεδομένα χρήστη περνούν από esc() — προστασία από stored-XSS.
+// • Όλα τα δεδομένα χρήστη περνούν από esc(), προστασία από stored-XSS.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const todayStr = () => new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
 
 // SECURITY: ονόματα/σημειώσεις/πεδία ακινήτου προέρχονται από τον χρήστη και
-// παρεμβάλλονται σε HTML string — escape για αποφυγή stored-XSS.
+// παρεμβάλλονται σε HTML string, escape για αποφυγή stored-XSS.
 const esc = (v: unknown) => String(v ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -79,7 +79,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
     const paidSum     = paidBills.reduce((s, b) => s + b.amount, 0);
     const paidPct     = data.bills.length > 0 ? Math.round((paidBills.length / data.bills.length) * 100) : 0;
 
-    // Ιστορικό — στατιστικά
+    // Ιστορικό, στατιστικά
     const hist        = data.historyTotals || [];
     const monthsWith  = hist.map((v, i) => ({ v, i })).filter(x => x.v > 0);
     const maxMonth    = monthsWith.length ? monthsWith.reduce((a, b) => (b.v > a.v ? b : a)) : null;
@@ -213,7 +213,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Αναφορά Λογαριασμών — ${esc(data.propertyName)} — ${todayStr()}</title>
+  <title>Αναφορά Λογαριασμών, ${esc(data.propertyName)}, ${todayStr()}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
@@ -284,7 +284,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       </div>`}
       ${topCategory ? `
       <div style="margin-top:8px;font-size:10px;color:#64748b;padding:0 2px">
-        Μεγαλύτερη κατηγορία δαπάνης: <strong style="color:#334155">${topCategory.label}</strong> — ${fe(topCategory.monthly)}/μήνα (${data.totalMonthly > 0 ? Math.round((topCategory.monthly / data.totalMonthly) * 100) : 0}% του συνόλου).
+        Μεγαλύτερη κατηγορία δαπάνης: <strong style="color:#334155">${topCategory.label}</strong>, ${fe(topCategory.monthly)}/μήνα (${data.totalMonthly > 0 ? Math.round((topCategory.monthly / data.totalMonthly) * 100) : 0}% του συνόλου).
       </div>` : ''}
     </div>
   </div>
@@ -299,7 +299,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
   <!-- ═══ 2. Επερχόμενες λήξεις 30 ημερών ═══ -->
   ${dueSoon30.length > 0 ? `
   <div class="card">
-    <div class="section-title"><span class="bar" style="background:#b45309"></span>2. Επερχόμενες Λήξεις — Επόμενες 30 Ημέρες <span class="muted">προγραμματισμός πληρωμών</span></div>
+    <div class="section-title"><span class="bar" style="background:#b45309"></span>2. Επερχόμενες Λήξεις, Επόμενες 30 Ημέρες <span class="muted">προγραμματισμός πληρωμών</span></div>
     <table>
       <thead><tr>
         <th>Λογαριασμός</th><th style="width:20%">Κατηγορία</th><th style="width:13%">Λήξη</th>
@@ -342,8 +342,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
         <div style="font-size:10px;color:#64748b">Μέσος όρος: <strong style="color:#1e3a5f;font-family:'Roboto Mono',monospace">${fe(data.avgMonthly)}</strong>/μήνα</div>
-        ${maxMonth ? `<div style="font-size:10px;color:#64748b">Ακριβότερος μήνας: <strong style="color:#b3261e;font-family:'Roboto Mono',monospace">${MONTHS_SH[maxMonth.i]} — ${fe(maxMonth.v)}</strong></div>` : '<div></div>'}
-        ${minMonth ? `<div style="font-size:10px;color:#64748b">Οικονομικότερος: <strong style="color:#1e6b3a;font-family:'Roboto Mono',monospace">${MONTHS_SH[minMonth.i]} — ${fe(minMonth.v)}</strong></div>` : '<div></div>'}
+        ${maxMonth ? `<div style="font-size:10px;color:#64748b">Ακριβότερος μήνας: <strong style="color:#b3261e;font-family:'Roboto Mono',monospace">${MONTHS_SH[maxMonth.i]}, ${fe(maxMonth.v)}</strong></div>` : '<div></div>'}
+        ${minMonth ? `<div style="font-size:10px;color:#64748b">Οικονομικότερος: <strong style="color:#1e6b3a;font-family:'Roboto Mono',monospace">${MONTHS_SH[minMonth.i]}, ${fe(minMonth.v)}</strong></div>` : '<div></div>'}
       </div>
       <div style="margin-top:10px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:9px;color:#94a3b8">
         Χρωματισμός ράβδων: σκούρο μπλε = κανονικός μήνας · κόκκινο = πάνω από +20% του μέσου όρου · χρυσό = τρέχων μήνας.
@@ -369,7 +369,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       </ul>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e8eaed">
         <div style="font-size:9px;color:#94a3b8">
-          Property OS · Αναφορά: ${todayStr()} · Εμπιστευτικό έγγραφο — μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου
+          Property OS · Αναφορά: ${todayStr()} · Εμπιστευτικό έγγραφο, μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου
         </div>
         <div style="text-align:center">
           <div style="width:180px;border-bottom:1px solid #cbd5e1;height:26px"></div>

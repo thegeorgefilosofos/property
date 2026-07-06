@@ -39,7 +39,7 @@ const iStyle: React.CSSProperties = {
   fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s',
 }
 
-// ─── ROLE GROUPS — Πλήρης Ελληνική Λίστα ─────────────────────────────────────
+// ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
 const GROUPS = [
   {
     id: 'authorities', label: 'Δημόσιες Αρχές', color: '#6366f1', Icon: Building2,
@@ -550,7 +550,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
   )
 }
 
-// ─── Excel Export (SheetJS — same pattern as TabExpenses) ─────────────────────
+// ─── Excel Export (SheetJS, same pattern as TabExpenses) ─────────────────────
 async function exportContactsExcel(contacts: Contact[]) {
   const XLSX = await import('xlsx')
   const today = new Date().toLocaleDateString('el-GR')
@@ -570,7 +570,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   const avgRating = contacts.filter(c => (c._extra?.rating || 0) > 0).reduce((s, c) => s + (c._extra?.rating || 0), 0) / (contacts.filter(c => (c._extra?.rating || 0) > 0).length || 1)
 
   const summaryData: (string | number)[][] = [
-    ['Property OS — Κατάσταση Επαφών', ''],
+    ['Property OS, Κατάσταση Επαφών', ''],
     ['Ημερομηνία εξαγωγής:', today],
     ['Σύνολο εγγραφών:', contacts.length],
     [''],
@@ -814,7 +814,7 @@ tr:nth-child(even) td{background:#fafafa}
 
 ${preferred.length > 0 ? `
 <div class="sec">
-  <div class="sec-title">Προτιμώμενες Επαφές — Γρήγορη Αναφορά</div>
+  <div class="sec-title">Προτιμώμενες Επαφές, Γρήγορη Αναφορά</div>
   <div class="preferred-grid">
     ${preferred.map(c => {
       const ex = c._extra || {}
@@ -1300,7 +1300,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
                   <div><FL>Κύριο Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="Παράδειγμα: 2101234567" /></div>
                   <div><FL>Δεύτερο Τηλέφωνο / Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="Παράδειγμα: 6941234567" /></div>
 
-                  {/* WhatsApp & Viber — λειτουργικά */}
+                  {/* WhatsApp & Viber, λειτουργικά */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
                     <FL>Μέσα Επικοινωνίας</FL>
                     <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -1376,19 +1376,19 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
                   <div>
                     <FL>Ημερολόγιο Σημειώσεων</FL>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 13, lineHeight: 1.5 }}>Κάθε σημείωση αποθηκεύεται με χρονική σφραγίδα — ιδανικό για ιστορικό συνεργασίας.</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 13, lineHeight: 1.5 }}>Κάθε σημείωση αποθηκεύεται με χρονική σφραγίδα, ιδανικό για ιστορικό συνεργασίας.</p>
                     <NotesLog log={form.extra.notes_log || []} onChange={v => setExtra('notes_log', v)} />
                   </div>
                   <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
                     <FL>Ελεύθερες Σημειώσεις</FL>
-                    <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ελεύθερες σημειώσεις — ιστορικό, τιμές, συμφωνίες..." rows={6} />
+                    <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ελεύθερες σημειώσεις, ιστορικό, τιμές, συμφωνίες..." rows={6} />
                   </div>
                 </div>
               )}
               {modalTab === 'files' && (
                 <div>
                   <FL>Αρχεία Επαφής</FL>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Συμβόλαια, τιμολόγια, άδειες — όλα συνδεδεμένα με αυτήν την επαφή.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Συμβόλαια, τιμολόγια, άδειες, όλα συνδεδεμένα με αυτήν την επαφή.</p>
                   <FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} />
                 </div>
               )}

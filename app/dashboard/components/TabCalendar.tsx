@@ -783,7 +783,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   function icsFold(line:string){ if(line.length<=75)return line; const out:string[]=[]; let s=line; while(s.length>75){ out.push(s.slice(0,75)); s=' '+s.slice(75) } out.push(s); return out.join('\r\n') }
   function exportICal(){
     const now=new Date(); const stamp=now.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')
-    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//Calendar 1.0//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Property OS — Ημερολόγιο','X-WR-TIMEZONE:Europe/Athens']
+    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//Calendar 1.0//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Property OS, Ημερολόγιο','X-WR-TIMEZONE:Europe/Athens']
     filtered.forEach(e=>{
       const d=e.event_date.replace(/-/g,''); const cat=CATEGORIES[e.category]
       const descParts=[e.notes||'', e.amount?`Ποσό: ${e.amount.toLocaleString('el-GR')} €`:''].filter(Boolean)
@@ -793,7 +793,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         `DTSTART;VALUE=DATE:${d}`,
         `DTEND;VALUE=DATE:${d}`,
         icsFold(`SUMMARY:${icsEsc((cat?`${cat.label}: `:'')+e.title)}`),
-        descParts.length?icsFold(`DESCRIPTION:${icsEsc(descParts.join(' — '))}`):'',
+        descParts.length?icsFold(`DESCRIPTION:${icsEsc(descParts.join(', '))}`):'',
         `CATEGORIES:${icsEsc(cat?.label||'')}`,
         `STATUS:${e.status==='paid'?'CONFIRMED':'TENTATIVE'}`,
         `PRIORITY:${e.priority==='critical'||e.priority==='high'?1:e.priority==='medium'?5:9}`,
@@ -815,7 +815,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${e.amount.toLocaleString('el-GR')} €</span>`:''}</td>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:11px;color:#5f6368">${esc(cat?.label||'')}</td>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:12px;font-weight:700;color:${col};white-space:nowrap;text-align:right">${tag}</td></tr>`}).join(''):'<tr><td colspan="4" style="padding:24px;text-align:center;color:#80868b">Καμία εκκρεμότητα.</td></tr>'
-    const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο — Property OS</title>
+    const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Ημερολόγιο, Property OS</title>
     <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui,sans-serif;color:#202124;padding:40px;max-width:800px;margin:0 auto}@media print{body{padding:0}@page{margin:16mm}}table{width:100%;border-collapse:collapse}</style></head>
     <body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:20px">
       <div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">P</div><div><div style="font-weight:700;font-size:15px">Property OS</div><div style="font-size:11px;color:#5f6368">Επερχόμενα Γεγονότα & Προθεσμίες</div></div></div>
@@ -868,7 +868,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderRadius:8, padding:'10px 16px' }}>
               <AlertTriangle size={14} color="var(--negative)"/>
               <p style={{ fontSize:14, color:'var(--negative)', fontFamily:"'Inter',sans-serif", flex:1, letterSpacing:'0.25px' }}>
-                {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'} — χρειάζονται άμεση δράση
+                {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'}, χρειάζονται άμεση δράση
               </p>
               <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
                 {overdue.reduce((s,e)=>s+(e.amount||0),0)>0&&`${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
@@ -879,7 +879,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.3)', borderRadius:8, padding:'10px 16px' }}>
               <Shield size={14} color="#8b5cf6"/>
               <p style={{ fontSize:14, color:'#8b5cf6', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
-                {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών — {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
+                {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών, {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
               </p>
             </div>
           )}

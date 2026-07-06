@@ -98,6 +98,6 @@ ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ 
 ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξία 200.000 €').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
 
 // ── report ───────────────────────────────────────────────────────────────────
-console.log(`\nassistantPersona.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
+console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('όλα πέρασαν');

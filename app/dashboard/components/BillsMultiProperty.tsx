@@ -212,7 +212,7 @@ export default function BillsMultiProperty({ userId, currentPropertyId, onNaviga
         </div>
       )}
 
-      {/* Main content — only when 2+ properties */}
+      {/* Main content, only when 2+ properties */}
       {properties.length >= 2 && (
         <>
           {/* Sort + KPIs */}

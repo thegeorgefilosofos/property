@@ -1,4 +1,4 @@
-// ThemeToggle.tsx — drop-in Google style light/dark toggle
+// ThemeToggle.tsx, drop-in Google style light/dark toggle
 'use client'
 import { useEffect, useState } from 'react'
 

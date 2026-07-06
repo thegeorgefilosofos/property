@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PortalShare — πλευρά ιδιοκτήτη για την Πύλη Ενοικιαστή. Δημιουργεί/κοινοποιεί
+// PortalShare, πλευρά ιδιοκτήτη για την Πύλη Ενοικιαστή. Δημιουργεί/κοινοποιεί
 // τον σύνδεσμο και εμφανίζει τα εισερχόμενα αιτήματα βλάβης (cross-tab).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -52,12 +52,12 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
       property_id: propertyId, user_id: userId,
       title: `Επισκευή: ${r.title}`, category: 'maintenance',
       event_date: today, amount: null, priority: 'high', status: 'pending',
-      recurring: false, notes: r.description ? `Αίτημα ενοικιαστή — ${r.description}` : 'Αίτημα ενοικιαστή', source: 'portal',
+      recurring: false, notes: r.description ? `Αίτημα ενοικιαστή, ${r.description}` : 'Αίτημα ενοικιαστή', source: 'portal',
     });
     if (error) { flash('Σφάλμα μεταφοράς στο Ημερολόγιο'); return; }
     setSynced(prev => new Set(prev).add(r.id));
     if (r.status === 'new') setStatus(r.id, 'in_progress');
-    flash(`«${r.title}» προστέθηκε στο Ημερολόγιο (σήμερα) — άλλαξε ημερομηνία από την καρτέλα Ημερολόγιο.`);
+    flash(`«${r.title}» προστέθηκε στο Ημερολόγιο (σήμερα), άλλαξε ημερομηνία από την καρτέλα Ημερολόγιο.`);
   };
 
   // Cross-tab: ολοκληρωμένο αίτημα → Δαπάνη (κόστος επισκευής)
@@ -69,7 +69,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
       description: `Επισκευή: ${r.title}`, amount: amt,
       category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance',
       date: new Date().toISOString().split('T')[0], paid_by: 'owner', paid: true,
-      notes: r.description ? `Από αίτημα ενοικιαστή — ${r.description}` : 'Από αίτημα ενοικιαστή',
+      notes: r.description ? `Από αίτημα ενοικιαστή, ${r.description}` : 'Από αίτημα ενοικιαστή',
     });
     if (error) { flash('Σφάλμα καταχώρησης δαπάνης'); return; }
     setCostFor(null); setCost('');
@@ -109,7 +109,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
           {!token ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, flex: 1, minWidth: 200 }}>Ενεργοποίησε έναν ασφαλή σύνδεσμο που μπορεί να μοιραστεί ο ενοικιαστής σου — βλέπει ενοίκιο/σύμβαση και στέλνει αιτήματα.</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, flex: 1, minWidth: 200 }}>Ενεργοποίησε έναν ασφαλή σύνδεσμο που μπορεί να μοιραστεί ο ενοικιαστής σου, βλέπει ενοίκιο/σύμβαση και στέλνει αιτήματα.</div>
               <button onClick={enable} disabled={busy} style={{ height: 36, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{busy ? 'Ενεργοποίηση…' : 'Ενεργοποίηση πύλης'}</button>
             </div>
           ) : (

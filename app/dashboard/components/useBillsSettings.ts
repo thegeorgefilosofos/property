@@ -33,7 +33,7 @@ export function useBillsSettings<T>(
 
   useEffect(() => { load(); }, [load]);
 
-  // Debounced save — fires 800ms after last update
+  // Debounced save, fires 800ms after last update
   const save = useCallback(async (newData: T) => {
     await supabase
       .from('bills_settings')

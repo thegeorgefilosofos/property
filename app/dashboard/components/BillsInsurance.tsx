@@ -11,9 +11,9 @@ const PRICEFOX_URL = 'https://www.pricefox.gr/asfalia-katoikias/';
 
 // ─── Insurance data ────────────────────────────────────────────────────────────
 const INSURANCE_COMPANIES = [
-  { value: 'hellas_direct', label: 'Hellas Direct',            url: 'https://www.hellasdirect.gr/asfaleia-katoikias', agent_label: 'Ψηφιακή — χωρίς ασφαλιστή',
+  { value: 'hellas_direct', label: 'Hellas Direct',            url: 'https://www.hellasdirect.gr/asfaleia-katoikias', agent_label: 'Ψηφιακή, χωρίς ασφαλιστή',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Βραχυχρόνια Μίσθωση'],
-    note: 'Modular καλύψεις — τιμή εξαρτάται από τετραγωνικά, ζώνη, αξία. Δωρεάν αποτίμηση online.',
+    note: 'Modular καλύψεις, τιμή εξαρτάται από τετραγωνικά, ζώνη, αξία. Δωρεάν αποτίμηση online.',
     plans: [
       { id: 'hd_ktiriο',    name: 'Κτίριο',                monthly: 5.50,  annual: 55,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'hd_perieh',   name: 'Περιεχόμενο',            monthly: 4.00,  annual: 40,  covers: ['Κλοπή','Βραχυκύκλωμα','Τυχαίες Ζημιές Περιεχομένου'], earthquake: false, flood: false, natural: false },
@@ -22,14 +22,14 @@ const INSURANCE_COMPANIES = [
     ] },
   { value: 'interamerican', label: 'Interamerican',             url: 'https://www.interamerican.gr/idiotes/proionta-ypiresies/katoikia', agent_label: 'Ασφαλιστής Interamerican',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Κατοικία με Δάνειο'],
-    note: '4 προγράμματα — BASIC / EXTRA / COMFORT / TOTAL. Τιμή βάσει τετραγωνικών μέτρων και ασφαλιζόμενου κεφαλαίου.',
+    note: '4 προγράμματα, BASIC / EXTRA / COMFORT / TOTAL. Τιμή βάσει τετραγωνικών μέτρων και ασφαλιζόμενου κεφαλαίου.',
     plans: [
       { id: 'im_basic',    name: 'HOME BASIC',              monthly: 10.00, annual: 100, covers: ['Πυρκαγιά','Κεραυνός','Καπνός','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
       { id: 'im_extra',    name: 'HOME EXTRA',              monthly: 14.50, annual: 145, covers: ['Πυρκαγιά','Κλοπή','Φυσικά Φαινόμενα','Αστική Ευθύνη','Δαπάνες Μεταστέγασης'], earthquake: false, flood: true,  natural: true  },
       { id: 'im_comfort',  name: 'HOME COMFORT',            monthly: 19.00, annual: 190, covers: ['Πυρκαγιά','Κλοπή','Φυσικά Φαινόμενα','Πλημμύρα','Αστική Ευθύνη','Δαπάνες Μεταστέγασης'], earthquake: false, flood: true,  natural: true  },
       { id: 'im_total',    name: 'HOME TOTAL (All Risk)',   monthly: 26.00, annual: 249, covers: ['Κάλυψη Παντός Κινδύνου','Σεισμός','Κλοπή','Ψυχολογική Υποστήριξη','Νομική Προστασία'], earthquake: true,  flood: true,  natural: true  },
     ] },
-  { value: 'anytime',       label: 'Anytime (Interamerican)',   url: 'https://www.anytime.gr/home/programs-covers', agent_label: 'Online — anytime.gr',
+  { value: 'anytime',       label: 'Anytime (Interamerican)',   url: 'https://www.anytime.gr/home/programs-covers', agent_label: 'Online, anytime.gr',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Βραχυχρόνια Μίσθωση'],
     note: 'Ψηφιακή πλατφόρμα της Interamerican. 100% online. Διαθέσιμη και για Airbnb.',
     plans: [
@@ -85,7 +85,7 @@ const INSURANCE_COMPANIES = [
       { id: 'ergo_plus',  name: 'Home Plus',                 monthly: 14.00, annual: 132, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'ergo_prem',  name: 'Home Premium',              monthly: 20.00, annual: 189, covers: ['Πλήρης Κάλυψη + Σεισμός'], earthquake: true,  flood: true,  natural: true  },
     ] },
-  { value: 'groupama',      label: 'Groupama (myZen)',          url: 'https://www.groupama.gr', agent_label: 'Online — myZen.gr',
+  { value: 'groupama',      label: 'Groupama (myZen)',          url: 'https://www.groupama.gr', agent_label: 'Online, myZen.gr',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη'],
     note: 'Γαλλικός ασφαλιστικός όμιλος. 100% online μέσω myZen.gr.',
     plans: [
@@ -93,7 +93,7 @@ const INSURANCE_COMPANIES = [
       { id: 'grp_conf',   name: 'myZen Confort',             monthly: 12.90, annual: 120, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Αστική Ευθύνη','Φυσικά Φαινόμενα'], earthquake: false, flood: true,  natural: true  },
       { id: 'grp_allr',   name: 'myZen All Risk',            monthly: 19.00, annual: 179, covers: ['Κάλυψη Παντός Κινδύνου + Σεισμός'], earthquake: true,  flood: true,  natural: true  },
     ] },
-  { value: 'cosmote_ins',   label: 'Magenta Insurance',         url: 'https://www.magentainsurance.gr/home', agent_label: 'Online — Magenta',
+  { value: 'cosmote_ins',   label: 'Magenta Insurance',         url: 'https://www.magentainsurance.gr/home', agent_label: 'Online, Magenta',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία'],
     note: 'Πρώην COSMOTE Insurance. Σύγκριση και online ασφάλιση κατοικίας από 90 €/έτος, με δυνατότητα έκπτωσης έως 20% στον ΕΝΦΙΑ υπό προϋποθέσεις.',
     plans: [
@@ -118,7 +118,7 @@ const INSURANCE_COMPANIES = [
     ] },
   { value: 'atlantiki',     label: 'Ατλαντική Ένωση',           url: 'https://www.atlantiki.gr', agent_label: 'Ασφαλιστής',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη'],
-    note: 'Ελληνική εταιρεία — ανταγωνιστικά ασφάλιστρα.',
+    note: 'Ελληνική εταιρεία, ανταγωνιστικά ασφάλιστρα.',
     plans: [
       { id: 'at_class',   name: 'Ακίνητο Classic',           monthly: 8.00,  annual: 76,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
       { id: 'at_extra',   name: 'Ακίνητο Extra',             monthly: 13.00, annual: 124, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
@@ -133,7 +133,7 @@ const INSURANCE_COMPANIES = [
     ] },
   { value: 'aig',           label: 'AIG (American International)', url: 'https://www.aig.gr', agent_label: 'Ασφαλιστής',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Κατοικία με Δάνειο'],
-    note: 'Αμερικανική εταιρεία — ισχυρές καλύψεις All Risk.',
+    note: 'Αμερικανική εταιρεία, ισχυρές καλύψεις All Risk.',
     plans: [
       { id: 'aig_allr',   name: 'Home All Risk',             monthly: 13.00, annual: 124, covers: ['Κάλυψη Παντός Κινδύνου','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'aig_plus',   name: 'Home All Risk Plus',        monthly: 20.00, annual: 189, covers: ['Κάλυψη Παντός Κινδύνου + Σεισμός + Κατολίσθηση'], earthquake: true,  flood: true,  natural: true  },
@@ -145,23 +145,23 @@ const INSURANCE_COMPANIES = [
 ];
 
 const STREAMING = [
-  { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό — 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard — 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K — 15,99 €', price: 15.99 }] },
-  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard — 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium — 13,99 €', price: 13.99 }] },
-  { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+ — 9,99 €', price: 9.99 }] },
-  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video — 8,99 €', price: 8.99 }] },
-  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις — 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard — 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K — 15,99 €', price: 15.99 }] },
-  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual — 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo — 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα) — 17,99 €', price: 17.99 }] },
-  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual — 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family — 22,99 €', price: 22.99 }] },
-  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.ant1plus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία — 2,99 €', price: 2.99 }] },
-  { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start — 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full — 30,00 €', price: 30.00 }] },
+  { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό, 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard, 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K, 15,99 €', price: 15.99 }] },
+  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard, 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium, 13,99 €', price: 13.99 }] },
+  { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+, 9,99 €', price: 9.99 }] },
+  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video, 8,99 €', price: 8.99 }] },
+  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις, 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard, 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K, 15,99 €', price: 15.99 }] },
+  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual, 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo, 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα), 17,99 €', price: 17.99 }] },
+  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual, 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family, 22,99 €', price: 22.99 }] },
+  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.ant1plus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία, 2,99 €', price: 2.99 }] },
+  { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start, 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full, 30,00 €', price: 30.00 }] },
 ];
 
 const CLOUD = [
-  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB — 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB — 9,99 €', price: 9.99 }] },
-  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB — 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB — 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB — 9,99 €', price: 9.99 }] },
-  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal — 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family — 9,99 €', price: 9.99 }] },
-  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB — 9,99 €', price: 9.99 }] },
-  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography — 12,29 €', price: 12.29 }] },
+  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB, 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
+  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB, 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB, 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB, 9,99 €', price: 9.99 }] },
+  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal, 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family, 9,99 €', price: 9.99 }] },
+  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB, 9,99 €', price: 9.99 }] },
+  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography, 12,29 €', price: 12.29 }] },
 ];
 
 const miniSelectStyle: React.CSSProperties = {
@@ -229,7 +229,7 @@ function computeLiveQuotes(sqm: number, propValue: number, contentValue: number,
 }
 
 // ─── ΑΑΔΕ API Integration (Ready for when API launches) ──────────────────────
-// Structure ready — replace fetchENFIAFromAADE with real call when API opens
+// Structure ready, replace fetchENFIAFromAADE with real call when API opens
 interface AADEEnfiaData {
   year: number;
   totalAmount: number;
@@ -255,7 +255,7 @@ async function fetchENFIAFromAADE(_propertyId: string, _taxisnetToken?: string):
   return null;
 }
 
-// ─── Coverage taxonomy — δυναμική ανάλυση καλύψεων (pricefox / insurancemarket style) ──
+// ─── Coverage taxonomy, δυναμική ανάλυση καλύψεων (pricefox / insurancemarket style) ──
 // Οι φράσεις «Πλήρης Κάλυψη / Παντός Κινδύνου / All Risk» υπονοούν τους βασικούς κινδύνους.
 const ALL_RISK_HINTS = ['πλήρης', 'παντός κινδύνου', 'all risk', 'παντός'];
 function hasCov(covers: string[], keys: string[], allRiskImplies = false): boolean {
@@ -390,7 +390,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
   // ── ΑΑΔΕ connect ─────────────────────────────────────────────────────────
   const connectAADE = async () => {
-    // ΑΑΔΕ API δεν είναι διαθέσιμο ακόμη — ανοίγουμε myaade.gov.gr
+    // ΑΑΔΕ API δεν είναι διαθέσιμο ακόμη, ανοίγουμε myaade.gov.gr
     // Όταν ανοίξει το API: αντικατάστησε με OAuth2 flow
     setAadeLoading(true);
     try {
@@ -441,7 +441,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
   // ── Auto-detect insurance property type από property settings ──────────────
   // prop_type στη βάση είναι ελληνικό label (για παράδειγμα 'Κατοικία', 'Επαγγελματικό Ακίνητο')
-  // status_detail === 'rented' σημαίνει ενοικιαζόμενο — αυτό υπερισχύει του prop_type
+  // status_detail === 'rented' σημαίνει ενοικιαζόμενο, αυτό υπερισχύει του prop_type
   const detectedPropertyType = crossProperty.isRented
     ? 'Ενοικιαζόμενη'
     : crossProperty.propertyType === 'Κατοικία'
@@ -458,7 +458,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
     : INSURANCE_COMPANIES;
 
   const insOptions     = relevantCompanies.filter(c => c.value && c.label).map(c => ({ value: c.value!, label: c.label! }));
-  const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name} — ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
+  const insPlanOptions = ((insCompany?.plans ?? [])).map(p => ({ value: p.id, label: `${(p as any).name}, ~${(p as any).monthly > 0 ? `${(p as any).monthly.toFixed(2)} €` : 'Χειροκίνητο'}` }));
 
   // ── Sync-back: properties table (single source of truth για υπόλοιπο app) ──
   // Το TabOverview/Property card διαβάζει properties.insurance_company και άλλα
@@ -473,7 +473,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         insurance_amount:   insCost > 0 ? insCost : null,
         insurance_expiry:   insRenewalDate || null,
       }).eq('id', propertyId).then(() => {});
-    }, 1200); // debounce — αποφυγή write σε κάθε keystroke
+    }, 1200); // debounce, αποφυγή write σε κάθε keystroke
     return () => { if (propertySyncTimer.current) clearTimeout(propertySyncTimer.current); };
   }, [propertyId, insCompany?.label, insCost, insRenewalDate]);
 
@@ -493,7 +493,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       await supabase.from('calendar_events').insert({
         property_id: propertyId,
         user_id: userId,
-        title: `Ανανέωση Ασφάλειας Κατοικίας — ${insCompany?.label ?? ''}`,
+        title: `Ανανέωση Ασφάλειας Κατοικίας, ${insCompany?.label ?? ''}`,
         category: 'insurance_renewal',
         event_date: insRenewalDate,
         amount: insCost > 0 ? insCost : null,
@@ -517,7 +517,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   const recommended: { q: LiveQuote; reason: string } | null = (() => {
     if (!liveQuotes.length) return null;
     const full = liveQuotes.filter(q => q.earthquake && q.flood && q.natural);
-    if (full.length) return { q: full[0], reason: 'Πλήρης κάλυψη — σεισμός, πλημμύρα & φυσικά φαινόμενα στην καλύτερη τιμή' };
+    if (full.length) return { q: full[0], reason: 'Πλήρης κάλυψη, σεισμός, πλημμύρα & φυσικά φαινόμενα στην καλύτερη τιμή' };
     const fl = liveQuotes.filter(q => q.flood && q.natural);
     if (fl.length) return { q: fl[0], reason: 'Κάλυψη πλημμύρας & φυσικών φαινομένων στην καλύτερη τιμή' };
     return { q: liveQuotes[0], reason: 'Καλύτερη σχέση τιμής και κάλυψης για το ακίνητό σου' };
@@ -576,7 +576,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--info)' }}>{detectedPropertyType}</strong> — εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
+            Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--info)' }}>{detectedPropertyType}</strong>, εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
           </span>
         </div>
       )}
@@ -628,11 +628,11 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--info)', fontFamily: T.font.sans, marginBottom: 3 }}>
-              Σύνδεση ΑΑΔΕ — Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
+              Σύνδεση ΑΑΔΕ, Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
               {aadeConnected
-                ? `✓ Συνδεδεμένο — ΕΝΦΙΑ ${aadeData?.year}: ${fe(aadeData?.totalAmount || 0)} (${aadeData?.installments} δόσεις × ${fe(aadeData?.installmentAmount || 0)})`
+                ? `✓ Συνδεδεμένο, ΕΝΦΙΑ ${aadeData?.year}: ${fe(aadeData?.totalAmount || 0)} (${aadeData?.installments} δόσεις × ${fe(aadeData?.installmentAmount || 0)})`
                 : 'Σύνδεσε τους κωδικούς TAXISnet για αυτόματη λήψη χωρίς χειροκίνητη καταχώρηση'}
             </div>
           </div>
@@ -653,14 +653,14 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {/* ── Property details for live quotes ──────────────────────────── */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
-            Στοιχεία Ακινήτου — για Συγκριτική Εκτίμηση Ασφαλίστρων
+            Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
           </div>
           {crossProperty.sqm && !insSqm && (
             <div style={{ fontSize: 10, color: 'var(--positive)', fontFamily: T.font.sans, marginBottom: 8 }}>
-              ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από tab Υπηρεσίες (ΕΝΦΙΑ) — μπορείς να τα επεξεργαστείς
+              ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από tab Υπηρεσίες (ΕΝΦΙΑ), μπορείς να τα επεξεργαστείς
             </div>
           )}
-          {/* FIX: 2+2 grid — Πόλη label doesn't overflow */}
+          {/* FIX: 2+2 grid, Πόλη label doesn't overflow */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
             <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)"       value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
             <TextInput   label="Πόλη / Περιοχή"         value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα, Θεσσαλονίκη..."/>
@@ -709,7 +709,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel} — {recommended.q.planLabel}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel}, {recommended.q.planLabel}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
                 </div>
                 <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
@@ -780,7 +780,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   </tbody>
                 </table>
                 <div style={{ marginTop: 8, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge }}>
-                  * Εκτιμώμενες τιμές βάσει στοιχείων ακινήτου — Χρησιμοποίησε <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>insurancemarket.gr</a> για ακριβή προσφορά · Πάτα γραμμή για επιλογή
+                  * Εκτιμώμενες τιμές βάσει στοιχείων ακινήτου, Χρησιμοποίησε <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>insurancemarket.gr</a> για ακριβή προσφορά · Πάτα γραμμή για επιλογή
                 </div>
               </div>
             )}
@@ -829,7 +829,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
                 </button>
               </div>
-              {/* Δυναμικός πίνακας καλύψεων — ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
+              {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
                 {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--positive-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--positive-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
@@ -851,7 +851,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               )}
               {effectiveEarthquake && effectiveFloodState && (
                 <div style={{ marginTop: 10, background: 'rgba(52,168,83,0.08)', border: '1px solid rgba(52,168,83,0.3)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans }}>
-                  Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026 — ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
+                  Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
                 </div>
               )}
             </div>
@@ -981,7 +981,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
               <div>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.name}</span>
-                {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{new Date(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? ` — σε ${daysLeft} ημέρες` : ''}</span>}
+                {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{new Date(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? `, σε ${daysLeft} ημέρες` : ''}</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
@@ -994,7 +994,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {total > 0 && (
           <div style={{ marginTop: 16, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-subtle)' }}>
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο — ασφάλεια + streaming + cloud + άλλα</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο, ασφάλεια + streaming + cloud + άλλα</div>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
                 {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
               </div>

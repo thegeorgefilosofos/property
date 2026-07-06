@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Premium real estate management for Greek investors",
 };
 
-// Prevent flash of wrong theme — runs before React hydration
+// Prevent flash of wrong theme, runs before React hydration
 const themeInitScript = `
 (function() {
   try {
@@ -36,7 +36,7 @@ export default function RootLayout({
         {/* Μόνο για τα εικονίδια (Material Symbols) που φορτώνονται από την Google. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Theme init — must run before paint to prevent flash */}
+        {/* Theme init, must run before paint to prevent flash */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>

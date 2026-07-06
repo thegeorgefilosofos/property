@@ -55,7 +55,7 @@ function yearToBadge(year: number): { label: string; color: string } {
 }
 
 function yearToLabel(year: number): string {
-  return `${year} — ${yearToBadge(year).label}`;
+  return `${year}, ${yearToBadge(year).label}`;
 }
 
 
@@ -72,13 +72,13 @@ const LOAN_TYPES = [
 
 const COMPANY_HQ = [
   { value: 'none', label: 'Φυσικό Πρόσωπο' },
-  { value: 'greece', label: 'Εταιρεία — Ελλάδα' },
-  { value: 'eu', label: 'Εταιρεία — Ευρωπαϊκή Ένωση (για παράδειγμα Κύπρος, Βουλγαρία)' },
-  { value: 'uk', label: 'Εταιρεία — Ηνωμένο Βασίλειο' },
-  { value: 'uae', label: 'Εταιρεία — Ηνωμένα Αραβικά Εμιράτα' },
-  { value: 'usa', label: 'Εταιρεία — Ηνωμένες Πολιτείες Αμερικής' },
-  { value: 'israel', label: 'Εταιρεία — Ισραήλ' },
-  { value: 'asia', label: 'Εταιρεία — Ασία (Σιγκαπούρη / Χονγκ Κονγκ)' },
+  { value: 'greece', label: 'Εταιρεία, Ελλάδα' },
+  { value: 'eu', label: 'Εταιρεία, Ευρωπαϊκή Ένωση (για παράδειγμα Κύπρος, Βουλγαρία)' },
+  { value: 'uk', label: 'Εταιρεία, Ηνωμένο Βασίλειο' },
+  { value: 'uae', label: 'Εταιρεία, Ηνωμένα Αραβικά Εμιράτα' },
+  { value: 'usa', label: 'Εταιρεία, Ηνωμένες Πολιτείες Αμερικής' },
+  { value: 'israel', label: 'Εταιρεία, Ισραήλ' },
+  { value: 'asia', label: 'Εταιρεία, Ασία (Σιγκαπούρη / Χονγκ Κονγκ)' },
 ];
 
 const FLOORS = Array.from({ length: 15 }, (_, i) => ({
@@ -93,32 +93,32 @@ const DURATION_UNITS = [
 ];
 
 const GREEK_MARKETS = [
-  { value: 'Κεντρικός Τομέας Αθηνών', label: 'Αττική — Κεντρικός Τομέας Αθηνών' },
-  { value: 'Βόρειος Τομέας Αθηνών', label: 'Αττική — Βόρειος Τομέας Αθηνών (Μαρούσι, Κηφισιά)' },
-  { value: 'Νότιος Τομέας Αθηνών', label: 'Αττική — Νότιος Τομέας Αθηνών (Γλυφάδα, Βούλα)' },
-  { value: 'Δυτικός Τομέας Αθηνών', label: 'Αττική — Δυτικός Τομέας Αθηνών (Περιστέρι)' },
-  { value: 'Πειραιάς', label: 'Αττική — Πειραιάς και Νήσοι' },
-  { value: 'Ανατολική Αττική', label: 'Αττική — Ανατολική Αττική (Παλλήνη, Ραφήνα)' },
-  { value: 'Δυτική Αττική', label: 'Αττική — Δυτική Αττική (Ελευσίνα)' },
-  { value: 'Θεσσαλονίκη', label: 'Κεντρική Μακεδονία — Θεσσαλονίκη' },
-  { value: 'Καλαμαριά', label: 'Κεντρική Μακεδονία — Καλαμαριά / Πυλαία' },
-  { value: 'Χαλκιδική', label: 'Κεντρική Μακεδονία — Χαλκιδική' },
-  { value: 'Ιωάννινα', label: 'Ήπειρος — Ιωάννινα' },
-  { value: 'Λάρισα', label: 'Θεσσαλία — Λάρισα' },
-  { value: 'Μαγνησία', label: 'Θεσσαλία — Μαγνησία (Βόλος)' },
-  { value: 'Αχαΐα', label: 'Δυτική Ελλάδα — Αχαΐα (Πάτρα)' },
-  { value: 'Εύβοια', label: 'Στερεά Ελλάδα — Εύβοια (Χαλκίδα)' },
-  { value: 'Κορινθία', label: 'Πελοπόννησος — Κορινθία' },
-  { value: 'Μεσσηνία', label: 'Πελοπόννησος — Μεσσηνία (Καλαμάτα)' },
-  { value: 'Κέρκυρα', label: 'Ιόνια Νησιά — Κέρκυρα' },
-  { value: 'Μύκονος', label: 'Νότιο Αιγαίο — Μύκονος' },
-  { value: 'Σαντορίνη', label: 'Νότιο Αιγαίο — Σαντορίνη (Θήρα)' },
-  { value: 'Ρόδος', label: 'Νότιο Αιγαίο — Ρόδος' },
-  { value: 'Κως', label: 'Νότιο Αιγαίο — Κως' },
-  { value: 'Πάρος', label: 'Νότιο Αιγαίο — Πάρος' },
-  { value: 'Ηράκλειο', label: 'Κρήτη — Ηράκλειο' },
-  { value: 'Χανιά', label: 'Κρήτη — Χανιά' },
-  { value: 'Ρέθυμνο', label: 'Κρήτη — Ρέθυμνο' },
+  { value: 'Κεντρικός Τομέας Αθηνών', label: 'Αττική, Κεντρικός Τομέας Αθηνών' },
+  { value: 'Βόρειος Τομέας Αθηνών', label: 'Αττική, Βόρειος Τομέας Αθηνών (Μαρούσι, Κηφισιά)' },
+  { value: 'Νότιος Τομέας Αθηνών', label: 'Αττική, Νότιος Τομέας Αθηνών (Γλυφάδα, Βούλα)' },
+  { value: 'Δυτικός Τομέας Αθηνών', label: 'Αττική, Δυτικός Τομέας Αθηνών (Περιστέρι)' },
+  { value: 'Πειραιάς', label: 'Αττική, Πειραιάς και Νήσοι' },
+  { value: 'Ανατολική Αττική', label: 'Αττική, Ανατολική Αττική (Παλλήνη, Ραφήνα)' },
+  { value: 'Δυτική Αττική', label: 'Αττική, Δυτική Αττική (Ελευσίνα)' },
+  { value: 'Θεσσαλονίκη', label: 'Κεντρική Μακεδονία, Θεσσαλονίκη' },
+  { value: 'Καλαμαριά', label: 'Κεντρική Μακεδονία, Καλαμαριά / Πυλαία' },
+  { value: 'Χαλκιδική', label: 'Κεντρική Μακεδονία, Χαλκιδική' },
+  { value: 'Ιωάννινα', label: 'Ήπειρος, Ιωάννινα' },
+  { value: 'Λάρισα', label: 'Θεσσαλία, Λάρισα' },
+  { value: 'Μαγνησία', label: 'Θεσσαλία, Μαγνησία (Βόλος)' },
+  { value: 'Αχαΐα', label: 'Δυτική Ελλάδα, Αχαΐα (Πάτρα)' },
+  { value: 'Εύβοια', label: 'Στερεά Ελλάδα, Εύβοια (Χαλκίδα)' },
+  { value: 'Κορινθία', label: 'Πελοπόννησος, Κορινθία' },
+  { value: 'Μεσσηνία', label: 'Πελοπόννησος, Μεσσηνία (Καλαμάτα)' },
+  { value: 'Κέρκυρα', label: 'Ιόνια Νησιά, Κέρκυρα' },
+  { value: 'Μύκονος', label: 'Νότιο Αιγαίο, Μύκονος' },
+  { value: 'Σαντορίνη', label: 'Νότιο Αιγαίο, Σαντορίνη (Θήρα)' },
+  { value: 'Ρόδος', label: 'Νότιο Αιγαίο, Ρόδος' },
+  { value: 'Κως', label: 'Νότιο Αιγαίο, Κως' },
+  { value: 'Πάρος', label: 'Νότιο Αιγαίο, Πάρος' },
+  { value: 'Ηράκλειο', label: 'Κρήτη, Ηράκλειο' },
+  { value: 'Χανιά', label: 'Κρήτη, Χανιά' },
+  { value: 'Ρέθυμνο', label: 'Κρήτη, Ρέθυμνο' },
 ];
 
 // ─── Tax ──────────────────────────────────────────────────────────────────────
@@ -584,13 +584,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
     const mcP90 = mcResults[Math.floor(runs * 0.9)] || 0;
     const mcPositive = mcResults.filter(r => r > 0).length / runs * 100;
     const peakMap: { [k: string]: string } = {
-      pre1960: 'Ιδανικό για πώληση τώρα — παλαιό κτήριο σε plateau, αξία καθορίζεται από οικόπεδο',
-      '60s70s': 'Αξία σε plateau — πουλήστε αν η τοποθεσία είναι prime, αλλιώς μετά από ανακαίνιση',
+      pre1960: 'Ιδανικό για πώληση τώρα, παλαιό κτήριο σε plateau, αξία καθορίζεται από οικόπεδο',
+      '60s70s': 'Αξία σε plateau, πουλήστε αν η τοποθεσία είναι prime, αλλιώς μετά από ανακαίνιση',
       '80s': 'Ανακαίνιση αυξάνει αξία 15-25%. Ιδανικό timing: 2-3 χρόνια μετά ανακαίνιση',
       '90s': 'Ακόμα σε άνοδο. Κρατήστε 5-7 χρόνια ή ανακαινίστε και πουλήστε',
       '2000s': 'Καλό timing. Αξία σε σταθερή άνοδο για 10+ χρόνια ακόμα',
-      '2010s': 'Νέο — κρατήστε 15-20 χρόνια για μέγιστη απόδοση',
-      modern: 'Νεόδμητο — κρατήστε 20-30 χρόνια. Πώληση τώρα δεν συμφέρει',
+      '2010s': 'Νέο, κρατήστε 15-20 χρόνια για μέγιστη απόδοση',
+      modern: 'Νεόδμητο, κρατήστε 20-30 χρόνια. Πώληση τώρα δεν συμφέρει',
     };
     return { newRent, newAnnual, newNet, futVal, rentTotal, capGain, total, sellNow, sellFuture, cagr, irr, mcP10, mcP50, mcP90, mcPositive, peakAdvice: peakMap[constructionType] || 'Αναλύστε τοπική αγορά' };
   }, [sc2, calc, electronic, ownerAge, children, constructionYear]);
@@ -612,7 +612,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ flex: '1 1 160px', maxWidth: 220, minWidth: 0 }}>
             <CustomSelect label="" value={propType} onChange={setPropType} options={PROPERTY_TYPES} />
           </div>
-          {/* Έτος κατασκευής — κρύβεται για γη/parking/storage */}
+          {/* Έτος κατασκευής, κρύβεται για γη/parking/storage */}
           {!NO_AGE_TYPES.includes(propType) && (
             <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
@@ -668,9 +668,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-subtle)`, borderLeft: `3px solid ${leaseColor}`, borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: leaseColor, flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
-            {calc.leaseStatus === 'ok' && `Μισθωτήριο ενεργό — λήγει σε ${calc.days} ημέρες`}
-            {calc.leaseStatus === 'warning' && `Λήγει σε ${calc.days} ημέρες — ανανέωση σύντομα`}
-            {calc.leaseStatus === 'critical' && `Λήγει σε ${calc.days} ημέρες — άμεση ενέργεια`}
+            {calc.leaseStatus === 'ok' && `Μισθωτήριο ενεργό, λήγει σε ${calc.days} ημέρες`}
+            {calc.leaseStatus === 'warning' && `Λήγει σε ${calc.days} ημέρες, ανανέωση σύντομα`}
+            {calc.leaseStatus === 'critical' && `Λήγει σε ${calc.days} ημέρες, άμεση ενέργεια`}
             {calc.leaseStatus === 'expired' && `Το μισθωτήριο έχει λήξει πριν ${Math.abs(calc.days!)} ημέρες`}
             {cfg.tenant_name && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 8 }}>— {cfg.tenant_name}</span>}
           </span>
@@ -769,7 +769,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           {cfg.is_insured && cfg.insurance_covers_disasters && (
             <InfoBanner type="success">
               <strong>Μείωση ΕΝΦΙΑ {(parseFloat(cfg.objective_value) || 0) <= 500000 ? '20%' : '10%'}:</strong>{' '}
-              Εξοικονομείς {fe(calc.enfiaRed)}/έτος — Α.1005/2026. Αίτηση: myAADE.gov.gr → myPROPERTY.
+              Εξοικονομείς {fe(calc.enfiaRed)}/έτος, Α.1005/2026. Αίτηση: myAADE.gov.gr → myPROPERTY.
             </InfoBanner>
           )}
           {calc.gap > 0 && (
@@ -835,11 +835,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => sb('euribor', v)} suffix="%" step={0.1} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA — απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
+            <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA, απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
             {[
-              { label: `Gross Yield (${bench.market_label.split(' — ')[0]})`, value: fp(calc.grossYield), bench: `Benchmark: ${bench.market_gross}%`, good: calc.grossYield >= parseFloat(bench.market_gross) },
+              { label: `Gross Yield (${bench.market_label.split(', ')[0]})`, value: fp(calc.grossYield), bench: `Benchmark: ${bench.market_gross}%`, good: calc.grossYield >= parseFloat(bench.market_gross) },
               { label: 'Net Yield', value: fp(calc.netYield), bench: `Στόχος: >${bench.target_net}%`, good: calc.netYield >= parseFloat(bench.target_net) },
               { label: 'Υπεραπόδοση vs EURIBOR', value: `+${fp(Math.max(calc.netYield - parseFloat(bench.euribor), 0))}`, bench: `EURIBOR ${bench.euribor}%`, good: calc.netYield > parseFloat(bench.euribor) },
               { label: `Σύγκριση vs ETF (${bench.etf_return}%/έτος)`, value: calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά το ETF' : 'Κάτω από ETF', bench: `Benchmark ${bench.etf_return}%`, good: calc.netYield >= parseFloat(bench.etf_return) },
@@ -888,7 +888,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           {companyHq === 'eu' && <InfoBanner type="info">Κύπρος/Βουλγαρία: Συντελεστής ~10%. Απαιτεί πραγματική εγκατάσταση. Συμβουλευτείτε φοροτεχνικό.</InfoBanner>}
           {companyHq === 'uae' && <InfoBanner type="info">Ηνωμένα Αραβικά Εμιράτα: Εταιρικός φόρος 9% (Free Zone 0%). Χρειάζεται φορολογική κατοικία. Δεν ισχύει αυτόματα για ακίνητα Ελλάδας.</InfoBanner>}
           {companyHq === 'greece' && <InfoBanner type="warning">Ελληνική εταιρεία: Συντελεστής 22% + μέρισμα 5% = πραγματικό φορτίο ~26-27%. Συνήθως δεν συμφέρει για 1-2 ακίνητα.</InfoBanner>}
-          {companyHq === 'usa' && <InfoBanner type="info">Ηνωμένες Πολιτείες: Ομοσπονδιακός φόρος 21% + πολιτειακός. Σύνθετη δομή — απαιτείται Αμερικανός λογιστής.</InfoBanner>}
+          {companyHq === 'usa' && <InfoBanner type="info">Ηνωμένες Πολιτείες: Ομοσπονδιακός φόρος 21% + πολιτειακός. Σύνθετη δομή, απαιτείται Αμερικανός λογιστής.</InfoBanner>}
           <InfoBanner type="danger">Πέραν των 3 ακινήτων σε Airbnb/βραχυχρόνια μίσθωση: Υποχρεωτική εγγραφή επιχείρησης στην ΑΑΔΕ.</InfoBanner>
         </div>
 
@@ -918,7 +918,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         </div>
 
         <div style={cardStyle}>
-          <SectionLabel label="Φορολογική Ανάλυση Ενοικίων — Νόμος 5246/2025" />
+          <SectionLabel label="Φορολογική Ανάλυση Ενοικίων, Νόμος 5246/2025" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
               <StatRow label="Ακαθάριστο Ενοίκιο" value={fe(calc.annual)} color="var(--positive)" />
@@ -929,7 +929,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <StatRow label="Καθαρό μετά φόρου" value={fe(calc.afterTax)} color={calc.afterTax > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
               {electronic && calc.electronicSaving > 0 && (
                 <InfoBanner type="success">
-                  Ηλεκτρονική πληρωμή: Εξοικονομείς <strong>{fe(calc.electronicSaving)}</strong>/έτος — <strong>{fe(calc.electronicSaving / 12)}</strong>/μήνα.
+                  Ηλεκτρονική πληρωμή: Εξοικονομείς <strong>{fe(calc.electronicSaving)}</strong>/έτος, <strong>{fe(calc.electronicSaving / 12)}</strong>/μήνα.
                 </InfoBanner>
               )}
             </div>
@@ -962,7 +962,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         </div>
 
         <div style={cardStyle}>
-          <SectionLabel label="ΕΝΦΙΑ 2026 — Εκπτώσεις και Μειώσεις" />
+          <SectionLabel label="ΕΝΦΙΑ 2026, Εκπτώσεις και Μειώσεις" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
               {[
@@ -981,7 +981,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 ? <InfoBanner type="success">Εξοικονομείς <strong>{fe(calc.enfiaRed)}</strong>/έτος. Αίτηση: myAADE.gov.gr → myPROPERTY → "Μείωση ΕΝΦΙΑ Ασφαλισμένων Κατοικιών 2026".</InfoBanner>
                 : <InfoBanner type="warning">Ενεργοποίησε "Ασφαλισμένο" και "Φυσικές Καταστροφές" στην καρτέλα Επισκόπηση για να υπολογιστεί η μείωση.</InfoBanner>
               }
-              <InfoBanner type="info">Διαδικασία: myAADE → myPROPERTY → "Μείωση ΕΝΦΙΑ". Αίτηση μία φορά — αυτόματη ανάκτηση από ασφαλιστικές.</InfoBanner>
+              <InfoBanner type="info">Διαδικασία: myAADE → myPROPERTY → "Μείωση ΕΝΦΙΑ". Αίτηση μία φορά, αυτόματη ανάκτηση από ασφαλιστικές.</InfoBanner>
             </div>
           </div>
         </div>
@@ -990,8 +990,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Φορολόγηση Πολλαπλών Ακινήτων" />
           <div style={g2}>
             {[
-              { title: '2-3 Ακίνητα — Συμβατική Μίσθωση', color: 'var(--positive)', text: 'Φυσικό πρόσωπο — κανονική φορολογική κλίμακα. Δεν θεωρείται επιχείρηση. Κάθε ενοίκιο προστίθεται στο ατομικό εισόδημα.' },
-              { title: '3+ Ακίνητα — Airbnb / Βραχυχρόνια', color: 'var(--negative)', text: 'Υποχρεωτική εγγραφή επιχείρησης στην ΑΑΔΕ. Φόρος εισοδήματος επιχείρησης 22-29%. Πιθανό ΦΠΑ. Απαιτείται λογιστής.' },
+              { title: '2-3 Ακίνητα, Συμβατική Μίσθωση', color: 'var(--positive)', text: 'Φυσικό πρόσωπο, κανονική φορολογική κλίμακα. Δεν θεωρείται επιχείρηση. Κάθε ενοίκιο προστίθεται στο ατομικό εισόδημα.' },
+              { title: '3+ Ακίνητα, Airbnb / Βραχυχρόνια', color: 'var(--negative)', text: 'Υποχρεωτική εγγραφή επιχείρησης στην ΑΑΔΕ. Φόρος εισοδήματος επιχείρησης 22-29%. Πιθανό ΦΠΑ. Απαιτείται λογιστής.' },
               { title: 'Ποινή Πρόωρης Αποχώρησης', color: 'var(--warning)', text: `${sc2.penalty_months} μήνες ενοίκιο = ${fe(calc.ar * parseFloat(sc2.penalty_months))}. Αν ο ενοικιαστής φύγει πρόωρα δικαιούσαι εγγύηση (${fe(parseFloat(cfg.deposit) || 0)}) και ποινή.` },
               { title: 'Βλάβη / Κλοπή / Φθορά', color: 'var(--info)', text: 'Η εγγύηση καλύπτει φθορές πέραν φυσικής χρήσης. Η ασφάλεια κατοικίας καλύπτει κλοπή και βλάβες. Τεκμηρίωσε με φωτογραφίες πριν και μετά.' },
             ].map((t, i) => (
@@ -1005,7 +1005,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
         {/* E2 Quick Reference */}
         <div style={cardStyle}>
-          <SectionLabel label="Βοηθός Δήλωσης Ε2 — Τι να γράψεις" />
+          <SectionLabel label="Βοηθός Δήλωσης Ε2, Τι να γράψεις" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
             <div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -1033,7 +1033,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               {[
                 { label: 'Υποβολή Ε1/Ε2', value: '30 Ιουνίου', color: 'var(--accent)' },
                 { label: 'Καταχώρηση Μισθωτηρίου AADE', value: 'εντός 30 ημερών', color: 'var(--info)' },
-                { label: 'Ηλεκτρονική Πληρωμή (-5%)', value: electronic ? `Ενεργό — εξοικ. ${fe(calc.electronicSaving)}` : 'Ανενεργό', color: electronic ? 'var(--positive)' : 'var(--warning)' },
+                { label: 'Ηλεκτρονική Πληρωμή (-5%)', value: electronic ? `Ενεργό, εξοικ. ${fe(calc.electronicSaving)}` : 'Ανενεργό', color: electronic ? 'var(--positive)' : 'var(--warning)' },
               ].map((item, i) => (
                 <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{item.label}</span>
@@ -1043,7 +1043,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, textDecoration: 'none', color: 'var(--accent)', fontSize: 12, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                AADE.gr — Φορολογία Ακινήτων
+                AADE.gr, Φορολογία Ακινήτων
               </a>
             </div>
           </div>
@@ -1055,7 +1055,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'airbnb' && (<>
         <div style={cardStyle}>
-          <SectionLabel label="Airbnb / Βραχυχρόνια Μίσθωση — Υπολογιστής" />
+          <SectionLabel label="Airbnb / Βραχυχρόνια Μίσθωση, Υπολογιστής" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12, marginBottom: 16 }}>
             {[
               { season: 'Χαμηλή Σεζόν', aKey: 'adr_low', oKey: 'occ_low', dKey: 'dur_low', uKey: 'unit_low', color: 'var(--info)' },
@@ -1128,7 +1128,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           </div>
           {parseInt(airbnb.bike_count) > 0 && (
             <InfoBanner type="info">
-              {airbnb.bike_count} ποδήλατα — Ετήσια απόσβεση 3ετίας: <strong>{fe(parseInt(airbnb.bike_count) * (parseFloat(airbnb.bike_cost) || 200) / 3)}</strong>. Αύξηση τιμής/νύχτα ~5-15% σε περιοχές χωρίς εύκολη μεταφορά.
+              {airbnb.bike_count} ποδήλατα, Ετήσια απόσβεση 3ετίας: <strong>{fe(parseInt(airbnb.bike_count) * (parseFloat(airbnb.bike_cost) || 200) / 3)}</strong>. Αύξηση τιμής/νύχτα ~5-15% σε περιοχές χωρίς εύκολη μεταφορά.
             </InfoBanner>
           )}
         </div>
@@ -1242,7 +1242,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
         {/* Σπίτι Μου ΙΙ */}
         <div style={cardStyle}>
-          <SectionLabel label="Σπίτι Μου ΙΙ — Κρατικό Πρόγραμμα 2026" />
+          <SectionLabel label="Σπίτι Μου ΙΙ, Κρατικό Πρόγραμμα 2026" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
             <div>
               {[
@@ -1262,10 +1262,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             </div>
             <div>
               <InfoBanner type="success">
-                <strong>Παράδειγμα:</strong> Δάνειο €162.000 — €81.000 άτοκο. Κανονική δόση ~€750/μήνα. Με Σπίτι Μου ΙΙ: ~€420/μήνα.
+                <strong>Παράδειγμα:</strong> Δάνειο €162.000, €81.000 άτοκο. Κανονική δόση ~€750/μήνα. Με Σπίτι Μου ΙΙ: ~€420/μήνα.
               </InfoBanner>
               <InfoBanner type="info">
-                <strong>Διαδικασία:</strong> 1) Βεβαίωση Επιλεξιμότητας στο stegasi.gov.gr — 2) Αίτηση σε τράπεζα — 3) Σύμβαση έως 31 Αυγούστου 2026.
+                <strong>Διαδικασία:</strong> 1) Βεβαίωση Επιλεξιμότητας στο stegasi.gov.gr, 2) Αίτηση σε τράπεζα, 3) Σύμβαση έως 31 Αυγούστου 2026.
               </InfoBanner>
               <InfoBanner type="warning">
                 Απαραίτητο: Να μην κατέχεις άλλο ακίνητο κατοικίας. Εισοδηματικά κριτήρια ισχύουν.
@@ -1349,7 +1349,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             </div>
             <div>
               <InfoBanner type="warning">
-                Αγορά χωρίς πλήρη έλεγχο — πιθανά βάρη, υποθήκες, ενοικιαστές, κατάσταση ακινήτου. Απαιτείται δικηγόρος και συμβολαιογράφος.
+                Αγορά χωρίς πλήρη έλεγχο, πιθανά βάρη, υποθήκες, ενοικιαστές, κατάσταση ακινήτου. Απαιτείται δικηγόρος και συμβολαιογράφος.
               </InfoBanner>
               <InfoBanner type="info">
                 Πλατφόρμα: eauction.gr. Κατάθεση εγγύησης 30% πριν τη δημοπρασία. Εξόφληση υπολοίπου εντός 1 μήνα.
@@ -1449,7 +1449,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>
-                {yearToLabel(constructionYear_n)} — {FLOORS.find(f => f.value === floor)?.label}
+                {yearToLabel(constructionYear_n)}, {FLOORS.find(f => f.value === floor)?.label}
               </div>
               <InfoBanner type="info">{scen.peakAdvice}</InfoBanner>
               <div style={{ marginTop: 12 }}>

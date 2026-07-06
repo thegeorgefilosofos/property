@@ -13,7 +13,7 @@ const MAX_REQUESTS_PER_DAY = 400;   // ταβάνι ανά χρήστη/ημέρ
 // Το input δεν έχει max_tokens· ένας συνδεδεμένος χρήστης θα μπορούσε να στείλει
 // τεράστια payloads (πολλές εικόνες / 100σέλιδο PDF) και να φουσκώσει τον λογαριασμό
 // του ANTHROPIC_API_KEY. Βάζουμε σκληρό όριο μεγέθους σώματος και πλήθους μηνυμάτων,
-// και ΔΕΝ προωθούμε αυθαίρετα πεδία — μόνο μια λίστα επιτρεπτών.
+// και ΔΕΝ προωθούμε αυθαίρετα πεδία, μόνο μια λίστα επιτρεπτών.
 const MAX_BODY_BYTES = 12 * 1024 * 1024; // ~12MB: αρκετό για φωτογραφία/PDF λογαριασμού
 const MAX_MESSAGES   = 40;
 // Καθαρίζουμε παλιές εγγραφές ρυθμού ώστε το Map να μη μεγαλώνει ασταμάτητα.
@@ -24,7 +24,7 @@ function sweepRateLimit(now: number) {
 
 export async function POST(req: NextRequest) {
   // ── Auth check ──────────────────────────────────────────────
-  // Έλεγχος πραγματικής συνεδρίας Supabase (μέσω cookies) — δουλεύει και σε dev
+  // Έλεγχος πραγματικής συνεδρίας Supabase (μέσω cookies), δουλεύει και σε dev
   // και σε production, χωρίς να χρειάζεται ο client να στέλνει header.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Διαβάζουμε πρώτα ως κείμενο για να επιβάλουμε σκληρό όριο μεγέθους (το
-    // Content-Length μπορεί να λείπει/να είναι πλαστό — μετράμε τα πραγματικά bytes).
+    // Content-Length μπορεί να λείπει/να είναι πλαστό, μετράμε τα πραγματικά bytes).
     const raw = await req.text();
     if (raw.length > MAX_BODY_BYTES) {
       return NextResponse.json(

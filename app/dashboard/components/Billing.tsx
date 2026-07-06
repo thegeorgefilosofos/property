@@ -1,9 +1,9 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Billing — συνδρομή & στοιχεία τιμολόγησης. ΟΛΑ τα πεδία είναι έτοιμα ώστε,
+// Billing, συνδρομή & στοιχεία τιμολόγησης. ΟΛΑ τα πεδία είναι έτοιμα ώστε,
 // όταν προστεθεί ο Stripe, η πληρωμή να «κουμπώσει» χωρίς αλλαγή UI. Προς το
-// παρόν αποθηκεύουμε μόνο τα στοιχεία (billing_profiles) — καμία χρέωση.
+// παρόν αποθηκεύουμε μόνο τα στοιχεία (billing_profiles), καμία χρέωση.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
@@ -126,7 +126,7 @@ export default function Billing({ userId }: { userId: string }) {
           <button disabled title="Σύντομα με Stripe"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 42, padding: '0 22px', borderRadius: T.radius.pill, border: 'none', background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'not-allowed' }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-            Πληρωμή με κάρτα — σύντομα
+            Πληρωμή με κάρτα, σύντομα
           </button>
         </div>
       </div>

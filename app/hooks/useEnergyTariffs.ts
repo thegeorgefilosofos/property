@@ -70,12 +70,12 @@ export function useEnergyTariffs(): UseEnergyTariffsReturn {
           setIsLive(true);
           setError(null);
         } else {
-          // Table is empty — trigger Edge Function to populate
+          // Table is empty, trigger Edge Function to populate
           setError('Τα τιμολόγια δεν έχουν ενημερωθεί ακόμα. Χρησιμοποιούνται τελευταία γνωστά δεδομένα.');
           setIsLive(false);
         }
       } catch (e) {
-        setError('Σφάλμα φόρτωσης τιμολογίων — χρησιμοποιούνται τοπικά δεδομένα.');
+        setError('Σφάλμα φόρτωσης τιμολογίων, χρησιμοποιούνται τοπικά δεδομένα.');
         setIsLive(false);
       } finally {
         setLoading(false);
