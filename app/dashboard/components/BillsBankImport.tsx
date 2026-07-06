@@ -80,6 +80,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
   const [step,         setStep]         = useState<'upload'|'review'|'done'>('upload');
   const [filterCat,    setFilterCat]    = useState('');
   const [selectedBank, setSelectedBank] = useState('');
+  const [editingId,    setEditingId]    = useState<string | null>(null);
 
   const processFile = useCallback(async (file: File) => {
     setError('');
@@ -178,6 +179,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
   const toggleTx  = (id: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, selected: !t.selected } : t));
   const setCat    = (id: string, cat: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, category: cat } : t));
+  const setTxAmount = (id: string, v: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, amount: parseFloat(v.replace(',', '.')) || 0 } : t));
+  const setTxNote   = (id: string, note: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, note } : t));
+  const setTxDesc   = (id: string, description: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, description } : t));
   const selectAll = (val: boolean) => setTransactions(p => p.map(t => ({ ...t, selected: val })));
 
   const importSelected = async () => {
@@ -197,12 +201,12 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const usedBill = new Set<string>();
       // billAmount = το ποσό του ΛΟΓΑΡΙΑΣΜΟΥ (όχι της πληρωμής): με αυτό εντοπίζουμε
       // το συνδεδεμένο έξοδο/γεγονός, γιατί η πληρωμή μπορεί να διαφέρει κατά λεπτά.
-      const matched: { billId: string; cat: string; billAmount: number }[] = [];
+      const matched: { billId: string; cat: string; billAmount: number; note?: string }[] = [];
       const unmatched: ParsedTransaction[] = [];
 
       for (const t of selected) {
         const m = matchBillToPayment(t, pendingBills, usedBill);   // δοκιμασμένη λογική
-        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, billAmount: m.amount }); }
+        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, billAmount: m.amount, note: t.note }); }
         else unmatched.push(t);
       }
 
@@ -226,6 +230,12 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             await supabase.from('calendar_events').update({ status: 'paid' })
               .eq('property_id', propertyId).eq('amount', r.billAmount).eq('status', 'pending').is('bill_id', null);
           }
+          // Σημείωση χρήστη → προσάρτηση στον λογαριασμό (π.χ. «+0,20 λόγω δεκαδικών»)
+          if (r.note && r.note.trim()) {
+            const { data: cur } = await supabase.from('bills').select('notes').eq('id', r.billId).single();
+            const prev = (cur?.notes as string) || '';
+            await supabase.from('bills').update({ notes: prev ? `${prev} · Σημείωση: ${r.note.trim()}` : `Σημείωση: ${r.note.trim()}` }).eq('id', r.billId);
+          }
         }
       }
 
@@ -236,7 +246,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
           property_id: propertyId, user_id: userId, category: t.category,
           name: t.description.slice(0, 100), amount: t.amount, paid: true,
           due_date: t.date, created_at: new Date(t.date).toISOString(),
-          notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''} · ${t.matched || ''}`,
+          notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}${t.matched ? ` · ${t.matched}` : ''}${t.note?.trim() ? ` · Σημείωση: ${t.note.trim()}` : ''}`,
           recurring: false,
         }));
         const { error: err } = await supabase.from('bills').insert(rows);
@@ -257,7 +267,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
             property_id: propertyId, user_id: userId, amount: t.amount,
             description: t.description.slice(0, 100), date: t.date,
             category: m.cat, expense_group: m.group, paid_by: 'owner', paid: true,
-            notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}`,
+            notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}${t.note?.trim() ? ` · Σημείωση: ${t.note.trim()}` : ''}`,
           });
         }));
       }
@@ -451,29 +461,56 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
             {filtered.map((tx, i) => (
-              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(26,115,232,0.03)' : 'transparent', transition: 'background 0.1s' }}>
-                <input type="checkbox" checked={tx.selected} onChange={() => toggleTx(tx.id)}
-                  style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--accent)' }}/>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans, marginBottom: 3 }}>{tx.description}</div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{new Date(tx.date).toLocaleDateString('el-GR')}</span>
-                    {tx.matched && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>↳ {tx.matched}</span>}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: CONFIDENCE_DOT[tx.confidence], fontFamily: T.font.sans }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: CONFIDENCE_DOT[tx.confidence], display: 'inline-block' }}/>
-                      {CONFIDENCE_LBL[tx.confidence]}
-                    </span>
+              <div key={tx.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(26,115,232,0.03)' : 'transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+                  <input type="checkbox" checked={tx.selected} onChange={() => toggleTx(tx.id)}
+                    style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--accent)' }}/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans, marginBottom: 3 }}>{tx.description}</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{new Date(tx.date).toLocaleDateString('el-GR')}</span>
+                      {tx.matched && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>↳ {tx.matched}</span>}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: CONFIDENCE_DOT[tx.confidence], fontFamily: T.font.sans }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: CONFIDENCE_DOT[tx.confidence], display: 'inline-block' }}/>
+                        {CONFIDENCE_LBL[tx.confidence]}
+                      </span>
+                      {tx.note && <span style={{ fontSize: 9, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>✎ σημείωση</span>}
+                    </div>
                   </div>
-                </div>
-                <select value={tx.category} onChange={e => setCat(tx.id, e.target.value)}
-                  style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
-                  {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-                <div style={{ textAlign: 'right', minWidth: 80 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
-                    {tx.debit ? '-' : '+'}{fe(tx.amount)}
+                  <select value={tx.category} onChange={e => setCat(tx.id, e.target.value)}
+                    style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
+                    {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  <div style={{ textAlign: 'right', minWidth: 80 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
+                      {tx.debit ? '-' : '+'}{fe(tx.amount)}
+                    </div>
                   </div>
+                  <button onClick={() => setEditingId(editingId === tx.id ? null : tx.id)} title="Επεξεργασία / σημείωση"
+                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: T.radius.badge, border: `1px solid ${editingId === tx.id ? 'var(--accent)' : 'var(--border-subtle)'}`, background: editingId === tx.id ? 'var(--accent-soft)' : 'transparent', color: editingId === tx.id ? 'var(--accent)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                    ✎
+                  </button>
                 </div>
+
+                {editingId === tx.id && (
+                  <div style={{ padding: '0 16px 14px 44px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Περιγραφή</label>
+                      <input value={tx.description} onChange={e => setTxDesc(tx.id, e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, outline: 'none' }}/>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Ποσό (€)</label>
+                      <input value={String(tx.amount)} onChange={e => setTxAmount(tx.id, e.target.value)} inputMode="decimal"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }}/>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Σημείωση (προαιρετικό)</label>
+                      <input value={tx.note || ''} onChange={e => setTxNote(tx.id, e.target.value)} placeholder="π.χ. πλήρωσα 0,20 € παραπάνω λόγω στρογγυλοποίησης"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, outline: 'none' }}/>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

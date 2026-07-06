@@ -126,6 +126,12 @@ const bills: PendingBill[] = [
   // Προτίμηση ίδιας κατηγορίας: πληρωμή 60€ gas κοντά → b4
   const m5 = matchBillToPayment({ amount: 60.00, date: '2026-06-11', category: 'gas' }, bills, new Set());
   ok(m5?.id === 'b4', `match gas → ${m5?.id}`);
+  // ΑΥΣΤΗΡΟ: πληρωμή ΔΕΗ (electricity) ΔΕΝ εξοφλεί λογαριασμό νερού ίδιου ποσού.
+  const wOnly: PendingBill[] = [{ id: 'w', category: 'water', amount: 142.50, due_date: '2026-06-15' }];
+  ok(matchBillToPayment({ amount: 142.50, date: '2026-06-14', category: 'electricity' }, wOnly, new Set()) === null, 'no cross-category match');
+  // Άγνωστος πάροχος (other): επιτρέπεται ταίριασμα σε λογαριασμό 'other' με ποσό+ημ/νία.
+  const oOnly: PendingBill[] = [{ id: 'o', category: 'other', amount: 55, due_date: '2026-06-12' }];
+  ok(matchBillToPayment({ amount: 55, date: '2026-06-13', category: 'other' }, oOnly, new Set())?.id === 'o', 'other matches other');
 }
 // withinDays
 ok(withinDays('2026-06-01', '2026-06-20', 25), 'withinDays 19');
