@@ -22,9 +22,9 @@ const INIT: BillingData = {
 };
 
 const PLANS = [
-  { id: 'free',    name: 'Δωρεάν',       price: '0 €',       per: 'για πάντα', note: '1 ακίνητο, όλες οι δυνατότητες', cycle: 'monthly' },
-  { id: 'monthly', name: 'Pro Μηνιαίο',  price: '2,99 €',    per: 'ανά μήνα',  note: 'Από 2 έως 15 ακίνητα, χωρίς δέσμευση', cycle: 'monthly' },
-  { id: 'annual',  name: 'Pro Ετήσιο',   price: '29,90 €',   per: 'ανά έτος',  note: '2 μήνες δώρο, από 2 έως 15 ακίνητα', cycle: 'annual' },
+  { id: 'free',   name: 'Δωρεάν',        price: '0 €',    per: 'για πάντα', note: '1 ακίνητο, όλες οι βασικές δυνατότητες', cycle: 'monthly' },
+  { id: 'owner',  name: 'Ιδιοκτήτης',    price: '6,90 €', per: 'ανά μήνα',  note: 'Έως 15 ακίνητα (ή 59 € τον χρόνο, 2 μήνες δώρο)', cycle: 'monthly' },
+  { id: 'agency', name: 'Επαγγελματίας', price: '19 €',   per: 'ανά μήνα',  note: 'Απεριόριστα ακίνητα, πολλοί χρήστες (ή 190 € τον χρόνο)', cycle: 'monthly' },
 ];
 
 export default function Billing({ userId }: { userId: string }) {
