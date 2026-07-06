@@ -16,11 +16,11 @@ export interface AssistantIdentity {
 
 export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender: 'neutral', memory: true, compare: false };
 
-export const GENDER_OPTIONS: { value: Gender; label: string; emoji: string }[] = [
-  { value: 'female',    label: 'Γυναίκα',     emoji: '♀' },
-  { value: 'male',      label: 'Άντρας',      emoji: '♂' },
-  { value: 'nonbinary', label: 'Non-binary',  emoji: '⚧' },
-  { value: 'neutral',   label: 'Ουδέτερο',    emoji: '✦' },
+export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'female',    label: 'Γυναίκα' },
+  { value: 'male',      label: 'Άντρας' },
+  { value: 'nonbinary', label: 'Non-binary' },
+  { value: 'neutral',   label: 'Ουδέτερο' },
 ];
 
 // Προτεινόμενα ονόματα — unisex πρώτα, μετά ανά φύλο. Ο χρήστης μπορεί να γράψει

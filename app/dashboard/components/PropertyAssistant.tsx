@@ -121,13 +121,79 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
 
-  const runAction = (a?: Action) => {
+  const runAction = (a?: Action, keepOpen = false) => {
     if (!a) return;
-    if (a.type === 'scan') { onScan(); setOpen(false); }
-    else if (a.type === 'go') { onNavigate(a.tab); setOpen(false); }
+    if (a.type === 'scan') onScan();
+    else if (a.type === 'go') onNavigate(a.tab);
+    if (!keepOpen) setOpen(false);
   };
 
-  const ask = async (question: string) => {
+  // ── Φωνή: ομιλία στα ελληνικά (hands-free) ─────────────────────────────────
+  const [listening, setListening] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [handsFree, setHandsFree] = useState(false);
+  const recRef = useRef<any>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const handsFreeRef = useRef(false);
+  const supportsSTT = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const supportsTTS = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  useEffect(() => { handsFreeRef.current = handsFree; }, [handsFree]);
+
+  useEffect(() => {
+    if (!supportsTTS) return;
+    const load = () => { voicesRef.current = window.speechSynthesis.getVoices(); };
+    load(); window.speechSynthesis.onvoiceschanged = load;
+    return () => { try { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.cancel(); } catch { /* ignore */ } };
+  }, [supportsTTS]);
+
+  const pickVoice = (): SpeechSynthesisVoice | null => {
+    const el = voicesRef.current.filter(v => v.lang && v.lang.toLowerCase().startsWith('el'));
+    if (!el.length) return null;
+    const find = (re: RegExp) => el.find(v => re.test(v.name));
+    if (identity.gender === 'female') return find(/female|woman|γυναι|Melina|Maria/i) || el[0];
+    if (identity.gender === 'male') return find(/male|man|άνδρ|ανδρ|Nicolas|Stefanos|Giorgos/i) || el[0];
+    return find(/Google/i) || el[0];
+  };
+
+  const speak = (text: string, after?: () => void) => {
+    if (!supportsTTS || !text) { after?.(); return; }
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const v = pickVoice(); if (v) u.voice = v;
+      u.lang = 'el-GR'; u.rate = 1.0; u.pitch = identity.gender === 'female' ? 1.06 : identity.gender === 'male' ? 0.94 : 1.0;
+      u.onstart = () => setSpeaking(true);
+      u.onend = () => { setSpeaking(false); after?.(); };
+      u.onerror = () => { setSpeaking(false); after?.(); };
+      window.speechSynthesis.speak(u);
+    } catch { after?.(); }
+  };
+  const stopSpeaking = () => { try { window.speechSynthesis?.cancel(); } catch { /* ignore */ } setSpeaking(false); };
+
+  const stopListening = () => { try { recRef.current?.stop(); } catch { /* ignore */ } setListening(false); };
+  const startListening = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    stopSpeaking();
+    const rec = new SR();
+    rec.lang = 'el-GR'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    let finalText = '';
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const tr = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += tr; else interim += tr;
+      }
+      setInput((finalText + interim).trim());
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => { setListening(false); const t = finalText.trim(); if (t) { setInput(''); ask(t, true); } };
+    recRef.current = rec; setInput(''); setListening(true);
+    try { rec.start(); } catch { setListening(false); }
+  };
+  const toggleMic = () => { if (listening) stopListening(); else { setOpen(true); startListening(); } };
+
+  const ask = async (question: string, viaVoice = false) => {
     const q = question.trim();
     if (!q || busy) return;
     setErr(''); setInput('');
@@ -146,6 +212,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const raw: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || 'Δεν έχω απάντηση αυτή τη στιγμή.';
       const { clean, action } = parseAction(raw);
       setMsgs(m => [...m, { role: 'assistant', text: clean, action }]);
+      // Φωνητική απάντηση + εκτέλεση ενέργειας / συνέχιση συνομιλίας.
+      if (viaVoice || handsFreeRef.current) {
+        speak(clean, () => {
+          if (action) runAction(action, true);
+          if (handsFreeRef.current) setTimeout(() => startListening(), 350);
+        });
+      }
     } catch { setErr('service'); setMsgs(m => m.slice(0, -1)); }
     finally { setBusy(false); }
   };
@@ -179,11 +252,25 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{identity.name}</div>
               <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-secondary)' }}>Ο βοηθός σου για τα ακίνητα</div>
             </div>
+            {(supportsSTT || supportsTTS) && (
+              <button onClick={() => { const next = !handsFree; setHandsFree(next); if (next && supportsSTT) { setOpen(true); startListening(); } else { stopListening(); stopSpeaking(); } }}
+                title={handsFree ? 'Κλείσε τη λειτουργία φωνής' : 'Λειτουργία φωνής (μίλα ελεύθερα)'} aria-label="Λειτουργία φωνής"
+                style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: handsFree ? 'var(--accent)' : 'transparent', color: handsFree ? 'var(--accent-text)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 18 0" /><path d="M21 12v3a2 2 0 0 1-2 2h-1v-5h3z" /><path d="M3 12v3a2 2 0 0 0 2 2h1v-5H3z" /></svg>
+              </button>
+            )}
             <button onClick={() => setEditing(e => !e)} title="Προσάρμοσε τον βοηθό" aria-label="Ρυθμίσεις βοηθού"
               style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: editing ? 'var(--accent-dim)' : 'transparent', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
             </button>
           </div>
+          {(listening || speaking) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--accent-dim)', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: listening ? 'var(--negative)' : 'var(--accent)', animation: 'pa-pulse 1.1s infinite' }} />
+              <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{listening ? 'Ακούω…' : `${identity.name} μιλάει…`}</span>
+              {speaking && <button onClick={stopSpeaking} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>Σταμάτα</button>}
+            </div>
+          )}
 
           {/* Επεξεργασία ταυτότητας */}
           {(editing || !hasIdentity) ? (
@@ -236,9 +323,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               </div>
 
               {/* Είσοδος */}
-              <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)' }}>
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={`Ρώτησε τον/την ${identity.name}…`} disabled={busy}
-                  style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
+              <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)', alignItems: 'center' }}>
+                {supportsSTT && (
+                  <button onClick={toggleMic} disabled={busy} aria-label={listening ? 'Σταμάτα' : 'Μίλα'} title={listening ? 'Σταμάτα' : 'Μίλα στα ελληνικά'}
+                    style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: listening ? 'var(--negative)' : 'var(--bg-elevated)', color: listening ? '#fff' : 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'pa-pulse 1.1s infinite' : 'none' }}>
+                    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
+                  </button>
+                )}
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : `Ρώτησε τον/την ${identity.name}…`} disabled={busy}
+                  style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 <button onClick={() => ask(input)} disabled={busy || !input.trim()} aria-label="Αποστολή"
                   style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: input.trim() && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: input.trim() && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', cursor: input.trim() && !busy ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -252,6 +345,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
       <style>{`
         @keyframes pa-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+        @keyframes pa-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,67,53,.4)}50%{box-shadow:0 0 0 6px rgba(234,67,53,0)}}
         .pa-fab{position:fixed;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(60,64,67,.35),0 2px 6px rgba(60,64,67,.2);z-index:1200;transition:transform .12s}
         .pa-fab:hover{transform:scale(1.06)}
         .pa-fab:active{transform:scale(.96)}
@@ -297,8 +391,8 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory }: {
             const active = gender === g.value;
             return (
               <button key={g.value} onClick={() => setGender(g.value)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 13px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
-                <span aria-hidden style={{ fontSize: 13 }}>{g.emoji}</span>{g.label}
+                style={{ display: 'inline-flex', alignItems: 'center', fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+                {g.label}
               </button>
             );
           })}
