@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-// Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική Απορρήτου, Όροι) — theme-aware.
+// Κοινό «κέλυφος» για νομικές σελίδες (Πολιτική Απορρήτου, Όροι), theme-aware.
 // Κάθε ενότητα: παράγραφοι (p), προαιρετική λίστα (list) και προαιρετική σημείωση (note).
 export interface LegalSection { h: string; p?: string[]; list?: string[]; note?: string }
 

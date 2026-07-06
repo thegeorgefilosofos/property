@@ -117,7 +117,7 @@ export default function RentComparables({
     : 0;
   const diff = actualRent > 0 && avgRent > 0 ? ((actualRent - avgRent) / avgRent) * 100 : 0;
 
-  // Θέση στην αγορά — εύρος (χαμηλό/υψηλό) + διάμεσος από τα comparables
+  // Θέση στην αγορά, εύρος (χαμηλό/υψηλό) + διάμεσος από τα comparables
   const rentsSorted = comps.map(c => c.rent).filter(r => r > 0).sort((a, b) => a - b);
   const minRent = rentsSorted[0] || 0;
   const maxRent = rentsSorted[rentsSorted.length - 1] || 0;
@@ -177,7 +177,7 @@ export default function RentComparables({
         </div>
       )}
 
-      {/* Θέση στην αγορά — εύρος + διάμεσος + η θέση σου */}
+      {/* Θέση στην αγορά, εύρος + διάμεσος + η θέση σου */}
       {comps.length >= 2 && maxRent > minRent && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -199,7 +199,7 @@ export default function RentComparables({
           </div>
           {actualRent > 0 && (
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
-              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
+              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς, {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
             </div>
           )}
         </div>
@@ -208,12 +208,12 @@ export default function RentComparables({
       {/* Comparison banners */}
       {diff > 5 && comps.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--positive)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: "'Inter', sans-serif" }}>
-          Το ενοίκιό σου είναι <strong style={{ color: 'var(--positive)' }}>{diff.toFixed(1)}%</strong> πάνω από τον μέσο όρο της αγοράς — εξαιρετική τιμολόγηση.
+          Το ενοίκιό σου είναι <strong style={{ color: 'var(--positive)' }}>{diff.toFixed(1)}%</strong> πάνω από τον μέσο όρο της αγοράς, εξαιρετική τιμολόγηση.
         </div>
       )}
       {diff < -5 && comps.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--warning)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: "'Inter', sans-serif" }}>
-          Το ενοίκιό σου είναι <strong style={{ color: 'var(--warning)' }}>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο — ίσως να μπορείς να αυξήσεις κατά <strong style={{ color: 'var(--warning)' }}>{fe(avgRent - actualRent)}/μήνα</strong>.
+          Το ενοίκιό σου είναι <strong style={{ color: 'var(--warning)' }}>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο, ίσως να μπορείς να αυξήσεις κατά <strong style={{ color: 'var(--warning)' }}>{fe(avgRent - actualRent)}/μήνα</strong>.
         </div>
       )}
 

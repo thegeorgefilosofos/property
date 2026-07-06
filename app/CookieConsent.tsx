@@ -1,6 +1,6 @@
 'use client';
 
-// Cookie consent — μόνο απαραίτητα cookies. Απλή ενημέρωση (GDPR/ePrivacy),
+// Cookie consent, μόνο απαραίτητα cookies. Απλή ενημέρωση (GDPR/ePrivacy),
 // εμφανίζεται μία φορά και θυμάται την αποδοχή σε localStorage.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';

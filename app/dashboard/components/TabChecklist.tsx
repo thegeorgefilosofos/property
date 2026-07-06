@@ -80,22 +80,22 @@ const RECURRING_OPTIONS = [
 const ITEM_TAGS = ['Επείγον','Εγγύηση','Εξωτερικός','DIY','Νόμος','Ασφάλεια','Προτεραιότητα','Αναβλήθηκε']
 
 const AADE_CALENDAR = [
-  { month: 1,  description: 'Υποβολή εντύπου Ε2 — Μισθώματα περσινού έτους', category: 'legal', priority: 'critical' as Priority },
-  { month: 2,  description: 'Φορολογική δήλωση (Ε1) — Εισοδήματα ιδιοκτήτη', category: 'legal', priority: 'critical' as Priority },
+  { month: 1,  description: 'Υποβολή εντύπου Ε2, Μισθώματα περσινού έτους', category: 'legal', priority: 'critical' as Priority },
+  { month: 2,  description: 'Φορολογική δήλωση (Ε1), Εισοδήματα ιδιοκτήτη', category: 'legal', priority: 'critical' as Priority },
   { month: 3,  description: 'Πληρωμή 1ης δόσης φόρου εισοδήματος', category: 'financial', priority: 'critical' as Priority },
   { month: 5,  description: 'Καταχώρηση μισθωτηρίων ΑΑΔΕ (αν νέα)', category: 'legal', priority: 'high' as Priority },
   { month: 7,  description: 'Πληρωμή 2ης δόσης φόρου εισοδήματος', category: 'financial', priority: 'critical' as Priority },
-  { month: 9,  description: 'Πληρωμή ΕΝΦΙΑ — 1η δόση', category: 'legal', priority: 'critical' as Priority },
-  { month: 10, description: 'Πληρωμή ΕΝΦΙΑ — 2η δόση', category: 'legal', priority: 'critical' as Priority },
+  { month: 9,  description: 'Πληρωμή ΕΝΦΙΑ, 1η δόση', category: 'legal', priority: 'critical' as Priority },
+  { month: 10, description: 'Πληρωμή ΕΝΦΙΑ, 2η δόση', category: 'legal', priority: 'critical' as Priority },
   { month: 10, description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'high' as Priority },
-  { month: 11, description: 'Έλεγχος ΠΕΑ — λήξη πιστοποιητικού ενεργειακής', category: 'legal', priority: 'normal' as Priority },
+  { month: 11, description: 'Έλεγχος ΠΕΑ, λήξη πιστοποιητικού ενεργειακής', category: 'legal', priority: 'normal' as Priority },
   { month: 12, description: 'Προετοιμασία εγγράφων για φορολογική δήλωση', category: 'legal', priority: 'normal' as Priority },
 ]
 
 const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ description: string; category: string; priority: Priority; recurring?: Recurring; estimated_cost?: number; depends_on_idx?: number }> }> = {
   checkin: { label: 'Νέος Ενοικιαστής', color: '#34a853', items: [
     { description: 'Φωτογράφηση κάθε δωματίου (before)', category: 'checkin', priority: 'critical' },
-    { description: 'Παράδοση κλειδιών — καταγραφή αριθμού σετ', category: 'checkin', priority: 'critical' },
+    { description: 'Παράδοση κλειδιών, καταγραφή αριθμού σετ', category: 'checkin', priority: 'critical' },
     { description: 'Καταγραφή μετρητή ΔΕΗ', category: 'checkin', priority: 'critical' },
     { description: 'Καταγραφή μετρητή ΕΥΔΑΠ', category: 'checkin', priority: 'critical' },
     { description: 'Υπογραφή πρωτοκόλλου παράδοσης', category: 'checkin', priority: 'critical' },
@@ -108,14 +108,14 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Μεταβίβαση λογαριασμών ΔΕΗ / ΕΥΔΑΠ', category: 'checkin', priority: 'normal' },
   ]},
   checkout: { label: 'Αποχώρηση Ενοικιαστή', color: '#ea4335', items: [
-    { description: 'Επιστροφή κλειδιών — έλεγχος αριθμού', category: 'checkout', priority: 'critical' },
+    { description: 'Επιστροφή κλειδιών, έλεγχος αριθμού', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΔΕΗ', category: 'checkout', priority: 'critical' },
     { description: 'Τελική ανάγνωση μετρητή ΕΥΔΑΠ', category: 'checkout', priority: 'critical' },
     { description: 'Φωτογράφηση κατάστασης vs check-in', category: 'checkout', priority: 'critical' },
     { description: 'Λήξη μισθωτηρίου ΑΑΔΕ', category: 'legal', priority: 'critical' },
     { description: 'Διακανονισμός εγγύησης', category: 'checkout', priority: 'critical' },
     { description: 'Τελικός καθαρισμός ακινήτου', category: 'checkout', priority: 'high', estimated_cost: 150 },
-    { description: 'Έλεγχος ζημιών — αξιολόγηση κόστους', category: 'checkout', priority: 'high' },
+    { description: 'Έλεγχος ζημιών, αξιολόγηση κόστους', category: 'checkout', priority: 'high' },
     { description: 'Ακύρωση / μεταβίβαση ΔΕΗ / ΕΥΔΑΠ', category: 'checkout', priority: 'high' },
     { description: 'Αλλαγή κλειδαριάς', category: 'checkout', priority: 'normal', estimated_cost: 120 },
     { description: 'Ενημέρωση ΔΟΥ για λήξη μίσθωσης', category: 'legal', priority: 'normal' },
@@ -146,9 +146,9 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Σύνταξη σύμβασης εργολάβου', category: 'renovation', priority: 'critical', depends_on_idx: 1 },
     { description: 'Φωτογράφηση πριν την έναρξη', category: 'renovation', priority: 'critical' },
     { description: 'Έλεγχος ηλεκτρολογικής εγκατάστασης', category: 'renovation', priority: 'high', estimated_cost: 200 },
-    { description: 'Φάση 1 — Κατεδάφιση', category: 'renovation', priority: 'normal', depends_on_idx: 2 },
-    { description: 'Φάση 2 — Κατασκευή', category: 'renovation', priority: 'normal', depends_on_idx: 5 },
-    { description: 'Φάση 3 — Φινίρισμα', category: 'renovation', priority: 'normal', depends_on_idx: 6 },
+    { description: 'Φάση 1, Κατεδάφιση', category: 'renovation', priority: 'normal', depends_on_idx: 2 },
+    { description: 'Φάση 2, Κατασκευή', category: 'renovation', priority: 'normal', depends_on_idx: 5 },
+    { description: 'Φάση 3, Φινίρισμα', category: 'renovation', priority: 'normal', depends_on_idx: 6 },
     { description: 'Τελική επιθεώρηση και παραλαβή', category: 'renovation', priority: 'critical', depends_on_idx: 7 },
   ]},
   airbnb: { label: 'Short-term / Airbnb', color: '#ff5a5f', items: [
@@ -166,7 +166,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Τεχνικός έλεγχος ακινήτου από μηχανικό', category: 'purchase', priority: 'critical', estimated_cost: 300 },
     { description: 'Έλεγχος βαρών / υποθηκών κτηματολόγιο', category: 'purchase', priority: 'critical' },
     { description: 'Πιστοποιητικό ενεργειακής απόδοσης ΠΕΑ', category: 'purchase', priority: 'critical', estimated_cost: 150 },
-    { description: 'Συμβολαιογράφος — προσύμφωνο', category: 'purchase', priority: 'critical', estimated_cost: 600, depends_on_idx: 0 },
+    { description: 'Συμβολαιογράφος, προσύμφωνο', category: 'purchase', priority: 'critical', estimated_cost: 600, depends_on_idx: 0 },
     { description: 'Έγκριση δανείου από τράπεζα', category: 'purchase', priority: 'critical' },
     { description: 'Ασφάλεια ακινήτου', category: 'purchase', priority: 'high', estimated_cost: 300 },
     { description: 'Τελικό συμβόλαιο αγοράς', category: 'purchase', priority: 'critical', depends_on_idx: 4 },
@@ -286,7 +286,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
 
   // ── Sheet 1: Σύνοψη ──────────────────────────────────────────────────────
   const summaryData: (string | number)[][] = [
-    ['Property OS — Checklist Ακινήτου', ''],
+    ['Property OS, Checklist Ακινήτου', ''],
     ['Ημερομηνία εξαγωγής:', today],
     [''],
     ['ΓΕΝΙΚΗ ΣΥΝΟΨΗ', ''],
@@ -378,7 +378,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
     })
   const actionHeaders = ['Κατάσταση', 'Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Deadline', 'Ημέρες', 'Ανατέθηκε σε', 'Εκτιμ. Κόστος €']
   const actionRows: (string | number)[][] = [
-    ['Property OS — Λίστα Εκκρεμών Ενεργειών', ''],
+    ['Property OS, Λίστα Εκκρεμών Ενεργειών', ''],
     [`${actionItems.length} εκκρεμή tasks · ${overdue} ληγμένα`, today],
     [''],
     actionHeaders,
@@ -813,10 +813,10 @@ ${sectionHtml(6, 'Συσκευές & Έπιπλα', `
 
 ${sectionHtml(7, 'Parking & Αποθήκη', `
   <div class="field-grid">
-    ${fieldRow('Parking — Θέση Νο', '')}
-    ${fieldRow('Parking — Τύπος', '')}
-    ${fieldRow('Αποθήκη — Νο', '')}
-    ${fieldRow('Αποθήκη — Όροφος', '')}
+    ${fieldRow('Parking, Θέση Νο', '')}
+    ${fieldRow('Parking, Τύπος', '')}
+    ${fieldRow('Αποθήκη, Νο', '')}
+    ${fieldRow('Αποθήκη, Όροφος', '')}
   </div>
   <div class="field-area"></div>
 `)}
@@ -1230,7 +1230,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
           )}
           {activeTab === 'comments' && (
             <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Activity log — ιστορικό ενεργειών και σημειώσεις συνεργασίας.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Activity log, ιστορικό ενεργειών και σημειώσεις συνεργασίας.</p>
               <CommentsEditor comments={form.comments} onChange={v => setForm(f => ({ ...f, comments: v }))} />
             </div>
           )}
@@ -1342,14 +1342,14 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
     const existingTemplates = new Set((itemData || []).map((i: any) => i.template_id).filter(Boolean))
     const suggestions: SmartSuggestion[] = []
     if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
-      suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής — δημιούργησε check-in checklist', templateKey: 'checkin' })
+      suggestions.push({ title: 'Νέος Ενοικιαστής', reason: 'Βρέθηκε ενοικιαστής, δημιούργησε check-in checklist', templateKey: 'checkin' })
     if (!(itemData || []).some((i: any) => i.category === 'maintenance') && !existingTemplates.has('maintenance'))
       suggestions.push({ title: 'Ετήσια Συντήρηση', reason: 'Δεν υπάρχουν εργασίες συντήρησης ακόμα', templateKey: 'maintenance' })
     if (!(itemData || []).some((i: any) => i.category === 'legal'))
       suggestions.push({ title: 'Νομικά / ΑΑΔΕ', reason: 'Δεν υπάρχουν νομικές εργασίες', templateKey: 'legal' })
     setSmartSuggestions(suggestions.slice(0, 2))
 
-    // Cross-tab: fetch tenant info, loan, ΕΝΦΙΑ bill status (safe — all errors caught)
+    // Cross-tab: fetch tenant info, loan, ΕΝΦΙΑ bill status (safe, all errors caught)
     try {
       const { data: tenantContactData } = await supabase
         .from('contacts').select('full_name,phone,email')
@@ -1420,7 +1420,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
         estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
       })
-      showToast(`Ολοκληρώθηκε — Επόμενο: ${fmtDate(newDue)}`)
+      showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
     }
     await fetchAll()
   }
@@ -1455,7 +1455,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
       const { data } = await supabase.from('checklist_items').insert({ property_id: propertyId, user_id: userId, description: tItem.description, category: tItem.category, priority: tItem.priority, recurring: tItem.recurring || 'none', status: 'pending', completed: false, note: serializeNote({ note: '', subtasks: [], comments: [], tags: [] }), estimated_cost: tItem.estimated_cost || 0, actual_cost: 0, sort_order: i, template_id: key, depends_on: tItem.depends_on_idx !== undefined && insertedIds[tItem.depends_on_idx] ? insertedIds[tItem.depends_on_idx] : null }).select('id').single()
       insertedIds.push(data?.id || '')
     }
-    fetchAll(); showToast(`"${tpl.label}" φορτώθηκε — ${tpl.items.length} tasks`)
+    fetchAll(); showToast(`"${tpl.label}" φορτώθηκε, ${tpl.items.length} tasks`)
   }
 
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -1573,7 +1573,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         </div>
       )}
 
-      {/* Context ribbon — live cross-tab data */}
+      {/* Context ribbon, live cross-tab data */}
       {(tenantInfo || loanPayment > 0 || enfiaPaid) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0, fontFamily: T.font.sans }}>Ζωντανά</div>

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// printPropertyStatement — επαγγελματική εκτυπώσιμη «Αναφορά Ακινήτου» (PDF).
-// Ανοίγει καθαρό, branded παράθυρο εκτύπωσης (A4) — ιδανικό για τράπεζα/λογιστή.
+// printPropertyStatement, επαγγελματική εκτυπώσιμη «Αναφορά Ακινήτου» (PDF).
+// Ανοίγει καθαρό, branded παράθυρο εκτύπωσης (A4), ιδανικό για τράπεζα/λογιστή.
 // Χωρίς εξαρτήσεις· ο χρήστης επιλέγει «Αποθήκευση ως PDF» από τον διάλογο.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -52,7 +52,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     : `<div style="color:#80868b;font-size:12px;padding:12px 0">Δεν έχουν καταχωρηθεί δαπάνες.</div>`;
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
-<title>Αναφορά Ακινήτου — ${esc(c.propName)}</title>
+<title>Αναφορά Ακινήτου, ${esc(c.propName)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}

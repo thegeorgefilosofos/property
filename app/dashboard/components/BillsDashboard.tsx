@@ -125,7 +125,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
   const recurring = bills.filter(b => b.recurring);
 
   const summaryData: (string | number | null | undefined)[][] = [
-    ['PROPERTY OS — ΑΝΑΦΟΡΑ ΛΟΓΑΡΙΑΣΜΩΝ & ΠΑΓΙΩΝ ΔΑΠΑΝΩΝ', null, null, null, null],
+    ['PROPERTY OS, ΑΝΑΦΟΡΑ ΛΟΓΑΡΙΑΣΜΩΝ & ΠΑΓΙΩΝ ΔΑΠΑΝΩΝ', null, null, null, null],
     [''],
     ['Ακίνητο', propertyName, null, 'Ημερομηνία Έκδοσης', today],
     ['Έτος Αναφοράς', year, null, 'Σύνολο Λογαριασμών', bills.length],
@@ -152,7 +152,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
     ['Σε σχέση με τον Μέσο Όρο', ...historyTotals.map(v => v > 0 ? Math.round((v / avgMonthly - 1) * 100) + '%' : '—'), null],
     [''],
     ['━━━ ΕΙΔΟΠΟΙΗΣΕΙΣ ━━━', null, null, null, null],
-    overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ — ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${overdue.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
+    overdue.length > 0 ? [`⚠ ${overdue.length} ΛΗΞΙΠΡΟΘΕΣΜΟΙ ΛΟΓΑΡΙΑΣΜΟΙ, ΑΜΕΣΗ ΕΝΕΡΓΕΙΑ`, null, null, `Σύνολο: ${overdue.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : ['✓ Δεν υπάρχουν ληξιπρόθεσμοι λογαριασμοί'],
     dueSoon.length > 0 ? [`! ${dueSoon.length} λογαριασμοί λήγουν εντός 7 ημερών`, null, null, `Σύνολο: ${dueSoon.reduce((s,b)=>s+b.amount,0).toFixed(2)} €`, null] : [],
   ].filter(row => row.length > 0);
 
@@ -220,7 +220,7 @@ async function exportBillsExcel(bills: BillEntry[], historyTotals: number[], byC
 
   if (recurring.length > 0) {
     const recurData: (string | number | null | undefined)[][] = [
-      ['ΠΑΓΙΑ ΚΟΣΤΗ — ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
+      ['ΠΑΓΙΑ ΚΟΣΤΗ, ΜΗΝΙΑΙΕΣ ΔΑΠΑΝΕΣ', null, null, null, null],
       [`Ακίνητο: ${propertyName} · Σύνολο: ${totalM.toFixed(2)} € / μήνα`, null, null, null, null],
       [''],
       ['Κατηγορία', 'Ονομασία / Πάροχος', 'Μηνιαίο (€)', 'Ετήσιο (€)', '% Συνόλου'],
@@ -392,7 +392,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     if (!form.name || !form.amount) return;
     setSaving(true);
     const period = form.period === 'custom'
-      ? (form.date_from && form.due_date ? `${fmtDateGR(form.date_from)} — ${fmtDateGR(form.due_date)}` : '')
+      ? (form.date_from && form.due_date ? `${fmtDateGR(form.date_from)}, ${fmtDateGR(form.due_date)}` : '')
       : form.period;
     const payload = {
       property_id: propertyId, user_id: userId,
@@ -474,19 +474,19 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
     const alerts: { type: 'danger' | 'warning' | 'info'; msg: string; bill?: string }[] = [];
     if (overdue.length > 0) {
-      alerts.push({ type: 'danger', msg: `${overdue.length} ληξιπρόθεσμος/-οι: ${overdue.map(b => b.name).join(', ')} — Σύνολο: ${fe(overdue.reduce((s, b) => s + b.amount, 0), 0)}` });
+      alerts.push({ type: 'danger', msg: `${overdue.length} ληξιπρόθεσμος/-οι: ${overdue.map(b => b.name).join(', ')}, Σύνολο: ${fe(overdue.reduce((s, b) => s + b.amount, 0), 0)}` });
     }
     dueSoon.forEach(b => {
       const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
-      const msg = daysLeft === 0 ? `"${b.name}" λήγει ΣΗΜΕΡΑ — ${fe(b.amount, 0)}`
-                : daysLeft === 1 ? `"${b.name}" λήγει ΑΥΡΙΟ — ${fe(b.amount, 0)}`
-                : `"${b.name}" σε ${daysLeft} ημέρες — ${fe(b.amount, 0)}`;
+      const msg = daysLeft === 0 ? `"${b.name}" λήγει ΣΗΜΕΡΑ, ${fe(b.amount, 0)}`
+                : daysLeft === 1 ? `"${b.name}" λήγει ΑΥΡΙΟ, ${fe(b.amount, 0)}`
+                : `"${b.name}" σε ${daysLeft} ημέρες, ${fe(b.amount, 0)}`;
       alerts.push({ type: 'warning', msg, bill: b.id });
     });
     byCategory.forEach(c => {
       const budget = parseFloat(budgets[c.value] || '0');
-      if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — υπέρβαση budget (${fe(budget, 0)})` });
-      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα — 30%+ πάνω από τον μέσο όρο αγοράς` });
+      if (budget > 0 && c.monthly > budget) alerts.push({ type: 'warning', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, υπέρβαση budget (${fe(budget, 0)})` });
+      else if (c.benchmark > 0 && c.monthly > c.benchmark * 1.3) alerts.push({ type: 'info', msg: `${c.label}: ${fe(c.monthly, 0)}/μήνα, 30%+ πάνω από τον μέσο όρο αγοράς` });
     });
 
     const areaData = MONTHS_GR.map((m, i) => {
@@ -801,7 +801,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
           {chartView === 'area' && (
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Τάση κόστους {currentYear} — μηνιαίο σύνολο vs μέσος όρος</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Τάση κόστους {currentYear}, μηνιαίο σύνολο vs μέσος όρος</div>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={calc.areaData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
@@ -823,7 +823,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
           {chartView === 'bar' && (
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Μηνιαίο κόστος — σύγκριση με μέσο όρο</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: T.font.sans }}>Μηνιαίο κόστος, σύγκριση με μέσο όρο</div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={calc.areaData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false}/>
@@ -867,9 +867,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         if (elec && elec.monthly > 50)
           advice.push({ type: 'tip', title: 'Εξοικονόμηση ρεύματος', body: `Με ${fe(elec.monthly, 0)}/μήνα, αλλαγή σε νυχτερινή ζώνη (ΔΕΗ Γ1Ν) εξοικονομεί έως 15%. Ετήσια εξοικονόμηση: ~${fe(elec.monthly * 12 * 0.15, 0)}.` });
         if (!insur)
-          advice.push({ type: 'warning', title: 'Δεν υπάρχει ασφάλεια κατοικίας', body: 'Υποχρεωτική για δανειολήπτες. Hellas Direct Basic από 8.90€/μήνα — καλύψεις πυρκαγιά + κλοπή.' });
+          advice.push({ type: 'warning', title: 'Δεν υπάρχει ασφάλεια κατοικίας', body: 'Υποχρεωτική για δανειολήπτες. Hellas Direct Basic από 8.90€/μήνα, καλύψεις πυρκαγιά + κλοπή.' });
         if (internet && internet.monthly > 25)
-          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Ελέγξτε Inalan/Enterwave — fiber από 17€/μήνα χωρίς δέσμευση (ΕΕΤΤ 360°).` });
+          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Ελέγξτε Inalan/Enterwave, fiber από 17€/μήνα χωρίς δέσμευση (ΕΕΤΤ 360°).` });
         if (calc.overdue.length > 0)
           advice.push({ type: 'warning', title: `${calc.overdue.length} ληξιπρόθεσμος/-οί λογαριασμός/-ιοί`, body: `Συνολικό εκκρεμές: ${fe(calc.overdue.reduce((s, b) => s + b.amount, 0), 0)}. Πλήρωσε σήμερα για αποφυγή προστίμων.` });
         if (calc.totalMonthly > 200)
@@ -960,7 +960,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ετήσιος Απολογισμός {currentYear}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginLeft: 'auto' }}>{MONTHS_GR[currentMonth]} — {currentYear}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginLeft: 'auto' }}>{MONTHS_GR[currentMonth]}, {currentYear}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 14 }}>
               {[
@@ -1057,7 +1057,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       </div>
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-        {secHdr(`Ημερολόγιο Πληρωμών — ${MONTHS_GR[currentMonth]}`)}
+        {secHdr(`Ημερολόγιο Πληρωμών, ${MONTHS_GR[currentMonth]}`)}
         {bills.filter(b => b.due_date && new Date(b.due_date).getMonth() === currentMonth).length === 0 ? (
           <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>Δεν υπάρχουν λογαριασμοί με ημερομηνία λήξης αυτόν τον μήνα</div>
         ) : (

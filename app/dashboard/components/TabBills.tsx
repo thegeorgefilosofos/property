@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
 
-// ── Static imports — all components must be static for Next.js App Router ────
+// ── Static imports, all components must be static for Next.js App Router ────
 import BillsDashboard    from './BillsDashboard';
 import BillsElectricity  from './BillsElectricity';
 import BillsGas          from './BillsGas';
@@ -79,7 +79,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'gas',           label: 'Φυσικό Αέριο',         icon: 'flame',     desc: 'Πάροχος αερίου, διαχειριστής δικτύου, σύγκριση τιμολογίων' },
       { id: 'common',        label: 'Κοινόχρηστα',          icon: 'building',  desc: 'Διαχείριση κτηρίου, ταμείο, ιστορικό' },
       { id: 'providers',     label: 'Πάροχοι',              icon: 'wifi',      desc: 'Internet, Νερό, Θέρμανση, Φυσικό Αέριο, Security' },
-      { id: 'insurance',     label: 'Ασφάλεια & Συνδρομές', icon: 'shield',    desc: 'Ασφάλεια κατοικίας, streaming, cloud — live σύγκριση' },
+      { id: 'insurance',     label: 'Ασφάλεια & Συνδρομές', icon: 'shield',    desc: 'Ασφάλεια κατοικίας, streaming, cloud, live σύγκριση' },
       { id: 'services',      label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά Τέλη, καθαρισμός, κηπουρός, πισίνα' },
     ],
   },
@@ -87,9 +87,9 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Εργαλεία',
     tabs: [
       { id: 'notifications', label: 'Ειδοποιήσεις',        icon: 'bell',      desc: 'Έξυπνες ειδοποιήσεις βάσει δεδομένων: ΕΝΦΙΑ, λήξεις, προϋπολογισμός' },
-      { id: 'budget',        label: 'Προϋπολογισμός',       icon: 'chart',     desc: 'Στόχοι vs πραγματικό κόστος — ανά κατηγορία με live ενημέρωση' },
+      { id: 'budget',        label: 'Προϋπολογισμός',       icon: 'chart',     desc: 'Στόχοι vs πραγματικό κόστος, ανά κατηγορία με live ενημέρωση' },
       { id: 'bank_import',   label: 'Εισαγωγή',             icon: 'bank',      desc: 'Αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ από τραπεζικό αρχείο' },
-      { id: 'ai_scan',       label: 'Σάρωση Λογαριασμού',  icon: 'camera',    desc: 'Φωτογράφισε λογαριασμό — αυτόματη εξαγωγή δεδομένων με AI' },
+      { id: 'ai_scan',       label: 'Σάρωση Λογαριασμού',  icon: 'camera',    desc: 'Φωτογράφισε λογαριασμό, αυτόματη εξαγωγή δεδομένων με AI' },
       { id: 'multi_property',label: 'Σύγκριση Ακινήτων',   icon: 'buildings', desc: 'Συγκριτικό κόστος πολλαπλών ακινήτων' },
     ],
   },
@@ -190,7 +190,7 @@ export default function TabBills({
         </div>
       </div>
 
-      {/* ── Tab navigation — unified single container ──────────────────── */}
+      {/* ── Tab navigation, unified single container ──────────────────── */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '6px 6px 6px 6px', marginBottom: 20 }}>
         {TAB_GROUPS.map((group, gIdx) => (
           <div key={group.label} style={{ marginBottom: gIdx < TAB_GROUPS.length - 1 ? 4 : 0 }}>

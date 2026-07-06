@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Landing — world-tier. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία
+// Landing, world-tier. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία
 // → αυτόματη καταχώρηση παντού, (2) AI βοηθός που ξέρει το ακίνητό σου, με φωνή.
 // Ήρεμο βάθος, ζωντανά mockups (0 εικόνες), πλήρως ρευστή,
 // theme-aware, FAQ με native <details> (0 JS). Server component (auth-aware).
@@ -267,7 +267,7 @@ export default async function Landing() {
             <Link href="/signup" className="lp-ghost" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Ξεκίνα δωρεάν</Link>
           </div>
 
-          {/* Ιδιοκτήτης — δημοφιλές */}
+          {/* Ιδιοκτήτης, δημοφιλές */}
           <div className="lp-card" style={{ background: PANEL, border: `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 1px 2px rgba(16,24,40,.06)' }}>
             <div style={{ position: 'absolute', top: 16, right: 16, background: ACCENT, color: 'var(--accent-text)', borderRadius: 100, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>Δημοφιλές</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: ACCENT, marginBottom: 4 }}>Ιδιοκτήτης</div>
@@ -285,7 +285,7 @@ export default async function Landing() {
             <Link href="/signup" className="lp-cta" style={{ display: 'block', textAlign: 'center', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>Δοκίμασε δωρεάν →</Link>
           </div>
 
-          {/* Επαγγελματίας — μεσιτικά / διαχειριστές */}
+          {/* Επαγγελματίας, μεσιτικά / διαχειριστές */}
           <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Επαγγελματίας</div>
             <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για μεσιτικά γραφεία και διαχειριστές ακινήτων</div>

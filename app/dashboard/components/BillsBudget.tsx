@@ -12,7 +12,7 @@ const CATS = [
   { key: 'internet',     label: 'Internet & Τηλεφωνία',color: '#8b5cf6', default: 35  },
   { key: 'heating',      label: 'Θέρμανση',            color: '#ef4444', default: 60  },
   { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',color: '#10b981', default: 30  },
-  { key: 'services',     label: 'Υπηρεσίες — ΕΝΦΙΑ',  color: '#ec4899', default: 50  },
+  { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  color: '#ec4899', default: 50  },
   { key: 'common',       label: 'Κοινόχρηστα',         color: '#6366f1', default: 40  },
   { key: 'maintenance',  label: 'Συντήρηση',           color: '#84cc16', default: 20  },
 ] as const;
@@ -286,12 +286,12 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }}/>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εγώ — {fe(masterBudget * myShare / 100)}/μήνα</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εγώ, {fe(masterBudget * myShare / 100)}/μήνα</span>
                 </div>
                 {participants.map(p => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }}/>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name} ({p.role}) — {fe(masterBudget * p.share / 100)}/μήνα</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name} ({p.role}), {fe(masterBudget * p.share / 100)}/μήνα</span>
                     <button onClick={() => removeParticipant(p.id)}
                       style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                       ×
@@ -316,7 +316,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             </div>
             {totalParticipantShare >= 100 && (
               <div style={{ marginTop: 8, fontSize: 11, color: 'var(--warning)', fontFamily: T.font.sans }}>
-                Το σύνολο ποσοστών φτάνει {totalParticipantShare.toFixed(0)}% — το δικό σου μερίδιο θα γίνει 0%.
+                Το σύνολο ποσοστών φτάνει {totalParticipantShare.toFixed(0)}%, το δικό σου μερίδιο θα γίνει 0%.
               </div>
             )}
           </div>

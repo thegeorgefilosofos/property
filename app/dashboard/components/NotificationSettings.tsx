@@ -101,7 +101,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
     } catch {
       // Fallback αν δεν υπάρχει API key ακόμα
       setSuggestions([
-        { title: 'Πληρωμή ΕΝΦΙΑ', category: 'financial', amount: 200, recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Ετήσια υποχρέωση — συνήθως Σεπτέμβριος' },
+        { title: 'Πληρωμή ΕΝΦΙΑ', category: 'financial', amount: 200, recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Ετήσια υποχρέωση, συνήθως Σεπτέμβριος' },
         { title: 'Ετήσιος έλεγχος ηλεκτρικής εγκατάστασης', category: 'maintenance', recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Υποχρεωτικός για ασφάλεια ακινήτου' },
         { title: 'Service κλιματιστικού', category: 'maintenance', amount: 60, recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Συνιστάται πριν το καλοκαίρι' },
         { title: 'Ανανέωση ασφαλιστηρίου', category: 'contract', recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Έλεγχος λήξης ασφάλισης ακινήτου' },

@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PROPERTY OS — Theme.tsx (Κοινά Components Σχεδίασης v1.0)
+// PROPERTY OS, Theme.tsx (Κοινά Components Σχεδίασης v1.0)
 // ─────────────────────────────────────────────────────────────────────────
 // Τα δομικά στοιχεία που ήδη χρησιμοποιούν τα Bills tabs, εξαγμένα σε ΕΝΑ
 // αρχείο ώστε ΟΛΑ τα tabs (Επισκόπηση, Δαπάνες, Ημερολόγιο, Ενοικιαστής,
@@ -11,37 +11,37 @@
 //   import { T, fe, Card, SecHdr, KPIGrid, Badge, InfoBanner, StatRow } from '@/components/Theme';
 //
 // Πηγή αλήθειας για τα tokens (χρώματα/κενά/ακτίνες) είναι το app/globals.css
-// (Google Material Design 3). Εδώ δεν ορίζουμε χρώματα — μόνο τα καταναλώνουμε
+// (Google Material Design 3). Εδώ δεν ορίζουμε χρώματα, μόνο τα καταναλώνουμε
 // μέσω των σημασιολογικών μεταβλητών (--accent, --info, --positive, --warning,
 // --negative, --bg-*, --text-*, --border-*).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { ReactNode, CSSProperties } from 'react';
 
-// ── Tokens (ίδια ονόματα με τα Bills — μηδενική αλλαγή νοοτροπίας) ─────────
+// ── Tokens (ίδια ονόματα με τα Bills, μηδενική αλλαγή νοοτροπίας) ─────────
 export const T = {
   radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
   font: {
     // Γραμματοσειρές που φορτώνει self-hosted το app (globals.css): Inter + Roboto Mono.
     sans: "'Inter', system-ui, sans-serif",
     mono: "'Roboto Mono', 'JetBrains Mono', monospace",
-    // Μεγάλοι αριθμοί «κεφαλίδας» (KPI): σφιχτή sans με tabular ψηφία — χωρίς τα
+    // Μεγάλοι αριθμοί «κεφαλίδας» (KPI): σφιχτή sans με tabular ψηφία, χωρίς τα
     // πλατιά κενά του monospace γύρω από κόμμα/τελεία. Το mono μένει για πυκνούς πίνακες.
     num:  "'Inter', system-ui, sans-serif",
   },
   sp: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 },
-  // Καμπύλες κίνησης Google (Material 3) — μία πηγή για όλα τα transitions.
+  // Καμπύλες κίνησης Google (Material 3), μία πηγή για όλα τα transitions.
   ease: { standard: 'cubic-bezier(0.2, 0, 0, 1)', emphasized: 'cubic-bezier(0.3, 0, 0, 1)', decel: 'cubic-bezier(0, 0, 0, 1)' },
 } as const;
 
-// ── Τυπογραφική κλίμακα — ΜΙΑ πηγή αλήθειας για μεγέθη/βάρη/spacing.
-// Στόχος: «Google οπτική» ομοιομορφία — ίδιοι τίτλοι/ετικέτες/τιμές παντού.
+// ── Τυπογραφική κλίμακα, ΜΙΑ πηγή αλήθειας για μεγέθη/βάρη/spacing.
+// Στόχος: «Google οπτική» ομοιομορφία, ίδιοι τίτλοι/ετικέτες/τιμές παντού.
 // Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
 export const TT = {
   display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
   h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
   h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
-  // Ετικέτα ενότητας — η uppercase «τελεία» των Bills, τυποποιημένη.
+  // Ετικέτα ενότητας, η uppercase «τελεία» των Bills, τυποποιημένη.
   label:   { fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)' },
   body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)' },
   bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)' },
@@ -51,12 +51,12 @@ export const TT = {
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
-// ═══ Skeleton — placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση...») ══════════
+// ═══ Skeleton, placeholder φόρτωσης (αντικαθιστά τα «Φόρτωση...») ══════════
 export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | string; h?: number | string; r?: number; style?: CSSProperties }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r, ...style }} />;
 }
 
-// ═══ SkeletonKPIs — σειρά από skeleton κάρτες μετρικών ═════════════════════
+// ═══ SkeletonKPIs, σειρά από skeleton κάρτες μετρικών ═════════════════════
 export function SkeletonKPIs({ n = 4 }: { n?: number }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
@@ -70,7 +70,7 @@ export function SkeletonKPIs({ n = 4 }: { n?: number }) {
   );
 }
 
-// ═══ Spinner — κυκλικός δείκτης φόρτωσης (Google style) ════════════════════
+// ═══ Spinner, κυκλικός δείκτης φόρτωσης (Google style) ════════════════════
 export function Spinner({ size = 22, label }: { size?: number; label?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 40 }}>
@@ -82,7 +82,7 @@ export function Spinner({ size = 22, label }: { size?: number; label?: string })
 
 // ── Μορφοποίηση ποσών (μία υλοποίηση για όλη την εφαρμογή) ─────────────────
 // Χρησιμοποιεί αδιάσπαστο διάστημα (U+00A0) πριν το €, ώστε το ποσό να μη
-// «σπάει» ποτέ σε δύο γραμμές (π.χ. «1.234,56» πάνω και «€» κάτω) — google-level.
+// «σπάει» ποτέ σε δύο γραμμές (π.χ. «1.234,56» πάνω και «€» κάτω), google-level.
 export const fe = (n: number, d = 2) =>
   `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
@@ -93,7 +93,7 @@ export const fn = (n: number, d = 0) =>
 export const fd = (d: string | Date) =>
   new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-// ── Σημασιολογικοί τόνοι — ρόλοι, όχι αυθαίρετα χρώματα ─────────────────────
+// ── Σημασιολογικοί τόνοι, ρόλοι, όχι αυθαίρετα χρώματα ─────────────────────
 export type Tone = 'accent' | 'info' | 'positive' | 'warning' | 'negative' | 'neutral';
 
 const toneVars = (tone: Tone) => {
@@ -102,7 +102,7 @@ const toneVars = (tone: Tone) => {
   return { color: `var(--${tone})`, bg: `var(--${tone}-soft)`, border: `var(--${tone}-border)` };
 };
 
-// ═══ Card — η βασική επιφάνεια κάθε ενότητας ═══════════════════════════════
+// ═══ Card, η βασική επιφάνεια κάθε ενότητας ═══════════════════════════════
 export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div style={{
@@ -114,7 +114,7 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
   );
 }
 
-// ═══ SecHdr — επικεφαλίδα ενότητας (η τελεία + uppercase label των Bills) ══
+// ═══ SecHdr, επικεφαλίδα ενότητας (η τελεία + uppercase label των Bills) ══
 export function SecHdr({ label, sub, right }: { label: string; sub?: string; right?: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -128,7 +128,7 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
   );
 }
 
-// ═══ PageTitle — τίτλος σελίδας/tab ════════════════════════════════════════
+// ═══ PageTitle, τίτλος σελίδας/tab ════════════════════════════════════════
 export function PageTitle({ title, sub, right }: { title: string; sub?: string; right?: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
@@ -141,12 +141,12 @@ export function PageTitle({ title, sub, right }: { title: string; sub?: string; 
   );
 }
 
-// ═══ KPIGrid — η σειρά μετρικών στην κορυφή κάθε tab ═══════════════════════
+// ═══ KPIGrid, η σειρά μετρικών στην κορυφή κάθε tab ═══════════════════════
 export interface KPIItem { label: string; value: string; sub?: string; tone?: Tone }
 
 export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
   // Ρευστό πλέγμα: γεμίζει όσες στήλες χωράνε (min 150px) και «σπάει» μόνο του
-  // σε 2 ή 1 στήλες σε tablet/κινητό — χωρίς media queries, δουλεύει παντού.
+  // σε 2 ή 1 στήλες σε tablet/κινητό, χωρίς media queries, δουλεύει παντού.
   const cols = columns ?? items.length;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 10, marginBottom: 16 }}>
@@ -161,7 +161,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   );
 }
 
-// ═══ Badge — μικρή ετικέτα κατάστασης (Πληρώθηκε, Ενεργό...) ════════════════
+// ═══ Badge, μικρή ετικέτα κατάστασης (Πληρώθηκε, Ενεργό...) ════════════════
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (
@@ -171,7 +171,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   );
 }
 
-// ═══ InfoBanner — η γραμμή ειδοποίησης με την τελεία (dot) των Bills ═══════
+// ═══ InfoBanner, η γραμμή ειδοποίησης με την τελεία (dot) των Bills ═══════
 export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (
@@ -182,7 +182,7 @@ export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; t
   );
 }
 
-// ═══ StatRow — γραμμή «ετικέτα ... ποσό» με μπάρα αναλογίας (σύνοψη) ═══════
+// ═══ StatRow, γραμμή «ετικέτα ... ποσό» με μπάρα αναλογίας (σύνοψη) ═══════
 export function StatRow({ label, amount, total, annual }: { label: string; amount: number; total: number; annual?: boolean }) {
   const pct = total > 0 ? (amount / total) * 100 : 0;
   return (
@@ -201,7 +201,7 @@ export function StatRow({ label, amount, total, annual }: { label: string; amoun
   );
 }
 
-// ═══ TotalRow — η τελική γραμμή συνόλου με τη διπλή διαχωριστική ═══════════
+// ═══ TotalRow, η τελική γραμμή συνόλου με τη διπλή διαχωριστική ═══════════
 export function TotalRow({ label, monthly }: { label: string; monthly: number }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
@@ -214,7 +214,7 @@ export function TotalRow({ label, monthly }: { label: string; monthly: number })
   );
 }
 
-// ═══ Btn — κουμπιά σε 3 ρόλους ═════════════════════════════════════════════
+// ═══ Btn, κουμπιά σε 3 ρόλους ═════════════════════════════════════════════
 export function Btn({ children, onClick, variant = 'secondary', disabled, type }: {
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit';
 }) {
@@ -234,7 +234,7 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
   return <button type={type ?? 'button'} onClick={disabled ? undefined : onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
 }
 
-// ═══ ExportButton — κοινό κουμπί εξαγωγής CSV (ίδιο σε όλα τα tabs) ════════
+// ═══ ExportButton, κοινό κουμπί εξαγωγής CSV (ίδιο σε όλα τα tabs) ════════
 export function ExportButton({ onClick, label = 'Εξαγωγή CSV', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
   return (
     <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε CSV (ανοίγει με Excel)" disabled={disabled}
@@ -247,7 +247,7 @@ export function ExportButton({ onClick, label = 'Εξαγωγή CSV', disabled }
   );
 }
 
-// ═══ EmptyState — κενή κατάσταση με πρόσκληση σε δράση (όχι σκέτο «κενό») ══
+// ═══ EmptyState, κενή κατάσταση με πρόσκληση σε δράση (όχι σκέτο «κενό») ══
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
     <div style={{ textAlign: 'center' as const, padding: '40px 20px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
@@ -258,7 +258,7 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
   );
 }
 
-// ═══ Grid helpers — τα g2/g3/g4 των Bills, μία φορά για όλους ══════════════
+// ═══ Grid helpers, τα g2/g3/g4 των Bills, μία φορά για όλους ══════════════
 // Ρευστά πλέγματα: «auto-fit + minmax(min(100%, Xpx))» ώστε σε στενές οθόνες
 // (κινητό/tablet) να πέφτουν αυτόματα σε λιγότερες στήλες ή μία, ενώ σε desktop
 // κρατούν την επιθυμητή διάταξη. Το «min(100%, …)» εγγυάται ότι ποτέ δεν

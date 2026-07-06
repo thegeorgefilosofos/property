@@ -245,7 +245,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     }
   };
 
-  // Ανέβασμα του πρωτότυπου αρχείου στο Αρχείο (property_documents) — πάντα.
+  // Ανέβασμα του πρωτότυπου αρχείου στο Αρχείο (property_documents), πάντα.
   const archiveFile = async (a: { category: string; note?: string; date?: string }, title?: string) => {
     if (!file) return false;
     const safe = file.name.replace(/[^\w.\-]+/g, '_');
@@ -262,7 +262,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     return !error;
   };
 
-  // Στρίψιμο null/undefined από payload — για ΕΝΗΜΕΡΩΣΗ ώστε να μη σβήνουμε
+  // Στρίψιμο null/undefined από payload, για ΕΝΗΜΕΡΩΣΗ ώστε να μη σβήνουμε
   // υπάρχοντα στοιχεία (π.χ. ενοικιαστή) με κενές τιμές από μερική ανάγνωση.
   const stripEmpty = (o: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ''));
@@ -385,7 +385,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
         if (!kErr) add('Κοινόχρηστα');
       }
 
-      // 8) Αρχειοθέτηση του πρωτότυπου — πάντα, ώστε τίποτα να μη χάνεται.
+      // 8) Αρχειοθέτηση του πρωτότυπου, πάντα, ώστε τίποτα να μη χάνεται.
       if (plan.archive) {
         const ok = await archiveFile(plan.archive, edited.title || edited.provider);
         if (ok) add('Αρχείο');
@@ -437,7 +437,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Πρόσθεσε ένα έγγραφο</div>
         <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong> — λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, ΕΝΦΙΑ, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
+          Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong>, λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, ΕΝΦΙΑ, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
         </div>
       </div>
 
@@ -490,9 +490,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                   : error === 'save' ? 'Κάτι πήγε στραβά στην αποθήκευση'
                   : 'Η υπηρεσία ανάγνωσης δεν είναι διαθέσιμη τώρα';
                 const tips = error === 'unreadable'
-                  ? ['Τράβα τη φωτογραφία με καλό φως, ίσια, να χωράει όλο το έγγραφο', 'Αν έχεις PDF από τον πάροχο/φορέα, ανέβασέ το — διαβάζεται καλύτερα']
+                  ? ['Τράβα τη φωτογραφία με καλό φως, ίσια, να χωράει όλο το έγγραφο', 'Αν έχεις PDF από τον πάροχο/φορέα, ανέβασέ το, διαβάζεται καλύτερα']
                   : error === 'key_missing' ? ['Συμπλήρωσε τα πεδία χειροκίνητα και αποθήκευσε κανονικά', 'Για αυτόματη ανάγνωση χρειάζεται το κλειδί AI στις ρυθμίσεις']
-                  : error === 'save' ? ['Δοκίμασε ξανά — τα στοιχεία σου διατηρούνται']
+                  : error === 'save' ? ['Δοκίμασε ξανά, τα στοιχεία σου διατηρούνται']
                   : ['Δοκίμασε ξανά σε λίγο', 'Μπορείς να συμπληρώσεις τα πεδία χειροκίνητα'];
                 return (
                   <div style={{ marginTop: 12, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '12px 16px' }}>
@@ -510,7 +510,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
         {/* Δεξιά: αναγνώριση + επεξεργασία */}
         {step === 'review' && edited && !scanning && (
           <div>
-            {/* Τύπος εγγράφου — chips για διόρθωση */}
+            {/* Τύπος εγγράφου, chips για διόρθωση */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Τύπος εγγράφου {edited.confidence ? `· ${edited.confidence}% βεβαιότητα` : ''}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

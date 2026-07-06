@@ -18,7 +18,7 @@ import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, Cleani
 import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 
-// ─── Design tokens — shared source of truth (components/Theme) ────────────────
+// ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
@@ -137,17 +137,17 @@ function predictAlerts(payments:RentPayment[], tenant:Tenant|null):{text:string;
   const lateMonths:Record<number,number>={};
   payments.filter(p=>(p.days_late||0)>5).forEach(p=>{lateMonths[p.period_month]=(lateMonths[p.period_month]||0)+1;});
   const nextM=(new Date().getMonth()+2)%12||12;
-  if((lateMonths[nextM]||0)>=2) alerts.push({text:`Βάσει ιστορικού: συχνές καθυστερήσεις τον ${MONTHS_GR[nextM-1]} — προετοιμάσου εγκαίρως`,level:'warning'});
+  if((lateMonths[nextM]||0)>=2) alerts.push({text:`Βάσει ιστορικού: συχνές καθυστερήσεις τον ${MONTHS_GR[nextM-1]}, προετοιμάσου εγκαίρως`,level:'warning'});
   if((lateMonths[7]||0)+(lateMonths[8]||0)>=2) alerts.push({text:'Πρότυπο καλοκαιριού: ιστορικά αυξημένες καθυστερήσεις Ιούλιο/Αύγουστο',level:'warning'});
   const d=daysLeft(tenant.lease_end);
   if(d!==null){
-    if(d<0) alerts.push({text:'Το μισθωτήριο έχει λήξει — ανανέωσε ή ξεκίνα διαδικασία αποχώρησης',level:'critical'});
-    else if(d<=30) alerts.push({text:`Κρίσιμο: Λήξη μισθωτηρίου σε ${d} ημέρες — απαιτείται άμεση ενέργεια`,level:'critical'});
-    else if(d<=60) alerts.push({text:`Λήξη μισθωτηρίου σε ${d} ημέρες — ξεκίνα διαπραγματεύσεις ανανέωσης`,level:'warning'});
+    if(d<0) alerts.push({text:'Το μισθωτήριο έχει λήξει, ανανέωσε ή ξεκίνα διαδικασία αποχώρησης',level:'critical'});
+    else if(d<=30) alerts.push({text:`Κρίσιμο: Λήξη μισθωτηρίου σε ${d} ημέρες, απαιτείται άμεση ενέργεια`,level:'critical'});
+    else if(d<=60) alerts.push({text:`Λήξη μισθωτηρίου σε ${d} ημέρες, ξεκίνα διαπραγματεύσεις ανανέωσης`,level:'warning'});
     else if(d<=90) alerts.push({text:`Λήξη μισθωτηρίου σε ${d} ημέρες`,level:'info'});
   }
   const unpaid=payments.filter(p=>!p.paid);
-  if(unpaid.length>=2) alerts.push({text:`${unpaid.length} εκκρεμείς πληρωμές — απαιτείται άμεση ενέργεια`,level:'critical'});
+  if(unpaid.length>=2) alerts.push({text:`${unpaid.length} εκκρεμείς πληρωμές, απαιτείται άμεση ενέργεια`,level:'critical'});
   return alerts;
 }
 
@@ -290,7 +290,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
 
       {/* Payment History Chart */}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
-        <SectionTitle>Ιστορικό Πληρωμών — Τελευταίοι 12 Μήνες</SectionTitle>
+        <SectionTitle>Ιστορικό Πληρωμών, Τελευταίοι 12 Μήνες</SectionTitle>
         <PaymentBars payments={payments}/>
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
@@ -356,7 +356,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       @media print{body{margin:20px;padding:24px}}
     </style></head><body>
     <div class="header"><h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
-    <div class="sub">Βάσει Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) ${esc(yr)} — Property OS</div></div>
+    <div class="sub">Βάσει Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) ${esc(yr)}, Property OS</div></div>
     <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${esc(today_str)}</p>
     <p style="margin-bottom:20px">Προς: <strong>${esc(tenant.full_name)}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+esc(tenant.afm)+'</strong>':''}</p>
     <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
@@ -372,7 +372,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:40px"></p><p>Υπογραφή / Σφραγίδα</p></div>
       <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p>${tenant.afm?'<p>ΑΦΜ: '+esc(tenant.afm)+'</p>':''}</div>
     </div>
-    <div class="footer">Έγγραφο δημιουργήθηκε μέσω Property OS — Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
+    <div class="footer">Έγγραφο δημιουργήθηκε μέσω Property OS, Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
     </body></html>`);
     w.document.close();setTimeout(()=>w.print(),800);
   };
@@ -398,7 +398,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       {/* Status strip */}
       {(isExpired||isExpiring)&&(
         <AlertBar
-          text={isExpired?`Το μισθωτήριο έληξε στις ${fmtDate(tenant.lease_end)} — ανανέωσε άμεσα πριν οποιαδήποτε αναπροσαρμογή`:`Λήγει σε ${daysExp} ημέρες (${fmtDate(tenant.lease_end)}) — προετοίμασε ανανέωση εγκαίρως`}
+          text={isExpired?`Το μισθωτήριο έληξε στις ${fmtDate(tenant.lease_end)}, ανανέωσε άμεσα πριν οποιαδήποτε αναπροσαρμογή`:`Λήγει σε ${daysExp} ημέρες (${fmtDate(tenant.lease_end)}), προετοίμασε ανανέωση εγκαίρως`}
           level={isExpired?'critical':'warning'}
         />
       )}
@@ -420,7 +420,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
             <div style={{ ...labelStyle, marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
             <select value={yr} onChange={e=>setYr(e.target.value)} style={selectStyle}>
               {Object.keys(TDE).sort((a,b)=>parseInt(b)-parseInt(a)).map(y=>(
-                <option key={y} value={y}>{y} — ΤΔΕ: {TDE[parseInt(y)]>=0?'+':''}{TDE[parseInt(y)].toFixed(1)}%</option>
+                <option key={y} value={y}>{y}, ΤΔΕ: {TDE[parseInt(y)]>=0?'+':''}{TDE[parseInt(y)].toFixed(1)}%</option>
               ))}
             </select>
           </div>
@@ -492,7 +492,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
             <SectionTitle>Υποχρεώσεις και Σύνδεσμοι</SectionTitle>
             {[
               {label:'Καταχώρηση Μισθωτηρίου στην ΑΑΑΔΕ',desc:'Εντός 30 ημερών από υπογραφή',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:true},
-              {label:'Ε2 — Δήλωση Εισοδήματος Ακινήτων',desc:'Έως 30 Ιουνίου κάθε έτους',url:'https://www.aade.gr',urgent:false},
+              {label:'Ε2, Δήλωση Εισοδήματος Ακινήτων',desc:'Έως 30 Ιουνίου κάθε έτους',url:'https://www.aade.gr',urgent:false},
               {label:'Πρότυπο Σύμβασης Μίσθωσης',desc:'Επίσημο πρότυπο ΑΑΑΔΕ',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:false},
             ].map((link,i)=>(
               <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -537,9 +537,9 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
   const d=daysLeft(tenant.lease_end);
   const reminders=[];
   if(d!==null){
-    if(d<=30&&d>=0) reminders.push({label:`Λήξη σε ${d} ημέρες — ζήτα άμεσα απόφαση ανανέωσης`,urgent:true});
-    else if(d<=60&&d>=31) reminders.push({label:`Λήξη σε ${d} ημέρες — ενημέρωσε τον ενοικιαστή`,urgent:false});
-    else if(d<=90&&d>=61) reminders.push({label:`Λήξη σε ${d} ημέρες — ξεκίνα συζήτηση ανανέωσης`,urgent:false});
+    if(d<=30&&d>=0) reminders.push({label:`Λήξη σε ${d} ημέρες, ζήτα άμεσα απόφαση ανανέωσης`,urgent:true});
+    else if(d<=60&&d>=31) reminders.push({label:`Λήξη σε ${d} ημέρες, ενημέρωσε τον ενοικιαστή`,urgent:false});
+    else if(d<=90&&d>=61) reminders.push({label:`Λήξη σε ${d} ημέρες, ξεκίνα συζήτηση ανανέωσης`,urgent:false});
   }
   const inputStyle:React.CSSProperties={width:'100%',height:40,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:13,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
 
@@ -928,12 +928,12 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     {id:'docs',label:'Συμβόλαιο'},
   ];
 
-  // ── Σύνοψη κορυφής (KPIs + ειδοποιήσεις) — μόνο παρουσίαση, χωρίς νέα λογική ──
+  // ── Σύνοψη κορυφής (KPIs + ειδοποιήσεις), μόνο παρουσίαση, χωρίς νέα λογική ──
   const leaseDaysLeft = tenant ? daysLeft(tenant.lease_end) : null;
   const unpaidPayments = payments.filter(p=>!p.paid);
   const unpaidTotal = unpaidPayments.reduce((a,p)=>a+p.amount,0);
   const hasLeaseDoc = !!(tenant?.lease_doc_name || tenant?.lease_doc_url || tenant?.lease_doc_external_url);
-  // Παράγει βραχύβιο (1 ώρα) signed URL μόνο τη στιγμή του ανοίγματος — κανένα
+  // Παράγει βραχύβιο (1 ώρα) signed URL μόνο τη στιγμή του ανοίγματος, κανένα
   // μακρόβιο bearer token δεν αποθηκεύεται στη βάση.
   const openLeaseDoc = async () => {
     if (!tenant?.lease_doc_name) return;
@@ -946,7 +946,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     { label:'Μηνιαίο Ενοίκιο', value:fe(tenant.monthly_rent||0), tone:'accent' },
     { label:'Εγγύηση', value:fe(tenant.deposit_amount||0), tone: tenant.deposit_returned?'positive':'info', sub: tenant.deposit_returned?'Επεστράφη':undefined },
     { label:'Ημέρες ως τη Λήξη Σύμβασης', value: leaseDaysLeft==null?'—':leaseDaysLeft<0?'Έληξε':fn(leaseDaysLeft), tone: leaseDaysLeft==null?'neutral':leaseDaysLeft<0?'negative':leaseDaysLeft<60?'warning':'positive', sub: leaseDaysLeft!=null&&leaseDaysLeft>=0?'ημέρες':undefined },
-    { label:'Κατάσταση Πληρωμής', value: unpaidPayments.length>0?'Εκκρεμεί':'Πληρωμένο', tone: unpaidPayments.length>0?'negative':'positive', sub: unpaidPayments.length>0?`${fn(unpaidPayments.length)} εκκρεμείς — ${fe(unpaidTotal)}`:undefined },
+    { label:'Κατάσταση Πληρωμής', value: unpaidPayments.length>0?'Εκκρεμεί':'Πληρωμένο', tone: unpaidPayments.length>0?'negative':'positive', sub: unpaidPayments.length>0?`${fn(unpaidPayments.length)} εκκρεμείς, ${fe(unpaidTotal)}`:undefined },
     { label:'Ημερομηνία Λήξης Μίσθωσης', value: tenant.lease_end?fd(tenant.lease_end):'—', tone:'neutral' },
   ] : [];
 
@@ -1058,7 +1058,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {form.prepay_option&&<PrepayCalc monthlyRent={form.monthly_rent?Math.max(0,parseFloat(form.monthly_rent)):null}/>}
               <div style={s.divider}/>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.all_inclusive?16:0 }}>
-                <SectionTitle>All-Inclusive — Κοινόχρηστα Στον Ενοικιαστή</SectionTitle>
+                <SectionTitle>All-Inclusive, Κοινόχρηστα Στον Ενοικιαστή</SectionTitle>
                 <Toggle on={form.all_inclusive} onChange={v=>sf('all_inclusive',v)} label="Ναι" labelOff="Όχι"/>
               </div>
               {form.all_inclusive&&(
@@ -1090,7 +1090,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               <SectionTitle>Καθαρισμός</SectionTitle>
               <CleaningConfig value={form.cleaning} onChange={v=>sf('cleaning',v)}/>
               <div style={s.divider}/>
-              <SectionTitle>Ετήσιες Συντηρήσεις — Ποιος Επιβαρύνεται</SectionTitle>
+              <SectionTitle>Ετήσιες Συντηρήσεις, Ποιος Επιβαρύνεται</SectionTitle>
               {[{label:'Κλιματιστικό',byKey:'ac_service_by',freqKey:'ac_service_frequency'},{label:'Ηλιακός Θερμοσίφωνας',byKey:'solar_service_by',freqKey:'solar_service_frequency'},{label:'Αντλία Θερμότητας',byKey:'heat_pump_service_by',freqKey:'heat_pump_service_frequency'},{label:'Φωτοβολταϊκά',byKey:'solar_panels_service_by',freqKey:'solar_panels_service_frequency'},{label:'Απεντόμωση / Μυοκτονία',byKey:'pest_control_by',freqKey:'pest_control_frequency'}].map(({label,byKey,freqKey})=>(
                 <div key={byKey} style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12, marginBottom:10, padding:14, background:'var(--bg-elevated)', borderRadius:T.radius.inner, border:'1px solid var(--border-subtle)' }}>
                   <ServiceBySelect label={label} value={(form as any)[byKey] as ServiceBy} onChange={v=>sf(byKey,v)}/>
@@ -1172,10 +1172,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
           <KPIGrid items={tenantKPIs}/>
 
           {/* Alerts */}
-          {leaseDaysLeft!=null&&leaseDaysLeft<0&&<InfoBanner tone="negative">Το μισθωτήριο έχει λήξει — απαιτείται ανανέωση ή διαδικασία αποχώρησης.</InfoBanner>}
-          {leaseDaysLeft!=null&&leaseDaysLeft>=0&&leaseDaysLeft<=60&&<InfoBanner tone="warning">Το μισθωτήριο λήγει σε {fn(leaseDaysLeft)} ημέρες — ξεκίνησε εγκαίρως τη διαδικασία ανανέωσης.</InfoBanner>}
+          {leaseDaysLeft!=null&&leaseDaysLeft<0&&<InfoBanner tone="negative">Το μισθωτήριο έχει λήξει, απαιτείται ανανέωση ή διαδικασία αποχώρησης.</InfoBanner>}
+          {leaseDaysLeft!=null&&leaseDaysLeft>=0&&leaseDaysLeft<=60&&<InfoBanner tone="warning">Το μισθωτήριο λήγει σε {fn(leaseDaysLeft)} ημέρες, ξεκίνησε εγκαίρως τη διαδικασία ανανέωσης.</InfoBanner>}
           {unpaidPayments.length>0&&<InfoBanner tone="negative">Υπάρχουν {fn(unpaidPayments.length)} εκκρεμείς πληρωμές ενοικίου συνολικού ποσού {fe(unpaidTotal)}.</InfoBanner>}
-          {!hasLeaseDoc&&<InfoBanner tone="info">Δεν έχει καταχωρηθεί έγγραφο μισθωτηρίου — ανέβασε PDF ή πρόσθεσε εξωτερικό σύνδεσμο στην καρτέλα «Συμβόλαιο».</InfoBanner>}
+          {!hasLeaseDoc&&<InfoBanner tone="info">Δεν έχει καταχωρηθεί έγγραφο μισθωτηρίου, ανέβασε PDF ή πρόσθεσε εξωτερικό σύνδεσμο στην καρτέλα «Συμβόλαιο».</InfoBanner>}
 
           {/* View Tabs */}
           <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24, overflowX:'auto' as const, scrollbarWidth:'none' as const }}>

@@ -1,10 +1,10 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OccupancyPanel — Πληρότητα & Βραχυχρόνια μίσθωση (Airbnb/επιπλωμένο).
+// OccupancyPanel, Πληρότητα & Βραχυχρόνια μίσθωση (Airbnb/επιπλωμένο).
 // Ελληνικό-specific: αριθμός ΑΜΑ (Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής, ΑΑΔΕ).
 // Παρακολουθεί νύχτες/μήνα → ποσοστό πληρότητας, έσοδα, σύγκριση με μακροχρόνια.
-// Αποθηκεύεται στο bills_settings (section 'occupancy') — κανένα νέο migration.
+// Αποθηκεύεται στο bills_settings (section 'occupancy'), κανένα νέο migration.
 // Blueground-aligned: occupancy + performance ανά μονάδα.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -118,7 +118,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
               <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', marginTop: 6, flexShrink: 0 }} />
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της ΑΑΔΕ και αναγραφή του <strong>ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο Ε2. Η σύγκριση εδώ είναι μεικτή — δεν περιλαμβάνει πλατφόρμες, καθαρισμό ή κενές περιόδους.
+                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της ΑΑΔΕ και αναγραφή του <strong>ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο Ε2. Η σύγκριση εδώ είναι μεικτή, δεν περιλαμβάνει πλατφόρμες, καθαρισμό ή κενές περιόδους.
                 </div>
               </div>
             </>

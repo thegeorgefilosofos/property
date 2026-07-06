@@ -6,7 +6,7 @@ import Link from 'next/link'
 import AuthAside from '../AuthAside'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Επαναφορά κωδικού — δύο καταστάσεις:
+// Επαναφορά κωδικού, δύο καταστάσεις:
 //  • request: ο χρήστης δίνει email → στέλνουμε σύνδεσμο επαναφοράς.
 //  • update:  ο χρήστης ήρθε από τον σύνδεσμο (PASSWORD_RECOVERY) → ορίζει νέο κωδικό.
 // Ίδιο «δωμάτιο» με Σύνδεση/Εγγραφή (κοινό AuthAside).
@@ -94,14 +94,14 @@ export default function ResetPasswordPage() {
   return (
     <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
 
-      {/* LEFT — κοινό marketing panel (AuthAside) */}
+      {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside
         headline="Επαναφορά πρόσβασης."
         accent="Σε ένα λεπτό."
         sub="Δώσε το email σου και θα σου στείλουμε έναν ασφαλή σύνδεσμο για να ορίσεις νέο κωδικό. Τα δεδομένα σου παραμένουν στη θέση τους."
       />
 
-      {/* RIGHT — form */}
+      {/* RIGHT, form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
 

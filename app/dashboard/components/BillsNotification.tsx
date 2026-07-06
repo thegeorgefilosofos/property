@@ -131,7 +131,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
         result.push({
           id: `overdue_${overdue.length}_${total}`,
           title: `${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'}`,
-          body: overdue.slice(0, 3).map(b => `${b.name || b.category} — ${fe(b.amount)}, έληξε ${fmtDate(b.due_date)}`).join(' · ') + (overdue.length > 3 ? ` και ${overdue.length - 3} ακόμη.` : ''),
+          body: overdue.slice(0, 3).map(b => `${b.name || b.category}, ${fe(b.amount)}, έληξε ${fmtDate(b.due_date)}`).join(' · ') + (overdue.length > 3 ? ` και ${overdue.length - 3} ακόμη.` : ''),
           cta: 'Επισκόπηση', ctaTab: 'dashboard',
           severity: 'critical', amount: total, date: today.toISOString(),
         });
@@ -143,14 +143,14 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
         const days = daysUntil(b.due_date);
         result.push({
           id: `due_${b.id}`,
-          title: `${b.name || b.category} — λήγει ${days === 0 ? 'σήμερα' : `σε ${days} ${days === 1 ? 'ημέρα' : 'ημέρες'}`}`,
+          title: `${b.name || b.category}, λήγει ${days === 0 ? 'σήμερα' : `σε ${days} ${days === 1 ? 'ημέρα' : 'ημέρες'}`}`,
           body: `Ποσό: ${fe(b.amount)}. Εξόφληση μέχρι ${fmtDate(b.due_date)}.`,
           cta: 'Πήγαινε στην Επισκόπηση', ctaTab: 'dashboard',
           severity: days <= 2 ? 'critical' : 'warning', amount: b.amount, date: today.toISOString(),
         });
       });
 
-      // ── 3. ΕΝΦΙΑ — only if installment not already paid ─────────────────────
+      // ── 3. ΕΝΦΙΑ, only if installment not already paid ─────────────────────
       const nextEnfia = ENFIA_2026.find(d => daysUntil(d.date) >= 0 && daysUntil(d.date) <= 45);
       if (nextEnfia) {
         const days        = daysUntil(nextEnfia.date);
@@ -163,7 +163,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
         if (!alreadyPaid) {
           result.push({
             id: `enfia_${nextEnfia.date}`,
-            title: `ΕΝΦΙΑ 2026 — ${nextEnfia.label} σε ${days} ημέρες`,
+            title: `ΕΝΦΙΑ 2026, ${nextEnfia.label} σε ${days} ημέρες`,
             body: installment > 0
               ? `Δόση: ${fe(installment)}. Πληρωμή μέσω myAADE → Ο Λογαριασμός μου → Οφειλές.`
               : `Πληρωμή μέσω myAADE → Ο Λογαριασμός μου → Οφειλές.`,
@@ -183,7 +183,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
           result.push({
             id: `ins_${ins.insRenewalDate}`,
             title: `Ανανέωση ασφαλιστηρίου σε ${days} ημέρες`,
-            body: `${company}${cost > 0 ? ` — τρέχον ${fe(cost)}/μήνα` : ''}. Σύγκρινε τιμές πριν ανανεώσεις.`,
+            body: `${company}${cost > 0 ? `, τρέχον ${fe(cost)}/μήνα` : ''}. Σύγκρινε τιμές πριν ανανεώσεις.`,
             cta: 'Σύγκριση Ασφαλιστικών', ctaTab: 'insurance',
             severity: days <= 7 ? 'critical' : days <= 14 ? 'warning' : 'info', date: today.toISOString(),
           });
@@ -303,7 +303,7 @@ export default function BillsNotifications({ propertyId, userId = '', onNavigate
     return () => { supabase.removeChannel(ch); };
   }, [propertyId, buildNotifications]);
 
-  // Dismissed — localStorage
+  // Dismissed, localStorage
   const storageKey = `notif_d_${propertyId}`;
   useEffect(() => {
     if (typeof window === 'undefined') return;

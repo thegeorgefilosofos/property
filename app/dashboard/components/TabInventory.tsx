@@ -50,7 +50,7 @@ const ROOM_PRESETS = ['Σαλόνι','Κουζίνα','Κύριο Υπνοδωμ
 const CONDITIONS = ['Άριστη','Καλή','Μέτρια','Κακή','Εκτός Λειτουργίας']
 const ENERGY_CLASSES = ['A+++','A++','A+','A','B','C','D','E','F','G']
 const PROVENANCE_OPTIONS = [
-  {value:'new', label:'Νέο — Αγορά από κατάστημα'},
+  {value:'new', label:'Νέο, Αγορά από κατάστημα'},
   {value:'used', label:'Μεταχειρισμένο'},
   {value:'refurbished', label:'Ανακατασκευασμένο (Refurbished)'},
   {value:'gift', label:'Δώρο'},
@@ -580,10 +580,10 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:12,border:'1px solid var(--border-accent)'}}>
                 <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Προτεινόμενα Smart Devices</p>
                 {[
-                  {label:'Smart Plug με μέτρηση',desc:'Shelly Plug S, Tapo P115 — μέτρηση κατανάλωσης ανά συσκευή',saving:'έως 15% εξοικονόμηση'},
-                  {label:'Smart Θερμοστάτης',desc:'Tado, Nest, Heatmiser — για κλιματισμό & θέρμανση',saving:'15-25% εξοικονόμηση'},
+                  {label:'Smart Plug με μέτρηση',desc:'Shelly Plug S, Tapo P115, μέτρηση κατανάλωσης ανά συσκευή',saving:'έως 15% εξοικονόμηση'},
+                  {label:'Smart Θερμοστάτης',desc:'Tado, Nest, Heatmiser, για κλιματισμό & θέρμανση',saving:'15-25% εξοικονόμηση'},
                   {label:'Home Assistant',desc:'Δωρεάν ενοποίηση, automation, dashboard για όλες τις συσκευές',saving:'Κεντρικός έλεγχος'},
-                  {label:'Smart LED Φωτισμός',desc:'Philips Hue, IKEA TRÅDFRI — χρονοπρογράμματα & παρουσία',saving:'έως 80% λιγότερο'},
+                  {label:'Smart LED Φωτισμός',desc:'Philips Hue, IKEA TRÅDFRI, χρονοπρογράμματα & παρουσία',saving:'έως 80% λιγότερο'},
                 ].map((tip,i)=>(
                   <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderBottom:i<3?'1px solid var(--border-subtle)':'none'}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',marginTop:5,flexShrink:0}}/>
@@ -625,7 +625,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
     setSaving(true)
     await onAdd(form)
     if(pushExpenses&&form.cost>0){
-      await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?` — ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||new Date().toISOString().split('T')[0],paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από Απογραφή — ${item.name}`})
+      await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Επισκευή: ${item.name}${form.technician?` (${form.technician})`:''}${form.description?`, ${form.description}`:''}`,amount:form.cost,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.repair_date||new Date().toISOString().split('T')[0],paid_by:'owner',paid:true,notes:`Αυτόματη εισαγωγή από Απογραφή, ${item.name}`})
     }
     setForm({repair_date:'',cost:0,technician:'',description:''})
     setSaving(false)
@@ -1162,7 +1162,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
         {(['check_in','check_out'] as const).map(t=>(
           <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:12,cursor:'pointer',fontWeight:500,fontFamily:"'Inter',sans-serif",fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition:'all 0.2s'}}>
-            {t==='check_in'?'Check-In — Είσοδος':'Check-Out — Έξοδος'}
+            {t==='check_in'?'Check-In, Είσοδος':'Check-Out, Έξοδος'}
           </button>
         ))}
       </div>
@@ -1231,7 +1231,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
                   <div style={{padding:'8px 12px',background:'var(--negative-dim)',borderRadius:8,border:'1px solid var(--negative-border)'}}>
                     {snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').map((s,i)=>(
                       <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",padding:'2px 0'}}>
-                        <span>{s.name}</span><span style={{color:'var(--negative)'}}>{s.condition_at_handover}{s.condition_notes?` — ${s.condition_notes}`:''}</span>
+                        <span>{s.name}</span><span style={{color:'var(--negative)'}}>{s.condition_at_handover}{s.condition_notes?`, ${s.condition_notes}`:''}</span>
                       </div>
                     ))}
                   </div>
@@ -1256,11 +1256,11 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   const markDone=async(s:MaintenanceSchedule)=>{
     const today=new Date().toISOString().split('T')[0]
     await supabase.from('inventory_maintenance').update({last_done:today,next_due:addMonths(today,s.interval_months)}).eq('id',s.id)
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${s.task}${s.item_name?` — ${s.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:today,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})
+    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:today,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})
     onSaved()
   }
   const deleteSched=async(id:string)=>{await supabase.from('inventory_maintenance').delete().eq('id',id);onSaved()}
-  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?` — ${s.item_name}`:''}`,event_date:s.next_due,event_type:'maintenance',priority:'medium'});setPushed(p=>new Set(p).add(s.id))}
+  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,event_date:s.next_due,event_type:'maintenance',priority:'medium'});setPushed(p=>new Set(p).add(s.id))}
   const addSuggested=async(s:{task:string;interval_months:number;category:string})=>{
     const matching=items.filter(i=>i.category===s.category)
     const inserts=matching.length>0?matching.map(item=>({property_id:propertyId,user_id:userId,item_id:item.id,item_name:item.name,task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''})):[{property_id:propertyId,user_id:userId,item_id:'',item_name:'',task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''}]
@@ -1270,7 +1270,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     if(!form.task.trim()){alert('Η εργασία είναι υποχρεωτική.');return}
     setSaving(true)
     await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:addMonths(form.last_done,form.interval_months),notes:form.notes})
-    if(form.last_done){await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${form.task}${form.item_name?` — ${form.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})}
+    if(form.last_done){await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${form.task}${form.item_name?`, ${form.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})}
     setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''});setSaving(false);onSaved()
   }
   const SchedRow=({s}:{s:MaintenanceSchedule})=>{
@@ -1371,7 +1371,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
-          {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία — ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
+          {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία, ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
             <div style={{textAlign:'center',marginBottom:14}}>
@@ -1426,7 +1426,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
         const dep=calcDepreciationPct(item as InventoryItem)
         const warranty=daysUntil(item.warranty_expiry)
         if(dep>=100&&item.purchase_date){
-          await supabase.from('calendar_events').upsert({property_id:propertyId,user_id:userId,title:`Αντικατάσταση: ${item.name}`,description:`Πλήρης απόσβεση — εκτιμ. κόστος ${item.replacement_cost?fmtEur(item.replacement_cost):'άγνωστο'}`,event_date:new Date().toISOString().split('T')[0],event_type:'reminder',priority:'medium'},{onConflict:'property_id,title'})
+          await supabase.from('calendar_events').upsert({property_id:propertyId,user_id:userId,title:`Αντικατάσταση: ${item.name}`,description:`Πλήρης απόσβεση, εκτιμ. κόστος ${item.replacement_cost?fmtEur(item.replacement_cost):'άγνωστο'}`,event_date:new Date().toISOString().split('T')[0],event_type:'reminder',priority:'medium'},{onConflict:'property_id,title'})
         }
         if(warranty>=0&&warranty<=30&&item.warranty_expiry){
           await supabase.from('calendar_events').upsert({property_id:propertyId,user_id:userId,title:`Εγγύηση λήγει: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,event_type:'reminder',priority:'high'},{onConflict:'property_id,title'})

@@ -81,7 +81,7 @@ const REDUCTIONS = [
   { key: 'three_children', label: 'Τρίτεκνοι',              pct: 25, note: 'Α.Φ.Μ. τριτέκνου γονέα'        },
   { key: 'four_children',  label: 'Πολύτεκνοι',             pct: 50, note: 'Α.Φ.Μ. πολυτέκνου γονέα'       },
   { key: 'disability',     label: 'Αναπηρία 80%+',          pct: 50, note: 'Βεβαίωση ΚΕΠΑ'                 },
-  { key: 'insurance',      label: 'Ασφάλεια φυσικών κινδύνων', pct: 15, note: 'Α.1005/2026 — 10-20% έκπτωση'  },
+  { key: 'insurance',      label: 'Ασφάλεια φυσικών κινδύνων', pct: 15, note: 'Α.1005/2026, 10-20% έκπτωση'  },
 ];
 const SUPPL_BRACKETS = [
   { limit: 100_000, rate: 0 },{ limit: 200_000, rate: 0.001 },{ limit: 300_000, rate: 0.002 },
@@ -242,13 +242,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
     </div>
   );
 
-  // ── FIX: svcHdr — "0" bug: only show cost if active AND cost > 0 ──────────
+  // ── FIX: svcHdr, "0" bug: only show cost if active AND cost > 0 ──────────
   const svcHdr = (label: string, active: boolean, onToggle: (v: boolean) => void, cost?: number) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: active ? 16 : 0, paddingBottom: active ? 10 : 0, borderBottom: active ? '1px solid var(--border-subtle)' : 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: active ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
         <div>
-          {/* FIX: label and cost are separate — no concatenation */}
+          {/* FIX: label and cost are separate, no concatenation */}
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
           {/* FIX: only show if active AND cost is a positive number */}
           {active && typeof cost === 'number' && cost > 0 && (
@@ -285,7 +285,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
             <span style={{ fontWeight: 600, color: 'var(--info)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
-            — από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
+           , από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
           </div>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>Ρεύμα</span>
         </div>
@@ -312,8 +312,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026 — Υπολογιστής</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9 — επαλήθευσε στο myAADE.gr</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE.gr</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -342,7 +342,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               {crossTabData.enfiaChecklist.status === 'done'
                 ? 'ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στο Checklist'
                 : crossTabData.enfiaChecklist.daysLeft !== null && crossTabData.enfiaChecklist.daysLeft <= 30
-                  ? `ΕΝΦΙΑ στο Checklist — σε ${crossTabData.enfiaChecklist.daysLeft} ημέρες`
+                  ? `ΕΝΦΙΑ στο Checklist, σε ${crossTabData.enfiaChecklist.daysLeft} ημέρες`
                   : 'ΕΝΦΙΑ εκκρεμεί στο Checklist'}
             </span>
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill }}>Checklist</span>
@@ -387,7 +387,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
               {nextDeadline.label} ΕΝΦΙΑ 2026{' '}
               <span style={{ color: daysToDeadline <= 7 ? 'var(--negative)' : 'var(--warning)', fontWeight: 700 }}>σε {daysToDeadline} ημέρες</span>
-              {enfiaResult && ` — Ποσό δόσης: ${fe(enfiaResult.installment)}`}
+              {enfiaResult && `, Ποσό δόσης: ${fe(enfiaResult.installment)}`}
             </span>
           </div>
         )}
@@ -409,7 +409,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική Αξία Ακινήτων (€) — για Συμπληρωματικό Φόρο" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
+                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Συμπληρωματικό Φόρο" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
@@ -525,12 +525,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {secHdr('Δημοτικά Τέλη')}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
-          {/* FIX: 2 inputs + result — all in same grid, aligned at bottom, no marginBottom on result box */}
+          {/* FIX: 2 inputs + result, all in same grid, aligned at bottom, no marginBottom on result box */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 10 }}>
             <NumberInput label="Σύνολο λογαριασμού (€)"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά Τέλη στον λογαριασμό (€)" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
           </div>
-          {/* Result: compact inline pill — same pattern as Providers + Electricity */}
+          {/* Result: compact inline pill, same pattern as Providers + Electricity */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
@@ -545,7 +545,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
-          Ιστορικό Δημοτικών Τελών / μήνα — Μέσος Όρος: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
+          Ιστορικό Δημοτικών Τελών / μήνα, Μέσος Όρος: {dimotikaAvg > 0 ? fe(dimotikaAvg) : 'δεν υπάρχουν δεδομένα'}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
           {MONTHS_GR.map((m, i) => {

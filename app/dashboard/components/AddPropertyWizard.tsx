@@ -199,7 +199,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         {/* Body */}
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
 
-          {/* STEP 1 — Τύπος & Κατάσταση */}
+          {/* STEP 1, Τύπος & Κατάσταση */}
           {step === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div>
@@ -262,7 +262,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </div>
           )}
 
-          {/* STEP 2 — Βασικά Στοιχεία */}
+          {/* STEP 2, Βασικά Στοιχεία */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Ονομασία Ακινήτου *">
@@ -296,7 +296,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </div>
           )}
 
-          {/* STEP 3 — Οικονομικά */}
+          {/* STEP 3, Οικονομικά */}
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={grid2}>
@@ -330,7 +330,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </div>
           )}
 
-          {/* STEP 4 — Σύνοψη */}
+          {/* STEP 4, Σύνοψη */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>

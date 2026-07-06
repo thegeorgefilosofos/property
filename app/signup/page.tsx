@@ -6,7 +6,7 @@ import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Εγγραφή — στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
+// Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -98,14 +98,14 @@ export default function SignupPage() {
   return (
     <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: "'Inter',sans-serif" }}>
 
-      {/* LEFT — κοινό marketing panel (AuthAside) */}
+      {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside
         headline="Ξεκίνα σήμερα."
         accent="Δωρεάν, χωρίς κάρτα."
         sub="Δημιούργησε λογαριασμό σε λίγα δευτερόλεπτα. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο όταν έχεις περισσότερα να διαχειριστείς."
       />
 
-      {/* RIGHT — form */}
+      {/* RIGHT, form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           {sessionEmail ? (

@@ -34,8 +34,8 @@ const INTERNET_PLANS: Record<string, {
     { id:'c_f1g',      name: 'Fiber 1 Gbps Unlimited',      speed: '1 Gbps',    price: 35.90, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'c_f3g',      name: 'Fiber 3 Gbps Unlimited',      speed: '3 Gbps',    price: 70.39, hasPhone: true,  note: 'Υπερ-γρήγορο οπτική ίνα FTTH.', networkType: 'Fiber', contract: '24 μήνες' },
     // ── 5G WiFi (Internet backup μέσω 5G) ────────────────────────────────
-    { id:'c_5g50',     name: '5G WiFi Double Play 50',      speed: '50 Mbps',   price: 30.90, hasPhone: true,  note: 'Ασύρματο 5G — Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
-    { id:'c_5g300',    name: '5G WiFi Double Play 300',     speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G — Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
+    { id:'c_5g50',     name: '5G WiFi Double Play 50',      speed: '50 Mbps',   price: 30.90, hasPhone: true,  note: 'Ασύρματο 5G, Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
+    { id:'c_5g300',    name: '5G WiFi Double Play 300',     speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G, Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
     { id:'c_5g_free',  name: '5G WiFi 300 Χωρίς Σύμβαση',  speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G χωρίς δέσμευση. Εξοπλισμός 349€.', networkType: '5G', backup: true },
     // ── Triple Play (Σταθερή + Internet + Τηλεόραση) ─────────────────────
     { id:'c_f100_tv',  name: 'Fiber 100 + Cosmote TV Full', speed: '100 Mbps',  price: 48.77, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV πλήρες πακέτο. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
@@ -84,8 +84,8 @@ const INTERNET_PLANS: Record<string, {
     { id:'i_300_free', name: 'Fiber 300 Χωρίς Δέσμευση',   speed: '300/300 Mbps', price: 22.90, hasPhone: false, note: 'Χωρίς σύμβαση. Δωρεάν εξοπλισμός και εγκατάσταση.', networkType: 'Fiber' },
     { id:'i_1g_free',  name: 'Fiber 1 Gbps Χωρίς Δέσμευση',speed: '1 Gbps/1 Gbps', price: 27.90, hasPhone: false, note: 'Χωρίς σύμβαση. Δωρεάν εξοπλισμός και εγκατάσταση.', networkType: 'Fiber' },
     // ── Φοιτητικά ────────────────────────────────────────────────────────
-    { id:'i_300_st',   name: 'Φοιτητικό 300 Mbps',         speed: '300/300 Mbps συμμετρικό', price: 14.00, hasPhone: false, note: 'Φοιτητικό — χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ. Δωρεάν εγκατάσταση.', networkType: 'Fiber', student: true },
-    { id:'i_1g_st',    name: 'Φοιτητικό 1 Gbps',           speed: '1 Gbps/1 Gbps συμμετρικό', price: 28.00, hasPhone: false, note: 'Φοιτητικό — χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.', networkType: 'Fiber', student: true },
+    { id:'i_300_st',   name: 'Φοιτητικό 300 Mbps',         speed: '300/300 Mbps συμμετρικό', price: 14.00, hasPhone: false, note: 'Φοιτητικό, χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ. Δωρεάν εγκατάσταση.', networkType: 'Fiber', student: true },
+    { id:'i_1g_st',    name: 'Φοιτητικό 1 Gbps',           speed: '1 Gbps/1 Gbps συμμετρικό', price: 28.00, hasPhone: false, note: 'Φοιτητικό, χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.', networkType: 'Fiber', student: true },
   ],
   enterwave: [
     { id:'ew_100',     name: 'Enterwave Fiber 100',         speed: '100 Mbps',  price: 16.90, hasPhone: false, note: 'FTTH Αθήνα και Θεσσαλονίκη.', networkType: 'Fiber' },
@@ -138,7 +138,7 @@ const SECURITY_COMPANIES = [
 
 const BENCHMARKS = {
   internet: { avg: 22.50, label: 'Μέσος Όρος Ελλάδας'              },
-  water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής — ~24 € / 2 μήνες' },
+  water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής, ~24 € / 2 μήνες' },
   heating:  { avg: 70.00, label: 'Μέσος Όρος χειμώνα'               },
   gas:      { avg: 40.00, label: 'Μέσος Όρος οικιακό'               },
   security: { avg: 18.00, label: 'Μέσος Όρος αγοράς'                },
@@ -196,7 +196,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       p.student ? '(Φοιτητικό)' : '',
       p.backup ? '(Backup 5G)' : '',
       p.hasTV ? '+ TV' : '',
-    ].filter(Boolean).join(' — ')
+    ].filter(Boolean).join(', ')
   }));
   const selectedPlan = (INTERNET_PLANS[s.internetProvider] || []).find(p => p.id === s.internetPlanId);
   const secData      = SECURITY_COMPANIES.find(c => c.value === s.securityCompany);
@@ -261,10 +261,10 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Δημοτικά Τέλη ─────────────────────────────────────────────────
-          FIX: compact result — inline pill, not a large box
+          FIX: compact result, inline pill, not a large box
       ─────────────────────────────────────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 16 }}>
-        {secHdr('Δημοτικά Τέλη — Υπολογισμός Ποσοστού')}
+        {secHdr('Δημοτικά Τέλη, Υπολογισμός Ποσοστού')}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
           <NumberInput
@@ -287,7 +287,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           />
         </div>
 
-        {/* FIX: compact result row — no big box, just a clean info strip */}
+        {/* FIX: compact result row, no big box, just a clean info strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
           {/* Active % pill */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'rgba(26,115,232,0.07)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'rgba(26,115,232,0.2)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
@@ -300,7 +300,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
             </div>
           </div>
 
-          {/* Apply button — only when calc fields are filled */}
+          {/* Apply button, only when calc fields are filled */}
           {s.dimotikaCalcCons && s.dimotikaCalcAmount && parseFloat(s.dimotikaCalcCons) > 0 && (
             <button
               onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
@@ -453,7 +453,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           </div>
           {s.hasTV && (
             <>
-              {/* FIX: 3 cols + separate toggle row — avoids Sports Package label truncation */}
+              {/* FIX: 3 cols + separate toggle row, avoids Sports Package label truncation */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 12 }}>
                 <CustomSelect label="Πάροχος" value={s.tvProvider} onChange={v => upd({ tvProvider: v })}
                   options={[{ value: 'cosmote', label: 'Cosmote TV' },{ value: 'nova', label: 'Nova / EON' },{ value: 'skyshowtime', label: 'SkyShowtime' },{ value: 'other', label: 'Άλλος' }]}/>
@@ -469,7 +469,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       {/* ── Νερό ─────────────────────────────────────────────────────────── */}
       <div style={card}>
         {secHdr('Νερό')}
-        {/* FIX: 2+2 layout — prevents label overflow on narrow screens */}
+        {/* FIX: 2+2 layout, prevents label overflow on narrow screens */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={s.waterProvider}  onChange={v => upd({ waterProvider: v })}  options={WATER_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
           <CustomSelect
@@ -533,7 +533,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
               ))}
             </div>
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              Μέσος Όρος: Φυσικό αέριο ~0.08 €/kWh · Πετρέλαιο ~0.10 €/kWh · Αντλία θερμότητας ~0.06 €/kWh — 2026
+              Μέσος Όρος: Φυσικό αέριο ~0.08 €/kWh · Πετρέλαιο ~0.10 €/kWh · Αντλία θερμότητας ~0.06 €/kWh, 2026
             </div>
           </div>
         )}

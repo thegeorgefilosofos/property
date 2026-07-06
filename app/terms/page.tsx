@@ -1,6 +1,6 @@
 import { LegalShell } from '../legal-shell';
 
-export const metadata = { title: 'Όροι Χρήσης — Property OS' };
+export const metadata = { title: 'Όροι Χρήσης, Property OS' };
 
 export default function TermsPage() {
   return (

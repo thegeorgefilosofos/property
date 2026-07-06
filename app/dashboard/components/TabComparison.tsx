@@ -124,7 +124,7 @@ export default function TabComparison({ properties, userId }: Props) {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Σύγκριση Ακινήτων</h1>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-            {properties.length} ακίνητα — αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
+            {properties.length} ακίνητα, αξία, ενοίκιο, απόδοση, λογαριασμοί και δαπάνες δίπλα-δίπλα. Με πράσινο η καλύτερη τιμή ανά γραμμή.
           </div>
         </div>
         {!loading && (
