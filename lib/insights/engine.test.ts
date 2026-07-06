@@ -82,6 +82,13 @@ ok(greeting(new Date('2026-07-06T20:00:00').getTime()) === 'Καλό βράδυ'
 { const a = JSON.stringify(computeInsights(base())); const b = JSON.stringify(computeInsights(base()));
   ok(a === b, 'deterministic output'); }
 
+// 21. Δαπάνες χωρίς ημερομηνία → ΔΕΝ βγαίνει «Infinity» στο stale insight
+{ const input = base({ expenses: [{ category: 'Ρεύμα', amount: 100, date: undefined, paid: true }] });
+  const stale = get(input, 'stale');
+  ok(!stale || !/Infinity/.test(stale.detail), 'no Infinity in stale detail when dates missing');
+  const all = computeInsights(input);
+  ok(all.every(i => !/Infinity|NaN/.test(i.detail) && !/Infinity|NaN/.test(i.title)), 'no Infinity/NaN anywhere'); }
+
 console.log(`\ninsights/engine.ts — ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 console.log('όλα πέρασαν');
