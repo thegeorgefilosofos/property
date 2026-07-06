@@ -16,7 +16,7 @@ import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import AddPropertyWizard from './components/AddPropertyWizard';
-import BillsAIScan from './components/BillsAIScan';
+import DocumentScan from './components/DocumentScan';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
@@ -700,6 +700,7 @@ export default function Dashboard() {
           </span>
           <span className="quick-add-label">Πρόσθεσε λογαριασμό</span>
         </button>
+        <div className="quick-add-hint">Μία φωτογραφία — το καταχωρούμε παντού αυτόματα</div>
 
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
@@ -854,7 +855,7 @@ export default function Dashboard() {
               onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
               <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <BillsAIScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
+            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
           </div>
         </div>
       )}
