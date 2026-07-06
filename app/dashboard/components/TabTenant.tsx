@@ -223,9 +223,9 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
 
       {/* KPI Strip */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap:10, marginBottom:20 }}>
-        <KpiCard label="Βασικό Ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--accent)"/>
+        <KpiCard label="Βασικό Ενοίκιο" value={fmt(tenant.monthly_rent)} color="var(--text-primary)"/>
         <KpiCard label="Σύνολο Μηνιαίως" value={fmt(totalTenant)} color="var(--positive)"/>
-        <KpiCard label="Κόστη Ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--negative)"/>
+        <KpiCard label="Κόστη Ιδιοκτήτη" value={fmt(ownerCosts)} color="var(--text-primary)"/>
         <KpiCard label="Λήξη Μίσθωσης" value={d==null?'—':d<0?'Έληξε':`${d} ημέρες`} color={st?.color||'var(--text-primary)'}/>
         <KpiCard label="Εκκρεμή Ποσά" value={fmt(unpaidAmt)} color={unpaidAmt>0?'var(--negative)':'var(--positive)'}/>
         <KpiCard label="Εγγύηση" value={fmt(tenant.deposit_amount)} color={tenant.deposit_returned?'var(--positive)':'var(--accent)'}/>
@@ -292,9 +292,9 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
         {payments.length>0&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginTop:20 }}>
             <KpiCard label="Πληρωμές" value={`${paidPay.length}/${payments.length}`} color="var(--positive)"/>
-            <KpiCard label="Ποσοστό Εξόφλησης" value={`${((paidPay.length/payments.length)*100).toFixed(0)}%`} color="var(--accent)"/>
+            <KpiCard label="Ποσοστό Εξόφλησης" value={`${((paidPay.length/payments.length)*100).toFixed(0)}%`} color="var(--text-primary)"/>
             <KpiCard label="Μέση Καθυστέρηση" value={avgLate>0?`${avgLate.toFixed(0)} ημέρες`:'Χωρίς'} color={avgLate>7?'var(--warning)':'var(--positive)'}/>
-            <KpiCard label="Εισπραχθέντα Σύνολο" value={fmt(totalReceived)} color="var(--info)"/>
+            <KpiCard label="Εισπραχθέντα Σύνολο" value={fmt(totalReceived)} color="var(--text-primary)"/>
           </div>
         )}
       </div>
@@ -658,7 +658,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
     <div>
       {comparables.length>0&&(
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12, marginBottom:16 }}>
-          <KpiCard label="Τρέχον Ενοίκιο" value={fmt(rent)} color="var(--accent)"/>
+          <KpiCard label="Τρέχον Ενοίκιο" value={fmt(rent)} color="var(--text-primary)"/>
           <KpiCard label="Μέσος Όρος Αγοράς" value={`${Math.round(avgMarket).toLocaleString('el-GR')} €`} color="var(--text-primary)"/>
           <KpiCard label={rentDiff>0?'Πάνω από Αγορά':'Κάτω από Αγορά'} value={`${rentDiff>0?'+':''}${Math.round(rentDiff).toLocaleString('el-GR')} € (${rentDiffPct.toFixed(1)}%)`} color={rentDiff>0?'var(--positive)':rentDiff<0?'var(--warning)':'var(--text-secondary)'}/>
         </div>

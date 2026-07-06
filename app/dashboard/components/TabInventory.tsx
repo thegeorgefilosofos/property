@@ -62,8 +62,8 @@ const CONDITION_COLOR: Record<string,string> = {
   'Κακή':'var(--negative)','Εκτός Λειτουργίας':'var(--text-tertiary)',
 }
 const ENERGY_COLOR: Record<string,string> = {
-  'A+++':'#059669','A++':'#10b981','A+':'#34d399','A':'#22c55e',
-  'B':'#fbbf24','C':'#f59e0b','D':'#f97316','E':'#ef4444','F':'#dc2626','G':'#991b1b',
+  'A+++':'#059669','A++':'#00897b','A+':'#34d399','A':'#22c55e',
+  'B':'#fbbf24','C':'#e8710a','D':'#e8710a','E':'#c5221f','F':'#dc2626','G':'#991b1b',
 }
 const CATEGORY_ICONS: Record<string,string> = {
   'Έπιπλα':'','Ηλεκτρικές Συσκευές':'','Ηλεκτρονικά':'',
@@ -166,7 +166,7 @@ const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
 const StatCard = ({label,value,color,sub,accent}:{label:string;value:string;color?:string;sub?:string;accent?:boolean}) => (
   <div style={{background:accent?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${accent?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:12,padding:'16px 18px'}}>
     <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:8}}>{label}</p>
-    <p style={{fontSize:20,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700,letterSpacing:'-0.5px',lineHeight:1}}>{value}</p>
+    <p style={{fontSize:20,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700,letterSpacing:'-0.5px',lineHeight:1}}>{value}</p>
     {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:"'Roboto',sans-serif"}}>{sub}</p>}
   </div>
 )
@@ -739,8 +739,8 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:10}}>
         <StatCard label="Αντικείμενα" value={String(items.length)} sub={`${byCategory.length} κατηγορίες`}/>
         <StatCard label="Τρέχουσα Αξία" value={fmtEur(totalCurrent)} color="var(--positive)" sub="Μετά απόσβεση"/>
-        <StatCard label="Ασφαλιστέα Αξία" value={fmtEur(Math.round(totalCurrent*1.1))} color="var(--info)" sub="+10% buffer"/>
-        <StatCard label="Επισκευές" value={fmtEur(totalRepairs)} color="var(--warning)"/>
+        <StatCard label="Ασφαλιστέα Αξία" value={fmtEur(Math.round(totalCurrent*1.1))} color="var(--text-primary)" sub="+10% buffer"/>
+        <StatCard label="Επισκευές" value={fmtEur(totalRepairs)} color="var(--text-primary)"/>
         {electricItems.length>0
           ?<StatCard label="Ρεύμα/Μήνα" value={fmtEurC(totalMonthlyCost)} color="var(--accent)" sub={`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh/μήνα`} accent/>
           :<StatCard label="Ρεύμα" value="—" sub="Πρόσθεσε Watt"/>

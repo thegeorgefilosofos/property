@@ -38,20 +38,20 @@ interface BillEntry {
 interface Props { propertyId: string; userId: string; propertyName?: string; propertyAddress?: string; }
 
 const CATEGORIES = [
-  { value: 'electricity', label: 'Ρεύμα',                       icon: 'bolt',                    color: '#f59e0b' },
+  { value: 'electricity', label: 'Ρεύμα',                       icon: 'bolt',                    color: '#e8710a' },
   { value: 'common',      label: 'Κοινόχρηστα',                  icon: 'building',                color: '#6366f1' },
   { value: 'internet',    label: 'Internet / Τηλεόραση',          icon: 'wifi',                    color: '#3b82f6' },
-  { value: 'water',       label: 'Νερό',                         icon: 'drop',                    color: '#06b6d4' },
-  { value: 'gas',         label: 'Αέριο / Θέρμανση',             icon: 'flame',                   color: '#ef4444' },
-  { value: 'insurance',   label: 'Ασφάλεια',                     icon: 'shield',                  color: '#10b981' },
-  { value: 'security',    label: 'Security / Συναγερμός',         icon: 'lock',                    color: '#f97316' },
-  { value: 'streaming',   label: 'Streaming / Συνδρομές',         icon: 'device-tv',               color: '#ec4899' },
+  { value: 'water',       label: 'Νερό',                         icon: 'drop',                    color: '#00acc1' },
+  { value: 'gas',         label: 'Αέριο / Θέρμανση',             icon: 'flame',                   color: '#c5221f' },
+  { value: 'insurance',   label: 'Ασφάλεια',                     icon: 'shield',                  color: '#00897b' },
+  { value: 'security',    label: 'Security / Συναγερμός',         icon: 'lock',                    color: '#e8710a' },
+  { value: 'streaming',   label: 'Streaming / Συνδρομές',         icon: 'device-tv',               color: '#5e35b1' },
   { value: 'enfia',       label: 'ΕΝΦΙΑ',                        icon: 'landmark',                color: '#64748b' },
   { value: 'dimotika',    label: 'Δημοτικά Τέλη',               icon: 'building-community',      color: '#94a3b8' },
   { value: 'cleaning',    label: 'Καθαρισμός',                   icon: 'sparkles',                color: '#84cc16' },
   { value: 'garden',      label: 'Κήπος',                        icon: 'plant',                   color: '#22c55e' },
   { value: 'pool',        label: 'Πισίνα',                       icon: 'pool',                    color: '#0ea5e9' },
-  { value: 'elevator',    label: 'Ανελκυστήρας',                 icon: 'elevator',                color: '#a78bfa' },
+  { value: 'elevator',    label: 'Ανελκυστήρας',                 icon: 'elevator',                color: '#7c4dff' },
   { value: 'ac_service',  label: 'Σέρβις Κλιματιστικού',         icon: 'air-conditioning',        color: '#38bdf8' },
   { value: 'renovation',  label: 'Ανακαίνιση / Επισκευή',        icon: 'hammer',                  color: '#d97706' },
   { value: 'pest',        label: 'Απεντόμωση',                   icon: 'bug',                     color: '#78716c' },
@@ -907,12 +907,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 12, marginBottom: 20 }}>
             {[
               { label: 'Πάγια ανά τετραγωνικό / μήνα',  value: calc.totalMonthly > 0 ? `${(calc.totalMonthly / 35).toFixed(2)} € ανά τετραγωνικό` : '—', sub: 'Μέσος όρος αγοράς ~3.50 € ανά τετραγωνικό', color: calc.totalMonthly > 0 && (calc.totalMonthly / 35) > 3.50 ? 'var(--negative)' : 'var(--positive)' },
-              { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            color: 'var(--accent)'   },
+              { label: 'Μέσο Μηνιαίο',           value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—',             sub: 'βάσει ιστορικού',            color: 'var(--text-primary)'   },
               { label: 'Ακριβότερος μήνας',       value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', sub: MONTHS_GR[calc.historyTotals.indexOf(Math.max(...calc.historyTotals))] || '—', color: 'var(--negative)' },
               { label: 'Εκκρεμείς',               value: calc.overdue.length > 0 ? `${calc.overdue.length} λογ/σμοί` : 'Εντάξει', sub: calc.totalUnpaid > 0 ? `${calc.totalUnpaid.toFixed(2)} €` : 'Καμία εκκρεμότητα', color: calc.overdue.length > 0 ? 'var(--negative)' : 'var(--positive)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{k.value}</div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, fontFamily: T.font.sans }}>{k.label}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>
               </div>
@@ -1044,12 +1044,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 16 }}>
           {[
-            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', color: 'var(--accent)' },
+            { label: 'Μέσο Μηνιαίο', value: calc.avgMonthly > 0 ? `${Math.round(calc.avgMonthly)} €` : '—', color: 'var(--text-primary)' },
             { label: 'Ακριβότερος',  value: Math.max(...calc.historyTotals) > 0 ? `${Math.round(Math.max(...calc.historyTotals))} €` : '—', color: 'var(--negative)' },
             { label: 'Φθηνότερος',   value: calc.historyTotals.filter(t => t > 0).length > 0 ? `${Math.round(Math.min(...calc.historyTotals.filter(t => t > 0)))} €` : '—', color: 'var(--positive)' },
           ].map((k, i) => (
             <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
               <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, marginTop: 2, fontFamily: T.font.sans }}>{k.label}</div>
             </div>
           ))}

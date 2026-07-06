@@ -21,12 +21,12 @@ const GROUP_LABELS: Record<string, string> = {
   maintenance: 'Συντήρηση', other: 'Άλλα',
 };
 
+// Premium, cohesive παλέτα (μουτ, Google-aligned) — όχι νέον/θόρυβος.
 const GROUP_COLORS: Record<string, string> = {
-  fixed: '#1a73e8', renovation: '#5B8DEF', appliances: '#34D97B',
-  appliance_lease: '#8B5CF6', vehicle_lease: '#F59E0B',
-  commercial: '#EC4899', broker: '#06B6D4', legal: '#F97316',
-  travel: '#10B981', exhibition: '#A78BFA', tax: '#EF4444',
-  maintenance: '#FB923C', other: '#6B7280',
+  fixed: '#1a73e8', maintenance: '#5f6368', renovation: '#7c4dff',
+  appliances: '#00897b', appliance_lease: '#3949ab', vehicle_lease: '#00acc1',
+  commercial: '#5e35b1', broker: '#26a69a', legal: '#8e24aa',
+  travel: '#43a047', exhibition: '#6d4c41', tax: '#e8710a', other: '#9aa0a6',
 };
 
 function parseLocalDate(s: string): Date {
@@ -79,7 +79,7 @@ function DonutChart({ data, size = 110 }: { data: { label: string; value: number
         offset += pct; return el;
       })}
       <text x={cx} y={cy + 4} textAnchor="middle" fontSize={size * 0.11} fontWeight="700"
-        fill="var(--text-primary)" fontFamily="'Roboto Mono', monospace">
+        fill="var(--text-primary)" fontFamily="'Google Sans', sans-serif">
         {fmtEur(total).replace(' €', '')}
       </text>
       <text x={cx} y={cy + 4 + size * 0.1} textAnchor="middle" fontSize={size * 0.07}
@@ -95,7 +95,7 @@ function BarChart({ data, height = 100 }: { data: { label: string; value: number
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height, width: '100%' }}>
       {data.map((d, i) => (
         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
-          <div style={{ fontSize: 8, color: 'var(--text-secondary)', fontFamily: "'Roboto Mono', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+          <div style={{ fontSize: 8, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
             {d.value > 0 ? fmtEur(d.value).replace(' €', '') : ''}
           </div>
           <div style={{ width: '100%', borderRadius: '3px 3px 0 0', height: `${Math.max((d.value / max) * 80, d.value > 0 ? 4 : 0)}%`, background: d.color || 'var(--accent)', opacity: d.value > 0 ? 1 : 0.15, transition: 'height 0.4s', minHeight: d.value > 0 ? '3px' : '0' }} />
@@ -149,7 +149,7 @@ function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
 function KPICard({ label, value, color, small = false }: { label: string; value: string; color: string; small?: boolean }) {
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ fontSize: small ? 12 : 15, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      <div style={{ fontSize: small ? 12 : 15, fontWeight: 700, color, fontFamily: "'Google Sans', sans-serif", marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
       <div style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.5px', textTransform: 'uppercase' as const, fontFamily: "'Google Sans', sans-serif", lineHeight: 1.3 }}>{label}</div>
     </div>
   );
@@ -292,24 +292,24 @@ export default function ExpenseAnalytics({ expenses }: Props) {
 
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
-        <KPICard label="Μέση Μηνιαία" value={fmtEur(stats.avgMonthly)} color="var(--text-primary)" />
-        <KPICard label="Εκτιμ. Ετήσιο" value={fmtEur(stats.projectedAnnual)} color="var(--negative)" />
-        <KPICard label="Επαναλαμβαν." value={fmtEur(stats.recurringTotal)} color="var(--info)" />
-        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} color="var(--positive)" />
-        <KPICard label="Κορυφαία Κατηγορία" value={stats.topCat ? stats.topCat[0] : '—'} color="var(--accent)" small />
-        <KPICard label="Ακριβότερος Μήνας" value={stats.topMonthLabel} color="var(--warning)" small />
+        <KPICard label="Μέση μηνιαία" value={fmtEur(stats.avgMonthly)} color="var(--text-primary)" />
+        <KPICard label="Εκτιμ. ετήσιο" value={fmtEur(stats.projectedAnnual)} color="var(--text-primary)" />
+        <KPICard label="Επαναλαμβανόμενες" value={fmtEur(stats.recurringTotal)} color="var(--text-primary)" />
+        <KPICard label="Εξοικονόμηση" value={fmtEur(stats.totalSavings)} color={stats.totalSavings > 0 ? 'var(--positive)' : 'var(--text-primary)'} />
+        <KPICard label="Κορυφαία κατηγορία" value={stats.topCat ? stats.topCat[0] : '—'} color="var(--text-primary)" small />
+        <KPICard label="Ακριβότερος μήνας" value={stats.topMonthLabel} color="var(--text-primary)" small />
       </div>
 
       {/* MoM */}
       {stats.prevMonthTotal > 0 && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 20 }}>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>
-            {MONTHS_S[thisMonth]}: <strong style={{ color: 'var(--accent)', fontFamily: "'Roboto Mono', monospace" }}>{fmtEur(stats.curMonthTotal)}</strong>
+            {MONTHS_S[thisMonth]}: <strong style={{ color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif" }}>{fmtEur(stats.curMonthTotal)}</strong>
           </span>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>
-            {MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]}: <strong style={{ fontFamily: "'Roboto Mono', monospace", color: 'var(--text-primary)' }}>{fmtEur(stats.prevMonthTotal)}</strong>
+            {MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]}: <strong style={{ fontFamily: "'Google Sans', sans-serif", color: 'var(--text-primary)' }}>{fmtEur(stats.prevMonthTotal)}</strong>
           </span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: stats.momChange > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily: "'Roboto Mono', monospace" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: stats.momChange > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily: "'Google Sans', sans-serif" }}>
             {stats.momChange > 0 ? '+' : ''}{stats.momChange.toFixed(1)}% MoM
           </span>
         </div>
@@ -328,7 +328,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", flexShrink: 0 }}>{fmtEur(d.value)}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Google Sans', sans-serif", flexShrink: 0 }}>{fmtEur(d.value)}</div>
                 </div>
               ))}
               {stats.total > 0 && (
@@ -351,7 +351,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 6, height: 6, borderRadius: 2, background: d.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: d.color, fontFamily: "'Roboto Mono', monospace", flexShrink: 0 }}>{((d.value / stats.total) * 100).toFixed(0)}%</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: d.color, fontFamily: "'Google Sans', sans-serif", flexShrink: 0 }}>{((d.value / stats.total) * 100).toFixed(0)}%</div>
                 </div>
               ))}
             </div>
@@ -362,7 +362,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
         <div style={cardStyle}>
           <SectionLabel label={`Σωρευτικές ${thisYear}`} />
           <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--negative)', fontFamily: "'Roboto Mono', monospace", letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--negative)', fontFamily: "'Google Sans', sans-serif", letterSpacing: '-0.5px' }}>
               {fmtEur(stats.ytdData[stats.ytdData.length - 1] || 0)}
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, fontFamily: "'Roboto', sans-serif" }}>
@@ -383,7 +383,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <SectionLabel label="Δαπάνες Τελευταίων 12 Μηνών" />
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto Mono', monospace" }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif" }}>
               Μέγιστο: <strong style={{ color: 'var(--negative)' }}>{fmtEur(Math.max(...stats.monthlyData))}</strong>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{pmLabels[m] || m}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", fontWeight: 500 }}>{fmtEur(amt)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'Google Sans', sans-serif", fontWeight: 500 }}>{fmtEur(amt)}</span>
                   </div>
                   <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
@@ -410,7 +410,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: "'Roboto', sans-serif" }}>Cashback ROI</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Roboto Mono', monospace" }}>{stats.cashbackROI.toFixed(2)}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Google Sans', sans-serif" }}>{stats.cashbackROI.toFixed(2)}%</span>
               </div>
             )}
           </div>

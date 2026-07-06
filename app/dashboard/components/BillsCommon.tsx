@@ -263,7 +263,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <NumberInput label="Τα χιλιοστά μου (‰)" value={millesimi} onChange={sMill} suffix="‰" step={1} max={1000}/>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Το μερίδιό μου</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{(millRatio * 100).toFixed(2).replace('.', ',')}%</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{(millRatio * 100).toFixed(2).replace('.', ',')}%</div>
           </div>
         </div>
 
@@ -575,7 +575,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
               </div>
             ))}
           </div>

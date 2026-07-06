@@ -170,7 +170,7 @@ export default function RentComparables({
             },
           ].map((k, i) => (
             <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Roboto Mono', monospace", marginBottom: 3 }}>{k.value}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Google Sans', sans-serif", marginBottom: 3 }}>{k.value}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>{k.label}</div>
             </div>
           ))}
@@ -182,7 +182,7 @@ export default function RentComparables({
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>Θέση στην αγορά</span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace" }}>{fe(medianRent)}</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Google Sans', sans-serif" }}>{fe(medianRent)}</strong></span>
           </div>
           {/* Track */}
           <div style={{ position: 'relative', height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginBottom: 10 }}>
@@ -193,13 +193,13 @@ export default function RentComparables({
               <div style={{ position: 'absolute', top: '50%', left: `${posPct}%`, width: 14, height: 14, borderRadius: '50%', background: diff >= 0 ? 'var(--positive)' : 'var(--warning)', border: '2px solid var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)' }} />
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto Mono', monospace" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Google Sans', sans-serif" }}>
             <span>{fe(minRent)}</span>
             <span>{fe(maxRent)}</span>
           </div>
           {actualRent > 0 && (
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", lineHeight: 1.5 }}>
-              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Roboto Mono', monospace" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
+              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Google Sans', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
             </div>
           )}
         </div>
@@ -235,7 +235,7 @@ export default function RentComparables({
             <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="για παράδειγμα < 500μ" />
             <div>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", display: 'block', marginBottom: 6 }}>€ ανά τετραγωνικό (αυτόματο)</span>
-              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Roboto Mono', monospace" }}>
+              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif" }}>
                 {form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} € ανά τετραγωνικό` : '—'}
               </div>
             </div>
@@ -299,8 +299,8 @@ export default function RentComparables({
                     </td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.area || '—'}</td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τετραγωνικά μέτρα` : '—'}</td>
-                    <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Roboto Mono', monospace", fontSize: 12 }}>{fe(c.rent)}</td>
-                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto Mono', monospace", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
+                    <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Google Sans', sans-serif", fontSize: 12 }}>{fe(c.rent)}</td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
                     <td style={{ padding: '9px 8px' }}>
                       <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: "'Roboto', sans-serif", whiteSpace: 'nowrap' }}>
                         {condLabel(c.condition)}
@@ -309,7 +309,7 @@ export default function RentComparables({
                     <td style={{ padding: '9px 8px', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Roboto', sans-serif" }}>{srcLabel(c.source)}</td>
                     <td style={{ padding: '9px 8px' }}>
                       {actualRent > 0 ? (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Roboto Mono', monospace" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Google Sans', sans-serif" }}>
                           {rentDiff > 0 ? '+' : ''}{rentDiff.toFixed(1)}%
                         </span>
                       ) : '—'}

@@ -185,7 +185,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           <StatusDot status={event.status}/>
           {event.amount!=null&&(
-            <span style={{ fontSize:13, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:500 }}>
+            <span style={{ fontSize:13, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:500 }}>
               {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
             </span>
           )}
@@ -197,7 +197,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-        <span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:overdue?'var(--negative)':due<=3&&!done?'var(--warning)':'var(--text-secondary)' }}>
+        <span style={{ fontSize:12, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:overdue?'var(--negative)':due<=3&&!done?'var(--warning)':'var(--text-secondary)' }}>
           {overdue?`${Math.abs(due)}μ πριν`:due===0?'Σήμερα!':fmt(event.event_date)}
         </span>
         {!done&&due>=0&&due<=7&&(
@@ -243,7 +243,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
             <span style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length} γεγονότα</span>
-            {monthPendingAmt>0&&<span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή</span>}
+            {monthPendingAmt>0&&<span style={{ fontSize:12, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή</span>}
             <span style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--positive)' }}>{monthPaid.length} πληρωμένα</span>
             <div style={{ marginLeft:'auto', display:'flex', gap:12, flexWrap:'wrap' }}>
               {Object.entries(CATEGORIES).map(([k,c])=>(
@@ -287,7 +287,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
                         ))}
                         {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily:"'Roboto',sans-serif" }}>+{dayEvents.length-3} ακόμα</span>}
                       </div>
-                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{dayAmt>=1000?`${(dayAmt/1000).toFixed(1)}k€`:`${dayAmt.toFixed(0)}€`}</span></div>}
+                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{dayAmt>=1000?`${(dayAmt/1000).toFixed(1)}k€`:`${dayAmt.toFixed(0)}€`}</span></div>}
                     </>
                   )}
                 </div>
@@ -309,8 +309,8 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:12, fontFamily:"'Roboto',sans-serif", color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>{ev.title}</p>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                      <span style={{ fontSize:11, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:d===0?'var(--negative)':d<=3?'var(--warning)':'var(--text-secondary)' }}>{d===0?'Σήμερα':d===1?'Αύριο':`${d}μ`}</span>
-                      {ev.amount&&<span style={{ fontSize:11, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{ev.amount}€</span>}
+                      <span style={{ fontSize:11, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:d===0?'var(--negative)':d<=3?'var(--warning)':'var(--text-secondary)' }}>{d===0?'Σήμερα':d===1?'Αύριο':`${d}μ`}</span>
+                      {ev.amount&&<span style={{ fontSize:11, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{ev.amount}€</span>}
                     </div>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
         </div>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
           <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_SHORT_GR[currentDate.getMonth()]}</p>
-          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Roboto Mono',monospace", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
+          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Roboto',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Google Sans', sans-serif", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
         </div>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
           <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Ετήσια δραστ.</p>
@@ -364,11 +364,11 @@ function WeekView({ events, currentDate, onDayClick, onEventClick }: { events:Ca
                   <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}${ev.notes?`\n${ev.notes}`:''}`}>
                     <div onClick={()=>onEventClick(ev)} style={{ fontSize:11, padding:'4px 6px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:'pointer', opacity:ev.status==='paid'?0.4:1, borderLeft:`3px solid ${CATEGORIES[ev.category].color}`, fontFamily:"'Roboto',sans-serif" }}>
                       <p style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</p>
-                      {ev.amount&&<p style={{ fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', opacity:0.8 }}>{ev.amount}€</p>}
+                      {ev.amount&&<p style={{ fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', opacity:0.8 }}>{ev.amount}€</p>}
                     </div>
                   </Tooltip>
                 ))}
-                {dayAmt>0&&<p style={{ fontSize:10, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:'var(--accent)', textAlign:'center', marginTop:'auto', opacity:0.8 }}>{dayAmt}€</p>}
+                {dayAmt>0&&<p style={{ fontSize:10, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', textAlign:'center', marginTop:'auto', opacity:0.8 }}>{dayAmt}€</p>}
               </div>
             </div>
           )
@@ -393,7 +393,7 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
         ].map(s=>(
           <div key={s.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
             <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{s.label}</p>
-            <p style={{ fontSize:18, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:s.color, fontWeight:400 }}>{s.value}</p>
+            <p style={{ fontSize:18, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:s.color, fontWeight:400 }}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -424,7 +424,7 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
                   ))}
                   {monthEvs.length>7&&<span style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Roboto',sans-serif" }}>+{monthEvs.length-7}</span>}
                 </div>
-                {totalM>0&&<p style={{ fontSize:10, color:'var(--accent)', textAlign:'center', marginTop:5, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums' }}>{totalM>=1000?`${(totalM/1000).toFixed(1)}k€`:`${totalM.toFixed(0)}€`}</p>}
+                {totalM>0&&<p style={{ fontSize:10, color:'var(--accent)', textAlign:'center', marginTop:5, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums' }}>{totalM>=1000?`${(totalM/1000).toFixed(1)}k€`:`${totalM.toFixed(0)}€`}</p>}
                 {monthEvs.length===0&&<p style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Roboto',sans-serif" }}>—</p>}
               </div>
             )
@@ -856,7 +856,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
               <span style={{ color:kpi.color, opacity:0.8 }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Google Sans',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{kpi.label}</p>
             </div>
-            <p style={{ fontSize:16, fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:400 }}>{kpi.value}</p>
+            <p style={{ fontSize:16, fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:400 }}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -870,7 +870,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
               <p style={{ fontSize:14, color:'var(--negative)', fontFamily:"'Roboto',sans-serif", flex:1, letterSpacing:'0.25px' }}>
                 {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'} — χρειάζονται άμεση δράση
               </p>
-              <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Roboto Mono',monospace", fontVariantNumeric:'tabular-nums' }}>
+              <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums' }}>
                 {overdue.reduce((s,e)=>s+(e.amount||0),0)>0&&`${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
               </span>
             </div>

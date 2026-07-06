@@ -200,7 +200,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
       padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
       <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{label}</span>
-      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{value}</span>
+      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
 
@@ -499,11 +499,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
                       </div>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
                           {buyCalc.cv>0?((buyCalc.total/buyCalc.cv)*100).toFixed(1):'—'}%
                         </div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Επί Αξίας</div>
@@ -522,7 +522,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {buyCalc.mortg>0 && statRow('Έξοδα Υποθήκης ~1%', fe(buyCalc.mortg))}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Σύνολο Εξόδων</span>
-                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
+                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
                       </div>
                     </div>
                     <div style={{ ...card,border:'1px solid var(--accent)',background:'var(--accent-soft)' }}>
@@ -531,7 +531,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {statRow('Έξοδα Αγοράς', fe(buyCalc.total), 'var(--negative)')}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Συνολικό Κεφάλαιο</span>
-                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
+                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
                       </div>
                     </div>
                   </>
@@ -575,11 +575,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
                       </div>
                       <div style={{ ...card,textAlign:'center',background:'var(--positive-soft)',borderColor:'var(--positive-border)' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Καθαρά Έσοδα</div>
                       </div>
                     </div>
@@ -600,7 +600,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       )}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Καθαρά Έσοδα</span>
-                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
+                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
                       </div>
                     </div>
                   </>
@@ -669,7 +669,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'var(--accent)'},
                     ].map((k,i)=>(
                       <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'12px 14px' }}>
-                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
+                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-tertiary)' }}>{k.label}</div>
                       </div>
                     ))}
@@ -681,7 +681,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       <div key={i} style={{ marginBottom:10 }}>
                         <div style={{ display:'flex',justifyContent:'space-between',marginBottom:3 }}>
                           <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{b.label}</span>
-                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
+                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
                         </div>
                         <div style={{ height:4,background:'var(--border-subtle)',borderRadius:2 }}>
                           <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--negative)',borderRadius:2 }}/>
@@ -690,7 +690,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     ))}
                     <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize:11,color:'var(--text-secondary)' }}>Πραγματικός Συντελεστής</span>
-                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>
+                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>
                         {e2Result.effectiveRate.toFixed(1)}%
                       </span>
                     </div>
@@ -713,7 +713,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                           <span style={{ fontSize:9,fontWeight:700,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",marginRight:8 }}>{row.code}</span>
                           <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{row.label}</span>
                         </div>
-                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
+                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
