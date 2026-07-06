@@ -89,7 +89,7 @@ export default function SignupPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {['Έως 15 ακίνητα, κάθε τύπου', 'Αποδόσεις και φορολογία 2026', 'Δαπάνες, λογαριασμοί, ημερολόγιο', 'Σύγκριση παρόχων ενέργειας', 'Διαχείριση ενοικιαστή και συμβολαίου'].map(t => (
+          {['Σκάναρε ό,τι έγγραφο με μία φωτογραφία', 'Βοηθός με φωνή που ξέρει τα νούμερά σου', 'Αποδόσεις, δαπάνες και φορολογία 2026', 'Το φθηνότερο ρεύμα, αυτόματα', 'Έως 15 ακίνητα, διαχείριση ενοικιαστή'].map(t => (
             <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 800 }}>✓</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t}</span>
