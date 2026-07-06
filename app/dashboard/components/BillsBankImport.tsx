@@ -295,7 +295,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         .eq('property_id', propertyId).eq('paid', false);
       const pendingBills = (pend || []) as { id: string; category: string; amount: number; due_date: string | null; created_at: string | null }[];
       const usedBill = new Set<string>();
-      const matched: { billId: string; cat: string; t: ParsedTransaction }[] = [];
+      // billAmount = το ποσό του ΛΟΓΑΡΙΑΣΜΟΥ (όχι της πληρωμής): με αυτό εντοπίζουμε
+      // το συνδεδεμένο έξοδο/γεγονός, γιατί η πληρωμή μπορεί να διαφέρει κατά λεπτά.
+      const matched: { billId: string; cat: string; billAmount: number }[] = [];
       const unmatched: ParsedTransaction[] = [];
 
       for (const t of selected) {
@@ -303,7 +305,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
           && Math.abs((b.amount || 0) - t.amount) <= Math.max(0.5, t.amount * 0.02)
           && withinDays(b.due_date || b.created_at, t.date, 25));
         const m = cands.find(b => b.category === t.category) || cands[0];
-        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, t }); }
+        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, billAmount: m.amount }); }
         else unmatched.push(t);
       }
 
@@ -314,9 +316,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
           const em = EXPENSE_MAP[r.cat] || EXPENSE_MAP.other;
           await supabase.from('expenses').update({ paid: true })
             .eq('property_id', propertyId).eq('category', em.cat)
-            .eq('amount', r.t.amount).eq('paid', false);
+            .eq('amount', r.billAmount).eq('paid', false);
           await supabase.from('calendar_events').update({ status: 'paid' })
-            .eq('property_id', propertyId).eq('amount', r.t.amount).eq('status', 'pending');
+            .eq('property_id', propertyId).eq('amount', r.billAmount).eq('status', 'pending');
         }
       }
 
