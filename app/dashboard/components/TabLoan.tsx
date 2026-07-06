@@ -37,7 +37,7 @@ function KPI({label,value,color,sub}:{label:string;value:string;color?:string;su
   return (
     <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'12px 14px'}}>
       <p style={{...labelStyle,marginBottom:6}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
+      <p style={{fontSize:16,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Roboto',sans-serif"}}>{sub}</p>}
     </div>
   )
@@ -144,7 +144,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           {[
             {l:'Euribor 3M',v:market.euribor_3m,c:'var(--info)'},
             {l:'Euribor 1M',v:market.euribor_1m,c:'var(--info)'},
-            {l:'ΕΚΤ',v:market.ecb_rate,c:'#a78bfa'},
+            {l:'ΕΚΤ',v:market.ecb_rate,c:'#7c4dff'},
             ...(market.bog_housing_new?[{l:'ΤτΕ Μέσο',v:market.bog_housing_new,c:'var(--positive)'}]:[]),
           ].map(item=>(
             <div key={item.l} style={{textAlign:'center' as const}}>
@@ -282,7 +282,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   ].map((stat,si)=>(
                     <div key={stat.label} style={{padding:'16px 20px',borderRight:si<3?'1px solid var(--border-subtle)':'none'}}>
                       <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:8}}>{stat.label}</p>
-                      <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:stat.color,fontWeight:700,lineHeight:1,marginBottom:4}}>{stat.value}</p>
+                      <p style={{fontSize:22,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:stat.color,fontWeight:700,lineHeight:1,marginBottom:4}}>{stat.value}</p>
                       {stat.sub&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{stat.sub}</p>}
                     </div>
                   ))}
@@ -426,7 +426,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               </div>
               <div style={{textAlign:'right' as const}}>
                 <p style={{...labelStyle,marginBottom:3}}>Βαθμολογία δανείου</p>
-                <p style={{fontSize:22,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:scoreColor,fontWeight:700}}>{score}/100</p>
+                <p style={{fontSize:22,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:scoreColor,fontWeight:700}}>{score}/100</p>
                 <p style={{fontSize:11,color:scoreColor,fontFamily:"'Google Sans',sans-serif"}}>{scoreLabel}</p>
               </div>
             </div>

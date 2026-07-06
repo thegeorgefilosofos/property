@@ -39,7 +39,7 @@ function KPI({label,value,color,sub}:{label:string;value:string;color?:string;su
   return (
     <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'12px 14px'}}>
       <p style={{...labelStyle,marginBottom:6}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
+      <p style={{fontSize:16,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Roboto',sans-serif"}}>{sub}</p>}
     </div>
   )
@@ -546,7 +546,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:12}}>{item.label}</p>
               <div style={{display:'flex',gap:16,marginBottom:12}}>
                 {[['Επιτόκιο',fmtPct(item.rate)],['Δόση/μήνα',fmtEur(item.m)],['Σύν. Τόκοι',fmtEur(item.m*Y*12-LA)]].map(([k,v])=>(
-                  <div key={k}><p style={{fontSize:9,color:'var(--text-tertiary)',marginBottom:2,fontFamily:"'Google Sans',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
+                  <div key={k}><p style={{fontSize:9,color:'var(--text-tertiary)',marginBottom:2,fontFamily:"'Google Sans',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
                 ))}
               </div>
               {item.pros.map((p,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--positive)',flexShrink:0}}>+</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily:"'Roboto',sans-serif"}}>{p}</p></div>)}
@@ -586,7 +586,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
         </div>
         <div style={{background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:10,padding:'14px 18px',textAlign:'center' as const}}>
           <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4,fontFamily:"'Roboto',sans-serif"}}>Εκτιμώμενη συνολική εξοικονόμηση</p>
-          <p style={{fontSize:32,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
+          <p style={{fontSize:32,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Roboto',sans-serif"}}>{fmtEur(spitiSv/Math.max(Y*12,1))}/μήνα εξοικονόμηση</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily:"'Roboto',sans-serif"}}>Εκτίμηση βάσει μέσου επιδοτούμενου επιτοκίου. → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--info)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
