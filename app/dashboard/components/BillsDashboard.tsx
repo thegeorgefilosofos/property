@@ -869,7 +869,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         if (!insur)
           advice.push({ type: 'warning', title: 'Δεν υπάρχει ασφάλεια κατοικίας', body: 'Υποχρεωτική για δανειολήπτες. Hellas Direct Basic από 8.90€/μήνα, καλύψεις πυρκαγιά + κλοπή.' });
         if (internet && internet.monthly > 25)
-          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Ελέγξτε Inalan/Enterwave, fiber από 17€/μήνα χωρίς δέσμευση (ΕΕΤΤ 360°).` });
+          advice.push({ type: 'saving', title: 'Εξοικονόμηση Internet', body: `Τρέχον: ${fe(internet.monthly, 0)}/μήνα. Σύγκρινε παρόχους (Vodafone, Inalan, Nova), fiber από ~17€/μήνα χωρίς δέσμευση.` });
         if (calc.overdue.length > 0)
           advice.push({ type: 'warning', title: `${calc.overdue.length} ληξιπρόθεσμος/-οί λογαριασμός/-ιοί`, body: `Συνολικό εκκρεμές: ${fe(calc.overdue.reduce((s, b) => s + b.amount, 0), 0)}. Πλήρωσε σήμερα για αποφυγή προστίμων.` });
         if (calc.totalMonthly > 200)

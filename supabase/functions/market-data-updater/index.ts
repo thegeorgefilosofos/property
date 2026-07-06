@@ -82,9 +82,9 @@ const ENERGY_TARIFFS = [
   { provider:'zenith', provider_label:'Zenith', tariff_id:'zen_start', name:'Power Home Start', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1595, kwh_night:null, flat_monthly:null, fixed:6.80, fixed_ebill:null, contract_months:0, no_fixed:false, dynamic:false },
   // Elin ────────────────────────────────────────────────────────────────────
   { provider:'elin', provider_label:'Elin', tariff_id:'elin_green', name:'Home Green', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1598, kwh_night:null, flat_monthly:null, fixed:7.10, fixed_ebill:null, contract_months:0, no_fixed:false, dynamic:false },
-  // Elpedison ───────────────────────────────────────────────────────────────
-  { provider:'elpedison', provider_label:'Elpedison', tariff_id:'elp_bright', name:'Elpedison Bright',   badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1690, kwh_night:null, flat_monthly:null, fixed:3.00, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
-  { provider:'elpedison', provider_label:'Elpedison', tariff_id:'elp_one',    name:'Elpedison One Home', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1706, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
+  // enerwave (πρώην Elpedison — μετονομασία Νοε 2025, HelleniQ Energy) ─────────
+  { provider:'enerwave', provider_label:'enerwave (πρώην Elpedison)', tariff_id:'elp_bright', name:'enerwave Bright',   badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1690, kwh_night:null, flat_monthly:null, fixed:3.00, fixed_ebill:null, contract_months:12, no_fixed:false, dynamic:false },
+  { provider:'enerwave', provider_label:'enerwave (πρώην Elpedison)', tariff_id:'elp_one',    name:'enerwave One Home', badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1706, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
   // Volton ──────────────────────────────────────────────────────────────────
   { provider:'volton', provider_label:'Volton', tariff_id:'volton_green', name:'Volton Easy',      badge:'ΠΡΑΣΙΝΟ', type:'variable', kwh_day:0.1442, kwh_night:null, flat_monthly:null, fixed:5.00, fixed_ebill:null, contract_months:0,  no_fixed:false, dynamic:false },
   { provider:'volton', provider_label:'Volton', tariff_id:'volton_blue',  name:'Volton Blue Flat', badge:'ΜΠΛΕ',    type:'fixed',    kwh_day:0.1590, kwh_night:null, flat_monthly:null, fixed:9.90, fixed_ebill:null, contract_months:18, no_fixed:false, dynamic:false },
