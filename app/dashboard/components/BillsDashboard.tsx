@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import { T, fe, Spinner } from '@/components/Theme';
+import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
@@ -307,6 +308,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [billSort, setBillSort] = useState<BillSort>('received_desc');
   const [chartView, setChartView] = useState<'area' | 'bar' | 'category'>('area');
   const [budgets,   setBudgets]   = useState<Record<string, string>>({});
   const [showBudgets, setShowBudgets] = useState(false);
@@ -676,6 +678,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Λογαριασμοί & Πάγια</span>
+          {bills.length > 1 && (
+            <select value={billSort} onChange={e => setBillSort(e.target.value as BillSort)} title="Ταξινόμηση"
+              style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
+              {(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => <option key={k} value={k}>{BILL_SORT_LABELS[k]}</option>)}
+            </select>
+          )}
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{bills.length} εγγραφές</span>
         </div>
         {bills.length === 0 ? (
@@ -686,12 +694,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           </div>
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
-            const groupBills = bills.filter(b => {
+            const groupBills = sortBills(bills.filter(b => {
               const isOverdue = !b.paid && b.due_date && new Date(b.due_date) < today;
               if (group === 'overdue')  return isOverdue;
               if (group === 'paid')     return b.paid;
               return !isOverdue && !b.paid;
-            });
+            }), billSort);
             if (groupBills.length === 0) return null;
             const cfg = {
               overdue:  { label: 'Ληξιπρόθεσμοι', color: 'var(--negative)' },
