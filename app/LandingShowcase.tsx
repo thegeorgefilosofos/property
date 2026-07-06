@@ -30,13 +30,21 @@ export default function LandingShowcase() {
   return (
     <div style={{ position: 'relative', maxWidth: 960, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
       <style>{`
-        .lp-mockup { box-shadow: 0 1px 1px rgba(16,24,40,.05), 0 12px 24px -8px rgba(16,24,40,.10), 0 40px 64px -24px rgba(16,24,40,.14); }
+        .lp-mockup { box-shadow: 0 1px 1px rgba(16,24,40,.05), 0 12px 24px -8px rgba(16,24,40,.10), 0 40px 64px -24px rgba(16,24,40,.14); transform-origin: center top; will-change: transform; }
         [data-mode="dark"] .lp-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); }
         @media (prefers-color-scheme: dark) {
           :root:not([data-mode="light"]) .lp-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); }
         }
+        /* Λεπτό 3D «κάθισμα» καθώς μπαίνει στην οθόνη — scroll-driven, χωρίς engine.
+           Progressive enhancement: όπου δεν υποστηρίζεται, το mockup είναι απλώς επίπεδο. */
+        @keyframes lpTilt { from { opacity: .55; transform: perspective(1500px) rotateX(7deg) scale(.985); } to { opacity: 1; transform: perspective(1500px) rotateX(0deg) scale(1); } }
+        @supports (animation-timeline: view()) {
+          @media (prefers-reduced-motion: no-preference) {
+            .lp-mockup { animation: lpTilt linear both; animation-timeline: view(); animation-range: entry 2% cover 40%; }
+          }
+        }
       `}</style>
-      <div className="lp-rise lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
+      <div className="lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
         style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 18, overflow: 'hidden' }}>
         {/* chrome */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
