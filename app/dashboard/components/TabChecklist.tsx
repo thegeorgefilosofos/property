@@ -435,8 +435,8 @@ function exportChecklistPDF(items: ChecklistItem[]) {
         </td>
         <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${pri.bg.replace('rgba','rgba').replace('0.1','0.15')};color:${pri.color}">${pri.label}</span></td>
         <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${sm.bg.replace('0.1','0.15')};color:${sm.color}">${sm.label}</span></td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Roboto Mono',monospace;font-size:10px;color:${od?'#ea4335':'#5f6368'}">${item.due_date?fmtDate(item.due_date):'—'}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Roboto Mono',monospace;font-size:10px;color:#1a1a2e">${item.estimated_cost>0?item.estimated_cost.toLocaleString('el-GR')+'€':'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Google Sans', sans-serif;font-size:10px;color:${od?'#ea4335':'#5f6368'}">${item.due_date?fmtDate(item.due_date):'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Google Sans', sans-serif;font-size:10px;color:#1a1a2e">${item.estimated_cost>0?item.estimated_cost.toLocaleString('el-GR')+'€':'—'}</td>
       </tr>`
     }).join('')
     return `
@@ -489,7 +489,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#1a1a2e;font-size:10.
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
 .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
-.kpi-v{font-family:'Roboto Mono',monospace;font-size:16px;font-weight:700;margin-bottom:3px}
+.kpi-v{font-family:'Google Sans', sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
 .kpi-l{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368}
 .progress-bar{height:8px;background:#e8eaed;border-radius:4px;overflow:hidden;margin-bottom:16px}
 .progress-fill{height:100%;border-radius:4px;transition:width 0s}
@@ -602,7 +602,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 .field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .field-row{display:flex;flex-direction:column;gap:4px}
 .field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;font-family:'Google Sans',sans-serif}
-.field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Roboto Mono',monospace;letter-spacing:0.02em}
+.field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Google Sans', sans-serif;letter-spacing:0.02em}
 .field-val.prefilled{color:#1a73e8;font-weight:500;border-bottom-color:#1a73e8}
 .field-area{min-height:56px;border:1px solid #e8eaed;border-radius:6px;padding:8px;margin-top:4px;background:#fafafa}
 
@@ -627,14 +627,14 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 .meter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .meter-card{border:1px solid #e8eaed;border-radius:8px;padding:12px;background:#fafafa}
 .meter-title{font-family:'Google Sans',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;margin-bottom:8px}
-.meter-val{font-size:22px;font-weight:700;color:#202124;border-bottom:3px solid #1a73e8;padding-bottom:6px;margin-bottom:6px;font-family:'Roboto Mono',monospace;min-height:36px;letter-spacing:-0.5px}
+.meter-val{font-size:22px;font-weight:700;color:#202124;border-bottom:3px solid #1a73e8;padding-bottom:6px;margin-bottom:6px;font-family:'Google Sans', sans-serif;min-height:36px;letter-spacing:-0.5px}
 .meter-unit{font-size:9px;color:#9aa0a6;font-family:'Google Sans',sans-serif}
 .meter-serial{font-size:10px;color:#5f6368;margin-top:8px;border-top:1px solid #e8eaed;padding-top:6px}
 
 /* Key tracking */
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .key-card{border:1px solid #e8eaed;border-radius:8px;padding:10px;text-align:center}
-.key-num{font-size:26px;font-weight:700;color:#1a73e8;font-family:'Roboto Mono',monospace;min-height:38px;border-bottom:2px solid #1a73e8;margin-bottom:8px;letter-spacing:-1px}
+.key-num{font-size:26px;font-weight:700;color:#1a73e8;font-family:'Google Sans', sans-serif;min-height:38px;border-bottom:2px solid #1a73e8;margin-bottom:8px;letter-spacing:-1px}
 .key-label{font-size:10px;color:#5f6368;font-family:'Google Sans',sans-serif}
 
 /* Appliance table */
@@ -671,7 +671,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 .commons-row:last-child{border-bottom:none}
 .commons-dot{width:8px;height:8px;border-radius:50%;background:#1a73e8;flex-shrink:0}
 .commons-label{font-size:12px;color:#3c4043;flex:1}
-.commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Roboto Mono',monospace}
+.commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Google Sans', sans-serif}
 
 /* Footer */
 .footer{margin-top:28px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
