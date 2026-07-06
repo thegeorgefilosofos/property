@@ -8,7 +8,7 @@ import { T, fe } from '@/components/Theme';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const fk = (n: number) => `${n.toFixed(4)} €`;
-// FIX: was 'Ιούνιος 2026' — updated to reflect latest confirmed source data (DEI July 2026 extraction, Protergia/Zenith/Enerwave June 2026)
+// FIX: was 'Ιούνιος 2026', updated to reflect latest confirmed source data (DEI July 2026 extraction, Protergia/Zenith/Enerwave June 2026)
 const LAST_UPDATED = 'Ιούλιος 2026';
 const RAAYEY_URL  = 'https://energycost.gr/%CF%85%CF%80%CE%BF%CE%BB%CE%BF%CE%B3%CE%B9%CF%83%CE%BC%CF%8C%CF%82-%CF%84%CE%B9%CE%BC%CE%AE%CF%82-%CE%B2%CE%AC%CF%83%CE%B5%CE%B9-%CE%BA%CE%B1%CF%84%CE%B1%CE%BD%CE%AC%CE%BB%CF%89%CF%83%CE%B7%CF%82-2/';
 const ERT    = 0.00856;  // Ειδικό Ρυθμιστικό Τέλος
@@ -31,13 +31,13 @@ const DURATION_OPTIONS = [
   { value: '36',  label: '36 μήνες'        },
 ];
 
-// ── REAL TARIFFS — SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
+// ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
 interface Tariff {
   id: string; name: string; badge: string; type: string;
   kwh_day: number; kwh_night?: number | null;
   kwh_tier2?: number; tier2_threshold?: number;
   flat_monthly?: number | null;
-  // FIX: added — lets "all-in" flat packages (Picasso, ZeΝergy, My Wave Daily) carry their
+  // FIX: added, lets "all-in" flat packages (Picasso, ZeΝergy, My Wave Daily) carry their
   // annual kWh allowance and overage rate, so the calculator can warn about / price overage
   // instead of silently showing a misleadingly low monthly cost for high-consumption users.
   flat_annual_kwh?: number;
@@ -67,7 +67,7 @@ const PROVIDERS = [
       { id: 'dei_plan',         name: 'myHome Plan',            badge: 'ΜΠΛΕ',    type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, fixed: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Flat 60 €/μήνα all-in. Ιδανικό για 2.500-4.500 kWh/έτος.' },
       { id: 'dei_4all',         name: 'myHome 4All',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.1370, kwh_night: null,   kwh_tier2: 0.1870, tier2_threshold: 500, fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. 0.137 € (0-500 kWh) / 0.187 € (>500 kWh). Χωρίς δέσμευση.' },
       { id: 'dei_4students',    name: 'myHome 4Students',       badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.1290, kwh_night: null,   kwh_tier2: 0.1850, tier2_threshold: 150, fixed: 3.00, fixed_ebill: 0, contract_months: 0, vat: 6, segment: 'residential', student: true, desc: 'Φοιτητικό: 0.129 € (0-150 kWh) / 0.185 € (>150 kWh). Πάγιο 3 €. Bonus καλοκαίρι.' },
-      { id: 'dei_prasino',      name: 'Γ1 Πράσινο',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ειδικό Οικιακό (Γ1) — κυμαινόμενο. Ανακοινώνεται κάθε 1η του μήνα.' },
+      { id: 'dei_prasino',      name: 'Γ1 Πράσινο',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ειδικό Οικιακό (Γ1), κυμαινόμενο. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_prasino_n',    name: 'Γ1Ν Πράσινο Νυχτερινό', badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: 0.1160, fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ειδικό με νυχτερινή ζώνη. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_dynamic',      name: 'myHome Dynamic',         badge: 'ΔΥΝΑΜΙΚΟ',type: 'dynamic',       kwh_day: 0, kwh_night: null, fixed: 5.00, smart_meter: true, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ωριαία τιμολόγηση βάσει χονδρεμπορικής (HEnEx). Απαιτεί έξυπνο μετρητή ΔΕΔΔΗΕ.' },
       // ── Επαγγελματικά (Γ21/Γ22) ────────────────────────────────────────
@@ -105,27 +105,27 @@ const PROVIDERS = [
   {
     value: 'protergia', label: 'Protergia', url: 'https://www.protergia.gr',
     tariffs: [
-      { id: 'prot_flow',        name: 'Value Flow',             badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.13767, kwh_night: null,  fixed: 5.00, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο — φθηνότερο της Protergia. Χωρίς δέσμευση.' },
+      { id: 'prot_flow',        name: 'Value Flow',             badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.13767, kwh_night: null,  fixed: 5.00, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο, φθηνότερο της Protergia. Χωρίς δέσμευση.' },
       { id: 'prot_sure_18',     name: 'Value Sure 18M 2.0',     badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1450, kwh_night: null,  fixed: 5.00, contract_months: 18, vat: 6, segment: 'residential', desc: 'Σταθερό 18 μήνες. Κλειδωμένη τιμή μακροπρόθεσμα.' },
       { id: 'prot_sure_12',     name: 'Value Sure 12M',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1520, kwh_night: null,  fixed: 5.00, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες.' },
       { id: 'prot_standard',    name: 'Value Standard',         badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1590, kwh_night: null,  fixed: 5.00, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο ειδικό. Ανακοινώνεται κάθε 1η μήνα.' },
       { id: 'prot_lite2',       name: 'Value Lite 2.0',         badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.16267, kwh_night: null, fixed: 0,    no_fixed: true, contract_months: 0, vat: 6, segment: 'residential', desc: 'Χωρίς πάγιο. Ιδανικό για σπάνια χρήση ή εξοχικά.' },
       { id: 'prot_dynamic',     name: 'Dynamic One Home',       badge: 'ΔΥΝΑΜΙΚΟ',type: 'dynamic',  kwh_day: 0,      kwh_night: null, fixed: 0,    smart_meter: true, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ωριαία δυναμική τιμολόγηση. Ενεργοποιήθηκε Ιούνιο 2026.' },
-      // ── Picasso 2.0 — ΟΛΑ τα 9 πακέτα + Φοιτητικό ────────────────────────
+      // ── Picasso 2.0, ΟΛΑ τα 9 πακέτα + Φοιτητικό ────────────────────────
       // FIX: πριν υπήρχαν μόνο 3/9 πακέτα, με λάθος segment:'business' (το Picasso
       // είναι οικιακό προϊόν) και type:'flat' που δεν υπολογιζόταν καθόλου σωστά.
-      // Επιβεβαιωμένο: Protergia Picasso — Προϊόν Χρονιάς 2026, μπλε/σταθερό,
+      // Επιβεβαιωμένο: Protergia Picasso, Προϊόν Χρονιάς 2026, μπλε/σταθερό,
       // 12μηνη σύμβαση, 5% δωρεάν ανοχή υπέρβασης, υπέρβαση 0,169€/kWh,
       // ετήσια εκκαθάριση μέσω ΔΕΔΔΗΕ. (Πηγή: Selectra, protergia.gr, επιβεβαιωμένο screenshot)
-      { id: 'prot_picasso_s1', name: 'Picasso Small — 1.325 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 39.90,  flat_annual_kwh: 1325,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_s2', name: 'Picasso Small — 1.875 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 49.90,  flat_annual_kwh: 1875,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_s3', name: 'Picasso Small — 2.700 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 64.90,  flat_annual_kwh: 2700,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_m1', name: 'Picasso Medium — 3.550 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 82.90,  flat_annual_kwh: 3550,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_m2', name: 'Picasso Medium — 4.600 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 102.90, flat_annual_kwh: 4600,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_m3', name: 'Picasso Medium — 6.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 134.90, flat_annual_kwh: 6000,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_l1', name: 'Picasso Large — 11.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 259.90, flat_annual_kwh: 11000, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_l2', name: 'Picasso Large — 15.300 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 359.90, flat_annual_kwh: 15300, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
-      { id: 'prot_picasso_l3', name: 'Picasso Large — 20.200 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 479.90, flat_annual_kwh: 20200, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_s1', name: 'Picasso Small, 1.325 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 39.90,  flat_annual_kwh: 1325,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_s2', name: 'Picasso Small, 1.875 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 49.90,  flat_annual_kwh: 1875,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_s3', name: 'Picasso Small, 2.700 kWh/έτος',  badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 64.90,  flat_annual_kwh: 2700,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για 1-2 άτομα, χαμηλές ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_m1', name: 'Picasso Medium, 3.550 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 82.90,  flat_annual_kwh: 3550,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_m2', name: 'Picasso Medium, 4.600 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 102.90, flat_annual_kwh: 4600,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_m3', name: 'Picasso Medium, 6.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 134.90, flat_annual_kwh: 6000,  flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για οικογένειες μέσου όρου κατανάλωσης. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_l1', name: 'Picasso Large, 11.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 259.90, flat_annual_kwh: 11000, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_l2', name: 'Picasso Large, 15.300 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 359.90, flat_annual_kwh: 15300, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
+      { id: 'prot_picasso_l3', name: 'Picasso Large, 20.200 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 479.90, flat_annual_kwh: 20200, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Για μεγάλες οικογένειες με αυξημένες ανάγκες. Δώρο 5% επιπλέον kWh.' },
       { id: 'prot_picasso_student', name: 'Picasso Student', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 39.90, flat_annual_kwh: 1325, flat_overage_rate: 0.169, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', student: true, desc: 'Ίδιο πακέτο με Picasso Small, αποκλειστικά για φοιτητές. Απαιτείται φοιτητική ταυτότητα.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'prot_simple_biz1',  name: 'Value Simple Επαγγελματικό 1', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14700, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Φθηνότερο κυμαινόμενο επαγγελματικό στην αγορά.' },
@@ -137,7 +137,7 @@ const PROVIDERS = [
     value: 'nrg', label: 'NRG', url: 'https://www.nrg.gr',
     tariffs: [
       { id: 'nrg_now',          name: 'NRG Now Οικιακό',        badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1595, kwh_night: null, fixed: 6.90, contract_months: 0,  vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Χωρίς δέσμευση.' },
-      { id: 'nrg_adjust',       name: 'NRG adjust 1.0',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, fixed: 9.90, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Τελευταία γνωστή τιμή — η NRG έχει ανανεώσει τη γκάμα προγραμμάτων, χρειάζεται νέα επιβεβαίωση.' },
+      { id: 'nrg_adjust',       name: 'NRG adjust 1.0',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, fixed: 9.90, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Τελευταία γνωστή τιμή, η NRG έχει ανανεώσει τη γκάμα προγραμμάτων, χρειάζεται νέα επιβεβαίωση.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'nrg_adjust_biz',  name: 'adjust 1.0 Business',    badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, flat_monthly: null, fixed: 13.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό χωρίς ρήτρα.' },
       { id: 'nrg_simple_biz',  name: 'simple 1.0 Business 1',  badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1790, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
@@ -148,23 +148,23 @@ const PROVIDERS = [
     tariffs: [
       // ── Οικιακά ────────────────────────────────────────────────────────
       { id: 'zen_fixed_1y',  name: 'Power Home Fixed 1Y',     badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1290, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μηνών. Έκπτωση Συνέπειας από τον 1ο λογαριασμό. Δώρο κάρτα υγείας Ευ Ζην 150€.' },
-      { id: 'zen_fixed_24',  name: 'Power Home Fixed 24',     badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1350, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 24, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 24 μηνών — κλειδωμένη τιμή 2 χρόνια. Δώρο κάρτα υγείας Ευ Ζην 150€.' },
-      { id: 'zen_pair',      name: 'Power Home Pair',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1380, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Dual fuel — ρεύμα και φυσικό αέριο μαζί. Έκπτωση παγίου.' },
+      { id: 'zen_fixed_24',  name: 'Power Home Fixed 24',     badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1350, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 24, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 24 μηνών, κλειδωμένη τιμή 2 χρόνια. Δώρο κάρτα υγείας Ευ Ζην 150€.' },
+      { id: 'zen_pair',      name: 'Power Home Pair',         badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1380, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Dual fuel, ρεύμα και φυσικό αέριο μαζί. Έκπτωση παγίου.' },
       { id: 'zen_sure_plus', name: 'Power Home Sure Plus',    badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1450, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό πρόγραμμα ασφαλείας.' },
       { id: 'zen_select',    name: 'Power Home Select',       badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1490, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Κίτρινο κυμαινόμενο. Χωρίς δέσμευση.' },
       { id: 'zen_save30',    name: 'Power Home Save 3.0',     badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1530, kwh_night: null, flat_monthly: null, fixed: 4.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Κίτρινο κυμαινόμενο χαμηλό πάγιο.' },
       { id: 'zen_light',     name: 'Power Home Light',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1560, kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 0,  no_fixed: true,  dynamic: false, vat: 6, segment: 'residential', desc: 'Χαμηλό πάγιο. Ιδανικό χαμηλή κατανάλωση.' },
-      // FIX: τιμή αναπροσαρμόστηκε 0.1450 → 0.095 (επιβεβαιωμένο, Ιούνιος 2026) — ισχύει για τις πρώτες 200 kWh/μήνα
-      { id: 'zen_student',   name: 'Power Home Student',      badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0950, kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 0,  no_fixed: true,  dynamic: false, vat: 6, segment: 'residential', student: true, desc: 'Φοιτητικό. Τιμή 0.095€/kWh για τις πρώτες 200 kWh/μήνα — πάνω από αυτό ισχύει διαφορετική τιμή, επιβεβαίωσε στο zenith.gr πριν την ένταξη. Απαιτείται φοιτητική ταυτότητα.' },
+      // FIX: τιμή αναπροσαρμόστηκε 0.1450 → 0.095 (επιβεβαιωμένο, Ιούνιος 2026), ισχύει για τις πρώτες 200 kWh/μήνα
+      { id: 'zen_student',   name: 'Power Home Student',      badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0950, kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 0,  no_fixed: true,  dynamic: false, vat: 6, segment: 'residential', student: true, desc: 'Φοιτητικό. Τιμή 0.095€/kWh για τις πρώτες 200 kWh/μήνα, πάνω από αυτό ισχύει διαφορετική τιμή, επιβεβαίωσε στο zenith.gr πριν την ένταξη. Απαιτείται φοιτητική ταυτότητα.' },
       { id: 'zen_start',     name: 'Power Home Start (Ειδικό)', badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1988, kwh_night: null, flat_monthly: null, fixed: 6.80, fixed_ebill: null, contract_months: 0, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Ανακοινώνεται κάθε 1η του μήνα.' },
-      // ── ZeΝergy — all-in πακέτα, ΟΛΑ τα 5 μεγέθη ─────────────────────────
+      // ── ZeΝergy, all-in πακέτα, ΟΛΑ τα 5 μεγέθη ─────────────────────────
       // FIX: πριν υπήρχε μόνο 1 πακέτο (49€). Επιβεβαιωμένο 5μελές σύστημα.
-      // Ακριβή όρια kWh επιβεβαιωμένα μόνο για XS και XL — για S/M/L δες zenith.gr.
-      { id: 'zen_zenergy_xs', name: 'ZeΝergy XS — έως 2.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 49.00,  flat_annual_kwh: 2000, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Μικρό μέγεθος κατανάλωσης.' },
+      // Ακριβή όρια kWh επιβεβαιωμένα μόνο για XS και XL, για S/M/L δες zenith.gr.
+      { id: 'zen_zenergy_xs', name: 'ZeΝergy XS, έως 2.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 49.00,  flat_annual_kwh: 2000, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Μικρό μέγεθος κατανάλωσης.' },
       { id: 'zen_zenergy_s',  name: 'ZeΝergy S',                       badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 69.00,  fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Ακριβές όριο κατανάλωσης: δες zenith.gr.' },
       { id: 'zen_zenergy_m',  name: 'ZeΝergy M',                       badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 90.00,  fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Ακριβές όριο κατανάλωσης: δες zenith.gr.' },
       { id: 'zen_zenergy_l',  name: 'ZeΝergy L',                       badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 137.00, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Ακριβές όριο κατανάλωσης: δες zenith.gr.' },
-      { id: 'zen_zenergy_xl', name: 'ZeΝergy XL — έως 12.000 kWh/έτος',badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 262.00, flat_annual_kwh: 12000, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Μεγάλο μέγεθος κατανάλωσης.' },
+      { id: 'zen_zenergy_xl', name: 'ZeΝergy XL, έως 12.000 kWh/έτος',badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 262.00, flat_annual_kwh: 12000, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'All-in σταθερό μηνιαίο. Μεγάλο μέγεθος κατανάλωσης.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'zen_biz_start', name: 'Power Business Start',    badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.2090, kwh_night: null, flat_monthly: null, fixed: 1.00, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό επαγγελματικό. Χαμηλό πάγιο, ετήσια δέσμευση.' },
     ] as unknown as Tariff[],
@@ -184,7 +184,7 @@ const PROVIDERS = [
     tariffs: [
       // ── Οικιακά ────────────────────────────────────────────────────────
       { id: 'volton_green',    name: 'Volton Green Ειδικό',   badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1861, kwh_night: null, flat_monthly: null, fixed: 0,    fixed_ebill: null, contract_months: 0,  no_fixed: true,  dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Μηδενική εγγύηση. Ανακοινώνεται 1η μήνα.' },
-      { id: 'volton_blue',     name: 'Volton Blue Flat 18M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 18 μηνών με έκπτωση συνέπειας. Καλοκαιρινή προσφορά Ιούν-Αύγ: -15% (~0.129€/kWh) — επιβεβαίωσε τρέχουσα εποχιακή τιμή στο volton.gr.' },
+      { id: 'volton_blue',     name: 'Volton Blue Flat 18M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 18 μηνών με έκπτωση συνέπειας. Καλοκαιρινή προσφορά Ιούν-Αύγ: -15% (~0.129€/kWh), επιβεβαίωσε τρέχουσα εποχιακή τιμή στο volton.gr.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'volton_yellow_biz', name: 'Yellow Simple Business', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14078, kwh_night: null, flat_monthly: null, fixed: 6.90, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
       { id: 'volton_blue_biz',   name: 'Blue Flat 18M Business', badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590,  kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό 18μηνο επαγγελματικό.' },
@@ -207,15 +207,15 @@ const PROVIDERS = [
       { id: 'enrw_saver_biz',   name: 'Reward Saver Business',  badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1490, kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 0,  no_fixed: true,  dynamic: false, vat: 24, segment: 'business', desc: 'Φθηνότερο κυμαινόμενο επαγγελματικό.' },
       { id: 'enrw_stable_biz',  name: 'Reward Stable for Business Γ21', badge: 'ΜΠΛΕ', type: 'fixed', kwh_day: 0.1690, kwh_night: null, flat_monthly: null, fixed: 12.90, fixed_ebill: null, contract_months: 18, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Σταθερό επαγγελματικό 18μηνο.' },
       { id: 'enrw_special_biz', name: 'Ειδικό Επιχειρήσεις Γ21', badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1590, kwh_night: null, flat_monthly: null, fixed: 5.00, fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Ειδικό Γ21 επαγγελματικό.' },
-      // ── My Wave Daily Business — ΟΛΑ τα 5 μεγέθη ─────────────────────────
+      // ── My Wave Daily Business, ΟΛΑ τα 5 μεγέθη ─────────────────────────
       // FIX: πριν υπήρχε μόνο 1 μη-ρεαλιστικό πακέτο (65€, καμία αντιστοιχία).
       // Επιβεβαιωμένο πλήρες σύστημα 5 μεγεθών με ημερήσια χρέωση, ετήσιο όριο kWh
       // και ακριβή τιμή υπέρβασης ανά μέγεθος. Μηνιαίο = ημερήσια τιμή × 30.
-      { id: 'enrw_wave_1',   name: 'My Wave Daily 1€/ημέρα — έως 1.920 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 30.00, flat_annual_kwh: 1920,  flat_overage_rate: 0.239, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 1€/ημέρα (≈30€/μήνα). Υπέρβαση 0.239€/kWh.' },
-      { id: 'enrw_wave_15',  name: 'My Wave Daily 1,5€/ημέρα — έως 3.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 45.00, flat_annual_kwh: 3000,  flat_overage_rate: 0.229, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 1,5€/ημέρα (≈45€/μήνα). Υπέρβαση 0.229€/kWh.' },
-      { id: 'enrw_wave_2',   name: 'My Wave Daily 2€/ημέρα — έως 4.200 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, flat_annual_kwh: 4200,  flat_overage_rate: 0.219, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2€/ημέρα (≈60€/μήνα). Υπέρβαση 0.219€/kWh.' },
-      { id: 'enrw_wave_25',  name: 'My Wave Daily 2,5€/ημέρα — έως 5.400 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 75.00, flat_annual_kwh: 5400,  flat_overage_rate: 0.209, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2,5€/ημέρα (≈75€/μήνα). Υπέρβαση 0.209€/kWh.' },
-      { id: 'enrw_wave_3',   name: 'My Wave Daily 3€/ημέρα — έως 6.600 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 90.00, flat_annual_kwh: 6600,  flat_overage_rate: 0.199, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 3€/ημέρα (≈90€/μήνα). Υπέρβαση 0.199€/kWh.' },
+      { id: 'enrw_wave_1',   name: 'My Wave Daily 1€/ημέρα, έως 1.920 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 30.00, flat_annual_kwh: 1920,  flat_overage_rate: 0.239, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 1€/ημέρα (≈30€/μήνα). Υπέρβαση 0.239€/kWh.' },
+      { id: 'enrw_wave_15',  name: 'My Wave Daily 1,5€/ημέρα, έως 3.000 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 45.00, flat_annual_kwh: 3000,  flat_overage_rate: 0.229, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 1,5€/ημέρα (≈45€/μήνα). Υπέρβαση 0.229€/kWh.' },
+      { id: 'enrw_wave_2',   name: 'My Wave Daily 2€/ημέρα, έως 4.200 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, flat_annual_kwh: 4200,  flat_overage_rate: 0.219, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2€/ημέρα (≈60€/μήνα). Υπέρβαση 0.219€/kWh.' },
+      { id: 'enrw_wave_25',  name: 'My Wave Daily 2,5€/ημέρα, έως 5.400 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 75.00, flat_annual_kwh: 5400,  flat_overage_rate: 0.209, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 2,5€/ημέρα (≈75€/μήνα). Υπέρβαση 0.209€/kWh.' },
+      { id: 'enrw_wave_3',   name: 'My Wave Daily 3€/ημέρα, έως 6.600 kWh/έτος', badge: 'FLAT', type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 90.00, flat_annual_kwh: 6600,  flat_overage_rate: 0.199, fixed: 0, fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Συνδρομητικό 3€/ημέρα (≈90€/μήνα). Υπέρβαση 0.199€/kWh.' },
     ] as unknown as Tariff[],
   },
   {
@@ -223,7 +223,7 @@ const PROVIDERS = [
     tariffs: [
       // ── Οικιακά ────────────────────────────────────────────────────────
       { id: 'wv_home_standard', name: 'Home Standard',          badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1480, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο βασικό (+ ΜΔΚΑ). Χωρίς δέσμευση. Επιβεβαίωσε τρέχουσα τιμή στο watt-volt.gr.' },
-      { id: 'wv_home_blue',     name: 'Home Blue Σταθερό 12M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1450, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 12μηνο. Τελευταία γνωστή ένδειξη — επιβεβαίωσε τρέχουσα τιμή/όρους.' },
+      { id: 'wv_home_blue',     name: 'Home Blue Σταθερό 12M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1450, kwh_night: null, flat_monthly: null, fixed: 9.90,  fixed_ebill: null, contract_months: 12, no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Σταθερό 12μηνο. Τελευταία γνωστή ένδειξη, επιβεβαίωσε τρέχουσα τιμή/όρους.' },
       { id: 'wv_home_special',  name: 'Home Ειδικό (Γ1)',       badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1650, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Ανακοινώνεται κάθε 1η του μήνα.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'wv_biz_standard',  name: 'Business Standard',      badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 0,  no_fixed: false, dynamic: false, vat: 24, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό (Γ21). Επιβεβαίωσε τρέχουσα τιμή.' },
@@ -254,7 +254,7 @@ const BADGE_COLORS: Record<string, { bg: string; color: string; border: string }
   'ΜΠΛΕ':     { bg: 'rgba(26,115,232,0.1)', color: 'var(--info)',     border: 'rgba(26,115,232,0.25)' },
   'VNM':      { bg: 'rgba(26,115,232,0.1)', color: 'var(--accent)',   border: 'rgba(26,115,232,0.25)' },
   'ΔΥΝΑΜΙΚΟ': { bg: 'rgba(139,92,246,0.1)', color: '#7c4dff',         border: 'rgba(139,92,246,0.25)' },
-  // FIX: 'FLAT' badge δεν είχε χρώμα — έπεφτε στο γκρι fallback. Τώρα distinct teal.
+  // FIX: 'FLAT' badge δεν είχε χρώμα, έπεφτε στο γκρι fallback. Τώρα distinct teal.
   'FLAT':     { bg: 'rgba(6,182,212,0.1)',  color: '#00acc1',         border: 'rgba(6,182,212,0.25)'  },
 };
 const bc = (badge: string) => BADGE_COLORS[badge] || { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
@@ -374,13 +374,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     return { date: expiry.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' }), daysLeft };
   }, [contractStart, contractMonths]);
 
-  // Comparison — all tariffs from all providers
+  // Comparison, all tariffs from all providers
   const allTariffs = useMemo(() => {
     return PROVIDERS.flatMap(p => p.tariffs.map(t => {
       const isCurrent = t.id === tariffId;
       let monthly = 0;
       if (t.type === 'fixed_monthly') {
-        // FIX: same 'flat' vs 'fixed_monthly' mismatch as calcMonthly — was falling into
+        // FIX: same 'flat' vs 'fixed_monthly' mismatch as calcMonthly, was falling into
         // the €/kWh branch below with kwh_day:0, producing a near-zero bogus "cheapest" price.
         monthly = (t.flat_monthly || 0) + flatOverageMonthly(t, kwh);
       } else if (t.type !== 'dynamic') {
@@ -400,7 +400,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       return { ...t, providerLabel: p.label, monthly, isCurrent, diff };
     })).filter(t => t.type !== 'dynamic')
       // FIX: the Οικιακό/Επιχειρηματικό toggle existed in the UI and segmentFilter was
-      // already in the dependency array, but nothing ever filtered by it — both tabs
+      // already in the dependency array, but nothing ever filtered by it, both tabs
       // showed the identical mixed list. Now the toggle actually does something.
       .filter(t => t.segment === segmentFilter)
       .sort((a, b) => a.monthly - b.monthly);
@@ -426,7 +426,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Ρεύμα</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED} — Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED}, Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
         </div>
         <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
@@ -439,7 +439,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         <div style={{ marginBottom: 14, background: contractExpiry.daysLeft <= 14 ? 'rgba(197,34,31,0.06)' : 'rgba(242,153,0,0.05)', border: `1px solid ${contractExpiry.daysLeft <= 14 ? 'rgba(197,34,31,0.2)' : 'rgba(242,153,0,0.2)'}`, borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: contractExpiry.daysLeft <= 14 ? 'var(--negative)' : 'var(--warning)' }}/>
           <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)', fontWeight: 600 }}>
-            Σύμβαση ρεύματος λήγει σε {contractExpiry.daysLeft} ημέρες — {contractExpiry.date}
+            Σύμβαση ρεύματος λήγει σε {contractExpiry.daysLeft} ημέρες, {contractExpiry.date}
           </span>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
             Καλό να συγκρίνεις τιμές πριν ανανεώσεις
@@ -495,11 +495,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               <div style={{ marginTop: 6, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια ("κίτρινα") που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας — αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://compareprices.energy.gov.gr" target="_blank" style={{ color: "var(--info)", fontWeight: 600 }}>ΡΑΑΕΥ →</a>
+                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια ("κίτρινα") που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://compareprices.energy.gov.gr" target="_blank" style={{ color: "var(--info)", fontWeight: 600 }}>ΡΑΑΕΥ →</a>
                 </span>
               </div>
             )}
-            {/* FIX: new — Picasso-family flat packages had no explanation of the tolerance/overage/settlement mechanic anywhere in the UI */}
+            {/* FIX: new, Picasso-family flat packages had no explanation of the tolerance/overage/settlement mechanic anywhere in the UI */}
             {tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh != null && tariff.flat_overage_rate != null && (
               <div style={{ marginTop: 6, background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.18)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#00acc1" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -528,7 +528,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 </span>
               </div>
             )}
-            {/* FIX: new — fixed_monthly tariffs previously showed nothing here at all (the block above explicitly excludes them) */}
+            {/* FIX: new, fixed_monthly tariffs previously showed nothing here at all (the block above explicitly excludes them) */}
             {tariff.type === 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>
@@ -574,7 +574,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 <span style={{ width: 40, height: 24, borderRadius: 12, padding: 2, flexShrink: 0, background: useEbill ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
                   <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: useEbill ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{useEbill ? 'Ενεργό — μειωμένο πάγιο' : 'Ανενεργό'}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{useEbill ? 'Ενεργό, μειωμένο πάγιο' : 'Ανενεργό'}</span>
               </button>
             </div>
           )}
@@ -587,7 +587,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         <div style={{ display: 'grid', gridTemplateColumns: tariff.kwh_night ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <NumberInput label="Μέση Μηνιαία Κατανάλωση (kWh)" value={kwhMonthly} onChange={v => { setKwhMonthly(v); save({ kwhMonthly: v }); }} suffix="kWh" step={10}/>
           {tariff.kwh_night && <NumberInput label="Νυχτερινή Κατανάλωση (%)" value={nightPct} onChange={v => { setNightPct(v); save({ nightPct: v }); }} suffix="%" step={5}/>}
-          {tariff.type === 'dynamic' && <NumberInput label="Μηνιαίο Κόστος (€) — Από Λογαριασμό" value={manualMonthly} onChange={v => { setManualMonthly(v); save({ manualMonthly: v }); }} suffix="€" step={1}/>}
+          {tariff.type === 'dynamic' && <NumberInput label="Μηνιαίο Κόστος (€), Από Λογαριασμό" value={manualMonthly} onChange={v => { setManualMonthly(v); save({ manualMonthly: v }); }} suffix="€" step={1}/>}
         </div>
 
         {tariff.type !== 'dynamic' && kwh > 0 && (
@@ -608,7 +608,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
         {/* kWh history */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό Κατανάλωσης — kWh ανά μήνα</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό Κατανάλωσης, kWh ανά μήνα</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
             {MONTHS_GR.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
@@ -630,7 +630,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {kwh > 0 && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
-            {secHdr('Σύγκριση Όλων των Παρόχων', `Βάσει ${kwh} kWh/μήνα — ${LAST_UPDATED}`)}
+            {secHdr('Σύγκριση Όλων των Παρόχων', `Βάσει ${kwh} kWh/μήνα, ${LAST_UPDATED}`)}
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
@@ -681,7 +681,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? 'VNM' : `${fk(t.kwh_day)}`}
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
-                        {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed) — now shows — instead */}
+                        {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed), now shows, instead */}
                         {t.type === 'fixed_monthly' ? '—' : t.no_fixed ? '0 €' : `${(t.fixed_ebill != null ? t.fixed_ebill : t.fixed).toFixed(2)} €`}
                       </td>
                       <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
@@ -713,7 +713,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         const kwhNum   = parseFloat(kwhMonthly) || 0;
         const costNum  = calcMonthly;
 
-        // FIX: new — warn if the SELECTED flat-tier package's kWh limit is smaller than
+        // FIX: new, warn if the SELECTED flat-tier package's kWh limit is smaller than
         // the user's actual projected usage. Without this, someone could pick "Picasso
         // Small" while consuming way more, with no indication they'll hit overage charges.
         if (tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh && tariff.flat_overage_rate) {
@@ -721,11 +721,11 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           const allowance = tariff.flat_annual_kwh * 1.05;
           if (projectedAnnual > allowance) {
             const overageKwh = Math.round(projectedAnnual - tariff.flat_annual_kwh);
-            hints.push({ text: `Με ${kwhNum} kWh/μήνα (~${Math.round(projectedAnnual)} kWh/έτος) ξεπερνάς το όριο του "${tariff.name}" (${tariff.flat_annual_kwh.toLocaleString('el-GR')} kWh + 5% ανοχή) κατά ~${overageKwh} kWh. Η υπέρβαση χρεώνεται ${fk(tariff.flat_overage_rate)}/kWh — σκέψου μεγαλύτερο πακέτο.`, severity: 'warning' });
+            hints.push({ text: `Με ${kwhNum} kWh/μήνα (~${Math.round(projectedAnnual)} kWh/έτος) ξεπερνάς το όριο του "${tariff.name}" (${tariff.flat_annual_kwh.toLocaleString('el-GR')} kWh + 5% ανοχή) κατά ~${overageKwh} kWh. Η υπέρβαση χρεώνεται ${fk(tariff.flat_overage_rate)}/kWh, σκέψου μεγαλύτερο πακέτο.`, severity: 'warning' });
           }
         }
 
-        // ── Insurance gap — only if VNM/solar is relevant (cross-tab context) ──
+        // ── Insurance gap, only if VNM/solar is relevant (cross-tab context) ──
         if (insData && kwhNum > 200) {
           if (!insData.eq) {
             hints.push({ text: 'Η ασφάλειά σου δεν καλύπτει σεισμό. Ελέγξτε τις καλύψεις σας.', severity: 'warning', action: 'Ασφάλεια & Συνδρομές', tab: 'insurance' });
@@ -738,7 +738,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           if (vnmTariff && vnmTariff.monthly < costNum - 5) {
             hints.push({ text: `Με ${kwhNum} kWh/μήνα το VNM (Εικονική Καθαρή Μέτρηση) μπορεί να σου εξοικονομήσει ${((costNum - vnmTariff.monthly)).toFixed(0)}€/μήνα.`, severity: 'tip', action: 'Πάρε Προσφορά', tab: 'electricity' });
           } else {
-            hints.push({ text: `Κατανάλωση ${kwhNum} kWh/μήνα — αξίζει σύγκριση με φωτοβολταϊκό ή κοινοτικό VNM.`, severity: 'tip' });
+            hints.push({ text: `Κατανάλωση ${kwhNum} kWh/μήνα, αξίζει σύγκριση με φωτοβολταϊκό ή κοινοτικό VNM.`, severity: 'tip' });
           }
         } else if (kwhNum > 0 && kwhNum < 100) {
           const noFixed = allTariffs.find(t => t.no_fixed && t.type !== 'dynamic');

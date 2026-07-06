@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PropertyAssistant — ο προσωπικός βοηθός ακινήτων, ορατός ΠΑΝΤΟΥ στην εφαρμογή.
+// PropertyAssistant, ο προσωπικός βοηθός ακινήτων, ορατός ΠΑΝΤΟΥ στην εφαρμογή.
 // Πλωτό κουμπί (FAB) σε κάθε καρτέλα → πάνελ συνομιλίας. Ο χρήστης διαλέγει όνομα
 // & φύλο. Απαντά με ανθρώπινη ψυχή σε ΟΤΙΔΗΠΟΤΕ (χαλαρά ή σύνθετα ακινήτων),
 // δίνει γνώμη, παραπέμπει στον σωστό επαγγελματία, και καθοδηγεί μέσα στο app.
@@ -69,7 +69,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, [msgs, busy, editing]);
 
-  // Σύγκριση ακινήτων — δίνεται στο μοντέλο μόνο αν το ζητήσει ο χρήστης.
+  // Σύγκριση ακινήτων, δίνεται στο μοντέλο μόνο αν το ζητήσει ο χρήστης.
   const allPropsContext = identity.compare && allProperties.length > 1
     ? allProperties.map((p, i) => {
         const gy = computeYields(resolveRent({ targetRent: p.targetRent }).value, resolveValue(p.value).value, 0).grossYield;
@@ -237,7 +237,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   return (
     <>
-      {/* FAB — ορατό σε κάθε καρτέλα */}
+      {/* FAB, ορατό σε κάθε καρτέλα */}
       {!open && (
         <div className="pa-fab-wrap">
           <span className="pa-fab-label">Ρώτησε τον/την {identity.name}</span>

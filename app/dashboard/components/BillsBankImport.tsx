@@ -14,7 +14,7 @@ const mdLabel: React.CSSProperties = {
 };
 
 // Η λογική ανάλυσης/κατηγοριοποίησης/συμφωνίας ζει στο @/lib/billing/parse
-// (καθαρή & δοκιμασμένη — δες lib/billing/parse.test.ts, 23k+ tests).
+// (καθαρή & δοκιμασμένη, δες lib/billing/parse.test.ts, 23k+ tests).
 
 async function parseXLSX(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
   const XLSX = await import('xlsx');
@@ -216,7 +216,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
         else unmatched.push(t);
       }
 
-      // 1) Συμφώνησε τα ταιριασμένα — μαρκάρισμα «Πληρώθηκε» παντού.
+      // 1) Συμφώνησε τα ταιριασμένα, μαρκάρισμα «Πληρώθηκε» παντού.
       // Προτεραιότητα σε ΑΚΡΙΒΗ σύνδεση μέσω bill_id· αν δεν βρεθεί (παλιά δεδομένα
       // χωρίς σύνδεσμο), fallback σε ταίριασμα ποσού+κατηγορίας.
       if (matched.length) {
@@ -320,7 +320,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Εισαγωγή Τραπεζικού Λογαριασμού</div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Αυτόματη αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ — CSV, Excel, PDF, εικόνες</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Αυτόματη αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ, CSV, Excel, PDF, εικόνες</div>
       </div>
 
       {step === 'upload' && (
@@ -361,7 +361,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           {importing && (
             <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans }}>
-              Ανάλυση αρχείου με AI — παρακαλώ περίμενε...
+              Ανάλυση αρχείου με AI, παρακαλώ περίμενε...
             </div>
           )}
           {error && (
@@ -370,7 +370,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', padding: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες ${selectedBank}` : 'Εξαγωγή Κινήσεων ανά Τράπεζα'}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες εξαγωγής για ${selectedBank} — ακολούθησε τα παρακάτω βήματα` : 'Επίλεξε τράπεζα παραπάνω ή πάτα οποιαδήποτε κάρτα για αναλυτικές οδηγίες'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, fontFamily: T.font.sans }}>{selectedBank ? `Οδηγίες εξαγωγής για ${selectedBank}, ακολούθησε τα παρακάτω βήματα` : 'Επίλεξε τράπεζα παραπάνω ή πάτα οποιαδήποτε κάρτα για αναλυτικές οδηγίες'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(() => {
                 const ALL_BANK_INSTRUCTIONS: Record<string, { sub: string; steps: string[]; format: string; url: string }> = {

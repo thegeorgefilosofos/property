@@ -56,7 +56,7 @@ const EXPENSE_GROUPS: Record<string, { label: string; categories: string[]; taxD
 // πιο χρησιμοποιούμενο tab να μη μοιάζει με σουπερμάρκετ.
 const CORE_GROUPS = new Set(['fixed', 'maintenance', 'renovation', 'appliances', 'legal', 'tax', 'other']);
 
-// Premium, cohesive παλέτα (μουτ) — ίδια με ExpenseAnalytics, χωρίς νέον/θόρυβο.
+// Premium, cohesive παλέτα (μουτ), ίδια με ExpenseAnalytics, χωρίς νέον/θόρυβο.
 const GROUP_COLORS: Record<string, string> = {
   fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7c4dff',
   appliances:'#00897b', appliance_lease:'#3949ab', vehicle_lease:'#00acc1',
@@ -70,8 +70,8 @@ const PAYMENT_METHODS = [
   { value: 'family',           label: 'Γονείς/Συγγενείς/Φίλοι',        hasCashback: false, hasInstallments: false, interestRate: 0 },
   { value: 'debit_cb',         label: 'Χρεωστική με Cashback',          hasCashback: true,  hasInstallments: false, interestRate: 0 },
   { value: 'debit_no_cb',      label: 'Χρεωστική χωρίς Cashback',       hasCashback: false, hasInstallments: false, interestRate: 0 },
-  { value: 'credit_free',      label: 'Πιστωτική — Άτοκες Δόσεις',     hasCashback: false, hasInstallments: true,  interestRate: 0 },
-  { value: 'credit_interest',  label: 'Πιστωτική — Έντοκες Δόσεις',    hasCashback: false, hasInstallments: true,  interestRate: 18 },
+  { value: 'credit_free',      label: 'Πιστωτική, Άτοκες Δόσεις',     hasCashback: false, hasInstallments: true,  interestRate: 0 },
+  { value: 'credit_interest',  label: 'Πιστωτική, Έντοκες Δόσεις',    hasCashback: false, hasInstallments: true,  interestRate: 18 },
   { value: 'klarna',           label: 'Klarna',                         hasCashback: false, hasInstallments: true,  interestRate: 0 },
   { value: 'tbi',              label: 'TBI Bank',                       hasCashback: false, hasInstallments: true,  interestRate: 12 },
   { value: 'snappi',           label: 'Snappi BNPL',                    hasCashback: true,  hasInstallments: true,  interestRate: 0 },
@@ -102,11 +102,11 @@ const fmtEur0 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDig
 const fmtD = (d: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
 
 // HTML-escape helper for dynamic values interpolated into the print/PDF HTML that is
-// passed to window.open(...).document.write — prevents stored-XSS via user/tenant/DB fields.
+// passed to window.open(...).document.write, prevents stored-XSS via user/tenant/DB fields.
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 
 const bestPayment = (a: number) =>
-  a >= 2000 ? 'Πιστωτική με άτοκες δόσεις — μέγιστη ρευστότητα' :
+  a >= 2000 ? 'Πιστωτική με άτοκες δόσεις, μέγιστη ρευστότητα' :
   a >= 500  ? 'Χρεωστική με Cashback ή Πιστωτική Άτοκες' :
   a >= 100  ? 'Χρεωστική με Cashback' : 'Μετρητά ή Χρεωστική';
 
@@ -208,7 +208,7 @@ function InstallmentCalc({ amount, installments, interestRate, startDate }: { am
         ))}
       </div>
       <div style={{ fontSize:11, color:isInterestFree?'var(--positive)':'var(--warning)', fontFamily:"'Inter', sans-serif", lineHeight:1.5 }}>
-        {isInterestFree ? 'Άτοκες δόσεις — δεν συμφέρει πρόωρη εξόφληση. Διατήρησε τη ρευστότητά σου.' : `Πρόωρη εξόφληση: εξοικονομείς ${fmtEur(interest)} σε τόκους.`}
+        {isInterestFree ? 'Άτοκες δόσεις, δεν συμφέρει πρόωρη εξόφληση. Διατήρησε τη ρευστότητά σου.' : `Πρόωρη εξόφληση: εξοικονομείς ${fmtEur(interest)} σε τόκους.`}
       </div>
     </div>
   );
@@ -363,7 +363,7 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
           <img src={preview} alt="receipt" style={{ height:48, width:'auto', borderRadius:4, border:'1px solid var(--border-subtle)', objectFit:'cover' }} />
           <div style={{ fontSize:11, color:'var(--positive)', fontFamily:"'Inter', sans-serif" }}>
-            Στοιχεία εξήχθησαν — ελέγξτε και συμπληρώστε
+            Στοιχεία εξήχθησαν, ελέγξτε και συμπληρώστε
           </div>
         </div>
       )}
@@ -413,7 +413,7 @@ function ExpenseForm({
         )}
       </div>
 
-      {/* Receipt OCR — only on new expense */}
+      {/* Receipt OCR, only on new expense */}
       {!isEdit && (
         <ReceiptOCR onExtracted={data => {
           Object.entries(data).forEach(([k,v]) => { if(v!==undefined) sf(k,v); });
@@ -672,7 +672,7 @@ async function exportExcel(expenses: Expense[], propertyName: string) {
   });
 
   const summaryData: (string|number)[][] = [
-    ['Property OS — Κατάσταση Δαπανών', ''],
+    ['Property OS, Κατάσταση Δαπανών', ''],
     ['Ακίνητο:', propertyName],
     ['Ημερομηνία εξαγωγής:', today],
     ['Σύνολο εγγραφών:', expenses.length],
@@ -901,7 +901,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
     }).join('');
 
   w.document.write(`<!DOCTYPE html><html lang="el"><head>
-  <meta charset="UTF-8"><title>Κατάσταση Δαπανών — ${esc(propertyName)}</title>
+  <meta charset="UTF-8"><title>Κατάσταση Δαπανών, ${esc(propertyName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
@@ -1183,7 +1183,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     load();
   };
 
-  // ── Recurring reminders — δαπάνες που δεν έχουν καταχωρηθεί αυτόν τον μήνα ──
+  // ── Recurring reminders, δαπάνες που δεν έχουν καταχωρηθεί αυτόν τον μήνα ──
   const recurringReminders = useMemo(() => {
     const now = new Date();
     const thisMonth = now.getMonth();
@@ -1425,7 +1425,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }} />
           <span style={{ fontSize:12, color:'var(--warning)', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
-            {processed.filter(e=>!e.paid).length} εκκρεμείς δαπάνες — {fmtEur(unpaidTotal)} αναμένουν εξόφληση
+            {processed.filter(e=>!e.paid).length} εκκρεμείς δαπάνες, {fmtEur(unpaidTotal)} αναμένουν εξόφληση
           </span>
         </div>
       )}
@@ -1441,7 +1441,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {recurringReminders.length > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--accent)', borderRadius:8, padding:'10px 16px', marginBottom:12 }}>
           <div style={{ fontSize:10, fontWeight:500, color:'var(--accent)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:8 }}>
-            Επαναλαμβανόμενες — εκκρεμείς αυτόν τον μήνα
+            Επαναλαμβανόμενες, εκκρεμείς αυτόν τον μήνα
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {recurringReminders.slice(0,6).map((e, i) => (
@@ -1487,7 +1487,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             {warrantyAlerts.map((e, i) => (
               <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:8, padding:'6px 12px', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
                 <span style={{ color:'var(--text-primary)', fontWeight:500 }}>{e.description}</span>
-                {' — '}
+                {', '}
                 <span style={{ color:e.daysLeft<=14?'var(--negative)':'var(--warning)', fontWeight:500 }}>
                   {e.daysLeft===0?'Λήγει σήμερα':`${e.daysLeft} μέρες`}
                 </span>
@@ -1566,7 +1566,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           saving={saving} />
       )}
 
-      {/* KPI strip — premium, ήρεμο: ουδέτεροι αριθμοί, χρώμα μόνο όπου έχει νόημα */}
+      {/* KPI strip, premium, ήρεμο: ουδέτεροι αριθμοί, χρώμα μόνο όπου έχει νόημα */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(6,minmax(0,1fr))', gap:10, marginBottom:12 }}>
         {[
           { label:'Σύνολο δαπανών',      value:fmtEur(total),         accent:false, primary:true },

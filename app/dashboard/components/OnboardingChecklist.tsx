@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OnboardingChecklist — καθοδήγηση πρώτης χρήσης. Εμφανίζεται στην Επισκόπηση
+// OnboardingChecklist, καθοδήγηση πρώτης χρήσης. Εμφανίζεται στην Επισκόπηση
 // όσο το ακίνητο είναι «άδειο» και σβήνει μόλις ολοκληρωθούν τα βήματα (ή με
 // «Απόκρυψη», που θυμάται ανά ακίνητο). Κάθε βήμα οδηγεί στο σχετικό tab.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
           <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ας ρυθμίσουμε το ακίνητό σου</div>
-          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount} από {steps.length} βήματα ολοκληρωμένα — λίγο ακόμα!</div>
+          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount} από {steps.length} βήματα ολοκληρωμένα, λίγο ακόμα!</div>
         </div>
         <button onClick={dismiss} title="Απόκρυψη" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 600, flexShrink: 0 }}>Απόκρυψη</button>
       </div>

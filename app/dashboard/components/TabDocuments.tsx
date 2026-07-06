@@ -37,13 +37,13 @@ interface DocRow {
   signedUrl?: string;
 }
 
-// Κατηγορίες φωτογραφιών — τεκμηρίωση κατάστασης ακινήτου
+// Κατηγορίες φωτογραφιών, τεκμηρίωση κατάστασης ακινήτου
 const PHOTO_CATEGORIES = [
   'Κατάσταση Ακινήτου', 'Πριν την Παράδοση', 'Μετά την Παράδοση',
   'Ζημιά / Φθορά', 'Ανακαίνιση', 'Εξωτερικοί Χώροι', 'Άλλο',
 ];
 
-// Κατηγορίες εγγράφων — αρχείο λογαριασμών, συμβολαίων, τιμολογίων
+// Κατηγορίες εγγράφων, αρχείο λογαριασμών, συμβολαίων, τιμολογίων
 const DOC_CATEGORIES = [
   'Λογαριασμός Ρεύματος', 'Λογαριασμός Φυσικού Αερίου', 'Λογαριασμός Νερού',
   'Τηλέφωνο / Internet', 'Ασφαλιστήριο Συμβόλαιο', 'Απεντόμωση / Μυοκτονία',
@@ -52,7 +52,7 @@ const DOC_CATEGORIES = [
   'ΕΝΦΙΑ / Φορολογικά', 'Τεχνική Έκθεση', 'Άλλο Έγγραφο',
 ];
 
-// Συνήθεις πάροχοι — προτάσεις (ελεύθερη πληκτρολόγηση για οποιονδήποτε άλλο)
+// Συνήθεις πάροχοι, προτάσεις (ελεύθερη πληκτρολόγηση για οποιονδήποτε άλλο)
 const COMMON_SUPPLIERS = [
   'ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elin', 'Volton', 'enerwave', 'Zenith',
   'Φυσικό Αέριο Ελλάδος', 'ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ',
@@ -230,7 +230,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
       <div style={card}>
         <SecHead label={tab === 'photo' ? 'Νέα Φωτογραφία' : 'Νέο Αρχείο'}
           sub={tab === 'photo'
-            ? 'Ανέβασε φωτογραφίες ως απόδειξη κατάστασης — για ενοικίαση, πώληση ή τον ασφαλιστή'
+            ? 'Ανέβασε φωτογραφίες ως απόδειξη κατάστασης, για ενοικίαση, πώληση ή τον ασφαλιστή'
             : 'Ανέβασε οποιοδήποτε αρχείο (PDF, εικόνα, Word, Excel…) και ταξινόμησέ το ανά πάροχο και κατηγορία'}/>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Κατηγορία" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
@@ -252,7 +252,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
         </div>
         <div style={{ marginBottom: 14 }}>
           <TextInput label="Τίτλος / Περιγραφή" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))}
-            placeholder={tab === 'photo' ? 'για παράδειγμα Σαλόνι — βόρειος τοίχος' : 'για παράδειγμα ΔΕΗ Ιανουάριος 2026'}/>
+            placeholder={tab === 'photo' ? 'για παράδειγμα Σαλόνι, βόρειος τοίχος' : 'για παράδειγμα ΔΕΗ Ιανουάριος 2026'}/>
         </div>
         <div style={{ marginBottom: 14 }}>
           <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))}
@@ -269,7 +269,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
             style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }}/>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            {tab === 'photo' ? 'PNG, JPEG, WebP…' : 'Οποιοσδήποτε τύπος αρχείου — PDF, PNG, JPEG, Word, Excel…'}
+            {tab === 'photo' ? 'PNG, JPEG, WebP…' : 'Οποιοσδήποτε τύπος αρχείου, PDF, PNG, JPEG, Word, Excel…'}
           </span>
           {msg && (
             <span style={{ fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)', fontFamily: T.font.sans }}>{msg.text}</span>

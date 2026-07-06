@@ -176,7 +176,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       setResult(extracted);
       setEdited({ ...extracted });
     } catch (_) {
-      // Δικτυακό/άγνωστο σφάλμα — δώσε κενή φόρμα + καθοδήγηση
+      // Δικτυακό/άγνωστο σφάλμα, δώσε κενή φόρμα + καθοδήγηση
       const blank: ExtractedBill = { provider: '', category: 'electricity', amount: 0, due_date: '', period: '', confidence: 0 };
       setError('unreadable'); setResult(blank); setEdited(blank);
     } finally {
@@ -204,7 +204,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       const { data: billRow, error: billErr } = await supabase.from('bills').insert({
         property_id: propertyId, user_id: userId,
         category: edited.category,
-        name: `${edited.provider}${edited.period ? ` — ${edited.period}` : ''}`,
+        name: `${edited.provider}${edited.period ? `, ${edited.period}` : ''}`,
         amount: edited.amount, paid: false, due_date: edited.due_date || null,
         kwh: edited.kwh || null, ert: edited.ert || null, etmear: edited.etmear || null,
         dimotika: edited.dimotika || null, vat_rate: String(edited.vat_rate || 6),
@@ -226,7 +226,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       } else {
         const { error: expErr } = await supabase.from('expenses').insert({
           property_id: propertyId, user_id: userId, bill_id: billId,
-          description: `${map.cat} — ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
+          description: `${map.cat}, ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
           amount: edited.amount, category: map.cat, expense_group: map.group,
           date: expDate, paid_by: 'owner', paid: false,
           notes: `Από σάρωση λογαριασμού${consumption ? ` · ${consumption}` : ''}`,
@@ -293,7 +293,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
           Λογαριασμός Αποθηκεύτηκε
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
-          {edited?.provider} — {fe(edited?.amount || 0)}
+          {edited?.provider}, {fe(edited?.amount || 0)}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
           {(savedInfo.length ? savedInfo : ['Λογαριασμοί']).map(s => (
@@ -318,7 +318,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
           Σάρωση & Ανάλυση Λογαριασμού
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          Φωτογράφισε ή ανέβασε λογαριασμό ΔΕΗ, ΕΥΔΑΠ, COSMOTE — εξαγωγή δεδομένων αυτόματα
+          Φωτογράφισε ή ανέβασε λογαριασμό ΔΕΗ, ΕΥΔΑΠ, COSMOTE, εξαγωγή δεδομένων αυτόματα
         </div>
       </div>
 
@@ -388,7 +388,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               : error === 'service' ? 'Η υπηρεσία ανάγνωσης δεν είναι διαθέσιμη τώρα'
               : error;
             const tips = error === 'unreadable'
-              ? ['Τράβα τη φωτογραφία με καλό φως, χωρίς σκιές και αντανακλάσεις', 'Κράτα το κάδρο ίσιο, να χωράει όλος ο λογαριασμός', 'Αν έχεις το PDF από τον πάροχο, ανέβασέ το — διαβάζεται καλύτερα']
+              ? ['Τράβα τη φωτογραφία με καλό φως, χωρίς σκιές και αντανακλάσεις', 'Κράτα το κάδρο ίσιο, να χωράει όλος ο λογαριασμός', 'Αν έχεις το PDF από τον πάροχο, ανέβασέ το, διαβάζεται καλύτερα']
               : error === 'key_missing'
               ? ['Μπορείς να συμπληρώσεις τα πεδία χειροκίνητα παρακάτω και να αποθηκεύσεις κανονικά', 'Για αυτόματη ανάγνωση, χρειάζεται το κλειδί AI στο αρχείο ρυθμίσεων (.env.local)']
               : ['Δοκίμασε ξανά σε λίγο', 'Στο μεταξύ μπορείς να συμπληρώσεις τα πεδία χειροκίνητα'];
@@ -398,7 +398,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                 <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {tips.map((t, i) => <li key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{t}</li>)}
                 </ul>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Τα πεδία παρακάτω είναι επεξεργάσιμα — δεν χάνεις χρόνο ό,τι κι αν συμβεί.</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Τα πεδία παρακάτω είναι επεξεργάσιμα, δεν χάνεις χρόνο ό,τι κι αν συμβεί.</div>
               </div>
             );
           })()}
@@ -428,7 +428,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                       ? <>Δεν εντοπίστηκαν τα βασικά: <strong>{blocking.map(f => FIELD_LABELS[f]).join(', ')}</strong>. Για να μη βγουν παραπλανητικά αποτελέσματα, <strong>ανέβασε πιο καθαρό αρχείο/φωτογραφία</strong> ή <strong>συμπλήρωσέ τα παρακάτω</strong> πριν αποθηκεύσεις.</>
                       : recommended.length
                       ? <>Λείπουν: <strong>{recommended.map(f => FIELD_LABELS[f]).join(', ')}</strong>. Μπορείς να τα συμπληρώσεις για πλήρη εικόνα, ή να αποθηκεύσεις έτσι.</>
-                      : <>Χαμηλή βεβαιότητα ανάγνωσης — έλεγξε ποσό, ημερομηνία και κατανάλωση πριν αποθηκεύσεις.</>}
+                      : <>Χαμηλή βεβαιότητα ανάγνωσης, έλεγξε ποσό, ημερομηνία και κατανάλωση πριν αποθηκεύσεις.</>}
                   </div>
                 </div>
               );

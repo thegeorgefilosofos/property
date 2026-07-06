@@ -15,10 +15,10 @@ const MGMT_TYPES = [
 ];
 
 const MGMT_INFO: Record<string, { monthly: number; desc: string; url: string }> = {
-  traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής — εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
-  office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης — επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
-  billys:      { monthly: 0, desc: 'Ψηφιακή πλατφόρμα κοινοχρήστων — online έκδοση, ειδοποιήσεις, πληρωμές. Δες τη σύγκριση παρόχων παρακάτω.', url: 'https://billys.gr' },
-  none:        { monthly: 0, desc: 'Αυτοδιαχείριση — μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
+  traditional: { monthly: 0, desc: 'Παραδοσιακός διαχειριστής, εθελοντής ή αμειβόμενος ένοικος/ιδιοκτήτης.', url: '' },
+  office:      { monthly: 0, desc: 'Γραφείο Διαχείρισης, επαγγελματική εταιρεία, συνήθως 20–50 € / μήνα.',   url: '' },
+  billys:      { monthly: 0, desc: 'Ψηφιακή πλατφόρμα κοινοχρήστων, online έκδοση, ειδοποιήσεις, πληρωμές. Δες τη σύγκριση παρόχων παρακάτω.', url: 'https://billys.gr' },
+  none:        { monthly: 0, desc: 'Αυτοδιαχείριση, μηδενικό κόστος, απαιτεί χρόνο από τον ιδιοκτήτη.',     url: '' },
 };
 
 const MGMT_CARDS = [
@@ -28,7 +28,7 @@ const MGMT_CARDS = [
   { key: 'none',        costLabel: 'Δωρεάν',        nameLabel: 'Χωρίς Διαχειριστή',        url: '' },
 ] as const;
 
-// Ελληνικές πλατφόρμες έκδοσης/διαχείρισης κοινοχρήστων — τιμές ενδεικτικές (2026).
+// Ελληνικές πλατφόρμες έκδοσης/διαχείρισης κοινοχρήστων, τιμές ενδεικτικές (2026).
 // Οι περισσότερες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας.
 const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }[] = [
   { name: 'Billys',            price: 'Δωρεάν – 29 €/μήνα', note: 'Δωρεάν έκδοση. Smart: τραπεζικός λογ. πολυκατοικίας, ψηφοφορίες, ειδοποιήσεις οφειλών. Safe: αστική ευθύνη διαχειριστή.', url: 'https://billys.gr' },
@@ -39,7 +39,7 @@ const KOIN_PLATFORMS: { name: string; price: string; note: string; url: string }
   { name: 'Κοινόχρηστα.online', price: 'Δωρεάν',            note: 'Δωρεάν online υπολογισμός & εκτύπωση, χωρίς εγγραφή.', url: 'https://koinoxrista.online' },
 ];
 
-// Ανάλυση κοινοχρήστων ανά κατηγορία — λογική κατανομής με χιλιοστά (Billys-style).
+// Ανάλυση κοινοχρήστων ανά κατηγορία, λογική κατανομής με χιλιοστά (Billys-style).
 // payer: ποιος επιβαρύνεται κατά τον νόμο/έθιμο (ενοικιαστής=λειτουργικά, ιδιοκτήτης=κεφαλαιουχικά).
 const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner' }[] = [
   { key: 'cleaning',    label: 'Καθαρισμός',              payer: 'tenant' },
@@ -170,16 +170,16 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       await supabase.from('expenses').insert({
         property_id: propertyId, user_id: String(userId),
         amount: parseFloat(e.amount),
-        description: `Κοινόχρηστα — ${e.reason}`,
+        description: `Κοινόχρηστα, ${e.reason}`,
         date: e.date || new Date().toISOString().split('T')[0],
         category: 'Κοινόχρηστα',
       });
       const n = extras.map((ex, j) => j === i ? { ...ex, transferredToExpenses: true } : ex);
       setExtras(n); upd({ extras: n });
-      setTransferMsg(`"${e.reason}" — ${parseFloat(e.amount).toFixed(2)} € προστέθηκε στις Δαπάνες`);
+      setTransferMsg(`"${e.reason}", ${parseFloat(e.amount).toFixed(2)} € προστέθηκε στις Δαπάνες`);
       setTimeout(() => setTransferMsg(null), 4500);
     } catch {
-      setTransferMsg('Σφάλμα — δοκίμασε ξανά');
+      setTransferMsg('Σφάλμα, δοκίμασε ξανά');
       setTimeout(() => setTransferMsg(null), 3000);
     } finally {
       setTransferring(null);
@@ -197,7 +197,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const totalExtras  = extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const fundMonths   = fundMonthly && myFundShare > 0 ? Math.floor(myFundShare / (parseFloat(fundMonthly) || 1)) : 0;
 
-  // Ανάλυση κοινοχρήστων ανά κατηγορία — κατανομή με χιλιοστά (Billys logic)
+  // Ανάλυση κοινοχρήστων ανά κατηγορία, κατανομή με χιλιοστά (Billys logic)
   const millRatio    = (parseFloat(millesimi) || 0) / 1000;          // μερίδιο ιδιοκτησίας
   const catRows      = COMMON_CATEGORIES.map(c => {
     const building = parseFloat(catData[c.key]) || 0;                // μηνιαίο σύνολο κτηρίου
@@ -255,7 +255,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <strong>Ποιος πληρώνει τι:</strong> τα <strong>λειτουργικά κοινόχρηστα</strong> (καθαρισμός, ρεύμα/λάμπες κλιμακοστασίου, ασανσέρ, κηπουρός, αμοιβή διαχειριστή) βαρύνουν τον <strong>ενοικιαστή</strong>. Οι <strong>έκτακτες/κεφαλαιουχικές δαπάνες</strong> (επισκευή στέγης/ασανσέρ, μονώσεις, αντικαταστάσεις) και το <strong>αποθεματικό</strong> βαρύνουν τον <strong>ιδιοκτήτη</strong>. Οι έκτακτες εισφορές παρακάτω μεταφέρονται αυτόματα στις Δαπάνες σου.
       </InfoBanner>
 
-      {/* ── Ανάλυση Κοινοχρήστων ανά Κατηγορία (χιλιοστά — Billys logic) ──── */}
+      {/* ── Ανάλυση Κοινοχρήστων ανά Κατηγορία (χιλιοστά, Billys logic) ──── */}
       <div style={card}>
         {secHdr('Ανάλυση Κοινοχρήστων ανά Κατηγορία')}
 
@@ -269,7 +269,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 16, border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
-            Καταχώρησε το <strong>μηνιαίο σύνολο του κτηρίου</strong> για κάθε κατηγορία. Το μερίδιό σου υπολογίζεται αυτόματα με βάση τα <strong>χιλιοστά</strong> σου — όπως στην κατανομή κοινοχρήστων της πολυκατοικίας.
+            Καταχώρησε το <strong>μηνιαίο σύνολο του κτηρίου</strong> για κάθε κατηγορία. Το μερίδιό σου υπολογίζεται αυτόματα με βάση τα <strong>χιλιοστά</strong> σου, όπως στην κατανομή κοινοχρήστων της πολυκατοικίας.
           </div>
         </div>
 
@@ -324,7 +324,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <div style={card}>
         {secHdr('Διαχείριση Κτηρίου')}
 
-        {/* FIX: 3 cols so DatePicker has enough room — was 4 cols causing overflow */}
+        {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Τύπος Διαχείρισης"  value={mgmtType}   onChange={sMgmt}  options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο Κόστος (€)" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
@@ -377,7 +377,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Οδηγός ελληνικών πλατφορμών κοινοχρήστων — εμφανίζεται στην «Ψηφιακή Πλατφόρμα» */}
+        {/* Οδηγός ελληνικών πλατφορμών κοινοχρήστων, εμφανίζεται στην «Ψηφιακή Πλατφόρμα» */}
         {mgmtType === 'billys' && (
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ελληνικές Πλατφόρμες Κοινοχρήστων</div>
@@ -397,7 +397,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               ))}
             </div>
             <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
-              Ενδεικτικές τιμές (2026). Οι περισσότερες πλατφόρμες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας — δες τον εκάστοτε ιστότοπο για ακριβή τιμολόγηση.
+              Ενδεικτικές τιμές (2026). Οι περισσότερες πλατφόρμες κλιμακώνουν το κόστος ανάλογα με τα διαμερίσματα της πολυκατοικίας, δες τον εκάστοτε ιστότοπο για ακριβή τιμολόγηση.
             </div>
           </div>
         )}
@@ -503,7 +503,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           </div>
         )}
 
-        {/* Bar chart — with hover highlight */}
+        {/* Bar chart, with hover highlight */}
         <div style={{ position: 'relative', display: 'flex', gap: 4, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed rgba(26,115,232,0.4)', pointerEvents: 'none' }}>
@@ -534,7 +534,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           })}
         </div>
 
-        {/* Month labels — clickable, highlight on hover */}
+        {/* Month labels, clickable, highlight on hover */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
           {MONTHS_GR.map((m, i) => (
             <div key={i}
@@ -546,7 +546,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           ))}
         </div>
 
-        {/* Input grid — hover + focus styles */}
+        {/* Input grid, hover + focus styles */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 6 }}>
           {MONTHS_GR.map((m, i) => (
             <div key={i}>

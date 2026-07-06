@@ -281,7 +281,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
     bank_transfer: 'Τραπεζική μεταφορά', check: 'Επιταγή', cash_black: 'Αδήλωτα', family: 'Οικογένεια',
   };
 
-  // Μήνυμα σε σχέση με τον προηγούμενο μήνα — σε καθαρά ελληνικά, χωρίς «MoM».
+  // Μήνυμα σε σχέση με τον προηγούμενο μήνα, σε καθαρά ελληνικά, χωρίς «MoM».
   const momText = (() => {
     if (stats.prevMonthTotal <= 0) return null;
     if (stats.curMonthTotal <= 0) return { tone: 'muted', text: `Καμία δαπάνη ${MONTHS_S[thisMonth]} ακόμη. Τον ${MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]} είχες ${fmtEur(stats.prevMonthTotal)}.` };

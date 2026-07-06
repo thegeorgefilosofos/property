@@ -40,7 +40,7 @@ export default function RentROIReport({
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Property OS — ${esc(propertyName)}</title>
+        <title>Property OS, ${esc(propertyName)}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
         <style>
@@ -338,7 +338,7 @@ export default function RentROIReport({
           <!-- Benchmarks -->
           ${bench ? `
           <div class="section">
-            <div class="section-title">Σύγκριση με Αγορά — ${esc(bench.market_label)}</div>
+            <div class="section-title">Σύγκριση με Αγορά, ${esc(bench.market_label)}</div>
             <div class="kpi-grid">
               <div class="kpi">
                 <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${esc(fp(calc.grossYield))}</div>
@@ -370,11 +370,11 @@ export default function RentROIReport({
             <div class="kpi-grid">
               <div class="kpi">
                 <div class="kpi-value ${calc.DSCR >= 1.25 ? 'positive' : calc.DSCR >= 1 ? 'warning' : 'negative'}">${esc(calc.DSCR.toFixed(2))}x</div>
-                <div class="kpi-label">DSCR — Κάλυψη Δανείου</div>
+                <div class="kpi-label">DSCR, Κάλυψη Δανείου</div>
               </div>
               <div class="kpi">
                 <div class="kpi-value ${calc.LTV <= 60 ? 'positive' : calc.LTV <= 80 ? 'warning' : 'negative'}">${esc(fp(calc.LTV))}</div>
-                <div class="kpi-label">LTV — Δάνειο / Αξία</div>
+                <div class="kpi-label">LTV, Δάνειο / Αξία</div>
               </div>
               <div class="kpi">
                 <div class="kpi-value positive">${esc(fe(calc.equity))}</div>
@@ -420,7 +420,7 @@ export default function RentROIReport({
 
           <!-- Footer -->
           <div class="footer">
-            <div>Property OS — Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
+            <div>Property OS, Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
             <div>${esc(today)}</div>
           </div>
           <div class="disclaimer">

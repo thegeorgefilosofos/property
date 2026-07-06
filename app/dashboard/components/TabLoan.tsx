@@ -105,13 +105,13 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
     const d=new Date(startDate),events=[]
     for(let i=0;i<Math.min(years*12,60);i++){
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
-      events.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bankName?` — ${bankName}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:true,recurring_interval:'monthly',notes:`${fmtEur(monthly)}/μήνα`,source:'manual'})
+      events.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bankName?`, ${bankName}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:true,recurring_interval:'monthly',notes:`${fmtEur(monthly)}/μήνα`,source:'manual'})
     }
     for(let i=0;i<events.length;i+=20)await supabase.from('calendar_events').insert(events.slice(i,i+20))
     alert(`${Math.min(years*12,60)} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?` — ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})
+    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})
     alert('Δόση καταχωρήθηκε στις Δαπάνες')
   }
   async function deleteLoan(id:string){if(!confirm('Διαγραφή δανείου;'))return;await supabase.from('loans').delete().eq('id',id);await loadSaved()}
@@ -209,7 +209,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           </div>
 
           <div style={cardStyle}>
-            <SectionLabel label="Σύγκριση Επιτοκίων — Ιούνιος 2026"/>
+            <SectionLabel label="Σύγκριση Επιτοκίων, Ιούνιος 2026"/>
             <div style={{overflowX:'auto'}}>
               <div className="table-wrap">
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
@@ -318,7 +318,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
               {livePrograms.length>0?'Ζωντανά δεδομένα από Supabase. Πηγές:':'Στατικά δεδομένα. Πηγές:'}{' '}
               <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--info)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a>,{' '}
-              <a href="https://ypen.gov.gr" target="_blank" rel="noreferrer" style={{color:'var(--info)',textDecoration:'none',fontWeight:500}}>ypen.gov.gr</a> — {updStr}
+              <a href="https://ypen.gov.gr" target="_blank" rel="noreferrer" style={{color:'var(--info)',textDecoration:'none',fontWeight:500}}>ypen.gov.gr</a>, {updStr}
             </p>
           </div>
 
@@ -413,7 +413,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
         if(cs.years>25){score-=10;issues.push('Διάρκεια')}
         if(interestRatio>0.6){score-=15;issues.push('Τόκοι')}
         const scoreColor=score>=80?'var(--positive)':score>=60?'var(--warning)':'var(--negative)'
-        const scoreLabel=score>=80?'Υγιές δάνειο':score>=60?'Αποδεκτό — υπάρχει περιθώριο βελτίωσης':'Προσοχή — αξίζει επανεξέταση'
+        const scoreLabel=score>=80?'Υγιές δάνειο':score>=60?'Αποδεκτό, υπάρχει περιθώριο βελτίωσης':'Προσοχή, αξίζει επανεξέταση'
 
         return (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
@@ -457,14 +457,14 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>
-                      LTV {ltv.toFixed(1)}% — {ltv>85?'Υψηλό — απαιτείται προσοχή':ltv>70?'Μέτριο — αποδεκτό':'Καλό — εντός ορίων'}
+                      Δείκτης δανείου προς αξία (LTV): {ltv.toFixed(1)}%. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
                       {ltv>85
-                        ?`Χρηματοδοτείτε το ${ltv.toFixed(0)}% της αξίας — οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
+                        ?`Χρηματοδοτείτε το ${ltv.toFixed(0)}% της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
                         :ltv>70
                         ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}% της αξίας). Εντός αποδεκτών ορίων.`
-                        :`Άριστη αναλογία — ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}%). Ενισχύει τη διαπραγματευτική σας θέση.`
+                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${(100-ltv).toFixed(0)}%). Ενισχύει τη διαπραγματευτική σας θέση.`
                       }
                     </p>
                   </div>
@@ -477,15 +477,15 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>
-                      Επιτόκιο {fmtPct(cs.effectiveRate)} — {cs.rateType==='variable'?'Κυμαινόμενο':'Σταθερό'}
+                      Επιτόκιο {fmtPct(cs.effectiveRate)}, {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}
                       {cs.rateType==='variable'&&<span style={{fontSize:11,color:'var(--warning)',marginLeft:8,fontWeight:400}}>Εκτεθειμένο σε Euribor</span>}
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
                       {cs.rateType==='variable'
-                        ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)} — αύξηση ${fmtEur(stressMonthly2-cs.monthly)}/μήνα.`
+                        ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)}, αύξηση ${fmtEur(stressMonthly2-cs.monthly)}/μήνα.`
                         :bestBank&&savingVsBestBank>0
-                        ?`Σταθερό — ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
-                        :`Σταθερό ${fmtPct(cs.effectiveRate)} — προστατευμένοι. Euribor 3M: ${fmtPct(market.euribor_3m)}.`
+                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
+                        :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένοι. Euribor 3M: ${fmtPct(market.euribor_3m)}.`
                       }
                     </p>
                   </div>
@@ -498,7 +498,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>
-                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)} — {(interestRatio*100).toFixed(0)}% επί κεφαλαίου
+                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)}, {(interestRatio*100).toFixed(0)}% επί κεφαλαίου
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
                       Για {fmtEur(cs.loanAmount)} θα αποπληρώσετε συνολικά {fmtEur(totalCost)}.
@@ -517,10 +517,10 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                     </div>
                     <div>
                       <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--positive)',marginBottom:3}}>
-                        Σπίτι μου ΙΙ: εξοικονομείτε {fmtEur(spitiSaving)} — deadline 31/08/2026
+                        Σπίτι μου ΙΙ: εξοικονομείτε {fmtEur(spitiSaving)}, deadline 31/08/2026
                       </p>
                       <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
-                        Δόση {fmtEur(spitiMonthly)}/μήνα αντί {fmtEur(cs.monthly)} — διαφορά {fmtEur(cs.monthly-spitiMonthly)}/μήνα.
+                        Δόση {fmtEur(spitiMonthly)}/μήνα αντί {fmtEur(cs.monthly)}, διαφορά {fmtEur(cs.monthly-spitiMonthly)}/μήνα.
                       </p>
                     </div>
                   </div>
@@ -533,11 +533,11 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               <SectionLabel label="Επιλεξιμότητα Κρατικών Προγραμμάτων"/>
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 {[
-                  {l:'Σπίτι μου ΙΙ — Deadline 31/08/2026',el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'?`Πληροίτε τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)}/μήνα`:advType!=='first_home'?'Αλλάξτε σε "Πρώτη κατοικία"':'Ηλικία 25-50',badge:`-${fmtEur(cs.monthly-spitiMonthly)}/μήνα`},
-                  {l:'Αναβαθμίζω — Deadline 31/08/2026',el:advType==='energy',reason:advType==='energy'?'Κατάλληλο. Δάνειο έως 25.000€ με επιδοτούμενο επιτόκιο':'Επιλέξτε "Ενεργειακή αναβάθμιση"',badge:'Επιδοτούμενο επιτόκιο ΤΑΑ'},
+                  {l:'Σπίτι μου ΙΙ, Deadline 31/08/2026',el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'?`Πληροίτε τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)}/μήνα`:advType!=='first_home'?'Αλλάξτε σε "Πρώτη κατοικία"':'Ηλικία 25-50',badge:`-${fmtEur(cs.monthly-spitiMonthly)}/μήνα`},
+                  {l:'Αναβαθμίζω, Deadline 31/08/2026',el:advType==='energy',reason:advType==='energy'?'Κατάλληλο. Δάνειο έως 25.000€ με επιδοτούμενο επιτόκιο':'Επιλέξτε "Ενεργειακή αναβάθμιση"',badge:'Επιδοτούμενο επιτόκιο ΤΑΑ'},
                   {l:'Πράσινο Δάνειο (-0.15% έως -0.25%)',el:advType==='energy'||advType==='renovation',reason:advType==='energy'||advType==='renovation'?`Εξοικονόμηση ~${fmtEur(cs.loanAmount*0.002*cs.years)} τόκων`:'Για ενεργειακή αναβάθμιση ή ανακαίνιση',badge:`~${fmtEur(cs.loanAmount*0.002*cs.years)}`},
-                  {l:'Ένοπλες Δυνάμεις — ΤΑΠ-ΟΙΚ',el:advBorr==='military',reason:advBorr==='military'?'Δικαιούστε επιδοτούμενο δάνειο μέσω ΤΑΠ':'Μόνο για εν ενεργεία μέλη',badge:'Χαμηλότερο επιτόκιο'},
-                  {l:'Γέφυρα 3 — Επιδότηση δόσης',el:cs.rateType==='variable',reason:cs.rateType==='variable'?'Κυμαινόμενο επιτόκιο — ελέγξτε εισοδηματικά κριτήρια':'Εφαρμόζεται μόνο σε κυμαινόμενα',badge:'50% αύξησης δόσης'},
+                  {l:'Ένοπλες Δυνάμεις, ΤΑΠ-ΟΙΚ',el:advBorr==='military',reason:advBorr==='military'?'Δικαιούστε επιδοτούμενο δάνειο μέσω ΤΑΠ':'Μόνο για εν ενεργεία μέλη',badge:'Χαμηλότερο επιτόκιο'},
+                  {l:'Γέφυρα 3, Επιδότηση δόσης',el:cs.rateType==='variable',reason:cs.rateType==='variable'?'Κυμαινόμενο επιτόκιο, ελέγξτε εισοδηματικά κριτήρια':'Εφαρμόζεται μόνο σε κυμαινόμενα',badge:'50% αύξησης δόσης'},
                 ].map(item=>(
                   <div key={item.l} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:`3px solid ${item.el?'var(--positive)':'var(--border-subtle)'}`,borderRadius:8}}>
                     <div style={{width:22,height:22,borderRadius:'50%',background:item.el?'var(--positive-soft)':'var(--negative-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -602,7 +602,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                   {issues.includes('Επιτόκιο')&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                       <span style={{color:'var(--warning)',fontWeight:700,flexShrink:0,fontFamily:"'Inter',sans-serif"}}>Spread</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}><strong>Διαπραγματευτείτε:</strong> Γραπτές προσφορές από 3 τράπεζες — μειώσεις 0.10-0.25% είναι συνηθισμένες.</p>
+                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}><strong>Διαπραγματευτείτε:</strong> Γραπτές προσφορές από 3 τράπεζες, μειώσεις 0.10-0.25% είναι συνηθισμένες.</p>
                     </div>
                   )}
                   {issues.includes('Κυμαινόμενο')&&(
@@ -630,12 +630,12 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           <div style={cardStyle}>
             <SectionLabel label="Πώς Λειτουργεί Ένα Στεγαστικό Δάνειο στην Ελλάδα"/>
             {[
-              {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr — αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
-              {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--positive)',dim:'var(--positive-soft)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων — η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ — βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
-              {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
-              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής — ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
+              {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
+              {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--positive)',dim:'var(--positive-soft)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
+              {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα, δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
+              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--info)',dim:'var(--info-soft)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής, ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
               {step:5,title:'Έγκριση Δανείου',time:'3-10 εργάσιμες',color:'var(--positive)',dim:'var(--positive-soft)',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζητήστε γραπτώς τον λόγο. Επανεξετάστε μετά από 6 μήνες ή αλλάξτε τράπεζα.',warning:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
-              {step:6,title:'Συμβόλαιο & Εκταμίευση',time:'1-2 εβδομάδες',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές & ασφαλιστικές ενημερότητες λήγουν γρήγορα (15-30 μέρες) — έχετε τα μαζί σας.',url:null},
+              {step:6,title:'Συμβόλαιο & Εκταμίευση',time:'1-2 εβδομάδες',color:'var(--warning)',dim:'var(--warning-soft)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές & ασφαλιστικές ενημερότητες λήγουν γρήγορα (15-30 μέρες), έχετε τα μαζί σας.',url:null},
             ].map((step,i,arr)=>(
               <div key={i} style={{display:'flex',gap:16,alignItems:'flex-start',paddingBottom:20,borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none',marginBottom:i<arr.length-1?20:0}}>
                 <div style={{width:34,height:34,borderRadius:'50%',background:(step as any).dim||'var(--accent-dim)',border:`2px solid ${step.color}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -662,7 +662,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
 
           {/* Rejection reasons */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Γιατί Απορρίπτεται Μια Αίτηση — Τι να Ελέγξετε Πρώτα"/>
+            <SectionLabel label="Γιατί Απορρίπτεται Μια Αίτηση, Τι να Ελέγξετε Πρώτα"/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
               {[
                 {title:'Εγγραφή στον Τειρεσία',desc:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση άνω των 90 ημερών αρκεί. Τυχόν οφειλές πρέπει να τακτοποιηθούν πριν από οποιαδήποτε αίτηση.',url:'https://www.tiresias.gr'},
@@ -704,7 +704,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
 
           {/* Euribor chart */}
           <div style={cardStyle}>
-            <SectionLabel label="Ιστορικό Euribor 3M — 2020 έως Σήμερα" right={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--info)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: ECB</a>}/>
+            <SectionLabel label="Ιστορικό Euribor 3M, 2020 έως Σήμερα" right={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--info)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: ECB</a>}/>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={EURIBOR_HISTORY.map(d=>({date:d.date,Euribor:d.val}))} barCategoryGap="8%">
                 <XAxis dataKey="date" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false} interval={3}/>
@@ -760,28 +760,28 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             <SectionLabel label="Επίσημες Πηγές"/>
             {[
               {category:'Κρατικά Προγράμματα',links:[
-                {label:'Σπίτι μου ΙΙ — Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, deadline 31/08/2026',url:'https://greece20.gov.gr/en/home-loans/'},
-                {label:'Αναβαθμίζω το Σπίτι μου',sub:'HDB — επίσημη πλατφόρμα αιτήσεων',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
+                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, deadline 31/08/2026',url:'https://greece20.gov.gr/en/home-loans/'},
+                {label:'Αναβαθμίζω το Σπίτι μου',sub:'HDB, επίσημη πλατφόρμα αιτήσεων',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
                 {label:'Εξοικονομώ 2025',sub:'Επιδότηση ενεργειακής αναβάθμισης',url:'https://exoikonomo2025.gov.gr/'},
-                {label:'Ανακαινίζω & Νοικιάζω — ΟΠΕΚΑ',sub:'40% επιδότηση + εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
-                {label:'Γέφυρα 3 — Επιδότηση δόσης',sub:'Για κυμαινόμενα δάνεια, ευάλωτοι',url:'https://gefyra3.gr'},
+                {label:'Ανακαινίζω & Νοικιάζω, ΟΠΕΚΑ',sub:'40% επιδότηση + εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
+                {label:'Γέφυρα 3, Επιδότηση δόσης',sub:'Για κυμαινόμενα δάνεια, ευάλωτοι',url:'https://gefyra3.gr'},
               ]},
               {category:'Τράπεζες & Επιτόκια',links:[
-                {label:'Τράπεζα Ελλάδος — Επιτόκια',sub:'Επίσημα μέσα επιτόκια αγοράς',url:'https://www.bankofgreece.gr/el/statistiki/nomismatiki-kai-trapeziki-statistiki/epitokia-katatheseon-kai-daneion'},
-                {label:'vresdaneio.gr — Σύγκριση',sub:'Σύγκριση επιτοκίων όλων των τραπεζών',url:'https://vresdaneio.gr/epitokia/index.html'},
-                {label:'e-stegastiko.gr — Πλατφόρμα ΤτΕ',sub:'Επίσημη πλατφόρμα στεγαστικών',url:'https://e-stegastiko.gr'},
-                {label:'Τειρεσίας — Έλεγχος πιστοληπτικής',sub:'Ελέγξτε αν έχετε εγγραφές πριν αιτηθείτε',url:'https://www.tiresias.gr'},
+                {label:'Τράπεζα Ελλάδος, Επιτόκια',sub:'Επίσημα μέσα επιτόκια αγοράς',url:'https://www.bankofgreece.gr/el/statistiki/nomismatiki-kai-trapeziki-statistiki/epitokia-katatheseon-kai-daneion'},
+                {label:'vresdaneio.gr, Σύγκριση',sub:'Σύγκριση επιτοκίων όλων των τραπεζών',url:'https://vresdaneio.gr/epitokia/index.html'},
+                {label:'e-stegastiko.gr, Πλατφόρμα ΤτΕ',sub:'Επίσημη πλατφόρμα στεγαστικών',url:'https://e-stegastiko.gr'},
+                {label:'Τειρεσίας, Έλεγχος πιστοληπτικής',sub:'Ελέγξτε αν έχετε εγγραφές πριν αιτηθείτε',url:'https://www.tiresias.gr'},
               ]},
               {category:'Φορολογικά',links:[
-                {label:'ΑΑΔΕ — Φορολογικά ακινήτων',sub:'ΦΜΑ, ΕΝΦΙΑ, εισοδήματα από ενοίκια',url:'https://www.aade.gr/polites/foroi-akiniton'},
-                {label:'Κτηματολόγιο — Έλεγχος τίτλων',sub:'Ηλεκτρονικός έλεγχος εγγράφων',url:'https://www.ktimatologio.gr'},
-                {label:'Επιλεξιμότητα Σπίτι μου ΙΙ — gov.gr',sub:'Ηλεκτρονικός έλεγχος με Taxisnet',url:'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii'},
+                {label:'ΑΑΔΕ, Φορολογικά ακινήτων',sub:'ΦΜΑ, ΕΝΦΙΑ, εισοδήματα από ενοίκια',url:'https://www.aade.gr/polites/foroi-akiniton'},
+                {label:'Κτηματολόγιο, Έλεγχος τίτλων',sub:'Ηλεκτρονικός έλεγχος εγγράφων',url:'https://www.ktimatologio.gr'},
+                {label:'Επιλεξιμότητα Σπίτι μου ΙΙ, gov.gr',sub:'Ηλεκτρονικός έλεγχος με Taxisnet',url:'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii'},
               ]},
               {category:'Χρήσιμα Εργαλεία',links:[
-                {label:'HDB — Ελληνική Αναπτυξιακή Τράπεζα',sub:'Διαχείριση κρατικών προγραμμάτων δανείων',url:'https://hdb.gr'},
-                {label:'ΥΠΕΝ — Ενεργειακά προγράμματα',sub:'Παρατάσεις, νέα, ανακοινώσεις',url:'https://ypen.gov.gr'},
-                {label:'ΤΑΠ — Ταμείο Αλληλοβοηθείας',sub:'Στεγαστικά για στελέχη Ένοπλων Δυνάμεων',url:'https://www.tap.gr'},
-                {label:'Ευρωπαϊκή Κεντρική Τράπεζα — Euribor',sub:'Επίσημα ιστορικά δεδομένα Euribor',url:'https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA'},
+                {label:'HDB, Ελληνική Αναπτυξιακή Τράπεζα',sub:'Διαχείριση κρατικών προγραμμάτων δανείων',url:'https://hdb.gr'},
+                {label:'ΥΠΕΝ, Ενεργειακά προγράμματα',sub:'Παρατάσεις, νέα, ανακοινώσεις',url:'https://ypen.gov.gr'},
+                {label:'ΤΑΠ, Ταμείο Αλληλοβοηθείας',sub:'Στεγαστικά για στελέχη Ένοπλων Δυνάμεων',url:'https://www.tap.gr'},
+                {label:'Ευρωπαϊκή Κεντρική Τράπεζα, Euribor',sub:'Επίσημα ιστορικά δεδομένα Euribor',url:'https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA'},
               ]},
             ].map(group=>(
               <div key={group.category} style={{marginBottom:16}}>
@@ -804,7 +804,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
             ))}
             <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
               <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
-                Ενημερωτικές πληροφορίες — δεν αποτελούν χρηματοοικονομική, νομική ή φορολογική συμβουλή.
+                Ενημερωτικές πληροφορίες, δεν αποτελούν χρηματοοικονομική, νομική ή φορολογική συμβουλή.
               </p>
             </div>
           </div>

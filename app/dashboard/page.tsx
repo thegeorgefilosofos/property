@@ -80,7 +80,7 @@ const NAV_ITEMS = [
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
 
-// Εικονίδια πλοήγησης — καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
+// Εικονίδια πλοήγησης, καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
 const NAV_ICON: Record<string,string> = {
   overview:  'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
   comparison:'M4 20V10|M10 20V4|M16 20v-7|M20 20H2',
@@ -97,7 +97,7 @@ const NAV_ICON: Record<string,string> = {
   settings:  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.4h5l.3-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z',
 };
 
-// Ομαδοποιημένη πλοήγηση — λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
+// Ομαδοποιημένη πλοήγηση, λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',            ids: ['overview'] },
   { label: 'Οικονομικά',  ids: ['bills','expenses','loan','roi'] },
@@ -106,7 +106,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Εργαλεία',    ids: ['comparison','settings'] },
 ];
 
-// Κάτω μπάρα κινητού — 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
+// Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
 const ic = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p,i)=><path key={i} d={p}/>)}</svg>;
 const BOTTOM_NAV = [
   { id:'overview', label:'Επισκόπηση', icon: ic('M3 9.5 12 3l9 6.5|M5 10v10h14V10') },
@@ -182,7 +182,7 @@ function useChecklistAlerts(propertyId: string | null) {
   return alertCount;
 }
 
-// Add Property Modal — MD3 Dialog
+// Add Property Modal, MD3 Dialog
 function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClose: ()=>void; onSaved: ()=>void; }) {
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
@@ -210,7 +210,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
           <div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:24,fontWeight:400,color:'var(--text-primary)',lineHeight:'32px'}}>Νέο Ακίνητο</div>
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',marginTop:4,letterSpacing:'0.25px'}}>Βήμα {step} από 2 — {step===1?'Βασικά Στοιχεία':'Οικονομικά'}</div>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',marginTop:4,letterSpacing:'0.25px'}}>Βήμα {step} από 2, {step===1?'Βασικά Στοιχεία':'Οικονομικά'}</div>
           </div>
           <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✕</button>
         </div>
@@ -394,11 +394,11 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const catColors = ['var(--accent)','var(--positive)','var(--info)','var(--warning)','var(--negative)'];
 
-  // ── Cross-tab live alerts — επερχόμενα γεγονότα & εκκρεμότητες ──────────────
+  // ── Cross-tab live alerts, επερχόμενα γεγονότα & εκκρεμότητες ──────────────
   const daysUntil = (d: string | null | undefined) => d ? Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000) : null;
   const alerts: { tone: 'negative' | 'warning' | 'info' | 'positive'; label: string; sub?: string }[] = [];
   if (daysToExpiry != null) {
-    if (daysToExpiry < 0) alerts.push({ tone:'negative', label:'Η σύμβαση ενοικίασης έχει λήξει', sub:`Έληξε πριν ${Math.abs(daysToExpiry)} ημέρες — απαιτείται ανανέωση` });
+    if (daysToExpiry < 0) alerts.push({ tone:'negative', label:'Η σύμβαση ενοικίασης έχει λήξει', sub:`Έληξε πριν ${Math.abs(daysToExpiry)} ημέρες, απαιτείται ανανέωση` });
     else if (daysToExpiry <= 60) alerts.push({ tone:'warning', label:'Λήξη σύμβασης ενοικίασης', sub:`Σε ${daysToExpiry} ημέρες` });
   }
   const unpaid  = bills.filter(b => !b.paid);
@@ -415,9 +415,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   else if (chkCritical.length) alerts.push({ tone:'warning', label:`${chkCritical.length} κρίσιμα στοιχεία στο Checklist`, sub:'Απαιτούν προσοχή' });
   const warrantySoon = inv.filter(i => { const x = daysUntil(i.warranty_expiry); return x != null && x >= 0 && x <= 90; });
   const badCond      = inv.filter(i => i.condition === 'Κακή' || i.condition === 'Εκτός Λειτουργίας');
-  if (warrantySoon.length) alerts.push({ tone:'info', label:`${warrantySoon.length} εγγυήσεις λήγουν σύντομα`, sub:'Εντός 90 ημερών — δες την Απογραφή' });
+  if (warrantySoon.length) alerts.push({ tone:'info', label:`${warrantySoon.length} εγγυήσεις λήγουν σύντομα`, sub:'Εντός 90 ημερών, δες την Απογραφή' });
   if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
-  if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη — δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
+  if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη, δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
 
   // ── Έξυπνα insights: ο «σύμβουλος» διαβάζει τα δεδομένα και προτεραιοποιεί ──
   const insights = computeInsights({
@@ -464,7 +464,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
 
       <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
-        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση — για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
+        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση, για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
         { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
         { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
         { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
@@ -611,7 +611,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         )}
       </div>
 
-      {/* Διαχείριση & Εργαλεία — δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
+      {/* Διαχείριση & Εργαλεία, δευτερεύουσες ενέργειες, κάτω από την οικονομική εικόνα */}
       <div style={{marginTop:8,marginBottom:12,fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-tertiary)'}}>Διαχείριση & Εργαλεία</div>
       <PortalShare propertyId={prop.id} userId={userId} />
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
@@ -661,7 +661,7 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = '/login'; return; }
       setUser(user);
-      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση — idempotent.
+      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση, idempotent.
       const refBy = (user.user_metadata as any)?.referred_by;
       if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       await fetchProperties(user.id);
@@ -724,7 +724,7 @@ export default function Dashboard() {
           onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
           className="quick-add-btn"
           disabled={!selected}
-          title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, μισθωτήριο, ασφάλεια, έγγραφο — οτιδήποτε' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
+          title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, μισθωτήριο, ασφάλεια, έγγραφο, οτιδήποτε' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
           <span className="quick-add-icon" aria-hidden>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -733,7 +733,7 @@ export default function Dashboard() {
           </span>
           <span className="quick-add-label">Σκάναρε έγγραφο</span>
         </button>
-        <div className="quick-add-hint">Μία φωτογραφία — λογαριασμός, συμβόλαιο, ασφάλεια, οτιδήποτε. Το AI το βάζει στη θέση του.</div>
+        <div className="quick-add-hint">Μία φωτογραφία, λογαριασμός, συμβόλαιο, ασφάλεια, οτιδήποτε. Το AI το βάζει στη θέση του.</div>
 
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
@@ -833,7 +833,7 @@ export default function Dashboard() {
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
               </div>
               <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:26,fontWeight:800,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή — όλα σε ένα σημείο.</p>
+              <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
                 {[
                   {t:'Αποδόσεις & Φόρος 2026',d:'Μεικτή/καθαρή απόδοση, φόρος βάσει κλίμακας'},
@@ -870,7 +870,7 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Κάτω μπάρα πλοήγησης — μόνο σε κινητό (≤768px, μέσω CSS) */}
+      {/* Κάτω μπάρα πλοήγησης, μόνο σε κινητό (≤768px, μέσω CSS) */}
       {selected && (
         <nav className="bottom-nav">
           {BOTTOM_NAV.map(item => {
@@ -888,7 +888,7 @@ export default function Dashboard() {
         </nav>
       )}
 
-      {/* Βοηθός ακινήτου — ορατός σε ΚΑΘΕ καρτέλα, πλωτό κουμπί κάτω δεξιά */}
+      {/* Βοηθός ακινήτου, ορατός σε ΚΑΘΕ καρτέλα, πλωτό κουμπί κάτω δεξιά */}
       {selected&&user&&(
         <PropertyAssistant
           propertyId={selected.id} userId={user.id}

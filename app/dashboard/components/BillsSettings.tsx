@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-// Singleton — ένας client για όλο το hook
+// Singleton, ένας client για όλο το hook
 const supabase = createClient();
 
 export function useBillsSettings<T extends Record<string, any>>(
@@ -64,7 +64,7 @@ export function useBillsSettings<T extends Record<string, any>>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, section]);
 
-  // Timer cleanup on unmount — flushes any pending save instead of dropping it
+  // Timer cleanup on unmount, flushes any pending save instead of dropping it
   useEffect(() => {
     return () => {
       if (timer.current) {
@@ -93,7 +93,7 @@ export function useBillsSettings<T extends Record<string, any>>(
         updated_at:  new Date().toISOString(),
       }, { onConflict: 'property_id,section' });
     } catch (_) {
-      // Silent fail — δεν crash το UI αν αποτύχει το save
+      // Silent fail, δεν crash το UI αν αποτύχει το save
     }
   }, [userId]);
 

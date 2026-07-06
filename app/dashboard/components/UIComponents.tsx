@@ -447,7 +447,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   );
 }
 
-// ─── Toggle — Google MD3 Switch ───────────────────────────────────────────────
+// ─── Toggle, Google MD3 Switch ───────────────────────────────────────────────
 interface ToggleProps {
   on: boolean;
   onChange: (v: boolean) => void;
@@ -645,7 +645,7 @@ export const FREQ_OPTIONS = [
   { value: 'annual', label: 'Ετήσια' },
 ];
 
-// ─── Segment Control — Google Tabs style ─────────────────────────────────────
+// ─── Segment Control, Google Tabs style ─────────────────────────────────────
 interface SegmentOption { value: string; label: string; }
 
 export function SegmentControl({ options, value, onChange }: { options: SegmentOption[]; value: string; onChange: (v: string) => void }) {

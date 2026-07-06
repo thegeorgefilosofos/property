@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LandingShowcase — διαδραστικό, αυτο-εναλλασσόμενο showcase μέσα σε πλαίσιο
+// LandingShowcase, διαδραστικό, αυτο-εναλλασσόμενο showcase μέσα σε πλαίσιο
 // εφαρμογής. Τρεις πράξεις: Πίνακας · Σάρωση · Βοηθός. Εναλλάσσεται μόνο του,
 // κάνεις κλικ για να αλλάξεις, σταματά όταν το κοιτάς (hover). 0 εικόνες.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -35,7 +35,7 @@ export default function LandingShowcase() {
         @media (prefers-color-scheme: dark) {
           :root:not([data-mode="light"]) .lp-mockup { box-shadow: 0 1px 2px rgba(16,24,40,.40), 0 20px 40px -12px rgba(16,24,40,.55), 0 48px 90px -24px rgba(16,24,40,.65); }
         }
-        /* Λεπτό 3D «κάθισμα» καθώς μπαίνει στην οθόνη — scroll-driven, χωρίς engine.
+        /* Λεπτό 3D «κάθισμα» καθώς μπαίνει στην οθόνη, scroll-driven, χωρίς engine.
            Progressive enhancement: όπου δεν υποστηρίζεται, το mockup είναι απλώς επίπεδο. */
         @keyframes lpTilt { from { opacity: .55; transform: perspective(1500px) rotateX(7deg) scale(.985); } to { opacity: 1; transform: perspective(1500px) rotateX(0deg) scale(1); } }
         @supports (animation-timeline: view()) {
