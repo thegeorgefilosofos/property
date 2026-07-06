@@ -458,14 +458,15 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
 
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
-          { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent), color:'var(--accent)' },
-          { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, color:'var(--positive)' },
-          { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--positive)' },
-          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD), color:'var(--negative)' },
-          { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ημ.`):fmtEur(propValue), color: daysToExpiry!=null?(daysToExpiry<0?'var(--negative)':daysToExpiry<60?'var(--warning)':'var(--text-primary)'):'var(--text-primary)' },
+          { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent) },
+          { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%` },
+          { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%` },
+          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD) },
+          { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ημ.`):fmtEur(propValue),
+            color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
           <div key={i} className="kpi-card">
-            <div className="kpi-value" style={{color:k.color,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
+            <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
           </div>
         ))}
@@ -580,14 +581,14 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         <div className="section-label"><span className="section-dot"/> Ετήσιος Απολογισμός {year}</div>
         <div className="grid-5">
           {[
-            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--positive)' },
-            { label:'Συνολικές Δαπάνες', value:fmtEur(totalExpYTD), color:'var(--negative)' },
-            { label:'Εκτ. Φόρος (15%)', value:fmtEur(annualRent*0.15), color:'var(--warning)' },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(annualRent-totalExpYTD-annualRent*0.15), color:'var(--text-primary)' },
+            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
+            { label:'Συνολικές Δαπάνες', value:fmtEur(totalExpYTD), color:'var(--text-primary)' },
+            { label:'Εκτ. Φόρος (15%)', value:fmtEur(annualRent*0.15), color:'var(--text-primary)' },
+            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(annualRent-totalExpYTD-annualRent*0.15), color:(annualRent-totalExpYTD-annualRent*0.15)>=0?'var(--positive)':'var(--negative)' },
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
           ].map((k,i) => { const acc=(k as any).accent; return (
             <div key={i} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
-              <div style={{fontFamily:"'Roboto Mono',monospace",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{k.value}</div>
+              <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Google Sans',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           );})}
