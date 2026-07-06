@@ -412,3 +412,8 @@ begin
 exception when others then
   raise notice 'storage policy skip: %', sqlerrm;
 end $$;
+
+
+-- ─── 20260707100000_property_postal_code.sql ───
+-- Ταχυδρομικός Κώδικας (ΤΚ) ανά ακίνητο (εμφανίζεται στη διεύθυνση). Idempotent.
+alter table public.user_properties add column if not exists postal_code text;
