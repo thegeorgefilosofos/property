@@ -253,9 +253,9 @@ const BADGE_COLORS: Record<string, { bg: string; color: string; border: string }
   'ΚΙΤΡΙΝΟ':  { bg: 'rgba(242,153,0,0.1)',  color: 'var(--warning)',  border: 'rgba(242,153,0,0.25)'  },
   'ΜΠΛΕ':     { bg: 'rgba(26,115,232,0.1)', color: 'var(--info)',     border: 'rgba(26,115,232,0.25)' },
   'VNM':      { bg: 'rgba(26,115,232,0.1)', color: 'var(--accent)',   border: 'rgba(26,115,232,0.25)' },
-  'ΔΥΝΑΜΙΚΟ': { bg: 'rgba(139,92,246,0.1)', color: '#8b5cf6',         border: 'rgba(139,92,246,0.25)' },
+  'ΔΥΝΑΜΙΚΟ': { bg: 'rgba(139,92,246,0.1)', color: '#7c4dff',         border: 'rgba(139,92,246,0.25)' },
   // FIX: 'FLAT' badge δεν είχε χρώμα — έπεφτε στο γκρι fallback. Τώρα distinct teal.
-  'FLAT':     { bg: 'rgba(6,182,212,0.1)',  color: '#06b6d4',         border: 'rgba(6,182,212,0.25)'  },
+  'FLAT':     { bg: 'rgba(6,182,212,0.1)',  color: '#00acc1',         border: 'rgba(6,182,212,0.25)'  },
 };
 const bc = (badge: string) => BADGE_COLORS[badge] || { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
 
@@ -488,7 +488,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 </span>
               )}
               {tariff.no_fixed && <span style={{ fontSize: 9, color: 'var(--positive)', background: 'rgba(52,168,83,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
-              {tariff.smart_meter && <span style={{ fontSize: 9, color: '#8b5cf6', background: 'rgba(139,92,246,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος Μετρητής</span>}
+              {tariff.smart_meter && <span style={{ fontSize: 9, color: '#7c4dff', background: 'rgba(139,92,246,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος Μετρητής</span>}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{tariff.desc}</div>
             {tariff.desc.includes('ΜΔΚΑ') && (
@@ -502,8 +502,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {/* FIX: new — Picasso-family flat packages had no explanation of the tolerance/overage/settlement mechanic anywhere in the UI */}
             {tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh != null && tariff.flat_overage_rate != null && (
               <div style={{ marginTop: 6, background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.18)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span style={{ fontSize: 10, color: '#06b6d4', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#00acc1" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span style={{ fontSize: 10, color: '#00acc1', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   Σταθερό μηνιαίο ποσό για {tariff.contract_months || 12} μήνες (προμήθεια + ρυθμιζόμενες χρεώσεις, όχι υπέρ τρίτων). Ανοχή υπέρβασης 5% χωρίς χρέωση· πάνω από αυτό, {fk(tariff.flat_overage_rate)}/kWh. Ετήσια εκκαθάριση.
                 </span>
               </div>
@@ -600,7 +600,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
-                <div style={{ fontSize: i === 0 ? 20 : 14, fontWeight: 700, color: k.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: i === 0 ? 20 : 14, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
               </div>
             ))}
           </div>
