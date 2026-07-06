@@ -77,7 +77,7 @@ const INSURANCE_COMPANIES = [
       { id: 'al_comf',    name: 'MeinHaus Comfort',          monthly: 16.90, annual: 159, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'al_plus',    name: 'MeinHaus Plus',             monthly: 23.90, annual: 225, covers: ['Πλήρης Κάλυψη + Σεισμός'], earthquake: true,  flood: true,  natural: true  },
     ] },
-  { value: 'ergo',          label: 'ERGO Ασφαλιστική',          url: 'https://www.ergo.gr', agent_label: 'Μεσίτης / Online',
+  { value: 'ergo',          label: 'ERGO Ασφαλιστική',          url: 'https://www.ergohellas.gr', agent_label: 'Μεσίτης / Online',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη'],
     note: 'Μέλος Munich Re Group.',
     plans: [
@@ -124,14 +124,14 @@ const INSURANCE_COMPANIES = [
       { id: 'at_extra',   name: 'Ακίνητο Extra',             monthly: 13.00, annual: 124, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'at_prem',    name: 'Ακίνητο Premium',           monthly: 19.00, annual: 179, covers: ['Πλήρης Κάλυψη + Σεισμός'], earthquake: true,  flood: true,  natural: true  },
     ] },
-  { value: 'intesaloniki',  label: 'Ιντερσαλόνικα',             url: 'https://www.intersaloniki.gr', agent_label: 'Ασφαλιστής',
+  { value: 'intesaloniki',  label: 'Ιντερσαλόνικα',             url: 'https://www.intersalonica.gr', agent_label: 'Ασφαλιστής',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία'],
     note: 'Ελληνική εταιρεία με έδρα τη Θεσσαλονίκη.',
     plans: [
       { id: 'is_vasi',    name: 'Κατοικία Βασική',           monthly: 7.00,  annual: 66,  covers: ['Πυρκαγιά','Κλοπή','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
       { id: 'is_plir',    name: 'Κατοικία Πλήρης',          monthly: 12.00, annual: 114, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Αστική Ευθύνη','Φυσικά Φαινόμενα'], earthquake: false, flood: true,  natural: true  },
     ] },
-  { value: 'aig',           label: 'AIG (American International)', url: 'https://www.aig.gr', agent_label: 'Ασφαλιστής',
+  { value: 'aig',           label: 'AIG (American International)', url: 'https://www.aig.com.gr', agent_label: 'Ασφαλιστής',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Κατοικία με Δάνειο'],
     note: 'Αμερικανική εταιρεία, ισχυρές καλύψεις All Risk.',
     plans: [
@@ -152,7 +152,7 @@ const STREAMING = [
   { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις, 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard, 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K, 15,99 €', price: 15.99 }] },
   { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual, 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo, 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα), 17,99 €', price: 17.99 }] },
   { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual, 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family, 22,99 €', price: 22.99 }] },
-  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.ant1plus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία, 2,99 €', price: 2.99 }] },
+  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία, 2,99 €', price: 2.99 }] },
   { value: 'cosmote_tv', label: 'Cosmote TV',         color: '#00adef', url: 'https://www.cosmote.gr',                 plans: [{ id: 'cos_start', name: 'Start, 6,00 €', price: 6.00 },{ id: 'cos_full', name: 'Full, 30,00 €', price: 30.00 }] },
 ];
 
