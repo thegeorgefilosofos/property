@@ -1,7 +1,8 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useMarketRates } from '@/app/hooks/useMarketData';
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, Toggle } from './UIComponents';
 import RentComparables from './RentComparables';
 import RentROIReport from './RentROIReport';
@@ -351,10 +352,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
   const sa = (k: string, v: any) => setAirbnb(f => ({ ...f, [k]: v }));
 
   const [bench, setBench] = useState({
-    etf_return: '7', euribor: '3.8', market_gross: '5', target_net: '3',
+    etf_return: '7', euribor: '2.2', market_gross: '5', target_net: '3',
     market_label: 'Κεντρικός Τομέας Αθηνών',
   });
   const sb = (k: string, v: string) => setBench(f => ({ ...f, [k]: v }));
+
+  // Ζωντανό Euribor 3μήνου (ΤτΕ/ECB): γεμίζει το benchmark ώστε η «Υπεραπόδοση vs
+  // EURIBOR» να μη συγκρίνεται με ξεπερασμένο επιτόκιο. Δεν πατάει χειροκίνητη αλλαγή.
+  const market = useMarketRates();
+  const euriborTouched = useRef(false);
+  useEffect(() => {
+    if (!market.isLoading && !euriborTouched.current && market.euribor_3m > 0) {
+      setBench(f => ({ ...f, euribor: market.euribor_3m.toFixed(2) }));
+    }
+  }, [market.isLoading, market.euribor_3m]);
 
   const [sc2, setSc2] = useState({
     rent_change: '10', vacancy_months: '1', value_growth: '3', years: '10',
@@ -832,7 +843,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <CustomSelect label="Αγορά Αναφοράς" value={bench.market_label} onChange={v => sb('market_label', v)} options={GREEK_MARKETS} />
             <NumberInput label="Benchmark Gross Yield %" value={bench.market_gross} onChange={v => sb('market_gross', v)} suffix="%" step={0.5} />
             <NumberInput label="Στόχος Net Yield %" value={bench.target_net} onChange={v => sb('target_net', v)} suffix="%" step={0.5} />
-            <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => sb('euribor', v)} suffix="%" step={0.1} />
+            <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => { euriborTouched.current = true; sb('euribor', v); }} suffix="%" step={0.1} />
           </div>
           <div style={{ marginBottom: 12 }}>
             <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA, απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
