@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd, Spinner, ExportButton } from '@/components/Theme'
-import { downloadCsv, csvEur, csvDate } from './exportCsv'
+import { downloadCsv, csvEur, csvDate, csvSafe } from './exportCsv'
 
 const supabase = createSupabaseClient()
 
@@ -1349,7 +1349,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   const exportCSV=()=>{
     const headers=['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Προέλευση','Κατάστημα','Αριθμός Απόδειξης','Αξία Αγοράς','Αρχ.Τιμή','Έκπτωση%','Τρέχουσα Αξία','Κόστος Αντικ.','Απόσβεση%','Ηλ.Κλάση','Watt','Ώρες/ημ','kWh/μήνα','Κόστος Ρεύμ./μήνα','Smart','Tags','Ηλικία','Ημ/νία Αγοράς','Λήξη Εγγύησης','Σημειώσεις']
     const rows=items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,provenanceLabel(i.provenance)||i.provenance||'Νέο',i.store_vendor||'',i.receipt_number||'',i.purchase_value||'',i.original_price||'',i.discount_pct||'',calcCurrentValue(i),i.replacement_cost||'',calcDepreciationPct(i)+'%',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?calcMonthlyCost(i,kwhPrice).toFixed(2):'',i.smart_device?'Ναι':'Όχι',(i.tags||[]).join(';'),calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes])
-    const csv=[headers,...rows].map(row=>row.map(cell=>`"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n')
+    const csv=[headers,...rows].map(row=>row.map(cell=>{const s=csvSafe(String(cell??''));return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';')).join('\r\n')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
   }
   const exportPDF=()=>{
