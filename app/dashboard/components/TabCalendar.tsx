@@ -12,6 +12,7 @@ import {
   Printer, Square, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info,
 } from 'lucide-react'
+import { DatePicker } from './UIComponents'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -609,7 +610,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
             <div>
               <label style={lbl}>Ημερομηνία *</label>
-              <input type="date" style={inp} value={form.event_date} onChange={e=>setForm(f=>({...f,event_date:e.target.value}))}/>
+              <DatePicker value={form.event_date} onChange={v=>setForm(f=>({...f,event_date:v}))}/>
             </div>
             <div>
               <label style={lbl}>Ποσό (€)</label>

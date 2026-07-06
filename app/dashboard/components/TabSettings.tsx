@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
-import { NumberInput, CustomSelect, Toggle } from './UIComponents';
+import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
@@ -331,7 +331,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               ))}
               <div style={{ gridColumn:'1/3' }}>
                 <label style={lbl}>Λήξη Ασφάλισης</label>
-                <input type="date" style={inp} value={s.insurance_expiry} onChange={e=>setS(p=>({...p,insurance_expiry:e.target.value}))}/>
+                <DatePicker value={s.insurance_expiry} onChange={v=>setS(p=>({...p,insurance_expiry:v}))}/>
               </div>
             </div>
           </div>
