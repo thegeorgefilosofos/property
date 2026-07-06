@@ -223,7 +223,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
                       )}
                       {s.amount && <span style={{ fontSize: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)' }}>~{fe(s.amount)}</span>}
                     </div>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>💡 {s.reason}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{s.reason}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button onClick={() => addSuggestion(s, idx)} disabled={isAdded} style={{
