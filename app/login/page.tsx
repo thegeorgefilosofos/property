@@ -24,8 +24,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [show, setShow] = useState(false)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+
+  const trans = (m: string) =>
+    /invalid login/i.test(m) ? 'Λάθος email ή κωδικός.'
+    : /email not confirmed/i.test(m) ? 'Επιβεβαίωσε πρώτα το email σου από τον σύνδεσμο που σου στείλαμε.'
+    : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
+    : m
 
   useEffect(() => {
     const supabase = createClient()
@@ -121,15 +128,26 @@ export default function LoginPage() {
                 onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
             </div>
             <div>
-              <label style={label}>Κωδικός</label>
-              <input type="password" value={password} required onChange={e => setPassword(e.target.value)} placeholder="Ο κωδικός σου" style={field}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ ...label, marginBottom: 0 }}>Κωδικός</label>
+                <Link href="/reset-password" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>Ξέχασες τον κωδικό;</Link>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input type={show ? 'text' : 'password'} value={password} required onChange={e => setPassword(e.target.value)} placeholder="Ο κωδικός σου" style={{ ...field, paddingRight: 42 }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
+                <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4, display: 'flex' }}>
+                  {show
+                    ? <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                    : <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.9 17.9A10.7 10.7 0 0 1 12 19c-6.5 0-10-7-10-7a19 19 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a19 19 0 0 1-2.2 3.2M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>}
+                </button>
+              </div>
             </div>
 
             {error && (
               <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>
-                {error === 'Invalid login credentials' ? 'Λάθος email ή κωδικός.' : error}
+                {trans(error)}
               </div>
             )}
 
