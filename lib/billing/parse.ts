@@ -175,13 +175,20 @@ export function withinDays(a?: string | null, b?: string | null, days = 25): boo
 
 export interface PendingBill { id: string; category: string; amount: number; due_date?: string | null; created_at?: string | null; }
 
+// Ανοχή συμφωνίας ποσού: έως 1% ΚΑΙ το πολύ έως 0,20 € για μικρά ποσά.
+// (Σφιχτή, ώστε να αποφεύγονται λανθασμένα ματσαρίσματα.)
+export function amountTolerance(amount: number): number {
+  return Math.max(0.20, amount * 0.01);
+}
+
 export function matchBillToPayment(
   t: { amount: number; date: string; category: string },
   pendingBills: PendingBill[],
   used: Set<string>,
 ): PendingBill | null {
+  const tol = amountTolerance(t.amount);
   const cands = pendingBills.filter(b => !used.has(b.id)
-    && Math.abs((b.amount || 0) - t.amount) <= Math.max(0.5, t.amount * 0.02)
+    && Math.abs((b.amount || 0) - t.amount) <= tol
     && withinDays(b.due_date || b.created_at, t.date, 25));
   return cands.find(b => b.category === t.category) || cands[0] || null;
 }

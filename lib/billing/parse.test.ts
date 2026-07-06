@@ -114,10 +114,10 @@ const bills: PendingBill[] = [
   const m1 = matchBillToPayment({ amount: 142.50, date: '2026-06-14', category: 'electricity' }, bills, used);
   ok(m1?.id === 'b1', `match exact → ${m1?.id}`);
   used.add('b1');
-  // Εντός ανοχής 2% (142.50→144.9 = +1.68%)
-  const m2 = matchBillToPayment({ amount: 144.90, date: '2026-09-16', category: 'electricity' }, bills, used);
+  // Εντός ανοχής 1% (142.50→143.5 = +0.70%, tol=1.425)
+  const m2 = matchBillToPayment({ amount: 143.50, date: '2026-09-16', category: 'electricity' }, bills, used);
   ok(m2?.id === 'b3', `match tolerance → ${m2?.id}`);
-  // Εκτός ανοχής (>2%)
+  // Εκτός ανοχής (>1%)
   const m3 = matchBillToPayment({ amount: 200.00, date: '2026-06-14', category: 'electricity' }, bills, new Set());
   ok(m3 === null, `no match out-of-tolerance → ${m3?.id ?? 'null'}`);
   // Εκτός χρονικού παραθύρου (>25 ημέρες)
@@ -201,14 +201,14 @@ for (const L of layouts) {
   ok(p3 === null, `third payment no bill left → ${p3?.id ?? 'null'}`);
 }
 {
-  // Οριακή ανοχή: ακριβώς 2% πάνω ταιριάζει, 3% όχι.
+  // Οριακή ανοχή: 1% πάνω ταιριάζει, 2% όχι.
   const b: PendingBill[] = [{ id: 'x', category: 'water', amount: 100, due_date: '2026-06-10' }];
-  ok(matchBillToPayment({ amount: 102, date: '2026-06-12', category: 'water' }, b, new Set())?.id === 'x', 'edge +2%');
-  ok(matchBillToPayment({ amount: 103, date: '2026-06-12', category: 'water' }, b, new Set()) === null, 'edge +3% no');
-  // Ελάχιστη ανοχή 0.5€ για μικρά ποσά (10€ → 10.4 ταιριάζει, 10.6 όχι)
+  ok(matchBillToPayment({ amount: 101, date: '2026-06-12', category: 'water' }, b, new Set())?.id === 'x', 'edge +1%');
+  ok(matchBillToPayment({ amount: 102, date: '2026-06-12', category: 'water' }, b, new Set()) === null, 'edge +2% no');
+  // Ελάχιστη ανοχή 0.20€ για μικρά ποσά (10€ → 10.20 ταιριάζει, 10.30 όχι)
   const s: PendingBill[] = [{ id: 's', category: 'other', amount: 10, due_date: '2026-06-10' }];
-  ok(matchBillToPayment({ amount: 10.4, date: '2026-06-11', category: 'other' }, s, new Set())?.id === 's', 'min tol 0.4');
-  ok(matchBillToPayment({ amount: 10.6, date: '2026-06-11', category: 'other' }, s, new Set()) === null, 'min tol 0.6 no');
+  ok(matchBillToPayment({ amount: 10.20, date: '2026-06-11', category: 'other' }, s, new Set())?.id === 's', 'min tol 0.20');
+  ok(matchBillToPayment({ amount: 10.30, date: '2026-06-11', category: 'other' }, s, new Set()) === null, 'min tol 0.30 no');
 }
 // Κακοσχηματισμένα/κενά → ποτέ crash, επιστρέφει []
 ok(parseCSV('') .length === 0, 'empty file');
