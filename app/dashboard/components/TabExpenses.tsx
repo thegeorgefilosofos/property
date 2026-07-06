@@ -51,6 +51,11 @@ const EXPENSE_GROUPS: Record<string, { label: string; categories: string[]; taxD
   other:          { label: 'Άλλες Δαπάνες',                taxDeductible: false, categories: ['Αποθήκευση/Μεταφορά','Καθαρισμός (εφάπαξ)','Φωτογράφηση Ακινήτου','Home Staging','Δώρα/Φιλοξενία','Αναλώσιμα','Misc','Άλλο'] },
 };
 
+// Βασικές ομάδες που χρειάζεται ένας ιδιοκτήτης ακινήτου. Οι υπόλοιπες
+// (επαγγελματικές/σπάνιες) κρύβονται πίσω από «Περισσότερες κατηγορίες» ώστε το
+// πιο χρησιμοποιούμενο tab να μη μοιάζει με σουπερμάρκετ.
+const CORE_GROUPS = new Set(['fixed', 'maintenance', 'renovation', 'appliances', 'legal', 'tax', 'other']);
+
 const GROUP_COLORS: Record<string, string> = {
   fixed:'var(--accent)', renovation:'#5B8DEF', appliances:'#34D97B',
   appliance_lease:'#8B5CF6', maintenance:'#FB923C', vehicle_lease:'#F59E0B',
@@ -382,6 +387,12 @@ function ExpenseForm({
   const currentPM = PAYMENT_METHODS.find(p => p.value === form.payment_method);
   const effectiveRate = form.interest_rate ? parseFloat(form.interest_rate) : (currentPM?.interestRate||0);
   const isDeductible = EXPENSE_GROUPS[form.expense_group]?.taxDeductible;
+  // Δείξε τις επαγγελματικές/σπάνιες ομάδες μόνο αν ζητηθεί ή αν επεξεργαζόμαστε
+  // ήδη μια τέτοια εγγραφή (ώστε να μη «χαθεί» η κατηγορία της).
+  const [showAllGroups, setShowAllGroups] = useState(!CORE_GROUPS.has(form.expense_group));
+  const groupOptions = Object.entries(EXPENSE_GROUPS)
+    .filter(([k]) => showAllGroups || CORE_GROUPS.has(k) || k === form.expense_group)
+    .map(([k,v]) => ({ value:k, label:v.label }));
 
   return (
     <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--info)':'var(--border-accent)'}` }}>
@@ -406,8 +417,16 @@ function ExpenseForm({
 
       {/* Βασικά */}
       <div style={g4}>
-        <CustomSelect label="Ομάδα Δαπάνης" value={form.expense_group} onChange={v => sf('expense_group',v)}
-          options={Object.entries(EXPENSE_GROUPS).map(([k,v]) => ({ value:k, label:v.label }))} />
+        <div>
+          <CustomSelect label="Ομάδα Δαπάνης" value={form.expense_group} onChange={v => sf('expense_group',v)}
+            options={groupOptions} />
+          {!showAllGroups && (
+            <button type="button" onClick={() => setShowAllGroups(true)}
+              style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontFamily: "'Google Sans',sans-serif", fontSize: 11, fontWeight: 600 }}>
+              + Περισσότερες κατηγορίες (επαγγελματικές)
+            </button>
+          )}
+        </div>
         <CustomSelect label="Κατηγορία" value={form.category} onChange={v => sf('category',v)}
           options={(EXPENSE_GROUPS[form.expense_group]?.categories||[]).map(c => ({ value:c, label:c }))} />
         <DatePicker label="Ημερομηνία" value={form.date} onChange={v => sf('date',v)} />

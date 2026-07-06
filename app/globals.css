@@ -900,6 +900,13 @@ body {
   width: 20px; height: 20px; flex-shrink: 0;
 }
 .quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.quick-add-hint {
+  margin: 6px 20px 4px;
+  font-family: 'Google Sans', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
 
 .sidebar-section { padding: 8px 8px 4px; }
 .sidebar-section-label {
@@ -940,6 +947,10 @@ body {
   color: var(--text-secondary);
   display: flex; align-items: center; justify-content: center;
 }
+.sidebar-item-icon svg { width: 18px; height: 18px; }
+.sidebar-nav { display: flex; flex-direction: column; }
+.sidebar-nav .sidebar-section { padding-top: 4px; padding-bottom: 4px; }
+.sidebar-nav .sidebar-section + .sidebar-section { margin-top: 2px; }
 .sidebar-item.active .sidebar-item-icon { color: var(--md-on-secondary-container); }
 
 .sidebar-item-label {
