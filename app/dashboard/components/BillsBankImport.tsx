@@ -34,6 +34,13 @@ const MATCHERS = [
   { keywords: ['HELLAS DIRECT','INTERAMERICAN','EUROLIFE FFH','EUROLIFE','GENERALI HELLAS','AXA ASFALISTIKI','ΕΘΝΙΚΗ ΑΣΦΑΛΙΣΤΙΚΗ','ALLIANZ HELLAS','ERGO ΑΣΦΑΛΙΣΤΙΚΗ','GROUPAMA'], category: 'insurance', label: 'Ασφάλεια', confidence: 'high' as const },
   { keywords: ['ELTRAK SECURITY','G4S HELLAS','VANINFO','DSP SECURITY','SECURITAS','ΕΤΑΙΡΕΙΑ ΑΣΦΑΛΕΙΑΣ','ALARM'], category: 'security', label: 'Ασφάλεια & Security', confidence: 'medium' as const },
   { keywords: ['ΚΟΙΝΟΧΡΗΣΤΑ','ΚΤΗΡΙΟ','ΔΙΑΧΕΙΡΙΣΗΣ','ΚΤΗΡΙΟ','MYBILLYS','MY CONDO','COMFY'], category: 'common', label: 'Κοινόχρηστα', confidence: 'medium' as const },
+  { keywords: ['ΑΝΕΛΚΥΣΤΗΡ','ΑΣΑΝΣΕΡ','KLEEMANN','OTIS','KONE','SCHINDLER','ELEVATOR','THYSSENKRUPP'], category: 'elevator', label: 'Συντήρηση Ασανσέρ', confidence: 'medium' as const },
+  { keywords: ['ΠΙΣΙΝΑ','POOL','ΣΥΝΤΗΡΗΣΗ ΠΙΣΙΝΑΣ','ΧΛΩΡΙΟ'], category: 'pool', label: 'Καθαρισμός Πισίνας', confidence: 'medium' as const },
+  { keywords: ['ΚΗΠΟΥΡ','ΚΗΠΟΣ','GARDEN','ΠΡΑΣΙΝΟ','LANDSCAP','ΦΥΤΑ'], category: 'gardener', label: 'Κηπουρός', confidence: 'medium' as const },
+  { keywords: ['ΚΑΘΑΡΙΟΤΗΤ','ΚΑΘΑΡΙΣΜ','CLEANING','ΣΥΝΕΡΓΕΙΟ ΚΑΘΑΡΙΣΜΟΥ'], category: 'cleaner', label: 'Καθαριότητα', confidence: 'medium' as const },
+  { keywords: ['ΥΔΡΑΥΛΙΚ','PLUMBER','ΑΠΟΦΡΑΞ'], category: 'plumber', label: 'Υδραυλικός', confidence: 'medium' as const },
+  { keywords: ['ΗΛΕΚΤΡΟΛΟΓ','ELECTRICIAN'], category: 'electrician', label: 'Ηλεκτρολόγος', confidence: 'medium' as const },
+  { keywords: ['ΣΥΝΤΗΡΗΣΗ','ΤΕΧΝΙΚΟΣ','SERVICE','ΕΠΙΣΚΕΥ','MAINTENANCE'], category: 'maintenance', label: 'Συντήρηση', confidence: 'low' as const },
   { keywords: ['ΜΙΣΘΩΜΑ','ΕΝΟΙΚΙΟ','RENT','ENARC','ΜΙΣΘΩΣΗ'], category: 'rent_income', label: 'Ενοίκιο', confidence: 'medium' as const },
 ] as const;
 
@@ -44,6 +51,13 @@ function categorizeTransaction(desc: string) {
     if (hit) return { category: m.category, label: m.label, confidence: m.confidence, matched: hit };
   }
   return { category: 'other', label: 'Άλλο', confidence: 'low' as const, matched: '' };
+}
+
+// Δύο ημερομηνίες εντός X ημερών (για συμφωνία πληρωμής ↔ εκκρεμούς λογαριασμού)
+function withinDays(a?: string | null, b?: string | null, days = 25): boolean {
+  if (!a || !b) return false;
+  const diff = Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
+  return diff <= days;
 }
 
 function parseCSV(text: string): ParsedTransaction[] {
@@ -99,6 +113,12 @@ const CATEGORY_OPTIONS = [
   { value: 'security',    label: 'Security'                   },
   { value: 'common',      label: 'Κοινόχρηστα'               },
   { value: 'maintenance', label: 'Συντήρηση'                  },
+  { value: 'elevator',    label: 'Συντήρηση Ασανσέρ'          },
+  { value: 'pool',        label: 'Καθαρισμός Πισίνας'         },
+  { value: 'gardener',    label: 'Κηπουρός'                    },
+  { value: 'cleaner',     label: 'Καθαριότητα'                },
+  { value: 'plumber',     label: 'Υδραυλικός'                 },
+  { value: 'electrician', label: 'Ηλεκτρολόγος'               },
   { value: 'rent_income', label: 'Ενοίκιο (Έσοδο)'           },
   { value: 'other',       label: 'Άλλο'                       },
 ];
@@ -120,6 +140,12 @@ const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
   security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
   common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
   maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
+  elevator:    { group: 'maintenance', cat: 'Συντήρηση Ασανσέρ' },
+  pool:        { group: 'maintenance', cat: 'Καθαρισμός Πισίνας' },
+  gardener:    { group: 'maintenance', cat: 'Κηπουρός' },
+  cleaner:     { group: 'maintenance', cat: 'Καθαριότητα' },
+  plumber:     { group: 'maintenance', cat: 'Υδραυλικός' },
+  electrician: { group: 'maintenance', cat: 'Ηλεκτρολόγος' },
   other:       { group: 'other',       cat: 'Άλλο' },
 };
 
@@ -148,6 +174,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [importing,    setImporting]    = useState(false);
   const [imported,     setImported]     = useState(0);
+  const [reconciled,   setReconciled]   = useState(0);
   const [dragOver,     setDragOver]     = useState(false);
   const [error,        setError]        = useState('');
   const [step,         setStep]         = useState<'upload'|'review'|'done'>('upload');
@@ -258,49 +285,76 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
     if (!selected.length) return;
     setImporting(true);
     try {
-      const rows = selected.map(t => ({
-        property_id: propertyId, user_id: userId,
-        category:    t.category,
-        name:        t.description.slice(0, 100),
-        amount:      t.amount,
-        paid:        true,
-        due_date:    t.date,
-        created_at:  new Date(t.date).toISOString(),
-        notes:       `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''} · ${t.matched || ''}`,
-        recurring:   false,
-      }));
-      const { error: err } = await supabase.from('bills').insert(rows);
-      if (err) throw err;
+      // ── Μηχανή Συμφωνίας (reconciliation) ────────────────────────────────
+      // Κάθε τραπεζική πληρωμή ψάχνει τον αντίστοιχο ΕΚΚΡΕΜΗ λογαριασμό (ίδιο
+      // ποσό ±2% & κοντινή ημερομηνία, με προτίμηση ίδιας κατηγορίας). Αν βρεθεί,
+      // ο λογαριασμός μαρκάρεται ΠΛΗΡΩΜΕΝΟΣ παντού (Λογαριασμοί + Έξοδα + Ημερολόγιο)
+      // αντί να δημιουργηθεί διπλότυπο. Ό,τι δεν ταιριάζει → νέα εγγραφή.
+      const { data: pend } = await supabase.from('bills')
+        .select('id,category,amount,due_date,created_at')
+        .eq('property_id', propertyId).eq('paid', false);
+      const pendingBills = (pend || []) as { id: string; category: string; amount: number; due_date: string | null; created_at: string | null }[];
+      const usedBill = new Set<string>();
+      const matched: { billId: string; cat: string; t: ParsedTransaction }[] = [];
+      const unmatched: ParsedTransaction[] = [];
 
-      // Προστασία διπλοεγγραφής εξόδων: φέρε τα υπάρχοντα έξοδα στο εύρος ημερομηνιών
-      // και παράλειψε όσα ταιριάζουν (ίδιο ποσό/κατηγορία/ημέρα) — π.χ. από σάρωση.
-      const dates = selected.map(t => t.date).sort();
-      const { data: existing } = await supabase.from('expenses')
-        .select('amount,category,date')
-        .eq('property_id', propertyId)
-        .gte('date', dates[0]).lte('date', dates[dates.length - 1]);
-      const seen = new Set((existing || []).map(e => `${e.amount}|${e.category}|${e.date}`));
+      for (const t of selected) {
+        const cands = pendingBills.filter(b => !usedBill.has(b.id)
+          && Math.abs((b.amount || 0) - t.amount) <= Math.max(0.5, t.amount * 0.02)
+          && withinDays(b.due_date || b.created_at, t.date, 25));
+        const m = cands.find(b => b.category === t.category) || cands[0];
+        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, t }); }
+        else unmatched.push(t);
+      }
 
-      await Promise.allSettled(selected.filter(t => t.debit).map(t => {
-        const m = EXPENSE_MAP[t.category] || EXPENSE_MAP.other;
-        const key = `${t.amount}|${m.cat}|${t.date}`;
-        if (seen.has(key)) return Promise.resolve();   // υπάρχει ήδη — μη διπλοεγγραφή
-        seen.add(key);
-        return supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId,
-          amount:      t.amount,
-          description: t.description.slice(0, 100),
-          date:        t.date,
-          category:    m.cat,
-          expense_group: m.group,
-          paid_by:     'owner',
-          paid:        true,
-          notes:       `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}`,
-        });
-      }));
+      // 1) Συμφώνησε τα ταιριασμένα — μαρκάρισμα «Πληρώθηκε» παντού
+      if (matched.length) {
+        await supabase.from('bills').update({ paid: true }).in('id', matched.map(r => r.billId));
+        for (const r of matched) {
+          const em = EXPENSE_MAP[r.cat] || EXPENSE_MAP.other;
+          await supabase.from('expenses').update({ paid: true })
+            .eq('property_id', propertyId).eq('category', em.cat)
+            .eq('amount', r.t.amount).eq('paid', false);
+          await supabase.from('calendar_events').update({ status: 'paid' })
+            .eq('property_id', propertyId).eq('amount', r.t.amount).eq('status', 'pending');
+        }
+      }
 
-      setImported(rows.length); setStep('done');
-      onImported?.(rows.length);
+      // 2) Τα αταίριαστα → νέα εγγραφή (Λογαριασμός + Έξοδο) με προστασία διπλότυπου
+      let created = 0;
+      if (unmatched.length) {
+        const rows = unmatched.map(t => ({
+          property_id: propertyId, user_id: userId, category: t.category,
+          name: t.description.slice(0, 100), amount: t.amount, paid: true,
+          due_date: t.date, created_at: new Date(t.date).toISOString(),
+          notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''} · ${t.matched || ''}`,
+          recurring: false,
+        }));
+        const { error: err } = await supabase.from('bills').insert(rows);
+        if (err) throw err;
+        created = rows.length;
+
+        const dates = unmatched.map(t => t.date).sort();
+        const { data: existing } = await supabase.from('expenses')
+          .select('amount,category,date').eq('property_id', propertyId)
+          .gte('date', dates[0]).lte('date', dates[dates.length - 1]);
+        const seen = new Set((existing || []).map(e => `${e.amount}|${e.category}|${e.date}`));
+        await Promise.allSettled(unmatched.map(t => {
+          const m = EXPENSE_MAP[t.category] || EXPENSE_MAP.other;
+          const key = `${t.amount}|${m.cat}|${t.date}`;
+          if (seen.has(key)) return Promise.resolve();
+          seen.add(key);
+          return supabase.from('expenses').insert({
+            property_id: propertyId, user_id: userId, amount: t.amount,
+            description: t.description.slice(0, 100), date: t.date,
+            category: m.cat, expense_group: m.group, paid_by: 'owner', paid: true,
+            notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}`,
+          });
+        }));
+      }
+
+      setReconciled(matched.length); setImported(created); setStep('done');
+      onImported?.(created + matched.length);
     } catch (e) {
       setError('Σφάλμα αποθήκευσης. Δοκίμασε ξανά.'); console.error(e);
     } finally { setImporting(false); }
@@ -315,10 +369,21 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(52,168,83,0.12)', border: '1px solid rgba(52,168,83,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
         <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>Εισαγωγή Ολοκληρώθηκε</div>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{imported} συναλλαγές προστέθηκαν στους Λογαριασμούς</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>Τα δεδομένα ενημέρωσαν και τις Δαπάνες αυτόματα</div>
-      <button onClick={() => { setStep('upload'); setTransactions([]); setImported(0); setError(''); }}
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, letterSpacing: '-0.02em' }}>Εισαγωγή Ολοκληρώθηκε</div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+        {reconciled > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.25)', borderRadius: T.radius.pill, padding: '5px 14px', fontFamily: T.font.sans }}>
+            ✓ {reconciled} εκκρεμείς λογαριασμοί εξοφλήθηκαν
+          </span>
+        )}
+        {imported > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '5px 14px', fontFamily: T.font.sans }}>
+            + {imported} νέες εγγραφές
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>Ενημερώθηκαν αυτόματα Λογαριασμοί, Έξοδα και Ημερολόγιο</div>
+      <button onClick={() => { setStep('upload'); setTransactions([]); setImported(0); setReconciled(0); setError(''); }}
         style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
         Νέα Εισαγωγή
       </button>

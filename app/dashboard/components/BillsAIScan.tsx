@@ -30,7 +30,7 @@ const SYSTEM_PROMPT = `Είσαι ειδικός ανάλυσης ελληνικ
 Διάβασε ΠΡΟΣΕΚΤΙΚΑ όλα τα νούμερα και επέστρεψε ΜΟΝΟ valid JSON, χωρίς markdown:
 {
   "provider": "όνομα παρόχου (π.χ. ΔΕΗ, ΕΥΔΑΠ, Ζενίθ, COSMOTE)",
-  "category": "electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|other",
+  "category": "electricity|water|gas|internet|insurance|streaming|taxes|municipal|security|common|maintenance|elevator|pool|gardener|cleaner|plumber|electrician|other",
   "amount": αριθμός (ΣΥΝΟΛΙΚΟ πληρωτέο ποσό σε ευρώ),
   "due_date": "YYYY-MM-DD (λήξη πληρωμής) ή κενό",
   "period": "περίοδος κατανάλωσης, π.χ. Ιούν 2026 ή 01/04-30/06/2026",
@@ -55,7 +55,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet',
   insurance: 'Ασφάλεια', streaming: 'Streaming & Συνδρομές', taxes: 'ΕΝΦΙΑ & Φόροι',
   municipal: 'Δημοτικά Τέλη', security: 'Security / Συναγερμός', common: 'Κοινόχρηστα',
-  maintenance: 'Συντήρηση', other: 'Άλλο',
+  maintenance: 'Συντήρηση', elevator: 'Συντήρηση Ασανσέρ', pool: 'Καθαρισμός Πισίνας',
+  gardener: 'Κηπουρός', cleaner: 'Καθαριότητα', plumber: 'Υδραυλικός', electrician: 'Ηλεκτρολόγος',
+  other: 'Άλλο',
 };
 
 // Αντιστοίχιση κατηγορίας λογαριασμού → ομάδα/κατηγορία Δαπανών (ώστε να ρέει
@@ -72,6 +74,12 @@ const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
   security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
   common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
   maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
+  elevator:    { group: 'maintenance', cat: 'Συντήρηση Ασανσέρ' },
+  pool:        { group: 'maintenance', cat: 'Καθαρισμός Πισίνας' },
+  gardener:    { group: 'maintenance', cat: 'Κηπουρός' },
+  cleaner:     { group: 'maintenance', cat: 'Καθαριότητα' },
+  plumber:     { group: 'maintenance', cat: 'Υδραυλικός' },
+  electrician: { group: 'maintenance', cat: 'Ηλεκτρολόγος' },
   other:       { group: 'other',       cat: 'Άλλο' },
 };
 
@@ -373,6 +381,17 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               </div>
             </div>
 
+            {(edited.confidence < 65 || !edited.amount) && (
+              <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', marginTop: 6, flexShrink: 0 }} />
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
+                  {!edited.amount
+                    ? <>Δεν εντοπίστηκε ποσό. <strong>Έλεγξε και συμπλήρωσε</strong> τα πεδία πριν αποθηκεύσεις.</>
+                    : <>Χαμηλή βεβαιότητα ανάγνωσης. <strong>Έλεγξε προσεκτικά</strong> ποσό, ημερομηνία και κατανάλωση πριν αποθηκεύσεις — ίσως χρειάζεται πιο καθαρή φωτογραφία.</>}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 <Field label="Πάροχος" value={edited.provider} onChange={v => setEdited(p => ({ ...p!, provider: v }))}/>
@@ -464,7 +483,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                   disabled={saving || !edited.amount}
                   style={{ background: edited.amount > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: edited.amount > 0 ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: edited.amount > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}
                 >
-                  {saving ? 'Αποθήκευση...' : 'Αποθήκευση →'}
+                  {saving ? 'Αποθήκευση…' : edited.confidence < 65 && edited.amount ? 'Αποθήκευση παρόλα αυτά →' : 'Αποθήκευση →'}
                 </button>
               </div>
             </div>
