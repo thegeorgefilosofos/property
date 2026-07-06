@@ -150,7 +150,7 @@ export default async function Landing() {
             {
               tag: 'Σάρωση', h: 'Δεν πληκτρολογείς. Φωτογραφίζεις.',
               icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-              p: 'Λογαριασμός ΔΕΗ, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Μία φωτογραφία και μπαίνει μόνο του εκεί που πρέπει. Ό,τι σου έπαιρνε δέκα λεπτά, τώρα σε τρία δευτερόλεπτα.',
+              p: 'Λογαριασμός ρεύματος, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Μία φωτογραφία και μπαίνει μόνο του εκεί που πρέπει. Ό,τι σου έπαιρνε δέκα λεπτά, τώρα σε τρία δευτερόλεπτα.',
               b: ['Διαβάζει ποσά, ημερομηνίες και πάροχο', 'Ενημερώνει δαπάνες, ημερολόγιο και αρχείο μαζί', 'Έκανε λάθος; Το διορθώνεις με ένα κλικ'],
             },
             {
@@ -186,7 +186,7 @@ export default async function Landing() {
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['ΔΕΗ myHome Enter', 'Μπλε τιμολόγιο', '142 €', false], ['Protergia Value Flow', 'Φθηνότερο', '128 €', true], ['Ήρων Blue Smart', 'Μπλε τιμολόγιο', '135 €', false]].map(([n, b, p, best], i) => (
+            {[['Σταθερό τιμολόγιο', 'Πάγια τιμή', '142 €', false], ['Δυναμικό τιμολόγιο', 'Το φθηνότερο για σένα', '128 €', true], ['Πράσινο τιμολόγιο', 'Πάγια τιμή', '135 €', false]].map(([n, b, p, best], i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: BG, border: `1px solid ${best ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : LINE}`, borderRadius: 14, padding: '14px 16px', boxShadow: best ? '0 8px 24px color-mix(in srgb, var(--accent) 14%, transparent)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{n as string}</div>

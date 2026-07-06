@@ -125,8 +125,8 @@ function PanelScan() {
       <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
         <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em' }}>ΔΕΗ</div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Λογαριασμός ρεύματος</div>
+          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em' }}>Ρεύμα</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
         {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
