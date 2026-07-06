@@ -187,7 +187,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const card = { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:20 } as const;
   const cardGap = { ...card, marginBottom:16 };
   const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Inter',sans-serif" } as const;
-  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Roboto',sans-serif" } as const;
+  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Inter',sans-serif" } as const;
   const sectionTitle = (t:string) => (
     <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,
       borderBottom:'1px solid var(--border-subtle)' }}>
@@ -199,7 +199,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const statRow = (label:string, value:string, color='var(--text-primary)', bold=false) => (
     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
       padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{label}</span>
+      <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>{label}</span>
       <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
@@ -208,9 +208,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
     <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,
       padding:'12px 0',borderBottom:'1px solid var(--border-subtle)' }}>
       <div style={{ minWidth:0 }}>
-        <div style={{ fontSize:13,color:'var(--text-primary)',fontFamily:"'Roboto',sans-serif" }}>{label}</div>
+        <div style={{ fontSize:13,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif" }}>{label}</div>
         {description && (
-          <div style={{ fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif",marginTop:4,lineHeight:1.5 }}>{description}</div>
+          <div style={{ fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginTop:4,lineHeight:1.5 }}>{description}</div>
         )}
       </div>
       <div style={{ flexShrink:0 }}>{control}</div>
@@ -228,7 +228,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   ] as const;
 
   return (
-    <div style={{ fontFamily:"'Roboto',sans-serif", color:'var(--text-primary)' }}>
+    <div style={{ fontFamily:"'Inter',sans-serif", color:'var(--text-primary)' }}>
 
       <PageTitle title="Ρυθμίσεις" sub="Στοιχεία ακινήτου, προτιμήσεις εφαρμογής και φορολογικά εργαλεία"/>
 
@@ -267,7 +267,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
                   <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Από το δεύτερο και πάνω, 2,99 € τον μήνα ή 29,90 € τον χρόνο.</div>
+                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Από το δεύτερο και πάνω, 2,99 € τον μήνα ή 29,90 € τον χρόνο.</div>
               </div>
               <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
             </div>
@@ -476,7 +476,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {label:'Στεγαστικό Δάνειο', on:needsMortgage, set:setNeedsMortgage},
                     ].map((opt,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                        <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{opt.label}</span>
+                        <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>{opt.label}</span>
                         <Toggle on={opt.on} onChange={opt.set} size="sm"/>
                       </div>
                     ))}
@@ -624,7 +624,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               ].map((n,i)=>(
                 <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'12px 14px' }}>
                   <div style={{ fontSize:12,fontWeight:500,color:'var(--accent)',fontFamily:"'Inter',sans-serif",marginBottom:6 }}>{n.title}</div>
-                  <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
+                  <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
                 </div>
               ))}
             </div>
@@ -754,7 +754,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             )}
           </div>
 
-          <div style={{ fontSize:11,color:'var(--text-tertiary)',textAlign:'center',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>
+          <div style={{ fontSize:11,color:'var(--text-tertiary)',textAlign:'center',fontFamily:"'Inter',sans-serif",lineHeight:1.6 }}>
             Εκτίμηση βάσει ισχύουσας νομοθεσίας. Δεν αποτελεί επίσημη φορολογική συμβουλή. Συμβουλευτείτε λογιστή.
           </div>
         </div>

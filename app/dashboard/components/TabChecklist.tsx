@@ -478,7 +478,7 @@ function exportChecklistPDF(items: ChecklistItem[]) {
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Roboto',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
 .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
@@ -579,7 +579,7 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{max-width:900px;margin:0 auto;padding:28px 36px}
 
 /* Header */
