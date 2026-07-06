@@ -564,10 +564,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
     const runs = Math.min(parseInt(sc2.mc_runs) || 500, 1000);
     const rentStd = (parseFloat(sc2.mc_rent_std) || 15) / 100;
     const valStd = (parseFloat(sc2.mc_value_std) || 20) / 100;
+    // Δειγματοληψία από κανονική κατανομή (Box–Muller): τα P10/P50/P90 αποκτούν
+    // στατιστικό νόημα (η προηγούμενη ομοιόμορφη έδινε λανθασμένες «ουρές» ρίσκου).
+    const gauss = () => { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
     const mcResults: number[] = [];
     for (let i = 0; i < runs; i++) {
-      const rVar = 1 + (rc / 100) + (Math.random() - 0.5) * rentStd * 2;
-      const vVar = vg / 100 + (Math.random() - 0.5) * valStd * 2;
+      const rVar = 1 + (rc / 100) + gauss() * rentStd;
+      const vVar = vg / 100 + gauss() * valStd;
       const mRent = calc.ar * rVar;
       const mAnnual = mRent * (12 - vm);
       const { tax: mt } = calcRentTax(mAnnual, electronic, parseInt(ownerAge) || 35, parseInt(children) || 0);
@@ -692,7 +695,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <Gauge value={calc.grossYield} max={12} label="Μεικτή Απόδοση" color="var(--accent)" />
         <Gauge value={calc.netYield} max={8} label="Καθαρή Απόδοση" color="var(--positive)" />
         <Gauge value={calc.capRate} max={10} label="Κεφαλαιακή Απόδοση" color="var(--info)" />
-        <Gauge value={Math.min(calc.occRate, 100)} max={100} label="Πληρότητα" color="var(--warning)" />
+        <Gauge value={Math.min(calc.occRate, 100)} max={100} label="Επίτευξη Ενοικίου" color="var(--warning)" />
         {calc.DSCR > 0 && <Gauge value={Math.min(calc.DSCR * 50, 100)} max={100} label={`Κάλυψη Δανείου ${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} />}
         {/* Score */}
         <div style={{ textAlign: 'center', minWidth: 100 }}>
@@ -771,7 +774,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           )}
           {calc.gap > 0 && (
             <InfoBanner type="warning">
-              Το ενοίκιο είναι <strong>{fe(calc.gap)}/μήνα</strong> κάτω από τον στόχο ({fp(calc.occRate, 0)} πληρότητα).
+              Το ενοίκιο είναι <strong>{fe(calc.gap)}/μήνα</strong> κάτω από τον στόχο ({fp(calc.occRate, 0)} του στόχου).
             </InfoBanner>
           )}
 
@@ -1394,7 +1397,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <StatRow label="Σύνολο Ενοικίων (μετά φόρου)" value={fe(scen.rentTotal)} color="var(--positive)" />
             <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} color="var(--positive)" bold />
             <StatRow label="CAGR Αξίας Ακινήτου" value={fp(scen.cagr)} color="var(--info)" />
-            <StatRow label="Εσωτερικό Ποσοστό Απόδοσης (IRR)" value={fp(scen.irr)} color="var(--accent)" />
+            <StatRow label="Μέση Ετήσια Απόδοση" value={fp(scen.irr)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
             <SectionLabel label="Τώρα vs Σενάριο" />
