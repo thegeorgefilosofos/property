@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, Spinner } from '@/components/Theme';
+import { downloadCsv } from './exportCsv';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -106,13 +107,8 @@ export default function TabComparison({ properties, userId }: Props) {
     const sum = (f: (r: typeof rowsData[number]) => number) => rowsData.reduce((s, r) => s + f(r), 0);
     const totAnnualRent = sum(r => r.rent * 12);
     rows.push(['ΣΥΝΟΛΟ', '', money(sum(r => r.value)), money(sum(r => r.sqm)), '', money(sum(r => r.rent)), money(totAnnualRent), '', money(sum(r => r.monthlyBills)), money(sum(r => r.expensesYTD)), money(sum(r => r.netMonthly)), money(sum(r => r.netMonthly * 12)), money(totAnnualRent * 0.15)]);
-    const esc = (v: string) => /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-    const csv = [cols, ...rows].map(r => r.map(c => esc(String(c))).join(';')).join('\r\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `xartofylakio_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    // Κοινός, θωρακισμένος exporter (BOM, «;», escaping + εξουδετέρωση formula-injection).
+    downloadCsv(`xartofylakio_${new Date().toISOString().slice(0, 10)}`, cols, rows);
   };
 
   const th: React.CSSProperties = { fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' };
