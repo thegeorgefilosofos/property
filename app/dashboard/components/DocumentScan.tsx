@@ -143,6 +143,18 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false }: {
 
 const NUM_KEYS = new Set<keyof ScannedDoc>(['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate']);
 
+// Ανθεκτική μετατροπή αριθμού (χειρίζεται «1.200,50», «1,234.56», «€», κενά).
+// Το AI μπορεί να επιστρέψει string· χωρίς αυτό, μη-αριθμητικά θα έσπαγαν το insert.
+const numify = (v: unknown): number | undefined => {
+  if (typeof v === 'number') return isFinite(v) ? v : undefined;
+  if (typeof v !== 'string') return undefined;
+  const raw = v.replace(/[€\s]/g, '');
+  if (!/\d/.test(raw)) return undefined;
+  const clean = /,\d{1,2}$/.test(raw) ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  const n = parseFloat(clean.replace(/[^0-9.\-]/g, ''));
+  return isFinite(n) ? n : undefined;
+};
+
 export default function DocumentScan({ propertyId, userId = '', onSaved }: Props) {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -212,6 +224,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
       }
       if (r.err) { setError(r.err); setEdited(blank()); return; }
       const doc = r.doc!;
+      // Ντετερμινιστική εξομάλυνση αριθμών από το AI (μπορεί να δώσει strings) —
+      // ώστε να μη σπάσει καμία αριθμητική στήλη στη βάση.
+      const dref = doc as unknown as Record<string, unknown>;
+      NUM_KEYS.forEach(k => { if (dref[k] != null) dref[k] = numify(dref[k]); });
       // Ντετερμινιστική επιδιόρθωση τύπου (ποτέ δεν εμπιστευόμαστε τυφλά το AI).
       doc.doc_type = classifyDocType(doc);
       if (typeof doc.confidence !== 'number') doc.confidence = 70;
@@ -224,21 +240,27 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   };
 
   // Ανέβασμα του πρωτότυπου αρχείου στο Αρχείο (property_documents) — πάντα.
-  const archiveFile = async (category: string, note?: string, title?: string) => {
+  const archiveFile = async (a: { category: string; note?: string; date?: string }, title?: string) => {
     if (!file) return false;
     const safe = file.name.replace(/[^\w.\-]+/g, '_');
     const path = `${userId}/${propertyId}/document/${Date.now()}_${safe}`;
     const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
     if (upErr) return false;
     const base = {
-      property_id: propertyId, user_id: userId, kind: 'document', category,
-      title: (title || file.name).slice(0, 200), notes: note || null,
-      doc_date: null, file_path: path, file_name: file.name,
+      property_id: propertyId, user_id: userId, kind: 'document', category: a.category,
+      title: (title || file.name).slice(0, 200), notes: a.note || null,
+      doc_date: a.date || null, file_path: path, file_name: file.name,
       mime: file.type || null, size_bytes: file.size,
     };
     const { error } = await supabase.from('property_documents').insert(base);
     return !error;
   };
+
+  // Στρίψιμο null/undefined από payload — για ΕΝΗΜΕΡΩΣΗ ώστε να μη σβήνουμε
+  // υπάρχοντα στοιχεία (π.χ. ενοικιαστή) με κενές τιμές από μερική ανάγνωση.
+  const stripEmpty = (o: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ''));
+  const nrm = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
   const save = async () => {
     if (!edited) return;
@@ -264,31 +286,41 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
           (pend || []) as PendingBill[], new Set<string>());
         if (match) {
           await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', match.id);
-          await supabase.from('expenses').update({ paid: true }).eq('bill_id', match.id);
+          const { data: updExp } = await supabase.from('expenses').update({ paid: true }).eq('bill_id', match.id).select('id');
           await supabase.from('calendar_events').update({ status: 'paid' }).eq('bill_id', match.id);
+          // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο (π.χ. μπήκε
+          // χειροκίνητα αλλού), δημιούργησέ το τώρα ώστε η πληρωμή να φαίνεται.
+          if ((!updExp || !updExp.length) && plan.expense) {
+            const { error: expErr } = await supabase.from('expenses')
+              .insert({ property_id: propertyId, user_id: userId, bill_id: match.id, ...plan.expense, paid: true });
+            add(expErr ? 'Λογαριασμός εξοφλήθηκε' : 'Δαπάνες');
+          } else { add('Δαπάνες'); }
           reconciled = true;
-          add('Λογαριασμός εξοφλήθηκε'); add('Δαπάνες');
+          add('Λογαριασμός εξοφλήθηκε');
         }
       }
 
       // 1) Λογαριασμός → bills (κρατάμε id για σύνδεση). Παραλείπεται αν έγινε συμφωνία.
+      // ΔΕΝ κάνουμε throw: αν αποτύχει, συνεχίζουμε ώστε το έγγραφο να αρχειοθετηθεί.
       if (plan.bill && !reconciled) {
         const { data: billRow, error: billErr } = await supabase.from('bills')
           .insert({ property_id: propertyId, user_id: userId, ...plan.bill })
           .select('id').single();
-        if (billErr) throw billErr;
-        billId = billRow?.id as string | undefined;
-        add('Λογαριασμοί');
+        if (!billErr) { billId = billRow?.id as string | undefined; add('Λογαριασμοί'); }
       }
 
       // 2) Έξοδο → expenses (σύνδεση bill_id), με προστασία διπλοεγγραφής.
+      // Το dedup λαμβάνει υπόψη και την περιγραφή ώστε δύο διαφορετικά έξοδα ίδιου
+      // ποσού/ημέρας να μη μπερδεύονται· ταιριάζει μόνο εγγραφές από σάρωση.
       if (plan.expense && !reconciled) {
         const amt = plan.expense.amount as number;
         const cat = plan.expense.category as string;
         const d = plan.expense.date as string;
-        const { data: dup } = await supabase.from('expenses').select('id')
-          .eq('property_id', propertyId).eq('category', cat).eq('amount', amt).eq('date', d).limit(1);
-        if (dup && dup.length) { add('Δαπάνες (υπάρχει ήδη)'); }
+        const desc = plan.expense.description as string;
+        const { data: dup } = await supabase.from('expenses').select('id,description')
+          .eq('property_id', propertyId).eq('category', cat).eq('amount', amt).eq('date', d).limit(5);
+        const isDup = (dup || []).some(x => nrm(x.description as string) === nrm(desc));
+        if (isDup) { add('Δαπάνες (υπάρχει ήδη)'); }
         else {
           const { error: expErr } = await supabase.from('expenses')
             .insert({ property_id: propertyId, user_id: userId, bill_id: billId, ...plan.expense });
@@ -305,15 +337,18 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
         }
       }
 
-      // 4) Ενοικιαστής → tenants (ενημέρωση υπάρχοντος ή νέος).
+      // 4) Ενοικιαστής → tenants. Αν υπάρχει ίδιος ενοικιαστής (ίδιο όνομα),
+      // συμπληρώνουμε ΜΟΝΟ όσα πεδία έχουν τιμή (χωρίς να σβήνουμε τα υπάρχοντα).
+      // Αν το όνομα διαφέρει, είναι νέος ενοικιαστής → νέα εγγραφή (διατηρείται το ιστορικό).
       if (plan.tenant) {
-        const { data: existing } = await supabase.from('tenants').select('id')
+        const { data: existing } = await supabase.from('tenants').select('id,full_name')
           .eq('property_id', propertyId).eq('user_id', userId)
           .order('updated_at', { ascending: false }).limit(1);
-        const payload = { property_id: propertyId, user_id: userId, ...plan.tenant };
-        const q = existing && existing.length
-          ? supabase.from('tenants').update(plan.tenant).eq('id', existing[0].id)
-          : supabase.from('tenants').insert(payload);
+        const cur = existing && existing.length ? existing[0] : null;
+        const sameTenant = cur && nrm(cur.full_name as string) === nrm(plan.tenant.full_name as string);
+        const q = sameTenant
+          ? supabase.from('tenants').update(stripEmpty(plan.tenant)).eq('id', cur!.id)
+          : supabase.from('tenants').insert({ property_id: propertyId, user_id: userId, ...stripEmpty(plan.tenant) });
         const { error: tErr } = await q;
         if (!tErr) add('Ενοικιαστής');
       }
@@ -346,11 +381,13 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
 
       // 8) Αρχειοθέτηση του πρωτότυπου — πάντα, ώστε τίποτα να μη χάνεται.
       if (plan.archive) {
-        const ok = await archiveFile(plan.archive.category, plan.archive.note, edited.title || edited.provider);
+        const ok = await archiveFile(plan.archive, edited.title || edited.provider);
         if (ok) add('Αρχείο');
       }
 
-      setSavedInfo(done.length ? done : ['Αρχείο']);
+      // Ειλικρινής αναφορά: αν ΤΙΠΟΤΑ δεν αποθηκεύτηκε, μη λες ψέματα «Καταχωρήθηκε».
+      if (!done.length) { setError('save'); return; }
+      setSavedInfo(done);
       setStep('done');
       onSaved?.();
     } catch {

@@ -124,15 +124,24 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
   check('insurance minimal: settings only', !!p.settings && !p.expense && !p.calendar);
 }
 
+// insurance coverage must NOT be lost (review fix)
+{
+  const p = planDocSave(doc({ doc_type: 'insurance', provider: 'ERGO', premium: 300, coverage: 150000, expiry_date: '2027-01-01' }), TODAY);
+  check('insurance: coverage in expense notes', String(p.expense!.notes).includes('150.000'));
+  check('insurance: coverage in archive note', !!p.archive!.note && p.archive!.note.includes('150.000'));
+  eq('insurance: archive date = expiry', p.archive!.date, '2027-01-01');
+}
+
 // ── planDocSave: deed → safe property cols + archive note ─────────────────────
 {
-  const p = planDocSave(doc({ doc_type: 'deed', purchase_price: 180000, year_built: 2004, sqm: 78, atak: '11122233344', obj_value: 95000, purchase_date: '2019-05-20' }), TODAY);
+  const p = planDocSave(doc({ doc_type: 'deed', provider: 'Συμβ. Παπαδοπούλου', purchase_price: 180000, year_built: 2004, sqm: 78, atak: '11122233344', obj_value: 95000, purchase_date: '2019-05-20' }), TODAY);
   check('deed: property has safe cols', !!p.property);
   eq('deed: property.purchase_price', p.property!.purchase_price, 180000);
   eq('deed: property.year_built', p.property!.year_built, 2004);
   eq('deed: property.sqm', p.property!.sqm, 78);
   check('deed: NO atak/obj_value column write', !('atak' in (p.property || {})) && !('obj_value' in (p.property || {})) && !('purchase_date' in (p.property || {})));
   check('deed: extras go to archive note', !!p.archive!.note && p.archive!.note.includes('ΑΤΑΚ') && p.archive!.note.includes('Αντικειμενική'));
+  eq('deed: archive date = purchase_date', p.archive!.date, '2019-05-20');
   check('deed: targets include Στοιχεία ακινήτου', p.targets.includes('Στοιχεία ακινήτου'));
 }
 // deed with no structured fields → archive only
