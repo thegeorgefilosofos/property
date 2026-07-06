@@ -342,7 +342,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Roboto',sans-serif;max-width:740px;margin:48px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.8}
+      body{font-family:'Inter',sans-serif;max-width:740px;margin:48px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.8}
       .header{border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:28px}
       h1{font-size:22px;font-weight:500;color:#1a73e8;margin-bottom:4px}
       .sub{font-size:11px;color:#5f6368}

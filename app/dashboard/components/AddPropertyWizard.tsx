@@ -65,7 +65,7 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', height: 40, borderRadius: 8,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Roboto', sans-serif",
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Inter', sans-serif",
   letterSpacing: '0.25px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
@@ -253,7 +253,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
                 </div>
                 <div style={{ width: 44, height: 26, borderRadius: 13, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
@@ -320,7 +320,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '16px 18px' }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
                   <div style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 28, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{grossYield.toFixed(1)}%</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                     {airbnb
                       ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
                       : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί εμπορικής αξίας ${fe(valueN!, 0)}`}
@@ -337,7 +337,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: `1px solid ${STATUS_COLORS[effStatus]}44`, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[effStatus] }} />{STATUS_LABELS[effStatus]}
@@ -361,14 +361,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' ? "'Roboto', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               </div>
 
               {error && (
-                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: "'Roboto', sans-serif", fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--negative)' }}>{error}</div>
               )}
             </div>
           )}

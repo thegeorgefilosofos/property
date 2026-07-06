@@ -12,7 +12,7 @@ const mdInputBase: React.CSSProperties = {
   padding: '10px 16px',
   color: 'var(--text-primary)',
   fontSize: 14,
-  fontFamily: "'Roboto', sans-serif",
+  fontFamily: "'Inter', sans-serif",
   letterSpacing: '0.25px',
   outline: 'none',
   boxSizing: 'border-box' as const,
@@ -228,7 +228,7 @@ export function CustomSelect({
           {selected?.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selected.dot, flexShrink: 0 }}/>}
           {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: selected.color, flexShrink: 0 }}/>}
           <span style={{
-            fontFamily: "'Roboto', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 14,
             letterSpacing: '0.25px',
             color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
@@ -268,7 +268,7 @@ export function CustomSelect({
                 alignItems: 'center',
                 gap: 12,
                 cursor: 'pointer',
-                fontFamily: "'Roboto', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 14,
                 letterSpacing: '0.25px',
                 color: opt.value === value ? 'var(--accent)' : 'var(--text-primary)',
@@ -281,7 +281,7 @@ export function CustomSelect({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div>{opt.label}</div>
                 {opt.description && (
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
                 )}
               </div>
               {opt.value === value && (
@@ -355,7 +355,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           userSelect: 'none',
         }}
       >
-        <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 14, letterSpacing: '0.25px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, letterSpacing: '0.25px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)">
@@ -489,7 +489,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
         }}/>
       </div>
       {(label || labelOff) && (
-        <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
           {on ? (label || 'Ναι') : (labelOff || label || 'Όχι')}
         </span>
       )}
@@ -525,7 +525,7 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
         height: 40,
       }}>
         {prefix && (
-          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {prefix}
           </div>
         )}
@@ -544,14 +544,14 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
             outline: 'none',
             padding: focused ? '9px 15px' : '10px 16px',
             color: 'var(--text-primary)',
-            fontFamily: "'Roboto', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 14,
             letterSpacing: '0.25px',
             minWidth: 0,
           }}
         />
         {suffix && (
-          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+          <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             {suffix}
           </div>
         )}
@@ -584,7 +584,7 @@ export function Textarea({
           borderRadius: 4,
           padding: focused ? '9px 15px' : '10px 16px',
           color: 'var(--text-primary)',
-          fontFamily: "'Roboto', sans-serif",
+          fontFamily: "'Inter', sans-serif",
           fontSize: 14,
           letterSpacing: '0.25px',
           boxSizing: 'border-box',

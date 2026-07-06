@@ -220,7 +220,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
         )}
       </div>
       <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", lineHeight: 1.4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: "'Roboto', sans-serif" }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: "'Inter', sans-serif" }}>{sub}</div>}
     </div>
   );
 }
@@ -231,7 +231,7 @@ function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: 
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", flexShrink: 0 }}>{label}</span>
       <span style={{ fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 500, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{value}</span>
     </div>
   );
@@ -247,7 +247,7 @@ function InfoBanner({ type = 'info', children }: { type?: 'info' | 'warning' | '
   };
   const c = colors[type];
   return (
-    <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-subtle)`, borderLeft: `3px solid ${c}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>
+    <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-subtle)`, borderLeft: `3px solid ${c}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>
       {children}
     </div>
   );
@@ -258,7 +258,7 @@ function ScoreBar({ label, score, max = 100, color }: { label: string; score: nu
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{label}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{label}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{score.toFixed(0)}/{max}</span>
       </div>
       <div style={{ height: 5, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
@@ -599,7 +599,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: "'Roboto', sans-serif", color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10, width: '100%', minWidth: 0 }}>
@@ -629,7 +629,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   padding: '10px 16px',
                   color: 'var(--text-primary)',
                   fontSize: 14,
-                  fontFamily: "'Roboto', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   letterSpacing: '0.25px',
                   outline: 'none',
                   boxSizing: 'border-box' as const,
@@ -646,7 +646,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   display: 'flex',
                   alignItems: 'center',
                   fontSize: 14,
-                  fontFamily: "'Roboto', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   letterSpacing: '0.25px',
                   color: yearToBadge(constructionYear_n).color,
                   whiteSpace: 'nowrap' as const,
@@ -667,7 +667,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
       {cfg.lease_end && (
         <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-subtle)`, borderLeft: `3px solid ${leaseColor}`, borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: leaseColor, flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: "'Roboto', sans-serif" }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
             {calc.leaseStatus === 'ok' && `Μισθωτήριο ενεργό — λήγει σε ${calc.days} ημέρες`}
             {calc.leaseStatus === 'warning' && `Λήγει σε ${calc.days} ημέρες — ανανέωση σύντομα`}
             {calc.leaseStatus === 'critical' && `Λήγει σε ${calc.days} ημέρες — άμεση ενέργεια`}
@@ -849,7 +849,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${b.good ? 'var(--positive)' : 'var(--warning)'}` }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: b.good ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{b.value}</div>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2, fontFamily: "'Inter', sans-serif" }}>{b.label}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>{b.bench}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>{b.bench}</div>
               </div>
             ))}
           </div>
@@ -947,14 +947,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   background: r.c ? 'var(--accent-dim)' : 'var(--bg-surface)',
                   border: `1px solid ${r.c ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
                 }}>
-                  <span style={{ fontSize: 11, color: r.c ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{r.range}</span>
+                  <span style={{ fontSize: 11, color: r.c ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{r.range}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: r.c ? 'var(--accent)' : 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{r.rate}</span>
                     {r.c && <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: "'Inter', sans-serif" }}>εδώ</span>}
                   </div>
                 </div>
               ))}
-              <div style={{ marginTop: 12, fontSize: 10, color: 'var(--text-tertiary)', padding: 10, background: 'var(--bg-surface)', borderRadius: 8, fontFamily: "'Roboto', sans-serif", lineHeight: 1.5 }}>
+              <div style={{ marginTop: 12, fontSize: 10, color: 'var(--text-tertiary)', padding: 10, background: 'var(--bg-surface)', borderRadius: 8, fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
                 Εκτίμηση βάσει Ν.5246/2025. Τα εισοδήματα ενοικίων προστίθενται στο συνολικό εισόδημα. Συμβουλευτείτε λογιστή.
               </div>
             </div>
@@ -971,7 +971,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 'Μείωση 50%: Κύρια κατοικία σε οικισμό έως 1.500 κατοίκων (αξία έως €400.000)',
                 'Απαλλαγή 2027: Οικισμοί έως 1.500 κατοίκους (περιορισμένη εφαρμογή)',
               ].map((t, i) => (
-                <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, padding: '8px 10px', background: 'var(--bg-surface)', borderRadius: 6, lineHeight: 1.5, fontFamily: "'Roboto', sans-serif", borderLeft: '2px solid var(--positive)' }}>
+                <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, padding: '8px 10px', background: 'var(--bg-surface)', borderRadius: 6, lineHeight: 1.5, fontFamily: "'Inter', sans-serif", borderLeft: '2px solid var(--positive)' }}>
                   {t}
                 </div>
               ))}
@@ -997,7 +997,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             ].map((t, i) => (
               <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${t.color}` }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: t.color, marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>{t.text}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>{t.text}</div>
               </div>
             ))}
           </div>
@@ -1019,13 +1019,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div>
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: "'Inter', sans-serif", marginRight: 8 }}>{row.code}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{row.label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{row.label}</span>
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{row.value}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif", lineHeight: 1.6 }}>
+              <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}>
                 Για ακριβή συμπλήρωση χρησιμοποίησε το tab Ε2 Δήλωση στις Ρυθμίσεις.
               </div>
             </div>
@@ -1036,7 +1036,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 { label: 'Ηλεκτρονική Πληρωμή (-5%)', value: electronic ? `Ενεργό — εξοικ. ${fe(calc.electronicSaving)}` : 'Ανενεργό', color: electronic ? 'var(--positive)' : 'var(--warning)' },
               ].map((item, i) => (
                 <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{item.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{item.label}</span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{item.value}</span>
                 </div>
               ))}
@@ -1080,7 +1080,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                         padding: '9px 12px',
                         color: 'var(--text-primary)',
                         fontSize: 13,
-                        fontFamily: "'Roboto', sans-serif",
+                        fontFamily: "'Inter', sans-serif",
                         fontWeight: 400,
                         cursor: 'pointer',
                         outline: 'none',
@@ -1149,11 +1149,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={cardStyle}>
             <SectionLabel label="Airbnb vs Μακροχρόνια Μίσθωση" />
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontFamily: "'Roboto', sans-serif" }}>Διαφορά καθαρού εισοδήματος / έτος</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontFamily: "'Inter', sans-serif" }}>Διαφορά καθαρού εισοδήματος / έτος</div>
               <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', color: abb.diff > 0 ? 'var(--positive)' : 'var(--negative)', marginBottom: 8 }}>
                 {abb.diff > 0 ? '+' : ''}{fe(abb.diff)}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>
                 {abb.diff > 0 ? `Το Airbnb αποδίδει ${fe(abb.diff)}/έτος περισσότερο` : `Η μακροχρόνια αποδίδει ${fe(Math.abs(abb.diff))}/έτος περισσότερο`}
               </div>
             </div>
@@ -1179,7 +1179,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             ].map((item, i) => (
               <div key={i} style={{ background: 'var(--bg-surface)', border: `1px solid ${item.urgent ? 'var(--negative)' : 'var(--border-subtle)'}`, borderLeft: `3px solid ${item.urgent ? 'var(--negative)' : 'var(--info)'}`, borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: item.urgent ? 'var(--negative)' : 'var(--text-primary)', fontFamily: "'Inter', sans-serif", marginBottom: 4 }}>{item.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", lineHeight: 1.5, marginBottom: item.url ? 8 : 0 }}>{item.desc}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5, marginBottom: item.url ? 8 : 0 }}>{item.desc}</div>
                 {item.url && (
                   <a href={item.url} target="_blank" rel="noopener noreferrer"
                     style={{ fontSize: 11, color: 'var(--accent)', fontFamily: "'Inter', sans-serif", fontWeight: 500, textDecoration: 'none' }}>
@@ -1255,8 +1255,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 { label: 'Συνεργαζόμενες Τράπεζες', value: 'Alpha, Εθνική, Πειραιώς, Eurobank και άλλες' },
               ].map((r, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0, fontFamily: "'Roboto', sans-serif" }}>{r.label}</span>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', textAlign: 'right', fontFamily: "'Roboto', sans-serif" }}>{r.value}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0, fontFamily: "'Inter', sans-serif" }}>{r.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', textAlign: 'right', fontFamily: "'Inter', sans-serif" }}>{r.value}</span>
                 </div>
               ))}
             </div>
@@ -1294,7 +1294,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             ].map((t, i) => (
               <div key={i} style={{ ...innerStyle, borderLeft: '3px solid var(--positive)' }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--positive)', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>{t.text}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>{t.text}</div>
               </div>
             ))}
           </div>
@@ -1322,7 +1322,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
                   <div style={{ height: '100%', width: `${Math.min(calc.LTV, 100)}%`, background: calc.LTV <= 60 ? 'var(--positive)' : calc.LTV <= 80 ? 'var(--warning)' : 'var(--negative)', borderRadius: 3, transition: 'width 0.6s ease' }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 12, fontFamily: "'Roboto', sans-serif" }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 12, fontFamily: "'Inter', sans-serif" }}>
                   <span>0%</span><span>60%</span><span>80%</span><span>100%</span>
                 </div>
                 {calc.DSCR < 1.25 && (
@@ -1408,15 +1408,15 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { label: 'Μεικτή Απόδοση', now: fp(calc.grossYield), fut: fp(calc.myVal > 0 ? (scen.newRent * 12 / calc.myVal) * 100 : 0), up: calc.myVal > 0 && (scen.newRent * 12 / calc.myVal * 100) > calc.grossYield },
             ].map((r, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{r.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{r.label}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{r.now}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: r.up ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>→ {r.fut}</span>
               </div>
             ))}
             <div style={{ marginTop: 16, ...innerStyle }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: "'Roboto', sans-serif" }}>Συνολική Απόδοση σε {sc2.years} χρόνια</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: "'Inter', sans-serif" }}>Συνολική Απόδοση σε {sc2.years} χρόνια</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums' }}>{fe(scen.total)}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Ενοίκια + Υπεραξία</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Ενοίκια + Υπεραξία</div>
             </div>
           </div>
         </div>

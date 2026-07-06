@@ -59,7 +59,7 @@ const SectionLabel = ({ label }: { label: string }) => (
 function DonutChart({ data, size = 110 }: { data: { label: string; value: number; color: string }[]; size?: number }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (!total) return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
       Κενό
     </div>
   );
@@ -83,7 +83,7 @@ function DonutChart({ data, size = 110 }: { data: { label: string; value: number
         {fmtEur(total).replace(' €', '')}
       </text>
       <text x={cx} y={cy + 4 + size * 0.1} textAnchor="middle" fontSize={size * 0.07}
-        fill="var(--text-secondary)" fontFamily="'Roboto', sans-serif">€</text>
+        fill="var(--text-secondary)" fontFamily="'Inter', sans-serif">€</text>
     </svg>
   );
 }
@@ -253,7 +253,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
   };
 
   return (
-    <div style={{ marginBottom: 20, fontFamily: "'Roboto', sans-serif" }}>
+    <div style={{ marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
 
       {/* Unpaid alert */}
       {unpaid.length > 0 && (
@@ -303,10 +303,10 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {/* MoM */}
       {stats.prevMonthTotal > 0 && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 20 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
             {MONTHS_S[thisMonth]}: <strong style={{ color: 'var(--accent)', fontFamily: "'Inter', sans-serif" }}>{fmtEur(stats.curMonthTotal)}</strong>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
             {MONTHS_S[thisMonth > 0 ? thisMonth - 1 : 11]}: <strong style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>{fmtEur(stats.prevMonthTotal)}</strong>
           </span>
           <span style={{ fontSize: 12, fontWeight: 700, color: stats.momChange > 0 ? 'var(--negative)' : 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>
@@ -327,12 +327,12 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               {paidByData.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
+                  <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", flexShrink: 0 }}>{fmtEur(d.value)}</div>
                 </div>
               ))}
               {stats.total > 0 && (
-                <div style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border-subtle)', fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>
+                <div style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--border-subtle)', fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   Ιδιοκτ.: <strong style={{ color: 'var(--warning)' }}>{((stats.byOwner / stats.total) * 100).toFixed(0)}%</strong>
                   {stats.byTenant > 0 && <> · Ενοικ.: <strong style={{ color: 'var(--info)' }}>{((stats.byTenant / stats.total) * 100).toFixed(0)}%</strong></>}
                 </div>
@@ -350,7 +350,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               {groupData.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 6, height: 6, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</div>
+                  <div style={{ flex: 1, fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.label}</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: d.color, fontFamily: "'Inter', sans-serif", flexShrink: 0 }}>{((d.value / stats.total) * 100).toFixed(0)}%</div>
                 </div>
               ))}
@@ -365,14 +365,14 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--negative)', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px' }}>
               {fmtEur(stats.ytdData[stats.ytdData.length - 1] || 0)}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, fontFamily: "'Roboto', sans-serif" }}>
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, fontFamily: "'Inter', sans-serif" }}>
               YTD (Ιαν – {MONTHS_S[thisMonth]})
             </div>
           </div>
           <TrendLine data={stats.ytdData} height={70} color="var(--negative)" />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Ιαν</span>
-            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>{MONTHS_S[thisMonth]}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Ιαν</span>
+            <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>{MONTHS_S[thisMonth]}</span>
           </div>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
               return (
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{pmLabels[m] || m}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{pmLabels[m] || m}</span>
                     <span style={{ fontSize: 11, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>{fmtEur(amt)}</span>
                   </div>
                   <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden' }}>
@@ -409,7 +409,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             })}
             {stats.totalCashback > 0 && (
               <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: "'Roboto', sans-serif" }}>Cashback ROI</span>
+                <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>Cashback ROI</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Inter', sans-serif" }}>{stats.cashbackROI.toFixed(2)}%</span>
               </div>
             )}
@@ -425,7 +425,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
             {groupData.slice(0, 5).map((d, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color }} />
-                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif" }}>{d.label}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{d.label}</span>
               </div>
             ))}
           </div>
