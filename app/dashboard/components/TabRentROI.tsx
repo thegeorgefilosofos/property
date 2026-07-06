@@ -212,7 +212,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{value}</div>
+        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{value}</div>
         {badge && (
           <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: `${badge.color}18`, padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
             {badge.text}
@@ -685,8 +685,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           badge={calc.grossYield >= 5 ? { text: 'Καλό', color: 'var(--positive)' } : undefined}
         />
         <KPICard label="Καθαρή Απόδοση" value={fp(calc.netYield)} color={calc.netYield >= 3 ? 'var(--positive)' : calc.netYield >= 1.5 ? 'var(--warning)' : 'var(--negative)'} />
-        <KPICard label="Κεφαλαιακή Απόδοση" value={fp(calc.capRate)} color="var(--accent)" />
-        <KPICard label="Περίοδος Απόσβεσης" value={calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—'} color="var(--info)" />
+        <KPICard label="Κεφαλαιακή Απόδοση" value={fp(calc.capRate)} color="var(--text-primary)" />
+        <KPICard label="Περίοδος Απόσβεσης" value={calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—'} color="var(--text-primary)" />
         <KPICard label="Καθαρό / Μήνα" value={fe(calc.afterTax / 12)} color={calc.afterTax > 0 ? 'var(--positive)' : 'var(--negative)'} />
       </div>
 
@@ -699,7 +699,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         {calc.DSCR > 0 && <Gauge value={Math.min(calc.DSCR * 50, 100)} max={100} label={`Κάλυψη Δανείου ${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} />}
         {/* Score */}
         <div style={{ textAlign: 'center', minWidth: 100 }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
+          <div style={{ fontSize: 32, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
           <div style={{ fontSize: 12, fontWeight: 500, color: calc.scoreColor, marginBottom: 2, fontFamily: "'Google Sans', sans-serif" }}>{calc.scoreLabel}</div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Google Sans', sans-serif" }}>Βαθμολογία /100</div>
         </div>
@@ -812,7 +812,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Βαθμολογία Ακινήτου" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div style={{ textAlign: 'center', padding: '20px 0', borderRight: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 56, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
+              <div style={{ fontSize: 56, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: calc.scoreColor, marginBottom: 4, fontFamily: "'Google Sans', sans-serif" }}>{calc.scoreLabel}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Google Sans', sans-serif" }}>συνολική βαθμολογία / 100</div>
             </div>
@@ -847,7 +847,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { label: 'Πραγματική Απόδοση (με κόστη απόκτησης)', value: fp(calc.trueYield), bench: `Αγορά: ${bench.market_gross}%`, good: calc.trueYield >= parseFloat(bench.market_gross) },
             ].map((b, i) => (
               <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${b.good ? 'var(--positive)' : 'var(--warning)'}` }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: b.good ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{b.value}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: b.good ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{b.value}</div>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2, fontFamily: "'Google Sans', sans-serif" }}>{b.label}</div>
                 <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>{b.bench}</div>
               </div>
@@ -1150,7 +1150,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <SectionLabel label="Airbnb vs Μακροχρόνια Μίσθωση" />
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, fontFamily: "'Roboto', sans-serif" }}>Διαφορά καθαρού εισοδήματος / έτος</div>
-              <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums', color: abb.diff > 0 ? 'var(--positive)' : 'var(--negative)', marginBottom: 8 }}>
+              <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums', color: abb.diff > 0 ? 'var(--positive)' : 'var(--negative)', marginBottom: 8 }}>
                 {abb.diff > 0 ? '+' : ''}{fe(abb.diff)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Roboto', sans-serif" }}>
@@ -1415,7 +1415,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             ))}
             <div style={{ marginTop: 16, ...innerStyle }}>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: "'Roboto', sans-serif" }}>Συνολική Απόδοση σε {sc2.years} χρόνια</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{fe(scen.total)}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--positive)', fontFamily: "'Google Sans', sans-serif", fontVariantNumeric: 'tabular-nums' }}>{fe(scen.total)}</div>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Ενοίκια + Υπεραξία</div>
             </div>
           </div>

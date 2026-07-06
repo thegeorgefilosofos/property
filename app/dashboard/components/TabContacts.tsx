@@ -55,7 +55,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#f59e0b', Icon: Zap,
+    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#e8710a', Icon: Zap,
     roles: [
       { value: 'elec_dei', label: 'ΔΕΗ' },
       { value: 'elec_heron', label: 'Heron Energy' },
@@ -93,7 +93,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#8b5cf6', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7c4dff', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -113,7 +113,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#10b981', Icon: Shield,
+    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#00897b', Icon: Shield,
     roles: [
       { value: 'ins_interamerican', label: 'Interamerican' },
       { value: 'ins_allianz', label: 'Allianz Ελλάδα' },
@@ -134,7 +134,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: '#ec4899', Icon: Building2,
+    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: '#5e35b1', Icon: Building2,
     roles: [
       { value: 'agent', label: 'Μεσίτης Ακινήτων' },
       { value: 'appraiser', label: 'Εκτιμητής Ακινήτων' },
@@ -144,7 +144,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: '#f97316', Icon: Wrench,
+    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: '#e8710a', Icon: Wrench,
     roles: [
       { value: 'plumber', label: 'Υδραυλικός' },
       { value: 'electrician', label: 'Ηλεκτρολόγος' },
@@ -698,10 +698,10 @@ function exportContactsPDF(contacts: Contact[]) {
   })
 
   const groupColors: Record<string, string> = {
-    authorities: '#6366f1', legal_finance: '#8b5cf6', management: '#0ea5e9',
-    electricity: '#f59e0b', telecom: '#0ea5e9', banks: '#8b5cf6',
-    insurance: '#10b981', real_estate: '#ec4899',
-    technical: '#f97316', outdoor: '#22c55e', tenants: '#3b82f6',
+    authorities: '#6366f1', legal_finance: '#7c4dff', management: '#0ea5e9',
+    electricity: '#e8710a', telecom: '#0ea5e9', banks: '#7c4dff',
+    insurance: '#00897b', real_estate: '#5e35b1',
+    technical: '#e8710a', outdoor: '#22c55e', tenants: '#3b82f6',
   }
 
   const kpiHtml = (val: string, label: string, color: string) =>
@@ -1080,8 +1080,8 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
   const providersCount = contacts.filter(c => ['electricity', 'telecom'].includes(ROLE_META[c.role]?.groupId || '')).length
   const kpiItems: KPIItem[] = [
     { label: 'Σύνολο Επαφών', value: fn(contacts.length) },
-    { label: 'Ενοικιαστές', value: fn(tenantsCount), tone: 'info' },
-    { label: 'Τεχνικοί & Μάστορες', value: fn(technicalCount), tone: 'warning' },
+    { label: 'Ενοικιαστές', value: fn(tenantsCount), tone: 'neutral' },
+    { label: 'Τεχνικοί & Μάστορες', value: fn(technicalCount), tone: 'neutral' },
     { label: 'Πάροχοι Ρεύματος & Internet', value: fn(providersCount) },
     { label: 'Προτιμώμενες', value: fn(preferred.length), tone: preferred.length > 0 ? 'accent' : 'neutral' },
   ]

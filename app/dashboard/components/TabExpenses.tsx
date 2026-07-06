@@ -56,11 +56,12 @@ const EXPENSE_GROUPS: Record<string, { label: string; categories: string[]; taxD
 // πιο χρησιμοποιούμενο tab να μη μοιάζει με σουπερμάρκετ.
 const CORE_GROUPS = new Set(['fixed', 'maintenance', 'renovation', 'appliances', 'legal', 'tax', 'other']);
 
+// Premium, cohesive παλέτα (μουτ) — ίδια με ExpenseAnalytics, χωρίς νέον/θόρυβο.
 const GROUP_COLORS: Record<string, string> = {
-  fixed:'var(--accent)', renovation:'#5B8DEF', appliances:'#34D97B',
-  appliance_lease:'#8B5CF6', maintenance:'#FB923C', vehicle_lease:'#F59E0B',
-  commercial:'#EC4899', broker:'#06B6D4', legal:'#F97316',
-  travel:'#10B981', exhibition:'#A78BFA', tax:'#EF4444', other:'#6B7280',
+  fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7c4dff',
+  appliances:'#00897b', appliance_lease:'#3949ab', vehicle_lease:'#00acc1',
+  commercial:'#5e35b1', broker:'#26a69a', legal:'#8e24aa',
+  travel:'#43a047', exhibition:'#6d4c41', tax:'#e8710a', other:'#9aa0a6',
 };
 
 const PAYMENT_METHODS = [
@@ -105,7 +106,7 @@ const bestPayment = (a: number) =>
   a >= 500  ? 'Χρεωστική με Cashback ή Πιστωτική Άτοκες' :
   a >= 100  ? 'Χρεωστική με Cashback' : 'Μετρητά ή Χρεωστική';
 
-const CAT_COLORS = ['var(--accent)','var(--info)','var(--positive)','var(--warning)','var(--negative)','#8B5CF6','#06B6D4','#EC4899','#F97316','#10B981'];
+const CAT_COLORS = ['#1a73e8','#00897b','#7c4dff','#5f6368','#00acc1','#3949ab','#8e24aa','#43a047','#e8710a','#6d4c41'];
 const CAT_COLOR_MAP: Record<string,string> = {};
 let colorIdx = 0;
 function getCatColor(cat: string) {
@@ -1561,19 +1562,19 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           saving={saving} />
       )}
 
-      {/* KPI strip */}
+      {/* KPI strip — premium, ήρεμο: ουδέτεροι αριθμοί, χρώμα μόνο όπου έχει νόημα */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(6,minmax(0,1fr))', gap:10, marginBottom:12 }}>
         {[
-          { label:'Σύνολο Δαπανών',      value:fmtEur(total),         color:'var(--negative)' },
-          { label:'Κόστος Ιδιοκτήτη',   value:fmtEur(totalOwner),    color:'var(--warning)' },
-          { label:'Κόστος Ενοικιαστή',  value:fmtEur(totalTenant),   color:'var(--info)' },
-          { label:'Εκπιπτόμενες',        value:fmtEur(deductible),    color:'var(--positive)' },
-          { label:'Συνολικό Cashback',   value:fmtEur(totalCashback), color:'var(--positive)' },
-          { label:'Σύνολο ΦΠΑ',          value:fmtEur(totalVat),      color:'var(--accent)' },
+          { label:'Σύνολο δαπανών',      value:fmtEur(total),         accent:false, primary:true },
+          { label:'Κόστος ιδιοκτήτη',   value:fmtEur(totalOwner),    accent:false },
+          { label:'Κόστος ενοικιαστή',  value:fmtEur(totalTenant),   accent:false },
+          { label:'Εκπιπτόμενες',        value:fmtEur(deductible),    accent:deductible>0 },
+          { label:'Συνολικό cashback',   value:fmtEur(totalCashback), accent:totalCashback>0 },
+          { label:'Σύνολο ΦΠΑ',          value:fmtEur(totalVat),      accent:false },
         ].map((k,i) => (
-          <div key={i} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 14px' }}>
-            <div style={{ fontSize:15, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.5px', marginBottom:4 }}>{k.value}</div>
-            <div style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
+          <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
+            <div style={{ fontSize:18, fontWeight:700, color: k.accent ? 'var(--positive)' : 'var(--text-primary)', fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
+            <div style={{ fontSize:10, fontWeight:500, letterSpacing:'0.04em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
           </div>
         ))}
       </div>
