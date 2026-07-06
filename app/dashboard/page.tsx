@@ -887,6 +887,11 @@ export default function Dashboard() {
             sqm: selected.sqm||undefined, status: STATUS_LABELS[selected.status_detail||'']||undefined,
             targetRent: selected.target_rent||undefined,
           }}
+          allProperties={properties.map(p=>({
+            name: p.name, propType: PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type||undefined,
+            value: p.value||undefined, targetRent: p.target_rent||undefined,
+            sqm: p.sqm||undefined, status: STATUS_LABELS[p.status_detail||'']||undefined,
+          }))}
           onNavigate={(tab)=>setNav(tab)}
           onScan={()=>setQuickAddOpen(true)}
         />

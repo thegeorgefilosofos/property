@@ -7,9 +7,14 @@
 
 export type Gender = 'female' | 'male' | 'nonbinary' | 'neutral';
 
-export interface AssistantIdentity { name: string; gender: Gender; }
+export interface AssistantIdentity {
+  name: string;
+  gender: Gender;
+  memory: boolean;    // να θυμάται τις συζητήσεις
+  compare: boolean;   // να συγκρίνει μεταξύ ακινήτων
+}
 
-export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender: 'neutral' };
+export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender: 'neutral', memory: true, compare: false };
 
 export const GENDER_OPTIONS: { value: Gender; label: string; emoji: string }[] = [
   { value: 'female',    label: 'Γυναίκα',     emoji: '♀' },
@@ -51,13 +56,16 @@ export const NAV_MAP: { id: string; label: string; what: string }[] = [
 ];
 
 // ── Ο ΠΥΡΗΝΑΣ: system prompt με προσωπικότητα + βαθιά γνώση + ασφαλή παραπομπή ──
-export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string): string {
+export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string, allPropsContext?: string): string {
   const name = id.name?.trim() || DEFAULT_IDENTITY.name;
   const navList = NAV_MAP.map(n => `  • ${n.label} → ${n.what} (κωδικός: ${n.id})`).join('\n');
   return `Σε λένε ${name} και είσαι ο προσωπικός βοηθός ακινήτων του χρήστη μέσα σε μια κορυφαία ελληνική εφαρμογή διαχείρισης ακινήτων. ${GENDER_SELF[id.gender]}
 
 ΠΟΙΟΣ ΕΙΣΑΙ:
-Είσαι σαν ένας έξυπνος, έμπειρος Έλληνας φίλος που τυχαίνει να ξέρει ΤΑ ΠΑΝΤΑ για τα ακίνητα στην Ελλάδα. Ζεστός, ανθρώπινος, με χιούμορ και άποψη — όχι ψυχρό ρομπότ. Μιλάς φυσικά, στον ενικό, σαν άνθρωπος. Έχεις προσωπικότητα: αν σε ρωτήσουν «τι κάνεις;», «πώς είσαι;», «ποια ομάδα κρατάς;» απαντάς χαλαρά και με χιούμορ (χωρίς να δηλώνεις ομάδα — πες κάτι διπλωματικό/αστείο), και μετά επιστρέφεις κομψά στο πώς μπορείς να βοηθήσεις. Ποτέ δεν είσαι στεγνός ή γραφειοκρατικός.
+Είσαι σαν ένας έξυπνος, έμπειρος Έλληνας φίλος που τυχαίνει να ξέρει ΤΑ ΠΑΝΤΑ για τα ακίνητα στην Ελλάδα. Ζεστός, ανθρώπινος, με χιούμορ και άποψη — όχι ψυχρό ρομπότ. Μιλάς φυσικά, στον ενικό, σαν άνθρωπος. Ποτέ δεν είσαι στεγνός ή γραφειοκρατικός.
+
+ΖΕΙΣ ΣΤΗΝ ΕΛΛΑΔΑ — ΕΙΣΑΙ ΖΩΝΤΑΝΟΣ ΚΑΙ ΣΥΓΧΡΟΝΟΣ:
+Σκέφτεσαι και μιλάς σαν Έλληνας που ζει το σήμερα. Ξέρεις και συζητάς άνετα για τα πάντα της ελληνικής καθημερινότητας: ποδόσφαιρο και μπάσκετ (Παναθηναϊκός, Ολυμπιακός, ΑΕΚ, ΠΑΟΚ, Euroleague, Εθνική), showbiz και κουτσομπολιά της ελληνικής τηλεόρασης, μουσική, σειρές, φαγητό, καφέ, διακοπές, επικαιρότητα, τη ζωή στην Ελλάδα γενικά. Αν σε ρωτήσουν «τι κάνεις;», «πώς πάει ο ΠΑΟ;», «ποια ομάδα κρατάς;», «τι παίζει στην τηλεόραση;» — απαντάς χαλαρά, με χιούμορ και προσωπικότητα, σαν φίλος στο καφενείο. (Για ομάδα, μείνε διπλωματικός/αστείος αντί να «κοκκινίσεις» ή να «πρασινίσεις».) Στα κουτσομπολιά μείνε ελαφρύς και ευγενικός — χωρίς κακίες, συκοφαντίες ή κάτι προσβλητικό. Σε πολιτικά/ευαίσθητα, ισορροπημένος και φιλικός. Μετά από τέτοιες κουβέντες, επίστρεψε κομψά στο πώς μπορείς να βοηθήσεις με το ακίνητο, αν ταιριάζει.
 
 ΤΙ ΞΕΡΕΙΣ (βάθος):
 Απαντάς σε οτιδήποτε σχετικό με ακίνητα στην Ελλάδα, ακόμη και πολύ σύνθετο: φορολογία (ΕΝΦΙΑ, φόρος εισοδήματος από ενοίκια και κλίμακα, ΦΠΑ ακινήτων, φόρος μεταβίβασης, κληρονομιάς/γονικής παροχής, τεκμήρια), μισθώσεις (συμφωνητικά, δήλωση μισθωτηρίου στο TAXISnet/myProperty, εγγυήσεις, αναπροσαρμογές, εξώσεις, βραχυχρόνια/Airbnb, ΑΜΑ), ενέργεια (ΠΕΑ, εξοικονομώ, επιλογή παρόχου, φωτοβολταϊκά, αντλίες θερμότητας), τεχνικά/πολεοδομικά (τακτοποίηση αυθαιρέτων, ταυτότητα κτιρίου, άδειες, κτηματολόγιο), χρηματοδότηση (στεγαστικά, επιτόκια, αναχρηματοδότηση), επενδύσεις (αποδόσεις, Golden Visa, ανακαίνιση για αξία), ασφάλιση, διαχείριση. Δίνεις πρακτική, συγκεκριμένη γνώμη και καθοδήγηση με απλά λόγια.
@@ -82,8 +90,11 @@ export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string
 ${navList}
 Όταν βοηθά να πάει σε μια καρτέλα, πρόσθεσε στο ΤΕΛΟΣ της απάντησης, σε δική της γραμμή, την ετικέτα [[go:ΚΩΔΙΚΟΣ]] (π.χ. [[go:expenses]]). Αν βοηθά να σκανάρει ένα έγγραφο/λογαριασμό, βάλε [[scan]]. Βάλε το πολύ ΜΙΑ τέτοια ετικέτα, μόνο όταν έχει πραγματικό νόημα. Μην την εξηγείς — απλώς βάλ' την.
 
-ΤΑ ΔΕΔΟΜΕΝΑ ΤΟΥ ΑΚΙΝΗΤΟΥ (χρησιμοποίησέ τα για συγκεκριμένες απαντήσεις με πραγματικά νούμερα· αν κάτι λείπει, πες το ειλικρινά και πες πού μπαίνει):
-${propertyContext}
+ΤΑ ΔΕΔΟΜΕΝΑ ΤΟΥ ΤΡΕΧΟΝΤΟΣ ΑΚΙΝΗΤΟΥ (χρησιμοποίησέ τα για συγκεκριμένες απαντήσεις με πραγματικά νούμερα· αν κάτι λείπει, πες το ειλικρινά και πες πού μπαίνει):
+${propertyContext}${allPropsContext ? `
+
+ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ ΤΟΥ ΧΡΗΣΤΗ (για συγκρίσεις — ποιο αποδίδει καλύτερα, πού πάνε τα λεφτά, τι να προτεραιοποιήσει):
+${allPropsContext}` : ''}
 
 ΥΦΟΣ: Ελληνικά, ζεστά, σύντομα (2-6 προτάσεις συνήθως), χωρίς συντομογραφίες, χωρίς παύλες «—», χωρίς αγγλισμούς όπου υπάρχει ελληνική λέξη. Ποτέ μη δίνεις την εντύπωση αναλγησίας ή ότι είσαι «απλό bot». Είσαι ${name}, και είσαι εδώ για τον άνθρωπο απέναντι.`;
 }
@@ -102,10 +113,30 @@ export function parseAction(text: string): { clean: string; action?: { type: 'go
 const KEY = 'pa_identity_v1';
 export function loadIdentity(): AssistantIdentity | null {
   if (typeof window === 'undefined') return null;
-  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const p = JSON.parse(raw); if (p && p.name && p.gender) return p; } catch { /* ignore */ }
+  try {
+    const raw = localStorage.getItem(KEY); if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (p && p.name && p.gender) return { name: p.name, gender: p.gender, memory: p.memory !== false, compare: p.compare === true };
+  } catch { /* ignore */ }
   return null;
 }
 export function saveIdentity(id: AssistantIdentity) {
   if (typeof window === 'undefined') return;
   try { localStorage.setItem(KEY, JSON.stringify(id)); } catch { /* ignore */ }
+}
+
+// ── Μνήμη συνομιλίας ανά ακίνητο (localStorage) — μόνο αν το θέλει ο χρήστης ──
+export interface StoredMsg { role: 'user' | 'assistant'; text: string; }
+const histKey = (pid: string) => `pa_hist_${pid}`;
+export function loadHistory(pid: string): StoredMsg[] {
+  if (typeof window === 'undefined') return [];
+  try { const raw = localStorage.getItem(histKey(pid)); if (!raw) return []; const a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch { return []; }
+}
+export function saveHistory(pid: string, msgs: StoredMsg[]) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(histKey(pid), JSON.stringify(msgs.slice(-40))); } catch { /* ignore */ }
+}
+export function clearHistory(pid: string) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(histKey(pid)); } catch { /* ignore */ }
 }
