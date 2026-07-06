@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 // Rate limiting: simple in-memory store (για production χρησιμοποίησε Redis)
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -6,14 +7,16 @@ const MAX_REQUESTS_PER_MINUTE = 20;
 
 export async function POST(req: NextRequest) {
   // ── Auth check ──────────────────────────────────────────────
-  // Βεβαιώνεται ότι μόνο authenticated users καλούν το API
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader && process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Έλεγχος πραγματικής συνεδρίας Supabase (μέσω cookies) — δουλεύει και σε dev
+  // και σε production, χωρίς να χρειάζεται ο client να στέλνει header.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Απαιτείται σύνδεση.' }, { status: 401 });
   }
 
-  // ── Rate limiting ────────────────────────────────────────────
-  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  // ── Rate limiting (ανά χρήστη) ───────────────────────────────
+  const ip = user.id;
   const now = Date.now();
   const rl  = rateLimit.get(ip);
   if (rl && now < rl.resetAt) {
@@ -40,11 +43,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Security: enforce model + max_tokens limits
+    // Ασφάλεια: κλείδωμα μοντέλου + max_tokens. Το 'claude-sonnet-4-6' ΗΤΑΝ ΑΚΥΡΟ
+    // (κάθε κλήση απέτυχε). Σωστό ID: claude-sonnet-5 (ικανό για vision/PDF).
+    const ALLOWED = new Set(['claude-sonnet-5', 'claude-haiku-4-5-20251001']);
     const safeBody = {
       ...body,
-      model:      'claude-sonnet-4-6', // πάντα sonnet, όχι opus
-      max_tokens: Math.min(body.max_tokens ?? 1000, 2000), // max 2000
+      model:      ALLOWED.has(body.model) ? body.model : 'claude-sonnet-5', // ποτέ opus
+      max_tokens: Math.min(body.max_tokens ?? 1000, 2000),
     };
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
