@@ -11,7 +11,7 @@ import LandingShowcase from './LandingShowcase';
 
 export const metadata = {
   title: 'Property OS · Διαχείριση ακινήτων με μία φωτογραφία',
-  description: 'Σκάναρε λογαριασμό, συμβόλαιο ή ασφάλεια και το AI τα καταχωρεί μόνο του στο σωστό σημείο. Ρώτα τον βοηθό σου με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, όλα σε ένα σημείο.',
+  description: 'Σκάναρε λογαριασμό, συμβόλαιο ή ασφάλεια και ο βοηθός τα καταχωρεί μόνος του στο σωστό σημείο. Ρώτα τον με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, όλα σε μία οθόνη.',
 };
 
 const ACCENT = 'var(--accent)';
@@ -40,8 +40,8 @@ const STEPS = [
 const FAQ = [
   { q: 'Πώς δουλεύει η σάρωση με φωτογραφία;', a: 'Βγάζεις φωτογραφία ή ανεβάζεις ένα PDF: λογαριασμό, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Το διαβάζει, καταλαβαίνει τι είναι και το καταχωρεί αυτόματα στο σωστό σημείο: λογαριασμοί, δαπάνες, ημερολόγιο, ενοικιαστής, ασφάλεια. Εσύ απλώς επιβεβαιώνεις, και διορθώνεις οτιδήποτε με ένα κλικ.' },
   { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου. Του δίνεις όνομα και φύλο όπως θέλεις, απαντά με βάση τα δικά σου δεδομένα και, για δεσμευτικά θέματα, σε παραπέμπει στον σωστό επαγγελματία (λογιστή, δικηγόρο, συμβολαιογράφο).' },
-  { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων στην Ελλάδα, από ένα έως δεκαπέντε ακίνητα κάθε τύπου: κατοικία, επαγγελματικός χώρος, αποθήκη ή οικόπεδο. Είτε έχεις ένα διαμέρισμα είτε ένα μικρό χαρτοφυλάκιο, το Property OS προσαρμόζεται σε σένα.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα, με όλες τις δυνατότητες. Αν έχεις περισσότερα, το πλάνο Ιδιοκτήτης είναι 6,90 € τον μήνα (ή 59 € τον χρόνο, με δύο μήνες δώρο) για έως 15 ακίνητα. Για μεσιτικά γραφεία και διαχειριστές, το πλάνο Επαγγελματίας είναι 19 € τον μήνα με απεριόριστα ακίνητα και πολλούς χρήστες. Χωρίς κάρτα για να ξεκινήσεις, ακυρώνεις όποτε θέλεις.' },
+  { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων στην Ελλάδα κάθε τύπου (κατοικία, επαγγελματικός χώρος, αποθήκη ή οικόπεδο), αλλά και σε μεσιτικά γραφεία και διαχειριστές. Είτε έχεις ένα διαμέρισμα είτε ολόκληρο χαρτοφυλάκιο, το Property OS προσαρμόζεται σε σένα.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα, με όλες τις δυνατότητες. Αν έχεις περισσότερα, το πλάνο Ιδιοκτήτης είναι 6,90 € τον μήνα (ή 59 € τον χρόνο, έκπτωση περίπου 29%) για έως 15 ακίνητα. Για μεσιτικά γραφεία και διαχειριστές, το πλάνο Επαγγελματίας είναι 19 € τον μήνα με απεριόριστα ακίνητα και πολλούς χρήστες.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Ο κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα, με κρυπτογραφημένη σύνδεση και απομόνωση ανά χρήστη. Τα δεδομένα σου δεν χρησιμοποιούνται για εκπαίδευση μοντέλων και είμαστε συμβατοί με τον GDPR.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Ναι. Η εφαρμογή προσαρμόζεται πλήρως και δουλεύει άψογα σε κινητό, tablet, υπολογιστή και μεγάλες οθόνες. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου.' },
 ];
@@ -276,7 +276,7 @@ export default async function Landing() {
               <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>6,90&nbsp;€</span>
               <span style={{ fontSize: 15, color: MUTED }}>τον μήνα</span>
             </div>
-            <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>ή <strong style={{ color: TEXT }}>59 € τον χρόνο</strong>, δύο μήνες δώρο</div>
+            <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>ή <strong style={{ color: TEXT }}>59 € τον χρόνο</strong>, έκπτωση 29%</div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
               {['Έως 15 ακίνητα, όλων των τύπων', 'Όλα όσα έχει το δωρεάν, χωρίς όρια', 'Συγκρίσεις μεταξύ των ακινήτων σου', 'Φορολογικές εξαγωγές έτοιμες για τον λογιστή', 'Προτεραιότητα στη σάρωση και στον βοηθό'].map((t, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
@@ -299,11 +299,11 @@ export default async function Landing() {
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
               ))}
             </div>
-            <Link href="/signup" className="lp-ghost" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Ξεκίνα τώρα</Link>
+            <Link href="/signup" className="lp-ghost" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Δοκίμασε δωρεάν →</Link>
           </div>
         </div>
         <p style={{ textAlign: 'center', fontSize: 13, color: FAINT, margin: '24px auto 0', maxWidth: 560, lineHeight: 1.6 }}>
-          Το πρώτο ακίνητο μένει δωρεάν, για πάντα. Χωρίς κάρτα για να ξεκινήσεις, ακυρώνεις όποτε θέλεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
+          Αναβαθμίζεις ή αλλάζεις πλάνο όποτε θέλεις, χωρίς δέσμευση διάρκειας. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -327,7 +327,7 @@ export default async function Landing() {
         <div style={{ position: 'relative', background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(40px, 6vw, 68px)', textAlign: 'center' }}>
           <div style={{ position: 'relative' }}>
             <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.1, margin: '0 0 14px' }}>Το ακίνητό σου, υπό έλεγχο</h2>
-            <p style={{ fontSize: 16, color: MUTED, maxWidth: 520, margin: '0 auto 28px', lineHeight: 1.6 }}>Ξεκίνα με μία φωτογραφία. Το πρώτο σου ακίνητο δωρεάν για πάντα. Χωρίς κάρτα, χωρίς δέσμευση.</p>
+            <p style={{ fontSize: 16, color: MUTED, maxWidth: 520, margin: '0 auto 28px', lineHeight: 1.6 }}>Μία φωτογραφία, και το πρώτο σου ακίνητο μπαίνει σε τάξη. Δωρεάν για να ξεκινήσεις, χωρίς δέσμευση.</p>
             <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '15px 34px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Δημιούργησε τον λογαριασμό σου →'}</Link>
           </div>
         </div>
