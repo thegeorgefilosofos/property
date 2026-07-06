@@ -16,11 +16,12 @@ import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import AddPropertyWizard from './components/AddPropertyWizard';
-import BillsAIScan from './components/BillsAIScan';
+import DocumentScan from './components/DocumentScan';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import PropertyAssistant from './components/PropertyAssistant';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
@@ -69,10 +70,37 @@ const NAV_ITEMS = [
   { id:'roi',        label:'Αποδόσεις' },
   { id:'loan',       label:'Δάνειο' },
   { id:'inventory',  label:'Απογραφή' },
-  { id:'checklist',  label:'Checklist' },
+  { id:'checklist',  label:'Εκκρεμότητες' },
   { id:'contacts',   label:'Επαφές' },
   { id:'documents',  label:'Αρχείο' },
   { id:'settings',   label:'Ρυθμίσεις' },
+];
+const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
+
+// Εικονίδια πλοήγησης — καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
+const NAV_ICON: Record<string,string> = {
+  overview:  'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
+  comparison:'M4 20V10|M10 20V4|M16 20v-7|M20 20H2',
+  bills:     'M5 3h14v18l-3-2-2 2-2-2-2 2-3-2V3|M9 8h6|M9 12h6',
+  expenses:  'M3 12h4l3 8 4-16 3 8h4',
+  calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
+  tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  roi:       'M3 17l6-6 4 4 8-8|M21 7v6h-6',
+  loan:      'M3 21h18|M5 21V10l7-5 7 5v11|M9 21v-6h6v6',
+  inventory: 'M21 16V8l-9-5-9 5v8l9 5 9-5z|M3.3 7 12 12l8.7-5|M12 22V12',
+  checklist: 'M9 11l3 3L22 4|M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  contacts:  'M4 4h16v16H4z|M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z|M6 16c0-2 4-2 4-2s4 0 4 2|M15 8h3|M15 12h3',
+  documents: 'M4 4h6l2 3h8v13H4z',
+  settings:  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.4h5l.3-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z',
+};
+
+// Ομαδοποιημένη πλοήγηση — λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
+const NAV_GROUPS: { label: string; ids: string[] }[] = [
+  { label: '',            ids: ['overview'] },
+  { label: 'Οικονομικά',  ids: ['bills','expenses','loan','roi'] },
+  { label: 'Μίσθωση',     ids: ['tenant','calendar'] },
+  { label: 'Το ακίνητο',  ids: ['inventory','documents','contacts','checklist'] },
+  { label: 'Εργαλεία',    ids: ['comparison','settings'] },
 ];
 
 // Κάτω μπάρα κινητού — 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
@@ -442,6 +470,23 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         ))}
       </div>
 
+      {/* Βοηθός ακινήτου — ρώτησέ τον οτιδήποτε, απαντά από τα δικά σου δεδομένα */}
+      {!loading && (rent>0 || totalExpYTD>0 || bills.length>0) && (
+        <PropertyAssistant facts={{
+          propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||undefined,
+          address: prop.address||undefined, value: propValue||undefined, sqm: prop.sqm||undefined,
+          status: STATUS_LABELS[prop.status_detail||'']||undefined,
+          monthlyRent: rent, annualRent, grossYield, netYield,
+          expensesYTD: totalExpYTD, paidExpensesYTD: paidExpYTD, pendingExpensesYTD: pendingExpYTD,
+          topCategories: catEntries,
+          unpaidBills: unpaid.map(b => ({ name: (b as any).name || 'Λογαριασμός', amount: b.amount, due: (b as any).due_date || null })),
+          leaseEnd: tenant?.lease_end || null, daysToLeaseEnd: daysToExpiry,
+          insurer: (prop as any).insurance_company || null, insuranceExpiry: (prop as any).insurance_expiry || null,
+          upcoming: unpaid.filter(b => (b as any).due_date).map(b => ({ title: `Πληρωμή ${(b as any).name||'λογαριασμού'}`, date: (b as any).due_date, amount: b.amount }))
+            .sort((a,b)=>a.date.localeCompare(b.date)),
+        }}/>
+      )}
+
       {/* Ζωντανές ειδοποιήσεις — ελέγχονται από τις Προτιμήσεις (Ρυθμίσεις) */}
       {prefs.liveNotifications && (
       <div className="card" style={{marginBottom:16}}>
@@ -691,15 +736,16 @@ export default function Dashboard() {
           onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
           className="quick-add-btn"
           disabled={!selected}
-          title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, δαπάνη ή έγγραφο' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
+          title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, μισθωτήριο, ασφάλεια, έγγραφο — οτιδήποτε' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
           <span className="quick-add-icon" aria-hidden>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
               <circle cx="12" cy="13" r="4"/>
             </svg>
           </span>
-          <span className="quick-add-label">Πρόσθεσε λογαριασμό</span>
+          <span className="quick-add-label">Σκάναρε &amp; καταχώρησε</span>
         </button>
+        <div className="quick-add-hint">Μία φωτογραφία — λογαριασμός, συμβόλαιο, ασφάλεια, οτιδήποτε. Το AI το βάζει στη θέση του.</div>
 
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
@@ -716,14 +762,19 @@ export default function Dashboard() {
             <span style={{fontSize:18,lineHeight:1}}>+</span> Προσθήκη ακινήτου
           </button>
         </div>
-        <div className="sidebar-section" style={{flex:1}}>
-          <div className="sidebar-section-label">Πλοήγηση</div>
-          {NAV_ITEMS.map(item => { const badge=getBadge(item.id); return (
-            <button key={item.id} className={`sidebar-item ${nav===item.id?'active':''}`} onClick={()=>{setNav(item.id);setSidebarOpen(false);}} disabled={!selected}>
-              <span className="sidebar-item-label">{item.label}</span>
-              {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Google Sans',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
-            </button>
-          );})}
+        <div className="sidebar-nav" style={{flex:1}}>
+          {NAV_GROUPS.map((group,gi) => (
+            <div className="sidebar-section" key={gi}>
+              {group.label && <div className="sidebar-section-label">{group.label}</div>}
+              {group.ids.map(id => { const badge=getBadge(id); return (
+                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
+                  <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
+                  <span className="sidebar-item-label">{NAV_LABEL[id]}</span>
+                  {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Google Sans',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
+                </button>
+              );})}
+            </div>
+          ))}
         </div>
         <div className="sidebar-footer">
           <div className="user-row" onClick={signOut} title="Αποσύνδεση">
@@ -854,7 +905,7 @@ export default function Dashboard() {
               onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
               <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <BillsAIScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
+            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
           </div>
         </div>
       )}
