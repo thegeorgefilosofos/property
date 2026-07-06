@@ -22,7 +22,7 @@ const mdInputBase: React.CSSProperties = {
 
 const mdLabelBase: React.CSSProperties = {
   display: 'block',
-  fontFamily: "'Google Sans', sans-serif",
+  fontFamily: "'Inter', sans-serif",
   fontSize: 12,
   fontWeight: 500,
   letterSpacing: '0.5px',
@@ -115,7 +115,7 @@ export function NumberInput({
         {prefix && (
           <span style={{
             padding: '0 12px',
-            fontFamily: "'Google Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 14,
             color: 'var(--text-secondary)',
             background: 'var(--bg-elevated)',
@@ -153,7 +153,7 @@ export function NumberInput({
           <span style={{
             // FIX: dynamic padding + never shrink below content width
             padding: getSuffixPadding(suffix),
-            fontFamily: "'Google Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: suffix.length > 4 ? 12 : 14,
             color: 'var(--text-secondary)',
             background: 'var(--bg-elevated)',
@@ -380,7 +380,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
             </button>
-            <span style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
               {MONTHS_GR[month]} {year}
             </span>
             <button onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
@@ -391,7 +391,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
             {DAYS_GR.map(d => (
-              <div key={d} style={{ fontFamily: "'Google Sans', sans-serif", fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
+              <div key={d} style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0 }}>
@@ -411,7 +411,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                     border: 'none',
                     background: isSelected ? 'var(--accent)' : 'transparent',
                     color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
-                    fontFamily: "'Google Sans', sans-serif",
+                    fontFamily: "'Inter', sans-serif",
                     fontSize: 13,
                     fontWeight: isToday ? 700 : 400,
                     cursor: 'pointer',
@@ -431,13 +431,13 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           </div>
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
             <button onClick={() => { onChange(''); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'transparent', color: 'var(--accent)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               Εκκαθάριση
             </button>
             <button onClick={() => { onChange(today); setOpen(false); }}
-              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: "'Google Sans', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              style={{ height: 36, padding: '0 16px', borderRadius: 18, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
               Σήμερα
             </button>
           </div>
@@ -616,7 +616,7 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
             style={{
               flex: 1,
               height: 36,
-              fontFamily: "'Google Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               fontWeight: 500,
               letterSpacing: '0.1px',
@@ -667,7 +667,7 @@ export function SegmentControl({ options, value, onChange }: { options: SegmentO
             height: 32,
             paddingLeft: 16,
             paddingRight: 16,
-            fontFamily: "'Google Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 13,
             fontWeight: value === o.value ? 500 : 400,
             letterSpacing: '0.1px',

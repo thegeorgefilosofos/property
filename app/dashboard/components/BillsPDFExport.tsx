@@ -411,7 +411,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
         border: '1px solid var(--border-default)',
         color: 'var(--text-secondary)',
         fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        fontFamily: "Inter, 'Google Sans', sans-serif",
+        fontFamily: "Inter, 'Inter', sans-serif",
         transition: 'all 0.15s',
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}

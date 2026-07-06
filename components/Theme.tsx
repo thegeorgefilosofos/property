@@ -22,12 +22,12 @@ import { ReactNode, CSSProperties } from 'react';
 export const T = {
   radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
   font: {
-    // Οι γραμματοσειρές που φορτώνει το app (globals.css): Google Sans + Roboto Mono.
-    sans: "'Google Sans', 'Inter', system-ui, sans-serif",
+    // Γραμματοσειρές που φορτώνει self-hosted το app (globals.css): Inter + Roboto Mono.
+    sans: "'Inter', system-ui, sans-serif",
     mono: "'Roboto Mono', 'JetBrains Mono', monospace",
     // Μεγάλοι αριθμοί «κεφαλίδας» (KPI): σφιχτή sans με tabular ψηφία — χωρίς τα
     // πλατιά κενά του monospace γύρω από κόμμα/τελεία. Το mono μένει για πυκνούς πίνακες.
-    num:  "'Google Sans', 'Inter', system-ui, sans-serif",
+    num:  "'Inter', system-ui, sans-serif",
   },
   sp: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, section: 32 },
   // Καμπύλες κίνησης Google (Material 3) — μία πηγή για όλα τα transitions.
@@ -38,7 +38,7 @@ export const T = {
 // Στόχος: «Google οπτική» ομοιομορφία — ίδιοι τίτλοι/ετικέτες/τιμές παντού.
 // Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
 export const TT = {
-  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
+  display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
   h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
   h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
   // Ετικέτα ενότητας — η uppercase «τελεία» των Bills, τυποποιημένη.
