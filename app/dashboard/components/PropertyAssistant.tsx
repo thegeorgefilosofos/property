@@ -13,7 +13,7 @@ import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import {
-  type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
+  type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
   loadHistory, saveHistory, clearHistory,
   loadMemories, addMemory, removeMemory, clearMemories,
@@ -273,8 +273,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   const initial = (identity.name || 'A').trim().charAt(0).toUpperCase();
   const greeting = hasIdentity
-    ? `Γεια σου! Είμαι ${identity.name}. Ρώτησέ με οτιδήποτε για ${propContext.name} ή για ακίνητα γενικά.`
+    ? (identity.formal
+        ? `Γεια σας! Είμαι ${identity.name}. Ρωτήστε με οτιδήποτε για ${propContext.name} ή για ακίνητα γενικά.`
+        : `Γεια σου! Είμαι ${identity.name}. Ρώτησέ με οτιδήποτε για ${propContext.name} ή για ακίνητα γενικά.`)
     : `Γεια σου! Θα είμαι ο βοηθός σου. Πρώτα, πες μου πώς να με λες.`;
+  const askVerb = identity.formal ? 'Ρωτήστε' : 'Ρώτησε';
 
   // Χρωματική ταυτότητα avatar ανά φύλο (διακριτικά).
   const avatarBg = identity.gender === 'female' ? 'linear-gradient(135deg,#ec4899,#f9a8d4)'
@@ -286,7 +289,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       {/* FAB, ορατό σε κάθε καρτέλα */}
       {!open && (
         <div className="pa-fab-wrap">
-          <span className="pa-fab-label">Ρώτησε τον/την {identity.name}</span>
+          <span className="pa-fab-label">{askVerb} τον/την {identity.name}</span>
           <button className="pa-fab" onClick={() => setOpen(true)} aria-label={`Βοηθός: ${identity.name}`}
             style={{ background: avatarBg }}>
             <span className="pa-fab-initial">{initial}</span>
@@ -393,7 +396,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
                   </button>
                 )}
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : `Ρώτησε τον/την ${identity.name}…`} disabled={busy}
+                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : `${askVerb} τον/την ${identity.name}…`} disabled={busy}
                   style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 <button onClick={() => ask(input)} disabled={busy || !input.trim()} aria-label="Αποστολή"
@@ -447,6 +450,7 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
   const [name, setName] = useState(draft.name);
   const [memory, setMemory] = useState(draft.memory);
   const [compare, setCompare] = useState(draft.compare);
+  const [formal, setFormal] = useState(draft.formal);
   const suggestions = NAME_SUGGESTIONS[gender];
   const row = { display: 'flex', alignItems: 'center', gap: 12 } as const;
   return (
@@ -465,6 +469,22 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
               <button key={g.value} onClick={() => setGender(g.value)}
                 style={{ display: 'inline-flex', alignItems: 'center', fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
                 {g.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>Πώς θέλεις να σου μιλάει;</div>
+        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό, σαν φίλος, ή στον πληθυντικό, πιο επίσημα.</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+          {ADDRESS_OPTIONS.map(a => {
+            const active = formal === a.value;
+            return (
+              <button key={String(a.value)} onClick={() => setFormal(a.value)}
+                style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+                {a.label}<span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>{a.hint}</span>
               </button>
             );
           })}
@@ -525,7 +545,7 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
         {onCancel && <button onClick={onCancel} style={{ flex: '0 0 auto', height: 42, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>}
-        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare })} style={{ flex: 1, height: 42, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
+        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare, formal })} style={{ flex: 1, height: 42, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>
   );

@@ -12,9 +12,16 @@ export interface AssistantIdentity {
   gender: Gender;
   memory: boolean;    // να θυμάται τις συζητήσεις
   compare: boolean;   // να συγκρίνει μεταξύ ακινήτων
+  formal: boolean;    // true = πληθυντικός ευγενείας (εσείς), false = ενικός (εσύ)
 }
 
-export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender: 'neutral', memory: true, compare: false };
+export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender: 'neutral', memory: true, compare: false, formal: false };
+
+// Πώς θέλει ο χρήστης να του απευθύνεται ο βοηθός.
+export const ADDRESS_OPTIONS: { value: boolean; label: string; hint: string }[] = [
+  { value: false, label: 'Στον ενικό', hint: 'εσύ, φιλικά' },
+  { value: true,  label: 'Στον πληθυντικό', hint: 'εσείς, πιο επίσημα' },
+];
 
 export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'female',    label: 'Γυναίκα' },
@@ -68,10 +75,13 @@ export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string
   const name = id.name?.trim() || DEFAULT_IDENTITY.name;
   const navList = NAV_MAP.map(n => `  • ${n.label} → ${n.what} (κωδικός: ${n.id})`).join('\n');
   const mem = (extras?.memories || []).map(m => m.trim()).filter(Boolean);
-  return `Σε λένε ${name} και είσαι ο προσωπικός βοηθός ακινήτων του χρήστη μέσα σε μια κορυφαία ελληνική εφαρμογή διαχείρισης ακινήτων. ${GENDER_SELF[id.gender]}
+  const address = id.formal
+    ? 'Απευθύνεσαι στον χρήστη ΠΑΝΤΑ στον πληθυντικό ευγενείας (εσείς, σας, «να σας βοηθήσω»). Ευγενικά και με σεβασμό, αλλά πάντα ζεστά και ανθρώπινα, ποτέ ψυχρά ή γραφειοκρατικά.'
+    : 'Απευθύνεσαι στον χρήστη ΠΑΝΤΑ στον ενικό (εσύ, σου, «να σε βοηθήσω»). Φιλικά και ζεστά, σαν καλός φίλος.';
+  return `Σε λένε ${name} και είσαι ο προσωπικός βοηθός ακινήτων του χρήστη μέσα σε μια κορυφαία ελληνική εφαρμογή διαχείρισης ακινήτων. ${GENDER_SELF[id.gender]} ${address}
 
 ΠΟΙΟΣ ΕΙΣΑΙ:
-Είσαι σαν ένας έξυπνος, έμπειρος Έλληνας φίλος που τυχαίνει να ξέρει ΤΑ ΠΑΝΤΑ για τα ακίνητα στην Ελλάδα. Ζεστός, ανθρώπινος, με χιούμορ και άποψη, όχι ψυχρό ρομπότ. Μιλάς φυσικά, στον ενικό, σαν άνθρωπος. Ποτέ δεν είσαι στεγνός ή γραφειοκρατικός.
+Είσαι σαν ένας έξυπνος, έμπειρος Έλληνας φίλος που τυχαίνει να ξέρει ΤΑ ΠΑΝΤΑ για τα ακίνητα στην Ελλάδα. Ζεστός, ανθρώπινος, με χιούμορ και άποψη, όχι ψυχρό ρομπότ. Μιλάς φυσικά, σαν άνθρωπος. Ποτέ δεν είσαι στεγνός ή γραφειοκρατικός.
 
 ΖΕΙΣ ΣΤΗΝ ΕΛΛΑΔΑ, ΕΙΣΑΙ ΖΩΝΤΑΝΟΣ ΚΑΙ ΣΥΓΧΡΟΝΟΣ:
 Σκέφτεσαι και μιλάς σαν Έλληνας που ζει το σήμερα. Ξέρεις και συζητάς άνετα για τα πάντα της ελληνικής καθημερινότητας: ποδόσφαιρο και μπάσκετ (Παναθηναϊκός, Ολυμπιακός, ΑΕΚ, ΠΑΟΚ, Euroleague, Εθνική), showbiz και κουτσομπολιά της ελληνικής τηλεόρασης, μουσική, σειρές, φαγητό, καφέ, διακοπές, επικαιρότητα, τη ζωή στην Ελλάδα γενικά. Αν σε ρωτήσουν «τι κάνεις;», «πώς πάει ο ΠΑΟ;», «ποια ομάδα κρατάς;», «τι παίζει στην τηλεόραση;», απαντάς χαλαρά, με χιούμορ και προσωπικότητα, σαν φίλος στο καφενείο. (Για ομάδα, μείνε διπλωματικός/αστείος αντί να «κοκκινίσεις» ή να «πρασινίσεις».) Στα κουτσομπολιά μείνε ελαφρύς και ευγενικός, χωρίς κακίες, συκοφαντίες ή κάτι προσβλητικό. Σε πολιτικά/ευαίσθητα, ισορροπημένος και φιλικός. Μετά από τέτοιες κουβέντες, επίστρεψε κομψά στο πώς μπορείς να βοηθήσεις με το ακίνητο, αν ταιριάζει.
@@ -163,7 +173,7 @@ export function loadIdentity(): AssistantIdentity | null {
   try {
     const raw = localStorage.getItem(KEY); if (!raw) return null;
     const p = JSON.parse(raw);
-    if (p && p.name && p.gender) return { name: p.name, gender: p.gender, memory: p.memory !== false, compare: p.compare === true };
+    if (p && p.name && p.gender) return { name: p.name, gender: p.gender, memory: p.memory !== false, compare: p.compare === true, formal: p.formal === true };
   } catch { /* ignore */ }
   return null;
 }
@@ -192,7 +202,7 @@ export function clearHistory(pid: string) {
 // Κρατάει σταθερά γεγονότα/προτιμήσεις που ζητά ο βοηθός με [[remember: ...]].
 // Μένουν στη συσκευή (localStorage), ξεχωριστά από το ιστορικό συνομιλίας.
 export interface Memory { id: string; text: string; }
-const MEM_CAP = 40;
+const MEM_CAP = 100;
 const memKey = (uid: string) => `pa_mem_${uid || 'anon'}`;
 const normFact = (s: string) => (s || '').trim().replace(/\s+/g, ' ').slice(0, 140);
 // Σταθερό id από το ίδιο το κείμενο (djb2). Αφού τα γεγονότα είναι μοναδικά (dedup),
