@@ -15,7 +15,7 @@ export type Confidence = 'high' | 'medium' | 'low';
 export interface ParsedTransaction {
   id: string; date: string; description: string; amount: number;
   debit: boolean; category: string; confidence: Confidence;
-  selected: boolean; matched: string;
+  selected: boolean; matched: string; note?: string;
 }
 
 // ── Αναγνώριση παρόχου/εμπόρου από την περιγραφή κίνησης ────────────────────
@@ -190,7 +190,11 @@ export function matchBillToPayment(
   const cands = pendingBills.filter(b => !used.has(b.id)
     && Math.abs((b.amount || 0) - t.amount) <= tol
     && withinDays(b.due_date || b.created_at, t.date, 25));
-  return cands.find(b => b.category === t.category) || cands[0] || null;
+  // Όταν ο πάροχος/κατηγορία είναι ΓΝΩΣΤΟΣ, απαιτούμε ΙΔΙΑ κατηγορία — ώστε μια
+  // πληρωμή σε ΔΕΗ να μην εξοφλεί λογαριασμό νερού ίδιου ποσού. Μόνο όταν ο
+  // πάροχος είναι άγνωστος ('other') πέφτουμε σε ταίριασμα ποσού+ημερομηνίας.
+  if (t.category && t.category !== 'other') return cands.find(b => b.category === t.category) || null;
+  return cands[0] || null;
 }
 
 // ── Έλεγχος πληρότητας εξαγωγής (για να μη σώζουμε παραπλανητικά δεδομένα) ──
