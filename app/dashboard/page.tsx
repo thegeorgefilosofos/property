@@ -21,6 +21,7 @@ import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import PropertyAssistant from './components/PropertyAssistant';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
@@ -468,6 +469,23 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           </div>
         ))}
       </div>
+
+      {/* Βοηθός ακινήτου — ρώτησέ τον οτιδήποτε, απαντά από τα δικά σου δεδομένα */}
+      {!loading && (rent>0 || totalExpYTD>0 || bills.length>0) && (
+        <PropertyAssistant facts={{
+          propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||undefined,
+          address: prop.address||undefined, value: propValue||undefined, sqm: prop.sqm||undefined,
+          status: STATUS_LABELS[prop.status_detail||'']||undefined,
+          monthlyRent: rent, annualRent, grossYield, netYield,
+          expensesYTD: totalExpYTD, paidExpensesYTD: paidExpYTD, pendingExpensesYTD: pendingExpYTD,
+          topCategories: catEntries,
+          unpaidBills: unpaid.map(b => ({ name: (b as any).name || 'Λογαριασμός', amount: b.amount, due: (b as any).due_date || null })),
+          leaseEnd: tenant?.lease_end || null, daysToLeaseEnd: daysToExpiry,
+          insurer: (prop as any).insurance_company || null, insuranceExpiry: (prop as any).insurance_expiry || null,
+          upcoming: unpaid.filter(b => (b as any).due_date).map(b => ({ title: `Πληρωμή ${(b as any).name||'λογαριασμού'}`, date: (b as any).due_date, amount: b.amount }))
+            .sort((a,b)=>a.date.localeCompare(b.date)),
+        }}/>
+      )}
 
       {/* Ζωντανές ειδοποιήσεις — ελέγχονται από τις Προτιμήσεις (Ρυθμίσεις) */}
       {prefs.liveNotifications && (
