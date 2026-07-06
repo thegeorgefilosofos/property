@@ -75,55 +75,90 @@ export const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
 // ── Ανάλυση CSV/κειμένου τραπεζικού αντιγράφου ─────────────────────────────
 // Ανθεκτικό σε: κόμμα/semicolon/tab διαχωριστές, ελληνικά (1.234,56) & διεθνή
 // (1,234.56) δεκαδικά, ημερομηνίες d/m/y & y-m-d, πρόσημα +/- και στήλες χρέωσης.
+// Μετατροπή στήλης ημερομηνίας → ISO (YYYY-MM-DD). Δέχεται d/m/y, d-m-y, d.m.y,
+// y-m-d, με 2ψήφιο ή 4ψήφιο έτος. Επιστρέφει '' αν δεν είναι ημερομηνία.
+export function parseDate(col: string): string {
+  const c = (col || '').trim();
+  if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(c)) {
+    const parts = c.split(/[\/\-.]/);
+    const [d, m, y] = parts[0].length === 4 ? [parts[2], parts[1], parts[0]] : parts;
+    return `${y.length === 2 ? '20' + y : y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c)) {
+    const [y, m, d] = c.split('-');
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  return '';
+}
+
+// Μετατροπή στήλης ποσού → αριθμός ΜΕ πρόσημο (ελληνικά/διεθνή δεκαδικά, €).
+// Επιστρέφει null αν δεν είναι έγκυρο χρηματικό ποσό.
+export function parseAmount(col: string): number | null {
+  const raw = (col || '').replace(/[€\s]/g, '');
+  if (!/^[-+]?[\d.,]+$/.test(raw) || !/\d/.test(raw)) return null;
+  const clean = (/,\d{1,2}$/.test(raw) ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '')).replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(clean);
+  if (isNaN(n) || Math.abs(n) <= 0.01 || Math.abs(n) >= 1000000) return null;
+  return n;
+}
+
+const stripAccents = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const findCol = (headers: string[], keys: string[]): number =>
+  headers.findIndex(h => keys.some(k => h.includes(k)));
+
 export function parseCSV(text: string): ParsedTransaction[] {
   const lines = (text || '').split('\n').filter(l => l.trim());
   if (!lines.length) return [];
   // Ανίχνευση διαχωριστή ΜΙΑ φορά από την κεφαλίδα: tab > semicolon > comma.
-  // Έτσι ελληνικά αρχεία με ';' και δεκαδικά-κόμμα (π.χ. 142,57) ΔΕΝ σπάνε.
   const header = lines[0];
   const delim = header.includes('\t') ? '\t' : header.includes(';') ? ';' : ',';
   const splitLine = (l: string): string[] =>
     delim === ',' ? l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/) : l.split(delim);
+
+  // ── Header-aware λειτουργία: εντόπισε ονομασμένες στήλες (τα περισσότερα bank
+  // exports έχουν κεφαλίδα). Έτσι Υπόλοιπο/κωδικοί ΔΕΝ μπερδεύονται με το ποσό,
+  // και ξεχωριστές στήλες Χρέωση/Πίστωση διαβάζονται σωστά.
+  const H = splitLine(header).map(c => stripAccents(c.replace(/^"|"$/g, '')));
+  const iDate = findCol(H, ['ημερομηνια', 'ημ/νια', 'ημ. συν', 'date', 'ημερομ']);
+  const iAmount = findCol(H, ['ποσο', 'amount']);
+  const iDebit = findCol(H, ['χρεωση', 'debit', 'αναληψη', 'εξοδα', 'χρεωσεις']);
+  const iCredit = findCol(H, ['πιστωση', 'credit', 'καταθεση', 'εσοδα', 'πιστωσεις']);
+  // Η περιγραφή εντοπίζεται ΤΕΛΕΥΤΑΙΑ, αποκλείοντας στήλες που ήδη διεκδικήθηκαν
+  // (π.χ. «Ημ. Συναλλαγής» περιέχει «συναλλαγη» αλλά είναι ημερομηνία, όχι περιγραφή).
+  const claimed = new Set([iDate, iAmount, iDebit, iCredit].filter(x => x >= 0));
+  const descKeys = ['περιγραφη', 'αιτιολογια', 'description', 'κινηση', 'συναλλαγη', 'λεπτομερ', 'narrative', 'reference', 'δικαιουχος'];
+  const iDesc = H.findIndex((h, idx) => !claimed.has(idx) && descKeys.some(k => h.includes(k)));
+  const headerMode = iDate >= 0 && iDesc >= 0 && (iAmount >= 0 || iDebit >= 0 || iCredit >= 0);
+
   const results: ParsedTransaction[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = splitLine(lines[i]).map(c => c.trim().replace(/^"|"$/g, ''));
     if (cols.length < 3) continue;
     let date = '', desc = '', amount = 0, debit = true;
-    for (const col of cols) {
-      // Ημερομηνία: μόλις εντοπιστεί, ΠΡΟΣΠΕΡΝΑΜΕ τη στήλη (ώστε μια ημερομηνία σε
-      // μορφή dd.mm.yyyy να μη διαβαστεί κατά λάθος ως ποσό 12.06).
-      if (!date && /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(col)) {
-        const parts = col.split(/[\/\-\.]/);
-        if (parts.length === 3) {
-          const [d, m, y] = parts[0].length === 4 ? [parts[2], parts[1], parts[0]] : parts;
-          date = `${y.length === 2 ? '20' + y : y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+
+    if (headerMode) {
+      date = parseDate(cols[iDate] || '');
+      desc = (cols[iDesc] || '').trim();
+      if (iAmount >= 0) {
+        const n = parseAmount(cols[iAmount] || '');
+        if (n != null) { amount = Math.abs(n); debit = n < 0 || (cols[iAmount] || '').trim().startsWith('-'); }
+      } else {
+        const d = iDebit >= 0 ? parseAmount(cols[iDebit] || '') : null;
+        const c = iCredit >= 0 ? parseAmount(cols[iCredit] || '') : null;
+        if (d != null && Math.abs(d) > 0.01) { amount = Math.abs(d); debit = true; }
+        else if (c != null && Math.abs(c) > 0.01) { amount = Math.abs(c); debit = false; }
+      }
+    } else {
+      // Fallback ευρετική (αρχεία χωρίς κεφαλίδα): πρώτη ημ/νία, πρώτο ποσό, μεγαλύτερο κείμενο.
+      for (const col of cols) {
+        if (!date) { const dt = parseDate(col); if (dt) { date = dt; continue; } }
+        if (!amount) { const n = parseAmount(col); if (n != null) { amount = Math.abs(n); debit = n < 0 || col.trim().startsWith('-'); continue; } }
+        if (col.length >= 3 && !/^[-+]?[\d.,\s€]+$/.test(col) && !/^\d{1,2}[\/\-.]\d{1,2}/.test(col) && !/^\d{4}-\d{2}-\d{2}/.test(col)) {
+          if (!desc || col.length > desc.length) desc = col;
         }
-        continue;
-      }
-      if (!date && /^\d{4}-\d{1,2}-\d{1,2}$/.test(col)) {
-        const [y, m, d] = col.split('-');
-        date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        continue;
-      }
-      if (!amount) {
-        // Δέξου ΜΟΝΟ στήλες που μοιάζουν με χρηματικό ποσό (ψηφία + διαχωριστές +
-        // πρόσημο + προαιρετικό €), ώστε περιγραφές με νούμερα ή ημερομηνίες να
-        // ΜΗΝ εκλαμβάνονται ως ποσό.
-        const raw = col.replace(/[€\s]/g, '');
-        if (/^[-+]?[\d.,]+$/.test(raw) && /\d/.test(raw)) {
-          // Ελληνικό (1.234,56) vs διεθνές (1,234.56): κόμμα-δεκαδικά → κράτα το κόμμα.
-          let clean = /,\d{1,2}$/.test(raw) ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
-          clean = clean.replace(/[^0-9.\-]/g, '');
-          const n = parseFloat(clean);
-          if (!isNaN(n) && Math.abs(n) > 0.01 && Math.abs(n) < 1000000) {
-            amount = Math.abs(n); debit = n < 0 || raw.startsWith('-');
-          }
-        }
-      }
-      if (col.length > 4 && !/^\d+[,.]?\d*$/.test(col) && !/^\d{1,2}[\/\-]\d{1,2}/.test(col) && !/^\d{4}-\d{2}-\d{2}/.test(col)) {
-        if (!desc || col.length > desc.length) desc = col;
       }
     }
+
     if (!date || !amount || !desc) continue;
     const cat = categorizeTransaction(desc);
     results.push({ id: `tx_${i}`, date, description: desc, amount, debit, ...cat, selected: debit && cat.category !== 'other' });
