@@ -269,7 +269,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
                   <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Από το δεύτερο και πάνω, 2,99 € τον μήνα ή 29,90 € τον χρόνο.</div>
+                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Για περισσότερα: Ιδιοκτήτης 6,90 € τον μήνα (έως δεκαπέντε ακίνητα) ή Επαγγελματίας 19 € τον μήνα (απεριόριστα).</div>
               </div>
               <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
             </div>
