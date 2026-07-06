@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import LandingShowcase from './LandingShowcase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing — world-tier. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία
@@ -79,6 +80,12 @@ export default async function Landing() {
         .lp-pop { animation: lpPop .5s cubic-bezier(.2,0,0,1) both; }
         @keyframes lpWave { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
         .lp-bar { animation: lpWave 1s ease-in-out infinite; transform-origin: center; }
+        @keyframes lpFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .lp-fade { animation: lpFade .45s cubic-bezier(.2,0,0,1) both; }
+        @keyframes lpProg { from { width: 0; } to { width: 100%; } }
+        .lp-progress { animation: lpProg 5.2s linear both; }
+        @keyframes lpGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        .lp-grow { transform-origin: bottom; animation: lpGrow .5s cubic-bezier(.2,0,0,1) both; }
         @media (max-width: 760px) { .lp-rail { display: none !important; } .lp-shot-pad { padding: 12px !important; } .lp-split { grid-template-columns: 1fr !important; } }
         @media (max-width: 520px) { .lp-hide-xs { display: none !important; } }
         @media (prefers-reduced-motion: reduce) { .lp-scanline, .lp-bar { animation: none !important; } }
@@ -105,13 +112,13 @@ export default async function Landing() {
 
       {/* ── Hero ── */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(52px, 8vw, 92px)', paddingBottom: 'clamp(20px, 4vw, 40px)', textAlign: 'center' }}>
-        <div className="lp-rise" style={{ ...chip, display: 'inline-flex' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, boxShadow: '0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent)' }} />Το πρώτο σου ακίνητο, δωρεάν για πάντα</div>
+        <div className="lp-rise" style={{ ...chip, display: 'inline-flex' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, boxShadow: '0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent)' }} />Το πρώτο ακίνητο, δωρεάν — για πάντα</div>
         <h1 className="lp-rise" style={{ fontSize: 'clamp(34px, 6.6vw, 68px)', fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.04, margin: '24px auto 20px', maxWidth: 900 }}>
-          Διαχειρίσου το ακίνητό σου<br />
-          <span style={{ background: 'linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #ffffff))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>με μία φωτογραφία.</span>
+          Βγάλε φωτογραφία τον λογαριασμό.<br />
+          <span style={{ background: 'linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #ffffff))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Άσε τα υπόλοιπα σε εμάς.</span>
         </h1>
-        <p className="lp-rise" style={{ fontSize: 'clamp(15px, 2.1vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 640, margin: '0 auto 32px' }}>
-          Σκάναρε λογαριασμό, συμβόλαιο ή ασφάλεια και το AI τα βάζει μόνο του στη θέση τους. Ρώτησε τον βοηθό σου οτιδήποτε, ακόμη και με τη φωνή σου. Δες καθαρά τι σου αποδίδει κάθε ακίνητο.
+        <p className="lp-rise" style={{ fontSize: 'clamp(15px, 2.1vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 660, margin: '0 auto 32px' }}>
+          Το Property OS διαβάζει λογαριασμούς, συμβόλαια και ασφάλειες, τα καταχωρεί μόνο του και σου λέει καθαρά τι σου αποδίδει, πού πληρώνεις παραπάνω και τι λήγει. Εσύ απλώς αποφασίζεις.
         </p>
         <div className="lp-rise" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           {loggedIn ? (
@@ -123,7 +130,7 @@ export default async function Landing() {
         </div>
         <div style={{ marginTop: 16, fontSize: 12.5, color: FAINT }}>Χωρίς κάρτα · Ακύρωση όποτε θέλεις · Συμβατό με GDPR</div>
 
-        <ProductShot />
+        <LandingShowcase />
       </section>
 
       {/* ── Trust strip ── */}
@@ -136,40 +143,35 @@ export default async function Landing() {
       </section>
 
       {/* ── Flagship 1: One photo → filed everywhere ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 6vw, 72px)', paddingBottom: 'clamp(20px, 3vw, 36px)' }}>
-        <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(28px, 4vw, 56px)', alignItems: 'center' }}>
-          <div>
-            <div style={{ ...chip, marginBottom: 16 }}>Μοναδικό στην αγορά</div>
-            <h2 style={{ fontSize: 'clamp(24px, 3.4vw, 36px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.12, margin: '0 0 14px' }}>Μία φωτογραφία. Όλα στη θέση τους.</h2>
-            <p style={{ fontSize: 15.5, color: MUTED, lineHeight: 1.65, margin: '0 0 20px' }}>
-              Βγάζεις φωτογραφία έναν λογαριασμό ή ανεβάζεις ένα συμβόλαιο. Το AI καταλαβαίνει τι είναι, διαβάζει τα νούμερα και τα καταχωρεί μόνο του — στους λογαριασμούς, στις δαπάνες, στο ημερολόγιο, στον ενοικιαστή. Χωρίς πληκτρολόγηση, χωρίς κόπο.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {['Λογαριασμοί ΔΕΗ, νερού, αερίου, κοινοχρήστων', 'Μισθωτήρια, τίτλοι, ασφαλιστήρια, ΕΝΦΙΑ', 'Αυτόματη ενημέρωση σε όλα τα σχετικά σημεία'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: TEXT }}>{check}{t}</div>
-              ))}
+      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 6vw, 76px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
+        <SectionHead over="Γιατί εμάς" title="Δύο πράγματα που δεν έχει κανείς άλλος" sub="Όλα τα άλλα εργαλεία σε βάζουν να πληκτρολογείς. Εμείς σε βάζουμε να τελειώνεις." />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
+          {[
+            {
+              tag: 'Σάρωση', h: 'Δεν πληκτρολογείς. Φωτογραφίζεις.',
+              icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+              p: 'Λογαριασμός ΔΕΗ, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Μία φωτογραφία και μπαίνει μόνο του εκεί που πρέπει. Ό,τι σου έπαιρνε δέκα λεπτά, τώρα σε τρία δευτερόλεπτα.',
+              b: ['Διαβάζει ποσά, ημερομηνίες και πάροχο', 'Ενημερώνει δαπάνες, ημερολόγιο και αρχείο μαζί', 'Έκανε λάθος; Το διορθώνεις με ένα κλικ'],
+            },
+            {
+              tag: 'Βοηθός', h: 'Ρώτα όπως θα ρωτούσες έναν φίλο.',
+              icon: 'M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z',
+              p: 'Ένας βοηθός με όνομα και φωνή που διαλέγεις εσύ. Ξέρει τα δικά σου νούμερα, μιλάει ελληνικά και για κάθε σοβαρό σε στέλνει στον σωστό: λογιστή, δικηγόρο, συμβολαιογράφο.',
+              b: ['«Τι εκκρεμεί;» — απαντά με τα δικά σου στοιχεία', 'Του μιλάς, σου απαντά με ανθρώπινη φωνή', 'Σε πάει σε ένα κλικ εκεί που θέλεις'],
+            },
+          ].map((c, i) => (
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 20, padding: 'clamp(22px, 3vw, 30px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(c.icon)}</div>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ACCENT }}>{c.tag}</span>
+              </div>
+              <h3 style={{ fontSize: 'clamp(20px, 2.6vw, 26px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, margin: '0 0 12px' }}>{c.h}</h3>
+              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.65, margin: '0 0 18px' }}>{c.p}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {c.b.map((t, j) => <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: TEXT }}>{check}{t}</div>)}
+              </div>
             </div>
-          </div>
-          <ScanMock />
-        </div>
-      </section>
-
-      {/* ── Flagship 2: AI assistant with voice ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(28px, 4vw, 48px)', paddingBottom: 'clamp(36px, 6vw, 72px)' }}>
-        <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(28px, 4vw, 56px)', alignItems: 'center' }}>
-          <AssistantMock />
-          <div>
-            <div style={{ ...chip, marginBottom: 16 }}>Ο βοηθός σου</div>
-            <h2 style={{ fontSize: 'clamp(24px, 3.4vw, 36px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.12, margin: '0 0 14px' }}>Ρώτησέ τον. Ξέρει το ακίνητό σου.</h2>
-            <p style={{ fontSize: 15.5, color: MUTED, lineHeight: 1.65, margin: '0 0 20px' }}>
-              Ένας AI βοηθός που του δίνεις όνομα και φωνή, όπως θέλεις εσύ. Απαντά με τα δικά σου νούμερα, σε καθοδηγεί μέσα στην εφαρμογή και, για κάθε σοβαρό θέμα, σε παραπέμπει στον σωστό επαγγελματία. Γράψε ή μίλα του στα ελληνικά.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {['«Τι εκκρεμεί αυτόν τον μήνα;» — απαντά αμέσως', 'Μιλάς ελληνικά, σου απαντά με ανθρώπινη φωνή', 'Σε πάει σε 1 κλικ εκεί που θέλεις να καταχωρήσεις'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: TEXT }}>{check}{t}</div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -310,158 +312,6 @@ export default async function Landing() {
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-// ── Scan mockup: έγγραφο με scan-line → auto-filed chips ─────────────────────
-function ScanMock() {
-  const filed = [['Λογαριασμοί', '0ms'], ['Δαπάνες', ''], ['Ημερολόγιο', ''], ['Αρχείο', '']];
-  return (
-    <div style={{ position: 'relative' }}>
-      <div aria-hidden style={{ position: 'absolute', inset: '-6% -4%', background: 'radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 16%, transparent), transparent 66%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
-      <div className="lp-card" style={{ position: 'relative', background: PANEL, border: `1px solid var(--border-default)`, borderRadius: 20, padding: 20, boxShadow: '0 30px 70px rgba(0,0,0,0.28)' }}>
-        {/* the "document" being scanned */}
-        <div style={{ position: 'relative', overflow: 'hidden', background: BG, border: `1px solid ${LINE}`, borderRadius: 12, padding: '18px 18px 16px' }}>
-          <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em' }}>ΔΕΗ</div>
-            <div style={{ fontSize: 10, color: FAINT }}>Λογαριασμός ρεύματος</div>
-          </div>
-          {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: MUTED }}><span>{l}</span><span style={{ color: TEXT, fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${LINE}` }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>Πληρωτέο</span>
-            <span style={{ fontSize: 22, fontWeight: 800, color: TEXT, fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>88,50&nbsp;€</span>
-          </div>
-        </div>
-        {/* filed result */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 2px 10px', fontSize: 12, color: MUTED }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
-          Καταχωρήθηκε αυτόματα σε:
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {filed.map(([t], i) => (
-            <span key={i} className="lp-pop" style={{ animationDelay: `${0.15 * i + 0.2}s`, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: ACCENT, background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>{check}{t}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Assistant mockup: chat bubbles + voice ──────────────────────────────────
-function AssistantMock() {
-  return (
-    <div style={{ position: 'relative' }}>
-      <div aria-hidden style={{ position: 'absolute', inset: '-6% -4%', background: 'radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 16%, transparent), transparent 66%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
-      <div className="lp-card" style={{ position: 'relative', background: PANEL, border: `1px solid var(--border-default)`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.28)' }}>
-        {/* header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: `1px solid ${LINE}` }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent), #8ab4f8)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15 }}>Ν</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Νόα</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Ο βοηθός σου για τα ακίνητα</div>
-          </div>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--positive)' }} />
-        </div>
-        {/* messages */}
-        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, background: BG }}>
-          <div style={{ alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: ACCENT, color: '#fff', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
-          <div style={{ alignSelf: 'flex-start', maxWidth: '86%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: PANEL, border: `1px solid ${LINE}`, fontSize: 13, lineHeight: 1.55, color: TEXT }}>
-            Φέτος έχεις <strong>1.240 €</strong> σε ρεύμα, 18% πάνω από πέρσι. Θέλεις να δεις πού πάνε τα λεφτά;
-          </div>
-          <div style={{ alignSelf: 'flex-start' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: ACCENT, background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>
-              Πήγαινε: Δαπάνες
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </span>
-          </div>
-        </div>
-        {/* voice bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: `1px solid ${LINE}` }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: ACCENT, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent)' }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 24 }}>
-            {[0, 1, 2, 3, 4, 5, 6].map(i => (
-              <span key={i} className="lp-bar" style={{ animationDelay: `${i * 0.09}s`, width: 3, height: 18, borderRadius: 2, background: 'color-mix(in srgb, var(--accent) 55%, transparent)' }} />
-            ))}
-          </div>
-          <div style={{ fontSize: 12.5, color: MUTED, marginLeft: 'auto' }}>Μίλα ελληνικά…</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Product mockup — μίνι πίνακας ελέγχου σε πλαίσιο εφαρμογής (0 εικόνες) ────
-function ProductShot() {
-  const months = [42, 55, 48, 61, 52, 70, 66, 78, 60, 84, 72, 90];
-  const rail = ['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'];
-  const kpis = [
-    { l: 'Καθαρή απόδοση', v: '4,8%', c: TEXT },
-    { l: 'Έσοδα / μήνα', v: '1.250 €', c: TEXT },
-    { l: 'Πληρότητα', v: '92%', c: TEXT },
-  ];
-  return (
-    <div style={{ position: 'relative', maxWidth: 940, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
-      <div aria-hidden style={{ position: 'absolute', inset: '-8% -4% -14%', background: 'radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 20%, transparent), transparent 65%)', filter: 'blur(24px)', opacity: 0.7, pointerEvents: 'none' }} />
-      <div className="lp-rise" style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-          <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57' }} />
-          <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e' }} />
-          <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840' }} />
-          <div className="lp-hide-xs" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 12, color: 'var(--text-tertiary)' }}>
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            property-os.gr/dashboard
-          </div>
-        </div>
-        <div className="lp-shot-pad" style={{ display: 'flex', gap: 16, padding: 18, textAlign: 'left' }}>
-          <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 12px' }}>
-              <div style={{ width: 22, height: 22, borderRadius: 7, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>P</div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Property OS</div>
-            </div>
-            {rail.map((r, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 9, background: i === 0 ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent', color: i === 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: i === 0 ? 700 : 500 }}>
-                <span style={{ width: 6, height: 6, borderRadius: 2, background: i === 0 ? 'var(--accent)' : 'var(--border-strong)' }} />
-                {r}
-              </div>
-            ))}
-          </div>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {kpis.map((k, i) => (
-                <div key={i} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px' }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{k.l}</div>
-                  <div style={{ fontFamily: "'Google Sans',sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 800, color: k.c, lineHeight: 1 }}>{k.v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '16px 16px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700 }}>Έσοδα ανά μήνα</div>
-                <div style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 700 }}>▲ 12% φέτος</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px, 1.2vw, 9px)', height: 92 }}>
-                {months.map((m, i) => (
-                  <div key={i} style={{ flex: 1, height: `${m}%`, borderRadius: '4px 4px 0 0', background: i === months.length - 1 ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 34%, transparent)' }} />
-                ))}
-              </div>
-            </div>
-            <div className="lp-hide-xs" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)', borderRadius: 12, padding: '12px 14px' }}>
-              <div style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
-              </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Έξυπνη πρόταση:</strong> γλιτώνεις 184 € τον χρόνο αλλάζοντας πάροχο ρεύματος σε αυτό το ακίνητο.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
