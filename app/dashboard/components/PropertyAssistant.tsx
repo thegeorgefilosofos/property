@@ -13,10 +13,12 @@ import { T } from '@/components/Theme';
 import {
   type AssistantIdentity, type Gender, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, loadIdentity, saveIdentity,
+  loadHistory, saveHistory, clearHistory,
 } from './assistantPersona';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
-interface Props { propertyId: string; userId: string; propContext: PropContext; onNavigate: (tab: string) => void; onScan: () => void; }
+interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
+interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
 type Action = { type: 'go'; tab: string } | { type: 'scan' };
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 
@@ -30,7 +32,7 @@ const SUGGESTED = [
   'Πώς ανεβάζω την αξία του ακινήτου;',
 ];
 
-export default function PropertyAssistant({ propertyId, userId, propContext, onNavigate, onScan }: Props) {
+export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan }: Props) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [identity, setIdentity] = useState<AssistantIdentity>(DEFAULT_IDENTITY);
@@ -50,7 +52,29 @@ export default function PropertyAssistant({ propertyId, userId, propContext, onN
     else { setHasIdentity(false); }
   }, []);
 
+  // Μνήμη ανά ακίνητο: φόρτωσε προηγούμενη συζήτηση (αν το επιτρέπει ο χρήστης),
+  // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
+  // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
+  useEffect(() => {
+    setCtxStr('');
+    const mem = loadIdentity()?.memory !== false;
+    setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
+  }, [propertyId]);
+
+  // Αποθήκευση συζήτησης όταν η μνήμη είναι ενεργή.
+  useEffect(() => {
+    if (identity.memory && msgs.length) saveHistory(propertyId, msgs.map(({ role, text }) => ({ role, text })));
+  }, [msgs, identity.memory, propertyId]);
+
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }, [msgs, busy, editing]);
+
+  // Σύγκριση ακινήτων — δίνεται στο μοντέλο μόνο αν το ζητήσει ο χρήστης.
+  const allPropsContext = identity.compare && allProperties.length > 1
+    ? allProperties.map((p, i) => {
+        const y = p.value && p.targetRent ? ((p.targetRent * 12 / p.value) * 100).toFixed(1) : null;
+        return `${i + 1}. ${p.name}${p.propType ? ` (${p.propType})` : ''}: αξία ${eur(p.value)}, ενοίκιο-στόχος ${eur(p.targetRent)}/μήνα${y ? `, μεικτή απόδοση ~${y}%` : ''}${p.sqm ? `, ${p.sqm} τ.μ.` : ''}${p.status ? `, ${p.status}` : ''}`;
+      }).join('\n')
+    : undefined;
 
   // Φόρτωση δεδομένων ακινήτου (μία φορά όταν ανοίξει), για συγκεκριμένες απαντήσεις.
   const loadContext = useCallback(async () => {
@@ -111,7 +135,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, onN
     setMsgs(history); setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.');
+      const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext);
       const res = await fetch('/api/anthropic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
@@ -165,8 +189,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, onN
           {(editing || !hasIdentity) ? (
             <IdentityEditor
               draft={identity}
+              hasMemory={msgs.length > 0 || loadHistory(propertyId).length > 0}
               onCancel={hasIdentity ? () => setEditing(false) : undefined}
-              onSave={(id) => { setIdentity(id); saveIdentity(id); setHasIdentity(true); setEditing(false); if (!msgs.length) { /* θα δει το greeting */ } }}
+              onClearMemory={() => { clearHistory(propertyId); setMsgs([]); }}
+              onSave={(id) => {
+                // Αν έκλεισε τη μνήμη, σβήσε ό,τι έχει αποθηκευτεί (σεβασμός στην επιλογή).
+                if (identity.memory && !id.memory) clearHistory(propertyId);
+                setIdentity(id); saveIdentity(id); setHasIdentity(true); setEditing(false);
+              }}
             />
           ) : (
             <>
@@ -235,11 +265,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, onN
   );
 }
 
-// ── Επεξεργαστής ταυτότητας (όνομα + φύλο) ──────────────────────────────────
-function IdentityEditor({ draft, onSave, onCancel }: { draft: AssistantIdentity; onSave: (id: AssistantIdentity) => void; onCancel?: () => void }) {
+// ── Διακόπτης (toggle) ──────────────────────────────────────────────────────
+function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} role="switch" aria-checked={on}
+      style={{ width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0, background: on ? 'var(--accent)' : 'var(--border-default)', position: 'relative', transition: 'background 0.2s' }}>
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+    </button>
+  );
+}
+
+// ── Επεξεργαστής ταυτότητας (όνομα + φύλο + μνήμη + σύγκριση) ────────────────
+function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory }: { draft: AssistantIdentity; onSave: (id: AssistantIdentity) => void; onCancel?: () => void; onClearMemory: () => void; hasMemory: boolean }) {
   const [gender, setGender] = useState<Gender>(draft.gender);
   const [name, setName] = useState(draft.name);
+  const [memory, setMemory] = useState(draft.memory);
+  const [compare, setCompare] = useState(draft.compare);
   const suggestions = NAME_SUGGESTIONS[gender];
+  const row = { display: 'flex', alignItems: 'center', gap: 12 } as const;
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -275,9 +318,30 @@ function IdentityEditor({ draft, onSave, onCancel }: { draft: AssistantIdentity;
         </div>
       </div>
 
+      {/* Μνήμη & σύγκριση */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+        <div style={row}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Να θυμάται τις συζητήσεις</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Συνεχίζει από εκεί που μείνατε, ανά ακίνητο. Μένει μόνο στη συσκευή σου.</div>
+          </div>
+          <Switch on={memory} onToggle={() => setMemory(v => !v)} />
+        </div>
+        {memory && hasMemory && (
+          <button onClick={onClearMemory} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600 }}>Σβήσε τη μνήμη αυτού του ακινήτου</button>
+        )}
+        <div style={row}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Σύγκριση μεταξύ ακινήτων</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Να βλέπει και τα άλλα σου ακίνητα για συγκρίσεις (ποιο αποδίδει καλύτερα).</div>
+          </div>
+          <Switch on={compare} onToggle={() => setCompare(v => !v)} />
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
         {onCancel && <button onClick={onCancel} style={{ flex: '0 0 auto', height: 42, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Άκυρο</button>}
-        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender })} style={{ flex: 1, height: 42, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
+        <button onClick={() => onSave({ name: name.trim() || DEFAULT_IDENTITY.name, gender, memory, compare })} style={{ flex: 1, height: 42, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>
   );
