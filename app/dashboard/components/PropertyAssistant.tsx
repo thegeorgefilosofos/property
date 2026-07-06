@@ -10,6 +10,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
+import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import {
   type AssistantIdentity, type Gender, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
@@ -71,7 +72,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Σύγκριση ακινήτων — δίνεται στο μοντέλο μόνο αν το ζητήσει ο χρήστης.
   const allPropsContext = identity.compare && allProperties.length > 1
     ? allProperties.map((p, i) => {
-        const y = p.value && p.targetRent ? ((p.targetRent * 12 / p.value) * 100).toFixed(1) : null;
+        const gy = computeYields(resolveRent({ targetRent: p.targetRent }).value, resolveValue(p.value).value, 0).grossYield;
+        const y = gy > 0 ? gy.toFixed(1) : null;
         return `${i + 1}. ${p.name}${p.propType ? ` (${p.propType})` : ''}: αξία ${eur(p.value)}, ενοίκιο-στόχος ${eur(p.targetRent)}/μήνα${y ? `, μεικτή απόδοση ~${y}%` : ''}${p.sqm ? `, ${p.sqm} τ.μ.` : ''}${p.status ? `, ${p.status}` : ''}`;
       }).join('\n')
     : undefined;
@@ -94,10 +96,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const unpaid = (bil || []).filter(b => !b.paid);
     const t = ten?.[0];
-    const rent = t?.monthly_rent || propContext.targetRent || 0;
-    const value = propContext.value || 0;
-    const grossY = value > 0 ? (rent * 12 / value) * 100 : 0;
-    const netY = value > 0 ? ((rent * 12 - total) / value) * 100 : 0;
+    const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
+    const value = resolveValue(propContext.value).value;
+    const { grossYield: grossY, netYield: netY } = computeYields(rent, value, total);
     const leaseEnd = t?.lease_end || null;
     const daysLease = leaseEnd ? Math.ceil((new Date(leaseEnd).getTime() - Date.now()) / 86400000) : null;
 
