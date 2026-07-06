@@ -25,6 +25,8 @@ import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
+import InsightsBoard from './components/InsightsBoard';
+import { computeInsights } from '@/lib/insights/engine';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -342,7 +344,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [chk, setChk] = useState<{ due_date:string|null; status:string; priority:string }[]>([]);
-  const [inv, setInv] = useState<{ warranty_expiry:string|null; condition:string|null }[]>([]);
+  const [inv, setInv] = useState<{ name?:string|null; warranty_expiry:string|null; condition:string|null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -352,7 +354,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
       supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
-      supabase.from('inventory_items').select('warranty_expiry,condition').eq('property_id',prop.id),
+      supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoading(false);
@@ -417,6 +419,19 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
   if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη — δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
 
+  // ── Έξυπνα insights: ο «σύμβουλος» διαβάζει τα δεδομένα και προτεραιοποιεί ──
+  const insights = computeInsights({
+    now: now.getTime(),
+    property: prop, tenant, rent, propValue, grossYield, netYield,
+    expensesYTD: totalExpYTD,
+    expenses: expenses as { category?:string; amount:number; date?:string; paid?:boolean; expense_group?:string|null; payment_method?:string|null }[],
+    bills: bills.map(b => ({ type:(b as any).type, amount:(b as any).amount, paid:(b as any).paid, due_date:(b as any).due_date })),
+    tasks: tasks.map(t => ({ due_date: t.due_date })),
+    checklist: chk,
+    inventory: inv,
+    loanPayment: 0,
+  });
+
   if (loading) return (
     <div>
       <SkeletonKPIs n={5} />
@@ -472,22 +487,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         ))}
       </div>
 
-      {/* Ζωντανές ειδοποιήσεις — ελέγχονται από τις Προτιμήσεις (Ρυθμίσεις) */}
+      {/* Ο «σύμβουλος»: προτεραιοποιημένα, ενεργήσιμα insights (ελέγχεται από τις Προτιμήσεις) */}
       {prefs.liveNotifications && (
-      <div className="card" style={{marginBottom:16}}>
-        <div className="section-label"><span className="section-dot"/> Επερχόμενα & Ειδοποιήσεις</div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {alerts.map((a,i) => (
-            <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,background:`var(--${a.tone}-soft)`,border:`1px solid var(--${a.tone}-border)`,borderRadius:10,padding:'10px 14px'}}>
-              <div style={{width:6,height:6,borderRadius:'50%',background:`var(--${a.tone})`,marginTop:6,flexShrink:0}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>{a.label}</div>
-                {a.sub && <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:2}}>{a.sub}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        <InsightsBoard insights={insights} name={prop.name} onNavigate={onNavigate} />
       )}
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
@@ -850,7 +852,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={setNav}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
