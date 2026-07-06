@@ -62,7 +62,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πληρότητα & Βραχυχρόνια</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb / επιπλωμένο — ΑΜΑ, πληρότητα, σύγκριση με μακροχρόνια</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: ΑΜΑ, πληρότητα, σύγκριση με μακροχρόνια</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>

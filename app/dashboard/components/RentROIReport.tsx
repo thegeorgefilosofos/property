@@ -46,7 +46,7 @@ export default function RentROIReport({
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: #fff;
             color: #1a1a2e;
             font-size: 11px;
@@ -71,7 +71,7 @@ export default function RentROIReport({
             letter-spacing: -0.3px;
           }
           .logo span { color: var(--accent); }
-          .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Roboto', sans-serif; }
+          .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Inter', sans-serif; }
           .meta-title { font-family: 'Inter', sans-serif; font-weight: 500; color: #1a1a2e; font-size: 13px; margin-bottom: 2px; }
 
           /* Section */
@@ -123,7 +123,7 @@ export default function RentROIReport({
             letter-spacing: 0.5px;
             color: #5f6368;
           }
-          .kpi-sub { font-size: 9px; color: #9aa0a6; margin-top: 2px; font-family: 'Roboto', sans-serif; }
+          .kpi-sub { font-size: 9px; color: #9aa0a6; margin-top: 2px; font-family: 'Inter', sans-serif; }
 
           /* Colors */
           .positive { color: #137333; }
@@ -140,7 +140,7 @@ export default function RentROIReport({
             padding: 7px 0;
             border-bottom: 1px solid #f1f3f4;
           }
-          .row-label { color: #5f6368; font-family: 'Roboto', sans-serif; }
+          .row-label { color: #5f6368; font-family: 'Inter', sans-serif; }
           .row-value { font-family: 'Roboto Mono', monospace; font-weight: 500; }
           .row-value.bold { font-weight: 700; font-size: 13px; }
 
@@ -157,7 +157,7 @@ export default function RentROIReport({
             color: #1a73e8;
             margin-top: 8px;
             line-height: 1.5;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
           }
           .warning-box {
             background: #fef7e0;
@@ -168,7 +168,7 @@ export default function RentROIReport({
             color: #b45309;
             margin-top: 8px;
             line-height: 1.5;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
           }
           .success-box {
             background: #e6f4ea;
@@ -179,7 +179,7 @@ export default function RentROIReport({
             color: #137333;
             margin-top: 8px;
             line-height: 1.5;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
           }
 
           /* Score */
@@ -247,14 +247,14 @@ export default function RentROIReport({
             justify-content: space-between;
             font-size: 9px;
             color: #9aa0a6;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
           }
           .disclaimer {
             text-align: center;
             font-size: 9px;
             color: #9aa0a6;
             margin-top: 8px;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
           }
 
           @media print {
@@ -269,7 +269,7 @@ export default function RentROIReport({
           <div class="header">
             <div>
               <div class="logo">Property <span>OS</span></div>
-              <div style="font-size:10px;color:#5f6368;margin-top:2px;font-family:'Roboto',sans-serif;">Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
+              <div style="font-size:10px;color:#5f6368;margin-top:2px;font-family:'Inter',sans-serif;">Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
             </div>
             <div class="meta">
               <div class="meta-title">${esc(propertyName)}</div>

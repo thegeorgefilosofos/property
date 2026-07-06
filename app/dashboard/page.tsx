@@ -25,6 +25,8 @@ import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
+import InsightsBoard from './components/InsightsBoard';
+import { computeInsights } from '@/lib/insights/engine';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -32,7 +34,7 @@ import OccupancyPanel from './components/OccupancyPanel';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
-  address: string | null; sqm: number | null; ownership: string | null;
+  address: string | null; postal_code: string | null; sqm: number | null; ownership: string | null;
   value: number | null; obj_value: number | null; purchase_price: number | null;
   purchase_date: string | null; target_rent: number | null; enfia: number | null;
   insurance_amount: number | null; insurance_company: string | null;
@@ -342,7 +344,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [chk, setChk] = useState<{ due_date:string|null; status:string; priority:string }[]>([]);
-  const [inv, setInv] = useState<{ warranty_expiry:string|null; condition:string|null }[]>([]);
+  const [inv, setInv] = useState<{ name?:string|null; warranty_expiry:string|null; condition:string|null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -352,7 +354,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
       supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
-      supabase.from('inventory_items').select('warranty_expiry,condition').eq('property_id',prop.id),
+      supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoading(false);
@@ -417,6 +419,19 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
   if (alerts.length === 0 && !loading) alerts.push({ tone:'positive', label:'Όλα σε τάξη — δεν υπάρχουν εκκρεμότητες', sub:'Καμία επείγουσα ειδοποίηση για αυτό το ακίνητο' });
 
+  // ── Έξυπνα insights: ο «σύμβουλος» διαβάζει τα δεδομένα και προτεραιοποιεί ──
+  const insights = computeInsights({
+    now: now.getTime(),
+    property: prop, tenant, rent, propValue, grossYield, netYield,
+    expensesYTD: totalExpYTD,
+    expenses: expenses as { category?:string; amount:number; date?:string; paid?:boolean; expense_group?:string|null; payment_method?:string|null }[],
+    bills: bills.map(b => ({ type:(b as any).type, amount:(b as any).amount, paid:(b as any).paid, due_date:(b as any).due_date })),
+    tasks: tasks.map(t => ({ due_date: t.due_date })),
+    checklist: chk,
+    inventory: inv,
+    loanPayment: 0,
+  });
+
   if (loading) return (
     <div>
       <SkeletonKPIs n={5} />
@@ -472,22 +487,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         ))}
       </div>
 
-      {/* Ζωντανές ειδοποιήσεις — ελέγχονται από τις Προτιμήσεις (Ρυθμίσεις) */}
+      {/* Ο «σύμβουλος»: προτεραιοποιημένα, ενεργήσιμα insights (ελέγχεται από τις Προτιμήσεις) */}
       {prefs.liveNotifications && (
-      <div className="card" style={{marginBottom:16}}>
-        <div className="section-label"><span className="section-dot"/> Επερχόμενα & Ειδοποιήσεις</div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {alerts.map((a,i) => (
-            <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,background:`var(--${a.tone}-soft)`,border:`1px solid var(--${a.tone}-border)`,borderRadius:10,padding:'10px 14px'}}>
-              <div style={{width:6,height:6,borderRadius:'50%',background:`var(--${a.tone})`,marginTop:6,flexShrink:0}}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>{a.label}</div>
-                {a.sub && <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:2}}>{a.sub}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        <InsightsBoard insights={insights} name={prop.name} onNavigate={onNavigate} />
       )}
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
@@ -629,6 +631,7 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(false);
+  const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
@@ -788,18 +791,25 @@ export default function Dashboard() {
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}<span style={{fontSize:10,opacity:0.7}}>▾</span>
                     </button>
                     {statusDropdown && (
-                      <div style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',borderRadius:4,padding:'8px 0',zIndex:100,minWidth:180,boxShadow:'var(--shadow-lg)'}}>
+                      <>
+                      {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
+                      <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
+                      <div style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'8px 0',zIndex:100,minWidth:180,boxShadow:'var(--shadow-lg)'}}>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => (
                           <button key={k} onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'10px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                             <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>{v}
                           </button>
                         ))}
                       </div>
+                      </>
                     )}
                   </div>
+                  <button onClick={()=>setEditProperty(selected)} title="Επεξεργασία στοιχείων ακινήτου" aria-label="Επεξεργασία ακινήτου" style={{display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',flexShrink:0}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </button>
                 </div>
                 <div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
-                  {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address].filter(Boolean).join(' · ')}
+                  {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>
               {nav==='inventory'&&properties.length>1&&(
@@ -842,7 +852,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={setNav}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
@@ -917,6 +927,7 @@ export default function Dashboard() {
       )}
 
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
+      {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
     </div>
   );

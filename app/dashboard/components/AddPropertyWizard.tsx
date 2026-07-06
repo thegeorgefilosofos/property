@@ -65,7 +65,7 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', height: 40, borderRadius: 8,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Roboto', sans-serif",
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Inter', sans-serif",
   letterSpacing: '0.25px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
@@ -80,26 +80,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div><label style={labelStyle}>{label}</label>{children}</div>;
 }
 
-export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => void }) {
+interface ExistingProperty {
+  id: string; name?: string | null; prop_type?: string | null; address?: string | null;
+  postal_code?: string | null; sqm?: number | null; floor?: number | null; year_built?: number | null;
+  value?: number | null; purchase_price?: number | null; target_rent?: number | null;
+  ownership?: number | string | null; status_detail?: string | null;
+}
+const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
+
+export default function AddPropertyWizard({ userId, onClose, onSaved, existing }: { userId: string; onClose: () => void; onSaved: () => void; existing?: ExistingProperty | null }) {
   const supabase = createClient();
+  const isEdit = !!existing?.id;
   const [step, setStep] = useState(0); // 0..3
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const [propType, setPropType] = useState('apartment');
-  const [status, setStatus] = useState('vacant');
-  const [airbnb, setAirbnb] = useState(false);
+  const [propType, setPropType] = useState(existing?.prop_type || 'apartment');
+  const [status, setStatus] = useState(existing?.status_detail && existing.status_detail !== 'seasonal' ? existing.status_detail : 'vacant');
+  const [airbnb, setAirbnb] = useState(existing?.status_detail === 'seasonal');
 
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [sqm, setSqm] = useState('');
-  const [floor, setFloor] = useState('');
-  const [yearBuilt, setYearBuilt] = useState('');
+  const [name, setName] = useState(existing?.name || '');
+  const [address, setAddress] = useState(existing?.address || '');
+  const [postalCode, setPostalCode] = useState(existing?.postal_code || '');
+  const [sqm, setSqm] = useState(s(existing?.sqm));
+  const [floor, setFloor] = useState(s(existing?.floor));
+  const [yearBuilt, setYearBuilt] = useState(s(existing?.year_built));
 
-  const [value, setValue] = useState('');
-  const [purchasePrice, setPurchasePrice] = useState('');
-  const [rent, setRent] = useState('');
-  const [ownership, setOwnership] = useState('100');
+  const [value, setValue] = useState(s(existing?.value));
+  const [purchasePrice, setPurchasePrice] = useState(s(existing?.purchase_price));
+  const [rent, setRent] = useState(s(existing?.target_rent));
+  const [ownership, setOwnership] = useState(s(existing?.ownership) || '100');
 
   const isLandLike = LAND_LIKE.has(propType);
   // Airbnb ⇒ status seasonal
@@ -121,11 +131,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
     setSaving(true); setError('');
     // Αποθηκευόμενο μηνιαίο ισοδύναμο ενοικίου: Airbnb ⇒ τιμή/νύχτα × 30
     const storedRent = airbnb ? (rentN != null ? rentN * 30 : null) : rentN;
-    const { error: err } = await supabase.from('user_properties').insert({
-      user_id: userId,
+    const payload = {
       name: name.trim(),
       prop_type: propType,
       address: address.trim() || null,
+      postal_code: postalCode.trim() || null,
       sqm: num(sqm),
       value: valueN,
       purchase_price: num(purchasePrice),
@@ -134,7 +144,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
       status_detail: effStatus,
-    });
+    };
+    const { error: err } = isEdit
+      ? await supabase.from('user_properties').update(payload).eq('id', existing!.id)
+      : await supabase.from('user_properties').insert({ user_id: userId, ...payload });
     setSaving(false);
     if (err) { setError(err.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
     onSaved();
@@ -154,8 +167,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 28px 0' }}>
           <div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 500, color: 'var(--text-primary)', lineHeight: '28px' }}>Νέο Ακίνητο</div>
-            <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} — {STEPS[step]}</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 500, color: 'var(--text-primary)', lineHeight: '28px' }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
         </div>
@@ -240,7 +253,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
               }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ορίζει την κατάσταση σε «Εποχιακό» και τιμολόγηση ανά διανυκτέρευση</div>
                 </div>
                 <div style={{ width: 44, height: 26, borderRadius: 13, background: airbnb ? 'var(--accent)' : 'var(--bg-overlay)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ position: 'absolute', top: 3, left: airbnb ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
@@ -255,9 +268,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
               <Field label="Ονομασία Ακινήτου *">
                 <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />
               </Field>
-              <Field label="Διεύθυνση">
-                <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />
-              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+                <Field label="Διεύθυνση">
+                  <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+                <Field label="Ταχ. Κώδικας">
+                  <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
               {isLandLike ? (
                 <Field label={sqmLabel}>
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
@@ -302,7 +320,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
                 <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '16px 18px' }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
                   <div style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 28, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{grossYield.toFixed(1)}%</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                     {airbnb
                       ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
                       : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί εμπορικής αξίας ${fe(valueN!, 0)}`}
@@ -319,7 +337,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
                 <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
-                  <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: `1px solid ${STATUS_COLORS[effStatus]}44`, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[effStatus] }} />{STATUS_LABELS[effStatus]}
@@ -332,6 +350,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
                   ['Κατάσταση', STATUS_LABELS[effStatus]],
                   airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
                   ['Διεύθυνση', address.trim() || '—'],
+                  postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
                   [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : '—'],
                   isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
                   isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],
@@ -342,14 +361,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' ? "'Roboto', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               </div>
 
               {error && (
-                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: "'Roboto', sans-serif", fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--negative)' }}>{error}</div>
               )}
             </div>
           )}
@@ -372,7 +391,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved }: { userId
               height: 40, padding: '0 24px', borderRadius: 100, border: 'none',
               background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
               fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
-            }}>{saving ? 'Αποθήκευση...' : 'Προσθήκη Ακινήτου'}</button>
+            }}>{saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
           )}
         </div>
       </div>

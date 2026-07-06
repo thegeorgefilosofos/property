@@ -90,7 +90,16 @@ export default async function Landing() {
         .lp-grow { transform-origin: bottom; animation: lpGrow .5s cubic-bezier(.2,0,0,1) both; }
         @media (max-width: 760px) { .lp-rail { display: none !important; } .lp-shot-pad { padding: 12px !important; } .lp-split { grid-template-columns: 1fr !important; } }
         @media (max-width: 520px) { .lp-hide-xs { display: none !important; } }
-        @media (prefers-reduced-motion: reduce) { .lp-scanline, .lp-bar, .lp-rise, .lp-pop, .lp-fade, .lp-progress, .lp-grow { animation: none !important; } }
+        /* Scroll-reveal με scroll-driven animations (χωρίς JS). Οι ενότητες
+           εμφανίζονται απαλά καθώς μπαίνουν στην οθόνη. Πλήρως ορατές όπου δεν
+           υποστηρίζεται (graceful) και ανενεργό σε reduced-motion. */
+        @keyframes lpReveal { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+        @supports (animation-timeline: view()) {
+          @media (prefers-reduced-motion: no-preference) {
+            .lp-reveal { animation: lpReveal linear both; animation-timeline: view(); animation-range: entry 4% cover 20%; }
+          }
+        }
+        @media (prefers-reduced-motion: reduce) { .lp-scanline, .lp-bar, .lp-rise, .lp-pop, .lp-fade, .lp-progress, .lp-grow, .lp-reveal { animation: none !important; } }
       `}</style>
 
       <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
@@ -116,12 +125,12 @@ export default async function Landing() {
       {/* ── Hero ── */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(52px, 8vw, 92px)', paddingBottom: 'clamp(20px, 4vw, 40px)', textAlign: 'center' }}>
         <div className="lp-rise" style={{ ...chip, display: 'inline-flex' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: FAINT }} />Το πρώτο ακίνητο δωρεάν, για πάντα</div>
-        <h1 className="lp-rise" style={{ fontSize: 'clamp(34px, 6.6vw, 68px)', fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.04, margin: '24px auto 20px', maxWidth: 900, color: TEXT }}>
-          Βγάλε φωτογραφία τον λογαριασμό.<br />
-          <span style={{ color: MUTED }}>Άσε τα υπόλοιπα σε εμάς.</span>
+        <h1 className="lp-rise" style={{ fontSize: 'clamp(34px, 6.6vw, 68px)', fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.04, margin: '24px auto 20px', maxWidth: 900, color: TEXT }}>
+          Βγάλε μία φωτογραφία.<br />
+          <span style={{ color: MUTED }}>Όλα τα υπόλοιπα, τακτοποιημένα.</span>
         </h1>
         <p className="lp-rise" style={{ fontSize: 'clamp(15px, 2.1vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 660, margin: '0 auto 32px' }}>
-          Το Property OS διαβάζει λογαριασμούς, συμβόλαια και ασφάλειες, τα καταχωρεί μόνο του και σου λέει καθαρά τι σου αποδίδει, πού πληρώνεις παραπάνω και τι λήγει. Εσύ απλώς αποφασίζεις.
+          Λογαριασμοί, συμβόλαια, ασφάλειες: το Property OS τα διαβάζει από μία φωτογραφία, τα καταχωρεί μόνο του και σου δείχνει καθαρά τι αποδίδουν, πού πληρώνεις παραπάνω και τι λήγει. Εσύ κρατάς μόνο το πιο σημαντικό: την απόφαση.
         </p>
         <div className="lp-rise" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           {loggedIn ? (
@@ -137,7 +146,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Trust strip ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(24px, 4vw, 40px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(24px, 4vw, 40px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: FAINT, lineHeight: 1.6 }}>
           {TRUST.map((t, i) => (
             <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
@@ -149,7 +158,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Flagship 1: One photo → filed everywhere ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 6vw, 76px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(40px, 6vw, 76px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
         <SectionHead over="Γιατί εμάς" title="Δύο πράγματα που δεν κάνει καμία άλλη εφαρμογή" sub="Οι άλλες εφαρμογές σε βάζουν να πληκτρολογείς. Εδώ μια φωτογραφία φτάνει." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
           {[
@@ -182,7 +191,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Energy comparison ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(40px, 6vw, 72px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(40px, 6vw, 72px)' }}>
         <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(24px, 3vw, 36px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 32, alignItems: 'center' }}>
           <div>
             <div style={{ ...chip, marginBottom: 16 }}>Γλιτώνεις πραγματικά λεφτά</div>
@@ -207,7 +216,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Features (bento) ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
         <SectionHead over="Δυνατότητες" title="Ό,τι χρειάζεται ένας Έλληνας ιδιοκτήτης" sub="Όλα σε ένα σημείο, όχι δέκα εφαρμογές και υπολογιστικά φύλλα." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
           {FEATURES.map((f, i) => (
@@ -237,7 +246,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Pricing ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(48px, 7vw, 90px) clamp(20px, 5vw, 48px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(48px, 7vw, 90px) clamp(20px, 5vw, 48px)' }}>
         <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο αν μεγαλώσεις." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16, maxWidth: 760, margin: '0 auto', alignItems: 'stretch' }}>
           <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(24px, 3vw, 32px)', display: 'flex', flexDirection: 'column' }}>
@@ -277,7 +286,7 @@ export default async function Landing() {
       </section>
 
       {/* ── FAQ ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 90px)' }}>
         <SectionHead over="Απορίες" title="Συχνές ερωτήσεις" />
         <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {FAQ.map((f, i) => (
@@ -292,7 +301,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Final CTA ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
         <div style={{ position: 'relative', background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(40px, 6vw, 68px)', textAlign: 'center' }}>
           <div style={{ position: 'relative' }}>
             <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.1, margin: '0 0 14px' }}>Το ακίνητό σου, υπό έλεγχο</h2>
