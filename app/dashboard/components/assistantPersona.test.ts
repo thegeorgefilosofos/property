@@ -1,8 +1,19 @@
 // Αυστηρά τεστ για την καθαρή λογική του βοηθού (assistantPersona.ts).
 // Τρέξε: npx tsx app/dashboard/components/assistantPersona.test.ts
+// Ελαφρύ shim του localStorage/window ΠΡΙΝ το import, ώστε να δοκιμαστεί η μόνιμη μνήμη.
+const _store = new Map<string, string>();
+(globalThis as any).window = globalThis;
+(globalThis as any).localStorage = {
+  getItem: (k: string) => (_store.has(k) ? _store.get(k)! : null),
+  setItem: (k: string, v: string) => { _store.set(k, String(v)); },
+  removeItem: (k: string) => { _store.delete(k); },
+  clear: () => { _store.clear(); },
+};
+
 import {
   parseAction, cleanForSpeech, buildSystemPrompt, NAV_MAP,
   DEFAULT_IDENTITY, type AssistantIdentity, type Gender,
+  loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
 
 let passed = 0, failed = 0;
@@ -93,9 +104,103 @@ ok('male self', /σίγουρος|αρσενικ/i.test(buildSystemPrompt(id({ g
 ok('neutral self', /ουδετερ|Ουδέτερ|ουδέτερ/i.test(buildSystemPrompt(id({ gender: 'neutral' }), 'x')));
 // default όνομα όταν κενό
 ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(DEFAULT_IDENTITY.name));
+// τρόπος προσφώνησης: ενικός vs πληθυντικός
+{
+  const sing = buildSystemPrompt(id({ formal: false }), 'x');
+  const plur = buildSystemPrompt(id({ formal: true }), 'x');
+  ok('singular addresses in ενικό', /στον ενικό/.test(sing) && !/πληθυντικό ευγενείας/.test(sing));
+  ok('plural addresses in πληθυντικό', /πληθυντικό ευγενείας/.test(plur));
+  ok('default identity is singular', DEFAULT_IDENTITY.formal === false);
+}
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
 ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξία 200.000 €').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
+
+// ── parseAction: [[remember: ...]] ───────────────────────────────────────────
+{
+  const r = parseAction('Το σημείωσα. [[remember: προτιμά ηλεκτρονικές πληρωμές]]');
+  ok('remember extracted', r.remember === 'προτιμά ηλεκτρονικές πληρωμές');
+  ok('remember stripped from clean', !/\[\[/.test(r.clean));
+  ok('remember clean text kept', r.clean.includes('Το σημείωσα.'));
+}
+// remember + go μαζί: και τα δύο επιστρέφονται
+{
+  const r = parseAction('Πάμε. [[remember: υδραυλικός ο Νίκος]] [[go:contacts]]');
+  ok('remember+go remember', r.remember === 'υδραυλικός ο Νίκος');
+  ok('remember+go action', r.action?.type === 'go' && (r.action as any).tab === 'contacts');
+  ok('remember+go clean', !/\[\[/.test(r.clean));
+}
+// κενό/άκυρο remember → undefined
+for (const t of ['Καμία μνήμη εδώ.', 'Κείμενο [[remember:]] τέλος', '[[remember:   ]]']) {
+  const r = parseAction(t);
+  ok(`no remember for ${JSON.stringify(t).slice(0, 24)}`, r.remember === undefined || r.remember.length > 0);
+  ok(`remember always stripped ${JSON.stringify(t).slice(0, 24)}`, !/\[\[/.test(r.clean));
+}
+// μεγάλο γεγονός κόβεται στα 140
+{
+  const long = 'α'.repeat(300);
+  const r = parseAction(`[[remember: ${long}]]`);
+  ok('remember capped 140', (r.remember || '').length <= 140);
+}
+
+// ── buildSystemPrompt: extras (insights / market / memories) ──────────────────
+{
+  const base = buildSystemPrompt(id(), 'x');
+  ok('no insights section by default', !base.includes('ΤΙ ΤΡΕΧΕΙ ΤΩΡΑ'));
+  ok('no market section by default', !base.includes('ΑΓΟΡΑ ΣΗΜΕΡΑ'));
+  ok('no remembered list by default', !base.includes('Ήδη θυμάσαι'));
+  ok('memory instruction always present', base.includes('[[remember:'));
+
+  const rich = buildSystemPrompt(id(), 'x', undefined, {
+    insights: '• [ΕΠΕΙΓΟΝ] Ληξιπρόθεσμος λογαριασμός',
+    market: 'Euribor 3 μηνών: 2,18%',
+    memories: ['προτιμά ηλεκτρονικές πληρωμές', 'στόχος πώληση σε 2 χρόνια'],
+  });
+  ok('insights injected', rich.includes('ΤΙ ΤΡΕΧΕΙ ΤΩΡΑ') && rich.includes('Ληξιπρόθεσμος λογαριασμός'));
+  ok('market injected', rich.includes('ΑΓΟΡΑ ΣΗΜΕΡΑ') && rich.includes('Euribor 3 μηνών: 2,18%'));
+  ok('memories injected', rich.includes('Ήδη θυμάσαι') && rich.includes('στόχος πώληση σε 2 χρόνια'));
+
+  // κενές/whitespace μνήμες δεν εμφανίζουν τη λίστα
+  const empty = buildSystemPrompt(id(), 'x', undefined, { memories: ['', '   '] });
+  ok('blank memories hide list', !empty.includes('Ήδη θυμάσαι'));
+}
+
+// ── Μόνιμη μνήμη: add / dedup / cap / remove / clear ──────────────────────────
+{
+  const uid = 'user-test-1';
+  clearMemories(uid);
+  ok('starts empty', loadMemories(uid).length === 0);
+  addMemory(uid, 'προτιμά ηλεκτρονικές πληρωμές');
+  ok('added one', loadMemories(uid).length === 1);
+  addMemory(uid, '  προτιμά ηλεκτρονικές    πληρωμές  '); // ίδιο, με επιπλέον κενά
+  ok('dedup after normalize', loadMemories(uid).length === 1);
+  addMemory(uid, 'Cash Only'); addMemory(uid, 'cash only'); // ίδιο σε λατινικά, διαφορετική πεζότητα
+  ok('dedup case-insensitive latin', loadMemories(uid).filter(m => m.text.toLowerCase() === 'cash only').length === 1);
+  removeMemory(uid, loadMemories(uid).find(m => m.text.toLowerCase() === 'cash only')!.id);
+  ok('back to one', loadMemories(uid).length === 1);
+  addMemory(uid, '   '); // κενό αγνοείται
+  ok('blank ignored', loadMemories(uid).length === 1);
+  addMemory(uid, 'δεύτερο γεγονός');
+  ok('added second', loadMemories(uid).length === 2);
+  const first = loadMemories(uid)[0];
+  removeMemory(uid, first.id);
+  ok('removed one by id', loadMemories(uid).length === 1 && !loadMemories(uid).some(m => m.id === first.id));
+  clearMemories(uid);
+  ok('cleared', loadMemories(uid).length === 0);
+
+  // cap: πάνω από 100 κρατά τα τελευταία 100
+  for (let i = 0; i < 120; i++) addMemory(uid, `γεγονός νούμερο ${i}`);
+  const capped = loadMemories(uid);
+  ok('capped at 100', capped.length === 100);
+  ok('cap keeps latest', capped[capped.length - 1].text === 'γεγονός νούμερο 119');
+  clearMemories(uid);
+
+  // απομόνωση ανά χρήστη
+  addMemory('user-A', 'μυστικό Α');
+  addMemory('user-B', 'μυστικό Β');
+  ok('per-user isolation', loadMemories('user-A').length === 1 && loadMemories('user-B')[0].text === 'μυστικό Β');
+  clearMemories('user-A'); clearMemories('user-B');
+}
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);

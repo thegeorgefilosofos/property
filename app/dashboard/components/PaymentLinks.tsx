@@ -14,7 +14,7 @@ interface LinkItem { label: string; sub: string; url: string; }
 
 const COLLECT: LinkItem[] = [
   { label: 'Viva.com', sub: 'Αίτημα πληρωμής / POS', url: 'https://www.viva.com/el-gr/' },
-  { label: 'IRIS Πληρωμές', sub: 'Άμεση μεταφορά (DIAS)', url: 'https://www.irispayments.gr/' },
+  { label: 'IRIS Πληρωμές', sub: 'Άμεση μεταφορά (DIAS)', url: 'https://www.dias.com.gr' },
   { label: 'Stripe', sub: 'Διεθνείς πληρωμές', url: 'https://dashboard.stripe.com/' },
 ];
 

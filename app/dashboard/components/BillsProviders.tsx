@@ -10,9 +10,7 @@ const INTERNET_PROVIDERS = [
   { value: 'nova',      label: 'Nova',       url: 'https://www.nova.gr',       color: '#e4002b' },
   { value: 'vodafone',  label: 'Vodafone',   url: 'https://www.vodafone.gr',   color: '#e60000' },
   { value: 'inalan',    label: 'Inalan',     url: 'https://www.inalan.gr',     color: '#0073ff' },
-  { value: 'enterwave', label: 'Enterwave',  url: 'https://www.enterwave.gr',  color: '#f59e0b' },
   { value: 'hol',       label: 'HOL',        url: 'https://www.hol.gr',        color: '#f97316' },
-  { value: 'cyta',      label: 'Cyta',       url: 'https://www.cyta.gr',       color: '#003da5' },
 
   { value: 'dei',       label: 'ΔΕΗ Telecom', url: 'https://www.dei.gr',         color: '#1a7fe0' },
   { value: 'other',     label: 'Άλλος',       url: '',                           color: '#94a3b8' },
@@ -86,15 +84,6 @@ const INTERNET_PLANS: Record<string, {
     // ── Φοιτητικά ────────────────────────────────────────────────────────
     { id:'i_300_st',   name: 'Φοιτητικό 300 Mbps',         speed: '300/300 Mbps συμμετρικό', price: 14.00, hasPhone: false, note: 'Φοιτητικό, χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ. Δωρεάν εγκατάσταση.', networkType: 'Fiber', student: true },
     { id:'i_1g_st',    name: 'Φοιτητικό 1 Gbps',           speed: '1 Gbps/1 Gbps συμμετρικό', price: 28.00, hasPhone: false, note: 'Φοιτητικό, χωρίς δέσμευση. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.', networkType: 'Fiber', student: true },
-  ],
-  enterwave: [
-    { id:'ew_100',     name: 'Enterwave Fiber 100',         speed: '100 Mbps',  price: 16.90, hasPhone: false, note: 'FTTH Αθήνα και Θεσσαλονίκη.', networkType: 'Fiber' },
-    { id:'ew_500',     name: 'Enterwave Fiber 500',         speed: '500 Mbps',  price: 21.90, hasPhone: false, note: 'FTTH Αθήνα και Θεσσαλονίκη.', networkType: 'Fiber' },
-  ],
-  cyta: [
-    { id:'cy_100',     name: 'CytaFiber 100',               speed: '100 Mbps',  price: 18.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
-    { id:'cy_500',     name: 'CytaFiber 500',               speed: '500 Mbps',  price: 24.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
-    { id:'cy_1g',      name: 'CytaFiber 1 Gbps',            speed: '1 Gbps',    price: 29.90, hasPhone: true,  note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   hol: [
     { id:'h_100',      name: 'HOL Fiber 100',               speed: '100/50 Mbps', price: 19.90, hasPhone: true, note: 'Δέσμευση 24 μηνών.', networkType: 'Fiber', contract: '24 μήνες' },

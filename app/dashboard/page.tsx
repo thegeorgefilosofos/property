@@ -27,6 +27,8 @@ import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
+import UpgradeModal from './components/UpgradeModal';
+import { canAddProperty } from '@/lib/billing/plans';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -635,6 +637,8 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
+  const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
+  const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
   useEffect(() => {
@@ -664,11 +668,19 @@ export default function Dashboard() {
       // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση, idempotent.
       const refBy = (user.user_metadata as any)?.referred_by;
       if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
+      // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
+      supabase.from('billing_profiles').select('plan').eq('user_id', user.id).maybeSingle().then(({ data }) => setPlan(data?.plan || 'free'));
       await fetchProperties(user.id);
       setLoading(false);
     };
     init();
   }, []);
+
+  // Προσθήκη ακινήτου με έλεγχο ορίου πλάνου: αν έφτασες το όριο, δείξε αναβάθμιση.
+  const tryAddProperty = () => {
+    if (canAddProperty(plan, properties.length)) setShowAddModal(true);
+    else setShowUpgrade(true);
+  };
 
   const updateStatus = async (status: string) => {
     if (!selected||!user) return;
@@ -703,7 +715,7 @@ export default function Dashboard() {
       keywords: `${p.address||''} ${PROP_TYPE_LABELS[p.prop_type||'']||''}`,
       action: () => { setSelected(p); setNav('overview'); },
     })),
-    { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => setShowAddModal(true) },
+    { id: 'act-add', label: 'Προσθήκη ακινήτου', hint: 'Ενέργεια', keywords: 'new property add', action: () => tryAddProperty() },
     { id: 'act-signout', label: 'Αποσύνδεση', hint: 'Ενέργεια', keywords: 'logout sign out exit', action: () => signOut() },
   ];
 
@@ -743,7 +755,7 @@ export default function Dashboard() {
               <span className="prop-item-name">{p.name}</span>
             </div>
           ))}
-          <button onClick={()=>setShowAddModal(true)}
+          <button onClick={()=>tryAddProperty()}
             style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--accent)',textAlign:'left'}}
             onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'}
             onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -846,7 +858,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <button className="btn btn-primary" onClick={()=>setShowAddModal(true)} style={{fontSize:14,height:44,padding:'0 28px'}}>+ Προσθήκη πρώτου ακινήτου</button>
+              <button className="btn btn-primary" onClick={()=>tryAddProperty()} style={{fontSize:14,height:44,padding:'0 28px'}}>+ Προσθήκη πρώτου ακινήτου</button>
             </div>
           </div>
         ) : (
@@ -929,6 +941,7 @@ export default function Dashboard() {
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
+      {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={plan} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}
     </div>
   );
 }
