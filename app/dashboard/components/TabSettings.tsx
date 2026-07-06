@@ -46,8 +46,10 @@ function calcLawyer(v:number):number {
 }
 
 // ─── Tax brackets ─────────────────────────────────────────────────────────────
+// Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 (βλ. lib/billing/greekTax).
 const RENTAL_TAX = [
   { limit:12_000, rate:0.15 },
+  { limit:24_000, rate:0.25 },
   { limit:35_000, rate:0.35 },
   { limit:Infinity,rate:0.45 },
 ];

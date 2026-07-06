@@ -6,6 +6,7 @@ import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, Toggle } fr
 import RentComparables from './RentComparables';
 import RentROIReport from './RentROIReport';
 import { T, fe } from '@/components/Theme';
+import { rentalIncomeTax } from '@/lib/billing/greekTax';
 
 interface Props {
   propertyId: string;
@@ -140,12 +141,8 @@ function calcRentTax(gross: number, electronic: boolean, ownerAge: number, child
   const electronicSaving = electronic ? calcRentTax(gross, false, ownerAge, children).tax - tax : 0;
   return { taxable, tax, reduction, effectiveRate, electronicSaving };
 }
-function calcBaseTax(t: number): number {
-  if (t <= 12000) return t * 0.15;
-  if (t <= 14000) return 12000 * 0.15 + (t - 12000) * 0.25;
-  if (t <= 35000) return 12000 * 0.15 + 2000 * 0.25 + (t - 14000) * 0.35;
-  return 12000 * 0.15 + 2000 * 0.25 + 21000 * 0.35 + (t - 35000) * 0.45;
-}
+// Κλίμακα ενοικίων 2026 (κοινή πηγή: lib/billing/greekTax).
+const calcBaseTax = (t: number): number => rentalIncomeTax(t);
 function toMonths(val: string, unit: string): number {
   const n = parseFloat(val) || 0;
   if (unit === 'days') return n / 30;
@@ -937,8 +934,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <div style={{ ...labelStyle, marginBottom: 12 }}>Κλίμακα Φορολόγησης 2026</div>
               {[
                 { range: '€0 – €12.000', rate: '15%', c: calc.taxable <= 12000 },
-                { range: '€12.001 – €14.000', rate: '25%', c: calc.taxable > 12000 && calc.taxable <= 14000 },
-                { range: '€14.001 – €35.000', rate: '35%', c: calc.taxable > 14000 && calc.taxable <= 35000 },
+                { range: '€12.001 – €24.000', rate: '25%', c: calc.taxable > 12000 && calc.taxable <= 24000 },
+                { range: '€24.001 – €35.000', rate: '35%', c: calc.taxable > 24000 && calc.taxable <= 35000 },
                 { range: 'Άνω των €35.000', rate: '45%', c: calc.taxable > 35000 },
               ].map((r, i) => (
                 <div key={i} style={{
