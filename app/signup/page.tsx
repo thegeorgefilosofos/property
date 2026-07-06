@@ -102,7 +102,7 @@ export default function SignupPage() {
       <AuthAside
         headline="Ξεκίνα σήμερα."
         accent="Δωρεάν, χωρίς κάρτα."
-        sub="Δημιούργησε λογαριασμό σε λίγα δευτερόλεπτα. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο αν προσθέσεις δεύτερο."
+        sub="Δημιούργησε λογαριασμό σε λίγα δευτερόλεπτα. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο όταν έχεις περισσότερα να διαχειριστείς."
       />
 
       {/* RIGHT — form */}
@@ -189,7 +189,7 @@ export default function SignupPage() {
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Χωρίς χρέωση σήμερα</span>
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>Δεν χρειάζεται κάρτα για να ξεκινήσεις. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο αν προσθέσεις δεύτερο.</p>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>Δεν χρειάζεται κάρτα για να ξεκινήσεις. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο όταν έχεις περισσότερα να διαχειριστείς.</p>
               </div>
 
             </>

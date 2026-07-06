@@ -41,7 +41,7 @@ const FAQ = [
   { q: 'Πώς δουλεύει η σάρωση με φωτογραφία;', a: 'Βγάζεις φωτογραφία ή ανεβάζεις ένα PDF: λογαριασμό, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Το διαβάζει, καταλαβαίνει τι είναι και το καταχωρεί αυτόματα στο σωστό σημείο: λογαριασμοί, δαπάνες, ημερολόγιο, ενοικιαστής, ασφάλεια. Εσύ απλώς επιβεβαιώνεις, και διορθώνεις οτιδήποτε με ένα κλικ.' },
   { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου. Του δίνεις όνομα και φύλο όπως θέλεις, απαντά με βάση τα δικά σου δεδομένα και, για δεσμευτικά θέματα, σε παραπέμπει στον σωστό επαγγελματία (λογιστή, δικηγόρο, συμβολαιογράφο).' },
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων στην Ελλάδα, από ένα έως δεκαπέντε ακίνητα κάθε τύπου: κατοικία, επαγγελματικός χώρος, αποθήκη ή οικόπεδο. Είτε έχεις ένα διαμέρισμα είτε ένα μικρό χαρτοφυλάκιο, το Property OS προσαρμόζεται σε σένα.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα, με όλες τις δυνατότητες. Αν προσθέσεις δεύτερο ακίνητο, το κόστος είναι 2,99 € τον μήνα ή 29,90 € τον χρόνο για όλα σου τα ακίνητα, χωρίς ετήσια δέσμευση.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα, με όλες τις δυνατότητες. Αν έχεις περισσότερα, το πλάνο Ιδιοκτήτης είναι 6,90 € τον μήνα (ή 59 € τον χρόνο, με δύο μήνες δώρο) για έως 15 ακίνητα. Για μεσιτικά γραφεία και διαχειριστές, το πλάνο Επαγγελματίας είναι 19 € τον μήνα με απεριόριστα ακίνητα και πολλούς χρήστες. Χωρίς κάρτα για να ξεκινήσεις, ακυρώνεις όποτε θέλεις.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Ο κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα, με κρυπτογραφημένη σύνδεση και απομόνωση ανά χρήστη. Τα δεδομένα σου δεν χρησιμοποιούνται για εκπαίδευση μοντέλων και είμαστε συμβατοί με τον GDPR.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Ναι. Η εφαρμογή προσαρμόζεται πλήρως και δουλεύει άψογα σε κινητό, tablet, υπολογιστή και μεγάλες οθόνες. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου.' },
 ];
@@ -247,41 +247,63 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(48px, 7vw, 90px) clamp(20px, 5vw, 48px)' }}>
-        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο αν μεγαλώσεις." />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16, maxWidth: 760, margin: '0 auto', alignItems: 'stretch' }}>
-          <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(24px, 3vw, 32px)', display: 'flex', flexDirection: 'column' }}>
+        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο όταν αξίζει." sub="Το πρώτο ακίνητο είναι δωρεάν για πάντα. Από εκεί και πάνω, μια τιμή που την καλύπτει μόνη της όσα σου δείχνουμε να γλιτώσεις." />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1060, margin: '0 auto', alignItems: 'stretch' }}>
+
+          {/* Δωρεάν */}
+          <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Δωρεάν</div>
-            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18 }}>Για να ξεκινήσεις με το πρώτο σου ακίνητο</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για τον ιδιοκτήτη με ένα ακίνητο</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(34px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: TEXT }}>0&nbsp;€</span>
+              <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>0&nbsp;€</span>
               <span style={{ fontSize: 15, color: MUTED }}>για πάντα</span>
             </div>
+            <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>Χωρίς κάρτα, χωρίς λήξη</div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
-              {['1 ακίνητο, κάθε τύπου', 'Καταχώρηση από φωτογραφία και βοηθός με φωνή', 'Αποδόσεις, δαπάνες, ενέργεια, φορολογία', 'Χωρίς κάρτα, χωρίς λήξη'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT }}>{t}</span></div>
+              {['1 ακίνητο, κάθε τύπου', 'Σάρωση με φωτογραφία και βοηθός με φωνή', 'Αποδόσεις, δαπάνες, ενέργεια, φορολογία', 'Έξυπνες ειδοποιήσεις και υπενθυμίσεις'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
               ))}
             </div>
             <Link href="/signup" className="lp-ghost" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Ξεκίνα δωρεάν</Link>
           </div>
-          <div className="lp-card" style={{ background: PANEL, border: `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)`, borderRadius: 16, padding: 'clamp(24px, 3vw, 32px)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 1px 2px rgba(16,24,40,.06)' }}>
-            <div style={{ position: 'absolute', top: 16, right: 16, ...chip, padding: '4px 10px', fontSize: 11 }}>Για 2+ ακίνητα</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: ACCENT, marginBottom: 4 }}>Pro</div>
-            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18 }}>Για όσους διαχειρίζονται περισσότερα ακίνητα</div>
+
+          {/* Ιδιοκτήτης — δημοφιλές */}
+          <div className="lp-card" style={{ background: PANEL, border: `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 1px 2px rgba(16,24,40,.06)' }}>
+            <div style={{ position: 'absolute', top: 16, right: 16, background: ACCENT, color: 'var(--accent-text)', borderRadius: 100, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>Δημοφιλές</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: ACCENT, marginBottom: 4 }}>Ιδιοκτήτης</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για χαρτοφυλάκιο, ενοικιαστές και Airbnb</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(34px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.03em', color: ACCENT }}>2,99&nbsp;€</span>
+              <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>6,90&nbsp;€</span>
               <span style={{ fontSize: 15, color: MUTED }}>τον μήνα</span>
             </div>
-            <div style={{ fontSize: 13, color: FAINT }}>ή <strong style={{ color: TEXT }}>29,90 € τον χρόνο</strong>, με 2 μήνες δώρο</div>
+            <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>ή <strong style={{ color: TEXT }}>59 € τον χρόνο</strong>, δύο μήνες δώρο</div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
-              {['Από 2 έως 15 ακίνητα', 'Όλα όσα έχει το δωρεάν πλάνο', 'Συγκρίσεις μεταξύ των ακινήτων σου', 'Χωρίς ετήσια δέσμευση, ακυρώνεις όποτε θέλεις'].map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT }}>{t}</span></div>
+              {['Έως 15 ακίνητα, όλων των τύπων', 'Όλα όσα έχει το δωρεάν, χωρίς όρια', 'Συγκρίσεις μεταξύ των ακινήτων σου', 'Φορολογικές εξαγωγές έτοιμες για τον λογιστή', 'Προτεραιότητα στη σάρωση και στον βοηθό'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
               ))}
             </div>
-            <Link href="/signup" className="lp-cta" style={{ display: 'block', textAlign: 'center', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
+            <Link href="/signup" className="lp-cta" style={{ display: 'block', textAlign: 'center', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>Δοκίμασε δωρεάν →</Link>
+          </div>
+
+          {/* Επαγγελματίας — μεσιτικά / διαχειριστές */}
+          <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Επαγγελματίας</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για μεσιτικά γραφεία και διαχειριστές ακινήτων</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>19&nbsp;€</span>
+              <span style={{ fontSize: 15, color: MUTED }}>τον μήνα</span>
+            </div>
+            <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>ή <strong style={{ color: TEXT }}>190 € τον χρόνο</strong>, δύο μήνες δώρο</div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'left', margin: '22px 0 24px' }}>
+              {['Απεριόριστα ακίνητα', 'Πολλοί χρήστες στην ίδια ομάδα', 'Αναφορές με τη δική σου επωνυμία', 'Υποστήριξη κατά προτεραιότητα'].map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
+              ))}
+            </div>
+            <Link href="/signup" className="lp-ghost" style={{ display: 'block', textAlign: 'center', background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: `1px solid ${LINE}` }}>Ξεκίνα τώρα</Link>
           </div>
         </div>
-        <p style={{ textAlign: 'center', fontSize: 13, color: FAINT, margin: '24px auto 0', maxWidth: 520, lineHeight: 1.6 }}>
-          Πληρώνεις μόνο όταν προσθέσεις δεύτερο ακίνητο. Το πρώτο σου μένει δωρεάν, για πάντα.
+        <p style={{ textAlign: 'center', fontSize: 13, color: FAINT, margin: '24px auto 0', maxWidth: 560, lineHeight: 1.6 }}>
+          Το πρώτο ακίνητο μένει δωρεάν, για πάντα. Χωρίς κάρτα για να ξεκινήσεις, ακυρώνεις όποτε θέλεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
