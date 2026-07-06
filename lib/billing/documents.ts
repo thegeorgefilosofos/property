@@ -206,7 +206,7 @@ export interface SavePlan {
   tenant?:   Record<string, unknown>;        // → tenants (upsert ανά property)
   property?: Record<string, unknown>;        // → user_properties (ΜΟΝΟ ασφαλείς στήλες)
   settings?: Record<string, unknown>;        // → property_settings (π.χ. ασφάλεια — καρτέλα Ρυθμίσεις)
-  archive?:  { category: string; note?: string }; // → property_documents (το αρχείο πρωτότυπο)
+  archive?:  { category: string; note?: string; date?: string }; // → property_documents (το αρχείο πρωτότυπο)
   reconcile?: boolean;                       // payment: προσπάθησε συμφωνία με εκκρεμή λογαριασμό
   commonMonthAmount?: number;                // κοινόχρηστα: ποσό μήνα για ιστορικό
   commonMillesimi?:   number;                // κοινόχρηστα: χιλιοστά
@@ -235,8 +235,11 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   const customNote = (doc.custom || []).filter(c => c.label && c.value)
     .map(c => `${c.label}: ${c.value}`).join(' · ');
   const baseNote = [doc.notes || '', customNote].filter(Boolean).join(' · ');
+  // Ημερομηνία εγγράφου για το Αρχείο — η πιο σχετική ανά τύπο.
+  const archiveDate = iso(doc.issue_date) || iso(doc.due_date) || iso(doc.purchase_date)
+    || iso(doc.lease_start) || iso(doc.expiry_date) || '';
   // Κάθε σαρωμένο έγγραφο αρχειοθετείται πάντα (το πρωτότυπο) στο σωστό tab.
-  const archive = { category: DOC_ARCHIVE_CATEGORY[t] };
+  const archive = { category: DOC_ARCHIVE_CATEGORY[t], date: archiveDate || undefined };
 
   if (t === 'bill' || t === 'payment') {
     const cat = doc.category && EXPENSE_MAP[doc.category] ? doc.category : 'other';
@@ -304,6 +307,8 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     // Η ασφάλεια αποθηκεύεται στο property_settings (καρτέλα Ρυθμίσεις — εκεί που
     // ο χρήστης βλέπει τα στοιχεία ασφάλισης). Δεν υπάρχει στήλη ποσού εκεί, γι'
     // αυτό το ασφάλιστρο καταγράφεται ως έξοδο (Ασφάλεια Κτιρίου).
+    const coverageNote = doc.coverage ? `Κάλυψη: ${doc.coverage.toLocaleString('el-GR')} €` : '';
+    const insNote = [coverageNote, baseNote].filter(Boolean).join(' · ');
     const plan: SavePlan = {
       targets: ['Ασφάλεια', 'Αρχείο'],
       settings: {
@@ -311,7 +316,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         insurance_policy: (doc.policy_number || '').trim() || null,
         insurance_expiry: iso(doc.expiry_date) || null,
       },
-      archive,
+      archive: { ...archive, note: insNote || undefined },
     };
     if (doc.premium) {
       const map = EXPENSE_MAP.insurance;
@@ -319,7 +324,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         description: `${map.cat}${provider ? ` — ${provider}` : ''}${doc.policy_number ? ` (Αρ. ${doc.policy_number})` : ''}`,
         amount: doc.premium, category: map.cat, expense_group: map.group,
         date: iso(doc.issue_date) || today, paid_by: 'owner', paid: false,
-        notes: [`Από σάρωση ασφαλιστηρίου`, baseNote].filter(Boolean).join(' · '),
+        notes: [`Από σάρωση ασφαλιστηρίου`, insNote].filter(Boolean).join(' · '),
       };
       plan.targets.push('Δαπάνες');
     }
@@ -347,6 +352,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     if (doc.year_built) property.year_built = doc.year_built;
     if (doc.sqm) property.sqm = doc.sqm;
     const extras = [
+      provider ? `Συμβολαιογράφος/Πηγή: ${provider}` : '',
       doc.atak ? `ΑΤΑΚ: ${doc.atak}` : '',
       doc.obj_value ? `Αντικειμενική: ${doc.obj_value.toLocaleString('el-GR')} €` : '',
       iso(doc.purchase_date) ? `Ημ. αγοράς: ${iso(doc.purchase_date)}` : '',
