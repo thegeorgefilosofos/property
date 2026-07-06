@@ -704,12 +704,26 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set())
   const [timelineYear,setTimelineYear]=useState(new Date().getFullYear())
 
-  useEffect(()=>{load()},[propertyId])
+  useEffect(()=>{
+    load()
+    // Ζωντανό: κάθε αλλαγή στα γεγονότα (π.χ. συμφωνία πληρωμής, sync υποχρεώσεων
+    // από άλλα tabs) ενημερώνει αμέσως το ημερολόγιο, χωρίς refresh.
+    const ch=supabase.channel(`calendar_${propertyId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'calendar_events',filter:`property_id=eq.${propertyId}`},()=>silentReload())
+      .subscribe()
+    return ()=>{ supabase.removeChannel(ch) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[propertyId])
 
   async function load() {
     setLoading(true)
     const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')
     setEvents(data||[]); setLoading(false)
+  }
+  // Επαναφόρτωση χωρίς spinner (για live ενημερώσεις)
+  async function silentReload() {
+    const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')
+    setEvents(data||[])
   }
 
   const filtered=events.filter(e=>{

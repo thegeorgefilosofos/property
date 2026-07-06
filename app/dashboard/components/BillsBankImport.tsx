@@ -3,81 +3,18 @@
 import { useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import {
+  parseCSV, categorizeTransaction, EXPENSE_MAP, matchBillToPayment,
+  type ParsedTransaction, type PendingBill,
+} from '@/lib/billing/parse';
 
 const mdLabel: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.5px',
   textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans,
 };
 
-interface ParsedTransaction {
-  id:          string;
-  date:        string;
-  description: string;
-  amount:      number;
-  debit:       boolean;
-  category:    string;
-  confidence:  'high' | 'medium' | 'low';
-  selected:    boolean;
-  matched:     string;
-}
-
-// ── Comprehensive Greek bank/merchant matcher ─────────────────────────────────
-const MATCHERS = [
-  { keywords: ['ΔΕΗ','DEH','ΔΗΜΟΣΙΑ ΕΠΙΧΕΙΡΗΣΗ ΗΛΕΚΤΡΙΣΜΟΥ','ΗΡΩΝ ΗΛΕΚΤΡΙΣΜΟΣ','HERON ENERGY','PROTERGIA','VOLTERRA','NRG BILLING','ZENITH ENERGY','ELIN ENERGY','WATT+VOLT','SKY ENERGY'], category: 'electricity', label: 'Ρεύμα', confidence: 'high' as const },
-  { keywords: ['ΕΥΔΑΠ','EYDAP','ΕΥΑΘ','EYATH','ΔΕΥΑ','ΕΤΑΙΡΕΙΑ ΥΔΡΕΥΣΗΣ','ΥΔΡΕΥΣΗ'], category: 'water', label: 'Νερό', confidence: 'high' as const },
-  { keywords: ['COSMOTE','OTE AE','NOVA BROADBAND','NOVA SA','FORTHNET','VODAFONE ΕΛΛΑΔΟΣ','WIND HELLAS','HOL SA','CYTA HELLAS','INALAN','ENTERWAVE','WIND MOBILE'], category: 'internet', label: 'Internet & Τηλεφωνία', confidence: 'high' as const },
-  { keywords: ['NETFLIX','DISNEY PLUS','SPOTIFY AB','AMAZON PRIME','AMAZON DIGITAL','MAX HBO','YOUTUBE PREMIUM','GOOGLE YOUTUBE','ANT1 PLUS','COSMOTE TV','APPLE TV+','APPLE.COM/BILL'], category: 'streaming', label: 'Streaming & Συνδρομές', confidence: 'high' as const },
-  { keywords: ['ICLOUD','APPLE ICLOUD','GOOGLE ONE','GOOGLE STORAGE','MICROSOFT 365','MICROSOFT ONLINE','DROPBOX','ADOBE SYSTEMS','CANVA'], category: 'streaming', label: 'Cloud & Λογισμικό', confidence: 'high' as const },
-  { keywords: ['ΑΑΔΕ','AADE','ENFIA','ΕΝΦΙΑ','ΕΦΟΡΙΑ ΑΘΗΝΩΝ','ΔΗΜΟΣΙΑ ΕΣΟΔΑ','ΕΦΚΑ','ΙΚΑ','ΤΕΒΕ'], category: 'taxes', label: 'ΕΝΦΙΑ & Φόροι', confidence: 'high' as const },
-  { keywords: ['ΔΗΜΟΣ ΑΘΗΝΑΙΩΝ','ΔΗΜΟΤΙΚΑ ΤΕΛΗ','ΔΗΜΟΤΙΚΗ','ΔΗΜΟΣ ΘΕΣΣΑΛΟΝΙΚΗΣ','ΔΗΜΟΤΙΚΗ ΑΡΧΗ','ΔΗΜΟΣ'], category: 'municipal', label: 'Δημοτικά Τέλη', confidence: 'medium' as const },
-  { keywords: ['EDA ATTIKIS','ΕΔΑ ΑΤΤΙΚΗΣ','EDA THESS','DEPA','ΦΥΣΙΚΟ ΑΕΡΙΟ','GAS DISTRIBUTION','HERON GAS','PROTERGIA GAS'], category: 'gas', label: 'Φυσικό Αέριο', confidence: 'high' as const },
-  { keywords: ['HELLAS DIRECT','INTERAMERICAN','EUROLIFE FFH','EUROLIFE','GENERALI HELLAS','AXA ASFALISTIKI','ΕΘΝΙΚΗ ΑΣΦΑΛΙΣΤΙΚΗ','ALLIANZ HELLAS','ERGO ΑΣΦΑΛΙΣΤΙΚΗ','GROUPAMA'], category: 'insurance', label: 'Ασφάλεια', confidence: 'high' as const },
-  { keywords: ['ELTRAK SECURITY','G4S HELLAS','VANINFO','DSP SECURITY','SECURITAS','ΕΤΑΙΡΕΙΑ ΑΣΦΑΛΕΙΑΣ','ALARM'], category: 'security', label: 'Ασφάλεια & Security', confidence: 'medium' as const },
-  { keywords: ['ΚΟΙΝΟΧΡΗΣΤΑ','ΚΤΗΡΙΟ','ΔΙΑΧΕΙΡΙΣΗΣ','ΚΤΗΡΙΟ','MYBILLYS','MY CONDO','COMFY'], category: 'common', label: 'Κοινόχρηστα', confidence: 'medium' as const },
-  { keywords: ['ΜΙΣΘΩΜΑ','ΕΝΟΙΚΙΟ','RENT','ENARC','ΜΙΣΘΩΣΗ'], category: 'rent_income', label: 'Ενοίκιο', confidence: 'medium' as const },
-] as const;
-
-function categorizeTransaction(desc: string) {
-  const upper = desc.toUpperCase();
-  for (const m of MATCHERS) {
-    const hit = (m.keywords as readonly string[]).find(k => upper.includes(k));
-    if (hit) return { category: m.category, label: m.label, confidence: m.confidence, matched: hit };
-  }
-  return { category: 'other', label: 'Άλλο', confidence: 'low' as const, matched: '' };
-}
-
-function parseCSV(text: string): ParsedTransaction[] {
-  const lines = text.split('\n').filter(l => l.trim());
-  const results: ParsedTransaction[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)|;|\t/).map(c => c.trim().replace(/^"|"$/g, ''));
-    if (cols.length < 3) continue;
-    let date = '', desc = '', amount = 0, debit = true;
-    for (const col of cols) {
-      if (!date && /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(col)) {
-        const parts = col.split(/[\/\-\.]/);
-        if (parts.length === 3) {
-          const [d, m, y] = parts[0].length === 4 ? [parts[2], parts[1], parts[0]] : parts;
-          date = `${y.length === 2 ? '20' + y : y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-        }
-      }
-      if (!amount) {
-        const clean = col.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
-        const n = parseFloat(clean);
-        if (!isNaN(n) && Math.abs(n) > 0.01 && Math.abs(n) < 100000) {
-          amount = Math.abs(n); debit = n < 0 || col.startsWith('-');
-        }
-      }
-      if (col.length > 4 && !/^\d+[,\.]?\d*$/.test(col) && !/^\d{1,2}[\/\-]\d{1,2}/.test(col)) {
-        if (!desc || col.length > desc.length) desc = col;
-      }
-    }
-    if (!date || !amount || !desc) continue;
-    const cat = categorizeTransaction(desc);
-    results.push({ id: `tx_${i}_${Date.now()}`, date, description: desc, amount, debit, ...cat, selected: debit && cat.category !== 'other', matched: cat.matched });
-  }
-  return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
+// Η λογική ανάλυσης/κατηγοριοποίησης/συμφωνίας ζει στο @/lib/billing/parse
+// (καθαρή & δοκιμασμένη — δες lib/billing/parse.test.ts, 23k+ tests).
 
 async function parseXLSX(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
   const XLSX = await import('xlsx');
@@ -99,6 +36,12 @@ const CATEGORY_OPTIONS = [
   { value: 'security',    label: 'Security'                   },
   { value: 'common',      label: 'Κοινόχρηστα'               },
   { value: 'maintenance', label: 'Συντήρηση'                  },
+  { value: 'elevator',    label: 'Συντήρηση Ασανσέρ'          },
+  { value: 'pool',        label: 'Καθαρισμός Πισίνας'         },
+  { value: 'gardener',    label: 'Κηπουρός'                    },
+  { value: 'cleaner',     label: 'Καθαριότητα'                },
+  { value: 'plumber',     label: 'Υδραυλικός'                 },
+  { value: 'electrician', label: 'Ηλεκτρολόγος'               },
   { value: 'rent_income', label: 'Ενοίκιο (Έσοδο)'           },
   { value: 'other',       label: 'Άλλο'                       },
 ];
@@ -131,11 +74,13 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [importing,    setImporting]    = useState(false);
   const [imported,     setImported]     = useState(0);
+  const [reconciled,   setReconciled]   = useState(0);
   const [dragOver,     setDragOver]     = useState(false);
   const [error,        setError]        = useState('');
   const [step,         setStep]         = useState<'upload'|'review'|'done'>('upload');
   const [filterCat,    setFilterCat]    = useState('');
   const [selectedBank, setSelectedBank] = useState('');
+  const [editingId,    setEditingId]    = useState<string | null>(null);
 
   const processFile = useCallback(async (file: File) => {
     setError('');
@@ -234,6 +179,9 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
   const toggleTx  = (id: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, selected: !t.selected } : t));
   const setCat    = (id: string, cat: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, category: cat } : t));
+  const setTxAmount = (id: string, v: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, amount: parseFloat(v.replace(',', '.')) || 0 } : t));
+  const setTxNote   = (id: string, note: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, note } : t));
+  const setTxDesc   = (id: string, description: string) => setTransactions(p => p.map(t => t.id === id ? { ...t, description } : t));
   const selectAll = (val: boolean) => setTransactions(p => p.map(t => ({ ...t, selected: val })));
 
   const importSelected = async () => {
@@ -241,33 +189,91 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
     if (!selected.length) return;
     setImporting(true);
     try {
-      const rows = selected.map(t => ({
-        property_id: propertyId, user_id: userId,
-        category:    t.category,
-        name:        t.description.slice(0, 100),
-        amount:      t.amount,
-        paid:        true,
-        due_date:    t.date,
-        created_at:  new Date(t.date).toISOString(),
-        notes:       `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''} · ${t.matched || ''}`,
-        recurring:   false,
-      }));
-      const { error: err } = await supabase.from('bills').insert(rows);
-      if (err) throw err;
+      // ── Μηχανή Συμφωνίας (reconciliation) ────────────────────────────────
+      // Κάθε τραπεζική πληρωμή ψάχνει τον αντίστοιχο ΕΚΚΡΕΜΗ λογαριασμό (ίδιο
+      // ποσό ±1% (έως 0,20 €) & κοντινή ημερομηνία, με προτίμηση ίδιας κατηγορίας). Αν βρεθεί,
+      // ο λογαριασμός μαρκάρεται ΠΛΗΡΩΜΕΝΟΣ παντού (Λογαριασμοί + Έξοδα + Ημερολόγιο)
+      // αντί να δημιουργηθεί διπλότυπο. Ό,τι δεν ταιριάζει → νέα εγγραφή.
+      const { data: pend } = await supabase.from('bills')
+        .select('id,category,amount,due_date,created_at')
+        .eq('property_id', propertyId).eq('paid', false);
+      const pendingBills = (pend || []) as PendingBill[];
+      const usedBill = new Set<string>();
+      // billAmount = το ποσό του ΛΟΓΑΡΙΑΣΜΟΥ (όχι της πληρωμής): με αυτό εντοπίζουμε
+      // το συνδεδεμένο έξοδο/γεγονός, γιατί η πληρωμή μπορεί να διαφέρει κατά λεπτά.
+      const matched: { billId: string; cat: string; billAmount: number; note?: string }[] = [];
+      const unmatched: ParsedTransaction[] = [];
 
-      await Promise.allSettled(selected.filter(t => t.debit).map(t =>
-        supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId,
-          amount:      t.amount,
-          description: t.description.slice(0, 100),
-          date:        t.date,
-          category:    CATEGORY_OPTIONS.find(c => c.value === t.category)?.label || t.category,
-          expense_group: 'bills',
-        })
-      ));
+      for (const t of selected) {
+        const m = matchBillToPayment(t, pendingBills, usedBill);   // δοκιμασμένη λογική
+        if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, billAmount: m.amount, note: t.note }); }
+        else unmatched.push(t);
+      }
 
-      setImported(rows.length); setStep('done');
-      onImported?.(rows.length);
+      // 1) Συμφώνησε τα ταιριασμένα — μαρκάρισμα «Πληρώθηκε» παντού.
+      // Προτεραιότητα σε ΑΚΡΙΒΗ σύνδεση μέσω bill_id· αν δεν βρεθεί (παλιά δεδομένα
+      // χωρίς σύνδεσμο), fallback σε ταίριασμα ποσού+κατηγορίας.
+      if (matched.length) {
+        await supabase.from('bills').update({ paid: true }).in('id', matched.map(r => r.billId));
+        for (const r of matched) {
+          const em = EXPENSE_MAP[r.cat] || EXPENSE_MAP.other;
+          const { data: expHit } = await supabase.from('expenses').update({ paid: true })
+            .eq('bill_id', r.billId).eq('paid', false).select('id');
+          if (!expHit || !expHit.length) {
+            await supabase.from('expenses').update({ paid: true })
+              .eq('property_id', propertyId).eq('category', em.cat)
+              .eq('amount', r.billAmount).eq('paid', false).is('bill_id', null);
+          }
+          const { data: evHit } = await supabase.from('calendar_events').update({ status: 'paid' })
+            .eq('bill_id', r.billId).eq('status', 'pending').select('id');
+          if (!evHit || !evHit.length) {
+            await supabase.from('calendar_events').update({ status: 'paid' })
+              .eq('property_id', propertyId).eq('amount', r.billAmount).eq('status', 'pending').is('bill_id', null);
+          }
+          // Σημείωση χρήστη → προσάρτηση στον λογαριασμό (π.χ. «+0,20 λόγω δεκαδικών»)
+          if (r.note && r.note.trim()) {
+            const { data: cur } = await supabase.from('bills').select('notes').eq('id', r.billId).single();
+            const prev = (cur?.notes as string) || '';
+            await supabase.from('bills').update({ notes: prev ? `${prev} · Σημείωση: ${r.note.trim()}` : `Σημείωση: ${r.note.trim()}` }).eq('id', r.billId);
+          }
+        }
+      }
+
+      // 2) Τα αταίριαστα → νέα εγγραφή (Λογαριασμός + Έξοδο) με προστασία διπλότυπου
+      let created = 0;
+      if (unmatched.length) {
+        const rows = unmatched.map(t => ({
+          property_id: propertyId, user_id: userId, category: t.category,
+          name: t.description.slice(0, 100), amount: t.amount, paid: true,
+          due_date: t.date, created_at: new Date(t.date).toISOString(),
+          notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}${t.matched ? ` · ${t.matched}` : ''}${t.note?.trim() ? ` · Σημείωση: ${t.note.trim()}` : ''}`,
+          recurring: false,
+        }));
+        const { error: err } = await supabase.from('bills').insert(rows);
+        if (err) throw err;
+        created = rows.length;
+
+        const dates = unmatched.map(t => t.date).sort();
+        const { data: existing } = await supabase.from('expenses')
+          .select('amount,category,date').eq('property_id', propertyId)
+          .gte('date', dates[0]).lte('date', dates[dates.length - 1]);
+        const seen = new Set((existing || []).map(e => `${e.amount}|${e.category}|${e.date}`));
+        await Promise.allSettled(unmatched.map(t => {
+          const m = EXPENSE_MAP[t.category] || EXPENSE_MAP.other;
+          const key = `${t.amount}|${m.cat}|${t.date}`;
+          if (seen.has(key)) return Promise.resolve();
+          seen.add(key);
+          return supabase.from('expenses').insert({
+            property_id: propertyId, user_id: userId, amount: t.amount,
+            description: t.description.slice(0, 100), date: t.date,
+            category: m.cat, expense_group: m.group, paid_by: 'owner', paid: true,
+            notes: `Εισαγωγή από τράπεζα${selectedBank ? ` (${selectedBank})` : ''}${t.note?.trim() ? ` · Σημείωση: ${t.note.trim()}` : ''}`,
+          });
+        }));
+      }
+
+      setReconciled(matched.length); setImported(created); setStep('done');
+      onImported?.(created + matched.length);
     } catch (e) {
       setError('Σφάλμα αποθήκευσης. Δοκίμασε ξανά.'); console.error(e);
     } finally { setImporting(false); }
@@ -282,10 +288,21 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(52,168,83,0.12)', border: '1px solid rgba(52,168,83,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
         <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>Εισαγωγή Ολοκληρώθηκε</div>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{imported} συναλλαγές προστέθηκαν στους Λογαριασμούς</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>Τα δεδομένα ενημέρωσαν και τις Δαπάνες αυτόματα</div>
-      <button onClick={() => { setStep('upload'); setTransactions([]); setImported(0); setError(''); }}
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, letterSpacing: '-0.02em' }}>Εισαγωγή Ολοκληρώθηκε</div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+        {reconciled > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.25)', borderRadius: T.radius.pill, padding: '5px 14px', fontFamily: T.font.sans }}>
+            ✓ {reconciled} εκκρεμείς λογαριασμοί εξοφλήθηκαν
+          </span>
+        )}
+        {imported > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '5px 14px', fontFamily: T.font.sans }}>
+            + {imported} νέες εγγραφές
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 28 }}>Ενημερώθηκαν αυτόματα Λογαριασμοί, Έξοδα και Ημερολόγιο</div>
+      <button onClick={() => { setStep('upload'); setTransactions([]); setImported(0); setReconciled(0); setError(''); }}
         style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '10px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>
         Νέα Εισαγωγή
       </button>
@@ -444,29 +461,56 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
             {filtered.map((tx, i) => (
-              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(26,115,232,0.03)' : 'transparent', transition: 'background 0.1s' }}>
-                <input type="checkbox" checked={tx.selected} onChange={() => toggleTx(tx.id)}
-                  style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--accent)' }}/>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans, marginBottom: 3 }}>{tx.description}</div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{new Date(tx.date).toLocaleDateString('el-GR')}</span>
-                    {tx.matched && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>↳ {tx.matched}</span>}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: CONFIDENCE_DOT[tx.confidence], fontFamily: T.font.sans }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: CONFIDENCE_DOT[tx.confidence], display: 'inline-block' }}/>
-                      {CONFIDENCE_LBL[tx.confidence]}
-                    </span>
+              <div key={tx.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: tx.selected ? 'rgba(26,115,232,0.03)' : 'transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+                  <input type="checkbox" checked={tx.selected} onChange={() => toggleTx(tx.id)}
+                    style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--accent)' }}/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans, marginBottom: 3 }}>{tx.description}</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{new Date(tx.date).toLocaleDateString('el-GR')}</span>
+                      {tx.matched && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>↳ {tx.matched}</span>}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: CONFIDENCE_DOT[tx.confidence], fontFamily: T.font.sans }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: CONFIDENCE_DOT[tx.confidence], display: 'inline-block' }}/>
+                        {CONFIDENCE_LBL[tx.confidence]}
+                      </span>
+                      {tx.note && <span style={{ fontSize: 9, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>✎ σημείωση</span>}
+                    </div>
                   </div>
-                </div>
-                <select value={tx.category} onChange={e => setCat(tx.id, e.target.value)}
-                  style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
-                  {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-                <div style={{ textAlign: 'right', minWidth: 80 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
-                    {tx.debit ? '-' : '+'}{fe(tx.amount)}
+                  <select value={tx.category} onChange={e => setCat(tx.id, e.target.value)}
+                    style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
+                    {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  <div style={{ textAlign: 'right', minWidth: 80 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: tx.debit ? 'var(--negative)' : 'var(--positive)' }}>
+                      {tx.debit ? '-' : '+'}{fe(tx.amount)}
+                    </div>
                   </div>
+                  <button onClick={() => setEditingId(editingId === tx.id ? null : tx.id)} title="Επεξεργασία / σημείωση"
+                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: T.radius.badge, border: `1px solid ${editingId === tx.id ? 'var(--accent)' : 'var(--border-subtle)'}`, background: editingId === tx.id ? 'var(--accent-soft)' : 'transparent', color: editingId === tx.id ? 'var(--accent)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                    ✎
+                  </button>
                 </div>
+
+                {editingId === tx.id && (
+                  <div style={{ padding: '0 16px 14px 44px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Περιγραφή</label>
+                      <input value={tx.description} onChange={e => setTxDesc(tx.id, e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, outline: 'none' }}/>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Ποσό (€)</label>
+                      <input value={String(tx.amount)} onChange={e => setTxAmount(tx.id, e.target.value)} inputMode="decimal"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }}/>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Σημείωση (προαιρετικό)</label>
+                      <input value={tx.note || ''} onChange={e => setTxNote(tx.id, e.target.value)} placeholder="π.χ. πλήρωσα 0,20 € παραπάνω λόγω στρογγυλοποίησης"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, outline: 'none' }}/>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

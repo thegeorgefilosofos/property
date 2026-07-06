@@ -10,8 +10,20 @@ import {
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import { T, fe, Spinner } from '@/components/Theme';
+import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+
+// Κατηγορία λογαριασμού → ομάδα/κατηγορία Δαπανών (ίδια λογική με scan/τράπεζα).
+const BILL_GROUP: Record<string, { group: string; cat: string }> = {
+  electricity:{group:'fixed',cat:'Ρεύμα'}, water:{group:'fixed',cat:'Νερό'}, gas:{group:'fixed',cat:'Φυσικό Αέριο'},
+  internet:{group:'fixed',cat:'Internet'}, insurance:{group:'fixed',cat:'Ασφάλεια Κτιρίου'}, streaming:{group:'fixed',cat:'Άλλη Πάγια'},
+  taxes:{group:'fixed',cat:'ΕΝΦΙΑ'}, municipal:{group:'fixed',cat:'Δημοτικά Τέλη'}, security:{group:'fixed',cat:'Σύστημα Συναγερμού'},
+  common:{group:'fixed',cat:'Κοινόχρηστα'}, maintenance:{group:'maintenance',cat:'Γενική Συντήρηση'},
+  elevator:{group:'maintenance',cat:'Συντήρηση Ασανσέρ'}, pool:{group:'maintenance',cat:'Καθαρισμός Πισίνας'},
+  gardener:{group:'maintenance',cat:'Κηπουρός'}, cleaner:{group:'maintenance',cat:'Καθαριότητα'},
+  plumber:{group:'maintenance',cat:'Υδραυλικός'}, electrician:{group:'maintenance',cat:'Ηλεκτρολόγος'},
+};
 
 const fmtDateGR = (iso: string) => iso ? new Date(iso).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
@@ -296,6 +308,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [billSort, setBillSort] = useState<BillSort>('received_desc');
   const [chartView, setChartView] = useState<'area' | 'bar' | 'category'>('area');
   const [budgets,   setBudgets]   = useState<Record<string, string>>({});
   const [showBudgets, setShowBudgets] = useState(false);
@@ -415,12 +428,21 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const newPaid = !bill.paid;
     setBills(prev => prev.map(b => b.id === id ? { ...b, paid: newPaid } : b));
     await supabase.from('bills').update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq('id', id);
-    if (newPaid) {
+
+    // Cascade (undo-safe): το συνδεδεμένο έξοδο & γεγονός ημερολογίου ακολουθούν
+    // την κατάσταση του λογαριασμού μέσω bill_id. Καμία διπλοεγγραφή.
+    const { data: expHit } = await supabase.from('expenses').update({ paid: newPaid }).eq('bill_id', id).select('id');
+    await supabase.from('calendar_events').update({ status: newPaid ? 'paid' : 'pending' }).eq('bill_id', id);
+
+    // Αν το σημειώνουμε πληρωμένο και ΔΕΝ υπάρχει συνδεδεμένο έξοδο (π.χ.
+    // χειροκίνητος λογαριασμός), δημιούργησέ το με τη σωστή ομάδα ώστε να μετρήσει.
+    if (newPaid && (!expHit || !expHit.length)) {
+      const g = BILL_GROUP[bill.category] || { group: 'fixed', cat: cat(bill.category).label };
       try {
         await supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId, amount: bill.amount,
+          property_id: propertyId, user_id: userId, bill_id: id, amount: bill.amount,
           description: bill.name, date: new Date().toISOString().split('T')[0],
-          category: cat(bill.category).label, expense_group: 'bills',
+          category: g.cat, expense_group: g.group, paid_by: 'owner', paid: true,
         });
       } catch (_) {}
     }
@@ -656,6 +678,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Λογαριασμοί & Πάγια</span>
+          {bills.length > 1 && (
+            <select value={billSort} onChange={e => setBillSort(e.target.value as BillSort)} title="Ταξινόμηση"
+              style={{ fontSize: 10, padding: '4px 8px', borderRadius: T.radius.badge, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: T.font.sans }}>
+              {(Object.keys(BILL_SORT_LABELS) as BillSort[]).map(k => <option key={k} value={k}>{BILL_SORT_LABELS[k]}</option>)}
+            </select>
+          )}
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{bills.length} εγγραφές</span>
         </div>
         {bills.length === 0 ? (
@@ -666,12 +694,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           </div>
         ) : (
           (['overdue','upcoming','paid'] as const).map(group => {
-            const groupBills = bills.filter(b => {
+            const groupBills = sortBills(bills.filter(b => {
               const isOverdue = !b.paid && b.due_date && new Date(b.due_date) < today;
               if (group === 'overdue')  return isOverdue;
               if (group === 'paid')     return b.paid;
               return !isOverdue && !b.paid;
-            });
+            }), billSort);
             if (groupBills.length === 0) return null;
             const cfg = {
               overdue:  { label: 'Ληξιπρόθεσμοι', color: 'var(--negative)' },
