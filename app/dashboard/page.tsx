@@ -22,6 +22,7 @@ import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
 import PropertyAssistant from './components/PropertyAssistant';
+import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
@@ -377,10 +378,10 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
   const paidExpYTD = expenses.filter(e => (e as any).paid !== false).reduce((s,e)=>s+e.amount,0);
   const pendingExpYTD = totalExpYTD - paidExpYTD;
-  const rent = tenant?.monthly_rent || prop.target_rent || 0;
-  const annualRent = rent * 12; const propValue = prop.value || 0;
-  const grossYield = propValue > 0 ? (annualRent/propValue)*100 : 0;
-  const netYield = propValue > 0 ? ((annualRent-totalExpYTD)/propValue)*100 : 0;
+  // Single source of truth: ίδιος υπολογισμός ενοικίου/αξίας/απόδοσης παντού.
+  const rent = resolveRent({ tenantRent: tenant?.monthly_rent, targetRent: prop.target_rent }).value;
+  const propValue = resolveValue(prop.value, prop.obj_value).value;
+  const { annualRent, grossYield, netYield } = computeYields(rent, propValue, totalExpYTD);
   const daysToExpiry = tenant?.lease_end ? Math.ceil((new Date(tenant.lease_end).getTime()-Date.now())/86400000) : null;
   const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
   const monthlyExp = Array(12).fill(0);
