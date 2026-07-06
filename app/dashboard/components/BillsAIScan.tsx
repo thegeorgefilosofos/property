@@ -84,27 +84,47 @@ const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
 };
 
 const Field = ({
-  label, value, onChange, type = 'text',
+  label, value, onChange, type = 'text', invalid = false,
 }: {
   label: string;
   value: string | number;
   onChange: (v: string) => void;
   type?: string;
+  invalid?: boolean;
 }) => (
   <div>
-    <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
-      {label}
+    <label style={{ fontSize: 9, fontWeight: 700, color: invalid ? 'var(--warning)' : 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
+      {label}{invalid ? ' • λείπει' : ''}
     </label>
     <input
       type={type}
       value={String(value || '')}
       onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
+      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
       onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-      onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+      onBlur={e => (e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)')}
     />
   </div>
 );
+
+// Λεκτικά πεδίων + έλεγχος πληρότητας: ξεχωρίζει τα ΒΑΣΙΚΑ (χωρίς αυτά δεν
+// αποθηκεύουμε, για να μην βγάζουμε παραπλανητικά αποτελέσματα) από τα
+// ΣΥΝΙΣΤΩΜΕΝΑ (καλό να υπάρχουν, αλλά δεν μπλοκάρουν).
+const FIELD_LABELS: Record<string, string> = {
+  provider: 'Πάροχος', amount: 'Ποσό', due_date: 'Ημ. λήξης', period: 'Περίοδος',
+  kwh: 'Κατανάλωση (kWh)', cubic_meters: 'Κυβικά (m³)', millesimi: 'Χιλιοστά (‰)',
+};
+function assessCompleteness(e: ExtractedBill) {
+  const blocking: string[] = [];
+  if (!e.provider || !String(e.provider).trim()) blocking.push('provider');
+  if (!e.amount || e.amount <= 0) blocking.push('amount');
+  const recommended: string[] = [];
+  if (!e.due_date) recommended.push('due_date');
+  if (e.category === 'electricity' && !e.kwh) recommended.push('kwh');
+  if ((e.category === 'water' || e.category === 'gas') && !e.cubic_meters) recommended.push('cubic_meters');
+  if (e.category === 'common' && !e.millesimi) recommended.push('millesimi');
+  return { blocking, recommended };
+}
 
 interface Props { propertyId: string; userId?: string; onSaved?: () => void; }
 
@@ -144,47 +164,44 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
 
   const scanBill = async (base64: string, mimeType: string) => {
     setScanning(true); setError('');
-    try {
-      const isPdf = mimeType === 'application/pdf';
-      const contentPart = isPdf
-        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-        : { type: 'image',    source: { type: 'base64', media_type: mimeType,           data: base64 } };
+    const blank: ExtractedBill = { provider: '', category: 'electricity', amount: 0, due_date: '', period: '', confidence: 0 };
+    const isPdf = mimeType === 'application/pdf';
+    const contentPart = isPdf
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image',    source: { type: 'base64', media_type: mimeType,           data: base64 } };
 
-      const res  = await fetch('/api/anthropic', {
+    // Μία κλήση στο AI· επιστρέφει {extracted} ή {err:'key_missing'|'service'|'unreadable'}
+    const attempt = async (hint: string): Promise<{ extracted?: ExtractedBill; err?: string }> => {
+      const res = await fetch('/api/anthropic', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // FIX: 'claude-sonnet-4-6' was not a valid model identifier.
-          // Current Claude API model strings: claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5-20251001.
-          model: 'claude-sonnet-5', max_tokens: 1000,
+          model: 'claude-sonnet-5', max_tokens: 1200,
           system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Ανάλυσε αυτόν τον λογαριασμό.' }] }],
+          messages: [{ role: 'user', content: [contentPart, { type: 'text', text: `Ανάλυσε αυτόν τον λογαριασμό. ${hint}` }] }],
         }),
       });
       const data = await res.json();
-
-      // Κενή, επεξεργάσιμη φόρμα ώστε ο χρήστης να ΜΗΝ κολλάει ποτέ — μπορεί πάντα
-      // να συμπληρώσει χειροκίνητα, ακόμη κι αν η ανάγνωση αποτύχει.
-      const blank: ExtractedBill = { provider: '', category: 'electricity', amount: 0, due_date: '', period: '', confidence: 0 };
-
-      // Σφάλμα σε επίπεδο υπηρεσίας (λείπει κλειδί, όριο χρήσης, κλπ.)
       if (!res.ok || data?.error) {
-        const msg = String(data?.error || '');
-        setError(msg.includes('ANTHROPIC_API_KEY') ? 'key_missing' : 'service');
-        setResult(blank); setEdited(blank);
-        return;
+        return { err: String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key_missing' : 'service' };
       }
-
       const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
       const clean = text.replace(/```json?|```/g, '').trim();
-      let extracted: ExtractedBill | null = null;
-      try { extracted = JSON.parse(clean); } catch { extracted = null; }
+      try {
+        const e: ExtractedBill = JSON.parse(clean);
+        if (e && (e.amount || e.provider)) return { extracted: e };
+      } catch { /* fallthrough */ }
+      return { err: 'unreadable' };
+    };
 
-      // Δεν διαβάστηκε τίποτα χρήσιμο → καθοδήγησε τον χρήστη (χωρίς να τον μπλοκάρεις)
-      if (!extracted || (!extracted.amount && !extracted.provider)) {
-        setError('unreadable');
-        setResult(blank); setEdited(blank);
-        return;
+    try {
+      // 1η προσπάθεια· αν αποτύχει η ΑΝΑΓΝΩΣΗ (όχι η υπηρεσία), ξαναδοκίμασε μία φορά
+      // με πιο έντονη οδηγία (βοηθά σε θαμπές/στραβές φωτογραφίες).
+      let r = await attempt('Διάβασε κάθε νούμερο με ακρίβεια.');
+      if (r.err === 'unreadable') {
+        r = await attempt('ΠΡΟΣΟΧΗ: η εικόνα μπορεί να είναι θαμπή ή στραβή. Κοίτα ξανά πολύ προσεκτικά, εντόπισε οπωσδήποτε ΠΑΡΟΧΟ και ΣΥΝΟΛΙΚΟ ΠΟΣΟ, και συμπλήρωσε ό,τι άλλο μπορείς.');
       }
+      if (r.err) { setError(r.err); setResult(blank); setEdited(blank); return; }
+      const extracted = r.extracted!;
 
       setResult(extracted);
       setEdited({ ...extracted });
@@ -426,20 +443,30 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               </div>
             </div>
 
-            {(edited.confidence < 65 || !edited.amount) && (
-              <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', marginTop: 6, flexShrink: 0 }} />
-                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
-                  {!edited.amount
-                    ? <>Δεν εντοπίστηκε ποσό. <strong>Έλεγξε και συμπλήρωσε</strong> τα πεδία πριν αποθηκεύσεις.</>
-                    : <>Χαμηλή βεβαιότητα ανάγνωσης. <strong>Έλεγξε προσεκτικά</strong> ποσό, ημερομηνία και κατανάλωση πριν αποθηκεύσεις — ίσως χρειάζεται πιο καθαρή φωτογραφία.</>}
+            {(() => {
+              const { blocking, recommended } = assessCompleteness(edited);
+              if (!blocking.length && !recommended.length && edited.confidence >= 65) return null;
+              const isBlock = blocking.length > 0;
+              const tone = isBlock ? 'warning' : 'info';
+              return (
+                <div style={{ background: `var(--${tone}-soft)`, border: `1px solid var(--${tone}-border)`, borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 14, fontFamily: T.font.sans }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: `var(--${tone})`, marginBottom: 6 }}>
+                    {isBlock ? 'Το αρχείο δεν έχει όλες τις πληροφορίες' : recommended.length ? 'Λείπουν κάποια στοιχεία' : 'Έλεγξε τα στοιχεία'}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                    {isBlock
+                      ? <>Δεν εντοπίστηκαν τα βασικά: <strong>{blocking.map(f => FIELD_LABELS[f]).join(', ')}</strong>. Για να μη βγουν παραπλανητικά αποτελέσματα, <strong>ανέβασε πιο καθαρό αρχείο/φωτογραφία</strong> ή <strong>συμπλήρωσέ τα παρακάτω</strong> πριν αποθηκεύσεις.</>
+                      : recommended.length
+                      ? <>Λείπουν: <strong>{recommended.map(f => FIELD_LABELS[f]).join(', ')}</strong>. Μπορείς να τα συμπληρώσεις για πλήρη εικόνα, ή να αποθηκεύσεις έτσι.</>
+                      : <>Χαμηλή βεβαιότητα ανάγνωσης — έλεγξε ποσό, ημερομηνία και κατανάλωση πριν αποθηκεύσεις.</>}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                <Field label="Πάροχος" value={edited.provider} onChange={v => setEdited(p => ({ ...p!, provider: v }))}/>
+                <Field label="Πάροχος" value={edited.provider} invalid={!edited.provider || !String(edited.provider).trim()} onChange={v => setEdited(p => ({ ...p!, provider: v }))}/>
                 <div>
                   <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Κατηγορία</label>
                   <select
@@ -453,7 +480,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                <Field label="Ποσό (€)" type="number" value={edited.amount} onChange={v => setEdited(p => ({ ...p!, amount: parseFloat(v) || 0 }))}/>
+                <Field label="Ποσό (€)" type="number" value={edited.amount} invalid={!edited.amount || edited.amount <= 0} onChange={v => setEdited(p => ({ ...p!, amount: parseFloat(v) || 0 }))}/>
                 <Field label="Ημερομηνία Λήξης" type="date" value={edited.due_date} onChange={v => setEdited(p => ({ ...p!, due_date: v }))}/>
               </div>
 
@@ -523,13 +550,18 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
                     {fe(edited.amount)}
                   </div>
                 </div>
-                <button
-                  onClick={saveBill}
-                  disabled={saving || !edited.amount}
-                  style={{ background: edited.amount > 0 ? 'var(--accent)' : 'var(--bg-elevated)', color: edited.amount > 0 ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: edited.amount > 0 ? 'pointer' : 'not-allowed', fontFamily: T.font.sans }}
-                >
-                  {saving ? 'Αποθήκευση…' : edited.confidence < 65 && edited.amount ? 'Αποθήκευση παρόλα αυτά →' : 'Αποθήκευση →'}
-                </button>
+                {(() => {
+                  const ok = assessCompleteness(edited).blocking.length === 0;
+                  return (
+                    <button
+                      onClick={saveBill}
+                      disabled={saving || !ok}
+                      style={{ background: ok ? 'var(--accent)' : 'var(--bg-elevated)', color: ok ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, padding: '12px 24px', fontSize: 13, fontWeight: 700, cursor: ok ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}
+                    >
+                      {saving ? 'Αποθήκευση…' : !ok ? 'Συμπλήρωσε τα βασικά' : edited.confidence < 65 ? 'Αποθήκευση παρόλα αυτά →' : 'Αποθήκευση →'}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>
