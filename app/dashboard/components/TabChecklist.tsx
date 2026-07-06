@@ -176,6 +176,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 function fmtDate(d: string | null) {
   if (!d) return ''
   try { return new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
@@ -414,7 +415,7 @@ function exportChecklistPDF(items: ChecklistItem[]) {
   items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i) })
 
   const kpiHtml = (val: string, lbl: string, color: string) =>
-    `<div class="kpi"><div class="kpi-v" style="color:${color}">${val}</div><div class="kpi-l">${lbl}</div></div>`
+    `<div class="kpi"><div class="kpi-v" style="color:${color}">${esc(val)}</div><div class="kpi-l">${esc(lbl)}</div></div>`
 
   const groupSections = CATEGORIES.filter(c => grouped[c.id]?.length).map(cat => {
     const grpDone = grouped[cat.id].filter(i => i.status === 'done').length
@@ -429,14 +430,14 @@ function exportChecklistPDF(items: ChecklistItem[]) {
           </div>
         </td>
         <td style="padding:7px 8px">
-          <div style="font-size:11px;color:${item.status==='done'?'#9aa0a6':'#202124'};text-decoration:${item.status==='done'?'line-through':'none'}">${item.description}</div>
-          ${item.assigned_contact_name?`<div style="font-size:9px;color:#9aa0a6;margin-top:2px">${item.assigned_contact_name}</div>`:''}
-          ${(item._tags||[]).length>0?`<div style="margin-top:3px">${(item._tags||[]).map(t=>`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#f1f3f4;font-size:8px;color:#5f6368;margin-right:3px">${t}</span>`).join('')}</div>`:''}
+          <div style="font-size:11px;color:${item.status==='done'?'#9aa0a6':'#202124'};text-decoration:${item.status==='done'?'line-through':'none'}">${esc(item.description)}</div>
+          ${item.assigned_contact_name?`<div style="font-size:9px;color:#9aa0a6;margin-top:2px">${esc(item.assigned_contact_name)}</div>`:''}
+          ${(item._tags||[]).length>0?`<div style="margin-top:3px">${(item._tags||[]).map(t=>`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#f1f3f4;font-size:8px;color:#5f6368;margin-right:3px">${esc(t)}</span>`).join('')}</div>`:''}
         </td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${pri.bg.replace('rgba','rgba').replace('0.1','0.15')};color:${pri.color}">${pri.label}</span></td>
-        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${sm.bg.replace('0.1','0.15')};color:${sm.color}">${sm.label}</span></td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Google Sans', sans-serif;font-size:10px;color:${od?'#ea4335':'#5f6368'}">${item.due_date?fmtDate(item.due_date):'—'}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Google Sans', sans-serif;font-size:10px;color:#1a1a2e">${item.estimated_cost>0?item.estimated_cost.toLocaleString('el-GR')+'€':'—'}</td>
+        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${pri.bg.replace('rgba','rgba').replace('0.1','0.15')};color:${pri.color}">${esc(pri.label)}</span></td>
+        <td style="padding:7px 8px;text-align:center"><span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${sm.bg.replace('0.1','0.15')};color:${sm.color}">${esc(sm.label)}</span></td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;color:${od?'#ea4335':'#5f6368'}">${item.due_date?esc(fmtDate(item.due_date)):'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Inter', sans-serif;font-size:10px;color:#1a1a2e">${item.estimated_cost>0?item.estimated_cost.toLocaleString('el-GR')+'€':'—'}</td>
       </tr>`
     }).join('')
     return `
@@ -445,7 +446,7 @@ function exportChecklistPDF(items: ChecklistItem[]) {
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="width:8px;height:8px;border-radius:50%;background:${cat.dot}"></div>
-              <strong style="color:${cat.dot}">${cat.label}</strong>
+              <strong style="color:${cat.dot}">${esc(cat.label)}</strong>
               <span style="font-size:9px;color:#5f6368">${grpDone}/${grouped[cat.id].length} ολοκλ.</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
@@ -480,22 +481,22 @@ function exportChecklistPDF(items: ChecklistItem[]) {
 body{font-family:'Roboto',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
 .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
-.meta-r{text-align:right}.meta-title{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
+.meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
 .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-.sec-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
+.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
 .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
 .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:10px 12px}
-.kpi-v{font-family:'Google Sans', sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
-.kpi-l{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368}
+.kpi-v{font-family:'Inter', sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
+.kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368}
 .progress-bar{height:8px;background:#e8eaed;border-radius:4px;overflow:hidden;margin-bottom:16px}
 .progress-fill{height:100%;border-radius:4px;transition:width 0s}
 .g-header{padding:9px 14px;margin-bottom:0;background:#f8f9fa;border-radius:6px 6px 0 0;border:1px solid #e8eaed;border-bottom:none}
 table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:16px}
-th{font-family:'Google Sans',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:6px 8px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;border:1px solid #e8eaed}
+th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:6px 8px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;border:1px solid #e8eaed}
 td{border:1px solid #f1f3f4;vertical-align:middle;color:#3c4043}
 tr:nth-child(even) td{background:#fafafa}
 .footer{margin-top:24px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;font-size:9px;color:#9aa0a6}
@@ -503,7 +504,7 @@ tr:nth-child(even) td{background:#fafafa}
 </style></head><body><div class="page">
 <div class="hdr">
   <div><div class="logo">Property <span>OS</span></div><div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
-  <div class="meta-r"><div class="meta-title">Checklist Ακινήτου</div><div class="meta-d">${today}</div></div>
+  <div class="meta-r"><div class="meta-title">Checklist Ακινήτου</div><div class="meta-d">${esc(today)}</div></div>
 </div>
 <div class="sec">
   <div class="sec-title">Σύνοψη</div>
@@ -524,7 +525,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sec-title">Αναλυτικά Tasks ανά Κατηγορία</div>
   ${groupSections}
 </div>
-<div class="footer"><div>Property OS · Checklist Ακινήτου</div><div>${today}</div></div>
+<div class="footer"><div>Property OS · Checklist Ακινήτου</div><div>${esc(today)}</div></div>
 </div></body></html>`)
   w.document.close()
   setTimeout(() => { w.print() }, 900)
@@ -545,36 +546,36 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 
   const sectionHtml = (num: number, title: string, content: string) => `
     <div class="sec">
-      <div class="sec-hdr"><div class="sec-num">${num}</div><div class="sec-title">${title}</div></div>
+      <div class="sec-hdr"><div class="sec-num">${num}</div><div class="sec-title">${esc(title)}</div></div>
       <div class="sec-body">${content}</div>
     </div>`
 
   const fieldRow = (label: string, value = '', width = '100%') =>
-    `<div class="field-row" style="width:${width}"><div class="field-label">${label}</div><div class="field-val">${value || ''}</div></div>`
+    `<div class="field-row" style="width:${width}"><div class="field-label">${esc(label)}</div><div class="field-val">${value || ''}</div></div>`
 
   const checkRow = (label: string, done = false) =>
     `<div class="check-row">
       <div class="cb ${done ? 'cb-done' : ''}">${done ? '<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</div>
-      <div class="check-label">${label}</div>
+      <div class="check-label">${esc(label)}</div>
     </div>`
 
   const rooms = ['Σαλόνι', 'Κουζίνα', 'Υπνοδωμάτιο 1', 'Υπνοδωμάτιο 2', 'Μπάνιο', 'WC', 'Χολ / Είσοδος', 'Αποθήκη / Βοηθητικός']
   const roomRows = rooms.map(r => `
     <tr>
-      <td class="room-name">${r}</td>
-      <td class="room-cell"><div class="rating-row">${['Άριστη','Καλή','Μέτρια','Κακή'].map(s => `<label class="rating-opt"><input type="checkbox"> ${s}</label>`).join('')}</div></td>
+      <td class="room-name">${esc(r)}</td>
+      <td class="room-cell"><div class="rating-row">${['Άριστη','Καλή','Μέτρια','Κακή'].map(s => `<label class="rating-opt"><input type="checkbox"> ${esc(s)}</label>`).join('')}</div></td>
       <td class="room-notes"></td>
     </tr>`).join('')
 
   const taskRows = relevant.map(item => `
     <div class="task-row ${item.status === 'done' ? 'done' : ''}">
       <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? '<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}</div>
-      <div class="task-label">${item.description}</div>
-      ${item.assigned_contact_name ? `<div class="task-contact">${item.assigned_contact_name}</div>` : ''}
+      <div class="task-label">${esc(item.description)}</div>
+      ${item.assigned_contact_name ? `<div class="task-contact">${esc(item.assigned_contact_name)}</div>` : ''}
     </div>`).join('')
 
   const html = `<!DOCTYPE html><html lang="el"><head>
-<meta charset="UTF-8"><title>${title}</title>
+<meta charset="UTF-8"><title>${esc(title)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -583,26 +584,26 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Google Sans',sans-serif;font-size:20px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
 .logo-sub{font-size:10px;color:#5f6368;margin-top:2px}
 .hdr-right{text-align:right}
-.hdr-title{font-family:'Google Sans',sans-serif;font-size:16px;font-weight:500;color:#202124}
+.hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:#202124}
 .hdr-meta{font-size:10px;color:#5f6368;margin-top:4px}
-.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Google Sans',sans-serif;margin-top:6px;background:${type==='checkin'?'#e6f4ea':'#fce8e6'};color:${type==='checkin'?'#137333':'#c5221f'}}
+.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:${type==='checkin'?'#e6f4ea':'#fce8e6'};color:${type==='checkin'?'#137333':'#c5221f'}}
 
 /* Sections */
 .sec{margin-bottom:20px;border:1px solid #e8eaed;border-radius:10px;overflow:hidden;break-inside:avoid}
 .sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e8eaed;border-left:3px solid #1a73e8}
-.sec-num{width:26px;height:26px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Google Sans',sans-serif;flex-shrink:0;letter-spacing:0}
-.sec-title{font-family:'Google Sans',sans-serif;font-size:13px;font-weight:500;color:#202124}
+.sec-num{width:26px;height:26px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
+.sec-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#202124}
 .sec-body{padding:14px 16px}
 
 /* Field rows */
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .field-row{display:flex;flex-direction:column;gap:4px}
-.field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;font-family:'Google Sans',sans-serif}
-.field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Google Sans', sans-serif;letter-spacing:0.02em}
+.field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;font-family:'Inter',sans-serif}
+.field-val{min-height:30px;border-bottom:2px solid #dadce0;padding:4px 0 3px;font-size:12px;color:#202124;font-family:'Inter', sans-serif;letter-spacing:0.02em}
 .field-val.prefilled{color:#1a73e8;font-weight:500;border-bottom-color:#1a73e8}
 .field-area{min-height:56px;border:1px solid #e8eaed;border-radius:6px;padding:8px;margin-top:4px;background:#fafafa}
 
@@ -615,7 +616,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 
 /* Room table */
 .room-table{width:100%;border-collapse:collapse;font-size:11px}
-.room-table th{background:#f8f9fa;padding:7px 10px;border:1px solid #e8eaed;text-align:left;font-family:'Google Sans',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368}
+.room-table th{background:#f8f9fa;padding:7px 10px;border:1px solid #e8eaed;text-align:left;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368}
 .room-table td{padding:7px 10px;border:1px solid #e8eaed;vertical-align:middle}
 .room-name{font-weight:500;color:#202124;width:140px}
 .room-cell{min-width:220px}
@@ -626,20 +627,20 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 /* Meter grid */
 .meter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .meter-card{border:1px solid #e8eaed;border-radius:8px;padding:12px;background:#fafafa}
-.meter-title{font-family:'Google Sans',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;margin-bottom:8px}
-.meter-val{font-size:22px;font-weight:700;color:#202124;border-bottom:3px solid #1a73e8;padding-bottom:6px;margin-bottom:6px;font-family:'Google Sans', sans-serif;min-height:36px;letter-spacing:-0.5px}
-.meter-unit{font-size:9px;color:#9aa0a6;font-family:'Google Sans',sans-serif}
+.meter-title{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;margin-bottom:8px}
+.meter-val{font-size:22px;font-weight:700;color:#202124;border-bottom:3px solid #1a73e8;padding-bottom:6px;margin-bottom:6px;font-family:'Inter', sans-serif;min-height:36px;letter-spacing:-0.5px}
+.meter-unit{font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif}
 .meter-serial{font-size:10px;color:#5f6368;margin-top:8px;border-top:1px solid #e8eaed;padding-top:6px}
 
 /* Key tracking */
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .key-card{border:1px solid #e8eaed;border-radius:8px;padding:10px;text-align:center}
-.key-num{font-size:26px;font-weight:700;color:#1a73e8;font-family:'Google Sans', sans-serif;min-height:38px;border-bottom:2px solid #1a73e8;margin-bottom:8px;letter-spacing:-1px}
-.key-label{font-size:10px;color:#5f6368;font-family:'Google Sans',sans-serif}
+.key-num{font-size:26px;font-weight:700;color:#1a73e8;font-family:'Inter', sans-serif;min-height:38px;border-bottom:2px solid #1a73e8;margin-bottom:8px;letter-spacing:-1px}
+.key-label{font-size:10px;color:#5f6368;font-family:'Inter',sans-serif}
 
 /* Appliance table */
 .app-table{width:100%;border-collapse:collapse;font-size:11px}
-.app-table th{background:#f8f9fa;padding:6px 10px;border:1px solid #e8eaed;font-family:'Google Sans',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;text-align:left}
+.app-table th{background:#f8f9fa;padding:6px 10px;border:1px solid #e8eaed;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#5f6368;text-align:left}
 .app-table td{padding:6px 10px;border:1px solid #e8eaed}
 .app-cb{width:14px;height:14px;border:1.5px solid #dadce0;border-radius:2px;display:inline-block}
 .app-include{text-align:center}
@@ -661,7 +662,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 /* Signatures */
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:12px}
 .sig-block{border-top:2px solid #202124;padding-top:10px}
-.sig-role{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#1a73e8;font-family:'Google Sans',sans-serif;margin-bottom:18px}
+.sig-role{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#1a73e8;font-family:'Inter',sans-serif;margin-bottom:18px}
 .sig-line{border-bottom:2px solid #202124;margin-bottom:10px;height:48px}
 .sig-detail{font-size:10px;color:#5f6368;margin-bottom:4px}
 
@@ -671,7 +672,7 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
 .commons-row:last-child{border-bottom:none}
 .commons-dot{width:8px;height:8px;border-radius:50%;background:#1a73e8;flex-shrink:0}
 .commons-label{font-size:12px;color:#3c4043;flex:1}
-.commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Google Sans', sans-serif}
+.commons-val{font-size:11px;border-bottom:1px solid #dadce0;min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
 
 /* Footer */
 .footer{margin-top:28px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
@@ -687,8 +688,8 @@ body{font-family:'Roboto',sans-serif;background:#fff;color:#202124;font-size:11p
     <div class="logo-sub">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
   </div>
   <div class="hdr-right">
-    <div class="hdr-title">${title}</div>
-    <div class="hdr-meta">Ημερομηνία: ${today}</div>
+    <div class="hdr-title">${esc(title)}</div>
+    <div class="hdr-meta">Ημερομηνία: ${esc(today)}</div>
     <div class="hdr-type">${type === 'checkin' ? 'Παράδοση' : 'Αποχώρηση'}</div>
   </div>
 </div>
@@ -700,11 +701,11 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων
     ${fieldRow('Διεύθυνση Ακινήτου', '')}
     ${fieldRow('Διαμέρισμα / Όροφος', '')}
     ${fieldRow('Τ.Κ. / Πόλη', '')}
-    ${fieldRow('Ημερομηνία Συναλλαγής', today)}
+    ${fieldRow('Ημερομηνία Συναλλαγής', esc(today))}
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
     <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Google Sans',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#1a73e8;margin-bottom:8px">Ιδιοκτήτης</div>
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#1a73e8;margin-bottom:8px">Ιδιοκτήτης</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', '')}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', '')}
@@ -712,17 +713,17 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου & Συμβαλλομένων
       </div>
     </div>
     <div style="background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:12px">
-      <div style="font-family:'Google Sans',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#34a853;margin-bottom:8px">Ενοικιαστής</div>
-      <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', `<span class="${tenantName !== '______________________________' ? 'prefilled' : ''}">${tenantName}</span>`)}</div>
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#34a853;margin-bottom:8px">Ενοικιαστής</div>
+      <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', `<span class="${tenantName !== '______________________________' ? 'prefilled' : ''}">${esc(tenantName)}</span>`)}</div>
       <div class="field-grid">
-        ${fieldRow('ΑΦΜ', `<span class="${tenantAfm !== '______________________________' ? 'prefilled' : ''}">${tenantAfm}</span>`)}
-        ${fieldRow('Τηλέφωνο', `<span class="${tenantPhone !== '______________________________' ? 'prefilled' : ''}">${tenantPhone}</span>`)}
+        ${fieldRow('ΑΦΜ', `<span class="${tenantAfm !== '______________________________' ? 'prefilled' : ''}">${esc(tenantAfm)}</span>`)}
+        ${fieldRow('Τηλέφωνο', `<span class="${tenantPhone !== '______________________________' ? 'prefilled' : ''}">${esc(tenantPhone)}</span>`)}
       </div>
     </div>
   </div>
   <div class="field-grid" style="margin-top:10px">
     ${fieldRow('Διάρκεια Μίσθωσης', '')}
-    ${fieldRow('Λήξη Μίσθωσης', `<span class="${leaseEnd !== '______________________________' ? 'prefilled' : ''}">${leaseEnd}</span>`)}
+    ${fieldRow('Λήξη Μίσθωσης', `<span class="${leaseEnd !== '______________________________' ? 'prefilled' : ''}">${esc(leaseEnd)}</span>`)}
     ${fieldRow('Εγγύηση (€)', '')}
     ${fieldRow('Ενοίκιο / Μήνα (€)', '')}
   </div>
@@ -743,7 +744,7 @@ ${sectionHtml(3, 'Κατάσταση Τοίχων, Δαπέδων & Οροφής
   <table class="room-table">
     <thead><tr><th>Στοιχείο</th><th>Κατάσταση</th><th>Περιγραφή</th></tr></thead>
     <tbody>
-      ${['Τοίχοι (βαφή/ταπετσαρία)', 'Δάπεδα (τύπος/κατάσταση)', 'Οροφή', 'Πόρτες εισόδου', 'Εσωτερικές πόρτες', 'Παράθυρα/Κουφώματα', 'Ρολά/Στόρια'].map(r => `<tr><td class="room-name">${r}</td><td class="room-cell"><div class="rating-row">${['Άριστη','Καλή','Μέτρια','Κακή'].map(s => `<label class="rating-opt"><input type="checkbox"> ${s}</label>`).join('')}</div></td><td class="room-notes"></td></tr>`).join('')}
+      ${['Τοίχοι (βαφή/ταπετσαρία)', 'Δάπεδα (τύπος/κατάσταση)', 'Οροφή', 'Πόρτες εισόδου', 'Εσωτερικές πόρτες', 'Παράθυρα/Κουφώματα', 'Ρολά/Στόρια'].map(r => `<tr><td class="room-name">${esc(r)}</td><td class="room-cell"><div class="rating-row">${['Άριστη','Καλή','Μέτρια','Κακή'].map(s => `<label class="rating-opt"><input type="checkbox"> ${esc(s)}</label>`).join('')}</div></td><td class="room-notes"></td></tr>`).join('')}
     </tbody>
   </table>
 `)}
@@ -805,7 +806,7 @@ ${sectionHtml(6, 'Συσκευές & Έπιπλα', `
   <table class="app-table">
     <thead><tr><th>Είδος</th><th>Περιλαμβάνεται</th><th>Μάρκα / Μοντέλο</th><th>Κατάσταση</th><th>Εγγύηση</th></tr></thead>
     <tbody>
-      ${['Ψυγείο', 'Πλυντήριο Ρούχων', 'Στεγνωτήριο', 'Πλυντήριο Πιάτων', 'Φούρνος / Κουζίνα', 'Κλιματιστικό', 'Boiler / Ηλιακός', 'Τηλεόραση', 'Πλυντήριο / Κάδοι', 'Επιπλωμένο (γενικά)', 'Άλλο'].map(s => `<tr><td>${s}</td><td class="app-include"><div class="app-cb"></div></td><td></td><td></td><td></td></tr>`).join('')}
+      ${['Ψυγείο', 'Πλυντήριο Ρούχων', 'Στεγνωτήριο', 'Πλυντήριο Πιάτων', 'Φούρνος / Κουζίνα', 'Κλιματιστικό', 'Boiler / Ηλιακός', 'Τηλεόραση', 'Πλυντήριο / Κάδοι', 'Επιπλωμένο (γενικά)', 'Άλλο'].map(s => `<tr><td>${esc(s)}</td><td class="app-include"><div class="app-cb"></div></td><td></td><td></td><td></td></tr>`).join('')}
     </tbody>
   </table>
 `)}
@@ -823,10 +824,10 @@ ${sectionHtml(7, 'Parking & Αποθήκη', `
 ${sectionHtml(8, 'Κοινόχρηστοι Χώροι & Εγκαταστάσεις', `
   <div class="commons-grid">
     <div>
-      ${['Ανελκυστήρας', 'Γεννήτρια / UPS', 'Σύστημα Ασφαλείας / CCTV', 'Πόρτα Εισόδου (αυτόματη)'].map(c => `<div class="commons-row"><div class="commons-dot"></div><div class="commons-label">${c}</div><div class="commons-val"></div></div>`).join('')}
+      ${['Ανελκυστήρας', 'Γεννήτρια / UPS', 'Σύστημα Ασφαλείας / CCTV', 'Πόρτα Εισόδου (αυτόματη)'].map(c => `<div class="commons-row"><div class="commons-dot"></div><div class="commons-label">${esc(c)}</div><div class="commons-val"></div></div>`).join('')}
     </div>
     <div>
-      ${['Κολυμβητήριο', 'Κοινόχρηστο Πλυντήριο', 'Κοινόχρηστη Ταράτσα', 'Κάδοι Ανακύκλωσης'].map(c => `<div class="commons-row"><div class="commons-dot"></div><div class="commons-label">${c}</div><div class="commons-val"></div></div>`).join('')}
+      ${['Κολυμβητήριο', 'Κοινόχρηστο Πλυντήριο', 'Κοινόχρηστη Ταράτσα', 'Κάδοι Ανακύκλωσης'].map(c => `<div class="commons-row"><div class="commons-dot"></div><div class="commons-label">${esc(c)}</div><div class="commons-val"></div></div>`).join('')}
     </div>
   </div>
 `)}
@@ -866,16 +867,16 @@ ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
     <div class="sig-block">
       <div class="sig-role">Ενοικιαστής</div>
       <div class="sig-line"></div>
-      <div class="sig-detail">Ονοματεπώνυμο: <strong>${tenantName !== '______________________________' ? tenantName : '________________________________'}</strong></div>
-      <div class="sig-detail">ΑΦΜ: ${tenantAfm !== '______________________________' ? tenantAfm : '________________________________'}</div>
-      <div class="sig-detail">Τηλέφωνο: ${tenantPhone !== '______________________________' ? tenantPhone : '________________________________'}</div>
+      <div class="sig-detail">Ονοματεπώνυμο: <strong>${tenantName !== '______________________________' ? esc(tenantName) : '________________________________'}</strong></div>
+      <div class="sig-detail">ΑΦΜ: ${tenantAfm !== '______________________________' ? esc(tenantAfm) : '________________________________'}</div>
+      <div class="sig-detail">Τηλέφωνο: ${tenantPhone !== '______________________________' ? esc(tenantPhone) : '________________________________'}</div>
     </div>
   </div>
 `)}
 
 <div class="footer">
   <div>Property OS · Πρωτόκολλο ${type === 'checkin' ? 'Παράδοσης' : 'Αποχώρησης'} · Αντίγραφο ___/2</div><div>Αρ. Αναφοράς: ${new Date().getTime().toString(36).toUpperCase().slice(-8)}</div>
-  <div>${today}</div>
+  <div>${esc(today)}</div>
 </div>
 
 </div></body></html>`

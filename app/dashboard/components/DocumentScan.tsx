@@ -177,6 +177,12 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     if (!f.type.startsWith('image/') && f.type !== 'application/pdf' && !f.name.match(/\.(csv|xlsx|xls|txt)$/i)) {
       setError('Υποστηριζόμενα: JPG, PNG, HEIC, PDF, CSV, Excel'); return;
     }
+    // Όριο μεγέθους: προστατεύει και την αποθήκευση και την πληρωμένη κλήση AI από
+    // τεράστια αρχεία (το base64 φουσκώνει ~33%, οπότε 10MB ≈ 13MB payload).
+    const MAX_FILE_MB = 10;
+    if (f.size > MAX_FILE_MB * 1024 * 1024) {
+      setError(`Το αρχείο είναι πολύ μεγάλο (${(f.size / 1048576).toFixed(1)}MB). Όριο ${MAX_FILE_MB}MB.`); return;
+    }
     setFile(f);
     const reader = new FileReader();
     reader.onload = e => {

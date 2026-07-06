@@ -21,6 +21,9 @@ import { downloadCsv, csvEur, csvDate } from './exportCsv';
 // ─── Design tokens — shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
 
+// ─── HTML escaping for values interpolated into document.write() templates ────
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Tenant {
   id:string; property_id:string; user_id:string;
@@ -353,21 +356,21 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       @media print{body{margin:20px;padding:24px}}
     </style></head><body>
     <div class="header"><h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
-    <div class="sub">Βάσει Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) ${yr} — Property OS</div></div>
-    <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${today_str}</p>
-    <p style="margin-bottom:20px">Προς: <strong>${tenant.full_name}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+tenant.afm+'</strong>':''}</p>
-    <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) έτους <strong>${yr}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
+    <div class="sub">Βάσει Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) ${esc(yr)} — Property OS</div></div>
+    <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${esc(today_str)}</p>
+    <p style="margin-bottom:20px">Προς: <strong>${esc(tenant.full_name)}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+esc(tenant.afm)+'</strong>':''}</p>
+    <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
     <table>
       <tr><th>Στοιχείο</th><th>Αξία</th></tr>
-      <tr><td>Τρέχον Μηνιαίο Μίσθωμα</td><td>${fmtE(rent)}</td></tr>
-      <tr><td>ΤΔΕ ${yr} (ΕΛΣΤΑΤ)</td><td>+${pct.toFixed(1)}%</td></tr>
-      <tr><td>Αύξηση Μισθώματος</td><td>+${fmtE(diff)}</td></tr>
-      <tr class="highlight"><td><strong>Νέο Μηνιαίο Μίσθωμα</strong></td><td><strong>${fmtE(newRent)}</strong></td></tr>
+      <tr><td>Τρέχον Μηνιαίο Μίσθωμα</td><td>${esc(fmtE(rent))}</td></tr>
+      <tr><td>ΤΔΕ ${esc(yr)} (ΕΛΣΤΑΤ)</td><td>+${esc(pct.toFixed(1))}%</td></tr>
+      <tr><td>Αύξηση Μισθώματος</td><td>+${esc(fmtE(diff))}</td></tr>
+      <tr class="highlight"><td><strong>Νέο Μηνιαίο Μίσθωμα</strong></td><td><strong>${esc(fmtE(newRent))}</strong></td></tr>
     </table>
     <p style="font-size:12px;color:#5f6368;margin-top:16px">Η αναπροσαρμογή ισχύει από την επόμενη μισθωτική περίοδο μετά την κοινοποίηση της παρούσας ειδοποίησης.</p>
     <div class="signatures">
       <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:40px"></p><p>Υπογραφή / Σφραγίδα</p></div>
-      <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${tenant.full_name}</p>${tenant.afm?'<p>ΑΦΜ: '+tenant.afm+'</p>':''}</div>
+      <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p>${tenant.afm?'<p>ΑΦΜ: '+esc(tenant.afm)+'</p>':''}</div>
     </div>
     <div class="footer">Έγγραφο δημιουργήθηκε μέσω Property OS — Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
     </body></html>`);
@@ -885,8 +888,9 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     const path=`${userId}/${tenant.id}/${file.name}`;
     const{error:upErr}=await supabase.storage.from('lease-documents').upload(path,file,{upsert:true});
     if(upErr){setError(upErr.message);setUploading(false);return;}
-    const{data:urlData}=await supabase.storage.from('lease-documents').createSignedUrl(path,60*60*24*365);
-    await supabase.from('tenants').update({lease_doc_url:urlData?.signedUrl||null,lease_doc_name:file.name}).eq('id',tenant.id);
+    // Ασφάλεια: ΔΕΝ αποθηκεύουμε μακρόβιο signed URL (θα ήταν bearer token 1 έτους).
+    // Κρατάμε μόνο το όνομα· το URL προσπέλασης παράγεται on-demand, βραχύβιο, στο άνοιγμα.
+    await supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',tenant.id);
     setUploading(false);notify('PDF ανέβηκε');fetch_();
   };
 
@@ -928,7 +932,16 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const leaseDaysLeft = tenant ? daysLeft(tenant.lease_end) : null;
   const unpaidPayments = payments.filter(p=>!p.paid);
   const unpaidTotal = unpaidPayments.reduce((a,p)=>a+p.amount,0);
-  const hasLeaseDoc = !!(tenant?.lease_doc_url || tenant?.lease_doc_external_url);
+  const hasLeaseDoc = !!(tenant?.lease_doc_name || tenant?.lease_doc_url || tenant?.lease_doc_external_url);
+  // Παράγει βραχύβιο (1 ώρα) signed URL μόνο τη στιγμή του ανοίγματος — κανένα
+  // μακρόβιο bearer token δεν αποθηκεύεται στη βάση.
+  const openLeaseDoc = async () => {
+    if (!tenant?.lease_doc_name) return;
+    const path = `${userId}/${tenant.id}/${tenant.lease_doc_name}`;
+    const { data, error } = await supabase.storage.from('lease-documents').createSignedUrl(path, 60 * 60);
+    if (error || !data?.signedUrl) { setError('Δεν ήταν δυνατό το άνοιγμα του PDF.'); return; }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
   const tenantKPIs:KPIItem[] = tenant ? [
     { label:'Μηνιαίο Ενοίκιο', value:fe(tenant.monthly_rent||0), tone:'accent' },
     { label:'Εγγύηση', value:fe(tenant.deposit_amount||0), tone: tenant.deposit_returned?'positive':'info', sub: tenant.deposit_returned?'Επεστράφη':undefined },
@@ -1419,7 +1432,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       </div>
                       <button style={s.btnDng} onClick={async()=>{if(!tenant.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${tenant.id}/${tenant.lease_doc_name}`]);await supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',tenant.id);notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
                     </div>
-                    {tenant.lease_doc_url&&<a href={tenant.lease_doc_url} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGold, display:'inline-block', textDecoration:'none', marginBottom:10 }}>Άνοιγμα PDF</a>}
+                    <button onClick={openLeaseDoc} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
                     <div style={{ marginTop:10 }}>
                       <label style={{ ...s.btnSm, cursor:'pointer', display:'inline-block' }}>
                         {uploading?'Ανέβασμα...':'Αντικατάσταση PDF'}
