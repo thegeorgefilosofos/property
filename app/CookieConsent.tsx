@@ -16,7 +16,7 @@ export default function CookieConsent() {
   return (
     <div style={{ position: 'fixed', left: 12, right: 12, bottom: 12, zIndex: 2000, maxWidth: 720, margin: '0 auto',
       background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, boxShadow: 'var(--shadow-lg)',
-      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: "'Google Sans',sans-serif" }}>
+      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: "'Inter',sans-serif" }}>
       <div style={{ flex: 1, minWidth: 220, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
         Χρησιμοποιούμε μόνο <strong style={{ color: 'var(--text-primary)' }}>απαραίτητα cookies</strong> για τη λειτουργία (σύνδεση, προτίμηση θέματος). Δείτε την{' '}
         <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική Απορρήτου</Link>.

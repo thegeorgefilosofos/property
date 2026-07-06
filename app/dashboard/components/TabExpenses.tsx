@@ -101,6 +101,10 @@ const fmtEur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigi
 const fmtEur0 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
 const fmtD = (d: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
 
+// HTML-escape helper for dynamic values interpolated into the print/PDF HTML that is
+// passed to window.open(...).document.write — prevents stored-XSS via user/tenant/DB fields.
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
+
 const bestPayment = (a: number) =>
   a >= 2000 ? 'Πιστωτική με άτοκες δόσεις — μέγιστη ρευστότητα' :
   a >= 500  ? 'Χρεωστική με Cashback ή Πιστωτική Άτοκες' :
@@ -125,7 +129,7 @@ const cardStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-secondary)',
-  display: 'block', marginBottom: 6, fontWeight: 500, fontFamily: "'Google Sans', sans-serif",
+  display: 'block', marginBottom: 6, fontWeight: 500, fontFamily: "'Inter', sans-serif",
 };
 
 const g2: React.CSSProperties = { display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:12, marginBottom:12 };
@@ -135,7 +139,7 @@ function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, paddingBottom:8, borderBottom:'1px solid var(--border-subtle)' }}>
       <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--accent)', display:'inline-block', flexShrink:0 }} />
-      <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>
+      <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
         {label}
       </span>
     </div>
@@ -199,7 +203,7 @@ function InstallmentCalc({ amount, installments, interestRate, startDate }: { am
         ].map((k,i) => (
           <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:6, padding:'8px 10px' }}>
             <div style={{ fontSize:12, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
-            <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
+            <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif" }}>{k.label}</div>
           </div>
         ))}
       </div>
@@ -230,7 +234,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
         <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="για παράδειγμα Αντικατάσταση ψυγείου Bosch" /></div>
         {contacts.length > 0 && (
           <button type="button" onClick={() => setShow(s=>!s)}
-            style={{ padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily:"'Google Sans', sans-serif" }}>
+            style={{ padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily:"'Inter', sans-serif" }}>
             Επαφές
           </button>
         )}
@@ -329,17 +333,17 @@ function ReceiptOCR({ onExtracted }: { onExtracted: (data: Partial<ReturnType<ty
     <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', marginBottom:14 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: preview ? 12 : 0 }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Google Sans', sans-serif" }}>
+        <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}>
           Σάρωση Απόδειξης με AI
         </span>
-        <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:10, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+        <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:10, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
           Claude Vision
         </span>
         <div style={{ flex:1 }} />
         <button
           onClick={() => inputRef.current?.click()}
           disabled={scanning}
-          style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
+          style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid var(--accent)', background:scanning?'var(--bg-surface)':'var(--accent)', color:scanning?'var(--text-secondary)':'var(--accent-text)', fontSize:11, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:scanning?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
           {scanning ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation:'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -398,12 +402,12 @@ function ExpenseForm({
   return (
     <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--info)':'var(--border-accent)'}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:500, color:isEdit?'var(--info)':'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ fontSize:11, fontWeight:500, color:isEdit?'var(--info)':'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
           <span style={{ width:5, height:5, borderRadius:'50%', background:isEdit?'var(--info)':'var(--accent)', display:'inline-block' }} />
           {isEdit ? 'Επεξεργασία Δαπάνης' : 'Νέα Δαπάνη'}
         </div>
         {isDeductible !== undefined && (
-          <span style={{ fontSize:10, fontWeight:500, color:isDeductible?'var(--positive)':'var(--text-tertiary)', background:isDeductible?'var(--positive-dim)':'var(--bg-surface)', padding:'3px 10px', borderRadius:20, fontFamily:"'Google Sans', sans-serif" }}>
+          <span style={{ fontSize:10, fontWeight:500, color:isDeductible?'var(--positive)':'var(--text-tertiary)', background:isDeductible?'var(--positive-dim)':'var(--bg-surface)', padding:'3px 10px', borderRadius:20, fontFamily:"'Inter', sans-serif" }}>
             {isDeductible ? 'Εκπιπτόμενη δαπάνη' : 'Μη εκπιπτόμενη'}
           </span>
         )}
@@ -423,7 +427,7 @@ function ExpenseForm({
             options={groupOptions} />
           {!showAllGroups && (
             <button type="button" onClick={() => setShowAllGroups(true)}
-              style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontFamily: "'Google Sans',sans-serif", fontSize: 11, fontWeight: 600 }}>
+              style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 600 }}>
               + Περισσότερες κατηγορίες (επαγγελματικές)
             </button>
           )}
@@ -523,7 +527,7 @@ function ExpenseForm({
           />
           {form.attachment_url && (
             <a href={form.attachment_url} target="_blank" rel="noopener noreferrer"
-              style={{ height:40, padding:'0 16px', borderRadius:4, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
+              style={{ height:40, padding:'0 16px', borderRadius:4, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer', textDecoration:'none', whiteSpace:'nowrap', gap:6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               Άνοιγμα
             </a>
@@ -535,11 +539,11 @@ function ExpenseForm({
       </div>
 
       <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:16 }}>
-        <button onClick={onCancel} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:20, padding:'8px 16px', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>
+        <button onClick={onCancel} style={{ background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:20, padding:'8px 16px', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer' }}>
           Ακύρωση
         </button>
         <button onClick={onSave} disabled={saving || !form.description || !form.amount}
-          style={{ background:isEdit?'var(--info)':'var(--accent)', color:isEdit?'#fff':'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Google Sans', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
+          style={{ background:isEdit?'var(--info)':'var(--accent)', color:isEdit?'#fff':'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Inter', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
           {saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
         </button>
       </div>
@@ -567,7 +571,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
         <div style={{ minWidth:0 }}>
-          <div style={{ fontSize:11, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Google Sans', sans-serif", marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontSize:11, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {info.label}
           </div>
           <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
@@ -595,13 +599,13 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
                 style={{ width:72, height:28, border:'1px solid var(--accent)', borderRadius:4, background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:12, padding:'0 8px', outline:'none', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}
               />
               <button onClick={() => { onSetBudget(parseFloat(val)||0); setEditing(false); }}
-                style={{ height:28, padding:'0 8px', borderRadius:4, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:11, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+                style={{ height:28, padding:'0 8px', borderRadius:4, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:11, cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
                 OK
               </button>
             </div>
           ) : (
             <button onClick={() => { setVal(String(budget)); setEditing(true); }}
-              style={{ fontSize:10, color:'var(--accent)', background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500, padding:0 }}>
+              style={{ fontSize:10, color:'var(--accent)', background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500, padding:0 }}>
               {budget > 0 ? 'Αλλαγή' : '+ Ορισμός Budget'}
             </button>
           )}
@@ -634,7 +638,7 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
       {/* Deductible badge */}
       {info.taxDeductible && (
         <div style={{ marginTop:8, paddingTop:8, borderTop:'1px solid var(--border-subtle)' }}>
-          <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:4, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+          <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:4, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εκπιπτόμενη
           </span>
         </div>
@@ -852,7 +856,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
   if (!w) { alert('Επίτρεψε τα popups'); return; }
 
   const kpiHtml = (val: string, label: string, color: string) =>
-    `<div class="kpi"><div class="kpi-v" style="color:${color}">${val}</div><div class="kpi-l">${label}</div></div>`;
+    `<div class="kpi"><div class="kpi-v" style="color:${color}">${esc(val)}</div><div class="kpi-l">${label}</div></div>`;
 
   const groupTableRows = Object.entries(EXPENSE_GROUPS)
     .filter(([k])=>grouped[k]&&grouped[k].length>0)
@@ -862,18 +866,18 @@ function exportPDF(expenses: Expense[], propertyName: string) {
       const grpColor = GROUP_COLORS[k]||'#1a73e8';
       const rows = grpExp.map(e=>`
         <tr>
-          <td>${fmtD(e.date)}</td>
-          <td>${e.category}</td>
+          <td>${esc(fmtD(e.date))}</td>
+          <td>${esc(e.category)}</td>
           <td>
-            <div style="font-weight:500;color:#1a1a2e">${e.description}</div>
-            ${e.store_vendor?`<div style="font-size:9px;color:#9aa0a6">${e.store_vendor}</div>`:''}
+            <div style="font-weight:500;color:#1a1a2e">${esc(e.description)}</div>
+            ${e.store_vendor?`<div style="font-size:9px;color:#9aa0a6">${esc(e.store_vendor)}</div>`:''}
             ${e.is_recurring?`<span class="badge-tag" style="background:#e8f0fe;color:#1a73e8">${e.recurring_frequency==='monthly'?'Μηνιαία':e.recurring_frequency==='annual'?'Ετήσια':'Επαναλ.'}</span>`:''}
           </td>
           <td>${PAID_BY_OPTIONS.find(p=>p.value===e.paid_by)?.label||'—'}</td>
-          <td style="font-size:9px">${PAYMENT_METHODS.find(p=>p.value===e.payment_method)?.label||'—'}${e.installments?`<br>${e.installments} δόσεις`:''}</td>
-          <td class="mono right">${e.vat_amount&&e.vat_amount>0?fmtEur(e.vat_amount):'—'}</td>
+          <td style="font-size:9px">${PAYMENT_METHODS.find(p=>p.value===e.payment_method)?.label||'—'}${e.installments?`<br>${esc(e.installments)} δόσεις`:''}</td>
+          <td class="mono right">${esc(e.vat_amount&&e.vat_amount>0?fmtEur(e.vat_amount):'—')}</td>
           <td class="center"><span class="badge-tag ${info.taxDeductible?'b-yes':'b-no'}">${info.taxDeductible?'ΝΑΙ':'ΟΧΙ'}</span></td>
-          <td class="mono right" style="font-weight:600;color:${e.paid?'#1a1a2e':'#b45309'}">${fmtEur(e.amount)}</td>
+          <td class="mono right" style="font-weight:600;color:${e.paid?'#1a1a2e':'#b45309'}">${esc(fmtEur(e.amount))}</td>
         </tr>`).join('');
       return `
         <tr class="g-header">
@@ -882,22 +886,22 @@ function exportPDF(expenses: Expense[], propertyName: string) {
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:10px;height:10px;border-radius:2px;background:${grpColor};flex-shrink:0"></div>
                 <strong>${info.label}</strong>
-                <span style="font-size:9px;color:#5f6368;font-weight:400">${grpExp.length} εγγραφές</span>
+                <span style="font-size:9px;color:#5f6368;font-weight:400">${esc(grpExp.length)} εγγραφές</span>
                 ${info.taxDeductible?'<span class="badge-tag b-yes">ΕΚΠΙΠΤΟΜΕΝΗ</span>':''}
               </div>
-              <span style="font-family:\'Roboto Mono\',monospace;font-weight:700;color:#c5221f">${fmtEur(grpTotal)}</span>
+              <span style="font-family:\'Roboto Mono\',monospace;font-weight:700;color:#c5221f">${esc(fmtEur(grpTotal))}</span>
             </div>
           </td>
         </tr>
         ${rows}
         <tr class="g-sub">
           <td colspan="7" style="text-align:right;color:#5f6368;font-size:10px;padding-right:12px">Υποσύνολο ${info.label}</td>
-          <td class="mono right" style="font-weight:700;color:#c5221f">${fmtEur(grpTotal)}</td>
+          <td class="mono right" style="font-weight:700;color:#c5221f">${esc(fmtEur(grpTotal))}</td>
         </tr>`;
     }).join('');
 
   w.document.write(`<!DOCTYPE html><html lang="el"><head>
-  <meta charset="UTF-8"><title>Κατάσταση Δαπανών — ${propertyName}</title>
+  <meta charset="UTF-8"><title>Κατάσταση Δαπανών — ${esc(propertyName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
@@ -906,23 +910,23 @@ function exportPDF(expenses: Expense[], propertyName: string) {
     .page{padding:28px 32px;max-width:940px;margin:0 auto}
     /* Header */
     .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-    .logo{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+    .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
     .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
-    .meta-r{text-align:right}.meta-title{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
+    .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
     .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
     /* Section titles */
-    .sec-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
+    .sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
     .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
     .sec{margin-bottom:20px}
     /* KPIs */
     .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
     .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:11px 13px}
     .kpi-v{font-family:'Roboto Mono',monospace;font-size:15px;font-weight:700;margin-bottom:3px}
-    .kpi-l{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;line-height:1.3}
+    .kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;line-height:1.3}
     /* Summary grid */
     .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
     .sum-box{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:13px 15px}
-    .sum-box-title{font-family:'Google Sans',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#1a73e8;margin-bottom:9px}
+    .sum-box-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#1a73e8;margin-bottom:9px}
     .sum-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f1f3f4}
     .sum-row:last-child{border:none}
     .sum-row-l{font-size:10px;color:#5f6368}
@@ -930,16 +934,16 @@ function exportPDF(expenses: Expense[], propertyName: string) {
     .sum-total{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;margin-top:6px;border-top:2px solid #e8eaed}
     /* Table */
     table{width:100%;border-collapse:collapse;font-size:9.5px}
-    th{font-family:'Google Sans',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:7px 7px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;white-space:nowrap}
+    th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:7px 7px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;white-space:nowrap}
     th.right{text-align:right}th.center{text-align:center}
     td{padding:7px 7px;border-bottom:1px solid #f1f3f4;vertical-align:top;color:#3c4043}
     td.mono{font-family:'Roboto Mono',monospace}td.right{text-align:right}td.center{text-align:center}
-    .g-header td{background:#eef2ff;border-top:2px solid #1a73e8;border-bottom:1px solid #c5cae9;padding:9px 10px;font-family:'Google Sans',sans-serif;font-size:10.5px}
+    .g-header td{background:#eef2ff;border-top:2px solid #1a73e8;border-bottom:1px solid #c5cae9;padding:9px 10px;font-family:'Inter',sans-serif;font-size:10.5px}
     .g-sub td{background:#fafeff;border-top:1px solid #e8eaed;border-bottom:2px solid #e8eaed;padding:5px 7px;font-size:9.5px}
-    .g-total td{background:#1a73e8;color:#fff;padding:9px 10px;font-family:'Google Sans',sans-serif;font-size:11px;font-weight:500}
+    .g-total td{background:#1a73e8;color:#fff;padding:9px 10px;font-family:'Inter',sans-serif;font-size:11px;font-weight:500}
     .g-total .mono{color:#fff;font-weight:700;font-size:13px}
     /* Badges */
-    .badge-tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:500;font-family:'Google Sans',sans-serif}
+    .badge-tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:500;font-family:'Inter',sans-serif}
     .b-yes{background:#e6f4ea;color:#137333}.b-no{background:#f1f3f4;color:#80868b}
     /* Footer */
     .footer{margin-top:24px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
@@ -957,8 +961,8 @@ function exportPDF(expenses: Expense[], propertyName: string) {
       <div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
     </div>
     <div class="meta-r">
-      <div class="meta-title">${propertyName}</div>
-      <div class="meta-d">Κατάσταση Δαπανών &nbsp;·&nbsp; ${today}</div>
+      <div class="meta-title">${esc(propertyName)}</div>
+      <div class="meta-d">Κατάσταση Δαπανών &nbsp;·&nbsp; ${esc(today)}</div>
     </div>
   </div>
 
@@ -981,24 +985,24 @@ function exportPDF(expenses: Expense[], propertyName: string) {
           <div class="sum-row">
             <div style="display:flex;align-items:center;gap:5px">
               <div style="width:7px;height:7px;border-radius:2px;background:${GROUP_COLORS[k]||'#666'};flex-shrink:0"></div>
-              <span class="sum-row-l">${EXPENSE_GROUPS[k]?.label||k}</span>
+              <span class="sum-row-l">${esc(EXPENSE_GROUPS[k]?.label||k)}</span>
             </div>
-            <span class="sum-row-v">${fmtEur(v)}</span>
+            <span class="sum-row-v">${esc(fmtEur(v))}</span>
           </div>`).join('')}
         <div class="sum-total">
-          <span style="font-family:'Google Sans',sans-serif;font-size:10px;font-weight:500">Γενικό Σύνολο</span>
-          <span style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;color:#c5221f">${fmtEur(total)}</span>
+          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:500">Γενικό Σύνολο</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;color:#c5221f">${esc(fmtEur(total))}</span>
         </div>
       </div>
       <div class="sum-box">
         <div class="sum-box-title">Φορολογική Ανάλυση</div>
-        <div class="sum-row"><span class="sum-row-l">Εκπιπτόμενες δαπάνες</span><span class="sum-row-v" style="color:#137333">${fmtEur(deductible)}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Μη εκπιπτόμενες δαπάνες</span><span class="sum-row-v" style="color:#c5221f">${fmtEur(total-deductible)}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Ποσοστό εκπτώσεων</span><span class="sum-row-v" style="color:#1a73e8">${total>0?((deductible/total)*100).toFixed(1):0}%</span></div>
-        <div class="sum-row"><span class="sum-row-l">Εκτ. φόρος ενοικίων (15%)</span><span class="sum-row-v" style="color:#b45309">${fmtEur(deductible*0.15)}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Σύνολο ΦΠΑ</span><span class="sum-row-v" style="color:#b45309">${fmtEur(totalVat)}</span></div>
-        ${totalCashback>0?`<div class="sum-row"><span class="sum-row-l">Cashback (εξοικονόμηση)</span><span class="sum-row-v" style="color:#137333">+${fmtEur(totalCashback)}</span></div>`:''}
-        ${unpaid>0?`<div class="sum-row"><span class="sum-row-l" style="color:#b45309">Εκκρεμείς πληρωμές</span><span class="sum-row-v" style="color:#b45309">${fmtEur(unpaid)}</span></div>`:''}
+        <div class="sum-row"><span class="sum-row-l">Εκπιπτόμενες δαπάνες</span><span class="sum-row-v" style="color:#137333">${esc(fmtEur(deductible))}</span></div>
+        <div class="sum-row"><span class="sum-row-l">Μη εκπιπτόμενες δαπάνες</span><span class="sum-row-v" style="color:#c5221f">${esc(fmtEur(total-deductible))}</span></div>
+        <div class="sum-row"><span class="sum-row-l">Ποσοστό εκπτώσεων</span><span class="sum-row-v" style="color:#1a73e8">${esc(total>0?((deductible/total)*100).toFixed(1):0)}%</span></div>
+        <div class="sum-row"><span class="sum-row-l">Εκτ. φόρος ενοικίων (15%)</span><span class="sum-row-v" style="color:#b45309">${esc(fmtEur(deductible*0.15))}</span></div>
+        <div class="sum-row"><span class="sum-row-l">Σύνολο ΦΠΑ</span><span class="sum-row-v" style="color:#b45309">${esc(fmtEur(totalVat))}</span></div>
+        ${totalCashback>0?`<div class="sum-row"><span class="sum-row-l">Cashback (εξοικονόμηση)</span><span class="sum-row-v" style="color:#137333">+${esc(fmtEur(totalCashback))}</span></div>`:''}
+        ${unpaid>0?`<div class="sum-row"><span class="sum-row-l" style="color:#b45309">Εκκρεμείς πληρωμές</span><span class="sum-row-v" style="color:#b45309">${esc(fmtEur(unpaid))}</span></div>`:''}
       </div>
     </div>
   </div>
@@ -1022,8 +1026,8 @@ function exportPDF(expenses: Expense[], propertyName: string) {
       <tbody>
         ${groupTableRows}
         <tr class="g-total">
-          <td colspan="7">Γενικό Σύνολο &nbsp;·&nbsp; ${expenses.length} εγγραφές</td>
-          <td class="mono right">${fmtEur(total)}</td>
+          <td colspan="7">Γενικό Σύνολο &nbsp;·&nbsp; ${esc(expenses.length)} εγγραφές</td>
+          <td class="mono right">${esc(fmtEur(total))}</td>
         </tr>
       </tbody>
     </table>
@@ -1032,7 +1036,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
   <!-- Footer -->
   <div class="footer">
     <div>Property OS &nbsp;·&nbsp; Κατάσταση Δαπανών Ακινήτου</div>
-    <div>${today}</div>
+    <div>${esc(today)}</div>
   </div>
   <div class="disc">Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας. Δεν αποτελεί επίσημο φορολογικό έγγραφο. Συμβουλευτείτε λογιστή.</div>
 
@@ -1420,7 +1424,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {unpaidTotal > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--warning)', flexShrink:0 }} />
-          <span style={{ fontSize:12, color:'var(--warning)', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+          <span style={{ fontSize:12, color:'var(--warning)', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             {processed.filter(e=>!e.paid).length} εκκρεμείς δαπάνες — {fmtEur(unpaidTotal)} αναμένουν εξόφληση
           </span>
         </div>
@@ -1436,7 +1440,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Recurring reminders */}
       {recurringReminders.length > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--accent)', borderRadius:8, padding:'10px 16px', marginBottom:12 }}>
-          <div style={{ fontSize:10, fontWeight:500, color:'var(--accent)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:500, color:'var(--accent)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:8 }}>
             Επαναλαμβανόμενες — εκκρεμείς αυτόν τον μήνα
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
@@ -1464,7 +1468,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     appliance_lease_monthly:null, notes:null,
                   });
                   notify('Καταχωρήθηκε'); load();
-                }} style={{ height:24, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+                }} style={{ height:24, padding:'0 8px', borderRadius:12, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:10, cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
                   + Καταχώρηση
                 </button>
               </div>
@@ -1476,7 +1480,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Warranty alerts */}
       {warrantyAlerts.length > 0 && (
         <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:8, padding:'10px 16px', marginBottom:12 }}>
-          <div style={{ fontSize:10, fontWeight:500, color:'var(--warning)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:500, color:'var(--warning)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:8 }}>
             Εγγυήσεις που λήγουν σύντομα
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
@@ -1500,29 +1504,29 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, flexWrap:'wrap', gap:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', display:'inline-block' }} />
-          <span style={{ fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif" }}>
+          <span style={{ fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif" }}>
             Δαπάνες Ακινήτου
           </span>
         </div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
           <button onClick={() => setShowBudgets(v=>!v)}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:`1px solid ${showBudgets?'var(--accent)':'var(--border-default)'}`, background:showBudgets?'var(--accent-dim)':'transparent', color:showBudgets?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:20, border:`1px solid ${showBudgets?'var(--accent)':'var(--border-default)'}`, background:showBudgets?'var(--accent-dim)':'transparent', color:showBudgets?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Budget
           </button>
           <button onClick={() => setShowTaxSummary(v=>!v)}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:`1px solid ${showTaxSummary?'var(--accent)':'var(--border-default)'}`, background:showTaxSummary?'var(--accent-dim)':'transparent', color:showTaxSummary?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:20, border:`1px solid ${showTaxSummary?'var(--accent)':'var(--border-default)'}`, background:showTaxSummary?'var(--accent-dim)':'transparent', color:showTaxSummary?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Φορολογική Ανάλυση
           </button>
           <button onClick={() => exportExcel(processed, 'Ακίνητο')}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εξαγωγή Excel
           </button>
           <button onClick={() => exportPDF(processed, 'Ακίνητο')}
-            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+            style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εξαγωγή PDF
           </button>
           <button onClick={() => { setShowForm(v=>!v); setEditingId(null); }}
-            style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
+            style={{ height:36, padding:'0 18px', borderRadius:20, border:`1px solid ${showForm?'var(--border-default)':'var(--accent)'}`, background:showForm?'transparent':'var(--accent)', color:showForm?'var(--text-secondary)':'var(--accent-text)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, whiteSpace:'nowrap' }}>
             {showForm ? 'Κλείσιμο' : '+ Νέα Δαπάνη'}
           </button>
         </div>
@@ -1531,7 +1535,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* ── Quick-add bar ── */}
       <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif", fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
+        <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
         <input
           value={quickDesc} onChange={e=>setQuickDesc(e.target.value)}
           placeholder="Τί αγόρασες; (για παράδειγμα Λογαριασμός ΔΕΗ)"
@@ -1549,7 +1553,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           {Object.entries(EXPENSE_GROUPS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
         <button onClick={quickSave} disabled={quickSaving||!quickDesc.trim()||!quickAmt}
-          style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily:"'Google Sans', sans-serif", fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
+          style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500, cursor:'pointer', flexShrink:0, opacity:quickSaving||!quickDesc.trim()||!quickAmt?0.5:1 }}>
           {quickSaving?'...':'Αποθήκευση'}
         </button>
         <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif", flexShrink:0 }}>Enter</span>
@@ -1573,8 +1577,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           { label:'Σύνολο ΦΠΑ',          value:fmtEur(totalVat),      accent:false },
         ].map((k,i) => (
           <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
-            <div style={{ fontSize:18, fontWeight:700, color: k.accent ? 'var(--positive)' : 'var(--text-primary)', fontFamily:"'Google Sans', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
-            <div style={{ fontSize:10, fontWeight:500, letterSpacing:'0.04em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:"'Google Sans', sans-serif" }}>{k.label}</div>
+            <div style={{ fontSize:18, fontWeight:700, color: k.accent ? 'var(--positive)' : 'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
+            <div style={{ fontSize:10, fontWeight:500, letterSpacing:'0.04em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{k.label}</div>
           </div>
         ))}
       </div>
@@ -1585,7 +1589,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           {yoyData.lastYTD > 0 && (
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:16 }}>
               <div>
-                <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:4 }}>
+                <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:4 }}>
                   Σύγκριση Έτους
                 </div>
                 <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
@@ -1609,7 +1613,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           )}
           {cashbackStats.ytdCashback > 0 && (
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--positive)', borderRadius:10, padding:'12px 16px' }}>
-              <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:4 }}>
+              <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:4 }}>
                 Cashback Φέτος
               </div>
               <div style={{ display:'flex', gap:16, alignItems:'baseline' }}>
@@ -1793,11 +1797,11 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--accent)', display:'inline-block' }} />
-                <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>
+                <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
                   Αναλύσεις & Ειδοποιήσεις
                 </span>
                 {cards.some(c=>c.urgent) && (
-                  <span style={{ fontSize:9, fontWeight:700, color:'var(--negative)', background:'var(--negative-soft)', padding:'2px 8px', borderRadius:10, fontFamily:"'Google Sans', sans-serif" }}>
+                  <span style={{ fontSize:9, fontWeight:700, color:'var(--negative)', background:'var(--negative-soft)', padding:'2px 8px', borderRadius:10, fontFamily:"'Inter', sans-serif" }}>
                     {cards.filter(c=>c.urgent).length} επείγοντα
                   </span>
                 )}
@@ -1814,7 +1818,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={card.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d={card.icon} />
                     </svg>
-                    <span style={{ fontSize:10, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif", textTransform:'uppercase', letterSpacing:'0.4px' }}>
+                    <span style={{ fontSize:10, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", textTransform:'uppercase', letterSpacing:'0.4px' }}>
                       {card.title}
                     </span>
                   </div>
@@ -1843,7 +1847,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               return (
                 <div style={{ display:'flex', gap:16, alignItems:'center' }}>
                   {overBudgetGroups.length > 0 && (
-                    <span style={{ fontSize:10, color:'var(--negative)', fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>
+                    <span style={{ fontSize:10, color:'var(--negative)', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
                       {overBudgetGroups.length} ομάδες σε υπέρβαση
                     </span>
                   )}
@@ -1855,7 +1859,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             })()}
           </div>
           {Object.keys(spentByGroup).length === 0 ? (
-            <div style={{ textAlign:'center', padding:32, color:'var(--text-tertiary)', fontSize:12, fontFamily:"'Google Sans', sans-serif" }}>
+            <div style={{ textAlign:'center', padding:32, color:'var(--text-tertiary)', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
               Καταχώρησε δαπάνες για να ορίσεις budgets
             </div>
           ) : (
@@ -1899,7 +1903,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             ].map((k,i) => (
               <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'14px 16px' }}>
                 <div style={{ fontSize:17, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{k.value}</div>
-                <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Google Sans', sans-serif", marginBottom:2 }}>{k.label}</div>
+                <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:2 }}>{k.label}</div>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Roboto', sans-serif" }}>{k.sub}</div>
               </div>
             ))}
@@ -1909,7 +1913,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             <thead>
               <tr>
                 {['Ομάδα Δαπάνης','Σύνολο','ΦΠΑ','Εκπιπτόμενη'].map((h,i) => (
-                  <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'6px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Google Sans', sans-serif" }}>{h}</th>
+                  <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'6px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1925,7 +1929,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                   <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:'var(--text-primary)' }}>{fmtEur(row.amount)}</td>
                   <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--warning)' }}>{row.vat>0?fmtEur(row.vat):'—'}</td>
                   <td style={{ padding:'9px 10px' }}>
-                    <span style={{ fontSize:10, fontWeight:500, padding:'3px 10px', borderRadius:20, fontFamily:"'Google Sans', sans-serif", background:row.deductible?'var(--positive-dim)':'var(--bg-surface)', color:row.deductible?'var(--positive)':'var(--text-tertiary)'                    }}>
+                    <span style={{ fontSize:10, fontWeight:500, padding:'3px 10px', borderRadius:20, fontFamily:"'Inter', sans-serif", background:row.deductible?'var(--positive-dim)':'var(--bg-surface)', color:row.deductible?'var(--positive)':'var(--text-tertiary)'                    }}>
                       {row.deductible ? 'Εκπιπτόμενη' : 'Μη εκπιπτόμενη'}
                     </span>
                   </td>
@@ -1969,7 +1973,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* Toolbar: πλήθος + εξαγωγή */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:12, flexWrap:'wrap' }}>
-        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Google Sans',sans-serif" }}>{processed.length} δαπάνες</div>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{processed.length} δαπάνες</div>
         <ExportButton disabled={processed.length===0} onClick={() => {
           const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
           const paidByLabel = (v:string|null) => v==='tenant'?'Ενοικιαστής':v==='owner'?'Ιδιοκτήτης':(v||'');
@@ -1995,7 +1999,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
           </div>
-          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Google Sans', sans-serif" }}>
+          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
             {search ? `Δεν βρέθηκαν αποτελέσματα για «${search}»` : 'Δεν έχεις καταχωρίσει δαπάνες ακόμα'}
           </div>
           {!search && (
@@ -2018,10 +2022,10 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 18px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <div style={{ width:8, height:8, borderRadius:2, background:GROUP_COLORS[groupKey]||'var(--accent)', flexShrink:0 }} />
-                    <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Google Sans', sans-serif" }}>{groupInfo.label}</span>
+                    <span style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif" }}>{groupInfo.label}</span>
                     <span style={{ fontSize:10, color:'var(--text-secondary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:4, fontFamily:"'Roboto', sans-serif" }}>{groupExp.length}</span>
                     {groupInfo.taxDeductible && (
-                      <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:4, fontFamily:"'Google Sans', sans-serif", fontWeight:500 }}>Εκπιπτόμενη</span>
+                      <span style={{ fontSize:9, color:'var(--positive)', background:'var(--positive-dim)', padding:'2px 8px', borderRadius:4, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>Εκπιπτόμενη</span>
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -2042,7 +2046,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     <thead>
                       <tr>
                         {['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Κατάστημα','Πληρωμή','ΦΠΑ','Cashback','Τιμή',''].map((h,i) => (
-                          <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Google Sans', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
+                          <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -2061,7 +2065,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                               onMouseLeave={ev => { if (!isEditing) ev.currentTarget.style.background='transparent'; }}>
                               <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Roboto', sans-serif", whiteSpace:'nowrap' }}>{fmtD(e.date)}</td>
                               <td style={{ padding:'9px 10px' }}>
-                                <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:4, fontSize:10, fontWeight:500, fontFamily:"'Google Sans', sans-serif", background:`${getCatColor(e.category)}20`, color:getCatColor(e.category) }}>{e.category}</span>
+                                <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:4, fontSize:10, fontWeight:500, fontFamily:"'Inter', sans-serif", background:`${getCatColor(e.category)}20`, color:getCatColor(e.category) }}>{e.category}</span>
                               </td>
                               <td style={{ padding:'9px 10px', maxWidth:200 }}>
                                 <div
@@ -2074,16 +2078,16 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                   {e.notes && <span style={{ marginLeft:5, fontSize:8, color:'var(--accent)' }}>●</span>}
                                 </div>
                                 <div style={{ display:'flex', gap:4, marginTop:2 }}>
-                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--info-dim)', color:'var(--info)', padding:'1px 6px', borderRadius:3, fontFamily:"'Google Sans', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
-                                  {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Google Sans', sans-serif" }}>Εκκρεμεί</span>}
+                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--info-dim)', color:'var(--info)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
+                                  {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εκκρεμεί</span>}
                                   {e.warranty_months && (() => {
                                     const exp = new Date(e.date+'T00:00:00'); exp.setMonth(exp.getMonth()+e.warranty_months);
                                     const days = Math.ceil((exp.getTime()-Date.now())/86400000);
-                                    return days >= 0 && days <= 90 ? <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Google Sans', sans-serif" }}>Εγγ.{days}μ.</span> : null;
+                                    return days >= 0 && days <= 90 ? <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εγγ.{days}μ.</span> : null;
                                   })()}
                                 </div>
                               </td>
-                              <td style={{ padding:'9px 10px' }}><span style={{ fontSize:11, fontWeight:500, color:paidByColor, fontFamily:"'Google Sans', sans-serif" }}>{paidByLabel}</span></td>
+                              <td style={{ padding:'9px 10px' }}><span style={{ fontSize:11, fontWeight:500, color:paidByColor, fontFamily:"'Inter', sans-serif" }}>{paidByLabel}</span></td>
                               <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:12, fontFamily:"'Roboto', sans-serif" }}>{e.store_vendor||'—'}</td>
                               <td style={{ padding:'9px 10px', color:'var(--text-secondary)', fontSize:11, fontFamily:"'Roboto', sans-serif" }}>
                                 <div>{pm?.label||'—'}</div>
