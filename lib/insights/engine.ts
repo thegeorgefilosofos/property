@@ -138,9 +138,13 @@ export function computeInsights(input: InsightInput): Insight[] {
   }
 
   // ── 11. Καμία πρόσφατη κίνηση → υπενθύμιση σάρωσης ───────────────────────
-  const lastExpenseDays = expenses.length
-    ? Math.min(...expenses.filter(e => e.date).map(e => daysUntil(e.date, now)).filter((x): x is number => x !== null).map(x => -x))
-    : null;
+  // Ημέρες από την πιο πρόσφατη καταχώρηση. Αν υπάρχουν δαπάνες αλλά καμία με
+  // ημερομηνία, ΔΕΝ βγάζουμε Infinity (θα έγραφε «Πάνω από Infinity ημέρες»).
+  const daysAgo = expenses
+    .map(e => daysUntil(e.date, now))
+    .filter((x): x is number => x !== null)
+    .map(x => -x);
+  const lastExpenseDays = daysAgo.length ? Math.min(...daysAgo) : null;
   if (expenses.length === 0) {
     out.push({ id: 'no-expenses', kind: 'opportunity', title: 'Ξεκίνα με μία φωτογραφία', detail: 'Βγάλε φωτογραφία έναν λογαριασμό ή μια απόδειξη και θα καταχωρηθεί μόνη της. Έτσι αρχίζει να χτίζεται η εικόνα των εξόδων σου.', action: { label: 'Σάρωση', tab: 'scan' } });
   } else if (lastExpenseDays !== null && lastExpenseDays > 45) {
