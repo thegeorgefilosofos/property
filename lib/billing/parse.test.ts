@@ -146,6 +146,84 @@ for (const c of allCats) {
   ok(!!EXPENSE_MAP[c] && !!EXPENSE_MAP[c].group && !!EXPENSE_MAP[c].cat, `EXPENSE_MAP ${c}`);
 }
 
+// ── TEST 6: ΠΡΑΓΜΑΤΙΚΕΣ διατάξεις τραπεζικών αρχείων (header-aware) ──────────
+const money = (v: number, delim: string) => delim === ',' ? intlFmt(v, false) : grFmt(v, false);
+const bal = (delim: string) => delim === ',' ? '1250.00' : '1.250,00';
+type Layout = { name: string; delim: string; header: string[]; build: (d: string, desc: string, v: number, deb: boolean) => string[] };
+const layouts: Layout[] = [
+  { name: 'simple-amount', delim: ';', header: ['Ημερομηνία', 'Περιγραφή', 'Ποσό'],
+    build: (d, desc, v, deb) => [d, desc, (deb ? '-' : '') + money(v, ';')] },
+  { name: 'debit-credit-balance-gr', delim: ';', header: ['Ημ/νία', 'Αιτιολογία', 'Χρέωση', 'Πίστωση', 'Υπόλοιπο'],
+    build: (d, desc, v, deb) => [d, desc, deb ? money(v, ';') : '', deb ? '' : money(v, ';'), bal(';')] },
+  { name: 'code-amount-balance', delim: ';', header: ['Ημερομηνία', 'Κωδικός', 'Περιγραφή', 'Ποσό', 'Υπόλοιπο'],
+    build: (d, desc, v, deb) => [d, '20260612001', desc, (deb ? '-' : '') + money(v, ';'), bal(';')] },
+  { name: 'intl-debit-credit', delim: ',', header: ['Date', 'Description', 'Debit', 'Credit', 'Balance'],
+    build: (d, desc, v, deb) => [d, desc, deb ? money(v, ',') : '', deb ? '' : money(v, ','), bal(',')] },
+  { name: 'two-dates', delim: ';', header: ['Ημ. Συναλλαγής', 'Ημ/νία Αξίας', 'Περιγραφή', 'Ποσό'],
+    build: (d, desc, v, deb) => [d, d, desc, (deb ? '-' : '') + money(v, ';')] },
+  { name: 'revolut', delim: ',', header: ['Type', 'Product', 'Started Date', 'Completed Date', 'Description', 'Amount', 'Balance'],
+    build: (d, desc, v, deb) => ['CARD_PAYMENT', 'Current', d, d, desc, (deb ? '-' : '') + money(v, ','), bal(',')] },
+];
+for (const L of layouts) {
+  for (const prov of providers.slice(0, 8)) {
+    for (const val of [12.5, 142.57, 1234.56]) {
+      for (const deb of [true, false]) {
+        const header = L.header.join(L.delim);
+        const row = L.build('12/06/2026', prov.desc, val, deb).join(L.delim);
+        const parsed = parseCSV(`${header}\n${row}`);
+        ok(parsed.length === 1, `[${L.name}] parsed len ${prov.desc} v=${val} deb=${deb} → ${parsed.length}`);
+        if (parsed.length === 1) {
+          const t = parsed[0];
+          ok(t.date === '2026-06-12', `[${L.name}] date → ${t.date}`);
+          ok(approx(t.amount, val), `[${L.name}] amount v=${val} deb=${deb} → ${t.amount} (Υπόλοιπο δεν πρέπει να μπερδεύεται)`);
+          ok(t.debit === deb, `[${L.name}] debit exp ${deb} → ${t.debit}`);
+          ok(t.category === prov.cat, `[${L.name}] cat ${prov.desc} → ${t.category}`);
+        }
+      }
+    }
+  }
+}
+
+// ── TEST 7: Συμφωνία σε δύσκολα σενάρια + κακοσχηματισμένα αρχεία ────────────
+{
+  // Δύο ΠΑΝΟΜΟΙΟΤΥΠΟΙ εκκρεμείς (ίδιο ποσό/κατηγορία, διαφορετική ημ/νία): δύο
+  // πληρωμές πρέπει να πάνε σε ΔΙΑΦΟΡΕΤΙΚΟΥΣ λογαριασμούς (όχι διπλό match).
+  const twins: PendingBill[] = [
+    { id: 'e1', category: 'electricity', amount: 100.00, due_date: '2026-06-15' },
+    { id: 'e2', category: 'electricity', amount: 100.00, due_date: '2026-09-15' },
+  ];
+  const used = new Set<string>();
+  const p1 = matchBillToPayment({ amount: 100, date: '2026-06-16', category: 'electricity' }, twins, used);
+  ok(p1?.id === 'e1', `twin june → ${p1?.id}`); used.add(p1!.id);
+  const p2 = matchBillToPayment({ amount: 100, date: '2026-09-14', category: 'electricity' }, twins, used);
+  ok(p2?.id === 'e2', `twin sept → ${p2?.id}`); used.add(p2!.id);
+  const p3 = matchBillToPayment({ amount: 100, date: '2026-06-16', category: 'electricity' }, twins, used);
+  ok(p3 === null, `third payment no bill left → ${p3?.id ?? 'null'}`);
+}
+{
+  // Οριακή ανοχή: ακριβώς 2% πάνω ταιριάζει, 3% όχι.
+  const b: PendingBill[] = [{ id: 'x', category: 'water', amount: 100, due_date: '2026-06-10' }];
+  ok(matchBillToPayment({ amount: 102, date: '2026-06-12', category: 'water' }, b, new Set())?.id === 'x', 'edge +2%');
+  ok(matchBillToPayment({ amount: 103, date: '2026-06-12', category: 'water' }, b, new Set()) === null, 'edge +3% no');
+  // Ελάχιστη ανοχή 0.5€ για μικρά ποσά (10€ → 10.4 ταιριάζει, 10.6 όχι)
+  const s: PendingBill[] = [{ id: 's', category: 'other', amount: 10, due_date: '2026-06-10' }];
+  ok(matchBillToPayment({ amount: 10.4, date: '2026-06-11', category: 'other' }, s, new Set())?.id === 's', 'min tol 0.4');
+  ok(matchBillToPayment({ amount: 10.6, date: '2026-06-11', category: 'other' }, s, new Set()) === null, 'min tol 0.6 no');
+}
+// Κακοσχηματισμένα/κενά → ποτέ crash, επιστρέφει []
+ok(parseCSV('') .length === 0, 'empty file');
+ok(parseCSV('Ημερομηνία;Περιγραφή;Ποσό').length === 0, 'header only');
+ok(parseCSV('Ημερομηνία;Περιγραφή;Ποσό\n;;').length === 0, 'blank row');
+ok(parseCSV('Ημερομηνία;Περιγραφή;Ποσό\nάκυρο;γραμμή').length === 0, 'too few cols');
+ok(parseCSV('a;b;c\n12/06/2026;ΔΕΗ;-50,00').length === 1, 'unknown header → heuristic fallback');
+// Πίστωση (ενοίκιο) → debit=false, δεν επιλέγεται αυτόματα
+{
+  const rent = parseCSV('Ημ/νία;Αιτιολογία;Χρέωση;Πίστωση;Υπόλοιπο\n01/06/2026;ΕΝΟΙΚΙΟ ΜΙΣΘΩΜΑ;;800,00;2.050,00');
+  ok(rent.length === 1 && rent[0].debit === false, `rent credit debit=false → ${rent[0]?.debit}`);
+  ok(rent[0]?.selected === false, 'rent not auto-selected');
+  ok(approx(rent[0]?.amount, 800), `rent amount → ${rent[0]?.amount}`);
+}
+
 // ── Αποτελέσματα ────────────────────────────────────────────────────────────
 const total = pass + fail;
 console.log(`\n  Σύνολο tests: ${total}  ✓ ${pass}  ✗ ${fail}\n`);
