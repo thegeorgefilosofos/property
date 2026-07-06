@@ -361,13 +361,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         @keyframes pa-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
         @keyframes pa-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,67,53,.4)}50%{box-shadow:0 0 0 6px rgba(234,67,53,0)}}
         .pa-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:1200;display:flex;align-items:center;gap:10px}
-        .pa-fab-label{background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:100px;padding:8px 14px;font-family:'Google Sans',sans-serif;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 4px 14px rgba(60,64,67,.18);opacity:0;transform:translateX(8px);transition:opacity .18s,transform .18s;pointer-events:none}
+        .pa-fab-label{background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:100px;padding:8px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 4px 14px rgba(60,64,67,.18);opacity:0;transform:translateX(8px);transition:opacity .18s,transform .18s;pointer-events:none}
         .pa-fab-wrap:hover .pa-fab-label{opacity:1;transform:translateX(0)}
         .pa-fab{position:fixed;right:24px;bottom:24px;width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(26,115,232,.42),0 2px 8px rgba(60,64,67,.28);z-index:1201;transition:transform .14s cubic-bezier(.2,0,0,1),box-shadow .2s}
         .pa-fab-wrap .pa-fab{position:relative;right:auto;bottom:auto}
         .pa-fab:hover{transform:scale(1.07);box-shadow:0 8px 26px rgba(26,115,232,.5),0 3px 10px rgba(60,64,67,.3)}
         .pa-fab:active{transform:scale(.95)}
-        .pa-fab-initial{color:#fff;font-family:'Google Sans',sans-serif;font-weight:700;font-size:24px;line-height:1;letter-spacing:.5px}
+        .pa-fab-initial{color:#fff;font-family:'Inter',sans-serif;font-weight:700;font-size:24px;line-height:1;letter-spacing:.5px}
         .pa-fab-spark{position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
         .pa-fab-live{position:absolute;bottom:2px;right:2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg-base);animation:pa-pulse 1.1s infinite}
         .pa-panel{position:fixed;right:24px;bottom:92px;width:390px;max-width:calc(100vw - 32px);height:min(600px,calc(100vh - 130px));background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.24);z-index:1200;display:flex;flex-direction:column;overflow:hidden}

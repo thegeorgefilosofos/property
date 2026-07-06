@@ -186,13 +186,13 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   // Shared styles
   const card = { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:20 } as const;
   const cardGap = { ...card, marginBottom:16 };
-  const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Google Sans',sans-serif" } as const;
+  const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Inter',sans-serif" } as const;
   const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Roboto',sans-serif" } as const;
   const sectionTitle = (t:string) => (
     <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,
       borderBottom:'1px solid var(--border-subtle)' }}>
       <div style={{ width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0 }}/>
-      <div style={{ fontFamily:"'Google Sans',sans-serif",fontSize:10,textTransform:'uppercase',
+      <div style={{ fontFamily:"'Inter',sans-serif",fontSize:10,textTransform:'uppercase',
         letterSpacing:'0.06em',color:'var(--text-secondary)',fontWeight:700 }}>{t}</div>
     </div>
   );
@@ -200,7 +200,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
     <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
       padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
       <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif" }}>{label}</span>
-      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{value}</span>
+      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{value}</span>
     </div>
   );
 
@@ -239,7 +239,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             style={{ padding:'9px 18px',borderRadius:20,border:`1px solid ${activeSection===n.id?'var(--accent)':'var(--border-subtle)'}`,
               background:activeSection===n.id?'var(--accent-soft)':'transparent',
               color:activeSection===n.id?'var(--accent)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
-              fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
+              fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
             {n.label}
           </button>
         ))}
@@ -253,7 +253,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             {statRow('Email', accountEmail || '—')}
             {statRow('Γλώσσα', 'Ελληνικά')}
             {statRow('Νόμισμα', 'Ευρώ (€)')}
-            {prefRow('Εμφάνιση', 'Αλλάζεις φωτεινό/σκοτεινό θέμα από το εικονίδιο πάνω δεξιά.', <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Google Sans',sans-serif" }}>Πάνω δεξιά</span>)}
+            {prefRow('Εμφάνιση', 'Αλλάζεις φωτεινό/σκοτεινό θέμα από το εικονίδιο πάνω δεξιά.', <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Πάνω δεξιά</span>)}
             <div style={{ marginTop:16 }}>
               <Btn variant="secondary" onClick={async()=>{ await supabase.auth.signOut(); window.location.href='/login'; }}>Αποσύνδεση</Btn>
             </div>
@@ -265,7 +265,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               <div>
                 <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:100,padding:'4px 12px' }}>
                   <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
-                  <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif" }}>Δωρεάν πλάνο</span>
+                  <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
                 </div>
                 <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Roboto',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Από το δεύτερο και πάνω, 2,99 € τον μήνα ή 29,90 € τον χρόνο.</div>
               </div>
@@ -345,7 +345,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
           <button onClick={save}
             style={{ width:'100%',background:'var(--accent)',color:'var(--accent-text)',border:'none',borderRadius:8,
-              padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",
+              padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Inter',sans-serif",
               textTransform:'uppercase',letterSpacing:'0.1em' }}>
             {saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση Ρυθμίσεων'}
           </button>
@@ -418,7 +418,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
           <div style={{ height:20,display:'flex',alignItems:'center',justifyContent:'flex-end' }}>
             {prefsSaved && (
-              <span style={{ fontSize:11,color:'var(--positive)',fontFamily:"'Google Sans',sans-serif",
+              <span style={{ fontSize:11,color:'var(--positive)',fontFamily:"'Inter',sans-serif",
                 display:'inline-flex',alignItems:'center',gap:6 }}>
                 <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
                 Αποθηκεύτηκε
@@ -432,7 +432,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
       {activeSection==='fma' && (
         <div>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
-            <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Google Sans',sans-serif" }}>
+            <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>
               Φόρος Μεταβίβασης Ακινήτων — Εκτίμηση 2024
             </div>
             <div style={{ display:'flex',background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:4,gap:4 }}>
@@ -441,7 +441,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   style={{ height:30,padding:'0 16px',borderRadius:6,border:'none',
                     background:fmaMode===m?'var(--accent)':'transparent',
                     color:fmaMode===m?'var(--accent-text)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
-                    fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
+                    fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
                   {m==='buy'?'Αγορά':'Πώληση'}
                 </button>
               ))}
@@ -499,11 +499,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
                       </div>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
                           {buyCalc.cv>0?((buyCalc.total/buyCalc.cv)*100).toFixed(1):'—'}%
                         </div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Επί Αξίας</div>
@@ -521,8 +521,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {statRow('Τέλος Μεταγραφής 0.5%', fe(buyCalc.reg))}
                       {buyCalc.mortg>0 && statRow('Έξοδα Υποθήκης ~1%', fe(buyCalc.mortg))}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Σύνολο Εξόδων</span>
-                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
+                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Σύνολο Εξόδων</span>
+                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
                       </div>
                     </div>
                     <div style={{ ...card,border:'1px solid var(--accent)',background:'var(--accent-soft)' }}>
@@ -530,14 +530,14 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {statRow('Τίμημα Ακινήτου', fe(buyCalc.cv))}
                       {statRow('Έξοδα Αγοράς', fe(buyCalc.total), 'var(--negative)')}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Συνολικό Κεφάλαιο</span>
-                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
+                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Συνολικό Κεφάλαιο</span>
+                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
-                    <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif" }}>Συμπλήρωσε την αξία του ακινήτου</div>
+                    <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif" }}>Συμπλήρωσε την αξία του ακινήτου</div>
                   </div>
                 )}
               </div>
@@ -575,11 +575,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <>
                     <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
                       </div>
                       <div style={{ ...card,textAlign:'center',background:'var(--positive-soft)',borderColor:'var(--positive-border)' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
+                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Καθαρά Έσοδα</div>
                       </div>
                     </div>
@@ -599,14 +599,14 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                         </div>
                       )}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Google Sans',sans-serif" }}>Καθαρά Έσοδα</span>
-                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
+                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Καθαρά Έσοδα</span>
+                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
-                    <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif" }}>Συμπλήρωσε την τιμή πώλησης</div>
+                    <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif" }}>Συμπλήρωσε την τιμή πώλησης</div>
                   </div>
                 )}
               </div>
@@ -623,7 +623,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 {title:'Κτηματολόγιο',desc:'Σε περιοχές με ενεργό κτηματολόγιο απαιτείται εγγραφή. Κόστος ~0.5% επί αξίας.'},
               ].map((n,i)=>(
                 <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'12px 14px' }}>
-                  <div style={{ fontSize:12,fontWeight:500,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",marginBottom:6 }}>{n.title}</div>
+                  <div style={{ fontSize:12,fontWeight:500,color:'var(--accent)',fontFamily:"'Inter',sans-serif",marginBottom:6 }}>{n.title}</div>
                   <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
                 </div>
               ))}
@@ -669,7 +669,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'var(--accent)'},
                     ].map((k,i)=>(
                       <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'12px 14px' }}>
-                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
+                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-tertiary)' }}>{k.label}</div>
                       </div>
                     ))}
@@ -681,7 +681,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       <div key={i} style={{ marginBottom:10 }}>
                         <div style={{ display:'flex',justifyContent:'space-between',marginBottom:3 }}>
                           <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{b.label}</span>
-                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
+                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
                         </div>
                         <div style={{ height:4,background:'var(--border-subtle)',borderRadius:2 }}>
                           <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--negative)',borderRadius:2 }}/>
@@ -690,7 +690,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     ))}
                     <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize:11,color:'var(--text-secondary)' }}>Πραγματικός Συντελεστής</span>
-                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>
+                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>
                         {e2Result.effectiveRate.toFixed(1)}%
                       </span>
                     </div>
@@ -710,10 +710,10 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     ].map((row,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
-                          <span style={{ fontSize:9,fontWeight:700,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",marginRight:8 }}>{row.code}</span>
+                          <span style={{ fontSize:9,fontWeight:700,color:'var(--accent)',fontFamily:"'Inter',sans-serif",marginRight:8 }}>{row.code}</span>
                           <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{row.label}</span>
                         </div>
-                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Google Sans', sans-serif",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
+                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
@@ -727,7 +727,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     ].map((d,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
-                          <div style={{ fontSize:12,fontWeight:500,color:d.color,fontFamily:"'Google Sans',sans-serif" }}>{d.label}</div>
+                          <div style={{ fontSize:12,fontWeight:500,color:d.color,fontFamily:"'Inter',sans-serif" }}>{d.label}</div>
                           <div style={{ fontSize:11,color:'var(--text-secondary)' }}>{d.desc}</div>
                         </div>
                       </div>
@@ -738,7 +738,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     style={{ display:'flex',alignItems:'center',gap:6,padding:'10px 14px',
                       background:'var(--accent-soft)',border:'1px solid var(--accent-border)',
                       borderRadius:8,textDecoration:'none',color:'var(--accent)',fontSize:12,
-                      fontFamily:"'Google Sans',sans-serif",fontWeight:500 }}>
+                      fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     AADE.gr — Φορολογία Ακινήτων
                   </a>
@@ -746,7 +746,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
               </div>
             ) : (
               <div style={{ textAlign:'center',padding:'32px',color:'var(--text-tertiary)' }}>
-                <div style={{ fontSize:13,fontFamily:"'Google Sans',sans-serif",marginBottom:6 }}>
+                <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:6 }}>
                   Συμπλήρωσε τα ετήσια μισθώματα για υπολογισμό
                 </div>
                 <div style={{ fontSize:11 }}>Φορολογική κλίμακα: 15% / 35% / 45%</div>

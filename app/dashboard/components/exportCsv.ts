@@ -22,8 +22,17 @@ export const csvDate = (d: string | Date | null | undefined): string => {
   return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('el-GR');
 };
 
+// Εξουδετέρωση CSV formula-injection: κελί που ξεκινά με = + - @ (ή tab/CR)
+// εκτελείται ως τύπος από Excel/LibreOffice/Sheets όταν ανοίξει το αρχείο. Αφού τα
+// πεδία (περιγραφές, ονόματα, σημειώσεις) ελέγχονται από τον χρήστη —ακόμη και από
+// ανώνυμο μέσω tenant-portal— τα προθέτουμε με ' ώστε να μείνουν κείμενο. Εξαιρούνται
+// οι καθαροί αριθμοί (π.χ. αρνητικά ποσά «-50», δεκαδικά «-5,2») για να μη χαλάσουν.
+const NUMERIC = /^-?\d+(?:[.,]\d+)?$/;
+export const csvSafe = (s: string): string =>
+  /^[=+\-@\t\r]/.test(s) && !NUMERIC.test(s) ? `'${s}` : s;
+
 const esc = (v: unknown): string => {
-  const s = v == null ? '' : String(v);
+  const s = csvSafe(v == null ? '' : String(v));
   return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

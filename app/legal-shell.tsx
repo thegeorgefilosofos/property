@@ -8,7 +8,7 @@ export function LegalShell({ title, updated, intro, sections, disclaimer }: {
   title: string; updated: string; intro: string; sections: LegalSection[]; disclaimer?: string;
 }) {
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: "'Google Sans','Inter',sans-serif" }}>
+    <div style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: "'Inter',sans-serif" }}>
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)', height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
