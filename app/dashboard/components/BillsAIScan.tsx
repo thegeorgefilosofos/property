@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import { EXPENSE_MAP, assessCompleteness } from '@/lib/billing/parse';
 
 interface ExtractedBill {
   provider:      string;
@@ -60,28 +61,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Άλλο',
 };
 
-// Αντιστοίχιση κατηγορίας λογαριασμού → ομάδα/κατηγορία Δαπανών (ώστε να ρέει
-// αυτόματα στα Έξοδα και στην Επισκόπηση με μία σάρωση).
-const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
-  electricity: { group: 'fixed',       cat: 'Ρεύμα' },
-  water:       { group: 'fixed',       cat: 'Νερό' },
-  gas:         { group: 'fixed',       cat: 'Φυσικό Αέριο' },
-  internet:    { group: 'fixed',       cat: 'Internet' },
-  insurance:   { group: 'fixed',       cat: 'Ασφάλεια Κτιρίου' },
-  streaming:   { group: 'fixed',       cat: 'Άλλη Πάγια' },
-  taxes:       { group: 'fixed',       cat: 'ΕΝΦΙΑ' },
-  municipal:   { group: 'fixed',       cat: 'Δημοτικά Τέλη' },
-  security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
-  common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
-  maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
-  elevator:    { group: 'maintenance', cat: 'Συντήρηση Ασανσέρ' },
-  pool:        { group: 'maintenance', cat: 'Καθαρισμός Πισίνας' },
-  gardener:    { group: 'maintenance', cat: 'Κηπουρός' },
-  cleaner:     { group: 'maintenance', cat: 'Καθαριότητα' },
-  plumber:     { group: 'maintenance', cat: 'Υδραυλικός' },
-  electrician: { group: 'maintenance', cat: 'Ηλεκτρολόγος' },
-  other:       { group: 'other',       cat: 'Άλλο' },
-};
+// EXPENSE_MAP (κατηγορία → ομάδα/κατηγορία Δαπανών) στο @/lib/billing/parse.
 
 const Field = ({
   label, value, onChange, type = 'text', invalid = false,
@@ -114,17 +94,7 @@ const FIELD_LABELS: Record<string, string> = {
   provider: 'Πάροχος', amount: 'Ποσό', due_date: 'Ημ. λήξης', period: 'Περίοδος',
   kwh: 'Κατανάλωση (kWh)', cubic_meters: 'Κυβικά (m³)', millesimi: 'Χιλιοστά (‰)',
 };
-function assessCompleteness(e: ExtractedBill) {
-  const blocking: string[] = [];
-  if (!e.provider || !String(e.provider).trim()) blocking.push('provider');
-  if (!e.amount || e.amount <= 0) blocking.push('amount');
-  const recommended: string[] = [];
-  if (!e.due_date) recommended.push('due_date');
-  if (e.category === 'electricity' && !e.kwh) recommended.push('kwh');
-  if ((e.category === 'water' || e.category === 'gas') && !e.cubic_meters) recommended.push('cubic_meters');
-  if (e.category === 'common' && !e.millesimi) recommended.push('millesimi');
-  return { blocking, recommended };
-}
+// assessCompleteness στο @/lib/billing/parse (δοκιμασμένη).
 
 interface Props { propertyId: string; userId?: string; onSaved?: () => void; }
 

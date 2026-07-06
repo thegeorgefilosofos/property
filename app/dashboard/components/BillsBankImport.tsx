@@ -3,95 +3,18 @@
 import { useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import {
+  parseCSV, categorizeTransaction, EXPENSE_MAP, matchBillToPayment,
+  type ParsedTransaction, type PendingBill,
+} from '@/lib/billing/parse';
 
 const mdLabel: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.5px',
   textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans,
 };
 
-interface ParsedTransaction {
-  id:          string;
-  date:        string;
-  description: string;
-  amount:      number;
-  debit:       boolean;
-  category:    string;
-  confidence:  'high' | 'medium' | 'low';
-  selected:    boolean;
-  matched:     string;
-}
-
-// ── Comprehensive Greek bank/merchant matcher ─────────────────────────────────
-const MATCHERS = [
-  { keywords: ['ΔΕΗ','DEH','ΔΗΜΟΣΙΑ ΕΠΙΧΕΙΡΗΣΗ ΗΛΕΚΤΡΙΣΜΟΥ','ΗΡΩΝ ΗΛΕΚΤΡΙΣΜΟΣ','HERON ENERGY','PROTERGIA','VOLTERRA','NRG BILLING','ZENITH ENERGY','ELIN ENERGY','WATT+VOLT','SKY ENERGY'], category: 'electricity', label: 'Ρεύμα', confidence: 'high' as const },
-  { keywords: ['ΕΥΔΑΠ','EYDAP','ΕΥΑΘ','EYATH','ΔΕΥΑ','ΕΤΑΙΡΕΙΑ ΥΔΡΕΥΣΗΣ','ΥΔΡΕΥΣΗ'], category: 'water', label: 'Νερό', confidence: 'high' as const },
-  { keywords: ['COSMOTE','OTE AE','NOVA BROADBAND','NOVA SA','FORTHNET','VODAFONE ΕΛΛΑΔΟΣ','WIND HELLAS','HOL SA','CYTA HELLAS','INALAN','ENTERWAVE','WIND MOBILE'], category: 'internet', label: 'Internet & Τηλεφωνία', confidence: 'high' as const },
-  { keywords: ['NETFLIX','DISNEY PLUS','SPOTIFY AB','AMAZON PRIME','AMAZON DIGITAL','MAX HBO','YOUTUBE PREMIUM','GOOGLE YOUTUBE','ANT1 PLUS','COSMOTE TV','APPLE TV+','APPLE.COM/BILL'], category: 'streaming', label: 'Streaming & Συνδρομές', confidence: 'high' as const },
-  { keywords: ['ICLOUD','APPLE ICLOUD','GOOGLE ONE','GOOGLE STORAGE','MICROSOFT 365','MICROSOFT ONLINE','DROPBOX','ADOBE SYSTEMS','CANVA'], category: 'streaming', label: 'Cloud & Λογισμικό', confidence: 'high' as const },
-  { keywords: ['ΑΑΔΕ','AADE','ENFIA','ΕΝΦΙΑ','ΕΦΟΡΙΑ ΑΘΗΝΩΝ','ΔΗΜΟΣΙΑ ΕΣΟΔΑ','ΕΦΚΑ','ΙΚΑ','ΤΕΒΕ'], category: 'taxes', label: 'ΕΝΦΙΑ & Φόροι', confidence: 'high' as const },
-  { keywords: ['ΔΗΜΟΣ ΑΘΗΝΑΙΩΝ','ΔΗΜΟΤΙΚΑ ΤΕΛΗ','ΔΗΜΟΤΙΚΗ','ΔΗΜΟΣ ΘΕΣΣΑΛΟΝΙΚΗΣ','ΔΗΜΟΤΙΚΗ ΑΡΧΗ','ΔΗΜΟΣ'], category: 'municipal', label: 'Δημοτικά Τέλη', confidence: 'medium' as const },
-  { keywords: ['EDA ATTIKIS','ΕΔΑ ΑΤΤΙΚΗΣ','EDA THESS','DEPA','ΦΥΣΙΚΟ ΑΕΡΙΟ','GAS DISTRIBUTION','HERON GAS','PROTERGIA GAS'], category: 'gas', label: 'Φυσικό Αέριο', confidence: 'high' as const },
-  { keywords: ['HELLAS DIRECT','INTERAMERICAN','EUROLIFE FFH','EUROLIFE','GENERALI HELLAS','AXA ASFALISTIKI','ΕΘΝΙΚΗ ΑΣΦΑΛΙΣΤΙΚΗ','ALLIANZ HELLAS','ERGO ΑΣΦΑΛΙΣΤΙΚΗ','GROUPAMA'], category: 'insurance', label: 'Ασφάλεια', confidence: 'high' as const },
-  { keywords: ['ELTRAK SECURITY','G4S HELLAS','VANINFO','DSP SECURITY','SECURITAS','ΕΤΑΙΡΕΙΑ ΑΣΦΑΛΕΙΑΣ','ALARM'], category: 'security', label: 'Ασφάλεια & Security', confidence: 'medium' as const },
-  { keywords: ['ΚΟΙΝΟΧΡΗΣΤΑ','ΚΤΗΡΙΟ','ΔΙΑΧΕΙΡΙΣΗΣ','ΚΤΗΡΙΟ','MYBILLYS','MY CONDO','COMFY'], category: 'common', label: 'Κοινόχρηστα', confidence: 'medium' as const },
-  { keywords: ['ΑΝΕΛΚΥΣΤΗΡ','ΑΣΑΝΣΕΡ','KLEEMANN','OTIS','KONE','SCHINDLER','ELEVATOR','THYSSENKRUPP'], category: 'elevator', label: 'Συντήρηση Ασανσέρ', confidence: 'medium' as const },
-  { keywords: ['ΠΙΣΙΝΑ','POOL','ΣΥΝΤΗΡΗΣΗ ΠΙΣΙΝΑΣ','ΧΛΩΡΙΟ'], category: 'pool', label: 'Καθαρισμός Πισίνας', confidence: 'medium' as const },
-  { keywords: ['ΚΗΠΟΥΡ','ΚΗΠΟΣ','GARDEN','ΠΡΑΣΙΝΟ','LANDSCAP','ΦΥΤΑ'], category: 'gardener', label: 'Κηπουρός', confidence: 'medium' as const },
-  { keywords: ['ΚΑΘΑΡΙΟΤΗΤ','ΚΑΘΑΡΙΣΜ','CLEANING','ΣΥΝΕΡΓΕΙΟ ΚΑΘΑΡΙΣΜΟΥ'], category: 'cleaner', label: 'Καθαριότητα', confidence: 'medium' as const },
-  { keywords: ['ΥΔΡΑΥΛΙΚ','PLUMBER','ΑΠΟΦΡΑΞ'], category: 'plumber', label: 'Υδραυλικός', confidence: 'medium' as const },
-  { keywords: ['ΗΛΕΚΤΡΟΛΟΓ','ELECTRICIAN'], category: 'electrician', label: 'Ηλεκτρολόγος', confidence: 'medium' as const },
-  { keywords: ['ΣΥΝΤΗΡΗΣΗ','ΤΕΧΝΙΚΟΣ','SERVICE','ΕΠΙΣΚΕΥ','MAINTENANCE'], category: 'maintenance', label: 'Συντήρηση', confidence: 'low' as const },
-  { keywords: ['ΜΙΣΘΩΜΑ','ΕΝΟΙΚΙΟ','RENT','ENARC','ΜΙΣΘΩΣΗ'], category: 'rent_income', label: 'Ενοίκιο', confidence: 'medium' as const },
-] as const;
-
-function categorizeTransaction(desc: string) {
-  const upper = desc.toUpperCase();
-  for (const m of MATCHERS) {
-    const hit = (m.keywords as readonly string[]).find(k => upper.includes(k));
-    if (hit) return { category: m.category, label: m.label, confidence: m.confidence, matched: hit };
-  }
-  return { category: 'other', label: 'Άλλο', confidence: 'low' as const, matched: '' };
-}
-
-// Δύο ημερομηνίες εντός X ημερών (για συμφωνία πληρωμής ↔ εκκρεμούς λογαριασμού)
-function withinDays(a?: string | null, b?: string | null, days = 25): boolean {
-  if (!a || !b) return false;
-  const diff = Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
-  return diff <= days;
-}
-
-function parseCSV(text: string): ParsedTransaction[] {
-  const lines = text.split('\n').filter(l => l.trim());
-  const results: ParsedTransaction[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)|;|\t/).map(c => c.trim().replace(/^"|"$/g, ''));
-    if (cols.length < 3) continue;
-    let date = '', desc = '', amount = 0, debit = true;
-    for (const col of cols) {
-      if (!date && /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(col)) {
-        const parts = col.split(/[\/\-\.]/);
-        if (parts.length === 3) {
-          const [d, m, y] = parts[0].length === 4 ? [parts[2], parts[1], parts[0]] : parts;
-          date = `${y.length === 2 ? '20' + y : y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-        }
-      }
-      if (!amount) {
-        const clean = col.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
-        const n = parseFloat(clean);
-        if (!isNaN(n) && Math.abs(n) > 0.01 && Math.abs(n) < 100000) {
-          amount = Math.abs(n); debit = n < 0 || col.startsWith('-');
-        }
-      }
-      if (col.length > 4 && !/^\d+[,\.]?\d*$/.test(col) && !/^\d{1,2}[\/\-]\d{1,2}/.test(col)) {
-        if (!desc || col.length > desc.length) desc = col;
-      }
-    }
-    if (!date || !amount || !desc) continue;
-    const cat = categorizeTransaction(desc);
-    results.push({ id: `tx_${i}_${Date.now()}`, date, description: desc, amount, debit, ...cat, selected: debit && cat.category !== 'other', matched: cat.matched });
-  }
-  return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
+// Η λογική ανάλυσης/κατηγοριοποίησης/συμφωνίας ζει στο @/lib/billing/parse
+// (καθαρή & δοκιμασμένη — δες lib/billing/parse.test.ts, 23k+ tests).
 
 async function parseXLSX(buffer: ArrayBuffer): Promise<ParsedTransaction[]> {
   const XLSX = await import('xlsx');
@@ -125,29 +48,6 @@ const CATEGORY_OPTIONS = [
 
 const CONFIDENCE_DOT = { high: 'var(--positive)', medium: 'var(--warning)', low: 'var(--text-tertiary)' };
 const CONFIDENCE_LBL = { high: 'Σίγουρο', medium: 'Πιθανό', low: 'Άγνωστο' };
-
-// Αντιστοίχιση κατηγορίας → ομάδα/κατηγορία Δαπανών (ίδια λογική με το AI scan,
-// ώστε οι εισαγωγές τράπεζας να μπαίνουν στη σωστή ομάδα εξόδων και στην Επισκόπηση).
-const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
-  electricity: { group: 'fixed',       cat: 'Ρεύμα' },
-  water:       { group: 'fixed',       cat: 'Νερό' },
-  gas:         { group: 'fixed',       cat: 'Φυσικό Αέριο' },
-  internet:    { group: 'fixed',       cat: 'Internet' },
-  streaming:   { group: 'fixed',       cat: 'Άλλη Πάγια' },
-  insurance:   { group: 'fixed',       cat: 'Ασφάλεια Κτιρίου' },
-  taxes:       { group: 'fixed',       cat: 'ΕΝΦΙΑ' },
-  municipal:   { group: 'fixed',       cat: 'Δημοτικά Τέλη' },
-  security:    { group: 'fixed',       cat: 'Σύστημα Συναγερμού' },
-  common:      { group: 'fixed',       cat: 'Κοινόχρηστα' },
-  maintenance: { group: 'maintenance', cat: 'Γενική Συντήρηση' },
-  elevator:    { group: 'maintenance', cat: 'Συντήρηση Ασανσέρ' },
-  pool:        { group: 'maintenance', cat: 'Καθαρισμός Πισίνας' },
-  gardener:    { group: 'maintenance', cat: 'Κηπουρός' },
-  cleaner:     { group: 'maintenance', cat: 'Καθαριότητα' },
-  plumber:     { group: 'maintenance', cat: 'Υδραυλικός' },
-  electrician: { group: 'maintenance', cat: 'Ηλεκτρολόγος' },
-  other:       { group: 'other',       cat: 'Άλλο' },
-};
 
 const BANKS = [
   'Alpha Bank',
@@ -293,7 +193,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const { data: pend } = await supabase.from('bills')
         .select('id,category,amount,due_date,created_at')
         .eq('property_id', propertyId).eq('paid', false);
-      const pendingBills = (pend || []) as { id: string; category: string; amount: number; due_date: string | null; created_at: string | null }[];
+      const pendingBills = (pend || []) as PendingBill[];
       const usedBill = new Set<string>();
       // billAmount = το ποσό του ΛΟΓΑΡΙΑΣΜΟΥ (όχι της πληρωμής): με αυτό εντοπίζουμε
       // το συνδεδεμένο έξοδο/γεγονός, γιατί η πληρωμή μπορεί να διαφέρει κατά λεπτά.
@@ -301,10 +201,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
       const unmatched: ParsedTransaction[] = [];
 
       for (const t of selected) {
-        const cands = pendingBills.filter(b => !usedBill.has(b.id)
-          && Math.abs((b.amount || 0) - t.amount) <= Math.max(0.5, t.amount * 0.02)
-          && withinDays(b.due_date || b.created_at, t.date, 25));
-        const m = cands.find(b => b.category === t.category) || cands[0];
+        const m = matchBillToPayment(t, pendingBills, usedBill);   // δοκιμασμένη λογική
         if (m) { usedBill.add(m.id); matched.push({ billId: m.id, cat: m.category, billAmount: m.amount }); }
         else unmatched.push(t);
       }
