@@ -104,6 +104,14 @@ ok('male self', /σίγουρος|αρσενικ/i.test(buildSystemPrompt(id({ g
 ok('neutral self', /ουδετερ|Ουδέτερ|ουδέτερ/i.test(buildSystemPrompt(id({ gender: 'neutral' }), 'x')));
 // default όνομα όταν κενό
 ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(DEFAULT_IDENTITY.name));
+// τρόπος προσφώνησης: ενικός vs πληθυντικός
+{
+  const sing = buildSystemPrompt(id({ formal: false }), 'x');
+  const plur = buildSystemPrompt(id({ formal: true }), 'x');
+  ok('singular addresses in ενικό', /στον ενικό/.test(sing) && !/πληθυντικό ευγενείας/.test(sing));
+  ok('plural addresses in πληθυντικό', /πληθυντικό ευγενείας/.test(plur));
+  ok('default identity is singular', DEFAULT_IDENTITY.formal === false);
+}
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
 ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξία 200.000 €').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
@@ -180,11 +188,11 @@ for (const t of ['Καμία μνήμη εδώ.', 'Κείμενο [[remember:]] 
   clearMemories(uid);
   ok('cleared', loadMemories(uid).length === 0);
 
-  // cap: πάνω από 40 κρατά τα τελευταία 40
-  for (let i = 0; i < 55; i++) addMemory(uid, `γεγονός νούμερο ${i}`);
+  // cap: πάνω από 100 κρατά τα τελευταία 100
+  for (let i = 0; i < 120; i++) addMemory(uid, `γεγονός νούμερο ${i}`);
   const capped = loadMemories(uid);
-  ok('capped at 40', capped.length === 40);
-  ok('cap keeps latest', capped[capped.length - 1].text === 'γεγονός νούμερο 54');
+  ok('capped at 100', capped.length === 100);
+  ok('cap keeps latest', capped[capped.length - 1].text === 'γεγονός νούμερο 119');
   clearMemories(uid);
 
   // απομόνωση ανά χρήστη
