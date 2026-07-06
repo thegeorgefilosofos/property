@@ -567,7 +567,9 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
   if (!info) return null;
 
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:`3px solid ${groupColor}`, borderRadius:10, padding:'14px 16px' }}>
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:`3px solid ${groupColor}`, borderRadius:14, padding:'15px 17px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
+      onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 24px -12px rgba(16,24,40,.24)';}}
+      onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 2px rgba(16,24,40,.04)';}}>
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
         <div style={{ minWidth:0 }}>
@@ -613,8 +615,8 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
       </div>
 
       {/* Progress bar */}
-      <div style={{ position:'relative', height:6, background:'var(--border-subtle)', borderRadius:4, overflow:'hidden', marginBottom:8 }}>
-        <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${pct}%`, background:barColor, borderRadius:4, transition:'width 0.6s cubic-bezier(.4,0,.2,1)' }} />
+      <div style={{ position:'relative', height:8, background:'var(--bg-hover)', borderRadius:99, overflow:'hidden', marginBottom:8, boxShadow:'inset 0 1px 2px rgba(16,24,40,.08)' }}>
+        <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${pct}%`, background:`linear-gradient(90deg, ${barColor} 0%, color-mix(in srgb, ${barColor} 70%, #ffffff) 100%)`, borderRadius:99, transition:'width 0.7s cubic-bezier(.4,0,.2,1)' }} />
       </div>
 
       {/* Status line */}
@@ -1911,8 +1913,10 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               { label:'Μη εκπιπτόμενες', value:fmtEur(total-deductible), color:'var(--text-primary)', sub:`${total>0?(((total-deductible)/total)*100).toFixed(0):0}% του συνόλου` },
               { label:'Εκτιμώμενο όφελος φόρου (15%)', value:fmtEur(deductible*0.15), color:'var(--text-primary)', sub:'Πόσο σε γλιτώνουν στη φορολογία' },
             ].map((k,i) => (
-              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
-                <div style={{ fontSize:18, fontWeight:700, color:k.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4 }}>{k.value}</div>
+              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'16px 18px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 24px -12px rgba(16,24,40,.24)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 2px rgba(16,24,40,.04)';}}>
+                <div style={{ fontSize:20, fontWeight:700, color:k.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
                 <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:2 }}>{k.label}</div>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{k.sub}</div>
               </div>
