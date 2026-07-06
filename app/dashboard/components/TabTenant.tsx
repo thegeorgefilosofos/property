@@ -586,7 +586,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Ημερομηνία</div>
-                <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={inputStyle}/>
+                <DateField value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/>
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
