@@ -55,10 +55,19 @@ export const NAV_MAP: { id: string; label: string; what: string }[] = [
   { id: 'settings',   label: 'Ρυθμίσεις',   what: 'στοιχεία ακινήτου, ασφάλεια, πάροχοι' },
 ];
 
+// Επιπλέον, ζωντανό πλαίσιο που τροφοδοτούμε στον βοηθό: τι τρέχει τώρα στο
+// ακίνητο (insights), αριθμοί αγοράς (επιτόκια, ρεύμα, φόρος) και μόνιμη μνήμη.
+export interface PromptExtras {
+  insights?: string;     // τι εκκρεμεί / ευκαιρίες, από τη μηχανή insights
+  market?: string;       // Euribor, επιτόκιο στεγαστικού, τιμή ρεύματος, φορο-κλίμακα
+  memories?: string[];   // μόνιμα γεγονότα που ζήτησε ο χρήστης να θυμάται
+}
+
 // ── Ο ΠΥΡΗΝΑΣ: system prompt με προσωπικότητα + βαθιά γνώση + ασφαλή παραπομπή ──
-export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string, allPropsContext?: string): string {
+export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string, allPropsContext?: string, extras?: PromptExtras): string {
   const name = id.name?.trim() || DEFAULT_IDENTITY.name;
   const navList = NAV_MAP.map(n => `  • ${n.label} → ${n.what} (κωδικός: ${n.id})`).join('\n');
+  const mem = (extras?.memories || []).map(m => m.trim()).filter(Boolean);
   return `Σε λένε ${name} και είσαι ο προσωπικός βοηθός ακινήτων του χρήστη μέσα σε μια κορυφαία ελληνική εφαρμογή διαχείρισης ακινήτων. ${GENDER_SELF[id.gender]}
 
 ΠΟΙΟΣ ΕΙΣΑΙ:
@@ -90,8 +99,20 @@ export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string
 ${navList}
 Όταν βοηθά να πάει σε μια καρτέλα, πρόσθεσε στο ΤΕΛΟΣ της απάντησης, σε δική της γραμμή, την ετικέτα [[go:ΚΩΔΙΚΟΣ]] (π.χ. [[go:expenses]]). Αν βοηθά να σκανάρει ένα έγγραφο/λογαριασμό, βάλε [[scan]]. Βάλε το πολύ ΜΙΑ τέτοια ετικέτα, μόνο όταν έχει πραγματικό νόημα. Μην την εξηγείς, απλώς βάλ' την.
 
+ΜΝΗΜΗ (τι να θυμάσαι μακροπρόθεσμα):
+Αν ο χρήστης σου πει κάτι σταθερό και χρήσιμο για το μέλλον (μια προτίμηση, ένα γεγονός, έναν στόχο, ένα όνομα επαγγελματία που εμπιστεύεται, μια συνήθεια), κράτησέ το με την ετικέτα [[remember: σύντομο γεγονός]] στο τέλος της απάντησης, με λίγα λόγια και σε τρίτο πρόσωπο (π.χ. [[remember: προτιμά ηλεκτρονικές πληρωμές]], [[remember: υδραυλικός εμπιστοσύνης ο Νίκος 69...]]). Κράτα μόνο ό,τι αξίζει να θυμάσαι, όχι κάθε λεπτομέρεια της κουβέντας. Μην αναφέρεις την ετικέτα, απλώς βάλ' την. Χρησιμοποίησε μία ετικέτα ανά απάντηση το πολύ.${mem.length ? `
+Ήδη θυμάσαι για τον χρήστη:
+${mem.map(m => `  • ${m}`).join('\n')}
+Χρησιμοποίησέ τα φυσικά όταν έχουν νόημα, χωρίς να τα απαγγέλλεις.` : ''}
+
 ΤΑ ΔΕΔΟΜΕΝΑ ΤΟΥ ΤΡΕΧΟΝΤΟΣ ΑΚΙΝΗΤΟΥ (χρησιμοποίησέ τα για συγκεκριμένες απαντήσεις με πραγματικά νούμερα· αν κάτι λείπει, πες το ειλικρινά και πες πού μπαίνει):
-${propertyContext}${allPropsContext ? `
+${propertyContext}${extras?.insights ? `
+
+ΤΙ ΤΡΕΧΕΙ ΤΩΡΑ ΣΕ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ (προτεραιότητες & ευκαιρίες που εντόπισε η εφαρμογή· άξιοποίησέ τα αν ρωτηθείς «τι εκκρεμεί» ή για να προτείνεις κάτι σχετικό):
+${extras.insights}` : ''}${extras?.market ? `
+
+ΑΓΟΡΑ ΣΗΜΕΡΑ (πραγματικά, τρέχοντα νούμερα· χρησιμοποίησέ τα όταν ρωτηθείς για επιτόκια, ρεύμα ή φόρο ενοικίου· αν αλλάζουν συχνά, πες το):
+${extras.market}` : ''}${allPropsContext ? `
 
 ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ ΤΟΥ ΧΡΗΣΤΗ (για συγκρίσεις, ποιο αποδίδει καλύτερα, πού πάνε τα λεφτά, τι να προτεραιοποιήσει):
 ${allPropsContext}` : ''}
@@ -120,15 +141,19 @@ export function cleanForSpeech(t: string): string {
     .trim();
 }
 
-// Ανάλυση απάντησης: αφαίρεσε την οδηγία [[go:x]]/[[scan]] και επίστρεψέ την χωριστά.
-export function parseAction(text: string): { clean: string; action?: { type: 'go'; tab: string } | { type: 'scan' } } {
+// Ανάλυση απάντησης: αφαίρεσε τις οδηγίες [[go:x]]/[[scan]]/[[remember:...]] και
+// επίστρεψέ τες χωριστά. Το `remember` είναι ένα γεγονός που ζητά ο βοηθός να κρατηθεί.
+export function parseAction(text: string): { clean: string; action?: { type: 'go'; tab: string } | { type: 'scan' }; remember?: string } {
   const go = text.match(/\[\[go:([a-z]+)\]\]/i);
   const scan = /\[\[scan\]\]/i.test(text);
+  const rem = text.match(/\[\[remember:\s*([^\]]+?)\s*\]\]/i);
+  const remember = rem ? rem[1].trim().slice(0, 140) : undefined;
   // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
   const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();
-  if (go && NAV_MAP.some(n => n.id === go[1].toLowerCase())) return { clean, action: { type: 'go', tab: go[1].toLowerCase() } };
-  if (scan) return { clean, action: { type: 'scan' } };
-  return { clean };
+  const base = remember ? { clean, remember } : { clean };
+  if (go && NAV_MAP.some(n => n.id === go[1].toLowerCase())) return { ...base, action: { type: 'go', tab: go[1].toLowerCase() } };
+  if (scan) return { ...base, action: { type: 'scan' } };
+  return base;
 }
 
 // localStorage persistence (per browser), χωρίς αλλαγή σχήματος βάσης.
@@ -161,4 +186,51 @@ export function saveHistory(pid: string, msgs: StoredMsg[]) {
 export function clearHistory(pid: string) {
   if (typeof window === 'undefined') return;
   try { localStorage.removeItem(histKey(pid)); } catch { /* ignore */ }
+}
+
+// ── Μόνιμη μνήμη (γεγονότα) ανά χρήστη, όχι ανά ακίνητο ──────────────────────
+// Κρατάει σταθερά γεγονότα/προτιμήσεις που ζητά ο βοηθός με [[remember: ...]].
+// Μένουν στη συσκευή (localStorage), ξεχωριστά από το ιστορικό συνομιλίας.
+export interface Memory { id: string; text: string; }
+const MEM_CAP = 40;
+const memKey = (uid: string) => `pa_mem_${uid || 'anon'}`;
+const normFact = (s: string) => (s || '').trim().replace(/\s+/g, ' ').slice(0, 140);
+// Σταθερό id από το ίδιο το κείμενο (djb2). Αφού τα γεγονότα είναι μοναδικά (dedup),
+// το id είναι επίσης μοναδικό και σταθερό, χωρίς εξάρτηση από τυχαιότητα ή σειρά.
+const factId = (text: string) => {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+};
+
+export function loadMemories(uid: string): Memory[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(memKey(uid)); if (!raw) return [];
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a.filter((m): m is Memory => m && typeof m.text === 'string' && typeof m.id === 'string') : [];
+  } catch { return []; }
+}
+function saveMemories(uid: string, list: Memory[]) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(memKey(uid), JSON.stringify(list.slice(-MEM_CAP))); } catch { /* ignore */ }
+}
+// Προσθέτει ένα γεγονός· αγνοεί κενά/διπλότυπα (case-insensitive). Επιστρέφει τη νέα λίστα.
+export function addMemory(uid: string, fact: string): Memory[] {
+  const text = normFact(fact);
+  const list = loadMemories(uid);
+  if (!text) return list;
+  if (list.some(m => m.text.toLowerCase() === text.toLowerCase())) return list;
+  const next = [...list, { id: factId(text.toLowerCase()), text }].slice(-MEM_CAP);
+  saveMemories(uid, next);
+  return next;
+}
+export function removeMemory(uid: string, id: string): Memory[] {
+  const next = loadMemories(uid).filter(m => m.id !== id);
+  saveMemories(uid, next);
+  return next;
+}
+export function clearMemories(uid: string) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(memKey(uid)); } catch { /* ignore */ }
 }

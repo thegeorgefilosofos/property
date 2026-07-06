@@ -11,10 +11,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
+import { computeInsights, type Insight } from '@/lib/insights/engine';
 import {
-  type AssistantIdentity, type Gender, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
+  type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
   loadHistory, saveHistory, clearHistory,
+  loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
@@ -44,6 +46,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [ctxStr, setCtxStr] = useState('');
+  const [insightsStr, setInsightsStr] = useState('');
+  const [marketStr, setMarketStr] = useState('');
+  const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Ταυτότητα από localStorage (μία φορά)
@@ -57,10 +62,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr('');
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
+
+  // Μόνιμη μνήμη (γεγονότα) ανά χρήστη, μόνο αν το επιτρέπει η ρύθμιση.
+  useEffect(() => {
+    setMemories(identity.memory ? loadMemories(userId) : []);
+  }, [userId, identity.memory]);
 
   // Αποθήκευση συζήτησης όταν η μνήμη είναι ενεργή.
   useEffect(() => {
@@ -80,13 +90,17 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   // Φόρτωση δεδομένων ακινήτου (μία φορά όταν ανοίξει), για συγκεκριμένες απαντήσεις.
   const loadContext = useCallback(async () => {
-    const year = new Date().getFullYear();
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }] = await Promise.all([
-      supabase.from('expenses').select('amount,category,date,paid').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }] = await Promise.all([
+      supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
-      supabase.from('property_settings').select('insurance_company,insurance_expiry').eq('property_id', propertyId).maybeSingle(),
+      supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
+      supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -118,6 +132,32 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));
+
+    // ── Insights: τι εκκρεμεί / ευκαιρίες, με την ίδια μηχανή που τροφοδοτεί την Επισκόπηση.
+    // Φιλτράρουμε το «λείπουν στοιχεία» γιατί εδώ δεν φορτώνουμε πλήρες προφίλ (το δείχνει η Επισκόπηση).
+    const insights: Insight[] = computeInsights({
+      now: now.getTime(),
+      property: {
+        name: propContext.name, prop_type: propContext.propType, value, sqm: propContext.sqm,
+        target_rent: propContext.targetRent, insurance_expiry: st?.insurance_expiry, insurance_amount: (st as any)?.insurance_amount,
+      },
+      tenant: t ? { monthly_rent: t.monthly_rent, lease_end: t.lease_end } : null,
+      rent, propValue: value, grossYield: grossY, netYield: netY, expensesYTD: total,
+      expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, paid: (e as any).paid !== false, payment_method: (e as any).payment_method })),
+      bills: (bil || []).map(b => ({ type: (b as any).category, amount: b.amount, paid: b.paid, due_date: (b as any).due_date })),
+      tasks: [], checklist: [], inventory: [],
+    }).filter(i => i.id !== 'profile-incomplete');
+    const KIND_TXT: Record<string, string> = { urgent: 'ΕΠΕΙΓΟΝ', attention: 'ΠΡΟΣΟΧΗ', opportunity: 'ΕΥΚΑΙΡΙΑ', positive: 'ΘΕΤΙΚΟ' };
+    setInsightsStr(insights.slice(0, 6).map(i => `• [${KIND_TXT[i.kind]}] ${i.title}${i.metric ? ` (${i.metric})` : ''}: ${i.detail}`).join('\n'));
+
+    // ── Αγορά: πραγματικά τρέχοντα νούμερα (επιτόκια, ρεύμα) + σταθερή φορο-κλίμακα 2026.
+    const mLines: string[] = [];
+    if (rates?.euribor_3m != null) mLines.push(`Euribor 3 μηνών: ${Number(rates.euribor_3m).toFixed(2)}% (ο δείκτης πάνω στον οποίο πατούν τα κυμαινόμενα επιτόκια στεγαστικών).`);
+    if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${Number(rates.bog_housing_new).toFixed(2)}%.`);
+    const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
+    if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
+    mLines.push('Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.001 έως 14.000 €, 35% από 14.001 έως 35.000 €, 45% πάνω από 35.000 €.');
+    setMarketStr(mLines.join('\n'));
   }, [propertyId, userId, propContext, supabase]);
 
   useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
@@ -203,7 +243,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     setMsgs(history); setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext);
+      const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
+        insights: insightsStr || undefined,
+        market: marketStr || undefined,
+        memories: identity.memory ? memories.map(m => m.text) : undefined,
+      });
       const res = await fetch('/api/anthropic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
@@ -212,7 +256,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const data = await res.json();
       if (!res.ok) { setErr(String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key' : 'service'); setMsgs(m => m.slice(0, -1)); return; }
       const raw: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || 'Δεν έχω απάντηση αυτή τη στιγμή.';
-      const { clean, action } = parseAction(raw);
+      const { clean, action, remember } = parseAction(raw);
+      // Μόνιμη μνήμη: κράτησε το γεγονός που ζήτησε ο βοηθός (μόνο αν το επιτρέπει η ρύθμιση).
+      if (remember && identity.memory) setMemories(addMemory(userId, remember));
       setMsgs(m => [...m, { role: 'assistant', text: clean, action }]);
       // Φωνητική απάντηση + εκτέλεση ενέργειας / συνέχιση συνομιλίας.
       if (viaVoice || handsFreeRef.current) {
@@ -291,11 +337,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
             <IdentityEditor
               draft={identity}
               hasMemory={msgs.length > 0 || loadHistory(propertyId).length > 0}
+              facts={memories}
+              onForgetFact={(id) => setMemories(removeMemory(userId, id))}
+              onForgetAllFacts={() => { clearMemories(userId); setMemories([]); }}
               onCancel={hasIdentity ? () => setEditing(false) : undefined}
               onClearMemory={() => { clearHistory(propertyId); setMsgs([]); }}
               onSave={(id) => {
                 // Αν έκλεισε τη μνήμη, σβήσε ό,τι έχει αποθηκευτεί (σεβασμός στην επιλογή).
-                if (identity.memory && !id.memory) clearHistory(propertyId);
+                if (identity.memory && !id.memory) { clearHistory(propertyId); clearMemories(userId); setMemories([]); }
                 setIdentity(id); saveIdentity(id); setHasIdentity(true); setEditing(false);
               }}
             />
@@ -393,7 +442,7 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 }
 
 // ── Επεξεργαστής ταυτότητας (όνομα + φύλο + μνήμη + σύγκριση) ────────────────
-function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory }: { draft: AssistantIdentity; onSave: (id: AssistantIdentity) => void; onCancel?: () => void; onClearMemory: () => void; hasMemory: boolean }) {
+function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, facts, onForgetFact, onForgetAllFacts }: { draft: AssistantIdentity; onSave: (id: AssistantIdentity) => void; onCancel?: () => void; onClearMemory: () => void; hasMemory: boolean; facts: Memory[]; onForgetFact: (id: string) => void; onForgetAllFacts: () => void }) {
   const [gender, setGender] = useState<Gender>(draft.gender);
   const [name, setName] = useState(draft.name);
   const [memory, setMemory] = useState(draft.memory);
@@ -446,6 +495,24 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory }: {
         </div>
         {memory && hasMemory && (
           <button onClick={onClearMemory} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600 }}>Σβήσε τη μνήμη αυτού του ακινήτου</button>
+        )}
+        {memory && facts.length > 0 && (
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
+              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>Τι θυμάται για σένα</div>
+              <button onClick={onForgetAllFacts} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 600 }}>Ξέχασέ τα όλα</button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {facts.map(f => (
+                <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '5px 6px 5px 11px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-primary)', maxWidth: '100%' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{f.text}</span>
+                  <button onClick={() => onForgetFact(f.id)} aria-label="Ξέχασέ το" title="Ξέχασέ το" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
         )}
         <div style={row}>
           <div style={{ flex: 1, minWidth: 0 }}>
