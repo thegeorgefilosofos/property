@@ -16,6 +16,7 @@ import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import AddPropertyWizard from './components/AddPropertyWizard';
+import BillsAIScan from './components/BillsAIScan';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
@@ -600,6 +601,7 @@ export default function Dashboard() {
   const [statusDropdown, setStatusDropdown] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
+  const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
   useEffect(() => {
@@ -683,6 +685,22 @@ export default function Dashboard() {
           <span className="sidebar-logo-text">Property OS</span>
           <span className="sidebar-logo-badge">Beta</span>
         </div>
+
+        {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού */}
+        <button
+          onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
+          className="quick-add-btn"
+          disabled={!selected}
+          title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, δαπάνη ή έγγραφο' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
+          <span className="quick-add-icon" aria-hidden>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </span>
+          <span className="quick-add-label">Πρόσθεσε λογαριασμό</span>
+        </button>
+
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
           {properties.map(p => (
@@ -787,14 +805,6 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <nav className="app-tabs">
-              {NAV_ITEMS.map(item => { const badge=getBadge(item.id); return (
-                <button key={item.id} className={`app-tab ${nav===item.id?'active':''}`} onClick={()=>setNav(item.id)} style={{position:'relative'}}>
-                  {item.label}
-                  {badge>0&&nav!==item.id&&<span style={{position:'absolute',top:8,right:4,width:8,height:8,borderRadius:'50%',background:'var(--negative)'}}/>}
-                </button>
-              );})}
-            </nav>
             <div className="app-content">
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={setNav}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
@@ -833,6 +843,21 @@ export default function Dashboard() {
       )}
 
       <CommandPalette open={cmdkOpen} onClose={()=>setCmdkOpen(false)} items={cmdItems} />
+
+      {quickAddOpen&&user&&selected&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.44)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
+          onClick={e=>{if(e.target===e.currentTarget)setQuickAddOpen(false);}}>
+          <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
+            <button onClick={()=>setQuickAddOpen(false)} aria-label="Κλείσιμο"
+              style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}
+              onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
+              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+            <BillsAIScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
+          </div>
+        </div>
+      )}
 
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
