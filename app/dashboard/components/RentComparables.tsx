@@ -51,7 +51,7 @@ const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
+      <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
         {label}
       </span>
     </div>
@@ -148,7 +148,7 @@ export default function RentComparables({
               color: showForm ? 'var(--text-secondary)' : '#fff',
               border: `1px solid ${showForm ? 'var(--border-default)' : 'var(--accent)'}`,
               borderRadius: 20, padding: '6px 14px', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: "'Google Sans', sans-serif",
+              cursor: 'pointer', fontFamily: "'Inter', sans-serif",
             }}
           >
             {showForm ? 'Κλείσιμο' : '+ Προσθήκη'}
@@ -170,8 +170,8 @@ export default function RentComparables({
             },
           ].map((k, i) => (
             <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Google Sans', sans-serif", marginBottom: 3 }}>{k.value}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>{k.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Inter', sans-serif", marginBottom: 3 }}>{k.value}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>{k.label}</div>
             </div>
           ))}
         </div>
@@ -181,8 +181,8 @@ export default function RentComparables({
       {comps.length >= 2 && maxRent > minRent && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>Θέση στην αγορά</span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Google Sans', sans-serif" }}>{fe(medianRent)}</strong></span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>Θέση στην αγορά</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>{fe(medianRent)}</strong></span>
           </div>
           {/* Track */}
           <div style={{ position: 'relative', height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginBottom: 10 }}>
@@ -193,13 +193,13 @@ export default function RentComparables({
               <div style={{ position: 'absolute', top: '50%', left: `${posPct}%`, width: 14, height: 14, borderRadius: '50%', background: diff >= 0 ? 'var(--positive)' : 'var(--warning)', border: '2px solid var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)' }} />
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Google Sans', sans-serif" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
             <span>{fe(minRent)}</span>
             <span>{fe(maxRent)}</span>
           </div>
           {actualRent > 0 && (
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", lineHeight: 1.5 }}>
-              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Google Sans', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
+              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς — {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
             </div>
           )}
         </div>
@@ -220,7 +220,7 @@ export default function RentComparables({
       {/* Add form */}
       {showForm && (
         <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: 16, marginBottom: 16, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14, fontFamily: "'Google Sans', sans-serif" }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14, fontFamily: "'Inter', sans-serif" }}>
             Νέο Συγκριτικό Ακίνητο
           </div>
           <div style={g4}>
@@ -234,8 +234,8 @@ export default function RentComparables({
             <CustomSelect label="Κατάσταση Ακινήτου" value={form.condition || 'good'} onChange={v => sf('condition', v)} options={CONDITIONS} />
             <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="για παράδειγμα < 500μ" />
             <div>
-              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Google Sans', sans-serif", display: 'block', marginBottom: 6 }}>€ ανά τετραγωνικό (αυτόματο)</span>
-              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Google Sans', sans-serif" }}>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", display: 'block', marginBottom: 6 }}>€ ανά τετραγωνικό (αυτόματο)</span>
+              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Inter', sans-serif" }}>
                 {form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} € ανά τετραγωνικό` : '—'}
               </div>
             </div>
@@ -244,14 +244,14 @@ export default function RentComparables({
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
             <button
               onClick={() => setShowForm(false)}
-              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: 20, padding: '8px 16px', fontSize: 11, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif", fontWeight: 500 }}
+              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: 20, padding: '8px 16px', fontSize: 11, cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
             >
               Ακύρωση
             </button>
             <button
               onClick={save}
               disabled={!form.title || !form.rent}
-              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 20px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Google Sans', sans-serif" }}
+              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 20px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}
             >
               Αποθήκευση
             </button>
@@ -267,7 +267,7 @@ export default function RentComparables({
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", marginBottom: 4 }}>Δεν έχεις προσθέσει συγκρίσιμα ακίνητα ακόμα</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", marginBottom: 4 }}>Δεν έχεις προσθέσει συγκρίσιμα ακίνητα ακόμα</div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Roboto', sans-serif" }}>Βρες παρόμοια ακίνητα στο Spitogatos ή XE και πρόσθεσέ τα για σύγκριση</div>
         </div>
       ) : (
@@ -277,7 +277,7 @@ export default function RentComparables({
             <thead>
               <tr>
                 {['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€ ανά τετραγωνικό', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', ''].map((h, i) => (
-                  <th key={i} style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 500, fontFamily: "'Google Sans', sans-serif" }}>
+                  <th key={i} style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
                     {h}
                   </th>
                 ))}
@@ -299,8 +299,8 @@ export default function RentComparables({
                     </td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.area || '—'}</td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τετραγωνικά μέτρα` : '—'}</td>
-                    <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Google Sans', sans-serif", fontSize: 12 }}>{fe(c.rent)}</td>
-                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Google Sans', sans-serif", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
+                    <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{fe(c.rent)}</td>
+                    <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
                     <td style={{ padding: '9px 8px' }}>
                       <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: "'Roboto', sans-serif", whiteSpace: 'nowrap' }}>
                         {condLabel(c.condition)}
@@ -309,7 +309,7 @@ export default function RentComparables({
                     <td style={{ padding: '9px 8px', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Roboto', sans-serif" }}>{srcLabel(c.source)}</td>
                     <td style={{ padding: '9px 8px' }}>
                       {actualRent > 0 ? (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Google Sans', sans-serif" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: rentDiff > 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Inter', sans-serif" }}>
                           {rentDiff > 0 ? '+' : ''}{rentDiff.toFixed(1)}%
                         </span>
                       ) : '—'}

@@ -43,7 +43,7 @@ function buildEmail(events: any[], reminderType: string) {
     ? `⚠️ Property OS — ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
     : `🔔 Property OS — ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Google Sans',sans-serif;">
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">

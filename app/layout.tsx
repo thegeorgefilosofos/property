@@ -28,13 +28,14 @@ export default function RootLayout({
   return (
     <html lang="el" suppressHydrationWarning>
       <head>
-        {/* Google Fonts — Material Design 3 typefaces */}
+        {/* Κειμενικές γραμματοσειρές: self-hosted (βλ. globals.css @font-face).
+            Preload τα δύο βασικά υποσύνολα του Inter ώστε να μη «τρεμοπαίζει» το
+            κείμενο στο πρώτο paint (latin για UI, greek για τα ελληνικά). */}
+        <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/inter-greek.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        {/* Μόνο για τα εικονίδια (Material Symbols) που φορτώνονται από την Google. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Google+Sans+Display:wght@400;500;700&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Roboto+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
         {/* Theme init — must run before paint to prevent flash */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
