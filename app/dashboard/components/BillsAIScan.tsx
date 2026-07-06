@@ -161,21 +161,37 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
         }),
       });
       const data = await res.json();
+
+      // Κενή, επεξεργάσιμη φόρμα ώστε ο χρήστης να ΜΗΝ κολλάει ποτέ — μπορεί πάντα
+      // να συμπληρώσει χειροκίνητα, ακόμη κι αν η ανάγνωση αποτύχει.
+      const blank: ExtractedBill = { provider: '', category: 'electricity', amount: 0, due_date: '', period: '', confidence: 0 };
+
+      // Σφάλμα σε επίπεδο υπηρεσίας (λείπει κλειδί, όριο χρήσης, κλπ.)
+      if (!res.ok || data?.error) {
+        const msg = String(data?.error || '');
+        setError(msg.includes('ANTHROPIC_API_KEY') ? 'key_missing' : 'service');
+        setResult(blank); setEdited(blank);
+        return;
+      }
+
       const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
       const clean = text.replace(/```json?|```/g, '').trim();
-      const extracted: ExtractedBill = JSON.parse(clean);
+      let extracted: ExtractedBill | null = null;
+      try { extracted = JSON.parse(clean); } catch { extracted = null; }
 
-      // FIX: validate that the AI actually extracted something usable. Without
-      // this, a failed/empty API response would silently populate the editor
-      // with a blank/zero form instead of surfacing an error message.
+      // Δεν διαβάστηκε τίποτα χρήσιμο → καθοδήγησε τον χρήστη (χωρίς να τον μπλοκάρεις)
       if (!extracted || (!extracted.amount && !extracted.provider)) {
-        throw new Error('empty_extraction');
+        setError('unreadable');
+        setResult(blank); setEdited(blank);
+        return;
       }
 
       setResult(extracted);
       setEdited({ ...extracted });
     } catch (_) {
-      setError('Σφάλμα σάρωσης. Δοκίμασε πιο καθαρή φωτογραφία ή PDF.');
+      // Δικτυακό/άγνωστο σφάλμα — δώσε κενή φόρμα + καθοδήγηση
+      const blank: ExtractedBill = { provider: '', category: 'electricity', amount: 0, due_date: '', period: '', confidence: 0 };
+      setError('unreadable'); setResult(blank); setEdited(blank);
     } finally {
       setScanning(false);
     }
@@ -197,8 +213,8 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
       const notes = [`AI σάρωση`, consumption, edited.notes || '', edited.account_num ? `Παροχή: ${edited.account_num}` : '']
         .filter(Boolean).join(' · ');
 
-      // 1) Λογαριασμός → πίνακας bills (τροφοδοτεί την Επισκόπηση Λογαριασμών)
-      const { error: billErr } = await supabase.from('bills').insert({
+      // 1) Λογαριασμός → πίνακας bills. Κρατάμε το id για να συνδέσουμε τα υπόλοιπα.
+      const { data: billRow, error: billErr } = await supabase.from('bills').insert({
         property_id: propertyId, user_id: userId,
         category: edited.category,
         name: `${edited.provider}${edited.period ? ` — ${edited.period}` : ''}`,
@@ -206,13 +222,13 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
         kwh: edited.kwh || null, ert: edited.ert || null, etmear: edited.etmear || null,
         dimotika: edited.dimotika || null, vat_rate: String(edited.vat_rate || 6),
         notes, recurring: false,
-      });
+      }).select('id').single();
       if (billErr) throw billErr;
+      const billId = billRow?.id as string | undefined;
       done.push('Λογαριασμοί');
 
-      // 2) Έξοδο → πίνακας expenses (ρέει σε Έξοδα + Επισκόπηση)
-      // Προστασία διπλοεγγραφής: αν υπάρχει ήδη έξοδο ίδιου ποσού/κατηγορίας/ημέρας
-      // (π.χ. από εισαγωγή τράπεζας ή προηγούμενη σάρωση), δεν ξαναδημιουργείται.
+      // 2) Έξοδο → expenses, ΣΥΝΔΕΔΕΜΕΝΟ με τον λογαριασμό (bill_id) για ακριβή
+      // συμφωνία/αναίρεση. Προστασία διπλοεγγραφής (ίδιο ποσό/κατηγορία/ημέρα).
       const map = EXPENSE_MAP[edited.category] || EXPENSE_MAP.other;
       const expDate = edited.due_date || today;
       const { data: dup } = await supabase.from('expenses').select('id')
@@ -222,7 +238,7 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
         done.push('Έξοδα (υπάρχει ήδη)');
       } else {
         const { error: expErr } = await supabase.from('expenses').insert({
-          property_id: propertyId, user_id: userId,
+          property_id: propertyId, user_id: userId, bill_id: billId,
           description: `${map.cat} — ${edited.provider}${edited.period ? ` (${edited.period})` : ''}`,
           amount: edited.amount, category: map.cat, expense_group: map.group,
           date: expDate, paid_by: 'owner', paid: false,
@@ -231,7 +247,20 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
         if (!expErr) done.push('Έξοδα');
       }
 
-      // 3) Κοινόχρηστα → ενημέρωση πεδίου Κοινόχρηστα (χιλιοστά + ιστορικό μήνα)
+      // 3) Υπενθύμιση πληρωμής → Ημερολόγιο (μόνο αν υπάρχει ημ/νία λήξης),
+      // συνδεδεμένη με τον λογαριασμό ώστε να «κλείνει» αυτόματα στη συμφωνία.
+      if (edited.due_date && billId) {
+        await supabase.from('calendar_events').insert({
+          property_id: propertyId, user_id: userId, bill_id: billId,
+          title: `Πληρωμή: ${edited.provider}`, category: 'bills',
+          event_date: edited.due_date, amount: edited.amount,
+          priority: 'medium', status: 'pending', recurring: false,
+          notes: `Από σάρωση λογαριασμού${consumption ? ` · ${consumption}` : ''}`, source: 'scan',
+        });
+        done.push('Ημερολόγιο');
+      }
+
+      // 4) Κοινόχρηστα → ενημέρωση πεδίου Κοινόχρηστα (χιλιοστά + ιστορικό μήνα)
       if (edited.category === 'common') {
         const { data: cur } = await supabase.from('bills_settings').select('data')
           .eq('property_id', propertyId).eq('section', 'common').maybeSingle();
@@ -365,11 +394,27 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
             </div>
           )}
 
-          {error && (
-            <div style={{ marginTop: 12, background: 'rgba(197,34,31,0.07)', border: '1px solid rgba(197,34,31,0.25)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>
-              {error}
-            </div>
-          )}
+          {error && (() => {
+            const tone = error === 'key_missing' ? 'info' : 'warning';
+            const title = error === 'unreadable' ? 'Δεν μπόρεσα να διαβάσω καθαρά τον λογαριασμό'
+              : error === 'key_missing' ? 'Η αυτόματη ανάγνωση δεν είναι ενεργή ακόμη'
+              : error === 'service' ? 'Η υπηρεσία ανάγνωσης δεν είναι διαθέσιμη τώρα'
+              : error;
+            const tips = error === 'unreadable'
+              ? ['Τράβα τη φωτογραφία με καλό φως, χωρίς σκιές και αντανακλάσεις', 'Κράτα το κάδρο ίσιο, να χωράει όλος ο λογαριασμός', 'Αν έχεις το PDF από τον πάροχο, ανέβασέ το — διαβάζεται καλύτερα']
+              : error === 'key_missing'
+              ? ['Μπορείς να συμπληρώσεις τα πεδία χειροκίνητα παρακάτω και να αποθηκεύσεις κανονικά', 'Για αυτόματη ανάγνωση, χρειάζεται το κλειδί AI στο αρχείο ρυθμίσεων (.env.local)']
+              : ['Δοκίμασε ξανά σε λίγο', 'Στο μεταξύ μπορείς να συμπληρώσεις τα πεδία χειροκίνητα'];
+            return (
+              <div style={{ marginTop: 12, background: `var(--${tone}-soft)`, border: `1px solid var(--${tone}-border)`, borderRadius: T.radius.inner, padding: '12px 16px', fontFamily: T.font.sans }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: `var(--${tone})`, marginBottom: 8 }}>{title}</div>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {tips.map((t, i) => <li key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{t}</li>)}
+                </ul>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Τα πεδία παρακάτω είναι επεξεργάσιμα — δεν χάνεις χρόνο ό,τι κι αν συμβεί.</div>
+              </div>
+            );
+          })()}
         </div>
 
         {step === 'review' && edited && !scanning && (

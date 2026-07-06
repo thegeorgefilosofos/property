@@ -1,15 +1,9 @@
 -- ═══════════════════════════════════════════════════════════════════════
 -- Property OS — Πλήρες SQL setup (idempotent — τρέξε το όσες φορές θέλεις)
 -- Αντιγραψε ΟΛΟ αυτό το αρχείο στο Supabase → SQL Editor → Run.
--- Δημιουργεί: inventory RLS, energy_tariffs, billing_profiles,
---            tenant portal (portal_links, maintenance_requests + RPCs),
---            referrals, rent_comparables, property documents supplier.
 -- ═══════════════════════════════════════════════════════════════════════
 
-
--- ───────────────────────────────────────────────────────────────────────
--- 20260703120000_property_documents_supplier.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260703120000_property_documents_supplier.sql ───
 -- Προσθήκη διάστασης «Προμηθευτής/Πάροχος» στο αρχείο εγγράφων & φωτογραφιών.
 -- Επιτρέπει κατηγοριοποίηση ανά πάροχο (ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ασφαλιστική κ.λπ.)
 -- επιπλέον της κατηγορίας. Ασφαλές να τρέξει πολλές φορές.
@@ -20,9 +14,7 @@ create index if not exists property_documents_supplier_idx
   on public.property_documents (property_id, supplier);
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260703130000_enable_inventory_rls.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260703130000_enable_inventory_rls.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- ΑΣΦΑΛΕΙΑ: Ενεργοποίηση Row Level Security στους πίνακες Απογραφής.
 -- Ήταν εκτεθειμένοι με το anon key (οποιοσδήποτε μπορούσε να διαβάσει/γράψει).
@@ -85,9 +77,7 @@ create policy "own_inventory_repairs" on public.inventory_repairs for all
   );
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260704120000_energy_tariffs.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260704120000_energy_tariffs.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- energy_tariffs — ζωντανά τιμολόγια ρεύματος/αερίου (ενημερώνονται από το
 -- Edge Function market-data-updater κάθε 1η του μήνα, ώστε να ΜΗΝ «παλιώνουν»
@@ -141,9 +131,7 @@ create policy "energy_tariffs_public_read" on public.energy_tariffs
 --  οπότε δεν χρειάζεται insert/update policy για anon/authenticated.)
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260704140000_billing_profiles.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260704140000_billing_profiles.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- billing_profiles — στοιχεία χρέωσης/τιμολόγησης ανά χρήστη. Συμπληρώνονται
 -- ΠΡΙΝ την ενσωμάτωση Stripe, ώστε όταν προστεθεί η πληρωμή να «κουμπώσει»
@@ -181,9 +169,7 @@ create policy "own_billing_profile" on public.billing_profiles for all
   with check (user_id = auth.uid());
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260705120000_tenant_portal.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260705120000_tenant_portal.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- Tenant Portal — δημόσια πύλη ενοικιαστή μέσω μοναδικού token (χωρίς login).
 -- Ο ενοικιαστής βλέπει ενοίκιο/σύμβαση και στέλνει αίτημα βλάβης. Η πρόσβαση
@@ -259,9 +245,7 @@ end; $$;
 grant execute on function public.submit_maintenance_request(text, text, text, text) to anon, authenticated;
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260705140000_referrals.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260705140000_referrals.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- Referral system — κωδικοί πρόσκλησης (growth). Κάθε χρήστης έχει μοναδικό
 -- κωδικό· όταν κάποιος εγγράφεται με τον σύνδεσμο, καταγράφεται η παραπομπή.
@@ -306,9 +290,7 @@ end; $$;
 grant execute on function public.get_referral_stats(text) to authenticated;
 
 
--- ───────────────────────────────────────────────────────────────────────
--- 20260705160000_rent_comparables.sql
--- ───────────────────────────────────────────────────────────────────────
+-- ─── 20260705160000_rent_comparables.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
 -- rent_comparables — συγκριτικά ακίνητα αγοράς (comparables) ανά ακίνητο.
 -- Ο ιδιοκτήτης καταχωρεί παρόμοιες αγγελίες (Spitogatos/XE) για να συγκρίνει
@@ -341,4 +323,30 @@ drop policy if exists "own_rent_comparables" on public.rent_comparables;
 create policy "own_rent_comparables" on public.rent_comparables for all
   using      (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+
+-- ─── 20260705190000_reconciliation_links.sql ───
+-- ─────────────────────────────────────────────────────────────────────────
+-- Σύνδεσμος συμφωνίας (reconciliation) + realtime.
+-- Συνδέει έξοδα & γεγονότα ημερολογίου με τον λογαριασμό-πηγή (bill_id), ώστε
+-- η εξόφληση/αναίρεση να είναι ΑΚΡΙΒΗΣ (όχι με ταίριασμα ποσού) και να μπορεί
+-- να γίνει undo με ένα κλικ. Ενεργοποιεί επίσης realtime για ζωντανές αλλαγές.
+-- Idempotent.
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table public.expenses        add column if not exists bill_id uuid references public.bills(id) on delete set null;
+alter table public.calendar_events add column if not exists bill_id uuid references public.bills(id) on delete set null;
+
+create index if not exists expenses_bill_id_idx        on public.expenses(bill_id);
+create index if not exists calendar_events_bill_id_idx on public.calendar_events(bill_id);
+
+-- Realtime: κάνε τα βασικά tables μέλη της δημοσίευσης realtime της Supabase,
+-- ώστε οι αλλαγές «Πληρωμένο/Εκκρεμές» να φτάνουν ζωντανά στις ανοιχτές καρτέλες.
+-- Τυλιγμένο σε exception handlers ώστε να είναι idempotent (αγνοεί διπλότυπα).
+do $$
+begin
+  begin execute 'alter publication supabase_realtime add table public.bills';           exception when others then null; end;
+  begin execute 'alter publication supabase_realtime add table public.expenses';        exception when others then null; end;
+  begin execute 'alter publication supabase_realtime add table public.calendar_events'; exception when others then null; end;
+end $$;
 
