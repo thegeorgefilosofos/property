@@ -848,7 +848,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <Tooltip content={<ChartTooltip/>}/>
                   <Bar dataKey="monthly" name="Τρέχον" radius={[0, 4, 4, 0]}>
                     {calc.categoryData.map((entry, index) => (
-                      <Cell key={index} fill={entry.pct > 25 ? '#c5221f' : entry.color}/>
+                      <Cell key={index} fill={entry.pct > 25 ? 'var(--negative)' : entry.color}/>
                     ))}
                   </Bar>
                   <Bar dataKey="benchmark" name="Μέσος Όρος Αγοράς" fill="var(--border-default)" fillOpacity={0.5} radius={[0, 4, 4, 0]}/>

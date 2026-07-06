@@ -20,7 +20,7 @@ import { ReactNode, CSSProperties } from 'react';
 
 // ── Tokens (ίδια ονόματα με τα Bills, μηδενική αλλαγή νοοτροπίας) ─────────
 export const T = {
-  radius: { card: 14, inner: 10, badge: 6, btn: 10, pill: 100 },
+  radius: { card: 14, inner: 10, badge: 100, btn: 10, pill: 100 },
   font: {
     // Γραμματοσειρές που φορτώνει self-hosted το app (globals.css): Inter + Roboto Mono.
     sans: "'Inter', system-ui, sans-serif",
@@ -107,7 +107,7 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
   return (
     <div style={{
       background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-      borderRadius: T.radius.card, padding: T.sp.xl, marginBottom: T.sp.lg, ...style,
+      borderRadius: T.radius.card, padding: T.sp.lg, marginBottom: T.sp.lg, ...style,
     }}>
       {children}
     </div>

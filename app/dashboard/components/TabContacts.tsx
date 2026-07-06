@@ -1134,7 +1134,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               const overdue = c._extra?.next_appointment && isOverdue(c._extra.next_appointment)
               const GroupIcon = meta.GroupIcon || Users
               return (
-                <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'rgba(255,59,48,0.35)' : meta.groupColor + '40'), cursor: 'pointer', position: 'relative' }}>
+                <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : meta.groupColor + '40'), cursor: 'pointer', position: 'relative' }}>
                   {overdue && <span style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--negative)', border: '2px solid var(--bg-elevated)' }} />}
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: meta.groupColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: meta.groupColor, overflow: 'hidden', flexShrink: 0 }}>
                     {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : c.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase() || <GroupIcon size={14} />}
