@@ -209,7 +209,7 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
           </div>
 
           <div style={cardStyle}>
-            <SectionLabel label="Σύγκριση Επιτοκίων, Ιούνιος 2026"/>
+            <SectionLabel label={banksUpdStr ? `Σύγκριση Επιτοκίων · ${banksUpdStr}` : 'Σύγκριση Επιτοκίων'}/>
             <div style={{overflowX:'auto'}}>
               <div className="table-wrap">
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>

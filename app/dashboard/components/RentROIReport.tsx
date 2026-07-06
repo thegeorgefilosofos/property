@@ -406,7 +406,7 @@ export default function RentROIReport({
             </div>
             <div class="kpi-grid">
               <div class="kpi"><div class="kpi-value accent">${esc(fp(scen.cagr))}</div><div class="kpi-label">CAGR Αξίας</div></div>
-              <div class="kpi"><div class="kpi-value gold">${esc(fp(scen.irr))}</div><div class="kpi-label">IRR</div></div>
+              <div class="kpi"><div class="kpi-value gold">${esc(fp(scen.irr))}</div><div class="kpi-label">Μέση ετήσια απόδοση</div></div>
               <div class="kpi">
                 <div class="kpi-value ${scen.mcPositive >= 70 ? 'positive' : scen.mcPositive >= 50 ? 'warning' : 'negative'}">${esc(scen.mcPositive.toFixed(0))}%</div>
                 <div class="kpi-label">Πιθανότητα Κέρδους (Monte Carlo)</div>
