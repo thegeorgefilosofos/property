@@ -8,6 +8,8 @@ import { downloadCsv, csvEur, csvDate } from './exportCsv'
 
 const supabase = createSupabaseClient()
 
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string))
+
 interface InventoryItem {
   id: string; property_id: string; user_id: string
   name: string; category: string; room: string; brand: string; model: string
@@ -155,7 +157,7 @@ const labelStyle: React.CSSProperties = {
   textTransform:'uppercase' as const,
   letterSpacing:'0.5px',
   fontWeight:500,
-  fontFamily:"'Google Sans', sans-serif",
+  fontFamily:"'Inter', sans-serif",
   display:'block',
   marginBottom:6,
 }
@@ -165,18 +167,18 @@ const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
 
 const StatCard = ({label,value,color,sub,accent}:{label:string;value:string;color?:string;sub?:string;accent?:boolean}) => (
   <div style={{background:accent?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${accent?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:12,padding:'16px 18px'}}>
-    <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:8}}>{label}</p>
-    <p style={{fontSize:20,fontFamily:"'Google Sans',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700,letterSpacing:'-0.5px',lineHeight:1}}>{value}</p>
+    <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:8}}>{label}</p>
+    <p style={{fontSize:20,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700,letterSpacing:'-0.5px',lineHeight:1}}>{value}</p>
     {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:"'Roboto',sans-serif"}}>{sub}</p>}
   </div>
 )
 
 const Badge = ({label,color}:{label:string;color:string}) => (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
+  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:500,fontFamily:"'Inter',sans-serif",color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
 )
 
 const EnergyBadge = ({cls}:{cls:string}) => !cls ? null : (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,color:'#fff',background:ENERGY_COLOR[cls]||'#888',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>{cls}</span>
+  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,color:'#fff',background:ENERGY_COLOR[cls]||'#888',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{cls}</span>
 )
 
 const DepBar = ({pct,left}:{pct:number;left:number}) => {
@@ -190,7 +192,7 @@ const DepBar = ({pct,left}:{pct:number;left:number}) => {
         <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Απόσβεση {pct}%</span>
         {left>0
           ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{left} χρόνια</span>
-          :<span style={{fontSize:9,color:'var(--negative)',fontWeight:700,fontFamily:"'Google Sans',sans-serif"}}>Πλήρης</span>
+          :<span style={{fontSize:9,color:'var(--negative)',fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Πλήρης</span>
         }
       </div>
     </div>
@@ -206,7 +208,7 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
   },[])
   return (
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
-      <button onClick={()=>setOpen(v=>!v)} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:10,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:10,fontWeight:500,fontFamily:"'Inter',sans-serif",color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
         {item.condition}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
       </button>
@@ -214,7 +216,7 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
         <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-accent)',borderRadius:12,padding:6,zIndex:600,minWidth:160,boxShadow:'var(--shadow-lg)'}}>
           {CONDITIONS.map(c=>(
             <div key={c} onClick={()=>{onUpdate(item.id,c);setOpen(false)}}
-              style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12,fontFamily:"'Google Sans',sans-serif",color:CONDITION_COLOR[c],background:item.condition===c?CONDITION_COLOR[c]+'15':'transparent',fontWeight:item.condition===c?600:400,transition:'background 0.1s'}}
+              style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12,fontFamily:"'Inter',sans-serif",color:CONDITION_COLOR[c],background:item.condition===c?CONDITION_COLOR[c]+'15':'transparent',fontWeight:item.condition===c?600:400,transition:'background 0.1s'}}
               onMouseEnter={e=>(e.currentTarget.style.background=CONDITION_COLOR[c]+'10')}
               onMouseLeave={e=>(e.currentTarget.style.background=item.condition===c?CONDITION_COLOR[c]+'15':'transparent')}
             >{c}</div>
@@ -232,11 +234,11 @@ function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
     <div style={{display:'flex',flexDirection:'column',gap:6}}>
       <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
         {ROOM_PRESETS.map(r=>(
-          <button key={r} onClick={()=>{onChange(r);setShowCustom(false)}} style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",border:`1px solid ${value===r?'var(--accent)':'var(--border-subtle)'}`,background:value===r?'var(--accent-dim)':'transparent',color:value===r?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
+          <button key={r} onClick={()=>{onChange(r);setShowCustom(false)}} style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',fontFamily:"'Inter',sans-serif",border:`1px solid ${value===r?'var(--accent)':'var(--border-subtle)'}`,background:value===r?'var(--accent-dim)':'transparent',color:value===r?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
             {r}
           </button>
         ))}
-        <button onClick={()=>{setShowCustom(true);onChange('')}} style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",border:`1px solid ${showCustom?'var(--accent)':'var(--border-subtle)'}`,background:showCustom?'var(--accent-dim)':'transparent',color:showCustom?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
+        <button onClick={()=>{setShowCustom(true);onChange('')}} style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',fontFamily:"'Inter',sans-serif",border:`1px solid ${showCustom?'var(--accent)':'var(--border-subtle)'}`,background:showCustom?'var(--accent-dim)':'transparent',color:showCustom?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
           Άλλο...
         </button>
       </div>
@@ -267,11 +269,11 @@ function MultiPhotoUpload({photos,onAdd,onRemove,primary,onSetPrimary}:{photos:s
           <div key={i} style={{position:'relative',height:80,borderRadius:8,overflow:'hidden',border:`2px solid ${url===primary?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}} onClick={()=>onSetPrimary(url)}>
             <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
             <button onClick={e=>{e.stopPropagation();onRemove(url)}} style={{position:'absolute',top:4,right:4,width:18,height:18,borderRadius:'50%',background:'rgba(197,34,31,0.9)',border:'none',color:'#fff',fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>×</button>
-            {url===primary&&<div style={{position:'absolute',bottom:0,inset:'auto 0 0 0',background:'var(--accent)',fontSize:8,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:"'Google Sans',sans-serif",padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
+            {url===primary&&<div style={{position:'absolute',bottom:0,inset:'auto 0 0 0',background:'var(--accent)',fontSize:8,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:"'Inter',sans-serif",padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
           </div>
         ))}
         <div onClick={()=>!uploading&&ref.current?.click()} style={{height:80,borderRadius:8,border:'1.5px dashed var(--border-accent)',background:'var(--accent-dim)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,cursor:uploading?'wait':'pointer'}}>
-          <span style={{fontSize:12,color:'var(--accent)',fontFamily:"'Google Sans',sans-serif",fontWeight:500}}>{uploading?'...':'+ Φωτο'}</span>
+          <span style={{fontSize:12,color:'var(--accent)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>{uploading?'...':'+ Φωτο'}</span>
         </div>
       </div>
       <input ref={ref} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
@@ -284,22 +286,22 @@ function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(JSON.stringify({n:item.name,b:item.brand,m:item.model,sn:item.serial_number,cat:item.category,cond:item.condition,w:item.warranty_expiry}))}`
   const print = () => {
     const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>QR</title><style>body{font-family:'Google Sans',Roboto,sans-serif;padding:24px;text-align:center}@media print{button{display:none}}</style></head><body><h2>${item.name}</h2><img src="${qr}" width="180" height="180" style="margin:12px auto;display:block;border:1px solid #eee;padding:8px;border-radius:8px"/><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
+    w.document.write(`<html><head><title>QR</title><style>body{font-family:'Inter',Roboto,sans-serif;padding:24px;text-align:center}@media print{button{display:none}}</style></head><body><h2>${esc(item.name)}</h2><img src="${esc(qr)}" width="180" height="180" style="margin:12px auto;display:block;border:1px solid #eee;padding:8px;border-radius:8px"/><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
     w.document.close()
   }
   return (
     <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:28,padding:28,maxWidth:320,width:'100%',display:'flex',flexDirection:'column',gap:16,alignItems:'center',boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%'}}>
-          <p style={{fontSize:16,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>QR Αντικειμένου</p>
-          <button onClick={onClose} style={{padding:'4px 12px',borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,cursor:'pointer',fontFamily:"'Google Sans',sans-serif"}}>Κλείσιμο</button>
+          <p style={{fontSize:16,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>QR Αντικειμένου</p>
+          <button onClick={onClose} style={{padding:'4px 12px',borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Κλείσιμο</button>
         </div>
         <div style={{background:'#fff',padding:12,borderRadius:12}}><img src={qr} width={200} height={200} alt="QR"/></div>
         <div style={{textAlign:'center'}}>
-          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
+          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
           <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{item.brand} {item.model}{item.serial_number?` · SN: ${item.serial_number}`:''}</p>
         </div>
-        <button onClick={print} style={{width:'100%',padding:'10px',borderRadius:20,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Εκτύπωση Καρτέλας</button>
+        <button onClick={print} style={{width:'100%',padding:'10px',borderRadius:20,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Εκτύπωση Καρτέλας</button>
       </div>
     </div>
   )
@@ -339,14 +341,14 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
     <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:28,padding:28,width:'100%',maxWidth:600,maxHeight:'85vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Μαζική Εισαγωγή CSV</p>
+          <p style={{fontSize:18,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Μαζική Εισαγωγή CSV</p>
           <button onClick={onClose} style={{width:36,height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
         {step==='upload'&&(
           <>
-            <button onClick={downloadTemplate} style={{padding:'10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Κατέβασμα Template</button>
+            <button onClick={downloadTemplate} style={{padding:'10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Κατέβασμα Template</button>
             <div onClick={()=>fileRef.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}} style={{border:'2px dashed var(--border-accent)',borderRadius:12,padding:'40px 20px',textAlign:'center',cursor:'pointer',background:'var(--accent-dim)'}}>
-              <p style={{fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα CSV</p>
+              <p style={{fontSize:14,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα CSV</p>
               <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Μορφή: UTF-8 CSV</p>
             </div>
             <input ref={fileRef} type="file" accept=".csv" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
@@ -358,13 +360,13 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
             <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>Βρέθηκαν <strong style={{color:'var(--text-primary)'}}>{rows.length} αντικείμενα</strong></p>
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-                <thead><tr style={{background:'var(--bg-elevated)'}}>{['Ονομασία','Κατηγορία','Κατάσταση','Αξία'].map(h=><th key={h} style={{padding:'8px 10px',textAlign:'left',color:'var(--text-secondary)',fontWeight:500,fontSize:10,fontFamily:"'Google Sans',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{h}</th>)}</tr></thead>
-                <tbody>{rows.slice(0,15).map((r,i)=><tr key={i} style={{borderBottom:'1px solid var(--border-subtle)'}}><td style={{padding:'7px 10px',color:'var(--text-primary)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{r.name}</td><td style={{padding:'7px 10px',color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>{r.category}</td><td style={{padding:'7px 10px'}}><Badge label={r.condition||'—'} color={CONDITION_COLOR[r.condition||'']||'var(--text-tertiary)'}/></td><td style={{padding:'7px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--positive)'}}>{r.purchase_value?fmtEur(r.purchase_value):'—'}</td></tr>)}</tbody>
+                <thead><tr style={{background:'var(--bg-elevated)'}}>{['Ονομασία','Κατηγορία','Κατάσταση','Αξία'].map(h=><th key={h} style={{padding:'8px 10px',textAlign:'left',color:'var(--text-secondary)',fontWeight:500,fontSize:10,fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{h}</th>)}</tr></thead>
+                <tbody>{rows.slice(0,15).map((r,i)=><tr key={i} style={{borderBottom:'1px solid var(--border-subtle)'}}><td style={{padding:'7px 10px',color:'var(--text-primary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{r.name}</td><td style={{padding:'7px 10px',color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>{r.category}</td><td style={{padding:'7px 10px'}}><Badge label={r.condition||'—'} color={CONDITION_COLOR[r.condition||'']||'var(--text-tertiary)'}/></td><td style={{padding:'7px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--positive)'}}>{r.purchase_value?fmtEur(r.purchase_value):'—'}</td></tr>)}</tbody>
               </table>
             </div>
             <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
-              <button onClick={()=>setStep('upload')} style={{padding:'9px 18px',borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Πίσω</button>
-              <button onClick={handleImport} disabled={importing} style={{padding:'9px 22px',borderRadius:20,background:importing?'var(--bg-elevated)':'var(--accent)',border:'none',color:importing?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:importing?'wait':'pointer'}}>{importing?'Εισαγωγή...':`Εισαγωγή ${rows.length} αντικειμένων`}</button>
+              <button onClick={()=>setStep('upload')} style={{padding:'9px 18px',borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Πίσω</button>
+              <button onClick={handleImport} disabled={importing} style={{padding:'9px 22px',borderRadius:20,background:importing?'var(--bg-elevated)':'var(--accent)',border:'none',color:importing?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:importing?'wait':'pointer'}}>{importing?'Εισαγωγή...':`Εισαγωγή ${rows.length} αντικειμένων`}</button>
             </div>
           </>
         )}
@@ -415,7 +417,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
         <div style={{padding:'22px 28px 0',flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
             <div>
-              <p style={{fontSize:22,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{item?'Επεξεργασία Αντικειμένου':'Νέο Αντικείμενο'}</p>
+              <p style={{fontSize:22,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{item?'Επεξεργασία Αντικειμένου':'Νέο Αντικείμενο'}</p>
               {item&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Roboto',sans-serif"}}>{item.name}</p>}
             </div>
             <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>×</button>
@@ -423,7 +425,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
           <div style={{display:'flex',borderBottom:'1px solid var(--border-subtle)'}}>
             {TABS.map(t=>(
               <button key={t.key} onClick={()=>setTab(t.key as any)}
-                style={{padding:'10px 16px',fontSize:13,fontWeight:tab===t.key?500:400,fontFamily:"'Google Sans',sans-serif",color:tab===t.key?'var(--accent)':'var(--text-secondary)',borderTop:'none',borderLeft:'none',borderRight:'none',borderBottom:`2px solid ${tab===t.key?'var(--accent)':'transparent'}`,background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',marginBottom:-1}}>
+                style={{padding:'10px 16px',fontSize:13,fontWeight:tab===t.key?500:400,fontFamily:"'Inter',sans-serif",color:tab===t.key?'var(--accent)':'var(--text-secondary)',borderTop:'none',borderLeft:'none',borderRight:'none',borderBottom:`2px solid ${tab===t.key?'var(--accent)':'transparent'}`,background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',marginBottom:-1}}>
                 {t.label}
               </button>
             ))}
@@ -454,7 +456,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {AVAILABLE_TAGS.map(tag=>{
                     const active=(form.tags||[]).includes(tag)
-                    return <button key={tag} onClick={()=>toggleTag(tag)} style={{padding:'4px 12px',borderRadius:20,fontSize:12,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",fontWeight:active?500:400,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'none',color:active?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>{tag}</button>
+                    return <button key={tag} onClick={()=>toggleTag(tag)} style={{padding:'4px 12px',borderRadius:20,fontSize:12,cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:active?500:400,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'none',color:active?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>{tag}</button>
                   })}
                 </div>
               </div>
@@ -481,7 +483,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               </div>
               {(form.provenance==='new'||form.provenance==='discount')&&(
                 <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:12,border:'1px solid var(--border-accent)',display:'flex',flexDirection:'column',gap:12}}>
-                  <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Στοιχεία Τιμής</p>
+                  <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Στοιχεία Τιμής</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
                     <div><label style={labelStyle}>Αρχική Τιμή (€)</label><NumberInput value={String(form.original_price||0)} onChange={v=>set('original_price',parseFloat(v)||0)} suffix="€" min={0}/></div>
                     <div><label style={labelStyle}>Έκπτωση (%)</label><NumberInput value={String(form.discount_pct||0)} onChange={v=>set('discount_pct',parseFloat(v)||0)} suffix="%" min={0} max={100}/></div>
@@ -515,7 +517,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               </div>
               {form.purchase_date&&form.purchase_value&&(
                 <div style={{padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:12,border:'1px solid var(--border-subtle)'}}>
-                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:12}}>Απόσβεση</p>
+                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Απόσβεση</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                     {[
                       {label:'Τρέχουσα Αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem)),color:'var(--positive)'},
@@ -524,7 +526,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                     ].map((k,i)=>(
                       <div key={i} style={{textAlign:'center',padding:10,background:'var(--bg-surface)',borderRadius:8}}>
                         <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:k.color,marginBottom:3}}>{k.value}</p>
-                        <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>{k.label}</p>
+                        <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{k.label}</p>
                       </div>
                     ))}
                   </div>
@@ -545,12 +547,12 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               </div>
               {liveKwh>0&&(
                 <div style={{background:'var(--bg-elevated)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border-subtle)'}}>
-                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>Εκτιμώμενη Κατανάλωση</p>
+                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:12,fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Εκτιμώμενη Κατανάλωση</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
                     {[{label:'kWh/μήνα',value:`${liveKwh.toFixed(1)}`},{label:'kWh/έτος',value:`${(liveKwh*12).toFixed(0)}`},{label:'Κόστος/μήνα',value:fmtEurC(liveKwh*0.22)},{label:'Κόστος/έτος',value:fmtEurC(liveKwh*0.22*12)}].map((k,i)=>(
                       <div key={i} style={{textAlign:'center',padding:'10px 6px',background:'var(--bg-surface)',borderRadius:8}}>
                         <p style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{k.value}</p>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>{k.label}</p>
+                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{k.label}</p>
                       </div>
                     ))}
                   </div>
@@ -567,7 +569,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
             <>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:12,border:'1px solid var(--border-subtle)'}}>
                 <div>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Έξυπνη Συσκευή</p>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Έξυπνη Συσκευή</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Roboto',sans-serif"}}>Συνδέεται με app, smart plug ή automation</p>
                 </div>
                 <Toggle on={form.smart_device||false} onChange={(v:boolean)=>set('smart_device',v)}/>
@@ -576,7 +578,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 <div><label style={labelStyle}>App / Σύστημα Ελέγχου</label><TextInput value={form.smart_notes||''} onChange={v=>set('smart_notes',v)} placeholder="Παράδειγμα: Shelly 1PM + Home Assistant"/></div>
               )}
               <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:12,border:'1px solid var(--border-accent)'}}>
-                <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:12}}>Προτεινόμενα Smart Devices</p>
+                <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Προτεινόμενα Smart Devices</p>
                 {[
                   {label:'Smart Plug με μέτρηση',desc:'Shelly Plug S, Tapo P115 — μέτρηση κατανάλωσης ανά συσκευή',saving:'έως 15% εξοικονόμηση'},
                   {label:'Smart Θερμοστάτης',desc:'Tado, Nest, Heatmiser — για κλιματισμό & θέρμανση',saving:'15-25% εξοικονόμηση'},
@@ -586,9 +588,9 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                   <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderBottom:i<3?'1px solid var(--border-subtle)':'none'}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',marginTop:5,flexShrink:0}}/>
                     <div>
-                      <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{tip.label}</p>
+                      <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{tip.label}</p>
                       <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:2,fontFamily:"'Roboto',sans-serif"}}>{tip.desc}</p>
-                      <p style={{fontSize:11,color:'var(--positive)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{tip.saving}</p>
+                      <p style={{fontSize:11,color:'var(--positive)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{tip.saving}</p>
                     </div>
                   </div>
                 ))}
@@ -597,8 +599,8 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
           )}
         </div>
         <div style={{padding:'16px 28px 24px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:10,justifyContent:'flex-end',flexShrink:0,background:'var(--bg-surface)'}}>
-          <button onClick={onClose} style={{padding:'0 20px',height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
-          <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:saving?'wait':'pointer',minWidth:120}}>
+          <button onClick={onClose} style={{padding:'0 20px',height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
+          <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:saving?'wait':'pointer',minWidth:120}}>
             {saving?'Αποθήκευση...':'Αποθήκευση'}
           </button>
         </div>
@@ -633,14 +635,14 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:28,width:'100%',maxWidth:520,maxHeight:'85vh',overflowY:'auto',padding:28,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
-            <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Επισκευές</p>
+            <p style={{fontSize:18,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Επισκευές</p>
             <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Roboto',sans-serif"}}>{item.name}</p>
           </div>
           <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
         {totalCost>0&&curVal>0&&(
           <div style={{padding:'10px 14px',background:totalCost>curVal*0.5?'var(--negative-dim)':'var(--positive-dim)',borderRadius:10,border:`1px solid ${totalCost>curVal*0.5?'var(--negative-border)':'var(--positive-border)'}`}}>
-            <p style={{fontSize:12,color:totalCost>curVal*0.5?'var(--negative)':'var(--positive)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{totalCost>curVal*0.5?`Κόστος επισκευών ${fmtEur(totalCost)} > 50% τρέχουσας αξίας ${fmtEur(curVal)}`:`Επισκευές ${fmtEur(totalCost)} εντός ορίων vs αξία ${fmtEur(curVal)}`}</p>
+            <p style={{fontSize:12,color:totalCost>curVal*0.5?'var(--negative)':'var(--positive)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{totalCost>curVal*0.5?`Κόστος επισκευών ${fmtEur(totalCost)} > 50% τρέχουσας αξίας ${fmtEur(curVal)}`:`Επισκευές ${fmtEur(totalCost)} εντός ορίων vs αξία ${fmtEur(curVal)}`}</p>
           </div>
         )}
         <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
@@ -650,7 +652,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
             {itemRepairs.map(r=>(
               <div key={r.id} style={{background:'var(--bg-elevated)',borderRadius:8,padding:'10px 14px',border:'1px solid var(--border-subtle)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{r.description}</p>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{r.description}</p>
                   <p style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--negative)',fontWeight:700}}>{fmtEur(r.cost)}</p>
                 </div>
                 <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{fmtDate(r.repair_date)}{r.technician?` · ${r.technician}`:''}</p>
@@ -668,10 +670,10 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
               <div style={{flex:1}}><TextInput value={form.technician} onChange={v=>setForm(f=>({...f,technician:v}))} placeholder="Παράδειγμα: Ηλεκτρολόγος Γεωργίου"/></div>
               {contacts.length>0&&(
                 <div ref={pickerRef} style={{position:'relative',flexShrink:0}}>
-                  <button type="button" onClick={()=>setShowContactPicker(s=>!s)} style={{padding:'0 12px',height:40,borderRadius:8,border:'1px solid var(--border-subtle)',background:showContactPicker?'var(--accent-dim)':'var(--bg-elevated)',color:showContactPicker?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Επαφές</button>
+                  <button type="button" onClick={()=>setShowContactPicker(s=>!s)} style={{padding:'0 12px',height:40,borderRadius:8,border:'1px solid var(--border-subtle)',background:showContactPicker?'var(--accent-dim)':'var(--bg-elevated)',color:showContactPicker?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Επαφές</button>
                   {showContactPicker&&(
                     <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'var(--bg-surface)',border:'1px solid var(--border-accent)',borderRadius:12,padding:8,zIndex:700,minWidth:200,maxHeight:200,overflowY:'auto',boxShadow:'var(--shadow-lg)'}}>
-                      <div style={{fontSize:10,color:'var(--text-secondary)',padding:'4px 8px 8px',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",borderBottom:'1px solid var(--border-subtle)',marginBottom:4}}>Επιλογή Επαφής</div>
+                      <div style={{fontSize:10,color:'var(--text-secondary)',padding:'4px 8px 8px',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif",borderBottom:'1px solid var(--border-subtle)',marginBottom:4}}>Επιλογή Επαφής</div>
                       {contacts.map(c=>(
                         <div key={c.id} onClick={()=>{setForm(f=>({...f,technician:c.full_name}));setShowContactPicker(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:"'Roboto',sans-serif",color:'var(--text-primary)'}} onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-elevated)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{c.full_name}</div>
                       ))}
@@ -685,12 +687,12 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--positive-dim)',borderRadius:10,border:'1px solid var(--positive-border)'}}>
           <div>
-            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--positive)'}}>Καταχώρηση στις Δαπάνες</p>
+            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--positive)'}}>Καταχώρηση στις Δαπάνες</p>
             <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>Αυτόματη εισαγωγή στο tab "Δαπάνες"</p>
           </div>
           <Toggle on={pushExpenses} onChange={setPushExpenses}/>
         </div>
-        <button onClick={handleAdd} disabled={saving} style={{padding:'0 20px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:saving?'wait':'pointer',alignSelf:'flex-end'}}>
+        <button onClick={handleAdd} disabled={saving} style={{padding:'0 20px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:saving?'wait':'pointer',alignSelf:'flex-end'}}>
           {saving?'Αποθήκευση...':'Καταχώρηση Επισκευής'}
         </button>
       </div>
@@ -720,13 +722,13 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
       </div>
       <div>
-        <p style={{fontSize:20,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:8}}>Ξεκινήστε την Απογραφή</p>
+        <p style={{fontSize:20,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:8}}>Ξεκινήστε την Απογραφή</p>
         <p style={{fontSize:14,color:'var(--text-secondary)',maxWidth:360,lineHeight:1.7,margin:'0 auto',fontFamily:"'Roboto',sans-serif"}}>Καταγράψτε τον εξοπλισμό για παρακολούθηση αξίας, ρεύματος και εγγυήσεων.</p>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,maxWidth:480,width:'100%'}}>
         {[{t:'Πρόσθεσε Αντικείμενο',d:'Έπιπλα, συσκευές, ηλεκτρονικά'},{t:'Βάλε Κατανάλωση',d:'Υπολογισμός κόστους ρεύματος'},{t:'Ορίστε Εγγύηση',d:'Υπενθύμιση πριν λήξει'}].map((s,i)=>(
           <div key={i} style={{padding:'20px 14px',background:'var(--bg-elevated)',borderRadius:14,border:'1px solid var(--border-subtle)'}}>
-            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:4}}>{s.t}</p>
+            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:4}}>{s.t}</p>
             <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Roboto',sans-serif"}}>{s.d}</p>
           </div>
         ))}
@@ -749,7 +751,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
       {totalDiscount>0&&(
         <div style={{padding:'12px 16px',background:'var(--positive-dim)',borderRadius:12,border:'1px solid var(--positive-border)',display:'flex',alignItems:'center',gap:12}}>
           <div>
-            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--positive)'}}>Εξοικονόμηση από εκπτώσεις & μεταχειρισμένα: <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fmtEur(totalDiscount)}</span></p>
+            <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--positive)'}}>Εξοικονόμηση από εκπτώσεις & μεταχειρισμένα: <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fmtEur(totalDiscount)}</span></p>
             <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>Βάσει αρχικών τιμών vs τιμών αγοράς</p>
           </div>
         </div>
@@ -777,7 +779,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
           <SectionLabel label="Κατανάλωση Ρεύματος"/>
           {electricItems.length===0?(
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-tertiary)'}}>
-              <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>Δεν υπάρχουν δεδομένα</p>
+              <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>Δεν υπάρχουν δεδομένα</p>
               <p style={{fontSize:11,fontFamily:"'Roboto',sans-serif"}}>Πρόσθεσε Watt στις ηλεκτρικές συσκευές</p>
             </div>
           ):(
@@ -818,7 +820,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
               :<div style={{display:'flex',flexDirection:'column',gap:6}}>
                 {list.slice(0,4).map(item=>(
                   <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--bg-elevated)',borderRadius:8}}>
-                    <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:"'Google Sans',sans-serif",overflow:'hidden',textOverflow:'ellipsis',marginRight:8}}>{item.name}</span>
+                    <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',marginRight:8}}>{item.name}</span>
                     {render(item)}
                   </div>
                 ))}
@@ -878,20 +880,20 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
         <div style={{width:160}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες Κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:140}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα Δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
         {allTags.length>0&&<div style={{width:120}}><CustomSelect value={filterTag} onChange={setFilterTag} options={[{value:'Όλα',label:'Όλα Tags'},...allTags.map(t=>({value:t,label:t}))]}/></div>}
-        <button onClick={()=>setShowNeedsAction(v=>!v)} style={{padding:'0 12px',height:36,borderRadius:18,fontSize:12,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",fontWeight:500,border:`1px solid ${showNeedsAction?'var(--negative)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--negative-dim)':'var(--bg-elevated)',color:showNeedsAction?'var(--negative)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+        <button onClick={()=>setShowNeedsAction(v=>!v)} style={{padding:'0 12px',height:36,borderRadius:18,fontSize:12,cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:500,border:`1px solid ${showNeedsAction?'var(--negative)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--negative-dim)':'var(--bg-elevated)',color:showNeedsAction?'var(--negative)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
           Δράση {actionCount>0&&<span style={{background:'var(--negative)',color:'#fff',borderRadius:10,padding:'0 6px',fontSize:10,fontWeight:700}}>{actionCount}</span>}
         </button>
         <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:20,overflow:'hidden',padding:2,background:'var(--bg-elevated)'}}>
           {(['grid','list'] as const).map(m=>(
-            <button key={m} onClick={()=>setViewMode(m)} style={{padding:'6px 14px',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',border:'none',borderRadius:16,background:viewMode===m?'var(--accent)':'transparent',color:viewMode===m?'var(--accent-text)':'var(--text-secondary)',fontWeight:viewMode===m?500:400,transition:'all 0.15s'}}>{m==='grid'?'Κάρτες':'Λίστα'}</button>
+            <button key={m} onClick={()=>setViewMode(m)} style={{padding:'6px 14px',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer',border:'none',borderRadius:16,background:viewMode===m?'var(--accent)':'transparent',color:viewMode===m?'var(--accent-text)':'var(--text-secondary)',fontWeight:viewMode===m?500:400,transition:'all 0.15s'}}>{m==='grid'?'Κάρτες':'Λίστα'}</button>
           ))}
         </div>
-        <button onClick={onAdd} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',whiteSpace:'nowrap'}}>+ Νέο</button>
+        <button onClick={onAdd} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer',whiteSpace:'nowrap'}}>+ Νέο</button>
       </div>
       <div style={{display:'flex',gap:2,alignItems:'center',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
-        <span style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginRight:8}}>Ταξινόμηση</span>
+        <span style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif",marginRight:8}}>Ταξινόμηση</span>
         {([['name','Όνομα'],['value','Αξία'],['energy','Ρεύμα/μήνα'],['age','Ηλικία'],['depreciation','Απόσβεση']] as [SortKey,string][]).map(([k,l])=>(
-          <button key={k} onClick={()=>toggleSort(k)} style={{padding:'4px 12px',borderRadius:6,fontSize:12,cursor:'pointer',fontWeight:sortKey===k?500:400,fontFamily:"'Google Sans',sans-serif",border:'none',borderBottom:`2px solid ${sortKey===k?'var(--accent)':'transparent'}`,background:'none',color:sortKey===k?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
+          <button key={k} onClick={()=>toggleSort(k)} style={{padding:'4px 12px',borderRadius:6,fontSize:12,cursor:'pointer',fontWeight:sortKey===k?500:400,fontFamily:"'Inter',sans-serif",border:'none',borderBottom:`2px solid ${sortKey===k?'var(--accent)':'transparent'}`,background:'none',color:sortKey===k?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
             {l} {sortKey===k?(sortDir==='asc'?'↑':'↓'):''}
           </button>
         ))}
@@ -907,7 +909,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       </div>
       {filtered.length===0?(
         <div style={{textAlign:'center',padding:'60px 0',color:'var(--text-tertiary)'}}>
-          <p style={{fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>{items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}</p>
+          <p style={{fontSize:14,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',marginBottom:4}}>{items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}</p>
           <p style={{fontSize:12,fontFamily:"'Roboto',sans-serif"}}>{items.length===0?'Πάτησε «+ Νέο» για να ξεκινήσεις':'Δοκίμασε διαφορετικά φίλτρα'}</p>
         </div>
       ):viewMode==='grid'?(
@@ -930,42 +932,42 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                     </div>
                   }
                   <div style={{position:'absolute',top:10,left:10,display:'flex',gap:4}}>
-                    <button onClick={()=>onQR(item)} style={{padding:'3px 8px',borderRadius:6,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:10,cursor:'pointer',fontFamily:"'Google Sans',sans-serif",fontWeight:500,backdropFilter:'blur(4px)'}}>QR</button>
+                    <button onClick={()=>onQR(item)} style={{padding:'3px 8px',borderRadius:6,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:10,cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:500,backdropFilter:'blur(4px)'}}>QR</button>
                     {photos.length>1&&<span style={{padding:'3px 7px',borderRadius:6,background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:9,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>+{photos.length-1}</span>}
                   </div>
                   <div style={{position:'absolute',top:10,right:10,display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end'}}>
                     <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
-                    {item.smart_device&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:4,background:'var(--accent)',color:'var(--accent-text)',fontWeight:700,fontFamily:"'Google Sans',sans-serif",letterSpacing:'0.5px'}}>SMART</span>}
-                    {item.provenance&&item.provenance!=='new'&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:4,background:'var(--info)',color:'#fff',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{provenanceLabel(item.provenance)}</span>}
+                    {item.smart_device&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:4,background:'var(--accent)',color:'var(--accent-text)',fontWeight:700,fontFamily:"'Inter',sans-serif",letterSpacing:'0.5px'}}>SMART</span>}
+                    {item.provenance&&item.provenance!=='new'&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:4,background:'var(--info)',color:'#fff',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{provenanceLabel(item.provenance)}</span>}
                   </div>
                   {action&&<div style={{position:'absolute',bottom:0,left:0,right:0,height:3,background:'var(--warning)'}}/>}
                 </div>
                 <div style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10,flex:1}}>
                   <div>
-                    <p style={{fontSize:14,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2,lineHeight:1.3}}>{item.name}</p>
+                    <p style={{fontSize:14,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2,lineHeight:1.3}}>{item.name}</p>
                     <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{item.category}{item.room?` · ${item.room}`:''}{item.brand?` · ${item.brand}`:''}</p>
                     {age&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Roboto',sans-serif"}}>{age}</p>}
                   </div>
                   {(item.tags||[]).length>0&&(
                     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                      {(item.tags||[]).slice(0,3).map(t=><span key={t} style={{fontSize:9,padding:'2px 7px',borderRadius:10,background:'var(--accent-dim)',color:'var(--accent)',border:'1px solid var(--border-accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{t}</span>)}
+                      {(item.tags||[]).slice(0,3).map(t=><span key={t} style={{fontSize:9,padding:'2px 7px',borderRadius:10,background:'var(--accent-dim)',color:'var(--accent)',border:'1px solid var(--border-accent)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{t}</span>)}
                     </div>
                   )}
                   <DepBar pct={depPct} left={left}/>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
                     <div style={{padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:10,textAlign:'center'}}>
                       <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--positive)',marginBottom:2}}>{fmtEur(curVal)}</p>
-                      <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>Τρέχουσα αξία</p>
+                      <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>Τρέχουσα αξία</p>
                     </div>
                     {mc>0?(
                       <div style={{padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:10,textAlign:'center'}}>
                         <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--warning)',marginBottom:2}}>{fmtEurC(mc)}</p>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Google Sans',sans-serif"}}>{calcMonthlyKwh(item)} kWh/μήνα</p>
+                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{calcMonthlyKwh(item)} kWh/μήνα</p>
                       </div>
                     ):(
                       <div onClick={()=>onEdit(item)} style={{padding:'9px 12px',background:'var(--accent-dim)',borderRadius:10,textAlign:'center',cursor:'pointer',border:'1px dashed var(--border-accent)'}}>
-                        <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:2}}>+ Watt</p>
+                        <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:2}}>+ Watt</p>
                         <p style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>Προσθήκη</p>
                       </div>
                     )}
@@ -976,11 +978,11 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                   }
                   {repairCost>0&&<div style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>Επισκευές: <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--warning)'}}>{fmtEur(repairCost)}</span></div>}
                   <div style={{display:'flex',gap:6,paddingTop:8,borderTop:'1px solid var(--border-subtle)'}}>
-                    <button onClick={()=>onEdit(item)} style={{flex:1,padding:'7px 0',borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',transition:'all 0.15s',fontWeight:500}}
+                    <button onClick={()=>onEdit(item)} style={{flex:1,padding:'7px 0',borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer',transition:'all 0.15s',fontWeight:500}}
                       onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--accent)';(e.currentTarget as HTMLButtonElement).style.color='var(--accent)'}}
                       onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border-subtle)';(e.currentTarget as HTMLButtonElement).style.color='var(--text-secondary)'}}
                     >Επεξεργασία</button>
-                    <button onClick={()=>onRepair(item)} style={{padding:'7px 10px',borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--warning)',fontSize:12,cursor:'pointer',fontFamily:"'Google Sans',sans-serif"}}>Επισκ.</button>
+                    <button onClick={()=>onRepair(item)} style={{padding:'7px 10px',borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--warning)',fontSize:12,cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Επισκ.</button>
                     <button onClick={()=>{if(confirm(`Διαγραφή "${item.name}";`))onDelete(item.id)}} style={{padding:'7px 10px',borderRadius:18,border:'1px solid var(--negative-border)',background:'none',color:'var(--negative)',fontSize:12,cursor:'pointer'}}>×</button>
                   </div>
                 </div>
@@ -992,7 +994,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
         <div style={{overflowX:'auto',margin:'0 -4px',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:12,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:620}}>
           <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 70px 90px 100px auto',gap:8,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
-            {['Αντικείμενο','Κατηγορία','Κλάση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</p>)}
+            {['Αντικείμενο','Κατηγορία','Κλάση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
@@ -1002,20 +1004,20 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                 onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background=needsAction(item)?'var(--warning-dim)':'var(--bg-surface)'}
               >
                 <div>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
                   <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif",marginBottom:4}}>{item.brand?`${item.brand} · `:''}{item.room||''}{age?` · ${age}`:''}</p>
-                  {(item.tags||[]).length>0&&<div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:4}}>{(item.tags||[]).map(t=><span key={t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'var(--accent-dim)',color:'var(--accent)',fontFamily:"'Google Sans',sans-serif"}}>{t}</span>)}</div>}
+                  {(item.tags||[]).length>0&&<div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:4}}>{(item.tags||[]).map(t=><span key={t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'var(--accent-dim)',color:'var(--accent)',fontFamily:"'Inter',sans-serif"}}>{t}</span>)}</div>}
                   <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
                 </div>
                 <p style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Roboto',sans-serif"}}>{item.category}</p>
                 <div>{item.energy_class?<EnergyBadge cls={item.energy_class}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
                 <p style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--positive)',fontWeight:700}}>{fmtEur(curVal)}</p>
-                <div>{mc>0?<p style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--warning)',fontWeight:700}}>{fmtEurC(mc)}</p>:<button onClick={()=>onEdit(item)} style={{fontSize:11,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'Google Sans',sans-serif"}}>+ Watt</button>}</div>
+                <div>{mc>0?<p style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--warning)',fontWeight:700}}>{fmtEurC(mc)}</p>:<button onClick={()=>onEdit(item)} style={{fontSize:11,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'Inter',sans-serif"}}>+ Watt</button>}</div>
                 <div style={{display:'flex',gap:4,alignItems:'center'}}>
                   <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
-                  <button onClick={()=>onQR(item)} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:9,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>QR</button>
+                  <button onClick={()=>onQR(item)} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:9,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>QR</button>
                   <button onClick={()=>onEdit(item)} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:11,cursor:'pointer'}}>Επεξ.</button>
-                  <button onClick={()=>onRepair(item)} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--border-subtle)',background:'none',color:'var(--warning)',fontSize:11,cursor:'pointer',fontFamily:"'Google Sans',sans-serif"}}>Επισκ.</button>
+                  <button onClick={()=>onRepair(item)} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--border-subtle)',background:'none',color:'var(--warning)',fontSize:11,cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Επισκ.</button>
                   <button onClick={()=>{if(confirm(`Διαγραφή "${item.name}";`))onDelete(item.id)}} style={{padding:'4px 6px',borderRadius:6,border:'1px solid var(--negative-border)',background:'none',color:'var(--negative)',fontSize:11,cursor:'pointer'}}>×</button>
                 </div>
               </div>
@@ -1048,13 +1050,13 @@ function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:s
         {list.map(item=>{const ws=warrantyStatus(item.warranty_expiry);return(
           <div key={item.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:10,alignItems:'center',padding:'10px 12px',background:'var(--bg-surface)',borderRadius:10}}>
             <div>
-              <p style={{fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
+              <p style={{fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
               <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{item.brand}{item.model?` ${item.model}`:''} · {item.category}</p>
             </div>
             {item.serial_number&&<p style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>}
             <Badge label={ws.label} color={ws.color}/>
             {daysUntil(item.warranty_expiry)>=0&&daysUntil(item.warranty_expiry)<=90&&(
-              <button onClick={()=>pushCal(item)} disabled={pushing===item.id||pushed.has(item.id)} style={{padding:'5px 10px',borderRadius:16,border:`1px solid ${pushed.has(item.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(item.id)?'var(--positive-dim)':'none',color:pushed.has(item.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',whiteSpace:'nowrap'}}>
+              <button onClick={()=>pushCal(item)} disabled={pushing===item.id||pushed.has(item.id)} style={{padding:'5px 10px',borderRadius:16,border:`1px solid ${pushed.has(item.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(item.id)?'var(--positive-dim)':'none',color:pushed.has(item.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:"'Inter',sans-serif",cursor:'pointer',whiteSpace:'nowrap'}}>
                 {pushing===item.id?'...':pushed.has(item.id)?'✓ Προστέθηκε':'Ημ/λόγιο'}
               </button>
             )}
@@ -1101,11 +1103,11 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
   const printHandover = (h:InventoryHandover) => {
     const snap=h.items_snapshot||[]
     const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>Πρωτόκολλο</title><style>body{font-family:'Google Sans',Arial;font-size:12px;margin:30px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#f4f4f4;padding:8px;text-align:left;font-size:10px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee}.sig{margin-top:48px;display:flex;gap:60px}.sig-box{flex:1;border-top:1px solid #999;padding-top:8px;font-size:11px;color:#666}@media print{button{display:none}}</style></head><body>
+    w.document.write(`<html><head><title>Πρωτόκολλο</title><style>body{font-family:'Inter',Arial;font-size:12px;margin:30px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#f4f4f4;padding:8px;text-align:left;font-size:10px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee}.sig{margin-top:48px;display:flex;gap:60px}.sig-box{flex:1;border-top:1px solid #999;padding-top:8px;font-size:11px;color:#666}@media print{button{display:none}}</style></head><body>
     <h1>Πρωτόκολλο ${h.handover_type==='check_in'?'Παράδοσης':'Παραλαβής'}</h1>
-    <p><strong>${h.tenant_name}</strong>${h.tenant_phone?` · ${h.tenant_phone}`:''} · ${fmtDate(h.handover_date)}</p>
+    <p><strong>${esc(h.tenant_name)}</strong>${h.tenant_phone?` · ${esc(h.tenant_phone)}`:''} · ${esc(fmtDate(h.handover_date))}</p>
     <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th></tr></thead><tbody>
-    ${snap.map(s=>`<tr><td>${s.name}</td><td>${s.category}</td><td>${s.condition_at_handover}</td><td>${s.condition_notes||'—'}</td></tr>`).join('')}
+    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||'—')}</td></tr>`).join('')}
     </tbody></table>
     <div class="sig"><div class="sig-box">Υπογραφή Ιδιοκτήτη</div><div class="sig-box">Υπογραφή Ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
     <button onclick="window.print()" style="margin-top:24px;padding:8px 16px;cursor:pointer">Εκτύπωση</button></body></html>`)
@@ -1118,8 +1120,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
     return (
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Σύγκριση Πρωτοκόλλων</p>
-          <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Πίσω</button>
+          <p style={{fontSize:18,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Σύγκριση Πρωτοκόλλων</p>
+          <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Πίσω</button>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
           {[{v:cmpA,sv:setCmpA},{v:cmpB,sv:setCmpB}].map(({v,sv},i)=>(
@@ -1132,7 +1134,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         {hA&&hB&&(
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:0,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
-              {['Αντικείμενο',`${hA.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hA.tenant_name}`,`${hB.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hB.tenant_name}`].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Google Sans',sans-serif"}}>{h}</p>)}
+              {['Αντικείμενο',`${hA.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hA.tenant_name}`,`${hB.handover_type==='check_in'?'Check-In':'Check-Out'} · ${hB.tenant_name}`].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</p>)}
             </div>
             {allNames.map(name=>{
               const sA=hA.items_snapshot?.find(s=>s.name===name); const sB=hB.items_snapshot?.find(s=>s.name===name)
@@ -1140,7 +1142,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
               const degraded=cA!==cB&&cA!=='—'&&cB!=='—'&&condOrder.indexOf(cB)>condOrder.indexOf(cA)
               return (
                 <div key={name} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:0,padding:'10px 14px',background:degraded?'var(--negative-dim)':'var(--bg-elevated)',borderRadius:8,marginBottom:4,border:`1px solid ${degraded?'var(--negative-border)':'var(--border-subtle)'}`}}>
-                  <p style={{fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{name}{degraded&&<span style={{fontSize:10,color:'var(--negative)',marginLeft:6}}>↓</span>}</p>
+                  <p style={{fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{name}{degraded&&<span style={{fontSize:10,color:'var(--negative)',marginLeft:6}}>↓</span>}</p>
                   <div>{cA!=='—'?<Badge label={cA} color={CONDITION_COLOR[cA]||'var(--text-tertiary)'}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
                   <div>{cB!=='—'?<Badge label={cB} color={CONDITION_COLOR[cB]||'var(--text-tertiary)'}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
                 </div>
@@ -1154,12 +1156,12 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
   if(mode==='new') return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <p style={{fontSize:18,fontWeight:400,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
-        <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Πίσω</button>
+        <p style={{fontSize:18,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
+        <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Πίσω</button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
         {(['check_in','check_out'] as const).map(t=>(
-          <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:12,cursor:'pointer',fontWeight:500,fontFamily:"'Google Sans',sans-serif",fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition:'all 0.2s'}}>
+          <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:12,cursor:'pointer',fontWeight:500,fontFamily:"'Inter',sans-serif",fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition:'all 0.2s'}}>
             {t==='check_in'?'Check-In — Είσοδος':'Check-Out — Έξοδος'}
           </button>
         ))}
@@ -1179,7 +1181,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
                 {item.photo_url?<img src={item.photo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>}
               </div>
               <div>
-                <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{item.name}</p>
+                <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{item.name}</p>
                 <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{item.category}{item.room?` · ${item.room}`:''}</p>
               </div>
               <CustomSelect value={itemConds[item.id]?.condition||item.condition} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],condition:v}}))} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
@@ -1189,8 +1191,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         </div>
       </div>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
-        <button onClick={()=>setMode('list')} style={{padding:'0 20px',height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
-        <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:saving?'wait':'pointer'}}>
+        <button onClick={()=>setMode('list')} style={{padding:'0 20px',height:40,borderRadius:20,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
+        <button onClick={handleSave} disabled={saving} style={{padding:'0 24px',height:40,borderRadius:20,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:saving?'wait':'pointer'}}>
           {saving?'Αποθήκευση...':'Αποθήκευση Πρωτοκόλλου'}
         </button>
       </div>
@@ -1201,8 +1203,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <SectionLabel label="Πρωτόκολλα Παράδοσης"/>
         <div style={{display:'flex',gap:8}}>
-          {handovers.length>=2&&<button onClick={()=>setMode('compare')} style={{padding:'0 14px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",fontWeight:500,cursor:'pointer'}}>Σύγκριση</button>}
-          <button onClick={()=>setMode('new')} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>+ Νέο Πρωτόκολλο</button>
+          {handovers.length>=2&&<button onClick={()=>setMode('compare')} style={{padding:'0 14px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>Σύγκριση</button>}
+          <button onClick={()=>setMode('new')} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>+ Νέο Πρωτόκολλο</button>
         </div>
       </div>
       {handovers.length===0
@@ -1216,13 +1218,13 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
                   <div>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                       <Badge label={h.handover_type==='check_in'?'Check-In':'Check-Out'} color={h.handover_type==='check_in'?'var(--positive)':'var(--info)'}/>
-                      <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)'}}>{h.tenant_name}</p>
+                      <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{h.tenant_name}</p>
                     </div>
                     <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{fmtDate(h.handover_date)}{h.tenant_phone?` · ${h.tenant_phone}`:''} · {snap.length} αντικείμενα</p>
                   </div>
                   <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {bad>0&&<Badge label={`${bad} προβλήματα`} color="var(--negative)"/>}
-                    <button onClick={()=>printHandover(h)} style={{padding:'0 12px',height:32,borderRadius:16,border:'1px solid var(--border-subtle)',background:'none',color:'var(--accent)',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',fontWeight:500}}>Εκτύπωση</button>
+                    <button onClick={()=>printHandover(h)} style={{padding:'0 12px',height:32,borderRadius:16,border:'1px solid var(--border-subtle)',background:'none',color:'var(--accent)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer',fontWeight:500}}>Εκτύπωση</button>
                   </div>
                 </div>
                 {bad>0&&(
@@ -1276,14 +1278,14 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     return (
       <div style={{display:'grid',gridTemplateColumns:'1fr auto auto auto auto',gap:10,alignItems:'center',padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:10,border:`1px solid ${days<0?'var(--negative-border)':days<=30?'var(--warning-border)':'var(--border-subtle)'}`}}>
         <div>
-          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
+          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
           <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
         </div>
         <Badge label={days<0?`${Math.abs(days)} ημ. καθυστ.`:days===0?'Σήμερα!':`${days} ημ.`} color={c}/>
         <span style={{fontSize:11,color:'var(--text-tertiary)',whiteSpace:'nowrap',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>→ {fmtDate(s.next_due)}</span>
-        <button onClick={()=>markDone(s)} style={{padding:'0 10px',height:32,borderRadius:16,border:'1px solid var(--positive-border)',background:'var(--positive-dim)',color:'var(--positive)',fontSize:11,fontFamily:"'Google Sans',sans-serif",cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
+        <button onClick={()=>markDone(s)} style={{padding:'0 10px',height:32,borderRadius:16,border:'1px solid var(--positive-border)',background:'var(--positive-dim)',color:'var(--positive)',fontSize:11,fontFamily:"'Inter',sans-serif",cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
         <div style={{display:'flex',gap:4}}>
-          <button onClick={()=>pushCal(s)} style={{padding:'0 8px',height:32,borderRadius:16,border:`1px solid ${pushed.has(s.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(s.id)?'var(--positive-dim)':'none',color:pushed.has(s.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>{pushed.has(s.id)?'✓':'Ημ/λόγ.'}</button>
+          <button onClick={()=>pushCal(s)} style={{padding:'0 8px',height:32,borderRadius:16,border:`1px solid ${pushed.has(s.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(s.id)?'var(--positive-dim)':'none',color:pushed.has(s.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>{pushed.has(s.id)?'✓':'Ημ/λόγ.'}</button>
           <button onClick={()=>{if(confirm('Διαγραφή;'))deleteSched(s.id)}} style={{width:32,height:32,borderRadius:16,border:'1px solid var(--negative-border)',background:'none',color:'var(--negative)',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
       </div>
@@ -1293,7 +1295,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <SectionLabel label="Πρόγραμμα Συντήρησης"/>
-        <button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>+ Νέα Εργασία</button>
+        <button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>+ Νέα Εργασία</button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
         <StatCard label="Σε Καθυστέρηση" value={String(overdue.length)} color="var(--negative)"/>
@@ -1307,10 +1309,10 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
             {DEFAULT_MAINTENANCE.map((s,i)=>(
               <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:10}}>
                 <div>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
                   <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif"}}>κάθε {s.interval_months} μήνες · {s.category}</p>
                 </div>
-                <button onClick={()=>addSuggested(s)} style={{padding:'0 12px',height:32,borderRadius:16,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:11,fontFamily:"'Google Sans',sans-serif",fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>+ Προσθήκη</button>
+                <button onClick={()=>addSuggested(s)} style={{padding:'0 12px',height:32,borderRadius:16,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:11,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}>+ Προσθήκη</button>
               </div>
             ))}
           </div>
@@ -1330,8 +1332,8 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
             <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
           </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
-            <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
-            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:18,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
+            <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Ακύρωση</button>
+            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:18,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
           </div>
         </div>
       )}
@@ -1353,13 +1355,13 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   const exportPDF=()=>{
     const byCat=['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
     const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>Απογραφή</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Google Sans',Roboto,Arial;font-size:11px;color:#111;padding:32px}h1{font-size:22px;font-weight:400;margin-bottom:4px}.sub{color:#666;margin-bottom:24px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:28px}.kpi{flex:1;background:#f8f8f8;border-radius:8px;padding:14px}.kpi-v{font-size:18px;font-weight:700;font-family:'Roboto Mono',monospace;margin-bottom:2px}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#888}h2{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid #eee}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f4f4f4;padding:7px 8px;text-align:left;font-size:9px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:7px 8px;border-bottom:1px solid #f0f0f0;font-size:11px}.footer{margin-top:40px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center}@media print{button{display:none}}</style></head><body>
-    <h1>Απογραφή Ακινήτου</h1><div class="sub">${new Date().toLocaleDateString('el-GR')} · ${items.length} αντικείμενα</div>
-    <div class="kpis"><div class="kpi"><div class="kpi-v">${fmtEur(totalCurrent)}</div><div class="kpi-l">Τρέχουσα Αξία</div></div><div class="kpi"><div class="kpi-v">${fmtEur(Math.round(totalCurrent*1.1))}</div><div class="kpi-l">Ασφαλιστέα (+10%)</div></div><div class="kpi"><div class="kpi-v">${fmtEur(totalRepairs)}</div><div class="kpi-l">Επισκευές</div></div>${electricItems.length>0?`<div class="kpi"><div class="kpi-v">${fmtEurC(totalMonthlyCost)}</div><div class="kpi-l">Ρεύμα/Μήνα</div></div>`:''}</div>
-    <h2>Ανά Κατηγορία</h2>${byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0"><span>${cat} (${count})</span><strong>${fmtEur(val)}</strong></div>`).join('')}
+    w.document.write(`<html><head><title>Απογραφή</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial;font-size:11px;color:#111;padding:32px}h1{font-size:22px;font-weight:400;margin-bottom:4px}.sub{color:#666;margin-bottom:24px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:28px}.kpi{flex:1;background:#f8f8f8;border-radius:8px;padding:14px}.kpi-v{font-size:18px;font-weight:700;font-family:'Roboto Mono',monospace;margin-bottom:2px}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#888}h2{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid #eee}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f4f4f4;padding:7px 8px;text-align:left;font-size:9px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:7px 8px;border-bottom:1px solid #f0f0f0;font-size:11px}.footer{margin-top:40px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center}@media print{button{display:none}}</style></head><body>
+    <h1>Απογραφή Ακινήτου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα</div>
+    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalCurrent))}</div><div class="kpi-l">Τρέχουσα Αξία</div></div><div class="kpi"><div class="kpi-v">${esc(fmtEur(Math.round(totalCurrent*1.1)))}</div><div class="kpi-l">Ασφαλιστέα (+10%)</div></div><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalRepairs))}</div><div class="kpi-l">Επισκευές</div></div>${electricItems.length>0?`<div class="kpi"><div class="kpi-v">${esc(fmtEurC(totalMonthlyCost))}</div><div class="kpi-l">Ρεύμα/Μήνα</div></div>`:''}</div>
+    <h2>Ανά Κατηγορία</h2>${byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0"><span>${esc(cat)} (${esc(count)})</span><strong>${esc(fmtEur(val))}</strong></div>`).join('')}
     <h2>Αναλυτική Κατάλογος</h2><table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th>Προέλευση</th><th>Αξία Αγοράς</th><th>Τρέχουσα</th><th>Απόσβεση</th><th>kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>
-    ${items.map(i=>`<tr><td><strong>${i.name}</strong>${i.brand?`<br><small style="color:#888">${i.brand} ${i.model||''}</small>`:''}</td><td>${i.energy_class||'—'}</td><td>${i.condition}</td><td>${provenanceLabel(i.provenance)||'Νέο'}</td><td style="font-family:monospace">${i.purchase_value?fmtEur(i.purchase_value):'—'}</td><td style="font-family:monospace;font-weight:bold">${fmtEur(calcCurrentValue(i))}</td><td>${calcDepreciationPct(i)}%</td><td>${calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—'}</td><td>${i.warranty_expiry?fmtDate(i.warranty_expiry):'—'}</td></tr>`).join('')}
-    </tbody></table><div class="footer">Property OS · ${new Date().toLocaleDateString('el-GR')}</div>
+    ${items.map(i=>`<tr><td><strong>${esc(i.name)}</strong>${i.brand?`<br><small style="color:#888">${esc(i.brand)} ${esc(i.model||'')}</small>`:''}</td><td>${esc(i.energy_class||'—')}</td><td>${esc(i.condition)}</td><td>${esc(provenanceLabel(i.provenance)||'Νέο')}</td><td style="font-family:monospace">${esc(i.purchase_value?fmtEur(i.purchase_value):'—')}</td><td style="font-family:monospace;font-weight:bold">${esc(fmtEur(calcCurrentValue(i)))}</td><td>${esc(calcDepreciationPct(i))}%</td><td>${esc(calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—')}</td><td>${esc(i.warranty_expiry?fmtDate(i.warranty_expiry):'—')}</td></tr>`).join('')}
+    </tbody></table><div class="footer">Property OS · ${esc(new Date().toLocaleDateString('el-GR'))}</div>
     <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
     w.document.close()
   }
@@ -1373,19 +1375,19 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
             <div style={{textAlign:'center',marginBottom:14}}>
-              <p style={{fontSize:15,fontWeight:500,fontFamily:"'Google Sans',sans-serif",color:'var(--text-primary)',marginBottom:6}}>{title}</p>
+              <p style={{fontSize:15,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:6}}>{title}</p>
               <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Roboto',sans-serif"}}>{desc}</p>
             </div>
             <div style={{padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:8,fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Roboto',sans-serif",marginBottom:14}}>
               <p>{items.length} αντικείμενα · <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--positive)'}}>{fmtEur(totalCurrent)}</span></p>
               {electricItems.length>0&&<p>Ρεύμα: <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--warning)'}}>{fmtEurC(totalMonthlyCost)}</span>/μήνα</p>}
             </div>
-            <button onClick={fn} style={{width:'100%',padding:'0 0',height:40,borderRadius:20,background:primary?'var(--accent)':'var(--bg-elevated)',border:primary?'none':'1px solid var(--border-default)',color:primary?'var(--accent-text)':'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>{title}</button>
+            <button onClick={fn} style={{width:'100%',padding:'0 0',height:40,borderRadius:20,background:primary?'var(--accent)':'var(--bg-elevated)',border:primary?'none':'1px solid var(--border-default)',color:primary?'var(--accent-text)':'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>{title}</button>
           </div>
         ))}
       </div>
       <div style={{padding:'14px 16px',background:'var(--info-dim)',borderRadius:12,border:'1px solid var(--info)'}}>
-        <p style={{fontSize:12,color:'var(--info)',fontWeight:500,fontFamily:"'Google Sans',sans-serif",marginBottom:4}}>Ασφάλιση Περιεχομένου</p>
+        <p style={{fontSize:12,color:'var(--info)',fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:4}}>Ασφάλιση Περιεχομένου</p>
         <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Roboto',sans-serif"}}>Ασφαλιστέα αξία: <strong style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--info)'}}>{fmtEur(Math.round(totalCurrent*1.1))}</strong> (τρέχουσα +10% buffer για αντικατάσταση).</p>
       </div>
     </div>
@@ -1483,9 +1485,9 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
         title="Απογραφή"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<>
-          <button onClick={()=>setShowBulkImport(true)} style={{padding:'0 12px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily:"'Google Sans',sans-serif",cursor:'pointer'}}>Μαζική Εισαγωγή</button>
+          <button onClick={()=>setShowBulkImport(true)} style={{padding:'0 12px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Μαζική Εισαγωγή</button>
           <div style={{display:'flex',alignItems:'center',background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:8,overflow:'hidden'}}>
-            <span style={{padding:'0 10px',fontSize:10,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:"'Google Sans',sans-serif"}}>kWh €</span>
+            <span style={{padding:'0 10px',fontSize:10,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>kWh €</span>
             <input type="text" inputMode="decimal" value={kwInput}
               onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
               onFocus={e=>{if(kwInput==='0')setKwInput('');e.target.select()}}
@@ -1517,7 +1519,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
         {TABS.map(tab=>(
           <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
-            style={{padding:'12px 18px',fontSize:13,fontWeight:activeTab===tab.key?500:400,fontFamily:"'Google Sans',sans-serif",color:activeTab===tab.key?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${activeTab===tab.key?'var(--accent)':'transparent'}`,borderLeft:'none',borderRight:'none',borderTop:'none',background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,marginBottom:-1}}
+            style={{padding:'12px 18px',fontSize:13,fontWeight:activeTab===tab.key?500:400,fontFamily:"'Inter',sans-serif",color:activeTab===tab.key?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${activeTab===tab.key?'var(--accent)':'transparent'}`,borderLeft:'none',borderRight:'none',borderTop:'none',background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',display:'flex',alignItems:'center',gap:6,marginBottom:-1}}
             onMouseEnter={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-primary)'}}
             onMouseLeave={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-secondary)'}}
           >

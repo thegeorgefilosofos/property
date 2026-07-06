@@ -17,6 +17,7 @@ interface ReportProps {
 
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 const fp = (n: number, d = 2) => `${n.toFixed(d)}%`;
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
 
 export default function RentROIReport({
@@ -39,7 +40,7 @@ export default function RentROIReport({
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Property OS — ${propertyName}</title>
+        <title>Property OS — ${esc(propertyName)}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
         <style>
@@ -63,7 +64,7 @@ export default function RentROIReport({
             border-bottom: 2px solid #1a73e8;
           }
           .logo {
-            font-family: 'Google Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 20px;
             font-weight: 700;
             color: #1a73e8;
@@ -71,12 +72,12 @@ export default function RentROIReport({
           }
           .logo span { color: var(--accent); }
           .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Roboto', sans-serif; }
-          .meta-title { font-family: 'Google Sans', sans-serif; font-weight: 500; color: #1a1a2e; font-size: 13px; margin-bottom: 2px; }
+          .meta-title { font-family: 'Inter', sans-serif; font-weight: 500; color: #1a1a2e; font-size: 13px; margin-bottom: 2px; }
 
           /* Section */
           .section { margin-bottom: 20px; }
           .section-title {
-            font-family: 'Google Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 10px;
             font-weight: 500;
             text-transform: uppercase;
@@ -115,7 +116,7 @@ export default function RentROIReport({
             margin-bottom: 3px;
           }
           .kpi-label {
-            font-family: 'Google Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 9px;
             font-weight: 500;
             text-transform: uppercase;
@@ -202,7 +203,7 @@ export default function RentROIReport({
             border-left: 3px solid #137333;
           }
           .box-title {
-            font-family: 'Google Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 11px;
             font-weight: 500;
             margin-bottom: 8px;
@@ -271,10 +272,10 @@ export default function RentROIReport({
               <div style="font-size:10px;color:#5f6368;margin-top:2px;font-family:'Roboto',sans-serif;">Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
             </div>
             <div class="meta">
-              <div class="meta-title">${propertyName}</div>
-              ${propertyAddress ? `<div>${propertyAddress}</div>` : ''}
-              <div>${propertyType}</div>
-              <div style="margin-top:4px;">${today}</div>
+              <div class="meta-title">${esc(propertyName)}</div>
+              ${propertyAddress ? `<div>${esc(propertyAddress)}</div>` : ''}
+              <div>${esc(propertyType)}</div>
+              <div style="margin-top:4px;">${esc(today)}</div>
             </div>
           </div>
 
@@ -283,25 +284,25 @@ export default function RentROIReport({
             <div class="section-title">Συνολική Αξιολόγηση</div>
             <div class="score-card">
               <div class="score-block">
-                <div class="score-big ${calc.totalScore >= 70 ? 'positive' : calc.totalScore >= 50 ? 'warning' : 'negative'}">${calc.totalScore}</div>
-                <div style="font-family:'Google Sans',sans-serif;font-size:11px;font-weight:500;color:${calc.totalScore >= 70 ? '#137333' : calc.totalScore >= 50 ? '#b45309' : '#c5221f'}">${calc.scoreLabel}</div>
-                <div style="font-size:9px;color:#9aa0a6;font-family:'Google Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">βαθμολογία / 100</div>
+                <div class="score-big ${calc.totalScore >= 70 ? 'positive' : calc.totalScore >= 50 ? 'warning' : 'negative'}">${esc(calc.totalScore)}</div>
+                <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:${calc.totalScore >= 70 ? '#137333' : calc.totalScore >= 50 ? '#b45309' : '#c5221f'}">${esc(calc.scoreLabel)}</div>
+                <div style="font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px">βαθμολογία / 100</div>
               </div>
               <div class="kpi-grid" style="margin-bottom:0;">
                 <div class="kpi">
-                  <div class="kpi-value ${calc.grossYield >= 5 ? 'positive' : calc.grossYield >= 3 ? 'warning' : 'negative'}">${fp(calc.grossYield)}</div>
+                  <div class="kpi-value ${calc.grossYield >= 5 ? 'positive' : calc.grossYield >= 3 ? 'warning' : 'negative'}">${esc(fp(calc.grossYield))}</div>
                   <div class="kpi-label">Μεικτή Απόδοση</div>
                 </div>
                 <div class="kpi">
-                  <div class="kpi-value ${calc.netYield >= 3 ? 'positive' : calc.netYield >= 1.5 ? 'warning' : 'negative'}">${fp(calc.netYield)}</div>
+                  <div class="kpi-value ${calc.netYield >= 3 ? 'positive' : calc.netYield >= 1.5 ? 'warning' : 'negative'}">${esc(fp(calc.netYield))}</div>
                   <div class="kpi-label">Καθαρή Απόδοση</div>
                 </div>
                 <div class="kpi">
-                  <div class="kpi-value accent">${fp(calc.capRate)}</div>
+                  <div class="kpi-value accent">${esc(fp(calc.capRate))}</div>
                   <div class="kpi-label">Κεφαλαιακή Απόδοση</div>
                 </div>
                 <div class="kpi">
-                  <div class="kpi-value ${calc.afterTax > 0 ? 'positive' : 'negative'}">${fe(calc.afterTax / 12)}</div>
+                  <div class="kpi-value ${calc.afterTax > 0 ? 'positive' : 'negative'}">${esc(fe(calc.afterTax / 12))}</div>
                   <div class="kpi-label">Καθαρό / Μήνα</div>
                 </div>
               </div>
@@ -313,23 +314,23 @@ export default function RentROIReport({
             <div class="section-title">Κατάσταση Αποτελεσμάτων Χρήσης (P&L)</div>
             <div class="two-col">
               <div>
-                <div class="row"><span class="row-label">Ακαθάριστο Ενοίκιο / έτος</span><span class="row-value positive">${fe(calc.annual)}</span></div>
-                ${calc.reduction > 0 ? `<div class="row"><span class="row-label">Έκπτωση Ηλεκτρονικής Πληρωμής</span><span class="row-value accent">-${fe(calc.reduction)}</span></div>` : ''}
-                <div class="row"><span class="row-label">Δαπάνες Ακινήτου</span><span class="row-value warning">-${fe(calc.totalExp)}</span></div>
-                <div class="row"><span class="row-label">Καθαρό Εισόδημα (προ φόρου)</span><span class="row-value accent bold">${fe(calc.netIncome)}</span></div>
-                <div class="row"><span class="row-label">Φόρος Εισοδήματος</span><span class="row-value negative">-${fe(calc.tax)}</span></div>
-                <div class="row"><span class="row-label">Καθαρό Εισόδημα (μετά φόρου)</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${fe(calc.afterTax)}</span></div>
-                <div class="row"><span class="row-label">Καθαρό / Μήνα</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${fe(calc.afterTax / 12)}</span></div>
+                <div class="row"><span class="row-label">Ακαθάριστο Ενοίκιο / έτος</span><span class="row-value positive">${esc(fe(calc.annual))}</span></div>
+                ${calc.reduction > 0 ? `<div class="row"><span class="row-label">Έκπτωση Ηλεκτρονικής Πληρωμής</span><span class="row-value accent">-${esc(fe(calc.reduction))}</span></div>` : ''}
+                <div class="row"><span class="row-label">Δαπάνες Ακινήτου</span><span class="row-value warning">-${esc(fe(calc.totalExp))}</span></div>
+                <div class="row"><span class="row-label">Καθαρό Εισόδημα (προ φόρου)</span><span class="row-value accent bold">${esc(fe(calc.netIncome))}</span></div>
+                <div class="row"><span class="row-label">Φόρος Εισοδήματος</span><span class="row-value negative">-${esc(fe(calc.tax))}</span></div>
+                <div class="row"><span class="row-label">Καθαρό Εισόδημα (μετά φόρου)</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax))}</span></div>
+                <div class="row"><span class="row-label">Καθαρό / Μήνα</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax / 12))}</span></div>
               </div>
               <div>
                 <div class="kpi-grid-3" style="margin-bottom:10px;">
-                  <div class="kpi"><div class="kpi-value accent">${fp(calc.grossYield)}</div><div class="kpi-label">Gross Yield</div></div>
-                  <div class="kpi"><div class="kpi-value positive">${fp(calc.netYield)}</div><div class="kpi-label">Net Yield</div></div>
-                  <div class="kpi"><div class="kpi-value gold">${calc.payback > 0 ? calc.payback.toFixed(1) + ' χρ' : '—'}</div><div class="kpi-label">Απόσβεση</div></div>
+                  <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.grossYield))}</div><div class="kpi-label">Gross Yield</div></div>
+                  <div class="kpi"><div class="kpi-value positive">${esc(fp(calc.netYield))}</div><div class="kpi-label">Net Yield</div></div>
+                  <div class="kpi"><div class="kpi-value gold">${esc(calc.payback > 0 ? calc.payback.toFixed(1) + ' χρ' : '—')}</div><div class="kpi-label">Απόσβεση</div></div>
                 </div>
-                <div class="kpi"><div class="kpi-value accent">${fp(calc.trueYield)}</div><div class="kpi-label">Πραγματική Απόδοση (με κόστη απόκτησης)</div></div>
-                <div class="info-box">Πραγματικός Φ.Σ.: ${fp(calc.effectiveRate)} &nbsp;|&nbsp; Breakeven: ${fe(calc.breakeven)}/μήνα</div>
-                ${electronic && calc.electronicSaving > 0 ? `<div class="success-box">Εξοικονόμηση ηλεκτρονικής πληρωμής: <strong>${fe(calc.electronicSaving)}</strong>/έτος</div>` : ''}
+                <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.trueYield))}</div><div class="kpi-label">Πραγματική Απόδοση (με κόστη απόκτησης)</div></div>
+                <div class="info-box">Πραγματικός Φ.Σ.: ${esc(fp(calc.effectiveRate))} &nbsp;|&nbsp; Breakeven: ${esc(fe(calc.breakeven))}/μήνα</div>
+                ${electronic && calc.electronicSaving > 0 ? `<div class="success-box">Εξοικονόμηση ηλεκτρονικής πληρωμής: <strong>${esc(fe(calc.electronicSaving))}</strong>/έτος</div>` : ''}
               </div>
             </div>
           </div>
@@ -337,27 +338,27 @@ export default function RentROIReport({
           <!-- Benchmarks -->
           ${bench ? `
           <div class="section">
-            <div class="section-title">Σύγκριση με Αγορά — ${bench.market_label}</div>
+            <div class="section-title">Σύγκριση με Αγορά — ${esc(bench.market_label)}</div>
             <div class="kpi-grid">
               <div class="kpi">
-                <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${fp(calc.grossYield)}</div>
+                <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${esc(fp(calc.grossYield))}</div>
                 <div class="kpi-label">Gross Yield σου</div>
-                <div class="kpi-sub">Benchmark: ${bench.market_gross}%</div>
+                <div class="kpi-sub">Benchmark: ${esc(bench.market_gross)}%</div>
               </div>
               <div class="kpi">
-                <div class="kpi-value ${calc.netYield >= parseFloat(bench.target_net) ? 'positive' : 'warning'}">${fp(calc.netYield)}</div>
+                <div class="kpi-value ${calc.netYield >= parseFloat(bench.target_net) ? 'positive' : 'warning'}">${esc(fp(calc.netYield))}</div>
                 <div class="kpi-label">Net Yield σου</div>
-                <div class="kpi-sub">Στόχος: >${bench.target_net}%</div>
+                <div class="kpi-sub">Στόχος: >${esc(bench.target_net)}%</div>
               </div>
               <div class="kpi">
-                <div class="kpi-value ${calc.netYield > parseFloat(bench.euribor) ? 'positive' : 'negative'}">+${fp(Math.max(calc.netYield - parseFloat(bench.euribor), 0))}</div>
+                <div class="kpi-value ${calc.netYield > parseFloat(bench.euribor) ? 'positive' : 'negative'}">+${esc(fp(Math.max(calc.netYield - parseFloat(bench.euribor), 0)))}</div>
                 <div class="kpi-label">vs EURIBOR</div>
-                <div class="kpi-sub">EURIBOR ${bench.euribor}%</div>
+                <div class="kpi-sub">EURIBOR ${esc(bench.euribor)}%</div>
               </div>
               <div class="kpi">
                 <div class="kpi-value ${calc.netYield >= parseFloat(bench.etf_return) ? 'positive' : 'negative'}">${calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά ETF' : 'Κάτω ETF'}</div>
                 <div class="kpi-label">vs ETF</div>
-                <div class="kpi-sub">Benchmark ${bench.etf_return}%/έτος</div>
+                <div class="kpi-sub">Benchmark ${esc(bench.etf_return)}%/έτος</div>
               </div>
             </div>
           </div>` : ''}
@@ -368,19 +369,19 @@ export default function RentROIReport({
             <div class="section-title">Ανάλυση Δανείου</div>
             <div class="kpi-grid">
               <div class="kpi">
-                <div class="kpi-value ${calc.DSCR >= 1.25 ? 'positive' : calc.DSCR >= 1 ? 'warning' : 'negative'}">${calc.DSCR.toFixed(2)}x</div>
+                <div class="kpi-value ${calc.DSCR >= 1.25 ? 'positive' : calc.DSCR >= 1 ? 'warning' : 'negative'}">${esc(calc.DSCR.toFixed(2))}x</div>
                 <div class="kpi-label">DSCR — Κάλυψη Δανείου</div>
               </div>
               <div class="kpi">
-                <div class="kpi-value ${calc.LTV <= 60 ? 'positive' : calc.LTV <= 80 ? 'warning' : 'negative'}">${fp(calc.LTV)}</div>
+                <div class="kpi-value ${calc.LTV <= 60 ? 'positive' : calc.LTV <= 80 ? 'warning' : 'negative'}">${esc(fp(calc.LTV))}</div>
                 <div class="kpi-label">LTV — Δάνειο / Αξία</div>
               </div>
               <div class="kpi">
-                <div class="kpi-value positive">${fe(calc.equity)}</div>
+                <div class="kpi-value positive">${esc(fe(calc.equity))}</div>
                 <div class="kpi-label">Ίδια Κεφάλαια (Equity)</div>
               </div>
               <div class="kpi">
-                <div class="kpi-value ${calc.cfDebt > 0 ? 'positive' : 'negative'}">${fe(calc.cfDebt / 12)}/μήνα</div>
+                <div class="kpi-value ${calc.cfDebt > 0 ? 'positive' : 'negative'}">${esc(fe(calc.cfDebt / 12))}/μήνα</div>
                 <div class="kpi-label">Ταμειακή Ροή μετά Δάνειο</div>
               </div>
             </div>
@@ -393,34 +394,34 @@ export default function RentROIReport({
             <div class="two-col" style="margin-bottom:12px;">
               <div class="scenario-box sell-box">
                 <div class="box-title negative">Πώληση Τώρα</div>
-                <div class="row"><span class="row-label">Αξία Πώλησης</span><span class="row-value">${fe(calc.myVal)}</span></div>
-                <div class="row"><span class="row-label">Μετά έξοδα</span><span class="row-value warning bold">${fe(scen.sellNow)}</span></div>
+                <div class="row"><span class="row-label">Αξία Πώλησης</span><span class="row-value">${esc(fe(calc.myVal))}</span></div>
+                <div class="row"><span class="row-label">Μετά έξοδα</span><span class="row-value warning bold">${esc(fe(scen.sellNow))}</span></div>
               </div>
               <div class="scenario-box hold-box">
                 <div class="box-title positive">Κράτα και Νοίκιαζε</div>
-                <div class="row"><span class="row-label">Σύνολο Ενοικίων</span><span class="row-value positive">${fe(scen.rentTotal)}</span></div>
-                <div class="row"><span class="row-label">Αξία σε χρόνια</span><span class="row-value positive">${fe(scen.futVal)}</span></div>
-                <div class="row"><span class="row-label">Συνολική Απόδοση</span><span class="row-value positive bold">${fe(scen.total)}</span></div>
+                <div class="row"><span class="row-label">Σύνολο Ενοικίων</span><span class="row-value positive">${esc(fe(scen.rentTotal))}</span></div>
+                <div class="row"><span class="row-label">Αξία σε χρόνια</span><span class="row-value positive">${esc(fe(scen.futVal))}</span></div>
+                <div class="row"><span class="row-label">Συνολική Απόδοση</span><span class="row-value positive bold">${esc(fe(scen.total))}</span></div>
               </div>
             </div>
             <div class="kpi-grid">
-              <div class="kpi"><div class="kpi-value accent">${fp(scen.cagr)}</div><div class="kpi-label">CAGR Αξίας</div></div>
-              <div class="kpi"><div class="kpi-value gold">${fp(scen.irr)}</div><div class="kpi-label">IRR</div></div>
+              <div class="kpi"><div class="kpi-value accent">${esc(fp(scen.cagr))}</div><div class="kpi-label">CAGR Αξίας</div></div>
+              <div class="kpi"><div class="kpi-value gold">${esc(fp(scen.irr))}</div><div class="kpi-label">IRR</div></div>
               <div class="kpi">
-                <div class="kpi-value ${scen.mcPositive >= 70 ? 'positive' : scen.mcPositive >= 50 ? 'warning' : 'negative'}">${scen.mcPositive.toFixed(0)}%</div>
+                <div class="kpi-value ${scen.mcPositive >= 70 ? 'positive' : scen.mcPositive >= 50 ? 'warning' : 'negative'}">${esc(scen.mcPositive.toFixed(0))}%</div>
                 <div class="kpi-label">Πιθανότητα Κέρδους (Monte Carlo)</div>
               </div>
-              <div class="kpi"><div class="kpi-value positive">${fe(scen.mcP50)}</div><div class="kpi-label">Πιθανότερη Απόδοση (P50)</div></div>
+              <div class="kpi"><div class="kpi-value positive">${esc(fe(scen.mcP50))}</div><div class="kpi-label">Πιθανότερη Απόδοση (P50)</div></div>
             </div>
             <div class="bar-track">
-              <div class="bar-fill" style="width:${scen.mcPositive}%;background:${scen.mcPositive >= 70 ? '#137333' : scen.mcPositive >= 50 ? '#b45309' : '#c5221f'};"></div>
+              <div class="bar-fill" style="width:${esc(scen.mcPositive)}%;background:${scen.mcPositive >= 70 ? '#137333' : scen.mcPositive >= 50 ? '#b45309' : '#c5221f'};"></div>
             </div>
           </div>` : ''}
 
           <!-- Footer -->
           <div class="footer">
             <div>Property OS — Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
-            <div>${today}</div>
+            <div>${esc(today)}</div>
           </div>
           <div class="disclaimer">
             Το παρόν έγγραφο αποτελεί εκτίμηση και όχι επίσημη φορολογική ή επενδυτική συμβουλή. Συμβουλευτείτε λογιστή ή χρηματοοικονομικό σύμβουλο.
@@ -454,7 +455,7 @@ export default function RentROIReport({
         fontSize: 12,
         fontWeight: 500,
         color: 'var(--text-secondary)',
-        fontFamily: "'Google Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
         opacity: printing ? 0.7 : 1,
         transition: 'all 0.2s',
       }}

@@ -84,6 +84,12 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
   const processFile = useCallback(async (file: File) => {
     setError('');
+    // Όριο μεγέθους: ένα κατάστημα δεν παράγει τεράστια αρχεία κινήσεων· φράζει
+    // ταυτόχρονα και παθολογικά/κακόβουλα spreadsheets που θα βάραιναν τον parser.
+    if (file.size > 8 * 1024 * 1024) {
+      setError('Το αρχείο είναι πολύ μεγάλο (όριο 8MB). Εξήγαγε ξανά τις κινήσεις σε CSV/Excel.');
+      return;
+    }
     const ext  = file.name.split('.').pop()?.toLowerCase() ?? '';
     const name = file.name.toLowerCase();
 
