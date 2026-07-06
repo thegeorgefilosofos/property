@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
 import {
   type AssistantIdentity, type Gender, DEFAULT_IDENTITY, GENDER_OPTIONS, NAME_SUGGESTIONS,
-  NAV_MAP, buildSystemPrompt, parseAction, loadIdentity, saveIdentity,
+  NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
   loadHistory, saveHistory, clearHistory,
 } from './assistantPersona';
 
@@ -156,10 +156,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
 
   const speak = (text: string, after?: () => void) => {
-    if (!supportsTTS || !text) { after?.(); return; }
+    const spoken = cleanForSpeech(text);
+    if (!supportsTTS || !spoken) { after?.(); return; }
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new SpeechSynthesisUtterance(spoken);
       const v = pickVoice(); if (v) u.voice = v;
       u.lang = 'el-GR'; u.rate = 1.0; u.pitch = identity.gender === 'female' ? 1.06 : identity.gender === 'male' ? 0.94 : 1.0;
       u.onstart = () => setSpeaking(true);

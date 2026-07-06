@@ -99,11 +99,33 @@ ${allPropsContext}` : ''}
 ΥΦΟΣ: Ελληνικά, ζεστά, σύντομα (2-6 προτάσεις συνήθως), χωρίς συντομογραφίες, χωρίς παύλες «—», χωρίς αγγλισμούς όπου υπάρχει ελληνική λέξη. Ποτέ μη δίνεις την εντύπωση αναλγησίας ή ότι είσαι «απλό bot». Είσαι ${name}, και είσαι εδώ για τον άνθρωπο απέναντι.`;
 }
 
+// Καθαρισμός κειμένου για ΦΩΝΗ: η εκφώνηση πρέπει να ακούγεται σαν φυσικά ελληνικά,
+// όχι να διαβάζει «αστεράκια», σύμβολα ή βέλη. Αφαιρεί markdown/bullets/βέλη/οδηγίες
+// και μετατρέπει τις αλλαγές γραμμής σε παύσεις.
+export function cleanForSpeech(t: string): string {
+  return (t || '')
+    .replace(/\[\[[^\]]*\]\]/g, ' ')                    // υπολείμματα οδηγιών
+    .replace(/```[\s\S]*?```/g, ' ')                     // code blocks
+    .replace(/\*\*([^*]+)\*\*/g, '$1')                   // bold
+    .replace(/\*([^*]+)\*/g, '$1')                        // italic
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')                          // inline code
+    .replace(/^[ \t]*[•\-●▪]\s+/gm, '')                  // bullets αρχής γραμμής
+    .replace(/\s*\n\s*/g, '. ')                           // νέα γραμμή → παύση
+    .replace(/[*`_#>|~•●▪→←↑↓↔➜»«▸▾▲►◄✓✗✕✎☑☐]/g, ' ')   // υπόλοιπα σύμβολα/βέλη
+    .replace(/\.{2,}/g, '.')                              // πολλαπλές τελείες
+    .replace(/\s+([,.;!·?])/g, '$1')                      // κενό πριν στίξη
+    .replace(/([.;!·?])(?=\S)/g, '$1 ')                   // κενό μετά στίξη
+    .replace(/\s{2,}/g, ' ')                              // πολλαπλά κενά
+    .trim();
+}
+
 // Ανάλυση απάντησης: αφαίρεσε την οδηγία [[go:x]]/[[scan]] και επίστρεψέ την χωριστά.
 export function parseAction(text: string): { clean: string; action?: { type: 'go'; tab: string } | { type: 'scan' } } {
   const go = text.match(/\[\[go:([a-z]+)\]\]/i);
   const scan = /\[\[scan\]\]/i.test(text);
-  const clean = text.replace(/\[\[go:[a-z]+\]\]/ig, '').replace(/\[\[scan\]\]/ig, '').trim();
+  // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
+  const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();
   if (go && NAV_MAP.some(n => n.id === go[1].toLowerCase())) return { clean, action: { type: 'go', tab: go[1].toLowerCase() } };
   if (scan) return { clean, action: { type: 'scan' } };
   return { clean };
