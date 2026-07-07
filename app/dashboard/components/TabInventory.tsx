@@ -155,11 +155,11 @@ const labelStyle: React.CSSProperties = {
   fontSize:11,
   color:'var(--text-secondary)',
   textTransform:'uppercase' as const,
-  letterSpacing:'0.5px',
-  fontWeight:500,
+  letterSpacing:'0.06em',
+  fontWeight:600,
   fontFamily:"'Inter', sans-serif",
   display:'block',
-  marginBottom:6,
+  marginBottom:7,
 }
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <SecHdr label={label} right={right}/>
@@ -244,7 +244,7 @@ function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
       </div>
       {showCustom&&(
         <input value={value} onChange={e=>onChange(e.target.value)} placeholder="Πληκτρολογήστε δωμάτιο..." onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
-          style={{background:'var(--bg-surface)',border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`,borderRadius:4,padding:'0 16px',height:40,color:'var(--text-primary)',fontSize:14,outline:'none',fontFamily:"'Inter',sans-serif",width:'100%',boxSizing:'border-box'}}
+          style={{background:'var(--bg-surface)',border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`,boxShadow:focused?'0 0 0 3px var(--accent-dim)':'none',borderRadius:10,padding:'0 14px',height:42,color:'var(--text-primary)',fontSize:14,letterSpacing:0,outline:'none',fontFamily:"'Inter',sans-serif",width:'100%',boxSizing:'border-box'}}
         />
       )}
     </div>
@@ -1486,7 +1486,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<>
           <button onClick={()=>setShowBulkImport(true)} style={{padding:'0 12px',height:36,borderRadius:18,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>Μαζική Εισαγωγή</button>
-          <div style={{display:'flex',alignItems:'center',background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:8,overflow:'hidden'}}>
+          <div style={{display:'flex',alignItems:'center',background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:10,overflow:'hidden'}}>
             <span style={{padding:'0 10px',fontSize:10,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>kWh €</span>
             <input type="text" inputMode="decimal" value={kwInput}
               onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}

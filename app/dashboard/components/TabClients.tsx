@@ -134,8 +134,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     downloadCsv(`pelatologio_${todayStr()}`, ['Τύπος', 'Ονοματεπώνυμο', 'ΑΦΜ', 'Τηλέφωνο', 'Email', 'Στάδιο', 'Αξία ευκαιρίας', 'Επόμενη ενέργεια', 'Ημερομηνία', 'Ακίνητα'], rows);
   };
 
-  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
-  const lbl: React.CSSProperties = { fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 6, fontFamily: T.font.sans };
+  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, height: 42, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
+  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
   const chip = (active: boolean): React.CSSProperties => ({ padding: '7px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
 
   const overdue = (c: Client) => c.next_date != null && c.stage !== 'closed' && c.next_date <= todayStr();
@@ -305,7 +305,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={lbl}>Σημειώσεις</label>
-                <textarea style={{ ...inp, resize: 'vertical', minHeight: 70 }} value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
+                <textarea style={{ ...inp, height: 'auto', resize: 'vertical', minHeight: 70 }} value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>

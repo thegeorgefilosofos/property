@@ -20,7 +20,7 @@ import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { reportAccent, brandName, brandContactLine, useReportBranding } from '@/lib/reportBranding';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
-const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
+const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
@@ -336,7 +336,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const isExpired=daysExp!==null&&daysExp<0;
   const isExpiring=daysExp!==null&&daysExp>=0&&daysExp<=60;
 
-  const selectStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:13,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
+  const selectStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
 
   const genLetter=()=>{
     const accent = reportAccent(branding);
@@ -439,7 +439,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό Αναπροσαρμογής (%)</div>
               <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="για παράδειγμα 3.5" step="0.1"
-                style={{ ...selectStyle, border:'1px solid var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:16 }}/>
+                style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
             </div>
           )}
 
@@ -546,7 +546,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
     else if(d<=60&&d>=31) reminders.push({label:`Λήξη σε ${d} ημέρες, ενημέρωσε τον ενοικιαστή`,urgent:false});
     else if(d<=90&&d>=61) reminders.push({label:`Λήξη σε ${d} ημέρες, ξεκίνα συζήτηση ανανέωσης`,urgent:false});
   }
-  const inputStyle:React.CSSProperties={width:'100%',height:40,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:13,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
+  const inputStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
 
   return (
     <div>
@@ -604,7 +604,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
             <div style={{ marginBottom:14 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Σύνοψη Επικοινωνίας *</div>
               <textarea value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="Περιγραφή επικοινωνίας..." rows={3}
-                style={{ width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'12px 14px', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.sans, outline:'none', boxSizing:'border-box' as const, resize:'vertical' as const, lineHeight:1.6 }}/>
+                style={{ width:'100%', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, letterSpacing:0, fontFamily:T.font.sans, outline:'none', boxSizing:'border-box' as const, resize:'vertical' as const, lineHeight:1.6 }}/>
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setShowAdd(false)}>Ακύρωση</button>
@@ -660,7 +660,7 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
   const avgMarket=comparables.length?comparables.reduce((a,c)=>a+c.rent,0)/comparables.length:0;
   const rentDiff=avgMarket>0?rent-avgMarket:0;
   const rentDiffPct=avgMarket>0?(rentDiff/avgMarket)*100:0;
-  const inputStyle:React.CSSProperties={width:'100%',height:40,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:13,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
+  const inputStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
 
   return (
     <div>

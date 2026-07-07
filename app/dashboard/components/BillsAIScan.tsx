@@ -73,16 +73,16 @@ const Field = ({
   invalid?: boolean;
 }) => (
   <div>
-    <label style={{ fontSize: 9, fontWeight: 700, color: invalid ? 'var(--warning)' : 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
+    <label style={{ fontSize: 11, fontWeight: 600, color: invalid ? 'var(--warning)' : 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 7, fontFamily: T.font.sans }}>
       {label}{invalid ? ' • λείπει' : ''}
     </label>
     <input
       type={type}
       value={String(value || '')}
       onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
-      onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-      onBlur={e => (e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)')}
+      style={{ width: '100%', height: 42, background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s, box-shadow 0.15s' }}
+      onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
+      onBlur={e => { e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)'; e.target.style.boxShadow = 'none'; }}
     />
   </div>
 );
@@ -438,11 +438,11 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
                 <Field label="Πάροχος" value={edited.provider} invalid={!edited.provider || !String(edited.provider).trim()} onChange={v => setEdited(p => ({ ...p!, provider: v }))}/>
                 <div>
-                  <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>Κατηγορία</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 7, fontFamily: T.font.sans }}>Κατηγορία</label>
                   <select
                     value={edited.category}
                     onChange={e => setEdited(p => ({ ...p!, category: e.target.value }))}
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: T.font.sans }}
+                    style={{ width: '100%', height: 42, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, outline: 'none', fontFamily: T.font.sans }}
                   >
                     {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
