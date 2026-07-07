@@ -543,10 +543,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
       + (parseFloat(airbnb.balcony_plants) || 0) + (parseFloat(airbnb.damage_reserve) || 200)
       + (parseFloat(airbnb.extra_services) || 0);
     const net = rev - pCost - cCost - expenses - extras;
-    const avgOcc = nights / (12 * 30) * 100;
+    // Φόρος εισοδήματος στα ακαθάριστα έσοδα βραχυχρόνιας (ίδια κλίμακα, τεκμαρτή 5%),
+    // ώστε η σύγκριση με τη μακροχρόνια να γίνεται ΜΕΤΑ ΦΟΡΟΥ και στις δύο.
+    const abbTax = calcRentTax(Math.max(0, rev), true, 0, 0).tax;
+    const abbAfterTax = net - abbTax;
+    const avgOcc = nights / 365 * 100;
     const revPAR = rev / 365;
     const adr = nights > 0 ? rev / nights : 0;
-    return { rev, nights, pCost, cCost, net, avgOcc, revPAR, adr, extras, bookings, diff: net - calc.afterTax };
+    return { rev, nights, pCost, cCost, net, abbTax, abbAfterTax, avgOcc, revPAR, adr, extras, bookings, diff: abbAfterTax - calc.afterTax };
   }, [airbnb, expenses, calc.afterTax]);
 
   // ── Scenario calculation ───────────────────────────────────────────────────
@@ -1143,7 +1147,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <StatRow label={`Κόστος Καθαρισμών (${abb.bookings} bookings)`} value={`-${fe(abb.cCost)}`} color="var(--warning)" />
             <StatRow label="Δαπάνες Ακινήτου" value={`-${fe(expenses)}`} color="var(--warning)" />
             <StatRow label="Επιπλέον Παροχές και Φθορές" value={`-${fe(abb.extras)}`} color="var(--warning)" />
-            <StatRow label="Καθαρό Εισόδημα Airbnb" value={fe(abb.net)} color={abb.net > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
+            <StatRow label="Καθαρό προ φόρου" value={fe(abb.net)} color={abb.net > 0 ? 'var(--positive)' : 'var(--negative)'} />
+            <StatRow label="Φόρος εισοδήματος" value={`-${fe(abb.abbTax)}`} color="var(--negative)" />
+            <StatRow label="Καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color={abb.abbAfterTax > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
             <StatRow label="Μέση Ετήσια Πληρότητα" value={fp(abb.avgOcc)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
@@ -1158,8 +1164,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               </div>
             </div>
             <div style={g2}>
-              <KPICard label="Airbnb Καθαρό / έτος" value={fe(abb.net)} color="var(--positive)" />
-              <KPICard label="Μακροχρόνια Καθαρό / έτος" value={fe(calc.afterTax)} color="var(--accent)" />
+              <KPICard label="Airbnb καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color="var(--positive)" />
+              <KPICard label="Μακροχρόνια μετά φόρου" value={fe(calc.afterTax)} color="var(--accent)" />
             </div>
             <InfoBanner type="warning">
               Airbnb: Αυξημένος χρόνος διαχείρισης, φθορές, ασταθές εισόδημα, υποχρέωση εγγραφής άνω των 3 ακινήτων. Η μακροχρόνια μίσθωση προσφέρει σταθερότητα.
