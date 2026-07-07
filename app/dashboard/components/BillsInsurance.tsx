@@ -574,9 +574,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       {/* ── Auto-detected property type banner ──────────────────────────── */}
       {detectedPropertyType && (
         <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--info)' }}>{detectedPropertyType}</strong>, εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
+            Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--accent)' }}>{detectedPropertyType}</strong>, εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
           </span>
         </div>
       )}
@@ -599,8 +599,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
       {/* ── Renewal alerts ──────────────────────────────────────────────── */}
       {renewalAlerts.map((a, i) => (
-        <div key={i} style={{ background: a.type === 'danger' ? 'rgba(197,34,31,0.08)' : a.type === 'warning' ? 'rgba(242,153,0,0.08)' : 'rgba(26,115,232,0.06)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--info)', flexShrink: 0 }}/>
+        <div key={i} style={{ background: a.type === 'danger' ? 'rgba(197,34,31,0.08)' : a.type === 'warning' ? 'rgba(242,153,0,0.08)' : 'rgba(26,115,232,0.06)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }}/>
           <strong>{a.name}</strong>: {a.daysLeft === 0 ? 'Λήγει ΣΗΜΕΡΑ' : `Λήγει σε ${a.daysLeft} ημέρες`}
         </div>
       ))}
@@ -627,7 +627,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
         {/* ── ΑΑΔΕ API Integration Banner ─────────────────────────────────── */}
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--info)', fontFamily: T.font.sans, marginBottom: 3 }}>
+            <div title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων · ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.sans, marginBottom: 3 }}>
               Σύνδεση ΑΑΔΕ, Αυτόματη λήψη ΕΝΦΙΑ εκκαθαριστικού
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
@@ -642,11 +642,12 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               target="_blank"
               rel="noopener noreferrer"
               onClick={connectAADE}
-              style={{ display: 'inline-block', background: 'var(--info)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textDecoration: 'none' }}>
+              title="TAXISnet: οι προσωπικοί σου κωδικοί πρόσβασης στις ηλεκτρονικές υπηρεσίες της ΑΑΔΕ"
+              style={{ display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textDecoration: 'none' }}>
               Σύνδεση με TAXISnet →
             </a>
           ) : (
-            <span style={{ fontSize: 10, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 700, background: 'rgba(52,168,83,0.1)', padding: '4px 12px', borderRadius: T.radius.pill }}>✓ Συνδεδεμένο</span>
+            <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, background: 'rgba(26,115,232,0.1)', padding: '4px 12px', borderRadius: T.radius.pill }}>✓ Συνδεδεμένο</span>
           )}
         </div>
 
@@ -656,7 +657,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
             Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
           </div>
           {crossProperty.sqm && !insSqm && (
-            <div style={{ fontSize: 10, color: 'var(--positive)', fontFamily: T.font.sans, marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
               ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από tab Υπηρεσίες (ΕΝΦΙΑ), μπορείς να τα επεξεργαστείς
             </div>
           )}
@@ -676,8 +677,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--warning)' : liveQuotes.length > 0 ? 'var(--positive)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--text-tertiary)' : liveQuotes.length > 0 ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>
+                <span title="quotes: προσφορές / εκτιμήσεις ασφαλίστρων ανά εταιρεία και πρόγραμμα" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
                   {quotesLoading ? 'Υπολογισμός quotes...' : `Συγκριτική Εκτίμηση —${liveQuotes.length} προγράμματα`}
                 </span>
                 <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
@@ -728,20 +729,20 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                   return (
                     <div key={q.plan}
                       onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
-                      style={{ background: isCurrent ? 'rgba(26,115,232,0.07)' : isBest ? 'rgba(52,168,83,0.05)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'rgba(52,168,83,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
-                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΛΥΤΕΡΗ ΤΙΜΗ</div>}
+                      style={{ background: isCurrent ? 'rgba(26,115,232,0.07)' : 'var(--bg-elevated)', border: `1px solid ${isCurrent ? 'var(--accent)' : isBest ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: 12, cursor: 'pointer', transition: 'all 0.15s', position: 'relative' as const }}>
+                      {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΛΥΤΕΡΗ ΤΙΜΗ</div>}
                       {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, fontWeight: 700, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
                       <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
                       {q.savings !== undefined && q.savings > 0 && (
                         <div style={{ fontSize: 9, color: 'var(--positive)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)}/μήνα</div>
                       )}
                       <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
-                        {q.earthquake && <span style={{ fontSize: 8, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
-                        {q.flood     && <span style={{ fontSize: 8, color: 'var(--info)',     background: 'rgba(26,115,232,0.1)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
-                        {q.natural   && <span style={{ fontSize: 8, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)',  padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές Καταστροφές</span>}
+                        {q.earthquake && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
+                        {q.flood     && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
+                        {q.natural   && <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές Καταστροφές</span>}
                       </div>
                     </div>
                   );
@@ -766,9 +767,9 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                           style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
                           <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
-                          <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? '✓' : '—'}</td>
-                          <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--positive)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
+                          <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? '✓' : '—'}</td>
+                          <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? '✓' : '—'}</td>
+                          <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? '✓' : '—'}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
                           <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: q.savings !== undefined && q.savings > 0 ? 'var(--positive)' : q.savings !== undefined && q.savings < 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>
@@ -832,8 +833,8 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
               {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
                 {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--positive-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--positive-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--positive)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? '✓' : '—'}</span>
                     <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
                   </div>
                 ))}
@@ -850,7 +851,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
                 </div>
               )}
               {effectiveEarthquake && effectiveFloodState && (
-                <div style={{ marginTop: 10, background: 'rgba(52,168,83,0.08)', border: '1px solid rgba(52,168,83,0.3)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans }}>
+                <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
                   Δικαιούσαι μείωση ΕΝΦΙΑ 10-20% βάσει Α.1005/2026, ρύθμισε στο tab Υπηρεσίες → ΕΝΦΙΑ
                 </div>
               )}
