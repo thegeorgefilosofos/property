@@ -210,6 +210,10 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
   badge?: { text: string; color: string }; size?: 'sm' | 'md' | 'lg';
 }) {
   const fs = size === 'lg' ? 24 : size === 'md' ? 20 : 15;
+  // Χρώμα ΜΟΝΟ όπου έχει νόημα: η λεπτή λωρίδα κορυφής εμφανίζεται μόνο για
+  // σημασιολογικούς τόνους (θετικό/αρνητικό/warning/accent), όχι για ουδέτερα
+  // κόστη/στοιχεία (text-*) — έτσι φεύγει ο «θόρυβος» των πολλών χρωμάτων.
+  const isSemantic = !color.includes('--text');
   return (
     <div
       style={{
@@ -222,8 +226,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--highlight-inset-strong), var(--elev-2)'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--highlight-inset), var(--elev-1)'; }}
     >
-      {/* λεπτή έγχρωμη κορυφή — δένει τον αριθμό με τον σημασιολογικό του τόνο */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 45%, transparent))` }} />
+      {isSemantic && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 25%, transparent))`, opacity: 0.9 }} />}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5, marginTop: 2, flexWrap: 'wrap' }}>
         <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
         {badge && (
@@ -907,10 +910,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="Συμβολαιογραφικά" value={loan.notary_cost} onChange={v => sl('notary_cost', v)} suffix="€" step={100} />
           </div>
           <div style={g4}>
-            <KPICard label="Αμοιβή Μεσίτη" value={fe(calc.agentFee)} color="var(--warning)" />
-            <KPICard label="Φόρος Μεταβίβασης" value={fe(calc.transTax)} color="var(--negative)" />
-            <KPICard label="Συμβολαιογραφικά" value={fe(calc.notary)} color="var(--warning)" />
-            <KPICard label="Πραγματικό Κόστος Απόκτησης" value={fe(calc.totalAcq)} color="var(--negative)" sub={`Yield: ${fp(calc.trueYield)}`} />
+            <KPICard label="Αμοιβή Μεσίτη" value={fe(calc.agentFee)} color="var(--text-primary)" />
+            <KPICard label="Φόρος Μεταβίβασης" value={fe(calc.transTax)} color="var(--text-primary)" />
+            <KPICard label="Συμβολαιογραφικά" value={fe(calc.notary)} color="var(--text-primary)" />
+            <KPICard label="Πραγματικό Κόστος Απόκτησης" value={fe(calc.totalAcq)} color="var(--text-primary)" sub={`Yield: ${fp(calc.trueYield)}`} />
           </div>
         </div>
 
@@ -923,7 +926,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           </div>
           {companyHq !== 'none' && (
             <div style={g3}>
-              <KPICard label="Φόρος Εταιρείας" value={fe(calc.compTax)} color="var(--negative)" />
+              <KPICard label="Φόρος Εταιρείας" value={fe(calc.compTax)} color="var(--text-primary)" />
               <KPICard label="Καθαρό μέσω Εταιρείας" value={fe(calc.afterTaxComp)} color={calc.afterTaxComp > 0 ? 'var(--positive)' : 'var(--negative)'} />
               <KPICard label="Διαφορά vs Φυσικό Πρόσωπο" value={fe(calc.afterTaxComp - calc.afterTax)} color={calc.afterTaxComp > calc.afterTax ? 'var(--positive)' : 'var(--negative)'} />
             </div>
