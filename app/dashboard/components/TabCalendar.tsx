@@ -35,25 +35,25 @@ interface FormState {
 
 // Google-aligned category colors
 const CATEGORIES: Record<EventCategory, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  financial:   { label: 'Οικονομικά',   color: 'var(--accent)',    bg: 'var(--accent-dim)',    border: 'var(--border-accent)', icon: <Euro size={11}/> },
-  bills:       { label: 'Λογαριασμοί', color: 'var(--info)',      bg: 'var(--info-dim)',      border: 'var(--info)',          icon: <Zap size={11}/> },
-  maintenance: { label: 'Συντήρηση',   color: 'var(--positive)',  bg: 'var(--positive-dim)',  border: 'var(--positive)',      icon: <Wrench size={11}/> },
-  contract:    { label: 'Συμβόλαιο',   color: '#8b5cf6',          bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', icon: <FileText size={11}/> },
-  tenant:      { label: 'Ενοικιαστής', color: 'var(--warning)',   bg: 'var(--warning-dim)',   border: 'var(--warning)',       icon: <User size={11}/> },
-  reminder:    { label: 'Υπενθύμιση',  color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)', border: 'var(--border-default)', icon: <Bell size={11}/> },
+  financial:   { label: 'Οικονομικά',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Euro size={11}/> },
+  bills:       { label: 'Λογαριασμοί', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Zap size={11}/> },
+  maintenance: { label: 'Συντήρηση',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Wrench size={11}/> },
+  contract:    { label: 'Συμβόλαιο',   color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <FileText size={11}/> },
+  tenant:      { label: 'Ενοικιαστής', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <User size={11}/> },
+  reminder:    { label: 'Υπενθύμιση',  color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', icon: <Bell size={11}/> },
 }
 
 const PRIORITIES: Record<EventPriority, { label: string; color: string }> = {
-  low:      { label: 'Χαμηλή',  color: 'var(--positive)' },
-  medium:   { label: 'Μέτρια',  color: 'var(--warning)' },
-  high:     { label: 'Υψηλή',   color: 'var(--warning)' },
+  low:      { label: 'Χαμηλή',  color: 'var(--text-secondary)' },
+  medium:   { label: 'Μέτρια',  color: 'var(--text-secondary)' },
+  high:     { label: 'Υψηλή',   color: 'var(--text-secondary)' },
   critical: { label: 'Κρίσιμη', color: 'var(--negative)' },
 }
 
 const STATUSES: Record<EventStatus, { label: string; color: string }> = {
   pending:     { label: 'Εκκρεμεί',    color: 'var(--warning)' },
   paid:        { label: 'Πληρώθηκε',   color: 'var(--positive)' },
-  in_progress: { label: 'Σε εξέλιξη', color: 'var(--info)' },
+  in_progress: { label: 'Σε εξέλιξη', color: 'var(--text-secondary)' },
   cancelled:   { label: 'Ακυρώθηκε',  color: 'var(--text-tertiary)' },
 }
 
@@ -158,7 +158,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
     <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'12px 16px',
       background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
       border:`1px solid ${selected?'var(--border-accent)':overdue?'var(--negative-border)':'var(--border-subtle)'}`,
-      borderLeft:`3px solid ${overdue?'var(--negative)':cat.color}`,
+      borderLeft:`3px solid ${overdue?'var(--negative)':'var(--border-subtle)'}`,
       borderRadius:8, opacity:done?0.6:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
     }}>
       {bulkMode&&onSelect&&(
@@ -190,7 +190,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
             </span>
           )}
           {event.attachment_url&&(
-            <a href={event.attachment_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--info)', display:'flex', alignItems:'center', gap:2, fontFamily:"'Inter',sans-serif" }}>
+            <a href={event.attachment_url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--accent)', display:'flex', alignItems:'center', gap:2, fontFamily:"'Inter',sans-serif" }}>
               Σύνδεσμος <ArrowRight size={9}/>
             </a>
           )}
@@ -244,7 +244,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
             <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length} γεγονότα</span>
             {monthPendingAmt>0&&<span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{monthPendingAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'})} εκκρεμή</span>}
-            <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", color:'var(--positive)' }}>{monthPaid.length} πληρωμένα</span>
+            <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", color:'var(--text-secondary)' }}>{monthPaid.length} πληρωμένα</span>
             <div style={{ marginLeft:'auto', display:'flex', gap:12, flexWrap:'wrap' }}>
               {Object.entries(CATEGORIES).map(([k,c])=>(
                 <div key={k} style={{ display:'flex', alignItems:'center', gap:4 }}>
@@ -362,7 +362,7 @@ function WeekView({ events, currentDate, onDayClick, onEventClick }: { events:Ca
               <div style={{ padding:'6px', minHeight:120, display:'flex', flexDirection:'column', gap:4 }}>
                 {dayEvs.map(ev=>(
                   <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}${ev.notes?`\n${ev.notes}`:''}`}>
-                    <div onClick={()=>onEventClick(ev)} style={{ fontSize:11, padding:'4px 6px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:'pointer', opacity:ev.status==='paid'?0.4:1, borderLeft:`3px solid ${CATEGORIES[ev.category].color}`, fontFamily:"'Inter',sans-serif" }}>
+                    <div onClick={()=>onEventClick(ev)} style={{ fontSize:11, padding:'4px 6px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:'pointer', opacity:ev.status==='paid'?0.4:1, borderLeft:`3px solid var(--border-subtle)`, fontFamily:"'Inter',sans-serif" }}>
                       <p style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</p>
                       {ev.amount&&<p style={{ fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', opacity:0.8 }}>{ev.amount}€</p>}
                     </div>

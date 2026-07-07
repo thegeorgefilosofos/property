@@ -23,6 +23,13 @@ const STATUS_LABELS: Record<string, string> = {
   for_sale: 'Προς Πώληση', seasonal: 'Εποχιακό', disputed: 'Αμφισβητούμενο',
 };
 
+// Ελληνικές επεξηγήσεις για όρους/συντομογραφίες (εμφανίζονται ως tooltip στη μετρική)
+const METRIC_TIPS: Record<string, string> = {
+  'Τιμή ανά τετραγωνικό': 'Εμπορική αξία ανά τετραγωνικό μέτρο (€/τ.μ.)',
+  'Μεικτή Απόδοση': 'Ακαθάριστη ετήσια απόδοση: (μηνιαίο ενοίκιο × 12) ÷ εμπορική αξία',
+  'Καθαρό ανά μήνα (εκτ.)': 'Εκτίμηση: ενοίκιο − μηνιαίοι λογαριασμοί − (δαπάνες έτους ÷ 12)',
+};
+
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
   const [agg, setAgg] = useState<Record<string, Agg>>({});
@@ -161,7 +168,7 @@ export default function TabComparison({ properties, userId }: Props) {
                 const best = bestId(m);
                 return (
                   <tr key={i}>
-                    <td style={{ ...td, fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
+                    <td title={METRIC_TIPS[m.label]} style={{ ...td, fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
                     {rowsData.map(r => {
                       const isBest = best === r.p.id;
                       return (

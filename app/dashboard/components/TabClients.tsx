@@ -22,8 +22,10 @@ interface Client {
 }
 interface PropRow { id: string; name: string; prop_type: string | null; status_detail: string | null; client_id: string | null; }
 
-const TYPE_TONE: Record<ClientType, 'info' | 'warning' | 'positive'> = { owner: 'info', lead: 'warning', client: 'positive' };
-const STAGE_TONE: Record<Stage, 'neutral' | 'info' | 'warning' | 'positive'> = { lead: 'neutral', viewing: 'info', offer: 'warning', closed: 'positive' };
+// Τύπος πελάτη = καθαρά κατηγορικό → ουδέτερο badge (χωρίς διακοσμητικό χρώμα).
+const TYPE_TONE: Record<ClientType, 'neutral'> = { owner: 'neutral', lead: 'neutral', client: 'neutral' };
+// Στάδιο: μόνο το «κλεισμένο» κρατά θετικό χρώμα ως γνήσια θετική έκβαση· τα υπόλοιπα ουδέτερα.
+const STAGE_TONE: Record<Stage, 'neutral' | 'info' | 'warning' | 'positive'> = { lead: 'neutral', viewing: 'neutral', offer: 'neutral', closed: 'positive' };
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const emptyForm = (): Partial<Client> => ({
