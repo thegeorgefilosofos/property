@@ -36,9 +36,7 @@ export default async function RootLayout({
             κείμενο στο πρώτο paint (latin για UI, greek για τα ελληνικά). */}
         <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/inter-greek.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        {/* Μόνο για τα εικονίδια (Material Symbols) που φορτώνονται από την Google. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Καμία εξωτερική γραμματοσειρά: όλα self-hosted (Inter/Roboto Mono) + inline SVG εικονίδια. */}
         {/* Theme init, must run before paint to prevent flash */}
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
