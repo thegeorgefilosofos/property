@@ -74,3 +74,21 @@ export function computeYields(monthlyRent: number, propertyValue: number, annual
 
 // Στρογγυλοποίηση ποσοστού απόδοσης (ενιαία μορφή παντού: 1 δεκαδικό).
 export const fmtYield = (y: number): string => `${(isFinite(y) ? y : 0).toFixed(1)}%`;
+
+// ── Τρόπος μίσθωσης & πληρότητα στοιχείων (καθαρά, δοκιμάσιμα) ────────────────
+/** Airbnb/εποχιακό ⇒ βραχυχρόνια· αλλιώς μακροχρόνια. */
+export function rentalModeFromAirbnb(isAirbnb: boolean): 'short_term' | 'long_term' {
+  return isAirbnb ? 'short_term' : 'long_term';
+}
+
+/**
+ * Έχει το ακίνητο αρκετά στοιχεία ώστε τα KPI (αξία/ενοίκιο/απόδοση) να μη
+ * δείχνουν 0; Απαιτεί κάποια αξία (εμπορική ή αντικειμενική) ΚΑΙ κάποιο ενοίκιο
+ * (στόχος ή ενεργός ενοικιαστής). Τα μηδενικά δεν μετρούν (pos()).
+ */
+export function propertyDetailsComplete(
+  p: { value?: number | null; obj_value?: number | null; target_rent?: number | null },
+  hasTenant: boolean,
+): boolean {
+  return !!((pos(p.value) || pos(p.obj_value)) && (pos(p.target_rent) || hasTenant));
+}

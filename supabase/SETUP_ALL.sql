@@ -419,7 +419,28 @@ end $$;
 alter table public.user_properties add column if not exists postal_code text;
 
 
--- ─── 20260707140000_property_atak.sql ───
--- Αριθμός Ταυτότητας Ακινήτου (ΑΤΑΚ) ανά ακίνητο — απαραίτητος για την
--- Αναλυτική Κατάσταση Ε2. Idempotent· το RLS του user_properties ισχύει ήδη.
+-- ─── 20260707120000_property_full_capture.sql ───
+-- Πλήρης καταγραφή στοιχείων ακινήτου (περιλαμβάνει το ΑΤΑΚ που χρειάζεται το Ε2).
+-- Προσθέτει όλες τις στήλες που διαβάζει το dashboard ώστε τα KPI να μη δείχνουν 0 €.
+-- Idempotent· το RLS του user_properties ισχύει ήδη.
+alter table public.user_properties add column if not exists value numeric;
+alter table public.user_properties add column if not exists target_rent numeric;
+alter table public.user_properties add column if not exists sqm numeric;
+alter table public.user_properties add column if not exists ownership numeric;
 alter table public.user_properties add column if not exists atak text;
+alter table public.user_properties add column if not exists obj_value numeric;
+alter table public.user_properties add column if not exists enfia numeric;
+alter table public.user_properties add column if not exists purchase_price numeric;
+alter table public.user_properties add column if not exists purchase_date date;
+alter table public.user_properties add column if not exists year_built integer;
+alter table public.user_properties add column if not exists floor integer;
+alter table public.user_properties add column if not exists pea_class text;
+alter table public.user_properties add column if not exists heating text;
+alter table public.user_properties add column if not exists parking_spaces integer;
+alter table public.user_properties add column if not exists storage_sqm numeric;
+alter table public.user_properties add column if not exists bedrooms integer;
+alter table public.user_properties add column if not exists rental_mode text;
+alter table public.user_properties add column if not exists insurance_company text;
+alter table public.user_properties add column if not exists insurance_amount numeric;
+alter table public.user_properties add column if not exists insurance_expiry date;
+alter table public.user_properties add column if not exists notes text;

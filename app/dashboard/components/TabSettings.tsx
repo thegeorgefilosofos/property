@@ -82,11 +82,25 @@ const INIT:S = {
   insurance_company:'',insurance_policy:'',insurance_expiry:'',notes:''
 }
 
+// Πεδία ακινήτου που επεξεργάζεται η καρτέλα «Ακίνητο» (γράφουν στο user_properties).
+type PropRow = {
+  value:number|null; obj_value:number|null; target_rent:number|null; sqm:number|null;
+  floor:number|null; year_built:number|null; ownership:number|string|null; atak:string|null;
+  enfia:number|null; pea_class:string|null; heating:string|null; parking_spaces:number|null;
+  storage_sqm:number|null; purchase_price:number|null; purchase_date:string|null; rental_mode:string|null;
+}
+const PEA_CLASSES = ['A+','A','B+','B','Γ','Δ','Ε','Ζ','Η'];
+const HEATING_OPTS:[string,string][] = [
+  ['central_gas','Κεντρική (αέριο)'],['autonomous_gas','Αυτόνομη (αέριο)'],['oil','Πετρέλαιο'],
+  ['heat_pump','Αντλία θερμότητας'],['electric','Ηλεκτρική'],['pellet','Pellet / Ξύλο'],
+  ['ac_only','Κλιματιστικά'],['none','Χωρίς θέρμανση'],['other','Άλλο'],
+];
+
 export default function TabSettings({ propertyId, userId }: { propertyId:string; userId:string }) {
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'settings'|'account'|'billing'|'prefs'|'fma'|'e2'>('settings');
+  const [activeSection, setActiveSection] = useState<'property'|'settings'|'account'|'billing'|'prefs'|'fma'|'e2'>('property');
   const [accountEmail, setAccountEmail] = useState('');
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -115,10 +129,28 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const [e2Deductible, setE2Deductible] = useState('');
   const [e2Year, setE2Year]           = useState(String(new Date().getFullYear()-1));
 
-  useEffect(() => { load(); }, [propertyId]);
+  // Property-level fields (γράφουν κατευθείαν στο user_properties, τροφοδοτούν τα KPI)
+  const [prop, setProp] = useState<PropRow|null>(null);
+  const [propSaved, setPropSaved] = useState(false);
+  const setP = (patch: Partial<PropRow>) => setProp(p => p ? { ...p, ...patch } : p);
+  const numOrNull = (v: string): number | null => { const n = parseFloat(v.replace(',', '.')); return isNaN(n) ? null : n; };
+  const ns = (v: unknown): string => (v == null ? '' : String(v));
+
+  useEffect(() => { load(); loadProp(); }, [propertyId]);
   async function load() {
     const { data } = await supabase.from('property_settings').select('*').eq('property_id',propertyId).maybeSingle();
     if (data) setS(data);
+  }
+  async function loadProp() {
+    const { data } = await supabase.from('user_properties')
+      .select('value,obj_value,target_rent,sqm,floor,year_built,ownership,atak,enfia,pea_class,heating,parking_spaces,storage_sqm,purchase_price,purchase_date,rental_mode')
+      .eq('id',propertyId).maybeSingle();
+    if (data) setProp(data as PropRow);
+  }
+  async function saveProp() {
+    if (!prop) return;
+    await supabase.from('user_properties').update({ ...prop }).eq('id',propertyId);
+    setPropSaved(true); setTimeout(()=>setPropSaved(false),2000);
   }
   async function save() {
     await supabase.from('property_settings').upsert({ ...s, property_id:propertyId, user_id:userId },{ onConflict:'property_id' });
@@ -191,6 +223,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const cardGap = { ...card, marginBottom:16 };
   const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Inter',sans-serif" } as const;
   const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Inter',sans-serif" } as const;
+  const grid = { display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 } as const;
   const sectionTitle = (t:string) => (
     <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,
       borderBottom:'1px solid var(--border-subtle)' }}>
@@ -222,6 +255,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
   // Nav tabs
   const NAV = [
+    { id:'property', label:'Ακίνητο' },
     { id:'settings', label:'Ρυθμίσεις' },
     { id:'account',  label:'Λογαριασμός' },
     { id:'billing',  label:'Συνδρομή & Χρέωση' },
@@ -247,6 +281,56 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           </button>
         ))}
       </div>
+
+      {/* ── ΑΚΙΝΗΤΟ (γράφει στο user_properties, τροφοδοτεί τα KPI) ── */}
+      {activeSection==='property' && prop && (
+        <div className="space-y-5">
+          <div style={{ marginBottom:16 }}>
+            <InfoBanner tone="info">Τα στοιχεία αυτά τροφοδοτούν τα KPI (αξία, ενοίκιο, απόδοση) και τις φορολογικές εκτιμήσεις. Συμπλήρωσε τουλάχιστον την αξία και το ενοίκιο.</InfoBanner>
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Αξία & Ενοίκιο')}
+            <div style={grid}>
+              <div><NumberInput label="Εμπορική Αξία (€)" value={ns(prop.value)} onChange={v=>setP({value:numOrNull(v)})} suffix="€" /></div>
+              <div><NumberInput label="Αντικειμενική Αξία (€)" value={ns(prop.obj_value)} onChange={v=>setP({obj_value:numOrNull(v)})} suffix="€" /></div>
+              <div><NumberInput label="Στόχος Ενοικίου (€/μήνα)" value={ns(prop.target_rent)} onChange={v=>setP({target_rent:numOrNull(v)})} suffix="€" /></div>
+              <div><NumberInput label="Ποσοστό Ιδιοκτησίας (%)" value={ns(prop.ownership)} onChange={v=>setP({ownership:numOrNull(v)})} max={100} suffix="%" /></div>
+            </div>
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Φυσικά χαρακτηριστικά')}
+            <div style={grid}>
+              <div><NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={ns(prop.sqm)} onChange={v=>setP({sqm:numOrNull(v)})} /></div>
+              <div><NumberInput label="Όροφος" value={ns(prop.floor)} onChange={v=>setP({floor:numOrNull(v)})} min={-5} /></div>
+              <div><NumberInput label="Έτος Κατασκευής" value={ns(prop.year_built)} onChange={v=>setP({year_built:numOrNull(v)})} min={1800} /></div>
+              <div><NumberInput label="Θέσεις Στάθμευσης" value={ns(prop.parking_spaces)} onChange={v=>setP({parking_spaces:numOrNull(v)})} /></div>
+              <div><NumberInput label="Αποθήκη (τ.μ.)" value={ns(prop.storage_sqm)} onChange={v=>setP({storage_sqm:numOrNull(v)})} /></div>
+              <div><CustomSelect label="Ενεργειακή Κλάση (ΠΕΑ)" value={prop.pea_class||''} onChange={v=>setP({pea_class:v||null})} options={[{value:'',label:'—'},...PEA_CLASSES.map(c=>({value:c,label:c}))]} /></div>
+              <div><CustomSelect label="Τύπος Θέρμανσης" value={prop.heating||''} onChange={v=>setP({heating:v||null})} options={[{value:'',label:'—'},...HEATING_OPTS.map(([val,l])=>({value:val,label:l}))]} /></div>
+              <div><CustomSelect label="Τρόπος Μίσθωσης" value={prop.rental_mode||'long_term'} onChange={v=>setP({rental_mode:v})} options={[{value:'long_term',label:'Μακροχρόνια'},{value:'short_term',label:'Βραχυχρόνια (Airbnb / Booking)'}]} /></div>
+            </div>
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Μητρώο & Φορολογικά')}
+            <div style={grid}>
+              <div><label style={lbl}>ΑΤΑΚ</label><input style={inp} value={prop.atak||''} onChange={e=>setP({atak:e.target.value.replace(/[^0-9]/g,'').slice(0,11)||null})} inputMode="numeric" placeholder="11 ψηφία"/></div>
+              <div><NumberInput label="Εκτ. ΕΝΦΙΑ (€/έτος)" value={ns(prop.enfia)} onChange={v=>setP({enfia:numOrNull(v)})} suffix="€" /></div>
+              <div><NumberInput label="Τιμή Αγοράς (€)" value={ns(prop.purchase_price)} onChange={v=>setP({purchase_price:numOrNull(v)})} suffix="€" /></div>
+              <div><label style={lbl}>Ημερομηνία Αγοράς</label><DatePicker value={prop.purchase_date||''} onChange={v=>setP({purchase_date:v||null})}/></div>
+            </div>
+          </div>
+
+          <button onClick={saveProp}
+            style={{ width:'100%',background:'var(--accent)',color:'var(--accent-text)',border:'none',borderRadius:8,
+              padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Inter',sans-serif",
+              textTransform:'uppercase',letterSpacing:'0.1em' }}>
+            {propSaved ? 'Αποθηκεύτηκε' : 'Αποθήκευση στοιχείων ακινήτου'}
+          </button>
+        </div>
+      )}
 
       {/* ── ACCOUNT ── */}
       {activeSection==='account' && (
