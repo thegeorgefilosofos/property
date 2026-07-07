@@ -72,19 +72,19 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 
 // ── Στυλ inputs (ίδιο look με το υπάρχον modal) ─────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', height: 40, borderRadius: 8,
+  width: '100%', padding: '10px 14px', height: 42, borderRadius: 10,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Inter', sans-serif",
-  letterSpacing: '0.25px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
+  letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
   display: 'block', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6,
+  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 7,
 };
-const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--accent)'; };
-const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; };
+const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; };
+const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none'; };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label style={labelStyle}>{label}</label>{children}</div>;

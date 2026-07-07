@@ -222,8 +222,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   // Shared styles
   const card = { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:20 } as const;
   const cardGap = { ...card, marginBottom:16 };
-  const lbl = { fontSize:9,textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',display:'block',marginBottom:6,fontFamily:"'Inter',sans-serif" } as const;
-  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'8px 12px',color:'var(--text-primary)',fontSize:13,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Inter',sans-serif" } as const;
+  const lbl = { fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-secondary)',display:'block',marginBottom:7,fontFamily:"'Inter',sans-serif" } as const;
+  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:10,height:42,padding:'10px 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Inter',sans-serif" } as const;
   const grid = { display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 } as const;
   const sectionTitle = (t:string) => (
     <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,

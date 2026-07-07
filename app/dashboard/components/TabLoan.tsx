@@ -439,11 +439,11 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
                 <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
                 <div>
                   <label style={{...labelStyle,display:'block',marginBottom:6}}>Ποσό Δανείου (€)</label>
-                  <input type="number" value={advAmt} onChange={e=>setAdvAmt(e.target.value)} style={{width:'100%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:4,height:40,padding:'0 12px',color:'var(--text-primary)',fontSize:14,outline:'none',boxSizing:'border-box' as any,fontFamily:"'Roboto Mono',monospace"}}/>
+                  <input type="number" value={advAmt} onChange={e=>setAdvAmt(e.target.value)} style={{width:'100%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,height:42,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,outline:'none',boxSizing:'border-box' as any,fontFamily:"'Roboto Mono',monospace"}}/>
                 </div>
                 <div>
                   <label style={{...labelStyle,display:'block',marginBottom:6}}>Διάρκεια (χρόνια)</label>
-                  <input type="number" value={advYrs} onChange={e=>setAdvYrs(e.target.value)} style={{width:'100%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:4,height:40,padding:'0 12px',color:'var(--text-primary)',fontSize:14,outline:'none',boxSizing:'border-box' as any,fontFamily:"'Roboto Mono',monospace"}}/>
+                  <input type="number" value={advYrs} onChange={e=>setAdvYrs(e.target.value)} style={{width:'100%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,height:42,padding:'0 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,outline:'none',boxSizing:'border-box' as any,fontFamily:"'Roboto Mono',monospace"}}/>
                 </div>
               </div>
             </div>

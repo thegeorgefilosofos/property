@@ -177,14 +177,14 @@ const innerStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 11,
   color: 'var(--text-secondary)',
   textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  fontWeight: 500,
+  letterSpacing: '0.06em',
+  fontWeight: 600,
   fontFamily: "'Inter', sans-serif",
   display: 'block',
-  marginBottom: 6,
+  marginBottom: 7,
 };
 
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 12 };
@@ -657,32 +657,32 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 placeholder="Έτος"
                 style={{
                   width: 86,
-                  height: 40,
+                  height: 42,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-default)',
-                  borderRadius: 4,
-                  padding: '10px 16px',
+                  borderRadius: 10,
+                  padding: '0 14px',
                   color: 'var(--text-primary)',
                   fontSize: 14,
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '0.25px',
+                  letterSpacing: 0,
                   outline: 'none',
                   boxSizing: 'border-box' as const,
                 }}
               />
               {constructionYear_n >= 1800 && constructionYear_n <= 2030 && (
                 <div style={{
-                  height: 40,
+                  height: 42,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-default)',
                   borderLeft: `3px solid ${yearToBadge(constructionYear_n).color}`,
-                  borderRadius: 4,
-                  padding: '10px 16px',
+                  borderRadius: 10,
+                  padding: '0 14px',
                   display: 'flex',
                   alignItems: 'center',
                   fontSize: 14,
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '0.25px',
+                  letterSpacing: 0,
                   color: yearToBadge(constructionYear_n).color,
                   whiteSpace: 'nowrap' as const,
                   boxSizing: 'border-box' as const,
@@ -1113,14 +1113,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                       value={(airbnb as any)[s.uKey]}
                       onChange={e => sa(s.uKey, e.target.value)}
                       style={{
-                        background: 'var(--bg-elevated)',
+                        background: 'var(--bg-surface)',
                         border: '1px solid var(--border-default)',
-                        borderRadius: 8,
-                        padding: '9px 12px',
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        height: 42,
+                        boxSizing: 'border-box' as const,
                         color: 'var(--text-primary)',
-                        fontSize: 13,
+                        fontSize: 14,
                         fontFamily: "'Inter', sans-serif",
                         fontWeight: 400,
+                        letterSpacing: 0,
                         cursor: 'pointer',
                         outline: 'none',
                         width: '100%',
