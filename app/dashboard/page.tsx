@@ -760,7 +760,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
           {properties.map(p => (
-            <div key={p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}}>
+            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
               <span className="prop-item-name">{p.name}</span>
             </div>
@@ -787,7 +787,7 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="sidebar-footer">
-          <div className="user-row" onClick={signOut} title="Αποσύνδεση">
+          <div className="user-row" role="button" tabIndex={0} aria-label="Αποσύνδεση" onClick={signOut} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();signOut();}}} title="Αποσύνδεση">
             <div className="user-avatar">{userInitials}</div>
             <div style={{flex:1,minWidth:0}}>
               <div className="user-name" style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.email?.split('@')[0]}</div>
