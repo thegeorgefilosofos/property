@@ -34,10 +34,10 @@ type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
 const iStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', borderRadius: T.radius.inner,
-  border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-  fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s',
+  width: '100%', height: 42, padding: '10px 14px', borderRadius: T.radius.inner,
+  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+  color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, outline: 'none',
+  fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 }
 
 // ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
@@ -233,10 +233,10 @@ const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&a
 
 // ─── Input primitives ─────────────────────────────────────────────────────────
 function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
-  return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+  return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
 function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
-  return <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.6 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+  return <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{ ...iStyle, height: 'auto', resize: 'vertical', lineHeight: 1.6 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
 function FL({ children }: { children: React.ReactNode }) {
   return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
@@ -1159,7 +1159,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλ., email, ΑΦΜ, IBAN, ετικέτας..." style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, τηλ., email, ΑΦΜ, IBAN, ετικέτας..." style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
         <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)} style={{ ...iStyle, minWidth: 200, width: 'auto', cursor: 'pointer' }}>
           <option value="all">Όλες οι κατηγορίες</option>
