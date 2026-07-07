@@ -42,7 +42,7 @@ const iStyle: React.CSSProperties = {
 // ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
 const GROUPS = [
   {
-    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#6366f1', Icon: Building2,
+    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#3949ab', Icon: Building2,
     roles: [
       { value: 'doy', label: 'ΔΟΥ' },
       { value: 'ktimatologio', label: 'Κτηματολόγιο' },
@@ -75,7 +75,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#0ea5e9', Icon: Wifi,
+    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#039be5', Icon: Wifi,
     roles: [
       { value: 'tel_ote', label: 'OTE / Cosmote' },
       { value: 'tel_vodafone', label: 'Vodafone' },
@@ -93,7 +93,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7c4dff', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7e57c2', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -165,7 +165,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#22c55e', Icon: Trees,
+    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#34a853', Icon: Trees,
     roles: [
       { value: 'gardener', label: 'Κηπουρός' },
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
@@ -176,7 +176,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#3b82f6', Icon: UserCheck,
+    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#4285f4', Icon: UserCheck,
     roles: [
       { value: 'tenant', label: 'Ενοικιαστής' },
       { value: 'prev_tenant', label: 'Πρώην Ενοικιαστής' },
@@ -700,10 +700,10 @@ function exportContactsPDF(contacts: Contact[]) {
   })
 
   const groupColors: Record<string, string> = {
-    authorities: '#6366f1', legal_finance: '#7c4dff', management: '#0ea5e9',
-    electricity: '#e8710a', telecom: '#0ea5e9', banks: '#7c4dff',
+    authorities: '#3949ab', legal_finance: '#7e57c2', management: '#039be5',
+    electricity: '#e8710a', telecom: '#039be5', banks: '#7e57c2',
     insurance: '#00897b', real_estate: '#5e35b1',
-    technical: '#e8710a', outdoor: '#22c55e', tenants: '#3b82f6',
+    technical: '#e8710a', outdoor: '#34a853', tenants: '#4285f4',
   }
 
   const kpiHtml = (val: string, label: string, color: string) =>
