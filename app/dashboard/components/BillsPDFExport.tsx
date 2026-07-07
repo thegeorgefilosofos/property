@@ -1,5 +1,7 @@
 'use client';
 
+import { reportAccent, brandLogoImg, brandName, brandRootVars, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BillsPDFExport, Επαγγελματική Αναφορά Λογαριασμών (Έκδοση 2.0)
 //
@@ -60,9 +62,11 @@ const catOf = (v: string) => CAT[v] || { label: v, color: '#64748b' };
 const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const MONTHS_SH   = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
-export default function BillsPDFExport({ data }: { data: BillsData }) {
+export default function BillsPDFExport({ data, userId }: { data: BillsData; userId?: string }) {
+  const branding = useReportBranding(userId);
 
   const handlePrint = () => {
+    const accent = reportAccent(branding);
     const now          = new Date();
     const currentMonth = now.getMonth();
     const year         = now.getFullYear();
@@ -217,6 +221,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
+    ${brandRootVars(branding)}
     *{box-sizing:border-box;margin:0;padding:0}
     html{background:#eef1f5}
     body{font-family:'Inter',sans-serif;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -254,7 +259,8 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       <div>
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
           <span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>
-          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#d9b24a">Property OS</span>
+          ${brandLogoImg(branding, 20)}
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#d9b24a">${branding?.companyName ? brandName(branding) : 'Property OS'}</span>
         </div>
         <div style="font-size:23px;font-weight:800;letter-spacing:-0.02em;line-height:1.15">${esc(data.propertyName)}</div>
         <div style="font-size:12px;color:#9ca3af;margin-top:4px">${esc(data.propertyAddress)}</div>
@@ -369,7 +375,7 @@ export default function BillsPDFExport({ data }: { data: BillsData }) {
       </ul>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e8eaed">
         <div style="font-size:9px;color:#94a3b8">
-          Property OS · Αναφορά: ${todayStr()} · Εμπιστευτικό έγγραφο, μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου
+          ${branding?.companyName ? brandName(branding) : 'Property OS'} · Αναφορά: ${todayStr()} · Εμπιστευτικό έγγραφο, μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου
         </div>
         <div style="text-align:center">
           <div style="width:180px;border-bottom:1px solid #cbd5e1;height:26px"></div>

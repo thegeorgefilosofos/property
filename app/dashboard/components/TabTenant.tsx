@@ -17,6 +17,7 @@ import {
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { reportAccent, brandName, brandContactLine, useReportBranding } from '@/lib/reportBranding';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'9px', letterSpacing:'0.16em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:500 };
@@ -316,7 +317,8 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
 }
 
 // ─── Αναπροσαρμογή Ενοικίου (ΔΤΚ) ────────────────────────────────────────────
-function RentAdjustView({ tenant }:{ tenant:Tenant }) {
+function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
+  const branding = useReportBranding(userId);
   // Μέση ετήσια μεταβολή ΔΤΚ (ΕΛΣΤΑΤ). 2025: +2,5% (μέσος όρος δωδεκαμήνου).
   const TDE:Record<number,number>={2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8,2025:2.5};
   const fmtE=(n:number)=>`${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
@@ -337,6 +339,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
   const selectStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-elevated)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:13,fontFamily:T.font.sans,outline:'none',cursor:'pointer'};
 
   const genLetter=()=>{
+    const accent = reportAccent(branding);
     const today_str=new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
     const w=window.open('','_blank','width=820,height=760');
     if(!w){alert('Επίτρεψε τα popups');return;}
@@ -345,8 +348,8 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:'Inter',sans-serif;max-width:740px;margin:48px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.8}
-      .header{border-bottom:2px solid #1a73e8;padding-bottom:16px;margin-bottom:28px}
-      h1{font-size:22px;font-weight:500;color:#1a73e8;margin-bottom:4px}
+      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:28px}
+      h1{font-size:22px;font-weight:500;color:${accent};margin-bottom:4px}
       .sub{font-size:11px;color:#5f6368}
       table{width:100%;border-collapse:collapse;margin:20px 0}
       th,td{padding:12px 16px;border:1px solid #e8eaed;font-size:13px}
@@ -358,7 +361,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       @media print{body{margin:20px;padding:24px}}
     </style></head><body>
     <div class="header"><h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
-    <div class="sub">Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${esc(yr)}, Property OS</div></div>
+    <div class="sub">Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${esc(yr)}${branding?.companyName ? ', '+brandName(branding) : ', Property OS'}</div></div>
     <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${esc(today_str)}</p>
     <p style="margin-bottom:20px">Προς: <strong>${esc(tenant.full_name)}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+esc(tenant.afm)+'</strong>':''}</p>
     <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Δείκτη Τιμών Καταναλωτή (ΔΤΚ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
@@ -374,7 +377,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:40px"></p><p>Υπογραφή / Σφραγίδα</p></div>
       <div class="sig"><p style="font-weight:500;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p>${tenant.afm?'<p>ΑΦΜ: '+esc(tenant.afm)+'</p>':''}</div>
     </div>
-    <div class="footer">Έγγραφο δημιουργήθηκε μέσω Property OS, Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
+    <div class="footer">Έγγραφο δημιουργήθηκε μέσω ${branding?.companyName ? brandName(branding) : 'Property OS'}${brandContactLine(branding) ? ' · '+brandContactLine(branding) : ''}, Για νομικές υποθέσεις συμβουλευτείτε δικηγόρο</div>
     </body></html>`);
     w.document.close();setTimeout(()=>w.print(),800);
   };
@@ -1292,7 +1295,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
             </div>
           )}
 
-          {viewTab==='rentadjust'&&<RentAdjustView tenant={tenant}/>}
+          {viewTab==='rentadjust'&&<RentAdjustView tenant={tenant} userId={userId}/>}
 
           {viewTab==='payments'&&(
             <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>

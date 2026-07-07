@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { reportAccent, brandRootVars, brandLogoImg, brandName, brandContactLine, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 
 interface ReportProps {
   propertyName: string;
@@ -13,6 +14,7 @@ interface ReportProps {
   constructionType: string;
   floor: string;
   electronic: boolean;
+  userId?: string;
 }
 
 const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
@@ -22,9 +24,10 @@ const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'l
 
 export default function RentROIReport({
   propertyName, propertyAddress, propertyType,
-  calc, scen, bench, ownerAge, constructionType, floor, electronic,
+  calc, scen, bench, ownerAge, constructionType, floor, electronic, userId,
 }: ReportProps) {
   const [printing, setPrinting] = useState(false);
+  const branding = useReportBranding(userId);
 
   const handlePrint = async () => {
     setPrinting(true);
@@ -35,6 +38,8 @@ export default function RentROIReport({
       return;
     }
 
+    const accent = reportAccent(branding);
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -44,6 +49,7 @@ export default function RentROIReport({
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
         <style>
+          ${brandRootVars(branding)}
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: 'Inter', sans-serif;
@@ -61,13 +67,13 @@ export default function RentROIReport({
             align-items: flex-start;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 2px solid #1a73e8;
+            border-bottom: 2px solid ${accent};
           }
           .logo {
             font-family: 'Inter', sans-serif;
             font-size: 20px;
             font-weight: 700;
-            color: #1a73e8;
+            color: ${accent};
             letter-spacing: -0.3px;
           }
           .logo span { color: var(--accent); }
@@ -268,7 +274,7 @@ export default function RentROIReport({
           <!-- Header -->
           <div class="header">
             <div>
-              <div class="logo">Property <span>OS</span></div>
+              ${branding ? `${brandLogoImg(branding, 26)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
               <div style="font-size:10px;color:#5f6368;margin-top:2px;font-family:'Inter',sans-serif;">Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
             </div>
             <div class="meta">
@@ -420,7 +426,7 @@ export default function RentROIReport({
 
           <!-- Footer -->
           <div class="footer">
-            <div>Property OS, Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
+            <div>${branding?.companyName ? brandName(branding) : 'Property OS'}, Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
             <div>${esc(today)}</div>
           </div>
           <div class="disclaimer">
