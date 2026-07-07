@@ -621,6 +621,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           propertyName="Ακίνητό μου" propertyAddress="" propertyType={propType}
           calc={calc} scen={scen} bench={bench} ownerAge={ownerAge}
           constructionType={constructionType} floor={floor} electronic={electronic}
+          userId={userId}
         />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: 0, alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 160px', maxWidth: 220, minWidth: 0 }}>

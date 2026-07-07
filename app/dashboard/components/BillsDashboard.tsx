@@ -566,7 +566,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Î‘Î
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 10 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <BillsPDFExport data={{ propertyName, propertyAddress, bills, totalMonthly: calc.totalMonthly, totalAnnual: calc.totalMonthly * 12, avgMonthly: calc.avgMonthly, historyTotals: calc.historyTotals }}/>
+          <BillsPDFExport userId={userId} data={{ propertyName, propertyAddress, bills, totalMonthly: calc.totalMonthly, totalAnnual: calc.totalMonthly * 12, avgMonthly: calc.avgMonthly, historyTotals: calc.historyTotals }}/>
           <button onClick={() => exportBillsExcel(bills, calc.historyTotals, calc.byCategory, calc.avgMonthly, propertyName)}
             style={{ padding: '8px 16px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; }}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, type KPIItem } from '@/components/Theme'
+import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
 const supabase = createSupabaseClient()
 
@@ -403,7 +404,8 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
   XLSX.writeFile(wb, `checklist_ακινητου_${new Date().toISOString().split('T')[0]}.xlsx`)
 }
 
-function exportChecklistPDF(items: ChecklistItem[]) {
+function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {
+  const accent = reportAccent(branding)
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
   const done = items.filter(i => i.status === 'done').length
   const totalEst = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
@@ -477,15 +479,16 @@ function exportChecklistPDF(items: ChecklistItem[]) {
 <meta charset="UTF-8"><title>Checklist Ακινήτου</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
+.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
 .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
 .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
 .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
+.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:${accent};margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
 .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
@@ -503,7 +506,7 @@ tr:nth-child(even) td{background:#fafafa}
 @media print{.page{padding:18px 22px}}
 </style></head><body><div class="page">
 <div class="hdr">
-  <div><div class="logo">Property <span>OS</span></div><div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
+  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
   <div class="meta-r"><div class="meta-title">Checklist Ακινήτου</div><div class="meta-d">${esc(today)}</div></div>
 </div>
 <div class="sec">
@@ -525,7 +528,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sec-title">Αναλυτικά Tasks ανά Κατηγορία</div>
   ${groupSections}
 </div>
-<div class="footer"><div>Property OS · Checklist Ακινήτου</div><div>${esc(today)}</div></div>
+<div class="footer"><div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Checklist Ακινήτου</div><div>${esc(today)}</div></div>
 </div></body></html>`)
   w.document.close()
   setTimeout(() => { w.print() }, 900)
@@ -534,7 +537,8 @@ tr:nth-child(even) td{background:#fafafa}
 // ─── Handover Protocol PDF (12 sections, auto-fill from cross-tab data) ───────
 interface TenantData { full_name?: string; phone?: string; afm?: string; lease_end?: string; email?: string }
 
-function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'checkout', tenant?: TenantData) {
+function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'checkout', tenant?: TenantData, branding?: ReportBranding | null) {
+  const accent = reportAccent(branding)
   const relevant = items.filter(i => i.category === type || (type === 'checkin' && i.category === 'legal'))
   const title = type === 'checkin' ? 'Πρωτόκολλο Παράδοσης Ακινήτου' : 'Πρωτόκολλο Αποχώρησης Ενοικιαστή'
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -578,13 +582,14 @@ function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'check
 <meta charset="UTF-8"><title>${esc(title)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{max-width:900px;margin:0 auto;padding:28px 36px}
 
 /* Header */
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:3px solid ${accent}}
+.logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
 .logo-sub{font-size:10px;color:#5f6368;margin-top:2px}
 .hdr-right{text-align:right}
 .hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:#202124}
@@ -593,8 +598,8 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 
 /* Sections */
 .sec{margin-bottom:20px;border:1px solid #e8eaed;border-radius:10px;overflow:hidden;break-inside:avoid}
-.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e8eaed;border-left:3px solid #1a73e8}
-.sec-num{width:26px;height:26px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
+.sec-hdr{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#f8f9fa;border-bottom:1px solid #e8eaed;border-left:3px solid ${accent}}
+.sec-num{width:26px;height:26px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;flex-shrink:0;letter-spacing:0}
 .sec-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#202124}
 .sec-body{padding:14px 16px}
 
@@ -684,7 +689,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 
 <div class="hdr">
   <div>
-    <div class="logo">Property <span>OS</span></div>
+    ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
     <div class="logo-sub">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
   </div>
   <div class="hdr-right">
@@ -875,7 +880,7 @@ ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
 `)}
 
 <div class="footer">
-  <div>Property OS · Πρωτόκολλο ${type === 'checkin' ? 'Παράδοσης' : 'Αποχώρησης'} · Αντίγραφο ___/2</div><div>Αρ. Αναφοράς: ${new Date().getTime().toString(36).toUpperCase().slice(-8)}</div>
+  <div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Πρωτόκολλο ${type === 'checkin' ? 'Παράδοσης' : 'Αποχώρησης'} · Αντίγραφο ___/2</div><div>Αρ. Αναφοράς: ${new Date().getTime().toString(36).toUpperCase().slice(-8)}</div>
   <div>${esc(today)}</div>
 </div>
 
@@ -1327,6 +1332,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
   const [loanPayment, setLoanPayment] = useState(0)
   const [enfiaPaid, setEnfiaPaid] = useState(false)
   const prevPct = useRef(0)
+  const branding = useReportBranding(userId)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200) }
 
@@ -1530,8 +1536,8 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
               ΑΑΔΕ {new Date().getFullYear()}
             </button>
             <button type="button" onClick={() => exportChecklistExcel(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Excel</button>
-            <button type="button" onClick={() => exportChecklistPDF(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
-            <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
+            <button type="button" onClick={() => exportChecklistPDF(items, branding)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
+            <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
             <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               + Νέο Task
             </button>
