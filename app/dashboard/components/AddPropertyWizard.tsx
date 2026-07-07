@@ -84,7 +84,7 @@ interface ExistingProperty {
   id: string; name?: string | null; prop_type?: string | null; address?: string | null;
   postal_code?: string | null; sqm?: number | null; floor?: number | null; year_built?: number | null;
   value?: number | null; purchase_price?: number | null; target_rent?: number | null;
-  ownership?: number | string | null; status_detail?: string | null;
+  ownership?: number | string | null; status_detail?: string | null; atak?: string | null;
 }
 const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
 
@@ -102,6 +102,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [name, setName] = useState(existing?.name || '');
   const [address, setAddress] = useState(existing?.address || '');
   const [postalCode, setPostalCode] = useState(existing?.postal_code || '');
+  const [atak, setAtak] = useState(existing?.atak || '');
   const [sqm, setSqm] = useState(s(existing?.sqm));
   const [floor, setFloor] = useState(s(existing?.floor));
   const [yearBuilt, setYearBuilt] = useState(s(existing?.year_built));
@@ -136,6 +137,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       prop_type: propType,
       address: address.trim() || null,
       postal_code: postalCode.trim() || null,
+      atak: atak.trim() || null,
       sqm: num(sqm),
       value: valueN,
       purchase_price: num(purchasePrice),
@@ -276,6 +278,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>
+              <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
+                <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 / περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
+              </Field>
               {isLandLike ? (
                 <Field label={sqmLabel}>
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
@@ -351,6 +356,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
                   ['Διεύθυνση', address.trim() || '—'],
                   postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
+                  atak.trim() ? ['ΑΤΑΚ', atak.trim()] : null,
                   [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : '—'],
                   isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
                   isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],

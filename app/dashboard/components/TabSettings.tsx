@@ -7,6 +7,7 @@ import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
 import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
+import { runE2Export } from './e2Export';
 import Billing from './Billing';
 import Referral from './Referral';
 
@@ -754,6 +755,17 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 <div style={{ fontSize:11 }}>Φορολογική κλίμακα: 15% / 25% / 35% / 45%</div>
               </div>
             )}
+          </div>
+
+          <div style={cardGap}>
+            {sectionTitle('Αναλυτική Κατάσταση Ε2 (για λογιστή)')}
+            <div style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",lineHeight:1.6,marginBottom:14 }}>
+              Κατέβασε αρχείο CSV με μία γραμμή ανά ακίνητο (ΑΤΑΚ, διεύθυνση, ποσοστό συνιδιοκτησίας, είδος μίσθωσης, μήνες, ακαθάριστο εισόδημα) για το έτος {e2Year}. Έτοιμο για αποστολή στον λογιστή σου.
+            </div>
+            <Btn variant="primary" onClick={async()=>{ const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
+            <div style={{ marginTop:12 }}>
+              <InfoBanner tone="warning">Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου· το ΑΤΑΚ και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ.</InfoBanner>
+            </div>
           </div>
 
           <div style={{ fontSize:11,color:'var(--text-tertiary)',textAlign:'center',fontFamily:"'Inter',sans-serif",lineHeight:1.6 }}>

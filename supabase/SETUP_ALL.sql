@@ -417,3 +417,9 @@ end $$;
 -- ─── 20260707100000_property_postal_code.sql ───
 -- Ταχυδρομικός Κώδικας (ΤΚ) ανά ακίνητο (εμφανίζεται στη διεύθυνση). Idempotent.
 alter table public.user_properties add column if not exists postal_code text;
+
+
+-- ─── 20260707140000_property_atak.sql ───
+-- Αριθμός Ταυτότητας Ακινήτου (ΑΤΑΚ) ανά ακίνητο — απαραίτητος για την
+-- Αναλυτική Κατάσταση Ε2. Idempotent· το RLS του user_properties ισχύει ήδη.
+alter table public.user_properties add column if not exists atak text;
