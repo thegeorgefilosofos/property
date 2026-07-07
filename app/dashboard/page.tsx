@@ -15,6 +15,7 @@ import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
+import TabClients from './components/TabClients';
 import AddPropertyWizard from './components/AddPropertyWizard';
 import DocumentScan from './components/DocumentScan';
 import { useAppPreferences } from './components/useAppPreferences';
@@ -45,7 +46,7 @@ interface Property {
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
   atak: string | null; floor: number | null; heating: string | null;
   parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
-  rental_mode: string | null;
+  rental_mode: string | null; client_id: string | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
@@ -88,6 +89,7 @@ const NAV_ITEMS = [
   { id:'checklist',  label:'Εκκρεμότητες' },
   { id:'contacts',   label:'Επαφές' },
   { id:'documents',  label:'Αρχείο' },
+  { id:'clients',    label:'Πελατολόγιο' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
@@ -106,6 +108,7 @@ const NAV_ICON: Record<string,string> = {
   checklist: 'M9 11l3 3L22 4|M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
   contacts:  'M4 4h16v16H4z|M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z|M6 16c0-2 4-2 4-2s4 0 4 2|M15 8h3|M15 12h3',
   documents: 'M4 4h6l2 3h8v13H4z',
+  clients:   'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 0 0 0-8 4 4 0 0 0 0 8z|M23 21v-2a4 4 0 0 0-3-3.87|M16 3.13a4 4 0 0 1 0 7.75',
   settings:  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.4h5l.3-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z',
 };
 
@@ -115,7 +118,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Οικονομικά',  ids: ['bills','expenses','loan','roi'] },
   { label: 'Μίσθωση',     ids: ['tenant','calendar'] },
   { label: 'Το ακίνητο',  ids: ['inventory','documents','contacts','checklist'] },
-  { label: 'Εργαλεία',    ids: ['comparison','settings'] },
+  { label: 'Εργαλεία',    ids: ['comparison','clients','settings'] },
 ];
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
@@ -895,6 +898,7 @@ export default function Dashboard() {
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
+              {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id}/>}
             </div>
