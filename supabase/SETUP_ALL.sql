@@ -307,6 +307,11 @@ create table if not exists public.rent_comparables (
   sqm           numeric     default 0,
   rent          numeric     default 0,
   rent_per_sqm  numeric     default 0,
+  listing_type  text        default 'rent',    -- rent | sale
+  asking_price  numeric     default 0,         -- ζητούμενη τιμή πώλησης (€)
+  price_per_sqm numeric     default 0,         -- €/τ.μ. πώλησης
+  days_on_market integer    default 0,         -- ημέρες στην αγορά
+  sold_price    numeric     default 0,         -- τελική τιμή πώλησης (0 = διαθέσιμο)
   distance      text        default '',
   condition     text        default 'good',   -- new | renovated | good | average | needs_work
   source        text        default 'spitogatos',
@@ -316,6 +321,7 @@ create table if not exists public.rent_comparables (
 );
 
 create index if not exists rent_comparables_property_idx on public.rent_comparables(property_id);
+create index if not exists rent_comparables_type_idx on public.rent_comparables(property_id, listing_type);
 
 alter table public.rent_comparables enable row level security;
 
