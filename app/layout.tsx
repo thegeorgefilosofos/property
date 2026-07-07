@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "./ThemeProvider";
 import CookieConsent from "./CookieConsent";
@@ -20,11 +21,13 @@ const themeInitScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // nonce από το middleware (proxy.ts) για το inline theme-init script υπό CSP.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="el" suppressHydrationWarning>
       <head>
@@ -37,7 +40,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Theme init, must run before paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
         <ThemeProvider>
