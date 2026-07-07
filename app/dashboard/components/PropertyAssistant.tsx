@@ -248,6 +248,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         memories: identity.memory ? memories.map(m => m.text) : undefined,
+        today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
       });
       const res = await fetch('/api/anthropic', {
         method: 'POST',

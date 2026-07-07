@@ -63,6 +63,11 @@ export function computeInsights(input: InsightInput): Insight[] {
   const { now, property: p, tenant, rent, propValue, grossYield, netYield, expensesYTD, expenses, bills, tasks, checklist, inventory, loanPayment = 0 } = input;
   const out: Insight[] = [];
 
+  // Είναι το ακίνητο βραχυχρόνιας μίσθωσης (Airbnb/τουριστικό); Το «κενό» και τα
+  // «insights» έχουν διαφορετικό νόημα από τη μακροχρόνια (ανά διανυκτέρωση/εποχή).
+  const shortTerm = /villa|βίλα|rooms|δωμάτ|studio|εξοχ|airbnb|βραχυ/i.test(String(p.prop_type || '')) ||
+    ['seasonal', 'short_term', 'shortterm', 'airbnb', 'βραχυχρόνια'].includes(String(p.status_detail || '').toLowerCase());
+
   // ── 1. Ασφάλεια ακινήτου ──────────────────────────────────────────────────
   const insD = daysUntil(p.insurance_expiry, now);
   if (insD !== null) {
@@ -100,8 +105,11 @@ export function computeInsights(input: InsightInput): Insight[] {
 
   // ── 6. Κενό ακίνητο = χαμένο εισόδημα ─────────────────────────────────────
   const isVacant = (p.status_detail === 'vacant') && !tenant;
-  if (isVacant && rent > 0) {
+  if (isVacant && rent > 0 && !shortTerm) {
     out.push({ id: 'vacant', kind: 'opportunity', title: 'Το ακίνητο είναι κενό', detail: `Κάθε μήνας χωρίς ενοικιαστή είναι περίπου ${eur(rent)} χαμένο εισόδημα. Αν ψάχνεις, δες πρώτα τι ενοίκιο πιάνει η περιοχή σου.`, metric: `${eur(rent)}/μήνα`, action: { label: 'Αποδόσεις', tab: 'roi' } });
+  } else if (isVacant && shortTerm) {
+    // Βραχυχρόνια: το «κενό» ανάμεσα σε κρατήσεις είναι φυσιολογικό. Εστίασε σε πληρότητα/τιμολόγηση.
+    out.push({ id: 'vacant-st', kind: 'opportunity', title: 'Ελεύθερες ημερομηνίες', detail: 'Σε βραχυχρόνια μίσθωση το κενό ανάμεσα σε κρατήσεις είναι φυσιολογικό. Πριν την υψηλή σεζόν, ρίξε μια ματιά στην τιμή ανά διανυκτέρευση, στις φωτογραφίες και στις αξιολογήσεις για να ανεβάσεις την πληρότητα.', action: { label: 'Αποδόσεις', tab: 'roi' } });
   }
 
   // ── 7. Έκπτωση φόρου: πλήρωνε ηλεκτρονικά ─────────────────────────────────
