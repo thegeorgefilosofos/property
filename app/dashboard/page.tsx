@@ -55,8 +55,8 @@ interface Task     { id:string; title:string; due_date:string|null; priority:str
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
 const STATUS_COLORS: Record<string,string> = {
-  rented:'var(--positive)', vacant:'var(--warning)', own_use:'var(--info)',
-  renovation:'var(--accent)', for_sale:'var(--negative)', seasonal:'var(--info)', disputed:'var(--negative)',
+  rented:'var(--accent)', vacant:'var(--warning)', own_use:'var(--accent)',
+  renovation:'var(--accent)', for_sale:'var(--accent)', seasonal:'var(--accent)', disputed:'var(--negative)',
 };
 const STATUS_LABELS: Record<string,string> = {
   rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία',
@@ -335,8 +335,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
                 {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
               </div>
             )}
-            <div style={{padding:'12px 16px',background:'var(--warning-dim)',borderRadius:12}}>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--warning)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
+            <div style={{padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
+              <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
@@ -627,7 +627,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
               <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--warning)'}}>{fmtEur(pendingExpYTD)}</span>
+              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(pendingExpYTD)}</span>
             </div>
           </div>
         )}
