@@ -510,9 +510,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
             {monthlyExp.map((v,i) => (
-              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                <div style={{width:'100%',height:`${(v/maxExp)*100}%`,background:i===month-1?'var(--accent)':'var(--md-surface-container)',borderRadius:'4px 4px 0 0',minHeight:v>0?4:0,transition:'height 0.3s'}}/>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,color:'var(--text-tertiary)'}}>{MONTHS[i]}</div>
+              <div key={i} title={`${MONTHS[i]}: ${fmtEur(v)}`} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'default'}}>
+                <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:i===month-1?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:i===month-1?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:i===month-1?700:400,color:i===month-1?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
               </div>
             ))}
           </div>

@@ -510,15 +510,21 @@ body {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: none;
+  padding: 17px 18px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+  transition: transform 0.18s cubic-bezier(.2,0,0,1), box-shadow 0.18s cubic-bezier(.2,0,0,1), border-color 0.18s;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(16,24,40,.22);
+  border-color: var(--border-default);
 }
 .kpi-value {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.01em;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -928,7 +934,9 @@ body {
   padding: 0 12px 0 8px;
   border: none;
   border-radius: 16px;
-  /* Απαλή διαβάθμιση βάθους αντί επίπεδου μπλε, δίνει «ακριβό» πρωτεύον control */
+  /* Συμπαγές accent ως σίγουρο fallback, μετά η απαλή διαβάθμιση βάθους από πάνω
+     (αν κάποιος engine αγνοήσει το color-mix, το κουμπί μένει πλήρως ορατό). */
+  background: var(--accent);
   background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 82%, #6ea8ff) 100%);
   color: var(--accent-text);
   cursor: pointer;
