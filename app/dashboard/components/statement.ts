@@ -3,6 +3,7 @@
 // Ανοίγει καθαρό, branded παράθυρο εκτύπωσης (A4), ιδανικό για τράπεζα/λογιστή.
 // Χωρίς εξαρτήσεις· ο χρήστης επιλέγει «Αποθήκευση ως PDF» από τον διάλογο.
 // ═══════════════════════════════════════════════════════════════════════════
+import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 
 export interface StatementCtx {
   propName: string;
@@ -18,12 +19,14 @@ export interface StatementCtx {
   netYield: number;
   expensesYTD: number;
   categories: [string, number][]; // [όνομα κατηγορίας, ποσό]
+  branding?: ReportBranding | null;
 }
 
 const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`;
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 
 export function printPropertyStatement(c: StatementCtx): void {
+  const accent = reportAccent(c.branding);
   const tax = c.annualRent * 0.15;
   const net = c.annualRent - c.expensesYTD - tax;
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -33,7 +36,7 @@ export function printPropertyStatement(c: StatementCtx): void {
     `<tr><td style="padding:9px 0;border-bottom:1px solid #e8eaed;color:#5f6368;font-size:13px">${esc(label)}</td>
      <td style="padding:9px 0;border-bottom:1px solid #e8eaed;text-align:right;font-family:'Roboto Mono',monospace;font-size:${strong ? 15 : 13}px;font-weight:${strong ? 700 : 500};color:${color}">${esc(value)}</td></tr>`;
 
-  const kpi = (label: string, value: string, color = '#1a73e8') =>
+  const kpi = (label: string, value: string, color = accent) =>
     `<div style="flex:1;min-width:120px;border:1px solid #e8eaed;border-radius:12px;padding:14px 16px">
       <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#80868b;font-weight:700;margin-bottom:8px">${esc(label)}</div>
       <div style="font-family:'Roboto Mono',monospace;font-size:20px;font-weight:700;color:${color}">${esc(value)}</div>
@@ -46,7 +49,7 @@ export function printPropertyStatement(c: StatementCtx): void {
           <span>${esc(name)}</span><span style="font-family:'Roboto Mono',monospace;font-weight:600">${esc(eur(amt))}</span>
         </div>
         <div style="height:6px;background:#f1f3f4;border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${Math.round((amt / catMax) * 100)}%;background:#1a73e8;border-radius:3px"></div>
+          <div style="height:100%;width:${Math.round((amt / catMax) * 100)}%;background:${accent};border-radius:3px"></div>
         </div>
       </div>`).join('')
     : `<div style="color:#80868b;font-size:12px;padding:12px 0">Δεν έχουν καταχωρηθεί δαπάνες.</div>`;
@@ -61,14 +64,14 @@ export function printPropertyStatement(c: StatementCtx): void {
   h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
   .muted{color:#5f6368}
   .sec{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5f6368;margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:8px}
-  .dot{width:6px;height:6px;border-radius:50%;background:#1a73e8;display:inline-block}
+  .dot{width:6px;height:6px;border-radius:50%;background:${accent};display:inline-block}
   table{width:100%;border-collapse:collapse}
 </style></head>
 <body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a73e8;padding-bottom:18px;margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${accent};padding-bottom:18px;margin-bottom:8px">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:34px;height:34px;border-radius:9px;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">P</div>
-      <div><div style="font-size:16px;font-weight:700">Property OS</div><div class="muted" style="font-size:11px">Αναφορά Ακινήτου</div></div>
+      ${brandLogoImg(c.branding, 34) || `<div style="width:34px;height:34px;border-radius:9px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">P</div>`}
+      <div><div style="font-size:16px;font-weight:700">${brandName(c.branding)}</div><div class="muted" style="font-size:11px">Αναφορά Ακινήτου</div>${brandContactLine(c.branding) ? `<div class="muted" style="font-size:10px;margin-top:2px">${brandContactLine(c.branding)}</div>` : ''}</div>
     </div>
     <div style="text-align:right"><div class="muted" style="font-size:11px">Ημερομηνία</div><div style="font-size:13px;font-weight:600">${esc(today)}</div></div>
   </div>
@@ -97,7 +100,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   ${catRows}
 
   <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e8eaed;color:#80868b;font-size:10px;line-height:1.6">
-    Η παρούσα αναφορά δημιουργήθηκε αυτόματα από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται ενδεικτικά στο 15% των ακαθάριστων εσόδων.
+    ${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}Η παρούσα αναφορά δημιουργήθηκε αυτόματα από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται ενδεικτικά στο 15% των ακαθάριστων εσόδων.
   </div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </body></html>`;

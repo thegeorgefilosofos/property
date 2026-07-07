@@ -450,3 +450,27 @@ alter table public.user_properties add column if not exists insurance_company te
 alter table public.user_properties add column if not exists insurance_amount numeric;
 alter table public.user_properties add column if not exists insurance_expiry date;
 alter table public.user_properties add column if not exists notes text;
+
+
+-- ─── 20260707180000_report_branding.sql ───
+-- Λευκή επωνυμία (white-label) στις εκτυπώσιμες αναφορές — πλάνο «Επαγγελματίας».
+-- Ένα row ανά χρήστη, RLS «μόνο ο ιδιοκτήτης». Idempotent.
+create table if not exists public.report_branding (
+  user_id       uuid primary key references auth.users(id) on delete cascade,
+  enabled       boolean     default true,
+  company_name  text,
+  logo_url      text,
+  accent_color  text        default '#1a73e8',
+  phone         text,
+  email         text,
+  updated_at    timestamptz default now(),
+  constraint report_branding_accent_hex
+    check (accent_color is null or accent_color ~* '^#[0-9a-f]{6}$')
+);
+
+alter table public.report_branding enable row level security;
+
+drop policy if exists "own_report_branding" on public.report_branding;
+create policy "own_report_branding" on public.report_branding for all
+  using      (user_id = auth.uid())
+  with check (user_id = auth.uid());

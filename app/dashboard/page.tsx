@@ -25,6 +25,7 @@ import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
+import { useReportBranding } from '@/lib/reportBranding';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
@@ -348,6 +349,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 // Overview Tab
 function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: string; onNavigate: (tab: string) => void }) {
   const supabase = createClient();
+  const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -464,7 +466,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
           status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
           sqm: prop.sqm||undefined, monthlyRent: rent, annualRent, grossYield, netYield,
-          expensesYTD: totalExpYTD, categories: catEntries,
+          expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
           style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
           onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';}}
