@@ -1,8 +1,46 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const isProd = process.env.NODE_ENV === "production";
+
+// Content-Security-Policy με per-request nonce (μόνο production). Έτσι φεύγει το
+// 'unsafe-inline' από το script-src: κάθε inline script (και του Next και το δικό
+// μας theme-init) εμπιστεύεται μόνο μέσω του nonce + 'strict-dynamic'. Σε
+// development δεν στέλνουμε CSP (το Next dev χρειάζεται eval/ws/blob).
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Νonce με Web Crypto (δουλεύει σε edge & node runtime, χωρίς Buffer).
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  const nonce = btoa(bin);
+  const csp = isProd ? buildCsp(nonce) : "";
+
+  // Περνάμε το nonce + το CSP στα request headers ώστε το Next να «περάσει» το
+  // nonce στα δικά του inline scripts κατά το render.
+  const requestHeaders = new Headers(request.headers);
+  if (isProd) {
+    requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("Content-Security-Policy", csp);
+  }
+
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +54,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -46,6 +84,7 @@ export async function proxy(request: NextRequest) {
   // σελίδες σύνδεσης/εγγραφής. Οι ίδιες οι σελίδες δείχνουν ευγενικά ότι είναι ήδη
   // συνδεδεμένος και προσφέρουν «Μετάβαση στον πίνακα» ή «Αποσύνδεση» (αλλαγή λογαριασμού).
 
+  if (isProd) supabaseResponse.headers.set("Content-Security-Policy", csp);
   return supabaseResponse;
 }
 

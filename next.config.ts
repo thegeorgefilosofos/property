@@ -1,40 +1,14 @@
 import type { NextConfig } from "next";
 
-// ── Content Security Policy ──────────────────────────────────────────────────
-// Επιτρέπει ό,τι χρειάζεται πραγματικά η εφαρμογή (Google Fonts, inline styles,
-// το inline theme-init script, Supabase realtime, data/blob εικόνες για σάρωση)
-// και μπλοκάρει τα υπόλοιπα (ξένα scripts, framing, object embeds) ώστε ακόμη κι
-// αν περάσει XSS, να μη μπορεί να στείλει δεδομένα έξω ή να κλέψει τη συνεδρία.
-// Σε development το Next.js (Turbopack + React dev tools) απαιτεί eval() και
-// websocket για hot-reload· γι' αυτό χαλαρώνουμε ΜΟΝΟ τοπικά. Στην παραγωγή η
-// πολιτική μένει αυστηρή, χωρίς 'unsafe-eval' και χωρίς upgrade-insecure στο dev
-// (που σπάει το http://localhost).
-// Σε development ΔΕΝ στέλνουμε καθόλου CSP/HSTS: το Next.js dev (Turbopack +
-// React dev tools) χρειάζεται eval(), websocket, blob και wasm για hot-reload
-// και debugging, και δεν έχει νόημα να τα «αστυνομεύουμε» τοπικά. Στην παραγωγή
-// η πολιτική μένει πλήρως αυστηρή.
+// ── Security headers ─────────────────────────────────────────────────────────
+// Το Content-Security-Policy ορίζεται πλέον στο proxy.ts (middleware) με
+// per-request nonce, ώστε να φύγει το 'unsafe-inline' από το script-src. Εδώ
+// μένουν οι υπόλοιπες κεφαλίδες. Σε development παραλείπουμε το HSTS (σπάει το
+// http://localhost)· η CSP ούτως ή άλλως δεν στέλνεται σε dev από το middleware.
 const isDev = process.env.NODE_ENV !== "production";
-const csp = [
-  "default-src 'self'",
-  // Το inline theme-init script + η ενυδάτωση του Next χρειάζονται 'unsafe-inline'.
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https:",
-  // Ο browser μιλάει απευθείας στο Supabase (REST + realtime). Το AI καλείται
-  // server-side μέσω /api/anthropic ('self'), όχι από τον browser.
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
 
 const securityHeaders = [
-  // CSP + HSTS μόνο σε production· σε development παραλείπονται (δες παραπάνω).
   ...(isDev ? [] : [
-    { key: "Content-Security-Policy", value: csp },
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   ]),
   { key: "X-Frame-Options", value: "DENY" },
