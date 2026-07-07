@@ -11,12 +11,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import { shortTermNet } from '@/lib/billing/greekTax';
 
 const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 const DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
 
-interface OccData { shortTerm: boolean; ama: string; nightlyRate: string; nights: string[]; }
-const INIT: OccData = { shortTerm: false, ama: '', nightlyRate: '', nights: Array(12).fill('') };
+interface OccData { shortTerm: boolean; ama: string; nightlyRate: string; nights: string[]; platformFeePct: string; cleaningPerStay: string; avgNightsPerStay: string; }
+const INIT: OccData = { shortTerm: false, ama: '', nightlyRate: '', nights: Array(12).fill(''), platformFeePct: '15', cleaningPerStay: '40', avgNightsPerStay: '3' };
 
 export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: { propertyId: string; userId: string; longTermMonthly: number }) {
   const supabase = createClient();
@@ -41,12 +42,15 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
   // Υπολογισμοί
   const rate = parseFloat(d.nightlyRate) || 0;
-  const totalNights = d.nights.reduce((s, v) => s + (parseInt(v) || 0), 0);
+  const nightsNum = d.nights.map(v => parseInt(v) || 0);
+  const totalNights = nightsNum.reduce((s, v) => s + v, 0);
   const totalDays = DAYS.reduce((a, b) => a + b, 0);
   const occupancyPct = totalDays > 0 ? (totalNights / totalDays) * 100 : 0;
-  const stRevenue = totalNights * rate;
+  // Καθαρά έσοδα: μεικτά − προμήθειες πλατφορμών − καθαρισμός − Τέλος Ανθεκτικότητας.
+  const net = shortTermNet({ nightsByMonth: nightsNum, nightlyRate: rate, platformFeePct: parseFloat(d.platformFeePct) || 0, cleaningPerStay: parseFloat(d.cleaningPerStay) || 0, avgNightsPerStay: parseFloat(d.avgNightsPerStay) || 0 });
+  const stRevenue = net.grossRevenue;
   const ltRevenue = longTermMonthly * 12;
-  const diff = stRevenue - ltRevenue;
+  const diff = net.net - ltRevenue;
 
   const kpi = (label: string, value: string, tone = 'var(--text-primary)') => (
     <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
@@ -95,6 +99,21 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
                   <input value={d.nightlyRate} onChange={e => upd({ nightlyRate: e.target.value })} type="number" placeholder="60"
                     style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
                 </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Προμήθεια πλατφόρμας (%)</div>
+                  <input value={d.platformFeePct} onChange={e => upd({ platformFeePct: e.target.value })} type="number" placeholder="15"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Καθαρισμός ανά διαμονή (€)</div>
+                  <input value={d.cleaningPerStay} onChange={e => upd({ cleaningPerStay: e.target.value })} type="number" placeholder="40"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μέσες νύχτες ανά κράτηση</div>
+                  <input value={d.avgNightsPerStay} onChange={e => upd({ avgNightsPerStay: e.target.value })} type="number" placeholder="3"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
+                </div>
               </div>
 
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα</div>
@@ -111,14 +130,18 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 10, marginBottom: 14 }}>
                 {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`, 'var(--accent)')}
                 {kpi('Νύχτες / έτος', String(totalNights))}
-                {kpi('Έσοδα βραχυχρόνιας', fe(stRevenue), 'var(--positive)')}
+                {kpi('Μεικτά έσοδα', fe(stRevenue))}
+                {kpi('Προμήθειες πλατφορμών', `− ${fe(net.platformFees)}`, 'var(--text-secondary)')}
+                {kpi('Καθαρισμός', `− ${fe(net.cleaningTotal)}`, 'var(--text-secondary)')}
+                {kpi('Τέλος ανθεκτικότητας', `− ${fe(net.levy)}`, 'var(--text-secondary)')}
+                {kpi('Καθαρά έσοδα', fe(net.net), 'var(--positive)')}
                 {kpi('Διαφορά vs μακροχρόνια', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)')}
               </div>
 
               <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', marginTop: 6, flexShrink: 0 }} />
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της ΑΑΔΕ και αναγραφή του <strong>ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο Ε2. Η σύγκριση εδώ είναι μεικτή, δεν περιλαμβάνει πλατφόρμες, καθαρισμό ή κενές περιόδους.
+                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της ΑΑΔΕ και αναγραφή του <strong>ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο Ε2. Τα καθαρά έσοδα αφαιρούν προμήθειες πλατφορμών, καθαρισμό και το <strong>Τέλος Ανθεκτικότητας</strong> (8 € την υψηλή περίοδο, 2 € τη χαμηλή, ανά διανυκτέρευση), όχι όμως τον φόρο εισοδήματος. Οι ακριβείς μήνες και τα ποσά του τέλους ορίζονται από την ΑΑΔΕ.
                 </div>
               </div>
             </>
