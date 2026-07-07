@@ -61,7 +61,7 @@ export function SkeletonKPIs({ n = 4 }: { n?: number }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
       {Array.from({ length: n }).map((_, i) => (
-        <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+        <div key={i} className="kpi-card" style={{ pointerEvents: 'none' }}>
           <Skeleton w={70} h={9} style={{ marginBottom: 12 }} />
           <Skeleton w={90} h={20} />
         </div>
@@ -106,8 +106,9 @@ const toneVars = (tone: Tone) => {
 export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div style={{
-      background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-      borderRadius: T.radius.card, padding: T.sp.lg, marginBottom: T.sp.lg, ...style,
+      background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
+      borderRadius: T.radius.card, padding: T.sp.lg, marginBottom: T.sp.lg,
+      boxShadow: 'var(--highlight-inset), var(--elev-1)', ...style,
     }}>
       {children}
     </div>
@@ -133,7 +134,7 @@ export function PageTitle({ title, sub, right }: { title: string; sub?: string; 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
       <div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>{title}</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>{title}</h1>
         {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>{sub}</div>}
       </div>
       {right && <div style={{ display: 'flex', gap: 8 }}>{right}</div>}
@@ -149,12 +150,12 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   // σε 2 ή 1 στήλες σε tablet/κινητό, χωρίς media queries, δουλεύει παντού.
   const cols = columns ?? items.length;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 10, marginBottom: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16 }}>
       {items.map((k, i) => (
-        <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', lineHeight: 1 }}>{k.value}</div>
-          {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 5, fontFamily: T.font.sans }}>{k.sub}</div>}
+        <div key={i} className="kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="kpi-label">{k.label}</div>
+          <div className="kpi-value" style={{ marginBottom: 0, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : undefined }}>{k.value}</div>
+          {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
       ))}
     </div>

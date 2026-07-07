@@ -755,18 +755,12 @@ export default function Dashboard() {
         </div>
 
         {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού.
-            Κρίσιμα inline styles ώστε να ΜΗΝ εξαφανίζεται ποτέ, ακόμη κι αν
-            αστοχήσει το CSS class (gradient/color-mix) ή μείνει stale το cache. */}
+            Η ορατότητα είναι εγγυημένη από το .quick-add-btn (αδιαφανές
+            background-color που βάφεται πάντα, ανεξάρτητα από τη διαβάθμιση). */}
         <button
           onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
           className="quick-add-btn"
           disabled={!selected}
-          style={{
-            display:'flex', alignItems:'center', gap:12, minHeight:56, boxSizing:'border-box',
-            background: selected ? 'var(--accent)' : 'var(--bg-elevated)',
-            color: selected ? 'var(--accent-text)' : 'var(--text-secondary)',
-            border: selected ? '1px solid transparent' : '1px solid var(--border-default)',
-          }}
           title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, μισθωτήριο, ασφάλεια, έγγραφο, οτιδήποτε' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
           <span className="quick-add-icon" aria-hidden>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
