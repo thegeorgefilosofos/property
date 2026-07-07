@@ -393,8 +393,9 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
         const totalCost = cs.monthly*cs.years*12
         const interestRatio = cs.loanAmount>0?cs.totalInterest/cs.loanAmount:0
         const stressMonthly2 = calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)
-        const spitiRate = Math.max(market.euribor_3m*0.5+0.3,1.0)
-        const spitiMonthly = calcMonthly(cs.loanAmount,spitiRate,cs.years)
+        // «Σπίτι μου ΙΙ»: 50% άτοκο + 50% με το επιτόκιο του δανειολήπτη (δύο σκέλη).
+        const spitiRate = cs.effectiveRate/2
+        const spitiMonthly = calcMonthly(cs.loanAmount*0.5,0,cs.years)+calcMonthly(cs.loanAmount*0.5,cs.effectiveRate,cs.years)
         const spitiSaving = (cs.monthly-spitiMonthly)*cs.years*12
         const shortMonthly20 = cs.years>20?calcMonthly(cs.loanAmount,cs.effectiveRate,20):0
         const savedByShortening = cs.years>20?(cs.monthly*cs.years*12)-(shortMonthly20*20*12):0
