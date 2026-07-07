@@ -57,3 +57,43 @@ export const RENTAL_TAX_ROWS_2026: { range: string; rate: string; from: number; 
 /** Σύντομη περιγραφή της κλίμακας (για τον βοηθό / tooltips). */
 export const RENTAL_TAX_SUMMARY_2026 =
   'Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.000 έως 24.000 €, 35% από 24.000 έως 35.000 €, 45% πάνω από 35.000 €.';
+
+// ── Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ), βραχυχρόνια μίσθωση ──────
+// Επιβάλλεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ανά ακίνητο. Ποσά 2025: υψηλή περίοδος 8 €,
+// χαμηλή περίοδος 2 €. Υψηλή περίοδος = Απρίλιος–Οκτώβριος. Πηγή: ΑΑΔΕ / ν.5073.
+export const CLIMATE_LEVY_PER_NIGHT_2025 = { high: 8, low: 2 };
+
+/** Υψηλή τουριστική περίοδος (Απρ–Οκτ). monthIndex: 0=Ιανουάριος. */
+export function isHighSeasonMonth(monthIndex: number): boolean {
+  return monthIndex >= 3 && monthIndex <= 9;
+}
+
+/** Ετήσιο ΤΑΚΚ από διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν). */
+export function climateLevyForNights(nightsByMonth: number[]): number {
+  return nightsByMonth.reduce((sum, n, i) =>
+    sum + Math.max(0, n) * (isHighSeasonMonth(i) ? CLIMATE_LEVY_PER_NIGHT_2025.high : CLIMATE_LEVY_PER_NIGHT_2025.low), 0);
+}
+
+export interface ShortTermNet {
+  grossRevenue: number;   // διανυκτερεύσεις × τιμή
+  platformFees: number;   // προμήθειες πλατφορμών
+  cleaningTotal: number;  // κόστος καθαρισμού (× αριθμό διαμονών)
+  levy: number;           // ΤΑΚΚ
+  net: number;            // καθαρά έσοδα (πριν φόρο εισοδήματος)
+  stays: number;          // εκτιμώμενες διαμονές
+}
+
+/** Καθαρά έσοδα βραχυχρόνιας: μεικτά − προμήθειες − καθαρισμός − ΤΑΚΚ. */
+export function shortTermNet(input: {
+  nightsByMonth: number[]; nightlyRate: number;
+  platformFeePct: number; cleaningPerStay: number; avgNightsPerStay: number;
+}): ShortTermNet {
+  const totalNights = input.nightsByMonth.reduce((s, n) => s + Math.max(0, n || 0), 0);
+  const grossRevenue = totalNights * Math.max(0, input.nightlyRate || 0);
+  const platformFees = grossRevenue * Math.max(0, input.platformFeePct || 0) / 100;
+  const stays = input.avgNightsPerStay > 0 ? totalNights / input.avgNightsPerStay : 0;
+  const cleaningTotal = stays * Math.max(0, input.cleaningPerStay || 0);
+  const levy = climateLevyForNights(input.nightsByMonth);
+  const net = grossRevenue - platformFees - cleaningTotal - levy;
+  return { grossRevenue, platformFees, cleaningTotal, levy, net, stays };
+}
