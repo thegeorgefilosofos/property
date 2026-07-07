@@ -235,7 +235,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       </div>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 10, color: 'var(--info)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -265,14 +265,14 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
       {/* ── Cross-tab: Insurance earthquake ΕΝΦΙΑ discount ───────────────── */}
       {(crossTabData.insuranceEq || crossTabData.insuranceFlood) && !(s.enfiaReductions || []).includes('insurance') && (
-        <div style={{ background: 'rgba(52,168,83,0.07)', border: '1px solid rgba(52,168,83,0.25)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)', flexShrink: 0 }}/>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans }}>
-            <span style={{ fontWeight: 700, color: 'var(--positive)' }}>Έκπτωση ΕΝΦΙΑ 10-20% διαθέσιμη! </span>
+            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Έκπτωση <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span> 10-20% διαθέσιμη! </span>
             <span style={{ color: 'var(--text-secondary)' }}>Η ασφάλειά σου καλύπτει φυσικές καταστροφές. Πρόσθεσέ την στις μειώσεις ΕΝΦΙΑ.</span>
           </div>
           <button onClick={() => { const cur = s.enfiaReductions || []; upd({ enfiaReductions: [...cur, 'insurance'] }); }}
-            style={{ background: 'var(--positive)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '6px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+            style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '6px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
             Εφαρμογή →
           </button>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>Ασφάλεια</span>
@@ -282,9 +282,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       {/* ── Cross-tab: Dimotika from Electricity tab ─────────────────────── */}
       {crossTabData.electricityDimotika && parseFloat(crossTabData.electricityDimotika) > 0 && (
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
-            <span style={{ fontWeight: 600, color: 'var(--info)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
+            <span style={{ fontWeight: 600, color: 'var(--accent)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
            , από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
           </div>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>Ρεύμα</span>
@@ -312,18 +312,19 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE.gr</div>
+              <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
+              <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων), μέσω myAADE" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE.gr</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.08)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid rgba(242,153,0,0.2)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, border: '1px solid var(--border-subtle)', textTransform: 'uppercase' as const }}>Εκτίμηση</span>
             {/* FIX: direct taxheaven ΕΝΦΙΑ link */}
             <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--info)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'rgba(26,115,232,0.06)', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.18)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'rgba(26,115,232,0.06)', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.18)' }}>
               taxheaven ΕΝΦΙΑ →
             </a>
             <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
+              title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '2px 10px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
               Ε9 / ΕΝΦΙΑ (myAADE) →
             </a>
@@ -336,8 +337,8 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
         {/* Cross-tab Checklist badge */}
         {crossTabData.enfiaChecklist && (
-          <div style={{ background: crossTabData.enfiaChecklist.status === 'done' ? 'rgba(52,168,83,0.07)' : 'rgba(26,115,232,0.06)', border: `1px solid ${crossTabData.enfiaChecklist.status === 'done' ? 'rgba(52,168,83,0.2)' : 'rgba(26,115,232,0.15)'}`, borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: crossTabData.enfiaChecklist.status === 'done' ? 'var(--positive)' : 'var(--info)', flexShrink: 0 }}/>
+          <div style={{ background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
             <span style={{ flex: 1, color: 'var(--text-secondary)' }}>
               {crossTabData.enfiaChecklist.status === 'done'
                 ? 'ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στο Checklist'
@@ -351,9 +352,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
         {/* 2026 banner */}
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.12)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0, marginTop: 3 }}/>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 3 }}/>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
-            <span style={{ fontWeight: 700, color: 'var(--info)' }}>Νέο 2026: </span>
+            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Νέο 2026: </span>
             Αύξηση ~8% στους συντελεστές. Μείωση 10-20% αν ασφαλίζεται για φυσικές καταστροφές (Α.1005/2026).{' '}
             <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ανάλυση ΕΝΦΙΑ 2026 →</a>
           </div>
@@ -367,7 +368,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             const dLeft  = Math.ceil((new Date(d.date).getTime() - today.getTime()) / 86400000);
             return (
               <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : isPast ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 6px', textAlign: 'center' as const, opacity: isPast ? 0.45 : 1, transition: 'all 0.15s' }}>
-                <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
+                <div style={{ fontSize: 8, fontWeight: 700, fontFamily: T.font.sans, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'transparent', minHeight: 12 }}>
                   {isPast ? 'ΠΛΗΡΩΜΕΝΗ' : isNext ? 'ΕΠΟΜΕΝΗ' : ''}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: isNext ? 700 : 500, color: isNext ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{d.label}</div>
@@ -419,18 +420,18 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   const eligible = r.key === 'insurance' && (crossTabData.insuranceEq || crossTabData.insuranceFlood);
                   return (
                     <div key={r.key} onClick={() => toggleReduction(r.key)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'rgba(52,168,83,0.07)' : eligible ? 'rgba(52,168,83,0.03)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--positive)' : eligible ? 'rgba(52,168,83,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `2px solid ${active ? 'var(--positive)' : 'var(--border-default)'}`, background: active ? 'var(--positive)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', background: active ? 'rgba(26,115,232,0.07)' : eligible ? 'rgba(26,115,232,0.04)' : 'var(--bg-elevated)', border: `1px solid ${active ? 'var(--accent)' : eligible ? 'rgba(26,115,232,0.3)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: active ? 600 : 400 }}>
                           {r.label}
-                          {eligible && !active && <span style={{ fontSize: 9, color: 'var(--positive)', marginLeft: 8, fontFamily: T.font.sans }}>✓ Δικαιούσαι</span>}
+                          {eligible && !active && <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 8, fontFamily: T.font.sans }}>✓ Δικαιούσαι</span>}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{r.note}</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>-{r.pct}%</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>-{r.pct}%</span>
                     </div>
                   );
                 })}
@@ -455,12 +456,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 18, marginBottom: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 14 }}>
                       <div>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τελικός ΕΝΦΙΑ</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
+                        <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τελικός ΕΝΦΙΑ</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.final, 0)}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Δόση (~6 δόσεις)</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(enfiaResult.installment, 0)}</div>
                       </div>
                     </div>
                     {[
@@ -470,14 +471,14 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     ].map((row, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                         <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{row.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: row.pos ? 'var(--positive)' : 'var(--text-primary)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: row.pos ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                           {row.val > 0 ? '+' : ''}{fe(row.val)}
                         </span>
                       </div>
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνολο ΕΝΦΙΑ</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(enfiaResult.final)}</span>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 6, marginBottom: 14 }}>
@@ -486,15 +487,15 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                       const isNext = d === nextDeadline;
                       return (
                         <div key={i} style={{ background: isNext ? 'rgba(26,115,232,0.1)' : 'var(--bg-elevated)', border: `1px solid ${isNext ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 12px', opacity: isPast ? 0.45 : 1 }}>
-                          <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--positive)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--positive)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
+                          <div style={{ fontSize: 9, fontWeight: 600, fontFamily: T.font.sans, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, color: isPast ? 'var(--text-tertiary)' : isNext ? 'var(--accent)' : 'var(--text-tertiary)' }}>{d.label}{isPast ? ' ✓' : ''}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1, color: isNext ? 'var(--accent)' : isPast ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(enfiaResult.installment, 0)}</div>
                           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3 }}>{d.month}</div>
                         </div>
                       );
                     })}
                   </div>
                   {!(s.enfiaReductions || []).includes('insurance') && (
-                    <div style={{ background: 'rgba(52,168,83,0.07)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                       Ασφάλεια με κάλυψη φυσικών καταστροφών → μείωση 10-20% ΕΝΦΙΑ (Α.1005/2026)
                     </div>
                   )}
@@ -502,10 +503,11 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               ) : (
                 <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 24, textAlign: 'center' as const }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 8 }}>Συμπλήρωσε εμβαδόν + τιμή ζώνης</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 18, lineHeight: 1.5 }}>Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ</div>
+                  <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE" style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 18, lineHeight: 1.5 }}>Η τιμή ζώνης βρίσκεται στο myAADE → Εφαρμογές → Δήλωση Ε9/ΕΝΦΙΑ</div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' as const }}>
                     <a href="https://www1.aade.gr/aadeapps3/myaade/" target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--info)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+                      title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ, μέσω της εφαρμογής myAADE"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', padding: '8px 18px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
                       Δήλωση Ε9/ΕΝΦΙΑ (myAADE) →
                     </a>
                     <a href="https://www.taxheaven.gr/news/73091/anarthohkan-ta-ekkaoaristika-toy-enfia-2026" target="_blank" rel="noopener noreferrer"
@@ -720,7 +722,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <div>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{o.name}</span>
               {o.contact && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{o.contact}</span>}
-              {o.phone   && <span style={{ fontSize: 10, color: 'var(--info)',           marginLeft: 10, fontFamily: T.font.sans }}>{o.phone}</span>}
+              {o.phone   && <span style={{ fontSize: 10, color: 'var(--accent)',           marginLeft: 10, fontFamily: T.font.sans }}>{o.phone}</span>}
               <span style={{ fontSize: 9, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{FREQ.find(f => f.value === o.freq)?.label}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
