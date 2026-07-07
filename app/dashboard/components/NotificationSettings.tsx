@@ -133,13 +133,13 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
   }
 
   const inp: React.CSSProperties = {
-    width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)',
-    borderRadius: T.radius.btn, padding: '10px 12px', color: 'var(--text-primary)', fontSize: 14,
-    fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
+    width: '100%', height: 42, background: 'var(--bg-base)', border: '1px solid var(--border-default)',
+    borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14,
+    fontFamily: T.font.sans, letterSpacing: 0, outline: 'none', boxSizing: 'border-box',
   }
   const lbl: React.CSSProperties = {
-    fontSize: 10, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6,
+    fontSize: 11, fontFamily: T.font.sans, fontWeight: 600, color: 'var(--text-secondary)',
+    textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 7,
   }
 
   function Toggle({ val, onChange, label, desc }: {
