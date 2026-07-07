@@ -20,9 +20,9 @@ do $$
 declare
   t text;
   own_tables text[] := array[
-    'user_properties','properties','expenses','bills','bills_history',
+    'user_properties','properties','property_data','expenses','bills','bills_history',
     'tenants','rent_payments','rent_config','calendar_events',
-    'property_documents','bills_settings','property_settings',
+    'property_documents','bills_settings','property_settings','notification_preferences',
     'loans','contacts','maintenance_tasks','tenant_comm_log','bills_electricity'
   ];
 begin

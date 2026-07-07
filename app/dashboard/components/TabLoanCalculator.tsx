@@ -193,6 +193,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
   const [editingId,   setEditingId]   = useState<string|null>(null)
   const [remBal,      setRemBal]      = useState('100000')
   const [remYears,    setRemYears]    = useState('20')
+  const [curRate,     setCurRate]     = useState('4.0')
   const [newRate,     setNewRate]     = useState('3.0')
   const [xferCost,    setXferCost]    = useState('2000')
   const [saving,      setSaving]      = useState(false)
@@ -211,6 +212,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
   const CH   = parseInt(children)||0
   const RB   = parseFloat(remBal)||0
   const RY   = parseFloat(remYears)||0
+  const CR   = parseFloat(curRate)||0
   const NR   = parseFloat(newRate)||0
   const XC   = parseFloat(xferCost)||0
   const AGNT = hasAgent?(PV*parseFloat(agentPct||'2')/100):0
@@ -242,11 +244,16 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
 
   const renInc   = loanType==='investment'?monthly*12*0.8:0
   const renTax   = calcRentalTax(renInc*(1-TAX_DATA.rental_expense_deduction))
-  const spitiR   = Math.max(market.euribor_3m*0.5+0.3,1.0)
-  const spitiM   = calcMonthly(LA,spitiR,Y)
+  // «Σπίτι μου ΙΙ»: το 50% του δανείου είναι άτοκο (0%), το υπόλοιπο 50% με το
+  // επιτόκιο της τράπεζάς σου. Μοντελοποιούμε τα δύο σκέλη αντί για αυθαίρετο
+  // ευριστικό. Το εμφανιζόμενο «επιτόκιο» είναι το μεικτό (~μισό του κανονικού).
+  const spitiM   = calcMonthly(LA*0.5,0,Y) + calcMonthly(LA*0.5,effRate,Y)
+  const spitiR   = effRate/2
   const spitiSv  = (monthly-spitiM)*Y*12
 
-  const currM    = calcMonthly(RB,effRate,RY)
+  // Στην αναχρηματοδότηση το «τρέχον» επιτόκιο είναι του υπάρχοντος δανείου
+  // (curRate), όχι το νέο μοντελοποιημένο επιτόκιο.
+  const currM    = calcMonthly(RB,CR,RY)
   const newM     = calcMonthly(RB,NR,RY)
   const mSav     = currM-newM
   const refSav   = mSav*RY*12-XC
@@ -682,6 +689,7 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
           <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="χρ"/>
+          <NumberInput label="Τρέχον επιτόκιο (%)" value={curRate} onChange={setCurRate} suffix="%" step={0.05}/>
           <NumberInput label="Νέο επιτόκιο (%)" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
           <NumberInput label="Κόστος μεταφοράς (€)" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>

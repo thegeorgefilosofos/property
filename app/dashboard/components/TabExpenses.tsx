@@ -58,7 +58,7 @@ const CORE_GROUPS = new Set(['fixed', 'maintenance', 'renovation', 'appliances',
 
 // Premium, cohesive παλέτα (μουτ), ίδια με ExpenseAnalytics, χωρίς νέον/θόρυβο.
 const GROUP_COLORS: Record<string, string> = {
-  fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7c4dff',
+  fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7e57c2',
   appliances:'#00897b', appliance_lease:'#3949ab', vehicle_lease:'#00acc1',
   commercial:'#5e35b1', broker:'#26a69a', legal:'#8e24aa',
   travel:'#43a047', exhibition:'#6d4c41', tax:'#e8710a', other:'#9aa0a6',
@@ -110,7 +110,7 @@ const bestPayment = (a: number) =>
   a >= 500  ? 'Χρεωστική με Cashback ή Πιστωτική Άτοκες' :
   a >= 100  ? 'Χρεωστική με Cashback' : 'Μετρητά ή Χρεωστική';
 
-const CAT_COLORS = ['#1a73e8','#00897b','#7c4dff','#5f6368','#00acc1','#3949ab','#8e24aa','#43a047','#e8710a','#6d4c41'];
+const CAT_COLORS = ['#1a73e8','#00897b','#7e57c2','#5f6368','#00acc1','#3949ab','#8e24aa','#43a047','#e8710a','#6d4c41'];
 const CAT_COLOR_MAP: Record<string,string> = {};
 let colorIdx = 0;
 function getCatColor(cat: string) {
@@ -567,70 +567,76 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
   if (!info) return null;
 
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:`3px solid ${groupColor}`, borderRadius:10, padding:'14px 16px' }}>
-      {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
-        <div style={{ minWidth:0 }}>
-          <div style={{ fontSize:11, fontWeight:500, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {info.label}
-          </div>
-          <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-            <span style={{ fontSize:16, fontWeight:700, color: over ? 'var(--warning)' : 'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>
-              {fmtEur0(spent)}
-            </span>
-            {budget > 0 && (
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
-                / {fmtEur0(budget)}
-              </span>
-            )}
-          </div>
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-          {mom !== null && (
-            <span style={{ fontSize:10, fontWeight:500, color: mom > 0 ? 'var(--warning)' : 'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
-              {mom > 0 ? '+' : '−'}{Math.abs(mom).toFixed(0)}% από πέρσι
-            </span>
-          )}
-          {editing ? (
-            <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-              <input
-                type="number" value={val} onChange={e => setVal(e.target.value)}
-                autoFocus
-                style={{ width:72, height:28, border:'1px solid var(--accent)', borderRadius:4, background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:12, padding:'0 8px', outline:'none', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}
-              />
-              <button onClick={() => { onSetBudget(parseFloat(val)||0); setEditing(false); }}
-                style={{ height:28, padding:'0 8px', borderRadius:4, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:11, cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
-                OK
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => { setVal(String(budget)); setEditing(true); }}
-              style={{ fontSize:10, color:'var(--accent)', background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:500, padding:0 }}>
-              {budget > 0 ? 'Αλλαγή' : '+ Όρισε όριο'}
-            </button>
-          )}
-        </div>
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:`3px solid ${groupColor}`, borderRadius:14, padding:'15px 17px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
+      onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 24px -12px rgba(16,24,40,.24)';}}
+      onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 2px rgba(16,24,40,.04)';}}>
+      {/* Ετικέτα ομάδας + ενέργεια αλλαγής ορίου */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}>
+        <span style={{ flex:1, minWidth:0, fontSize:10, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {info.label}
+        </span>
+        {!editing && (
+          <button onClick={() => { setVal(budget>0?String(budget):''); setEditing(true); }}
+            style={{ flexShrink:0, fontSize:11, color:'var(--accent)', background:'transparent', border:'none', cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:600, padding:0 }}>
+            {budget > 0 ? 'Αλλαγή' : '+ Όρισε όριο'}
+          </button>
+        )}
       </div>
 
-      {/* Progress bar */}
-      <div style={{ position:'relative', height:6, background:'var(--border-subtle)', borderRadius:4, overflow:'hidden', marginBottom:8 }}>
-        <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${pct}%`, background:barColor, borderRadius:4, transition:'width 0.6s cubic-bezier(.4,0,.2,1)' }} />
+      {/* Ποσό (σε δική του γραμμή, δεν σπάει ποτέ) */}
+      <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:12, whiteSpace:'nowrap' }}>
+        <span style={{ fontSize:23, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' }}>
+          {fmtEur0(spent)}
+        </span>
+        {budget > 0 && (
+          <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
+            / {fmtEur0(budget)}
+          </span>
+        )}
+        {mom !== null && (
+          <span style={{ marginLeft:'auto', fontSize:10, fontWeight:600, color: mom > 0 ? 'var(--warning)' : 'var(--positive)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
+            {mom > 0 ? '+' : '−'}{Math.abs(mom).toFixed(0)}% από πέρσι
+          </span>
+        )}
       </div>
 
-      {/* Status line */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      {/* Επεξεργασία ορίου (πλήρες πλάτος, δεν στριμώχνει το ποσό) */}
+      {editing && (
+        <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:12 }}>
+          <div style={{ position:'relative', flex:1, minWidth:0 }}>
+            <input type="number" value={val} onChange={e => setVal(e.target.value)} autoFocus placeholder="Ποσό ορίου"
+              onKeyDown={e=>{ if(e.key==='Enter'){ onSetBudget(parseFloat(val)||0); setEditing(false); } if(e.key==='Escape'){ setEditing(false); } }}
+              style={{ width:'100%', boxSizing:'border-box', height:34, border:'1px solid var(--accent)', borderRadius:9, background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13, padding:'0 26px 0 10px', outline:'none', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }} />
+            <span style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', fontSize:12, color:'var(--text-tertiary)', pointerEvents:'none' }}>€</span>
+          </div>
+          <button onClick={() => { onSetBudget(parseFloat(val)||0); setEditing(false); }}
+            style={{ flexShrink:0, height:34, padding:'0 14px', borderRadius:9, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:12, cursor:'pointer', fontFamily:"'Inter', sans-serif", fontWeight:600 }}>
+            Αποθήκευση
+          </button>
+        </div>
+      )}
+
+      {/* Μπάρα προόδου (μόνο όταν υπάρχει όριο) */}
+      {budget > 0 && (
+        <div style={{ position:'relative', height:8, background:'var(--bg-hover)', borderRadius:99, overflow:'hidden', marginBottom:8, boxShadow:'inset 0 1px 2px rgba(16,24,40,.08)' }}>
+          <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${pct}%`, background:`linear-gradient(90deg, ${barColor} 0%, color-mix(in srgb, ${barColor} 70%, #ffffff) 100%)`, borderRadius:99, transition:'width 0.7s cubic-bezier(.4,0,.2,1)' }} />
+        </div>
+      )}
+
+      {/* Γραμμή κατάστασης */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
         {budget > 0 ? (
           <>
-            <span style={{ fontSize:10, color: over ? 'var(--negative)' : remaining < budget*0.1 ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>
+            <span style={{ fontSize:11, fontWeight:500, color: over ? 'var(--negative)' : remaining < budget*0.1 ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>
               {over ? `Υπέρβαση ${fmtEur0(spent-budget)}` : `Απομένουν ${fmtEur0(remaining)}`}
             </span>
-            <span style={{ fontSize:10, fontWeight:600, color:barColor, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
-              {pct.toFixed(0)}%
+            <span style={{ fontSize:11, fontWeight:700, color:barColor, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+              {Math.round((spent/budget)*100)}%
             </span>
           </>
         ) : (
-          <span style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>
-            Δεν έχει οριστεί προϋπολογισμός
+          <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>
+            Χωρίς όριο ακόμη
           </span>
         )}
       </div>
@@ -1858,7 +1864,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 <div style={{ display:'flex', gap:16, alignItems:'center' }}>
                   {overBudgetGroups.length > 0 && (
                     <span style={{ fontSize:10, color:'var(--negative)', fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
-                      {overBudgetGroups.length} ομάδες σε υπέρβαση
+                      {overBudgetGroups.length === 1 ? '1 ομάδα σε υπέρβαση' : `${overBudgetGroups.length} ομάδες σε υπέρβαση`}
                     </span>
                   )}
                   <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
@@ -1874,7 +1880,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             </div>
           ) : (
             <>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,minmax(0,1fr))', gap:10, marginBottom:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(232px, 1fr))', gap:12, marginBottom:12 }}>
                 {Object.keys(EXPENSE_GROUPS).filter(g => (spentByGroup[g]||0) > 0 || budgets[g]).map(g => {
                   // Prev month spent for comparison
                   const now = new Date();
@@ -1911,8 +1917,10 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
               { label:'Μη εκπιπτόμενες', value:fmtEur(total-deductible), color:'var(--text-primary)', sub:`${total>0?(((total-deductible)/total)*100).toFixed(0):0}% του συνόλου` },
               { label:'Εκτιμώμενο όφελος φόρου (15%)', value:fmtEur(deductible*0.15), color:'var(--text-primary)', sub:'Πόσο σε γλιτώνουν στη φορολογία' },
             ].map((k,i) => (
-              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'14px 16px' }}>
-                <div style={{ fontSize:18, fontWeight:700, color:k.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:4 }}>{k.value}</div>
+              <div key={i} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'16px 18px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 24px -12px rgba(16,24,40,.24)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 2px rgba(16,24,40,.04)';}}>
+                <div style={{ fontSize:20, fontWeight:700, color:k.color, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em', marginBottom:5 }}>{k.value}</div>
                 <div style={{ fontSize:10, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", marginBottom:2 }}>{k.label}</div>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{k.sub}</div>
               </div>

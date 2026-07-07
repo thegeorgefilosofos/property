@@ -1,6 +1,8 @@
 // TabLoanData.tsx, Shared constants, types, helpers
 // Sources: vresdaneio.gr, greece20.gov.gr, ypen.gov.gr, ΑΑΔΕ, bankofgreece.gr, ECB
 
+import { rentalIncomeTax } from '@/lib/billing/greekTax'
+
 export type LoanType = 'purchase'|'first_home'|'renovation'|'energy'|'investment'|'auction'|'construction'|'commercial'|'land'|'refinance'
 export type RateType = 'fixed'|'variable'|'mixed'
 export type BorrowerType = 'individual'|'professional'|'company'|'young'|'family'|'senior'|'military'|'abroad'
@@ -48,8 +50,9 @@ export const TAX_DATA = {
   fma_exemption:{single:200000,married:250000,child1:25000,child2:25000,child3:30000,max_sqm:120},
   rental_tax:[
     {from:0,to:12000,rate:0.15,label:'έως 12.000€ → 15%'},
-    {from:12000,to:24000,rate:0.25,label:'12.001-24.000€ → 25% (νέος 2026)'},
-    {from:24000,to:Infinity,rate:0.35,label:'άνω 24.000€ → 35%'},
+    {from:12000,to:24000,rate:0.25,label:'12.001-24.000€ → 25% (νέο 2026)'},
+    {from:24000,to:35000,rate:0.35,label:'24.001-35.000€ → 35%'},
+    {from:35000,to:Infinity,rate:0.45,label:'άνω 35.000€ → 45%'},
   ],
   rental_expense_deduction:0.05,
   vat_new_buildings:0.24,
@@ -132,14 +135,9 @@ export function calcFmaExemption(maritalStatus:'single'|'married',children:numbe
   return limit
 }
 
+// Κοινή πηγή αλήθειας (lib/billing/greekTax), ώστε ο φόρος να μη διαφέρει ανά καρτέλα.
 export function calcRentalTax(annualRental:number):number {
-  let tax=0,remaining=annualRental
-  for(const band of TAX_DATA.rental_tax){
-    if(remaining<=0)break
-    const taxable=Math.min(remaining,band.to===Infinity?remaining:band.to)-band.from
-    if(taxable>0){tax+=Math.max(0,taxable)*band.rate;remaining-=taxable}
-  }
-  return tax
+  return rentalIncomeTax(annualRental)
 }
 
 export const fmtEur=(n:number)=>n.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})

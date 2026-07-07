@@ -80,8 +80,9 @@ export const EXPENSE_MAP: Record<string, { group: string; cat: string }> = {
 export function parseDate(col: string): string {
   const c = (col || '').trim();
   if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(c)) {
-    const parts = c.split(/[\/\-.]/);
-    const [d, m, y] = parts[0].length === 4 ? [parts[2], parts[1], parts[0]] : parts;
+    // Το regex εγγυάται 1-2 ψηφία στην πρώτη ομάδα, άρα πάντα d/m/y (y-m-d με
+    // παύλες το πιάνει το δεύτερο branch παρακάτω).
+    const [d, m, y] = c.split(/[\/\-.]/);
     return `${y.length === 2 ? '20' + y : y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   }
   if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c)) {

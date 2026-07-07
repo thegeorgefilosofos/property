@@ -132,7 +132,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Βαφή / ανανέωση κοινόχρηστων', category: 'maintenance', priority: 'low', recurring: 'yearly', estimated_cost: 200 },
     { description: 'Service ανελκυστήρα', category: 'maintenance', priority: 'high', recurring: 'quarterly', estimated_cost: 150 },
   ]},
-  legal: { label: 'Νομικά / ΑΑΔΕ', color: '#7c3aed', items: [
+  legal: { label: 'Νομικά / ΑΑΔΕ', color: '#9334e6', items: [
     { description: 'Κατάθεση Ε2 (δήλωση μισθωμάτων)', category: 'legal', priority: 'critical', recurring: 'yearly' },
     { description: 'Πληρωμή ΕΝΦΙΑ', category: 'legal', priority: 'critical', recurring: 'yearly' },
     { description: 'Ανανέωση ασφαλιστηρίου ακινήτου', category: 'legal', priority: 'critical', recurring: 'yearly', estimated_cost: 300 },
@@ -151,7 +151,7 @@ const TEMPLATES: Record<string, { label: string; color: string; items: Array<{ d
     { description: 'Φάση 3, Φινίρισμα', category: 'renovation', priority: 'normal', depends_on_idx: 6 },
     { description: 'Τελική επιθεώρηση και παραλαβή', category: 'renovation', priority: 'critical', depends_on_idx: 7 },
   ]},
-  airbnb: { label: 'Short-term / Airbnb', color: '#ff5a5f', items: [
+  airbnb: { label: 'Short-term / Airbnb', color: '#d93025', items: [
     { description: 'Ρύθμιση smart lock / κωδικός check-in', category: 'airbnb', priority: 'critical', estimated_cost: 150 },
     { description: 'Δημιουργία οδηγού φιλοξενίας', category: 'airbnb', priority: 'critical' },
     { description: 'Καταχώρηση σε Airbnb / Booking.com', category: 'airbnb', priority: 'critical' },

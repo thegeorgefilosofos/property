@@ -42,7 +42,7 @@ const iStyle: React.CSSProperties = {
 // ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
 const GROUPS = [
   {
-    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#6366f1', Icon: Building2,
+    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#3949ab', Icon: Building2,
     roles: [
       { value: 'doy', label: 'ΔΟΥ' },
       { value: 'ktimatologio', label: 'Κτηματολόγιο' },
@@ -75,7 +75,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#0ea5e9', Icon: Wifi,
+    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#039be5', Icon: Wifi,
     roles: [
       { value: 'tel_ote', label: 'OTE / Cosmote' },
       { value: 'tel_vodafone', label: 'Vodafone' },
@@ -93,7 +93,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7c4dff', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7e57c2', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -165,7 +165,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#22c55e', Icon: Trees,
+    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#34a853', Icon: Trees,
     roles: [
       { value: 'gardener', label: 'Κηπουρός' },
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
@@ -176,7 +176,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#3b82f6', Icon: UserCheck,
+    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#4285f4', Icon: UserCheck,
     roles: [
       { value: 'tenant', label: 'Ενοικιαστής' },
       { value: 'prev_tenant', label: 'Πρώην Ενοικιαστής' },
@@ -700,10 +700,10 @@ function exportContactsPDF(contacts: Contact[]) {
   })
 
   const groupColors: Record<string, string> = {
-    authorities: '#6366f1', legal_finance: '#7c4dff', management: '#0ea5e9',
-    electricity: '#e8710a', telecom: '#0ea5e9', banks: '#7c4dff',
+    authorities: '#3949ab', legal_finance: '#7e57c2', management: '#039be5',
+    electricity: '#e8710a', telecom: '#039be5', banks: '#7e57c2',
     insurance: '#00897b', real_estate: '#5e35b1',
-    technical: '#e8710a', outdoor: '#22c55e', tenants: '#3b82f6',
+    technical: '#e8710a', outdoor: '#34a853', tenants: '#4285f4',
   }
 
   const kpiHtml = (val: string, label: string, color: string) =>
@@ -1134,7 +1134,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               const overdue = c._extra?.next_appointment && isOverdue(c._extra.next_appointment)
               const GroupIcon = meta.GroupIcon || Users
               return (
-                <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'rgba(255,59,48,0.35)' : meta.groupColor + '40'), cursor: 'pointer', position: 'relative' }}>
+                <div key={c.id} onClick={() => openEdit(c)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : meta.groupColor + '40'), cursor: 'pointer', position: 'relative' }}>
                   {overdue && <span style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--negative)', border: '2px solid var(--bg-elevated)' }} />}
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: meta.groupColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: meta.groupColor, overflow: 'hidden', flexShrink: 0 }}>
                     {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : c.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase() || <GroupIcon size={14} />}

@@ -725,7 +725,10 @@ export default function Dashboard() {
       <div className={`app-scrim ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
       {/* Sidebar */}
       <aside className={`app-sidebar ${sidebarOpen?'open':''}`}>
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" role="button" tabIndex={0}
+          onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}
+          onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setNav('overview'); setSidebarOpen(false); } }}
+          title="Αρχική, Επισκόπηση">
           <div className="sidebar-logo-mark">P</div>
           <span className="sidebar-logo-text">Property OS</span>
           <span className="sidebar-logo-badge">Beta</span>
@@ -797,7 +800,7 @@ export default function Dashboard() {
             <>
               <div style={{flex:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:400,color:'var(--text-primary)'}}>{selected.name}</span>
+                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:17,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
                   <div style={{position:'relative'}}>
                     <button onClick={()=>setStatusDropdown(v=>!v)} style={{display:'flex',alignItems:'center',gap:6,height:32,padding:'0 12px',borderRadius:8,border:`1px solid ${statusColor}44`,background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:statusColor}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}<span style={{fontSize:10,opacity:0.7}}>▾</span>
@@ -816,8 +819,8 @@ export default function Dashboard() {
                       </>
                     )}
                   </div>
-                  <button onClick={()=>setEditProperty(selected)} title="Επεξεργασία στοιχείων ακινήτου" aria-label="Επεξεργασία ακινήτου" style={{display:'flex',alignItems:'center',justifyContent:'center',width:32,height:32,borderRadius:8,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',flexShrink:0}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <button onClick={()=>setEditProperty(selected)} title="Επεξεργασία στοιχείων ακινήτου" aria-label="Επεξεργασία ακινήτου" style={{display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:'50%',border:'none',background:'transparent',color:'var(--text-tertiary)',cursor:'pointer',flexShrink:0,transition:'background 0.15s, color 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-tertiary)'}}>
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                   </button>
                 </div>
                 <div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>

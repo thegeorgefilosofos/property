@@ -1,11 +1,13 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useMarketRates } from '@/app/hooks/useMarketData';
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, Toggle } from './UIComponents';
 import RentComparables from './RentComparables';
 import RentROIReport from './RentROIReport';
 import { T, fe } from '@/components/Theme';
+import { rentalIncomeTax } from '@/lib/billing/greekTax';
 
 interface Props {
   propertyId: string;
@@ -140,12 +142,8 @@ function calcRentTax(gross: number, electronic: boolean, ownerAge: number, child
   const electronicSaving = electronic ? calcRentTax(gross, false, ownerAge, children).tax - tax : 0;
   return { taxable, tax, reduction, effectiveRate, electronicSaving };
 }
-function calcBaseTax(t: number): number {
-  if (t <= 12000) return t * 0.15;
-  if (t <= 14000) return 12000 * 0.15 + (t - 12000) * 0.25;
-  if (t <= 35000) return 12000 * 0.15 + 2000 * 0.25 + (t - 14000) * 0.35;
-  return 12000 * 0.15 + 2000 * 0.25 + 21000 * 0.35 + (t - 35000) * 0.45;
-}
+// Κλίμακα ενοικίων 2026 (κοινή πηγή: lib/billing/greekTax).
+const calcBaseTax = (t: number): number => rentalIncomeTax(t);
 function toMonths(val: string, unit: string): number {
   const n = parseFloat(val) || 0;
   if (unit === 'days') return n / 30;
@@ -354,10 +352,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
   const sa = (k: string, v: any) => setAirbnb(f => ({ ...f, [k]: v }));
 
   const [bench, setBench] = useState({
-    etf_return: '7', euribor: '3.8', market_gross: '5', target_net: '3',
+    etf_return: '7', euribor: '2.2', market_gross: '5', target_net: '3',
     market_label: 'Κεντρικός Τομέας Αθηνών',
   });
   const sb = (k: string, v: string) => setBench(f => ({ ...f, [k]: v }));
+
+  // Ζωντανό Euribor 3μήνου (ΤτΕ/ECB): γεμίζει το benchmark ώστε η «Υπεραπόδοση vs
+  // EURIBOR» να μη συγκρίνεται με ξεπερασμένο επιτόκιο. Δεν πατάει χειροκίνητη αλλαγή.
+  const market = useMarketRates();
+  const euriborTouched = useRef(false);
+  useEffect(() => {
+    if (!market.isLoading && !euriborTouched.current && market.euribor_3m > 0) {
+      setBench(f => ({ ...f, euribor: market.euribor_3m.toFixed(2) }));
+    }
+  }, [market.isLoading, market.euribor_3m]);
 
   const [sc2, setSc2] = useState({
     rent_change: '10', vacancy_months: '1', value_growth: '3', years: '10',
@@ -567,10 +575,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
     const runs = Math.min(parseInt(sc2.mc_runs) || 500, 1000);
     const rentStd = (parseFloat(sc2.mc_rent_std) || 15) / 100;
     const valStd = (parseFloat(sc2.mc_value_std) || 20) / 100;
+    // Δειγματοληψία από κανονική κατανομή (Box–Muller): τα P10/P50/P90 αποκτούν
+    // στατιστικό νόημα (η προηγούμενη ομοιόμορφη έδινε λανθασμένες «ουρές» ρίσκου).
+    const gauss = () => { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
     const mcResults: number[] = [];
     for (let i = 0; i < runs; i++) {
-      const rVar = 1 + (rc / 100) + (Math.random() - 0.5) * rentStd * 2;
-      const vVar = vg / 100 + (Math.random() - 0.5) * valStd * 2;
+      const rVar = 1 + (rc / 100) + gauss() * rentStd;
+      const vVar = vg / 100 + gauss() * valStd;
       const mRent = calc.ar * rVar;
       const mAnnual = mRent * (12 - vm);
       const { tax: mt } = calcRentTax(mAnnual, electronic, parseInt(ownerAge) || 35, parseInt(children) || 0);
@@ -695,7 +706,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <Gauge value={calc.grossYield} max={12} label="Μεικτή Απόδοση" color="var(--accent)" />
         <Gauge value={calc.netYield} max={8} label="Καθαρή Απόδοση" color="var(--positive)" />
         <Gauge value={calc.capRate} max={10} label="Κεφαλαιακή Απόδοση" color="var(--info)" />
-        <Gauge value={Math.min(calc.occRate, 100)} max={100} label="Πληρότητα" color="var(--warning)" />
+        <Gauge value={Math.min(calc.occRate, 100)} max={100} label="Επίτευξη Ενοικίου" color="var(--warning)" />
         {calc.DSCR > 0 && <Gauge value={Math.min(calc.DSCR * 50, 100)} max={100} label={`Κάλυψη Δανείου ${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} />}
         {/* Score */}
         <div style={{ textAlign: 'center', minWidth: 100 }}>
@@ -774,7 +785,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           )}
           {calc.gap > 0 && (
             <InfoBanner type="warning">
-              Το ενοίκιο είναι <strong>{fe(calc.gap)}/μήνα</strong> κάτω από τον στόχο ({fp(calc.occRate, 0)} πληρότητα).
+              Το ενοίκιο είναι <strong>{fe(calc.gap)}/μήνα</strong> κάτω από τον στόχο ({fp(calc.occRate, 0)} του στόχου).
             </InfoBanner>
           )}
 
@@ -832,7 +843,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <CustomSelect label="Αγορά Αναφοράς" value={bench.market_label} onChange={v => sb('market_label', v)} options={GREEK_MARKETS} />
             <NumberInput label="Benchmark Gross Yield %" value={bench.market_gross} onChange={v => sb('market_gross', v)} suffix="%" step={0.5} />
             <NumberInput label="Στόχος Net Yield %" value={bench.target_net} onChange={v => sb('target_net', v)} suffix="%" step={0.5} />
-            <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => sb('euribor', v)} suffix="%" step={0.1} />
+            <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => { euriborTouched.current = true; sb('euribor', v); }} suffix="%" step={0.1} />
           </div>
           <div style={{ marginBottom: 12 }}>
             <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA, απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
@@ -937,8 +948,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <div style={{ ...labelStyle, marginBottom: 12 }}>Κλίμακα Φορολόγησης 2026</div>
               {[
                 { range: '€0 – €12.000', rate: '15%', c: calc.taxable <= 12000 },
-                { range: '€12.001 – €14.000', rate: '25%', c: calc.taxable > 12000 && calc.taxable <= 14000 },
-                { range: '€14.001 – €35.000', rate: '35%', c: calc.taxable > 14000 && calc.taxable <= 35000 },
+                { range: '€12.001 – €24.000', rate: '25%', c: calc.taxable > 12000 && calc.taxable <= 24000 },
+                { range: '€24.001 – €35.000', rate: '35%', c: calc.taxable > 24000 && calc.taxable <= 35000 },
                 { range: 'Άνω των €35.000', rate: '45%', c: calc.taxable > 35000 },
               ].map((r, i) => (
                 <div key={i} style={{
@@ -1397,7 +1408,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <StatRow label="Σύνολο Ενοικίων (μετά φόρου)" value={fe(scen.rentTotal)} color="var(--positive)" />
             <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} color="var(--positive)" bold />
             <StatRow label="CAGR Αξίας Ακινήτου" value={fp(scen.cagr)} color="var(--info)" />
-            <StatRow label="Εσωτερικό Ποσοστό Απόδοσης (IRR)" value={fp(scen.irr)} color="var(--accent)" />
+            <StatRow label="Μέση Ετήσια Απόδοση" value={fp(scen.irr)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
             <SectionLabel label="Τώρα vs Σενάριο" />

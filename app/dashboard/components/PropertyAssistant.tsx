@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
+import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
 import {
   type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
@@ -156,7 +157,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (rates?.bog_housing_new != null) mLines.push(`Μέσο επιτόκιο νέου στεγαστικού δανείου (στοιχεία Τράπεζας της Ελλάδος): περίπου ${Number(rates.bog_housing_new).toFixed(2)}%.`);
     const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
-    mLines.push('Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.001 έως 14.000 €, 35% από 14.001 έως 35.000 €, 45% πάνω από 35.000 €.');
+    mLines.push(RENTAL_TAX_SUMMARY_2026);
     setMarketStr(mLines.join('\n'));
   }, [propertyId, userId, propContext, supabase]);
 
