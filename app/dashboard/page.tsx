@@ -355,7 +355,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
-      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
+      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
     ]);

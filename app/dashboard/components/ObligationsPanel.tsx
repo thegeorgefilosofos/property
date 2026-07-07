@@ -20,7 +20,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
   const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
-    const { data: ten } = await supabase.from('tenants').select('lease_start,lease_end,monthly_rent').eq('property_id', propertyId).limit(1);
+    const { data: ten } = await supabase.from('tenants').select('lease_start,lease_end,monthly_rent').eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1);
     setObls(computeObligations(prop, ten?.[0] || null));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, prop.insurance_expiry, prop.enfia]);
