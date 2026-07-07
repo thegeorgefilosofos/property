@@ -6,6 +6,7 @@ import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } fr
 import ExpenseAnalytics from './ExpenseAnalytics';
 import { Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -846,7 +847,8 @@ async function exportExcel(expenses: Expense[], propertyName: string) {
 }
 
 
-function exportPDF(expenses: Expense[], propertyName: string) {
+function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportBranding | null) {
+  const accent = reportAccent(branding);
   const today = new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
   const total = expenses.reduce((s,e)=>s+e.amount,0);
   const totalVat = expenses.reduce((s,e)=>s+(e.vat_amount||0),0);
@@ -910,18 +912,18 @@ function exportPDF(expenses: Expense[], propertyName: string) {
   <meta charset="UTF-8"><title>Κατάσταση Δαπανών, ${esc(propertyName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <style>
+  <style>${brandRootVars(branding)}
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .page{padding:28px 32px;max-width:940px;margin:0 auto}
     /* Header */
-    .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-    .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
+    .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
     .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
     .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
     .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
     /* Section titles */
-    .sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
+    .sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:${accent};margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
     .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
     .sec{margin-bottom:20px}
     /* KPIs */
@@ -963,7 +965,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
   <!-- Header -->
   <div class="hdr">
     <div>
-      <div class="logo">Property <span>OS</span></div>
+      ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
       <div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
     </div>
     <div class="meta-r">
@@ -1041,7 +1043,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
 
   <!-- Footer -->
   <div class="footer">
-    <div>Property OS &nbsp;·&nbsp; Κατάσταση Δαπανών Ακινήτου</div>
+    <div>${branding?.companyName ? brandName(branding) : 'Property OS'} &nbsp;·&nbsp; Κατάσταση Δαπανών Ακινήτου</div>
     <div>${esc(today)}</div>
   </div>
   <div class="disc">Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας. Δεν αποτελεί επίσημο φορολογικό έγγραφο. Συμβουλευτείτε λογιστή.</div>
@@ -1054,6 +1056,7 @@ function exportPDF(expenses: Expense[], propertyName: string) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TabExpenses({ propertyId, userId }: { propertyId:string; userId:string }) {
   const supabase = createClient();
+  const branding = useReportBranding(userId);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1527,7 +1530,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εξαγωγή Excel
           </button>
-          <button onClick={() => exportPDF(processed, 'Ακίνητο')}
+          <button onClick={() => exportPDF(processed, 'Ακίνητο', branding)}
             style={{ height:36, padding:'0 14px', borderRadius:20, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Εξαγωγή PDF
           </button>

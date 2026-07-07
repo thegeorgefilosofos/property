@@ -6,6 +6,7 @@ import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, P
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
+import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
 const supabase = createSupabaseClient()
 
@@ -479,7 +480,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
 }
 
 // ─── Print Card ───────────────────────────────────────────────────────────────
-function printContactCard(contact: Contact) {
+function printContactCard(contact: Contact, branding?: ReportBranding | null) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: '#888', groupLabel: '' }
   const extra = contact._extra || {}
   const status = STATUS_OPTIONS.find(s => s.value === (extra.status || 'active')) || STATUS_OPTIONS[0]
@@ -499,7 +500,7 @@ function printContactCard(contact: Contact) {
     ${extra.schedule ? `<div class="row"><span class="label">Ωράριο</span><span>${esc(extra.schedule)}</span></div>` : ''}
     ${(extra.tags || []).length > 0 ? `<div style="margin-top:12px">${(extra.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>` : ''}
     ${contact._freeNotes ? `<hr><p style="line-height:1.6">${esc(contact._freeNotes)}</p>` : ''}
-    <hr><p style="font-size:10px;color:#bbb">Property OS · ${esc(new Date().toLocaleDateString('el-GR'))}</p></body></html>`
+    <hr><p style="font-size:10px;color:#bbb">${branding?.companyName ? brandName(branding)+' · ' : 'Property OS · '}${esc(new Date().toLocaleDateString('el-GR'))}</p></body></html>`
   const win = window.open('', '_blank'); if (win) { win.document.write(html); win.document.close(); win.print() }
 }
 
@@ -689,7 +690,8 @@ async function exportContactsExcel(contacts: Contact[]) {
 }
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
-function exportContactsPDF(contacts: Contact[]) {
+function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null) {
+  const accent = reportAccent(branding)
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
   const preferred = contacts.filter(c => c._extra?.preferred)
   const byGroup: Record<string, Contact[]> = {}
@@ -763,15 +765,16 @@ function exportContactsPDF(contacts: Contact[]) {
 <meta charset="UTF-8"><title>Κατάσταση Επαφών</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+${brandRootVars(branding)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .page{padding:28px 32px;max-width:940px;margin:0 auto}
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #1a73e8}
-.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#1a73e8}.logo span{color:var(--accent)}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
+.logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:${accent}}.logo span{color:var(--accent)}
 .logo-s{font-size:10px;color:#5f6368;margin-top:2px}
 .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1a1a2e}
 .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#1a73e8;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
+.sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:${accent};margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #e8eaed;display:flex;align-items:center;gap:5px}
 .sec-title::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sec{margin-bottom:20px}
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
@@ -791,7 +794,7 @@ tr:nth-child(even) td{background:#fafafa}
 </style></head><body><div class="page">
 <div class="hdr">
   <div>
-    <div class="logo">Property <span>OS</span></div>
+    ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
     <div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
   </div>
   <div class="meta-r">
@@ -834,7 +837,7 @@ ${preferred.length > 0 ? `
 </div>
 
 <div class="footer">
-  <div>Property OS · Κατάσταση Επαφών Ακινήτου</div>
+  <div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Κατάσταση Επαφών Ακινήτου</div>
   <div>${esc(today)}</div>
 </div>
 </div></body></html>`)
@@ -843,10 +846,10 @@ ${preferred.length > 0 ? `
 }
 
 // ─── Contact Card ─────────────────────────────────────────────────────────────
-function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode }: {
+function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding }: {
   contact: Contact; onEdit: () => void; onDelete: () => void
   onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void
-  selected?: boolean; onSelect?: () => void; bulkMode?: boolean
+  selected?: boolean; onSelect?: () => void; bulkMode?: boolean; branding?: ReportBranding | null
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}; const color = meta.groupColor
@@ -890,7 +893,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
             { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--info)' },
             { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
             { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
-            { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact), color: 'var(--text-secondary)' },
+            { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact, branding), color: 'var(--text-secondary)' },
           ].map((a, i) => (
             <button key={i} type="button" onClick={() => { a.onClick(); setShowActions(false) }}
               style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}
@@ -1004,6 +1007,7 @@ function GroupDivider({ group, count }: { group: typeof GROUPS[0]; count: number
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TabContacts({ propertyId, userId }: TabContactsProps) {
+  const branding = useReportBranding(userId)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -1102,7 +1106,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
         right={<>
           <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
           <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
-          <button type="button" onClick={() => exportContactsPDF(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
+          <button type="button" onClick={() => exportContactsPDF(contacts, branding)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
           <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
         </>}
       />
@@ -1237,7 +1241,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
-                  <ContactCard key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} />
+                  <ContactCard key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} />
                 ))}
               </div>
             </div>
