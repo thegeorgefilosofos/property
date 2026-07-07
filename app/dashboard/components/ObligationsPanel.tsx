@@ -68,12 +68,12 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
           const badge = overdue ? `${Math.abs(o.daysUntil)} ημ. πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ημ.`;
           return (
             <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : 'calendar')}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: `var(--${o.tone}-soft)`, border: `1px solid var(--${o.tone}-border)`, borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: `var(--${o.tone})`, marginTop: 6, flexShrink: 0 }} />
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-subtle)', marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{o.title}</span>
-                  <span style={{ fontFamily: T.font.mono, fontSize: 11, fontWeight: 700, color: `var(--${o.tone})`, whiteSpace: 'nowrap' }}>{badge}</span>
+                  <span style={{ fontFamily: T.font.mono, fontSize: 11, fontWeight: 700, color: o.tone === 'negative' ? 'var(--negative)' : o.tone === 'warning' ? 'var(--warning)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{badge}</span>
                 </div>
                 <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.5 }}>
                   <span style={{ fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{fd(o.date)}</span> · {o.note}

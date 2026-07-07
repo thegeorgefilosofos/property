@@ -192,7 +192,7 @@ const g3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 12, marginBottom: 12 };
 
 // ─── SectionLabel ─────────────────────────────────────────────────────────────
-const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode }) => (
+const SectionLabel = ({ label, right }: { label: React.ReactNode; right?: React.ReactNode }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
@@ -206,7 +206,7 @@ const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size = 'md' }: {
-  label: string; value: string; sub?: string; color?: string;
+  label: React.ReactNode; value: string; sub?: string; color?: string;
   badge?: { text: string; color: string }; size?: 'sm' | 'md' | 'lg';
 }) {
   const fs = size === 'lg' ? 24 : size === 'md' ? 20 : 15;
@@ -243,7 +243,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
 
 // ─── Stat Row ─────────────────────────────────────────────────────────────────
 function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: {
-  label: string; value: string; color?: string; bold?: boolean;
+  label: React.ReactNode; value: string; color?: string; bold?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
@@ -256,7 +256,7 @@ function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: 
 // ─── Info Banner ──────────────────────────────────────────────────────────────
 function InfoBanner({ type = 'info', children }: { type?: 'info' | 'warning' | 'success' | 'danger'; children: React.ReactNode }) {
   const colors = {
-    info: 'var(--info)',
+    info: 'var(--border-subtle)',
     warning: 'var(--warning)',
     success: 'var(--positive)',
     danger: 'var(--negative)',
@@ -270,7 +270,7 @@ function InfoBanner({ type = 'info', children }: { type?: 'info' | 'warning' | '
 }
 
 // ─── Score Bar ────────────────────────────────────────────────────────────────
-function ScoreBar({ label, score, max = 100, color }: { label: string; score: number; max?: number; color: string }) {
+function ScoreBar({ label, score, max = 100, color }: { label: React.ReactNode; score: number; max?: number; color: string }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
