@@ -448,6 +448,35 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
               </div>
             </div>
 
+            {(()=>{ const info=LOAN_TYPES[advType]; return (
+              <div style={cardStyle}>
+                <SectionLabel label={`Οδηγός, ${info.label}`}/>
+                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif",margin:'0 0 14px'}}>{info.desc}. {info.notes}.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,150px),1fr))',gap:10,marginBottom:14}}>
+                  {[['Τυπικό επιτόκιο',info.typical_rate],['Τυπικό LTV',`έως ${info.typical_ltv}%`]].map(([k,v])=>(
+                    <div key={k as string} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
+                      <div style={{fontSize:16,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',letterSpacing:'-0.01em'}}>{v}</div>
+                      <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginTop:3}}>{k}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:10,padding:'11px 13px',marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",marginBottom:4}}>Φορολογικά & νομικά</div>
+                  <div style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{info.tax_note}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",marginBottom:8}}>Δικαιολογητικά που θα χρειαστείς</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                    {info.docs.map(d=>(
+                      <span key={d} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:100,padding:'5px 11px'}}>
+                        <span style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>{d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ); })()}
+
             <div style={cardStyle}>
               <SectionLabel label="Τι Βλέπω στο Σενάριό σας"/>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>

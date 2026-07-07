@@ -131,16 +131,15 @@ interface RentTaxResult {
   effectiveRate: number;
   electronicSaving: number;
 }
-function calcRentTax(gross: number, electronic: boolean, ownerAge: number, children: number): RentTaxResult {
-  const reduction = electronic ? gross * 0.05 : 0;
+function calcRentTax(gross: number, _electronic: boolean, _ownerAge: number, _children: number): RentTaxResult {
+  // Τεκμαρτή έκπτωση δαπανών 5% επί των ακαθάριστων ενοικίων (πάντα, όχι υπό όρο
+  // ηλεκτρονικών πληρωμών). Η φορολόγηση γίνεται με την προοδευτική κλίμακα 2026.
+  // ΔΕΝ ισχύουν οι νεανικές απαλλαγές (αφορούν εισόδημα από εργασία, όχι ενοίκια).
+  const reduction = gross * 0.05;
   const taxable = gross - reduction;
-  let tax = 0;
-  if (ownerAge <= 25) { if (taxable <= 20000) tax = 0; else tax = calcBaseTax(taxable - 20000); }
-  else if (ownerAge <= 30) { if (taxable <= 10000) tax = taxable * 0.09; else tax = 10000 * 0.09 + calcBaseTax(taxable - 10000); }
-  else tax = calcBaseTax(taxable);
+  const tax = calcBaseTax(taxable);
   const effectiveRate = gross > 0 ? (tax / gross) * 100 : 0;
-  const electronicSaving = electronic ? calcRentTax(gross, false, ownerAge, children).tax - tax : 0;
-  return { taxable, tax, reduction, effectiveRate, electronicSaving };
+  return { taxable, tax, reduction, effectiveRate, electronicSaving: 0 };
 }
 // Κλίμακα ενοικίων 2026 (κοινή πηγή: lib/billing/greekTax).
 const calcBaseTax = (t: number): number => rentalIncomeTax(t);
@@ -310,7 +309,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
   const [constructionYear, setConstructionYear] = useState('1985');
   const [floor, setFloor] = useState('2');
   const [companyHq, setCompanyHq] = useState('none');
-  const [electronic, setElectronic] = useState(true);
+  const [electronic] = useState(true); // πάντα true: η 5% έκπτωση είναι τεκμαρτή, όχι υπό όρο
   const [ownerAge, setOwnerAge] = useState('35');
   const [children, setChildren] = useState('0');
   const [expenses, setExpenses] = useState(0);
@@ -544,10 +543,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
       + (parseFloat(airbnb.balcony_plants) || 0) + (parseFloat(airbnb.damage_reserve) || 200)
       + (parseFloat(airbnb.extra_services) || 0);
     const net = rev - pCost - cCost - expenses - extras;
-    const avgOcc = nights / (12 * 30) * 100;
+    // Φόρος εισοδήματος στα ακαθάριστα έσοδα βραχυχρόνιας (ίδια κλίμακα, τεκμαρτή 5%),
+    // ώστε η σύγκριση με τη μακροχρόνια να γίνεται ΜΕΤΑ ΦΟΡΟΥ και στις δύο.
+    const abbTax = calcRentTax(Math.max(0, rev), true, 0, 0).tax;
+    const abbAfterTax = net - abbTax;
+    const avgOcc = nights / 365 * 100;
     const revPAR = rev / 365;
     const adr = nights > 0 ? rev / nights : 0;
-    return { rev, nights, pCost, cCost, net, avgOcc, revPAR, adr, extras, bookings, diff: net - calc.afterTax };
+    return { rev, nights, pCost, cCost, net, abbTax, abbAfterTax, avgOcc, revPAR, adr, extras, bookings, diff: abbAfterTax - calc.afterTax };
   }, [airbnb, expenses, calc.afterTax]);
 
   // ── Scenario calculation ───────────────────────────────────────────────────
@@ -765,10 +768,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="Αντικειμενική Αξία" value={cfg.objective_value} onChange={v => sc('objective_value', v)} suffix="€" step={1000} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Toggle on={electronic} onChange={setElectronic} label="Ηλεκτρονική Πληρωμή" labelOff="Μετρητά" />
-                {electronic && calc.electronicSaving > 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 500, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>εξοικονόμηση {fe(calc.electronicSaving)}/έτος</span>
-                )}
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Εφαρμόζεται τεκμαρτή έκπτωση δαπανών 5% στα ενοίκια.</span>
               </div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Toggle on={cfg.is_insured} onChange={v => sc('is_insured', v)} label="Ασφαλισμένο" labelOff="Ανασφάλιστο" />
@@ -803,7 +803,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <div style={cardStyle}>
           <SectionLabel label="Κατάσταση Αποτελεσμάτων Χρήσης (P&L)" />
           <StatRow label="Ακαθάριστο Ενοίκιο / έτος" value={fe(calc.annual)} color="var(--positive)" />
-          {calc.reduction > 0 && <StatRow label="Έκπτωση Ηλεκτρονικής Πληρωμής (-5%)" value={`-${fe(calc.reduction)}`} color="var(--info)" />}
+          {calc.reduction > 0 && <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} color="var(--info)" />}
           <StatRow label="Δαπάνες Ακινήτου συνολικά" value={`-${fe(calc.totalExp)}`} color="var(--warning)" />
           {calc.mgmt > 0 && <StatRow label="   Προμήθεια Διαχείρισης" value={`-${fe(calc.mgmt)}`} color="var(--text-tertiary)" />}
           {calc.ins > 0 && <StatRow label="   Ασφάλεια" value={`-${fe(calc.ins)}`} color="var(--text-tertiary)" />}
@@ -916,16 +916,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="Ηλικία Ιδιοκτήτη" value={ownerAge} onChange={setOwnerAge} suffix="ετών" step={1} />
             <NumberInput label="Εξαρτώμενα Τέκνα" value={children} onChange={setChildren} suffix="τέκνα" step={1} />
           </div>
-          {parseInt(ownerAge) <= 25 && (
-            <InfoBanner type="success">
-              <strong>Ηλικία έως 25 ετών:</strong> Μηδενικός φόρος έως €20.000 εισόδημα (Φ.Ε. 2026). Εξοικονόμηση έως <strong>{fe(Math.min(calc.taxable, 20000) * 0.15)}</strong> σε σχέση με κανονική κλίμακα.
-            </InfoBanner>
-          )}
-          {parseInt(ownerAge) >= 26 && parseInt(ownerAge) <= 30 && (
-            <InfoBanner type="success">
-              <strong>Ηλικία 26-30 ετών:</strong> Μειωμένος συντελεστής 9% στο bracket €10.000-€20.000 (Φ.Ε. 2026).
-            </InfoBanner>
-          )}
+          <InfoBanner type="info">
+            Στο εισόδημα από ενοίκια εφαρμόζεται η προοδευτική κλίμακα (15% / 25% / 35% / 45%, 2026) με τεκμαρτή έκπτωση δαπανών 5%. Οι νεανικές απαλλαγές αφορούν εισόδημα από εργασία, όχι ενοίκια.
+          </InfoBanner>
         </div>
 
         <div style={cardStyle}>
@@ -933,7 +926,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
               <StatRow label="Ακαθάριστο Ενοίκιο" value={fe(calc.annual)} color="var(--positive)" />
-              <StatRow label="Έκπτωση Ηλεκτρονικής Πληρωμής (-5%)" value={electronic ? `-${fe(calc.reduction)}` : '—'} color="var(--info)" />
+              <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} color="var(--info)" />
               <StatRow label="Φορολογητέο Εισόδημα" value={fe(calc.taxable)} color="var(--warning)" />
               <StatRow label="Φόρος" value={fe(calc.tax)} color="var(--negative)" />
               <StatRow label="Πραγματικός Φορολογικός Συντελεστής" value={fp(calc.effectiveRate)} color="var(--negative)" />
@@ -1044,7 +1037,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               {[
                 { label: 'Υποβολή Ε1/Ε2', value: '30 Ιουνίου', color: 'var(--accent)' },
                 { label: 'Καταχώρηση Μισθωτηρίου AADE', value: 'εντός 30 ημερών', color: 'var(--info)' },
-                { label: 'Ηλεκτρονική Πληρωμή (-5%)', value: electronic ? `Ενεργό, εξοικ. ${fe(calc.electronicSaving)}` : 'Ανενεργό', color: electronic ? 'var(--positive)' : 'var(--warning)' },
+                { label: 'Τεκμαρτή έκπτωση δαπανών', value: `-${fe(calc.reduction)}`, color: 'var(--positive)' },
               ].map((item, i) => (
                 <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{item.label}</span>
@@ -1154,7 +1147,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <StatRow label={`Κόστος Καθαρισμών (${abb.bookings} bookings)`} value={`-${fe(abb.cCost)}`} color="var(--warning)" />
             <StatRow label="Δαπάνες Ακινήτου" value={`-${fe(expenses)}`} color="var(--warning)" />
             <StatRow label="Επιπλέον Παροχές και Φθορές" value={`-${fe(abb.extras)}`} color="var(--warning)" />
-            <StatRow label="Καθαρό Εισόδημα Airbnb" value={fe(abb.net)} color={abb.net > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
+            <StatRow label="Καθαρό προ φόρου" value={fe(abb.net)} color={abb.net > 0 ? 'var(--positive)' : 'var(--negative)'} />
+            <StatRow label="Φόρος εισοδήματος" value={`-${fe(abb.abbTax)}`} color="var(--negative)" />
+            <StatRow label="Καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color={abb.abbAfterTax > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
             <StatRow label="Μέση Ετήσια Πληρότητα" value={fp(abb.avgOcc)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
@@ -1169,8 +1164,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               </div>
             </div>
             <div style={g2}>
-              <KPICard label="Airbnb Καθαρό / έτος" value={fe(abb.net)} color="var(--positive)" />
-              <KPICard label="Μακροχρόνια Καθαρό / έτος" value={fe(calc.afterTax)} color="var(--accent)" />
+              <KPICard label="Airbnb καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color="var(--positive)" />
+              <KPICard label="Μακροχρόνια μετά φόρου" value={fe(calc.afterTax)} color="var(--accent)" />
             </div>
             <InfoBanner type="warning">
               Airbnb: Αυξημένος χρόνος διαχείρισης, φθορές, ασταθές εισόδημα, υποχρέωση εγγραφής άνω των 3 ακινήτων. Η μακροχρόνια μίσθωση προσφέρει σταθερότητα.
@@ -1184,8 +1179,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
             {[
               { title: 'Εγγραφή ΜΒΜΑ (Μητρώο Βραχυχρόνιας Μίσθωσης)', desc: 'Υποχρεωτική πριν οποιαδήποτε ανάρτηση. Κωδικός ΜΒΜΑ εμφανίζεται υποχρεωτικά στην αγγελία.', url: 'https://www.aade.gr/polites/foroi/mitroo-vraxyhronion-misthoseon', urgent: true },
-              { title: 'Δήλωση Βραχυχρόνιας Εισοδήματος', desc: 'Κάθε κράτηση δηλώνεται στην ΑΕΠΠ εντός 24 ωρών. Φορολογικός Συντελεστής 15%/35%/45%.', url: 'https://www.aade.gr', urgent: false },
-              { title: 'Όριο 3 Ακινήτων', desc: 'Πάνω από 3 ακίνητα σε Airbnb: υποχρεωτική εγγραφή επιχείρησης + ΦΠΑ + λογιστής.', url: null, urgent: true },
+              { title: 'Δήλωση Βραχυχρόνιας Διαμονής', desc: 'Το εισόδημα κάθε κράτησης δηλώνεται στην ΑΑΔΕ (Δήλωση Βραχυχρόνιας Διαμονής). Φορολογικός συντελεστής 15%/25%/35%/45%.', url: 'https://www.aade.gr', urgent: false },
+              { title: 'Όριο 3 Ακινήτων', desc: 'Από 3 ακίνητα και πάνω σε βραχυχρόνια μίσθωση: υποχρεωτική έναρξη επιχειρηματικής δραστηριότητας + ΦΠΑ + λογιστής.', url: null, urgent: true },
               { title: 'Κανονισμός Πολυκατοικίας', desc: 'Απαιτείται συγκατάθεση 3/4 των ιδιοκτητών. Έλεγχε τον κανονισμό της πολυκατοικίας σου.', url: null, urgent: false },
             ].map((item, i) => (
               <div key={i} style={{ background: 'var(--bg-surface)', border: `1px solid ${item.urgent ? 'var(--negative)' : 'var(--border-subtle)'}`, borderLeft: `3px solid ${item.urgent ? 'var(--negative)' : 'var(--info)'}`, borderRadius: 8, padding: '12px 14px' }}>

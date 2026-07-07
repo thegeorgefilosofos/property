@@ -315,14 +315,16 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
   );
 }
 
-// ─── Αναπροσαρμογή Ενοικίου (ΤΔΕ) ────────────────────────────────────────────
+// ─── Αναπροσαρμογή Ενοικίου (ΔΤΚ) ────────────────────────────────────────────
 function RentAdjustView({ tenant }:{ tenant:Tenant }) {
-  const TDE:Record<number,number>={2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8};
+  // Μέση ετήσια μεταβολή ΔΤΚ (ΕΛΣΤΑΤ). 2025: +2,5% (μέσος όρος δωδεκαμήνου).
+  const TDE:Record<number,number>={2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8,2025:2.5};
   const fmtE=(n:number)=>`${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
   const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
   const rent=tenant.monthly_rent||0;
   const daysExp=tenant.lease_end?Math.ceil((new Date(tenant.lease_end+'T00:00:00').getTime()-Date.now())/86400000):null;
-  const [yr,setYr]=useState(String(new Date().getFullYear()));
+  // Προεπιλογή το πιο πρόσφατο έτος με πραγματικό δείκτη (όχι το τρέχον που δεν έχει ακόμη μέσο όρο).
+  const [yr,setYr]=useState(String(Math.max(...Object.keys(TDE).map(Number))));
   const [useCustom,setUseCustom]=useState(false);
   const [customPct,setCustomPct]=useState('');
   const tde=TDE[parseInt(yr)]??2.8;
@@ -356,14 +358,14 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
       @media print{body{margin:20px;padding:24px}}
     </style></head><body>
     <div class="header"><h1>Ειδοποίηση Αναπροσαρμογής Μισθώματος</h1>
-    <div class="sub">Βάσει Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) ${esc(yr)}, Property OS</div></div>
+    <div class="sub">Βάσει Δείκτη Τιμών Καταναλωτή (ΔΤΚ) ${esc(yr)}, Property OS</div></div>
     <p style="margin-bottom:8px"><strong>Ημερομηνία:</strong> ${esc(today_str)}</p>
     <p style="margin-bottom:20px">Προς: <strong>${esc(tenant.full_name)}</strong>${tenant.afm?'&nbsp;&nbsp;|&nbsp;&nbsp;ΑΦΜ: <strong>'+esc(tenant.afm)+'</strong>':''}</p>
-    <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Τιμαρίθμου Δαπανών Εκπαίδευσης (ΤΔΕ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
+    <p style="margin-bottom:16px;line-height:1.7">Σας γνωστοποιούμε ότι, βάσει του Δείκτη Τιμών Καταναλωτή (ΔΤΚ) έτους <strong>${esc(yr)}</strong>, όπως ανακοινώθηκε από την ΕΛΣΤΑΤ, το μηνιαίο μίσθωμα αναπροσαρμόζεται ως εξής:</p>
     <table>
       <tr><th>Στοιχείο</th><th>Αξία</th></tr>
       <tr><td>Τρέχον Μηνιαίο Μίσθωμα</td><td>${esc(fmtE(rent))}</td></tr>
-      <tr><td>ΤΔΕ ${esc(yr)} (ΕΛΣΤΑΤ)</td><td>+${esc(pct.toFixed(1))}%</td></tr>
+      <tr><td>ΔΤΚ ${esc(yr)} (ΕΛΣΤΑΤ)</td><td>+${esc(pct.toFixed(1))}%</td></tr>
       <tr><td>Αύξηση Μισθώματος</td><td>+${esc(fmtE(diff))}</td></tr>
       <tr class="highlight"><td><strong>Νέο Μηνιαίο Μίσθωμα</strong></td><td><strong>${esc(fmtE(newRent))}</strong></td></tr>
     </table>
@@ -379,11 +381,11 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
 
   return (
     <div>
-      {/* Εξήγηση ΤΔΕ */}
+      {/* Εξήγηση ΔΤΚ */}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24, marginBottom:16 }}>
-        <SectionTitle>Τι είναι ο Τιμάριθμος Δαπανών Εκπαίδευσης (ΤΔΕ)</SectionTitle>
+        <SectionTitle>Τι είναι ο Δείκτης Τιμών Καταναλωτή (ΔΤΚ)</SectionTitle>
         <p style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.8, fontFamily:T.font.sans, marginBottom:14 }}>
-          Ο <strong style={{ color:'var(--text-primary)' }}>Τιμάριθμος Δαπανών Εκπαίδευσης (ΤΔΕ)</strong> είναι ο επίσημος δείκτης που χρησιμοποιεί η ΕΛΣΤΑΤ για να μετρήσει τη μεταβολή του κόστους ζωής σε ετήσια βάση. Βάσει του Αστικού Κώδικα (άρθρο 288 ΑΚ), ο εκμισθωτής έχει δικαίωμα να αναπροσαρμόσει το μίσθωμα μία φορά τον χρόνο, εφόσον αυτό προβλέπεται στη σύμβαση.
+          Ο <strong style={{ color:'var(--text-primary)' }}>Δείκτης Τιμών Καταναλωτή (ΔΤΚ)</strong> είναι ο επίσημος δείκτης που χρησιμοποιεί η ΕΛΣΤΑΤ για να μετρήσει τη μεταβολή του κόστους ζωής σε ετήσια βάση. Βάσει του Αστικού Κώδικα (άρθρο 288 ΑΚ), ο εκμισθωτής έχει δικαίωμα να αναπροσαρμόσει το μίσθωμα μία φορά τον χρόνο, εφόσον αυτό προβλέπεται στη σύμβαση.
         </p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
           {[{label:'Νομική Βάση',value:'Αρ. 288 ΑΚ'},{label:'Συχνότητα',value:'Μία φορά/έτος'},{label:'Πηγή',value:'ΕΛΣΤΑΤ'}].map((item,i)=>(
@@ -420,7 +422,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
             <div style={{ ...labelStyle, marginBottom:8 }}>Έτος Αναπροσαρμογής</div>
             <select value={yr} onChange={e=>setYr(e.target.value)} style={selectStyle}>
               {Object.keys(TDE).sort((a,b)=>parseInt(b)-parseInt(a)).map(y=>(
-                <option key={y} value={y}>{y}, ΤΔΕ: {TDE[parseInt(y)]>=0?'+':''}{TDE[parseInt(y)].toFixed(1)}%</option>
+                <option key={y} value={y}>{y}, ΔΤΚ: {TDE[parseInt(y)]>=0?'+':''}{TDE[parseInt(y)].toFixed(1)}%</option>
               ))}
             </select>
           </div>
@@ -439,7 +441,7 @@ function RentAdjustView({ tenant }:{ tenant:Tenant }) {
           )}
 
           {/* TDE History Grid */}
-          <div style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΤΔΕ (ΕΛΣΤΑΤ)</div>
+          <div style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΔΤΚ (ΕΛΣΤΑΤ)</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap:5 }}>
             {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).map(([year,rate])=>{
               const active=parseInt(year)===parseInt(yr);

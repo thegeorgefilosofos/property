@@ -3,6 +3,7 @@
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,
   RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_ROWS_2026,
+  climateLevyForNights, isHighSeasonMonth, shortTermNet, CLIMATE_LEVY_PER_NIGHT_2025,
 } from './greekTax';
 
 let passed = 0, failed = 0;
@@ -64,6 +65,31 @@ for (let x = 0; x <= 60000; x += 1000) {
 ok('rows count == brackets', RENTAL_TAX_ROWS_2026.length === RENTAL_TAX_BRACKETS_2026.length);
 ok('rows boundaries match', RENTAL_TAX_ROWS_2026.every((r, i) => r.from === RENTAL_TAX_BRACKETS_2026[i].from && r.to === RENTAL_TAX_BRACKETS_2026[i].to));
 ok('rows include 25% band', RENTAL_TAX_ROWS_2026.some(r => r.rate === '25%' && r.from === 12000 && r.to === 24000));
+
+// ── Τέλος Ανθεκτικότητας (ΤΑΚΚ) βραχυχρόνιας ─────────────────────────────────
+ok('high season Απρ–Οκτ', [3,4,5,6,7,8,9].every(isHighSeasonMonth) && ![0,1,2,10,11].some(isHighSeasonMonth));
+// 10 νύχτες Ιανουάριο (χαμηλή) = 20 €· 10 νύχτες Ιούλιο (υψηλή) = 80 €
+ok('levy low month', climateLevyForNights([10,0,0,0,0,0,0,0,0,0,0,0]) === 20);
+ok('levy high month', climateLevyForNights([0,0,0,0,0,0,10,0,0,0,0,0]) === 80);
+ok('levy empty', climateLevyForNights(Array(12).fill(0)) === 0);
+ok('levy rates', CLIMATE_LEVY_PER_NIGHT_2025.high === 8 && CLIMATE_LEVY_PER_NIGHT_2025.low === 2);
+// καθαρά έσοδα: 100 νύχτες Ιούλιο × 100 € = 10.000 μεικτά· 15% προμήθεια=1.500·
+// διαμονές=100/4=25 × 50 καθαρισμός=1.250· ΤΑΚΚ=100×8=800· καθαρά=10.000-1.500-1.250-800=6.450
+{
+  const nights = [0,0,0,0,0,0,100,0,0,0,0,0];
+  const r = shortTermNet({ nightsByMonth: nights, nightlyRate: 100, platformFeePct: 15, cleaningPerStay: 50, avgNightsPerStay: 4 });
+  ok('st gross', r.grossRevenue === 10000);
+  ok('st platform', r.platformFees === 1500);
+  ok('st cleaning', r.cleaningTotal === 1250);
+  ok('st levy', r.levy === 800);
+  ok('st net', r.net === 6450);
+  ok('st stays', r.stays === 25);
+}
+// αντοχή σε μηδενικά/άκυρα
+{
+  const r = shortTermNet({ nightsByMonth: Array(12).fill(0), nightlyRate: 0, platformFeePct: 0, cleaningPerStay: 0, avgNightsPerStay: 0 });
+  ok('st zero net', r.net === 0 && r.stays === 0 && r.levy === 0);
+}
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\ngreekTax.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);

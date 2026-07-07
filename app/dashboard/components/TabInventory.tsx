@@ -1260,7 +1260,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
     onSaved()
   }
   const deleteSched=async(id:string)=>{await supabase.from('inventory_maintenance').delete().eq('id',id);onSaved()}
-  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,event_date:s.next_due,event_type:'maintenance',priority:'medium'});setPushed(p=>new Set(p).add(s.id))}
+  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,category:'maintenance',event_date:s.next_due,priority:'medium',status:'pending',source:'inventory'});setPushed(p=>new Set(p).add(s.id))}
   const addSuggested=async(s:{task:string;interval_months:number;category:string})=>{
     const matching=items.filter(i=>i.category===s.category)
     const inserts=matching.length>0?matching.map(item=>({property_id:propertyId,user_id:userId,item_id:item.id,item_name:item.name,task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''})):[{property_id:propertyId,user_id:userId,item_id:'',item_name:'',task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''}]

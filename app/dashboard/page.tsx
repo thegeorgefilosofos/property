@@ -22,11 +22,12 @@ import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
 import PropertyAssistant from './components/PropertyAssistant';
-import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
+import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
+import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import { canAddProperty } from '@/lib/billing/plans';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
@@ -42,6 +43,8 @@ interface Property {
   insurance_amount: number | null; insurance_company: string | null;
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
   atak: string | null; floor: number | null; heating: string | null;
+  parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
+  rental_mode: string | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
@@ -64,6 +67,12 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','warehouse','land','parking','storage','villa','other'];
+
+const HEATING_LABELS: Record<string,string> = {
+  central_gas:'Κεντρική (αέριο)', autonomous_gas:'Αυτόνομη (αέριο)', oil:'Πετρέλαιο',
+  heat_pump:'Αντλία θερμότητας', electric:'Ηλεκτρική', pellet:'Pellet / Ξύλο',
+  ac_only:'Κλιματιστικά', none:'Χωρίς θέρμανση', other:'Άλλο',
+};
 
 const NAV_ITEMS = [
   { id:'overview',   label:'Επισκόπηση' },
@@ -354,7 +363,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
-      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).limit(1),
+      supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
     ]);
@@ -466,7 +475,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
 
       <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
-        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση, για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
+        { key:'details', label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
         { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
         { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
         { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
@@ -510,9 +519,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
             {monthlyExp.map((v,i) => (
-              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                <div style={{width:'100%',height:`${(v/maxExp)*100}%`,background:i===month-1?'var(--accent)':'var(--md-surface-container)',borderRadius:'4px 4px 0 0',minHeight:v>0?4:0,transition:'height 0.3s'}}/>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,color:'var(--text-tertiary)'}}>{MONTHS[i]}</div>
+              <div key={i} title={`${MONTHS[i]}: ${fmtEur(v)}`} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'default'}}>
+                <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:i===month-1?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:i===month-1?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:i===month-1?700:400,color:i===month-1?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
               </div>
             ))}
           </div>
@@ -539,7 +548,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <tbody>
-              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Διεύθυνση',prop.address],['Αντικειμενική Αξία',fmtEur(prop.obj_value)],['ΕΠΑ Κλάση',prop.pea_class]].filter(([,v])=>v).map(([k,v],i) => (
+              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτ. ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
@@ -582,15 +591,21 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
 
       <div className="card">
-        <div className="section-label"><span className="section-dot"/> Ετήσιος Απολογισμός {year}</div>
+        <div className="section-label"><span className="section-dot"/> Ετήσια Προβολή {year}</div>
         <div className="grid-5">
-          {[
+          {(() => {
+            // Ετήσια προβολή: ετησιοποιούμε τις δαπάνες YTD ώστε να ταιριάζουν με το
+            // ετήσιο ενοίκιο, και ο φόρος είναι προοδευτικός (κλίμακα 2026), όχι flat 15%.
+            const annualizedExp = month > 0 ? Math.round(totalExpYTD / month * 12) : totalExpYTD;
+            const estTax = Math.round(rentalIncomeTax(annualRent));
+            const net = annualRent - annualizedExp - estTax;
+            return [
             { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
-            { label:'Συνολικές Δαπάνες', value:fmtEur(totalExpYTD), color:'var(--text-primary)' },
-            { label:'Εκτ. Φόρος (15%)', value:fmtEur(annualRent*0.15), color:'var(--text-primary)' },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(annualRent-totalExpYTD-annualRent*0.15), color:(annualRent-totalExpYTD-annualRent*0.15)>=0?'var(--positive)':'var(--negative)' },
+            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
+            { label:'Εκτ. Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
+            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
-          ].map((k,i) => { const acc=(k as any).accent; return (
+          ]; })().map((k,i) => { const acc=(k as any).accent; return (
             <div key={i} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
@@ -753,7 +768,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
           <div className="sidebar-section-label">Ακίνητά μου</div>
           {properties.map(p => (
-            <div key={p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}}>
+            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
               <span className="prop-item-name">{p.name}</span>
             </div>
@@ -780,7 +795,7 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="sidebar-footer">
-          <div className="user-row" onClick={signOut} title="Αποσύνδεση">
+          <div className="user-row" role="button" tabIndex={0} aria-label="Αποσύνδεση" onClick={signOut} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();signOut();}}} title="Αποσύνδεση">
             <div className="user-avatar">{userInitials}</div>
             <div style={{flex:1,minWidth:0}}>
               <div className="user-name" style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.email?.split('@')[0]}</div>

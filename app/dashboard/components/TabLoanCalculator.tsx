@@ -520,9 +520,10 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
           {scenChart.length>0&&(
             <ResponsiveContainer width="100%" height={100}>
               <BarChart data={scenChart} barCategoryGap="30%">
+                <defs><linearGradient id="scenNeg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{stopColor:'var(--negative)',stopOpacity:0.85}}/><stop offset="100%" style={{stopColor:'var(--negative)',stopOpacity:0.38}}/></linearGradient></defs>
                 <XAxis dataKey="name" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
                 <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
-                <Tooltip content={ChartTip}/><Bar dataKey="Τόκοι" fill="var(--negative)" radius={[5,5,0,0]} opacity={0.6}/>
+                <Tooltip content={ChartTip}/><Bar dataKey="Τόκοι" fill="url(#scenNeg)" radius={[5,5,0,0]}/>
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -533,12 +534,22 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
       <Section title="Γράφημα Αποπληρωμής" sub="Κεφάλαιο έναντι τόκων ανά έτος" defaultOpen>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={amortChart} barCategoryGap="12%">
+            <defs>
+              <linearGradient id="amortCap" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" style={{stopColor:'var(--positive)',stopOpacity:0.95}}/>
+                <stop offset="100%" style={{stopColor:'var(--positive)',stopOpacity:0.5}}/>
+              </linearGradient>
+              <linearGradient id="amortInt" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" style={{stopColor:'var(--negative)',stopOpacity:0.85}}/>
+                <stop offset="100%" style={{stopColor:'var(--negative)',stopOpacity:0.38}}/>
+              </linearGradient>
+            </defs>
             <XAxis dataKey="year" tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
             <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
             <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false}/>
             <Tooltip content={ChartTip}/><Legend wrapperStyle={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}/>
-            <Bar dataKey="Κεφάλαιο" stackId="a" fill="var(--positive)" opacity={0.55}/>
-            <Bar dataKey="Τόκοι"    stackId="a" fill="var(--negative)" opacity={0.5} radius={[5,5,0,0]}/>
+            <Bar dataKey="Κεφάλαιο" stackId="a" fill="url(#amortCap)" radius={[0,0,2,2]}/>
+            <Bar dataKey="Τόκοι"    stackId="a" fill="url(#amortInt)" radius={[5,5,0,0]}/>
           </BarChart>
         </ResponsiveContainer>
       </Section>
@@ -657,11 +668,12 @@ export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,o
         <div style={{marginBottom:14}}>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={stress.map(s=>({name:s.label,Δόση:Math.round(s.monthly)}))} barCategoryGap="22%">
+              <defs><linearGradient id="stressAccent" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{stopColor:'var(--accent)',stopOpacity:0.95}}/><stop offset="100%" style={{stopColor:'var(--accent)',stopOpacity:0.5}}/></linearGradient></defs>
               <XAxis dataKey="name" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
               <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
               <Tooltip content={ChartTip}/>
               <ReferenceLine y={INC*BORROWER_PROFILES[borrower].income_ratio} stroke="var(--warning)" strokeDasharray="4 4"/>
-              <Bar dataKey="Δόση" fill="var(--accent)" radius={[5,5,0,0]} opacity={0.75}/>
+              <Bar dataKey="Δόση" fill="url(#stressAccent)" radius={[5,5,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </div>

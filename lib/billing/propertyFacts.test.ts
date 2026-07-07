@@ -2,6 +2,7 @@
 // Τρέξε: npx tsx lib/billing/propertyFacts.test.ts
 import {
   resolveRent, resolveValue, resolveEnfia, resolveInsurance, computeYields, fmtYield,
+  rentalModeFromAirbnb, propertyDetailsComplete,
 } from './propertyFacts';
 
 let passed = 0, failed = 0;
@@ -62,6 +63,18 @@ for (let i = 0; i < 500; i++) {
 }
 eq('fmtYield 1 decimal', fmtYield(3.666), '3.7%');
 eq('fmtYield handles NaN', fmtYield(NaN), '0.0%');
+
+// ── rentalModeFromAirbnb & propertyDetailsComplete ──────────────────────────
+eq('airbnb → short_term', rentalModeFromAirbnb(true), 'short_term');
+eq('not airbnb → long_term', rentalModeFromAirbnb(false), 'long_term');
+eq('details value+rent complete', propertyDetailsComplete({ value: 150000, target_rent: 800 }, false), true);
+eq('details obj_value + tenant complete', propertyDetailsComplete({ value: null, obj_value: 120000, target_rent: null }, true), true);
+eq('details missing value', propertyDetailsComplete({ value: null, obj_value: null, target_rent: 800 }, false), false);
+eq('details missing rent & tenant', propertyDetailsComplete({ value: 150000, target_rent: null }, false), false);
+eq('details zeros do not count', propertyDetailsComplete({ value: 0, obj_value: 0, target_rent: 0 }, false), false);
+// regression: αντικειμενική τροφοδοτεί το KPI αξίας όταν λείπει η εμπορική
+eq('resolveValue obj feeds KPI', resolveValue(null, 120000).value, 120000);
+near('yield from obj_value ≈ 8%', computeYields(800, resolveValue(null, 120000).value, 0).grossYield, 8.0);
 
 console.log(`\npropertyFacts.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

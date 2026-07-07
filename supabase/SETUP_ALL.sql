@@ -307,6 +307,11 @@ create table if not exists public.rent_comparables (
   sqm           numeric     default 0,
   rent          numeric     default 0,
   rent_per_sqm  numeric     default 0,
+  listing_type  text        default 'rent',    -- rent | sale
+  asking_price  numeric     default 0,         -- ζητούμενη τιμή πώλησης (€)
+  price_per_sqm numeric     default 0,         -- €/τ.μ. πώλησης
+  days_on_market integer    default 0,         -- ημέρες στην αγορά
+  sold_price    numeric     default 0,         -- τελική τιμή πώλησης (0 = διαθέσιμο)
   distance      text        default '',
   condition     text        default 'good',   -- new | renovated | good | average | needs_work
   source        text        default 'spitogatos',
@@ -316,6 +321,7 @@ create table if not exists public.rent_comparables (
 );
 
 create index if not exists rent_comparables_property_idx on public.rent_comparables(property_id);
+create index if not exists rent_comparables_type_idx on public.rent_comparables(property_id, listing_type);
 
 alter table public.rent_comparables enable row level security;
 
@@ -417,3 +423,30 @@ end $$;
 -- ─── 20260707100000_property_postal_code.sql ───
 -- Ταχυδρομικός Κώδικας (ΤΚ) ανά ακίνητο (εμφανίζεται στη διεύθυνση). Idempotent.
 alter table public.user_properties add column if not exists postal_code text;
+
+
+-- ─── 20260707120000_property_full_capture.sql ───
+-- Πλήρης καταγραφή στοιχείων ακινήτου (περιλαμβάνει το ΑΤΑΚ που χρειάζεται το Ε2).
+-- Προσθέτει όλες τις στήλες που διαβάζει το dashboard ώστε τα KPI να μη δείχνουν 0 €.
+-- Idempotent· το RLS του user_properties ισχύει ήδη.
+alter table public.user_properties add column if not exists value numeric;
+alter table public.user_properties add column if not exists target_rent numeric;
+alter table public.user_properties add column if not exists sqm numeric;
+alter table public.user_properties add column if not exists ownership numeric;
+alter table public.user_properties add column if not exists atak text;
+alter table public.user_properties add column if not exists obj_value numeric;
+alter table public.user_properties add column if not exists enfia numeric;
+alter table public.user_properties add column if not exists purchase_price numeric;
+alter table public.user_properties add column if not exists purchase_date date;
+alter table public.user_properties add column if not exists year_built integer;
+alter table public.user_properties add column if not exists floor integer;
+alter table public.user_properties add column if not exists pea_class text;
+alter table public.user_properties add column if not exists heating text;
+alter table public.user_properties add column if not exists parking_spaces integer;
+alter table public.user_properties add column if not exists storage_sqm numeric;
+alter table public.user_properties add column if not exists bedrooms integer;
+alter table public.user_properties add column if not exists rental_mode text;
+alter table public.user_properties add column if not exists insurance_company text;
+alter table public.user_properties add column if not exists insurance_amount numeric;
+alter table public.user_properties add column if not exists insurance_expiry date;
+alter table public.user_properties add column if not exists notes text;
