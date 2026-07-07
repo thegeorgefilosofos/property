@@ -58,7 +58,7 @@ const CORE_GROUPS = new Set(['fixed', 'maintenance', 'renovation', 'appliances',
 
 // Premium, cohesive παλέτα (μουτ), ίδια με ExpenseAnalytics, χωρίς νέον/θόρυβο.
 const GROUP_COLORS: Record<string, string> = {
-  fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7c4dff',
+  fixed:'#1a73e8', maintenance:'#5f6368', renovation:'#7e57c2',
   appliances:'#00897b', appliance_lease:'#3949ab', vehicle_lease:'#00acc1',
   commercial:'#5e35b1', broker:'#26a69a', legal:'#8e24aa',
   travel:'#43a047', exhibition:'#6d4c41', tax:'#e8710a', other:'#9aa0a6',
@@ -110,7 +110,7 @@ const bestPayment = (a: number) =>
   a >= 500  ? 'Χρεωστική με Cashback ή Πιστωτική Άτοκες' :
   a >= 100  ? 'Χρεωστική με Cashback' : 'Μετρητά ή Χρεωστική';
 
-const CAT_COLORS = ['#1a73e8','#00897b','#7c4dff','#5f6368','#00acc1','#3949ab','#8e24aa','#43a047','#e8710a','#6d4c41'];
+const CAT_COLORS = ['#1a73e8','#00897b','#7e57c2','#5f6368','#00acc1','#3949ab','#8e24aa','#43a047','#e8710a','#6d4c41'];
 const CAT_COLOR_MAP: Record<string,string> = {};
 let colorIdx = 0;
 function getCatColor(cat: string) {
