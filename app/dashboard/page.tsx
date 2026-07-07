@@ -27,6 +27,7 @@ import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
+import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import { canAddProperty } from '@/lib/billing/plans';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
@@ -582,15 +583,21 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
 
       <div className="card">
-        <div className="section-label"><span className="section-dot"/> Ετήσιος Απολογισμός {year}</div>
+        <div className="section-label"><span className="section-dot"/> Ετήσια Προβολή {year}</div>
         <div className="grid-5">
-          {[
+          {(() => {
+            // Ετήσια προβολή: ετησιοποιούμε τις δαπάνες YTD ώστε να ταιριάζουν με το
+            // ετήσιο ενοίκιο, και ο φόρος είναι προοδευτικός (κλίμακα 2026), όχι flat 15%.
+            const annualizedExp = month > 0 ? Math.round(totalExpYTD / month * 12) : totalExpYTD;
+            const estTax = Math.round(rentalIncomeTax(annualRent));
+            const net = annualRent - annualizedExp - estTax;
+            return [
             { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
-            { label:'Συνολικές Δαπάνες', value:fmtEur(totalExpYTD), color:'var(--text-primary)' },
-            { label:'Εκτ. Φόρος (15%)', value:fmtEur(annualRent*0.15), color:'var(--text-primary)' },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(annualRent-totalExpYTD-annualRent*0.15), color:(annualRent-totalExpYTD-annualRent*0.15)>=0?'var(--positive)':'var(--negative)' },
+            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
+            { label:'Εκτ. Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
+            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
-          ].map((k,i) => { const acc=(k as any).accent; return (
+          ]; })().map((k,i) => { const acc=(k as any).accent; return (
             <div key={i} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>

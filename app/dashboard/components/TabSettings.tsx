@@ -751,7 +751,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:6 }}>
                   Συμπλήρωσε τα ετήσια μισθώματα για υπολογισμό
                 </div>
-                <div style={{ fontSize:11 }}>Φορολογική κλίμακα: 15% / 35% / 45%</div>
+                <div style={{ fontSize:11 }}>Φορολογική κλίμακα: 15% / 25% / 35% / 45%</div>
               </div>
             )}
           </div>
