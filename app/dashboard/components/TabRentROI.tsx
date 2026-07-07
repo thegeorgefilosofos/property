@@ -155,32 +155,36 @@ const fp = (n: number, d = 2) => `${n.toFixed(d)}%`;
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-elevated)',
-  border: '1px solid var(--border-subtle)',
+  background: 'var(--surface-raised)',
+  border: '1px solid var(--border-raised)',
   borderRadius: T.radius.card,
-  padding: 20,
-  marginBottom: 16,
+  padding: 22,
+  marginBottom: 20,
   minWidth: 0,
+  boxShadow: 'var(--highlight-inset), var(--elev-1)',
 };
 
+// Εσωτερικά πλακίδια = «σκαμμένα» πηγάδια (inset), ώστε η ανάγλυφη κάρτα να
+// φαίνεται ότι τα περιέχει — εδώ γεννιέται το πραγματικό βάθος, χωρίς neon.
 const innerStyle: React.CSSProperties = {
-  background: 'var(--bg-surface)',
+  background: 'var(--surface-sunken)',
   border: '1px solid var(--border-subtle)',
   borderRadius: T.radius.inner,
   padding: 14,
   minWidth: 0,
   overflow: 'hidden',
+  boxShadow: 'var(--well-inset)',
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 11,
   color: 'var(--text-secondary)',
   textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  fontWeight: 500,
+  letterSpacing: '0.06em',
+  fontWeight: 600,
   fontFamily: "'Inter', sans-serif",
   display: 'block',
-  marginBottom: 6,
+  marginBottom: 7,
 };
 
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 12, marginBottom: 12 };
@@ -205,18 +209,33 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
   label: string; value: string; sub?: string; color?: string;
   badge?: { text: string; color: string }; size?: 'sm' | 'md' | 'lg';
 }) {
-  const fs = size === 'lg' ? 22 : size === 'md' ? 18 : 14;
+  const fs = size === 'lg' ? 24 : size === 'md' ? 20 : 15;
+  // Χρώμα ΜΟΝΟ όπου έχει νόημα: η λεπτή λωρίδα κορυφής εμφανίζεται μόνο για
+  // σημασιολογικούς τόνους (θετικό/αρνητικό/warning/accent), όχι για ουδέτερα
+  // κόστη/στοιχεία (text-*) — έτσι φεύγει ο «θόρυβος» των πολλών χρωμάτων.
+  const isSemantic = !color.includes('--text');
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{value}</div>
+    <div
+      style={{
+        position: 'relative', overflow: 'hidden',
+        background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
+        borderRadius: 14, padding: '16px 16px 14px',
+        boxShadow: 'var(--highlight-inset), var(--elev-1)',
+        transition: 'transform 0.18s cubic-bezier(0.2,0,0,1), box-shadow 0.18s cubic-bezier(0.2,0,0,1)',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--highlight-inset-strong), var(--elev-2)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--highlight-inset), var(--elev-1)'; }}
+    >
+      {isSemantic && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 25%, transparent))`, opacity: 0.9 }} />}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5, marginTop: 2, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: fs, fontWeight: 700, color, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
         {badge && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: `${badge.color}18`, padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: `color-mix(in srgb, ${badge.color} 14%, transparent)`, border: `1px solid color-mix(in srgb, ${badge.color} 30%, transparent)`, padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
             {badge.text}
           </span>
         )}
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", lineHeight: 1.4 }}>{label}</div>
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, fontFamily: "'Inter', sans-serif", lineHeight: 1.4 }}>{label}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: "'Inter', sans-serif" }}>{sub}</div>}
     </div>
   );
@@ -278,11 +297,12 @@ function Gauge({ value, max = 15, label, color = 'var(--accent)' }: { value: num
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width="112" height="66" viewBox="0 0 112 66">
-        <path d={`M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke="var(--border-subtle)" strokeWidth="8" strokeLinecap="round" />
+        <path d={`M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke="var(--ring-track)" strokeWidth="9" strokeLinecap="round" />
         {value > 0 && (
-          <path d={`M ${sx} ${sy} A ${r} ${r} 0 ${la} 1 ${ax} ${ay}`} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" style={{ transition: 'all 0.6s ease' }} />
+          <path d={`M ${sx} ${sy} A ${r} ${r} 0 ${la} 1 ${ax} ${ay}`} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round" style={{ transition: 'all 0.6s ease', filter: `drop-shadow(0 1px 2px color-mix(in srgb, ${color} 50%, transparent))` }} />
         )}
-        <circle cx={ax} cy={ay} r="4" fill={color} />
+        <circle cx={ax} cy={ay} r="5" fill={color} style={{ filter: `drop-shadow(0 1px 1.5px color-mix(in srgb, ${color} 55%, transparent))` }} />
+        <circle cx={ax} cy={ay} r="2" fill="var(--bg-surface)" />
         <text x={cx} y={cy + 2} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text-primary)" fontFamily="'Roboto Mono', monospace" style={{ fontVariantNumeric: 'tabular-nums' }}>{value.toFixed(1)}%</text>
       </svg>
       <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", marginTop: -2, maxWidth: 100, margin: '0 auto' }}>{label}</div>
@@ -637,32 +657,32 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 placeholder="Έτος"
                 style={{
                   width: 86,
-                  height: 40,
+                  height: 42,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-default)',
-                  borderRadius: 4,
-                  padding: '10px 16px',
+                  borderRadius: 10,
+                  padding: '0 14px',
                   color: 'var(--text-primary)',
                   fontSize: 14,
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '0.25px',
+                  letterSpacing: 0,
                   outline: 'none',
                   boxSizing: 'border-box' as const,
                 }}
               />
               {constructionYear_n >= 1800 && constructionYear_n <= 2030 && (
                 <div style={{
-                  height: 40,
+                  height: 42,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-default)',
                   borderLeft: `3px solid ${yearToBadge(constructionYear_n).color}`,
-                  borderRadius: 4,
-                  padding: '10px 16px',
+                  borderRadius: 10,
+                  padding: '0 14px',
                   display: 'flex',
                   alignItems: 'center',
                   fontSize: 14,
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '0.25px',
+                  letterSpacing: 0,
                   color: yearToBadge(constructionYear_n).color,
                   whiteSpace: 'nowrap' as const,
                   boxSizing: 'border-box' as const,
@@ -693,7 +713,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
       )}
 
       {/* ── KPI Strip ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 10, marginBottom: 16, width: '100%' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 172px), 1fr))', gap: 12, marginBottom: 20, width: '100%' }}>
         <KPICard
           label="Μεικτή Απόδοση" value={fp(calc.grossYield)}
           color={calc.grossYield >= 5 ? 'var(--positive)' : calc.grossYield >= 3 ? 'var(--warning)' : 'var(--negative)'}
@@ -705,18 +725,32 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <KPICard label="Καθαρό / Μήνα" value={fe(calc.afterTax / 12)} color={calc.afterTax > 0 ? 'var(--positive)' : 'var(--negative)'} />
       </div>
 
-      {/* ── Gauges + Score ── */}
-      <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-around', padding: 16, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      {/* ── Gauges + Score (ανάγλυφο hero panel — το πιο «σηκωμένο» της σελίδας) ── */}
+      <div style={{
+        background: 'var(--surface-hero)',
+        border: '1px solid var(--border-raised)',
+        borderRadius: 18,
+        padding: 24,
+        marginBottom: 20,
+        boxShadow: 'var(--highlight-inset), var(--elev-2)',
+        display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 20, alignItems: 'center',
+      }}>
         <Gauge value={calc.grossYield} max={12} label="Μεικτή Απόδοση" color="var(--accent)" />
         <Gauge value={calc.netYield} max={8} label="Καθαρή Απόδοση" color="var(--positive)" />
         <Gauge value={calc.capRate} max={10} label="Κεφαλαιακή Απόδοση" color="var(--info)" />
         <Gauge value={Math.min(calc.occRate, 100)} max={100} label="Επίτευξη Ενοικίου" color="var(--warning)" />
         {calc.DSCR > 0 && <Gauge value={Math.min(calc.DSCR * 50, 100)} max={100} label={`Κάλυψη Δανείου ${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} />}
-        {/* Score */}
-        <div style={{ textAlign: 'center', minWidth: 100 }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: calc.scoreColor, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{calc.totalScore}</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: calc.scoreColor, marginBottom: 2, fontFamily: "'Inter', sans-serif" }}>{calc.scoreLabel}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>Βαθμολογία /100</div>
+        {/* Score — διακριτό ανάγλυφο πλακίδιο, τόνος από την ίδια τη βαθμολογία */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          minWidth: 116, alignSelf: 'stretch', padding: '16px 14px', borderRadius: 14,
+          background: `color-mix(in srgb, ${calc.scoreColor} 9%, var(--bg-surface))`,
+          border: `1px solid color-mix(in srgb, ${calc.scoreColor} 32%, transparent)`,
+          boxShadow: 'var(--highlight-inset), var(--elev-1)',
+        }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: calc.scoreColor, fontFamily: "'Inter', sans-serif", fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{calc.totalScore}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: calc.scoreColor, marginTop: 3, fontFamily: "'Inter', sans-serif" }}>{calc.scoreLabel}</div>
+          <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3, fontFamily: "'Inter', sans-serif" }}>Βαθμολογία /100</div>
         </div>
       </div>
 
@@ -876,10 +910,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="Συμβολαιογραφικά" value={loan.notary_cost} onChange={v => sl('notary_cost', v)} suffix="€" step={100} />
           </div>
           <div style={g4}>
-            <KPICard label="Αμοιβή Μεσίτη" value={fe(calc.agentFee)} color="var(--warning)" />
-            <KPICard label="Φόρος Μεταβίβασης" value={fe(calc.transTax)} color="var(--negative)" />
-            <KPICard label="Συμβολαιογραφικά" value={fe(calc.notary)} color="var(--warning)" />
-            <KPICard label="Πραγματικό Κόστος Απόκτησης" value={fe(calc.totalAcq)} color="var(--negative)" sub={`Yield: ${fp(calc.trueYield)}`} />
+            <KPICard label="Αμοιβή Μεσίτη" value={fe(calc.agentFee)} color="var(--text-primary)" />
+            <KPICard label="Φόρος Μεταβίβασης" value={fe(calc.transTax)} color="var(--text-primary)" />
+            <KPICard label="Συμβολαιογραφικά" value={fe(calc.notary)} color="var(--text-primary)" />
+            <KPICard label="Πραγματικό Κόστος Απόκτησης" value={fe(calc.totalAcq)} color="var(--text-primary)" sub={`Yield: ${fp(calc.trueYield)}`} />
           </div>
         </div>
 
@@ -892,7 +926,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           </div>
           {companyHq !== 'none' && (
             <div style={g3}>
-              <KPICard label="Φόρος Εταιρείας" value={fe(calc.compTax)} color="var(--negative)" />
+              <KPICard label="Φόρος Εταιρείας" value={fe(calc.compTax)} color="var(--text-primary)" />
               <KPICard label="Καθαρό μέσω Εταιρείας" value={fe(calc.afterTaxComp)} color={calc.afterTaxComp > 0 ? 'var(--positive)' : 'var(--negative)'} />
               <KPICard label="Διαφορά vs Φυσικό Πρόσωπο" value={fe(calc.afterTaxComp - calc.afterTax)} color={calc.afterTaxComp > calc.afterTax ? 'var(--positive)' : 'var(--negative)'} />
             </div>
@@ -1079,14 +1113,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                       value={(airbnb as any)[s.uKey]}
                       onChange={e => sa(s.uKey, e.target.value)}
                       style={{
-                        background: 'var(--bg-elevated)',
+                        background: 'var(--bg-surface)',
                         border: '1px solid var(--border-default)',
-                        borderRadius: 8,
-                        padding: '9px 12px',
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        height: 42,
+                        boxSizing: 'border-box' as const,
                         color: 'var(--text-primary)',
-                        fontSize: 13,
+                        fontSize: 14,
                         fontFamily: "'Inter', sans-serif",
                         fontWeight: 400,
+                        letterSpacing: 0,
                         cursor: 'pointer',
                         outline: 'none',
                         width: '100%',

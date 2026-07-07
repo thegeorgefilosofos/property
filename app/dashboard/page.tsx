@@ -754,7 +754,9 @@ export default function Dashboard() {
           <span className="sidebar-logo-badge">Beta</span>
         </div>
 
-        {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού */}
+        {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού.
+            Η ορατότητα είναι εγγυημένη από το .quick-add-btn (αδιαφανές
+            background-color που βάφεται πάντα, ανεξάρτητα από τη διαβάθμιση). */}
         <button
           onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
           className="quick-add-btn"

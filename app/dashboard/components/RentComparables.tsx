@@ -315,7 +315,7 @@ export default function RentComparables({
               : <NumberInput label="Ημέρες στην Αγορά" value={String(form.days_on_market || '')} onChange={v => sf('days_on_market', v)} suffix="ημέρες" step={5} />}
             <div>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", display: 'block', marginBottom: 6 }}>{mode === 'rent' ? '€ ανά τετραγωνικό (αυτόματο)' : '€/τ.μ. (αυτόματο)'}</span>
-              <div style={{ padding: '9px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 13, color: 'var(--accent)', fontFamily: "'Inter', sans-serif" }}>
+              <div style={{ height: 42, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 10, fontSize: 14, letterSpacing: 0, color: 'var(--accent)', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}>
                 {mode === 'rent'
                   ? (form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} € ανά τετραγωνικό` : '—')
                   : (form.price_per_sqm ? fps(parseFloat(String(form.price_per_sqm))) : '—')}

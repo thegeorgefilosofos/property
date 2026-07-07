@@ -3,32 +3,39 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { T } from '@/components/Theme';
 
-// Google MD3 form styles
+// ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
+// Ύψος 42, γωνία 10 (ταιριάζει με τις κάρτες), 1px border + accent focus-ring
+// (χωρίς μετατόπιση layout — δεν αλλάζει πάχος border/padding στο focus).
+export const FIELD_HEIGHT = 42;
+export const FIELD_RADIUS = 10;
+export const fieldBorderColor = (active: boolean) => (active ? 'var(--accent)' : 'var(--border-default)');
+export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-dim)' : 'none');
+
 const mdInputBase: React.CSSProperties = {
   width: '100%',
   background: 'var(--bg-surface)',
   border: '1px solid var(--border-default)',
-  borderRadius: 4,
-  padding: '10px 16px',
+  borderRadius: FIELD_RADIUS,
+  padding: '10px 14px',
   color: 'var(--text-primary)',
   fontSize: 14,
   fontFamily: "'Inter', sans-serif",
-  letterSpacing: '0.25px',
+  letterSpacing: 0,
   outline: 'none',
   boxSizing: 'border-box' as const,
-  height: 40,
-  transition: 'border-color 0.15s, border-width 0.1s',
+  height: FIELD_HEIGHT,
+  transition: 'border-color 0.15s, box-shadow 0.15s',
 };
 
 const mdLabelBase: React.CSSProperties = {
   display: 'block',
   fontFamily: "'Inter', sans-serif",
-  fontSize: 12,
-  fontWeight: 500,
-  letterSpacing: '0.5px',
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.06em',
   textTransform: 'uppercase' as const,
   color: 'var(--text-secondary)',
-  marginBottom: 6,
+  marginBottom: 7,
 };
 
 // ─── Number Input ─────────────────────────────────────────────────────────────
@@ -103,14 +110,15 @@ export function NumberInput({
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
-        border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
-        borderRadius: 4,
+        border: `1px solid ${fieldBorderColor(focused)}`,
+        boxShadow: fieldRing(focused),
+        borderRadius: FIELD_RADIUS,
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
-        transition: 'border-color 0.15s',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
         opacity: disabled ? 0.5 : 1,
-        height: 40,
+        height: FIELD_HEIGHT,
       }}>
         {prefix && (
           <span style={{
@@ -141,11 +149,11 @@ export function NumberInput({
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            padding: focused ? '9px 15px' : '10px 16px',
+            padding: '10px 14px',
             color: 'var(--text-primary)',
             fontSize: 14,
             fontFamily: T.font.mono,
-            letterSpacing: '0.25px',
+            letterSpacing: 0,
             minWidth: 0,
           }}
         />
@@ -219,8 +227,9 @@ export function CustomSelect({
           gap: 8,
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
-          border: `${open ? 2 : 1}px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
-          padding: open ? '9px 15px' : '10px 16px',
+          border: `1px solid ${fieldBorderColor(open)}`,
+          boxShadow: fieldRing(open),
+          padding: '10px 14px',
           userSelect: 'none',
         }}
       >
@@ -248,13 +257,13 @@ export function CustomSelect({
           left: 0,
           right: 0,
           background: 'var(--bg-surface)',
-          borderRadius: 4,
+          borderRadius: 12,
           zIndex: 200,
-          boxShadow: 'var(--shadow-lg)',
+          boxShadow: 'var(--elev-3)',
+          border: '1px solid var(--border-subtle)',
           maxHeight: 240,
           overflowY: 'auto',
-          border: 'none',
-          padding: '8px 0',
+          padding: '6px',
         }}>
           {options.map(opt => (
             <div
@@ -263,14 +272,15 @@ export function CustomSelect({
               onMouseLeave={() => setHovered(null)}
               onClick={() => { onChange(opt.value); setOpen(false); }}
               style={{
-                padding: '10px 16px',
+                padding: '9px 12px',
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
                 cursor: 'pointer',
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 14,
-                letterSpacing: '0.25px',
+                letterSpacing: 0,
                 color: opt.value === value ? 'var(--accent)' : 'var(--text-primary)',
                 background: opt.value === value ? 'var(--accent-dim)' : hovered === opt.value ? 'var(--bg-hover)' : 'transparent',
                 transition: 'background 0.1s',
@@ -350,12 +360,13 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           justifyContent: 'space-between',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
-          border: `${open ? 2 : 1}px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`,
-          padding: open ? '9px 15px' : '10px 16px',
+          border: `1px solid ${fieldBorderColor(open)}`,
+          boxShadow: fieldRing(open),
+          padding: '10px 14px',
           userSelect: 'none',
         }}
       >
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, letterSpacing: '0.25px', color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, letterSpacing: 0, color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)">
@@ -517,12 +528,13 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--bg-surface)',
-        border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
-        borderRadius: 4,
+        border: `1px solid ${fieldBorderColor(focused)}`,
+        boxShadow: fieldRing(focused),
+        borderRadius: FIELD_RADIUS,
         overflow: 'hidden',
-        transition: 'border-color 0.15s',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
         opacity: disabled ? 0.5 : 1,
-        height: 40,
+        height: FIELD_HEIGHT,
       }}>
         {prefix && (
           <div style={{ padding: '0 12px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 14, background: 'var(--bg-elevated)', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderRight: '1px solid var(--border-subtle)', flexShrink: 0 }}>
@@ -542,11 +554,11 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            padding: focused ? '9px 15px' : '10px 16px',
+            padding: '10px 14px',
             color: 'var(--text-primary)',
             fontFamily: "'Inter', sans-serif",
             fontSize: 14,
-            letterSpacing: '0.25px',
+            letterSpacing: 0,
             minWidth: 0,
           }}
         />
@@ -580,18 +592,19 @@ export function Textarea({
         style={{
           width: '100%',
           background: 'var(--bg-surface)',
-          border: `${focused ? 2 : 1}px solid ${focused ? 'var(--accent)' : 'var(--border-default)'}`,
-          borderRadius: 4,
-          padding: focused ? '9px 15px' : '10px 16px',
+          border: `1px solid ${fieldBorderColor(focused)}`,
+          boxShadow: fieldRing(focused),
+          borderRadius: FIELD_RADIUS,
+          padding: '10px 14px',
           color: 'var(--text-primary)',
           fontFamily: "'Inter', sans-serif",
           fontSize: 14,
-          letterSpacing: '0.25px',
+          letterSpacing: 0,
           boxSizing: 'border-box',
           outline: 'none',
           resize: 'vertical',
           minHeight: 80,
-          transition: 'border-color 0.15s',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
           lineHeight: '20px',
         }}
       />
