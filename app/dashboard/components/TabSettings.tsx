@@ -9,6 +9,7 @@ import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import { runE2Export } from './e2Export';
 import Billing from './Billing';
+import ReportBranding from './ReportBranding';
 import Referral from './Referral';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'property'|'settings'|'account'|'billing'|'prefs'|'fma'|'e2'>('property');
+  const [activeSection, setActiveSection] = useState<'property'|'settings'|'account'|'billing'|'branding'|'prefs'|'fma'|'e2'>('property');
   const [accountEmail, setAccountEmail] = useState('');
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -259,6 +260,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
     { id:'settings', label:'Ρυθμίσεις' },
     { id:'account',  label:'Λογαριασμός' },
     { id:'billing',  label:'Συνδρομή & Χρέωση' },
+    { id:'branding', label:'Επωνυμία αναφορών' },
     { id:'prefs',    label:'Προτιμήσεις' },
     { id:'fma',      label:'ΦΜΑ, Αγορά / Πώληση' },
     { id:'e2',       label:'Ε2, Εισόδημα Ακινήτων' },
@@ -377,6 +379,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
 
       {/* ── BILLING ── */}
       {activeSection==='billing' && <Billing userId={userId} />}
+
+      {activeSection==='branding' && <ReportBranding userId={userId} onUpgrade={()=>setActiveSection('billing')} />}
 
       {/* ── SETTINGS ── */}
       {activeSection==='settings' && (
