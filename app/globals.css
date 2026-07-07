@@ -117,11 +117,14 @@ body {
   --bg-elevated:   #f1f3f4;
   --bg-overlay:    #e8eaed;
   --bg-hover:      rgba(60,64,67,0.08);
-  --bg-active:     rgba(26,115,232,0.12);
+  --bg-active:     color-mix(in srgb, var(--accent) 12%, transparent);
 
-  --accent:        #1a73e8;   /* Google Blue — brand accent (light) */
-  --accent-dim:    rgba(26,115,232,0.12);
-  --accent-hover:  #1765cc;
+  /* Signature accent: βαθύ royal-indigo blue — «το μπλε μας», πιο πλούσιο &
+     μοναδικό από το γενικό Google azure. ΜΙΑ τιμή· dim/soft/border/hover
+     παράγονται από αυτό ώστε να μη ξαναδιαφωνήσουν ποτέ. */
+  --accent:        #1f53d8;   /* deep royal-indigo (light) */
+  --accent-dim:    color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-hover:  #1a46b8;
   --accent-text:   #ffffff;
 
   --positive:      #188038;
@@ -232,12 +235,12 @@ body {
   --bg-elevated:   #35363a;
   --bg-overlay:    #3c4043;
   --bg-hover:      rgba(232,234,237,0.08);
-  --bg-active:     rgba(168,199,250,0.12);
+  --bg-active:     color-mix(in srgb, var(--accent) 16%, transparent);
 
-  --accent:        #8ab4f8;   /* Google Blue — brand accent (dark) */
-  --accent-dim:    rgba(138,180,248,0.15);
-  --accent-hover:  #aecbfa;
-  --accent-text:   #0a2647;
+  --accent:        #9db4ff;   /* λαμπερό royal-indigo (dark) — ίδια οικογένεια */
+  --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-hover:  #b7ccff;
+  --accent-text:   #0a1f52;
 
   --positive:      #81c995;
   --positive-dim:  rgba(129,201,149,0.15);
@@ -938,7 +941,7 @@ body {
 }
 .sidebar-logo:hover .sidebar-logo-mark {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px -3px rgba(26,115,232,.5), inset 0 1px 0 rgba(255,255,255,.28);
+  box-shadow: 0 4px 10px -3px rgba(31,83,216,.5), inset 0 1px 0 rgba(255,255,255,.28);
 }
 .sidebar-logo:active .sidebar-logo-mark { transform: translateY(0) scale(.96); }
 .sidebar-logo-text {
@@ -987,7 +990,7 @@ body {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.28),
     0 1px 2px rgba(16,24,40,.14),
-    0 12px 26px -12px rgba(26,115,232,.45);
+    0 12px 26px -12px rgba(31,83,216,.45);
   transition: box-shadow 0.22s cubic-bezier(0.2,0,0,1), transform 0.12s cubic-bezier(0.2,0,0,1);
 }
 /* Γυάλινη γυαλάδα στο πάνω μέρος, βάθος χωρίς «gamer» λάμψη */
@@ -1003,7 +1006,7 @@ body {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.34),
     0 2px 4px rgba(16,24,40,.16),
-    0 18px 34px -14px rgba(26,115,232,.52);
+    0 18px 34px -14px rgba(31,83,216,.52);
 }
 .quick-add-btn:active:not(:disabled) { transform: translateY(0) scale(.99); }
 .quick-add-btn:disabled {
@@ -1383,11 +1386,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --bg-elevated:   #35363a;
     --bg-overlay:    #3c4043;
     --bg-hover:      rgba(232,234,237,0.08);
-    --bg-active:     rgba(168,199,250,0.12);
-    --accent:        #8ab4f8;
-    --accent-dim:    rgba(138,180,248,0.15);
-    --accent-hover:  #aecbfa;
-    --accent-text:   #0a2647;
+    --bg-active:     color-mix(in srgb, var(--accent) 16%, transparent);
+    --accent:        #9db4ff;
+    --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
+    --accent-hover:  #b7ccff;
+    --accent-text:   #0a1f52;
     --positive:      #81c995;
     --positive-dim:  rgba(129,201,149,0.15);
     --negative:      #f28b82;
