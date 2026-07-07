@@ -112,6 +112,14 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('plural addresses in πληθυντικό', /πληθυντικό ευγενείας/.test(plur));
   ok('default identity is singular', DEFAULT_IDENTITY.formal === false);
 }
+// segment-awareness: ο advisor προσαρμόζεται σε κάθε τύπο χρήστη
+{
+  const p = buildSystemPrompt(id(), 'x');
+  ok('knows short-term/Airbnb + ΑΜΑ', /ΒΡΑΧΥΧΡΟΝΙΑ|Airbnb/.test(p) && /ΑΜΑ/.test(p));
+  ok('knows long-term', /ΜΑΚΡΟΧΡΟΝΙΑ/.test(p));
+  ok('knows broker', /ΜΕΣΙΤΗΣ/.test(p));
+  ok('knows accountant', /ΛΟΓΙΣΤΗΣ/.test(p));
+}
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
 ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξία 200.000 €').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
