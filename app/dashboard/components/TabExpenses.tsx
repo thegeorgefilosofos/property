@@ -200,7 +200,7 @@ function InstallmentCalc({ amount, installments, interestRate, startDate }: { am
           { label:'Μηνιαία Δόση', value:fmtEur(mp), color:'var(--accent)' },
           { label:'Συνολικό Κόστος', value:fmtEur(total), color:isInterestFree?'var(--positive)':'var(--negative)' },
           { label:'Τόκοι', value:fmtEur(interest), color:interest>0?'var(--negative)':'var(--positive)' },
-          { label:'Εξόφληση', value:payoff.toLocaleDateString('el-GR',{month:'long',year:'numeric'}), color:'var(--info)' },
+          { label:'Εξόφληση', value:payoff.toLocaleDateString('el-GR',{month:'long',year:'numeric'}), color:'var(--text-primary)' },
         ].map((k,i) => (
           <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:6, padding:'8px 10px' }}>
             <div style={{ fontSize:12, fontWeight:700, color:k.color, fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.value}</div>
@@ -401,10 +401,10 @@ function ExpenseForm({
     .map(([k,v]) => ({ value:k, label:v.label }));
 
   return (
-    <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--info)':'var(--border-accent)'}` }}>
+    <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--accent)':'var(--border-accent)'}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:500, color:isEdit?'var(--info)':'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ width:5, height:5, borderRadius:'50%', background:isEdit?'var(--info)':'var(--accent)', display:'inline-block' }} />
+        <div style={{ fontSize:11, fontWeight:500, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--accent)', display:'inline-block' }} />
           {isEdit ? 'Επεξεργασία Δαπάνης' : 'Νέα Δαπάνη'}
         </div>
         {isDeductible !== undefined && (
@@ -453,15 +453,15 @@ function ExpenseForm({
         <NumberInput label="Αρχική Τιμή" value={form.original_price} onChange={v => sf('original_price',v)} suffix="€" step={0.01} />
         <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate',v)} options={VAT_RATES} />
         <div>
-          <label style={labelStyle}>ΦΠΑ Ποσό</label>
-          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--warning)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
+          <label style={labelStyle}><span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span> Ποσό</label>
+          <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--text-primary)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
             {form.vat_amount ? `${form.vat_amount} €` : '—'}
           </div>
         </div>
       </div>
 
       {form.discount_amount && parseFloat(form.discount_amount) > 0 && (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--positive)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--positive)', fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--positive)', fontFamily:"'Inter', sans-serif" }}>
           Εξοικονόμηση: <strong>{form.discount_amount} €</strong>
           {form.original_price && form.amount && (
             <span style={{ marginLeft:8, color:'var(--text-secondary)' }}>
@@ -484,7 +484,7 @@ function ExpenseForm({
         {hasCashback && !hasInstallments && <>
           <NumberInput label="Cashback %" value={form.cashback_pct} onChange={v => sf('cashback_pct',v)} suffix="%" step={0.1} max={100} />
           <div>
-            <label style={labelStyle}>Cashback Ποσό</label>
+            <label style={labelStyle}><span title="Επιστροφή μέρους της αγοράς σε χρήμα">Cashback</span> Ποσό</label>
             <div style={{ height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', display:'flex', alignItems:'center', fontSize:14, color:'var(--positive)', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums' }}>
               {form.cashback_amount ? `+${form.cashback_amount} €` : '—'}
             </div>
@@ -497,8 +497,8 @@ function ExpenseForm({
       )}
 
       {form.amount && parseFloat(form.amount) > 0 && !hasInstallments && (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--info)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
-          <strong style={{ color:'var(--info)' }}>Προτεινόμενος τρόπος:</strong> {bestPayment(parseFloat(form.amount))}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', marginBottom:12, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+          <strong style={{ color:'var(--text-primary)' }}>Προτεινόμενος τρόπος:</strong> {bestPayment(parseFloat(form.amount))}
         </div>
       )}
 
@@ -544,7 +544,7 @@ function ExpenseForm({
           Ακύρωση
         </button>
         <button onClick={onSave} disabled={saving || !form.description || !form.amount}
-          style={{ background:isEdit?'var(--info)':'var(--accent)', color:isEdit?'#fff':'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Inter', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
+          style={{ background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:20, padding:'9px 20px', fontSize:12, fontWeight:500, fontFamily:"'Inter', sans-serif", cursor:'pointer', opacity:saving?0.7:1 }}>
           {saving ? 'Αποθήκευση...' : isEdit ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
         </button>
       </div>
@@ -561,14 +561,13 @@ function BudgetCard({ group, spent, budget, onSetBudget, prevMonthSpent }: {
   const pct = budget > 0 ? Math.min((spent/budget)*100, 100) : 0;
   const over = budget > 0 && spent > budget;
   const remaining = budget > 0 ? budget - spent : 0;
-  const barColor = over ? 'var(--negative)' : pct > 80 ? 'var(--warning)' : pct > 50 ? 'var(--info)' : 'var(--positive)';
+  const barColor = over ? 'var(--negative)' : pct > 80 ? 'var(--warning)' : pct > 50 ? 'var(--text-tertiary)' : 'var(--positive)';
   const info = EXPENSE_GROUPS[group];
-  const groupColor = GROUP_COLORS[group] || 'var(--accent)';
   const mom = prevMonthSpent && prevMonthSpent > 0 ? ((spent - prevMonthSpent) / prevMonthSpent) * 100 : null;
   if (!info) return null;
 
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:`3px solid ${groupColor}`, borderRadius:14, padding:'15px 17px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderTop:'3px solid var(--border-subtle)', borderRadius:14, padding:'15px 17px', boxShadow:'0 1px 2px rgba(16,24,40,.04)', transition:'transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.16s' }}
       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 24px -12px rgba(16,24,40,.24)';}}
       onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 2px rgba(16,24,40,.04)';}}>
       {/* Ετικέτα ομάδας + ενέργεια αλλαγής ορίου */}
@@ -1424,7 +1423,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
 
       {/* Toast */}
       {ok && (
-        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--positive)', borderRadius:8, padding:'10px 16px', marginBottom:14, color:'var(--positive)', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
+        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 16px', marginBottom:14, color:'var(--positive)', fontSize:12, fontFamily:"'Inter', sans-serif" }}>
           {ok}
         </div>
       )}
@@ -1518,7 +1517,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           </span>
         </div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-          <button onClick={() => setShowBudgets(v=>!v)}
+          <button onClick={() => setShowBudgets(v=>!v)} title="Προϋπολογισμός ανά ομάδα δαπάνης"
             style={{ height:36, padding:'0 14px', borderRadius:20, border:`1px solid ${showBudgets?'var(--accent)':'var(--border-default)'}`, background:showBudgets?'var(--accent-dim)':'transparent', color:showBudgets?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:"'Inter', sans-serif", fontWeight:500 }}>
             Budget
           </button>
@@ -1620,7 +1619,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             </div>
           )}
           {cashbackStats.ytdCashback > 0 && (
-            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--positive)', borderRadius:10, padding:'12px 16px' }}>
+            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:10, padding:'12px 16px' }}>
               <div style={{ fontSize:10, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter', sans-serif", marginBottom:6 }}>
                 Επιστροφές χρημάτων φέτος
               </div>
@@ -1902,7 +1901,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                 })}
               </div>
               {/* Budget tips */}
-              <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--info)', borderRadius:8, padding:'10px 14px', fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+              <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--border-subtle)', borderRadius:8, padding:'10px 14px', fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
                 <strong style={{ color:'var(--text-primary)' }}>Συμβουλή:</strong> Πάτησε «+ Όρισε όριο» σε κάθε κατηγορία για να βάλεις μηνιαίο ή ετήσιο στόχο. Η πρόοδος ενημερώνεται αυτόματα.
               </div>
             </>
@@ -1934,7 +1933,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             <thead>
               <tr>
                 {['Ομάδα Δαπάνης','Σύνολο','ΦΠΑ','Εκπιπτόμενη'].map((h,i) => (
-                  <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'6px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif" }}>{h}</th>
+                  <th key={i} title={h==='ΦΠΑ'?'Φόρος Προστιθέμενης Αξίας':undefined} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'6px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -2067,7 +2066,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     <thead>
                       <tr>
                         {['Ημερομηνία','Κατηγορία','Περιγραφή','Πληρώνει','Κατάστημα','Πληρωμή','ΦΠΑ','Επιστροφή','Ποσό',''].map((h,i) => (
-                          <th key={i} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
+                          <th key={i} title={h==='ΦΠΑ'?'Φόρος Προστιθέμενης Αξίας':h==='Επιστροφή'?'Cashback — επιστροφή χρημάτων':undefined} style={{ fontSize:10, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-tertiary)', padding:'7px 10px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left', fontWeight:500, fontFamily:"'Inter', sans-serif", whiteSpace:'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -2075,7 +2074,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                       {groupExp.map(e => {
                         const pm = PAYMENT_METHODS.find(p => p.value===e.payment_method);
                         const paidByLabel = PAID_BY_OPTIONS.find(p => p.value===e.paid_by)?.label||e.paid_by;
-                        const paidByColor = e.paid_by==='tenant'?'var(--info)':e.paid_by==='split'?'var(--accent)':e.paid_by==='company'?'var(--positive)':'var(--text-tertiary)';
+                        const paidByColor = e.paid_by==='tenant'?'var(--text-secondary)':e.paid_by==='split'?'var(--text-secondary)':e.paid_by==='company'?'var(--text-secondary)':'var(--text-tertiary)';
                         const isEditing = editingId===e.id;
                         const freqLabel: Record<string,string> = { monthly:'Μηνιαία', quarterly:'Τριμην.', biannual:'Εξαμην.', annual:'Ετήσια' };
                         return (
@@ -2099,7 +2098,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                   {e.notes && <span style={{ marginLeft:5, fontSize:8, color:'var(--accent)' }}>●</span>}
                                 </div>
                                 <div style={{ display:'flex', gap:4, marginTop:2 }}>
-                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--info-dim)', color:'var(--info)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
+                                  {e.is_recurring && <span style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
                                   {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εκκρεμεί</span>}
                                   {e.warranty_months && (() => {
                                     const exp = new Date(e.date+'T00:00:00'); exp.setMonth(exp.getMonth()+e.warranty_months);
@@ -2114,28 +2113,28 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                 <div>{pm?.label||'—'}</div>
                                 {e.installments && <div style={{ fontSize:10, color:'var(--text-tertiary)' }}>{e.installments} δόσεις</div>}
                               </td>
-                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--warning)', fontSize:12 }}>
+                              <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontSize:12 }}>
                                 {e.vat_amount ? fmtEur(e.vat_amount) : '—'}
                                 {e.vat_rate && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:"'Inter', sans-serif" }}>{e.vat_rate}%</div>}
                               </td>
                               <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', color:'var(--positive)', fontSize:12 }}>{e.cashback_amount ? `+${fmtEur(e.cashback_amount)}` : '—'}</td>
                               <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
                                 {fmtEur(e.amount)}
-                                {e.original_price && e.original_price > e.amount && <div style={{ fontSize:10, color:'var(--positive)', textDecoration:'line-through', fontWeight:400 }}>{fmtEur(e.original_price)}</div>}
+                                {e.original_price && e.original_price > e.amount && <div style={{ fontSize:10, color:'var(--text-tertiary)', textDecoration:'line-through', fontWeight:400 }}>{fmtEur(e.original_price)}</div>}
                               </td>
                               <td style={{ padding:'9px 10px' }}>
                                 <div style={{ display:'flex', gap:3 }}>
                                   {/* Attachment link */}
                                   {(e as any).attachment_url && (
                                     <a href={(e as any).attachment_url} target="_blank" rel="noopener noreferrer"
-                                      style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, border:'1px solid var(--positive)', background:'var(--positive-dim)', color:'var(--positive)', cursor:'pointer', textDecoration:'none' }}
+                                      style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, border:'1px solid var(--accent)', background:'var(--accent-dim)', color:'var(--accent)', cursor:'pointer', textDecoration:'none' }}
                                       title="Άνοιγμα συνημμένου">
                                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                                     </a>
                                   )}
                                   <button onClick={() => setEditingId(isEditing?null:e.id)}
-                                    style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, border:`1px solid ${isEditing?'var(--info)':'var(--border-subtle)'}`, background:isEditing?'var(--info-dim)':'transparent', color:isEditing?'var(--info)':'var(--text-tertiary)', cursor:'pointer' }}
-                                    onMouseEnter={ev=>{ev.currentTarget.style.background='var(--info-dim)';ev.currentTarget.style.color='var(--info)';ev.currentTarget.style.borderColor='var(--info)';}}
+                                    style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, border:`1px solid ${isEditing?'var(--accent)':'var(--border-subtle)'}`, background:isEditing?'var(--accent-dim)':'transparent', color:isEditing?'var(--accent)':'var(--text-tertiary)', cursor:'pointer' }}
+                                    onMouseEnter={ev=>{ev.currentTarget.style.background='var(--accent-dim)';ev.currentTarget.style.color='var(--accent)';ev.currentTarget.style.borderColor='var(--accent)';}}
                                     onMouseLeave={ev=>{if(!isEditing){ev.currentTarget.style.background='transparent';ev.currentTarget.style.color='var(--text-tertiary)';ev.currentTarget.style.borderColor='var(--border-subtle)';}}}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                   </button>
