@@ -127,15 +127,18 @@ body {
   --accent-hover:  #1a46b8;
   --accent-text:   #ffffff;
 
-  --positive:      #188038;
-  --positive-dim:  rgba(24,128,56,0.12);
-  --negative:      #c5221f;
-  --negative-dim:  rgba(197,34,31,0.12);
-  --warning:       #e37400;
-  --warning-dim:   rgba(227,116,0,0.12);
+  /* Εκλεπτυσμένη, muted σημασιολογική παλέτα (deep emerald / bronze-amber /
+     brick-rose / indigo) — premium & σοβαρή, όχι «traffic-light». Dim
+     παράγεται από το ίδιο το χρώμα ώστε να μη διαφωνεί ποτέ. */
+  --positive:      #0c815a;   /* deep emerald/jade */
+  --positive-dim:  color-mix(in srgb, var(--positive) 12%, transparent);
+  --negative:      #b23b3b;   /* refined brick-rose */
+  --negative-dim:  color-mix(in srgb, var(--negative) 12%, transparent);
+  --warning:       #9a6714;   /* bronze-amber (όχι λεμονί) */
+  --warning-dim:   color-mix(in srgb, var(--warning) 12%, transparent);
   --warning-on-container: #7a4d00;   /* AA-safe μελάνι για badge σε ανοιχτό tint */
-  --info:          #1967D2;
-  --info-dim:      rgba(25,103,210,0.12);
+  --info:          #2f58cc;   /* indigo-blue, στην οικογένεια του accent */
+  --info-dim:      color-mix(in srgb, var(--info) 12%, transparent);
 
   /* Σημασιολογικοί τόνοι — soft (φόντο) + border, παράγονται από τον ρόλο.
      Ορίζονται μία φορά· το color-mix ξαναϋπολογίζεται ανά mode μέσω var(). */
@@ -242,15 +245,16 @@ body {
   --accent-hover:  #b7ccff;
   --accent-text:   #0a1f52;
 
-  --positive:      #81c995;
-  --positive-dim:  rgba(129,201,149,0.15);
-  --negative:      #f28b82;
-  --negative-dim:  rgba(242,139,130,0.15);
-  --warning:       #fdd663;
-  --warning-dim:   rgba(253,214,99,0.15);
-  --warning-on-container: #fdd663;   /* σε σκούρο tint το ίδιο το amber είναι AA */
-  --info:          #aecbfa;
-  --info-dim:      rgba(174,203,250,0.15);
+  /* Muted premium παλέτα (dark): πιο απαλά, όχι φωτεινά «traffic-light». */
+  --positive:      #52c79e;   /* soft jade */
+  --positive-dim:  color-mix(in srgb, var(--positive) 15%, transparent);
+  --negative:      #e58c84;   /* soft rose */
+  --negative-dim:  color-mix(in srgb, var(--negative) 15%, transparent);
+  --warning:       #d8b267;   /* muted gold, όχι λεμονί */
+  --warning-dim:   color-mix(in srgb, var(--warning) 15%, transparent);
+  --warning-on-container: #e6c179;   /* απαλό χρυσό μελάνι για badge σε σκούρο tint */
+  --info:          #97abf5;   /* soft indigo */
+  --info-dim:      color-mix(in srgb, var(--info) 15%, transparent);
 
   --text-primary:   #e8eaed;
   --text-secondary: #9aa0a6;
@@ -1391,15 +1395,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     --accent-dim:    color-mix(in srgb, var(--accent) 16%, transparent);
     --accent-hover:  #b7ccff;
     --accent-text:   #0a1f52;
-    --positive:      #81c995;
-    --positive-dim:  rgba(129,201,149,0.15);
-    --negative:      #f28b82;
-    --negative-dim:  rgba(242,139,130,0.15);
-    --warning:       #fdd663;
-    --warning-dim:   rgba(253,214,99,0.15);
-    --warning-on-container: #fdd663;
-    --info:          #aecbfa;
-    --info-dim:      rgba(174,203,250,0.15);
+    --positive:      #52c79e;
+    --positive-dim:  color-mix(in srgb, var(--positive) 15%, transparent);
+    --negative:      #e58c84;
+    --negative-dim:  color-mix(in srgb, var(--negative) 15%, transparent);
+    --warning:       #d8b267;
+    --warning-dim:   color-mix(in srgb, var(--warning) 15%, transparent);
+    --warning-on-container: #e6c179;
+    --info:          #97abf5;
+    --info-dim:      color-mix(in srgb, var(--info) 15%, transparent);
     --text-primary:   #e8eaed;
     --text-secondary: #9aa0a6;
     --text-tertiary:  #949a9f;   /* ενισχυμένο για WCAG AA στο σκούρο φόντο */
