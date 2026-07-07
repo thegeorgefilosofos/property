@@ -3,6 +3,15 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn } from '@/components/Theme';
+import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
+
+// Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
+const PEA_CLASSES = ['A+', 'A', 'B+', 'B', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η'];
+const HEATING_OPTS: [string, string][] = [
+  ['central_gas', 'Κεντρική (αέριο)'], ['autonomous_gas', 'Αυτόνομη (αέριο)'], ['oil', 'Πετρέλαιο'],
+  ['heat_pump', 'Αντλία θερμότητας'], ['electric', 'Ηλεκτρική'], ['pellet', 'Pellet / Ξύλο'],
+  ['ac_only', 'Κλιματιστικά'], ['none', 'Χωρίς θέρμανση'], ['other', 'Άλλο'],
+];
 
 // ── Domain constants (kept in sync με το dashboard/page.tsx) ────────────────
 const STATUS_COLORS: Record<string, string> = {
@@ -69,12 +78,13 @@ const inputStyle: React.CSSProperties = {
   letterSpacing: '0.25px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
+const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
   display: 'block', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
   letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6,
 };
-const onFocus = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = 'var(--accent)'; };
-const onBlur = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = 'var(--border-default)'; };
+const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--accent)'; };
+const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label style={labelStyle}>{label}</label>{children}</div>;
@@ -85,6 +95,9 @@ interface ExistingProperty {
   postal_code?: string | null; sqm?: number | null; floor?: number | null; year_built?: number | null;
   value?: number | null; purchase_price?: number | null; target_rent?: number | null;
   ownership?: number | string | null; status_detail?: string | null; atak?: string | null;
+  obj_value?: number | string | null; enfia?: number | string | null; pea_class?: string | null;
+  heating?: string | null; purchase_date?: string | null; parking_spaces?: number | string | null;
+  storage_sqm?: number | string | null; bedrooms?: number | string | null; rental_mode?: string | null;
 }
 const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
 
@@ -97,7 +110,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
   const [propType, setPropType] = useState(existing?.prop_type || 'apartment');
   const [status, setStatus] = useState(existing?.status_detail && existing.status_detail !== 'seasonal' ? existing.status_detail : 'vacant');
-  const [airbnb, setAirbnb] = useState(existing?.status_detail === 'seasonal');
+  const [airbnb, setAirbnb] = useState(existing?.status_detail === 'seasonal' || existing?.rental_mode === 'short_term');
 
   const [name, setName] = useState(existing?.name || '');
   const [address, setAddress] = useState(existing?.address || '');
@@ -108,19 +121,30 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [yearBuilt, setYearBuilt] = useState(s(existing?.year_built));
 
   const [value, setValue] = useState(s(existing?.value));
+  const [objValue, setObjValue] = useState(s(existing?.obj_value));
+  const [enfia, setEnfia] = useState(s(existing?.enfia));
   const [purchasePrice, setPurchasePrice] = useState(s(existing?.purchase_price));
+  const [purchaseDate, setPurchaseDate] = useState(existing?.purchase_date || '');
   const [rent, setRent] = useState(s(existing?.target_rent));
   const [ownership, setOwnership] = useState(s(existing?.ownership) || '100');
+  const [peaClass, setPeaClass] = useState(existing?.pea_class || '');
+  const [heating, setHeating] = useState(existing?.heating || '');
+  const [parking, setParking] = useState(s(existing?.parking_spaces));
+  const [storageSqm, setStorageSqm] = useState(s(existing?.storage_sqm));
+  const [bedrooms, setBedrooms] = useState(s(existing?.bedrooms));
 
   const isLandLike = LAND_LIKE.has(propType);
   // Airbnb ⇒ status seasonal
   const effStatus = airbnb ? 'seasonal' : status;
 
   const valueN = num(value);
+  // Η αντικειμενική αξία τροφοδοτεί την προεπισκόπηση απόδοσης όταν λείπει η εμπορική
+  // (καθρέφτης του resolveValue: εμπορική > αντικειμενική).
+  const effValueN = valueN ?? num(objValue);
   const rentN = num(rent);
   // Ετήσιο ενοίκιο: κανονικά μηνιαίο×12, για Airbnb τιμή/διανυκτέρευση×365×πληρότητα
   const annualRent = rentN != null ? (airbnb ? rentN * 365 * OCCUPANCY : rentN * 12) : null;
-  const grossYield = (annualRent != null && valueN != null && valueN > 0) ? (annualRent / valueN) * 100 : null;
+  const grossYield = (annualRent != null && effValueN != null && effValueN > 0) ? (annualRent / effValueN) * 100 : null;
 
   const rentLabel = airbnb ? 'Τιμή ανά διανυκτέρευση (€)' : 'Στόχος Ενοικίου (€/μήνα)';
   const sqmLabel = propType === 'land' ? 'Εμβαδόν Οικοπέδου (τετραγωνικά μέτρα)' : 'Εμβαδόν (τετραγωνικά μέτρα)';
@@ -146,6 +170,15 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
       status_detail: effStatus,
+      obj_value: num(objValue),
+      enfia: num(enfia),
+      purchase_date: purchaseDate || null,
+      pea_class: isLandLike ? null : (peaClass || null),
+      heating: isLandLike ? null : (heating || null),
+      parking_spaces: isLandLike ? null : (parking ? parseInt(parking) : null),
+      storage_sqm: isLandLike ? null : num(storageSqm),
+      bedrooms: isLandLike ? null : (bedrooms ? parseInt(bedrooms) : null),
+      rental_mode: rentalModeFromAirbnb(airbnb),
     };
     const { error: err } = isEdit
       ? await supabase.from('user_properties').update(payload).eq('id', existing!.id)
@@ -286,17 +319,44 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="250" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               ) : (
-                <div style={grid3}>
-                  <Field label={sqmLabel}>
-                    <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Όροφος">
-                    <input style={monoInputStyle} type="number" value={floor} onChange={e => setFloor(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                  <Field label="Έτος Κατασκευής">
-                    <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
-                  </Field>
-                </div>
+                <>
+                  <div style={grid3}>
+                    <Field label={sqmLabel}>
+                      <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                    <Field label="Όροφος">
+                      <input style={monoInputStyle} type="number" value={floor} onChange={e => setFloor(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                    <Field label="Έτος Κατασκευής">
+                      <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                  </div>
+                  <div style={grid3}>
+                    <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
+                      <select style={selectStyle} value={peaClass} onChange={e => setPeaClass(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="">—</option>
+                        {PEA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Τύπος Θέρμανσης">
+                      <select style={selectStyle} value={heating} onChange={e => setHeating(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="">—</option>
+                        {HEATING_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Θέσεις Στάθμευσης">
+                      <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                  </div>
+                  <div style={grid2}>
+                    <Field label="Υπνοδωμάτια">
+                      <input style={monoInputStyle} type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                    <Field label="Αποθήκη (τ.μ.)">
+                      <input style={monoInputStyle} type="number" inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} placeholder="8" onFocus={onFocus} onBlur={onBlur} />
+                    </Field>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -308,14 +368,27 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Εμπορική Αξία (€)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} placeholder="145000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <Field label="Τιμή Αγοράς (€)">
-                  <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
+                <Field label="Αντικειμενική Αξία (€)">
+                  <input style={monoInputStyle} type="number" inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} placeholder="110000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
               </div>
               <div style={grid2}>
+                <Field label="Τιμή Αγοράς (€)">
+                  <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+                <Field label="Ημερομηνία Αγοράς">
+                  <input style={inputStyle} type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
+              <div style={grid2}>
+                <Field label="Εκτ. ΕΝΦΙΑ (€/έτος)">
+                  <input style={monoInputStyle} type="number" inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} placeholder="320" onFocus={onFocus} onBlur={onBlur} />
+                </Field>
                 <Field label={rentLabel}>
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
+              </div>
+              <div style={grid2}>
                 <Field label="Ποσοστό Ιδιοκτησίας (%)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} placeholder="100" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
@@ -328,7 +401,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                     {airbnb
                       ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
-                      : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί εμπορικής αξίας ${fe(valueN!, 0)}`}
+                      : `Ετήσια έσοδα ${fe(annualRent!, 0)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!, 0)}`}
                   </div>
                 </div>
               )}
@@ -360,15 +433,22 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : '—'],
                   isLandLike ? null : ['Όροφος', floor.trim() ? floor.trim() : '—'],
                   isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() ? yearBuilt.trim() : '—'],
+                  isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),
+                  isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
+                  isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
+                  isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
                   ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : '—'],
+                  num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
+                  num(enfia) != null ? ['Εκτ. ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
                   ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : '—'],
+                  purchaseDate ? ['Ημ. Αγοράς', new Date(purchaseDate).toLocaleDateString('el-GR')] : null,
                   [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
                   ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                     <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+                    <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημ. Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               </div>

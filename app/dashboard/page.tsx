@@ -22,7 +22,7 @@ import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
 import PropertyAssistant from './components/PropertyAssistant';
-import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
+import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
 import { printPropertyStatement } from './components/statement';
 import InsightsBoard from './components/InsightsBoard';
@@ -43,6 +43,8 @@ interface Property {
   insurance_amount: number | null; insurance_company: string | null;
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
   atak: string | null; floor: number | null; heating: string | null;
+  parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
+  rental_mode: string | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
@@ -65,6 +67,12 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','warehouse','land','parking','storage','villa','other'];
+
+const HEATING_LABELS: Record<string,string> = {
+  central_gas:'Κεντρική (αέριο)', autonomous_gas:'Αυτόνομη (αέριο)', oil:'Πετρέλαιο',
+  heat_pump:'Αντλία θερμότητας', electric:'Ηλεκτρική', pellet:'Pellet / Ξύλο',
+  ac_only:'Κλιματιστικά', none:'Χωρίς θέρμανση', other:'Άλλο',
+};
 
 const NAV_ITEMS = [
   { id:'overview',   label:'Επισκόπηση' },
@@ -467,7 +475,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       </div>
 
       <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
-        { key:'details', label:'Συμπλήρωσε τα στοιχεία του ακινήτου', hint:'Αξία, εμβαδόν, διεύθυνση, για σωστές αποδόσεις', done: !!(prop.value || prop.sqm || prop.address), nav:'settings' },
+        { key:'details', label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
         { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
         { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
         { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
@@ -540,7 +548,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <tbody>
-              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Διεύθυνση',prop.address],['Αντικειμενική Αξία',fmtEur(prop.obj_value)],['ΕΠΑ Κλάση',prop.pea_class]].filter(([,v])=>v).map(([k,v],i) => (
+              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτ. ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
