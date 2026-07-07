@@ -254,8 +254,8 @@ function StarRating({ value, onChange }: { value: number; onChange?: (n: number)
     <div style={{ display: 'flex', gap: 3 }}>
       {[1,2,3,4,5].map(n => (
         <Star key={n} size={onChange ? 22 : 13}
-          fill={n <= (hover || value) ? 'var(--warning)' : 'none'}
-          color={n <= (hover || value) ? 'var(--warning)' : 'var(--border-default)'}
+          fill={n <= (hover || value) ? 'var(--accent)' : 'none'}
+          color={n <= (hover || value) ? 'var(--accent)' : 'var(--border-default)'}
           onClick={() => onChange && onChange(n === value ? 0 : n)}
           onMouseEnter={() => onChange && setHover(n)} onMouseLeave={() => onChange && setHover(0)}
           style={{ cursor: onChange ? 'pointer' : 'default', flexShrink: 0 }} />
@@ -535,7 +535,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(14,165,233,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarPlus size={18} color="var(--info)" /></div>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(26,115,232,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarPlus size={18} color="var(--accent)" /></div>
           <div><h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Νέο Ραντεβού</h3><p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{contact.full_name}</p></div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -863,7 +863,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => { setHov(false); setShowActions(false) }}
       style={{ background: 'var(--bg-surface)', border: '1px solid ' + (selected ? 'rgba(26,115,232,0.5)' : hov ? color + '50' : overdue ? 'rgba(255,59,48,0.35)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: '18px 18px 16px', position: 'relative', overflow: 'hidden', boxShadow: hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : color, borderRadius: '16px 0 0 16px' }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px' }} />
       {bulkMode && <div style={{ position: 'absolute', top: 13, left: 10 }}><input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
@@ -890,7 +890,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
         <div style={{ position: 'absolute', top: 48, right: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', zIndex: 10, minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
           {[
             { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--negative)' },
-            { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--info)' },
+            { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
             { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
             { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
             { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact, branding), color: 'var(--text-secondary)' },
@@ -940,13 +940,13 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
           {extra.schedule && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{extra.schedule}</span></div>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-          {extra.afm && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
-          {extra.iban && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span style={{ color: 'var(--warning)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
-          {extra.iban2 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN2 ···{extra.iban2.slice(-4)}</span>}
+          {extra.afm && <span title="Αριθμός Φορολογικού Μητρώου" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
+          {extra.iban && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ color: 'var(--text-secondary)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
+          {extra.iban2 && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN2 ···{extra.iban2.slice(-4)}</span>}
           {extra.next_appointment && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'rgba(255,59,48,0.1)' : color + '12', border: '1px solid ' + (overdue ? 'rgba(255,59,48,0.3)' : color + '30'), color: overdue ? 'var(--negative)' : color }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
           {extra.last_contact && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Τελ. επαφή {fmtDate(extra.last_contact)}</span>}
           {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.2)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
-          {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', color: 'var(--info)' }}>{(extra.files || []).length} αρχεία</span>}
+          {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>{(extra.files || []).length} αρχεία</span>}
         </div>
         {contact._freeNotes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, padding: '7px 11px', marginBottom: 14, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{contact._freeNotes}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
@@ -1104,7 +1104,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
         right={<>
-          <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
+          <button type="button" title="Μαζική επιλογή και ενέργειες σε πολλές επαφές" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
           <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
           <button type="button" onClick={() => exportContactsPDF(contacts, branding)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
           <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
@@ -1334,20 +1334,20 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
               {modalTab === 'professional' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><FL>ΑΦΜ</FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="Παράδειγμα: 123456789" /></div>
+                  <div><FL><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span></FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="Παράδειγμα: 123456789" /></div>
                   <div><FL>Αριθμός Μητρώου / Άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="Παράδειγμα: Αριθμός Αδείας Μεσίτη 123" /></div>
 
                   {/* IBAN Section */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '16px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: -4 }}>Τραπεζικά Στοιχεία</div>
-                    <div><FL>IBAN (κύριος)</FL><Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR1601101250000000012300695" /></div>
-                    <div><FL>IBAN (δεύτερος)</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Δεύτερος IBAN αν υπάρχει" /></div>
+                    <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span> (κύριος)</FL><Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR1601101250000000012300695" /></div>
+                    <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span> (δεύτερος)</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Δεύτερος IBAN αν υπάρχει" /></div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)' }}>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--warning)' }}>IRIS</div>
+                        <div title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>IRIS</div>
                         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>Άμεσες πληρωμές μέσω IRIS</div>
                       </div>
-                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} colorOn="var(--warning)" />
+                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} colorOn="var(--accent)" />
                     </div>
                   </div>
 
