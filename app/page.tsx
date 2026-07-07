@@ -9,9 +9,25 @@ import LandingShowcase from './LandingShowcase';
 // theme-aware, FAQ με native <details> (0 JS). Server component (auth-aware).
 // ═══════════════════════════════════════════════════════════════════════════
 
+const OG_TITLE = 'Property OS · Διαχείριση ακινήτων με μία φωτογραφία';
+const OG_DESC = 'Σκάναρε λογαριασμό, συμβόλαιο ή ασφάλεια και ο βοηθός τα καταχωρεί μόνος του στο σωστό σημείο. Ρώτα τον με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, όλα σε μία οθόνη.';
+
 export const metadata = {
-  title: 'Property OS · Διαχείριση ακινήτων με μία φωτογραφία',
-  description: 'Σκάναρε λογαριασμό, συμβόλαιο ή ασφάλεια και ο βοηθός τα καταχωρεί μόνος του στο σωστό σημείο. Ρώτα τον με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, όλα σε μία οθόνη.',
+  metadataBase: new URL('https://property-os.gr'),
+  title: OG_TITLE,
+  description: OG_DESC,
+  openGraph: {
+    title: OG_TITLE,
+    description: OG_DESC,
+    type: 'website',
+    locale: 'el_GR',
+    siteName: 'Property OS',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: OG_TITLE,
+    description: OG_DESC,
+  },
 };
 
 const ACCENT = 'var(--accent)';
@@ -288,7 +304,7 @@ export default async function Landing() {
           {/* Επαγγελματίας, μεσιτικά / διαχειριστές */}
           <div className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4 }}>Επαγγελματίας</div>
-            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για μεσιτικά γραφεία και διαχειριστές ακινήτων</div>
+            <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>Για μεσιτικά γραφεία, διαχειριστές και λογιστικά γραφεία</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
               <span style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>19&nbsp;€</span>
               <span style={{ fontSize: 15, color: MUTED }}>τον μήνα</span>

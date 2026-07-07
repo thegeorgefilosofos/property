@@ -58,7 +58,7 @@ export default function LandingShowcase() {
         </div>
 
         {/* stage */}
-        <div role="tabpanel" id={`panel-${TABS[active].key}`} aria-labelledby={`tab-${TABS[active].key}`} aria-live="polite" style={{ position: 'relative', minHeight: 372 }}>
+        <div role="tabpanel" id={`panel-${TABS[active].key}`} aria-labelledby={`tab-${TABS[active].key}`} style={{ position: 'relative', minHeight: 372 }}>
           <div key={active} className="lp-fade" style={{ padding: 'clamp(14px, 2.4vw, 22px)' }}>
             {active === 0 && <PanelScan />}
             {active === 1 && <PanelDashboard />}
