@@ -320,6 +320,25 @@ create table if not exists public.rent_comparables (
   created_at    timestamptz default now()
 );
 
+-- Στήλες πώλησης (sale comparables) — ΚΑΙ ως ALTER, ώστε να προστεθούν και σε
+-- ΥΠΑΡΧΟΝΤΑ rent_comparables (το create table if not exists από πάνω τις βάζει
+-- μόνο σε ΝΕΑ βάση· σε παλιά προσπερνιέται, οπότε ο δείκτης παρακάτω θα έσκαγε).
+alter table public.rent_comparables add column if not exists listing_type   text    default 'rent';
+alter table public.rent_comparables add column if not exists asking_price   numeric default 0;
+alter table public.rent_comparables add column if not exists price_per_sqm  numeric default 0;
+alter table public.rent_comparables add column if not exists days_on_market integer default 0;
+alter table public.rent_comparables add column if not exists sold_price     numeric default 0;
+update public.rent_comparables set listing_type = 'rent' where listing_type is null;
+
+do $$
+begin
+  alter table public.rent_comparables
+    add constraint rent_comparables_listing_type_chk check (listing_type in ('rent','sale'));
+exception
+  when duplicate_object then null;
+  when others then raise notice 'listing_type check skip: %', sqlerrm;
+end $$;
+
 create index if not exists rent_comparables_property_idx on public.rent_comparables(property_id);
 create index if not exists rent_comparables_type_idx on public.rent_comparables(property_id, listing_type);
 
