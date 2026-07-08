@@ -7,6 +7,7 @@ import TabExpenses  from './components/TabExpenses';
 import TabBills     from './components/TabBills';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
+import TabPricing   from './components/TabPricing';
 import TabSettings  from './components/TabSettings';
 import TabTenant    from './components/TabTenant';
 import TabLoan      from './components/TabLoan';
@@ -87,6 +88,7 @@ const NAV_ITEMS = [
   { id:'calendar',   label:'Ημερολόγιο' },
   { id:'tenant',     label:'Ενοικιαστής' },
   { id:'roi',        label:'Αποδόσεις' },
+  { id:'pricing',    label:'Τιμολόγηση' },
   { id:'loan',       label:'Δάνειο' },
   { id:'inventory',  label:'Απογραφή' },
   { id:'checklist',  label:'Εκκρεμότητες' },
@@ -994,6 +996,7 @@ export default function Dashboard() {
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
+              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
