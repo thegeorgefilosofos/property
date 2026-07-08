@@ -521,6 +521,28 @@ body {
 }
 .card:hover { box-shadow: var(--highlight-inset-strong), var(--elev-2); border-color: var(--border-default); }
 
+/* Κάρτα πελάτη (Πελατολόγιο) — ανυψωμένη, κλικαρίσιμη επιφάνεια με βάθος 3D.
+   Ίδια αισθητική/tokens με τη γενική .card· hover/focus ανεβάζουν το επίπεδο και
+   αποκαλύπτουν τις ενέργειες (.client-card-act). Δουλεύει σε light + dark. */
+.client-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-raised);
+  border-radius: 16px;
+  box-shadow: var(--highlight-inset), var(--elev-1);
+  transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  cursor: pointer;
+}
+.client-card:hover {
+  box-shadow: var(--highlight-inset-strong), var(--elev-2);
+  border-color: var(--border-default);
+  transform: translateY(-2px);
+}
+.client-card:focus-within { box-shadow: var(--highlight-inset-strong), var(--elev-2); }
+.client-card-act { opacity: 0; transition: opacity .15s ease; }
+.client-card:hover .client-card-act,
+.client-card:focus-within .client-card-act { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
+
 /* Filled card */
 .card-filled {
   background: var(--md-surface-container);
