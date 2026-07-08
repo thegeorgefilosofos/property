@@ -78,8 +78,8 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   const pending = reqs.filter(r => r.status !== 'done');
   const STATUS_META: Record<string, { label: string; tone: string }> = {
-    new:         { label: 'Νέο',          tone: 'negative' },
-    in_progress: { label: 'Σε εξέλιξη',   tone: 'warning' },
+    new:         { label: 'Νέο',          tone: 'neutral' },
+    in_progress: { label: 'Σε εξέλιξη',   tone: 'accent' },
     done:        { label: 'Ολοκληρώθηκε', tone: 'positive' },
   };
 

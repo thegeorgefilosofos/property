@@ -361,7 +361,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           {importing && (
             <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans }}>
-              Ανάλυση αρχείου με AI, παρακαλώ περίμενε...
+              Ανάλυση αρχείου με <span title="Τεχνητή νοημοσύνη (Artificial Intelligence)">AI</span>, παρακαλώ περίμενε...
             </div>
           )}
           {error && (

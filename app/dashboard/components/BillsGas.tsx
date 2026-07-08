@@ -190,9 +190,9 @@ const bc = (badge: string) => {
 // Σήμανση αξιοπιστίας τιμής
 const priceBadge = (status: PriceStatus) => {
   switch (status) {
-    case 'verified':   return { label: '✓ Επιβεβαιωμένη', color: 'var(--positive)', bg: 'rgba(52,168,83,0.08)',  border: 'rgba(52,168,83,0.25)' };
+    case 'verified':   return { label: '✓ Επιβεβαιωμένη', color: 'var(--accent)', bg: 'var(--bg-elevated)',  border: 'var(--border-subtle)' };
     case 'formula':    return { label: 'ƒ Τύπος TTF',     color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)' };
-    case 'indicative': return { label: '~ Ενδεικτική',    color: 'var(--warning)',  bg: 'rgba(242,153,0,0.08)',  border: 'rgba(242,153,0,0.25)' };
+    case 'indicative': return { label: '~ Ενδεικτική',    color: 'var(--text-secondary)',  bg: 'var(--bg-elevated)',  border: 'var(--border-subtle)' };
   }
 };
 
@@ -319,9 +319,9 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       {/* ── Διαφάνεια τιμών, τι ακριβώς βλέπεις ── */}
       <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
         <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Οι τιμές αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος), χωρίς ρυθμιζόμενες χρεώσεις δικτύου, <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span>, ο τελικός λογαριασμός είναι υψηλότερος.
-        Σήμανση κάθε τιμής: <span style={{ color: 'var(--positive)', fontWeight: 700 }}>✓ Επιβεβαιωμένη</span> (επίσημη, {LAST_VERIFIED}) ·{' '}
+        Σήμανση κάθε τιμής: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>✓ Επιβεβαιωμένη</span> (επίσημη, {LAST_VERIFIED}) ·{' '}
         <span title="Δείκτης χονδρικής τιμής φυσικού αερίου στην ευρωπαϊκή αγορά (Title Transfer Facility)" style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>ƒ Τύπος TTF</span> (υπολογίζεται από τον επίσημο τύπο του παρόχου) ·{' '}
-        <span style={{ color: 'var(--warning)', fontWeight: 700 }}>~ Ενδεικτική</span> (τάξη μεγέθους, επιβεβαίωσε στον πάροχο).
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>~ Ενδεικτική</span> (τάξη μεγέθους, επιβεβαίωσε στον πάροχο).
       </div>
 
       {/* ── Επισκόπηση κόστους ── */}
