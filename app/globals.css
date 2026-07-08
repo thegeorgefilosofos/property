@@ -1224,6 +1224,21 @@ body {
   font-weight: 700;
   color: var(--md-on-secondary-container);
 }
+/* Κουμπί διαγραφής ακινήτου: εμφανίζεται όταν ο κέρσορας πλησιάζει το ακίνητο. */
+.prop-item-del {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.prop-item:hover .prop-item-del,
+.prop-item:focus-within .prop-item-del { opacity: 1; }
+.prop-item-del:hover { background: var(--negative-dim); color: var(--negative); }
 
 /* Property header */
 .prop-header {

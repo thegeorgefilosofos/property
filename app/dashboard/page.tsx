@@ -31,6 +31,7 @@ import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { stayTotal } from '@/lib/clients/clients';
+import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import { canAddProperty } from '@/lib/billing/plans';
@@ -763,25 +764,28 @@ export default function Dashboard() {
 
   // Οριστική διαγραφή του τρέχοντος ακινήτου μαζί με τα συνδεδεμένα δεδομένα του.
   // Αν ήταν το τελευταίο ακίνητο, ανοίγει αυτόματα η νέα καταχώρηση (ξεκινάς από την αρχή).
-  const deleteProperty = async () => {
-    if (!selected||!user) return;
+  const deletePropertyById = async (pid: string, name: string) => {
+    if (!user) return;
     const ok = window.confirm(
-      `Οριστική διαγραφή του ακινήτου «${selected.name}»;\n\n`+
+      `Οριστική διαγραφή του ακινήτου «${name}»;\n\n`+
       `Θα διαγραφούν όλα τα συνδεδεμένα στοιχεία του (έσοδα, δαπάνες, λογαριασμοί, `+
-      `ενοικιαστής, δάνεια, απογραφή, έγγραφα). Η ενέργεια δεν αναιρείται.`
+      `ενοικιαστής, δάνεια, απογραφή, έγγραφα, διαμονές) και οι συνομιλίες και αναμνήσεις `+
+      `του βοηθού γι' αυτό. Η ενέργεια δεν αναιρείται.`
     );
     if (!ok) return;
     setStatusDropdown(false);
-    const pid = selected.id;
     const wasLast = properties.length <= 1;
     // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
-    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences'];
+    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays'];
     await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
     await supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id);
-    setSelected(null);
+    // Σβήσε τη συνομιλία/μνήμη του βοηθού για το συγκεκριμένο ακίνητο (τοπικά στον browser).
+    try { clearAssistantHistory(pid); } catch {}
+    if (selected?.id === pid) setSelected(null);
     await fetchProperties(user.id);
     if (wasLast) { setNav('overview'); setShowAddModal(true); }
   };
+  const deleteProperty = () => { if (selected) deletePropertyById(selected.id, selected.name); };
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
 
@@ -852,6 +856,11 @@ export default function Dashboard() {
             <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
               <span className="prop-item-name">{p.name}</span>
+              <button className="prop-item-del" title="Διαγραφή ακινήτου και όλων των δεδομένων του" aria-label={`Διαγραφή ακινήτου ${p.name}`}
+                onClick={e=>{ e.stopPropagation(); deletePropertyById(p.id, p.name); }}
+                onKeyDown={e=>{ e.stopPropagation(); }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
             </div>
           ))}
           <button onClick={()=>tryAddProperty()}
