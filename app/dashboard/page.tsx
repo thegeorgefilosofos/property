@@ -850,6 +850,7 @@ export default function Dashboard() {
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
   const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
+  const [profileType, setProfileType] = useState<'individual'|'professional'>('individual'); // τύπος προφίλ → οδηγεί το interface
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
@@ -881,7 +882,7 @@ export default function Dashboard() {
       const refBy = (user.user_metadata as any)?.referred_by;
       if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, owner_name').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); });
+      supabase.from('billing_profiles').select('plan, owner_name, profile_type').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); });
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
@@ -1052,7 +1053,7 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
-          {NAV_GROUPS.map((group,gi) => {
+          {(profileType==='professional' ? NAV_GROUPS : NAV_GROUPS.filter(g=>!g.ids.includes('comparison'))).map((group,gi) => {
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
             const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
@@ -1193,7 +1194,7 @@ export default function Dashboard() {
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id}/>}
-              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id}/>}
+              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={profileType} onProfileChange={setProfileType}/>}
             </div>
           </>
         )}
@@ -1264,6 +1265,7 @@ export default function Dashboard() {
           if (data) { setSelected(data); setScanDraftId(data.id); }
           setNav('overview'); setQuickAddOpen(true);
         }}
+        onProfile={setProfileType}
         onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}
         onClose={()=>setShowWelcome(false)} />}
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}

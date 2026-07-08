@@ -123,7 +123,44 @@ function AccountantLink({ userId }: { userId: string }) {
   );
 }
 
-export default function TabSettings({ propertyId, userId }: { propertyId:string; userId:string }) {
+// Επιλογή τύπου προφίλ (Ιδιώτης / Επαγγελματίας) — οδηγεί το interface.
+function ProfileTypeCard({ userId, value, onChange }: { userId: string; value: 'individual'|'professional'; onChange: (v: 'individual'|'professional') => void }) {
+  const supabase = createClient();
+  const set = async (v: 'individual'|'professional') => {
+    if (v === value) return;
+    onChange(v);
+    await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+  };
+  const OPTS: { v: 'individual'|'professional'; title: string; sub: string }[] = [
+    { v: 'individual', title: 'Ιδιώτης', sub: 'Ένα ή λίγα δικά μου ακίνητα. Απλό, καθαρό, χωρίς περιττά.' },
+    { v: 'professional', title: 'Επαγγελματίας', sub: 'Διαχειρίζομαι πολλά ακίνητα. Χαρτοφυλάκιο, σύγκριση, εργαλεία διαχείρισης.' },
+  ];
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Τύπος προφίλ</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
+        {OPTS.map(o => {
+          const on = value === o.v;
+          return (
+            <button key={o.v} onClick={() => set(o.v)}
+              style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{o.title}</span>
+                <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                </span>
+              </div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId:string; userId:string; profileType?: 'individual'|'professional'; onProfileChange?: (v: 'individual'|'professional') => void }) {
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
   const [saved, setSaved] = useState(false);
@@ -399,6 +436,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά tab από το κουμπί «Εξαγωγή CSV».</InfoBanner>
           </div>
 
+          <ProfileTypeCard userId={userId} value={profileType} onChange={v => onProfileChange?.(v)} />
           <AccountantLink userId={userId} />
           <Referral userId={userId} />
         </div>
