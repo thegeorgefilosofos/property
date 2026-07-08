@@ -675,3 +675,4 @@ create index if not exists client_documents_client_idx on public.client_document
 alter table public.client_documents enable row level security;
 drop policy if exists own_client_documents on public.client_documents;
 create policy own_client_documents on public.client_documents for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+do $$ begin alter publication supabase_realtime add table public.client_documents; exception when duplicate_object then null; when others then raise notice 'rt client_documents skip: %', sqlerrm; end $$;
