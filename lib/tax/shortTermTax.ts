@@ -84,7 +84,7 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const nightsByMonth = nightsByMonthForYear(stays, year);
   const totalNights = nightsByMonth.reduce((a, b) => a + b, 0);
   const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
-  const levy = climateLevyForNights(nightsByMonth, meta?.sqm);
+  const levy = climateLevyForNights(nightsByMonth, meta?.sqm, meta?.isHouse);
   const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
   const incomeTax = rentalIncomeTax(grossRevenue);
   const net = grossRevenue - incomeTax - levy - municipalTax;

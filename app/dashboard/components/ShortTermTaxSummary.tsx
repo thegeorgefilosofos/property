@@ -56,7 +56,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
   const years = useMemo(() => { const ys = yearsWithStays(stays); return ys.length ? ys : [new Date().getFullYear()]; }, [stays]);
   const sum = useMemo(() => shortTermYearSummary(stays, year, { sqm, isHouse, propertyCount: propCount }), [stays, year, sqm, isHouse, propCount]);
-  const levyRates = useMemo(() => climateLevyRates(sqm), [sqm]);
+  const levyRates = useMemo(() => climateLevyRates(sqm, isHouse), [sqm, isHouse]);
   // Ενοποιημένη εικόνα: ο φόρος εισοδήματος είναι προοδευτικός στο ΣΥΝΟΛΟ των
   // εσόδων σου, όχι ανά ακίνητο. Υπολογίζουμε τα συνολικά μεικτά βραχυχρόνιας.
   const unified = useMemo(() => {
@@ -155,7 +155,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
                 ))}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
-                Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({sqm != null ? (sqm > 80 ? 'άνω των 80 τ.μ.' : 'έως 80 τ.μ.') : 'έως 80 τ.μ., όρισε εμβαδόν για ακρίβεια'}): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €.
+                Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({isHouse && sqm != null && sqm > 80 ? 'μονοκατοικία άνω των 80 τ.μ.' : 'διαμέρισμα/κατοικία'}, ενδεικτικά 2025): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €. Το υψηλότερο κλιμάκιο (15/4) αφορά μόνο μονοκατοικίες άνω των 80 τ.μ. Τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
                 <br />Τέλος παρεπιδημούντων 0,5% επί των μεικτών. {sum.municipalExempt ? 'Το ακίνητό σου εξαιρείται (μονοκατοικία ή έως 80 τ.μ., φυσικό πρόσωπο με έως 2 ακίνητα), άρα 0 €.' : 'Δεν πληροίς την εξαίρεση, οπότε εφαρμόζεται.'}
               </div>
             </div>
