@@ -22,13 +22,20 @@ interface ContactExtra {
   reminder_days?: number; reminder_set?: string
   status?: 'active' | 'pending' | 'inactive' | 'problematic'
   files?: { name: string; url: string; size: string; uploaded: string }[]
+  // Πεδίο εμβέλειας (μόνο για επαγγελματικό προφίλ). Αποθηκεύεται εντός του JSON `notes`
+  // αφού δεν υπάρχει διαθέσιμη ειδική στήλη — βλ. σημείωση στην αναφορά.
+  scope?: 'property' | 'portfolio'; scope_property_id?: string
 }
 interface Contact {
   id: string; property_id: string; user_id: string; role: string; full_name: string
   phone: string | null; email: string | null; notes: string | null; created_at?: string
   _extra?: ContactExtra; _freeNotes?: string
 }
-interface TabContactsProps { propertyId: string; userId: string }
+interface TabContactsProps {
+  propertyId: string; userId: string; embedded?: boolean
+  profileType?: 'individual' | 'professional'
+  properties?: { id: string; name: string }[]
+}
 type SortMode = 'recent' | 'alpha' | 'rating'
 type ViewMode = 'cards' | 'compact'
 
@@ -218,6 +225,7 @@ const EMPTY_EXTRA: ContactExtra = {
   rating: 0, preferred: false, last_contact: '', next_appointment: '',
   specialty: '', tags: [], avatar_url: '', notes_log: [],
   reminder_days: 0, reminder_set: '', status: 'active', files: [],
+  scope: 'property', scope_property_id: '',
 }
 const EMPTY_FORM = { full_name: '', role: 'other', phone: '', email: '', freeNotes: '', extra: { ...EMPTY_EXTRA } }
 
@@ -270,6 +278,24 @@ function StatusBadge({ status }: { status: string }) {
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />{s.label}
     </span>
   )
+}
+
+// ─── Quick action button (calm, uniform, hover-revealed) ──────────────────────
+function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
+  as: 'a' | 'button'; href?: string; target?: string; rel?: string; onClick?: () => void
+  title: string; label?: string; children?: React.ReactNode
+}) {
+  const base: React.CSSProperties = {
+    width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    textDecoration: 'none', border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 10, fontWeight: 800, flexShrink: 0,
+    transition: 'border-color 0.15s, color 0.15s, background 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.14)',
+  }
+  const enter = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--accent-border)'; s.color = 'var(--accent)'; s.background = 'var(--accent-soft)' }
+  const leave = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--border-subtle)'; s.color = 'var(--text-secondary)'; s.background = 'var(--bg-elevated)' }
+  const content = children ?? label
+  if (as === 'a') return <a href={href} target={target} rel={rel} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</a>
+  return <button type="button" onClick={onClick} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</button>
 }
 
 // ─── Tag Editor ───────────────────────────────────────────────────────────────
@@ -846,10 +872,11 @@ ${preferred.length > 0 ? `
 }
 
 // ─── Contact Card ─────────────────────────────────────────────────────────────
-function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding }: {
+function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding, scopeLabel, scopePortfolio }: {
   contact: Contact; onEdit: () => void; onDelete: () => void
   onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void
   selected?: boolean; onSelect?: () => void; bulkMode?: boolean; branding?: ReportBranding | null
+  scopeLabel?: string | null; scopePortfolio?: boolean
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}; const color = meta.groupColor
@@ -869,21 +896,11 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
       {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
       {hov && !bulkMode && (
         <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 5 }}>
-          {contact.phone && (
-            <a href={'tel:' + contact.phone} style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', border: '1px solid rgba(37,211,102,0.3)', color: '#25d366' }}><Phone size={13} /></a>
-          )}
-          {extra.whatsapp && contact.phone && (
-            <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer"
-              style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,211,102,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', border: '1px solid rgba(37,211,102,0.3)', fontSize: 9, fontWeight: 800, color: '#25d366' }}>WA</a>
-          )}
-          {extra.viber && contact.phone && (
-            <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')}
-              style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(115,96,242,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', border: '1px solid rgba(115,96,242,0.3)', fontSize: 9, fontWeight: 800, color: '#7360f2' }}>VB</a>
-          )}
-          {contact.email && (
-            <a href={'mailto:' + contact.email} style={{ width: 30, height: 30, borderRadius: '50%', background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', border: '1px solid ' + color + '35', color }}><Mail size={13} /></a>
-          )}
-          <button type="button" onClick={() => setShowActions(s => !s)} style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: 17, fontWeight: 700 }}>···</button>
+          {contact.phone && <QuickAct as="a" href={'tel:' + contact.phone} title="Κλήση"><Phone size={13} /></QuickAct>}
+          {extra.whatsapp && contact.phone && <QuickAct as="a" href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" title="WhatsApp" label="WA" />}
+          {extra.viber && contact.phone && <QuickAct as="a" href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} title="Viber" label="VB" />}
+          {contact.email && <QuickAct as="a" href={'mailto:' + contact.email} title="Email"><Mail size={13} /></QuickAct>}
+          <QuickAct as="button" onClick={() => setShowActions(s => !s)} title="Περισσότερα"><span style={{ fontSize: 17, fontWeight: 700, lineHeight: 0, marginTop: -5 }}>···</span></QuickAct>
         </div>
       )}
       {showActions && (
@@ -918,6 +935,11 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
           <StatusBadge status={extra.status || 'active'} />
           {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
           {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.15)', border: '1px solid rgba(26,115,232,0.3)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
+          {scopeLabel && (
+            <span title={scopePortfolio ? 'Ισχύει για όλο το χαρτοφυλάκιο' : 'Ανήκει σε συγκεκριμένο ακίνητο'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: scopePortfolio ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: '1px solid ' + (scopePortfolio ? 'var(--accent-border)' : 'var(--border-subtle)'), color: scopePortfolio ? 'var(--accent-text)' : 'var(--text-secondary)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {scopePortfolio ? <Globe size={10} style={{ flexShrink: 0 }} /> : <Building2 size={10} style={{ flexShrink: 0 }} />}{scopeLabel}
+            </span>
+          )}
         </div>
         {(extra.tags || []).length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
@@ -960,7 +982,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
 }
 
 // ─── Compact Row ──────────────────────────────────────────────────────────────
-function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode }: { contact: Contact; onEdit: () => void; onDelete: () => void; selected?: boolean; onSelect?: () => void; bulkMode?: boolean }) {
+function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode, scopePortfolio }: { contact: Contact; onEdit: () => void; onDelete: () => void; selected?: boolean; onSelect?: () => void; bulkMode?: boolean; scopePortfolio?: boolean }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)' }
   const extra = contact._extra || {}; const [hov, setHov] = useState(false)
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
@@ -972,7 +994,7 @@ function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode }:
       <div style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : statusMeta.dot, flexShrink: 0 }} />
       <div style={{ width: 200, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
-        <div style={{ fontSize: 11, color: meta.groupColor, fontWeight: 500 }}>{meta.label}</div>
+        <div style={{ fontSize: 11, color: meta.groupColor, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{meta.label}{scopePortfolio && <span title="Όλο το χαρτοφυλάκιο" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-text)' }}><Globe size={10} /></span>}</div>
       </div>
       <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || '—'}</div>
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || '—'}</div>
@@ -1006,7 +1028,8 @@ function GroupDivider({ group, count }: { group: typeof GROUPS[0]; count: number
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function TabContacts({ propertyId, userId, embedded }: TabContactsProps & { embedded?: boolean }) {
+export default function TabContacts({ propertyId, userId, embedded, profileType = 'individual', properties = [] }: TabContactsProps) {
+  const isPro = profileType === 'professional'
   const branding = useReportBranding(userId)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -1017,6 +1040,7 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterGroup, setFilterGroup] = useState('all')
+  const [filterScope, setFilterScope] = useState<'all' | 'portfolio' | 'property'>('all')
   const [filterTag, setFilterTag] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('recent')
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
@@ -1031,6 +1055,14 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200) }
+  // ─── Εμβέλεια επαφής (μόνο επαγγελματικό προφίλ) ──────────────────────────────
+  const propName = (id?: string | null) => properties.find(p => p.id === id)?.name || ''
+  const scopeIsPortfolio = (c: Contact) => c._extra?.scope === 'portfolio'
+  const scopeLabelFor = (c: Contact): string | null => {
+    if (!isPro) return null
+    if (scopeIsPortfolio(c)) return 'Όλο το χαρτοφυλάκιο'
+    return propName(c._extra?.scope_property_id || propertyId) || 'Αυτό το ακίνητο'
+  }
   const fetchContacts = useCallback(async () => {
     setLoading(true)
     const { data } = await supabase.from('contacts').select('*').eq('property_id', propertyId).order('created_at', { ascending: false })
@@ -1068,13 +1100,16 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
     let list = contacts.filter(c => {
       const matchGroup = filterGroup === 'all' || ROLE_META[c.role]?.groupId === filterGroup
       const matchTag = !filterTag || (c._extra?.tags || []).includes(filterTag)
+      const matchScope = !isPro || filterScope === 'all'
+        || (filterScope === 'portfolio' ? scopeIsPortfolio(c) : !scopeIsPortfolio(c))
       const q = search.toLowerCase(); const ex = c._extra || {}
-      return matchGroup && matchTag && (!q || c.full_name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q) || (ex.specialty || '').toLowerCase().includes(q) || (ex.afm || '').includes(q) || (ex.iban || '').includes(q) || (ex.tags || []).some((t: string) => t.toLowerCase().includes(q)))
+      return matchGroup && matchTag && matchScope && (!q || c.full_name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q) || (ex.specialty || '').toLowerCase().includes(q) || (ex.afm || '').includes(q) || (ex.iban || '').includes(q) || (ex.tags || []).some((t: string) => t.toLowerCase().includes(q)))
     })
     if (sortMode === 'alpha') list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name, 'el'))
     if (sortMode === 'rating') list = [...list].sort((a, b) => (b._extra?.rating || 0) - (a._extra?.rating || 0))
     return [...list.filter(c => c._extra?.preferred), ...list.filter(c => !c._extra?.preferred)]
-  }, [contacts, search, filterGroup, filterTag, sortMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacts, search, filterGroup, filterTag, filterScope, sortMode, isPro])
 
   const groupedFiltered: Record<string, Contact[]> = {}
   processed.forEach(c => { const gid = ROLE_META[c.role]?.groupId || 'tenants'; if (!groupedFiltered[gid]) groupedFiltered[gid] = []; groupedFiltered[gid].push(c) })
@@ -1183,6 +1218,21 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
         </div>
       </div>
 
+      {isPro && contacts.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Εμβέλεια</span>
+          {([
+            { id: 'all' as const, label: 'Όλες', Icon: Users },
+            { id: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe },
+            { id: 'property' as const, label: 'Ανά ακίνητο', Icon: Building2 },
+          ]).map(o => { const active = filterScope === o.id; const Ico = o.Icon; return (
+            <button key={o.id} type="button" onClick={() => setFilterScope(o.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--accent-text)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+              <Ico size={12} />{o.label}
+            </button>
+          )})}
+        </div>
+      )}
+
       {contacts.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
           {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
@@ -1232,7 +1282,7 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
             <div style={{ width: 100, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Κατάσταση</div>
           </div>
-          {processed.map(c => <CompactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} />)}
+          {processed.map(c => <CompactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>
@@ -1241,7 +1291,7 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
-                  <ContactCard key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} />
+                  <ContactCard key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
                 ))}
               </div>
             </div>
@@ -1280,6 +1330,30 @@ export default function TabContacts({ propertyId, userId, embedded }: TabContact
                       {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                   </div>
+                  {isPro && (
+                    <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
+                      <FL>Εμβέλεια Επαφής</FL>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
+                          const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
+                            <button key={o.v} type="button" onClick={() => setExtra('scope', o.v)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+                              <Ico size={14} />{o.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <select value={form.extra.scope_property_id || propertyId} onChange={e => setExtra('scope_property_id', e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>
+                            {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
+                        {(form.extra.scope || 'property') === 'portfolio' ? 'Κοινή επαφή, εμφανίζεται ως διαθέσιμη για όλο το χαρτοφυλάκιο.' : 'Η επαφή αφορά το επιλεγμένο ακίνητο.'}
+                      </div>
+                    </div>
+                  )}
                   <div><FL>Υπο-ειδικότητα (προαιρετικό)</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: Ειδικός σε κεντρική θέρμανση" /></div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                     <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη Επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εμφάνιση στη γρήγορη πρόσβαση</div></div>
