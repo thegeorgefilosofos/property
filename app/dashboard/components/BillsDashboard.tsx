@@ -934,7 +934,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{c.label}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {budget > 0 && <span style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
+                    {budget > 0 && <span title="προϋπολογισμός" style={{ fontSize: 9, color: overBudget ? 'var(--negative)' : 'var(--positive)', fontWeight: 700, fontFamily: T.font.sans }}>budget {fe(budget, 0)}</span>}
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(c.monthly, 0)}/μήνα</span>
                     {c.benchmark > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', width: 50, textAlign: 'right' as const }}>{pct > 0 ? '+' : ''}{pct.toFixed(0)}%</span>}
                     {c.benchmark > 0 && <span style={{ fontSize: 9, color: 'var(--text-tertiary)', width: 60, fontFamily: T.font.sans }}>μέσος όρος {fe(c.benchmark, 0)}</span>}
