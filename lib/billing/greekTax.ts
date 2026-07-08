@@ -58,20 +58,39 @@ export const RENTAL_TAX_ROWS_2026: { range: string; rate: string; from: number; 
 export const RENTAL_TAX_SUMMARY_2026 =
   'Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.000 έως 24.000 €, 35% από 24.000 έως 35.000 €, 45% πάνω από 35.000 €.';
 
-// ── Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ), βραχυχρόνια μίσθωση ──────
-// Επιβάλλεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ανά ακίνητο. Ποσά 2025: υψηλή περίοδος 8 €,
-// χαμηλή περίοδος 2 €. Υψηλή περίοδος = Απρίλιος–Οκτώβριος. Πηγή: ΑΑΔΕ / ν.5073.
-export const CLIMATE_LEVY_PER_NIGHT_2025 = { high: 8, low: 2 };
+// ── Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ), βραχυχρόνια μίσθωση /
+// αυτοεξυπηρετούμενα καταλύματα. Επιβάλλεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ανά ακίνητο, και
+// ΕΞΑΡΤΑΤΑΙ ΑΠΟ ΤΟ ΕΜΒΑΔΟΝ. Ποσά 2025:
+//   • έως 80 τ.μ.:   υψηλή περίοδος 8 €,  χαμηλή περίοδος 2 €
+//   • άνω των 80 τ.μ.: υψηλή περίοδος 15 €, χαμηλή περίοδος 4 €
+// Υψηλή περίοδος = Απρίλιος–Οκτώβριος, χαμηλή = Νοέμβριος–Μάρτιος.
+// Πηγές: ΑΑΔΕ (δήλωση/απόδοση τέλους ανθεκτικότητας), ν.5073/2023.
+export const CLIMATE_LEVY_STR_2025 = {
+  small: { high: 8, low: 2 },    // έως 80 τ.μ.
+  large: { high: 15, low: 4 },   // άνω των 80 τ.μ.
+};
+// Συμβατότητα προς τα πίσω: προεπιλογή για ακίνητα έως 80 τ.μ.
+export const CLIMATE_LEVY_PER_NIGHT_2025 = CLIMATE_LEVY_STR_2025.small;
+
+/** Συντελεστές ΤΑΚΚ ανά διανυκτέρευση, ανάλογα με το εμβαδόν (>80 τ.μ. = μεγάλη κλίμακα). */
+export function climateLevyRates(sqm?: number | null): { high: number; low: number } {
+  return sqm != null && sqm > 80 ? CLIMATE_LEVY_STR_2025.large : CLIMATE_LEVY_STR_2025.small;
+}
+
+/** Σύντομη περιγραφή του ΤΑΚΚ (για τον βοηθό / tooltips) — ακριβείς τιμές. */
+export const CLIMATE_LEVY_SUMMARY_2025 =
+  'Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (βραχυχρόνια μίσθωση, ανά διανυκτέρευση, ανά ακίνητο): έως 80 τ.μ. 8 € στην υψηλή περίοδο (Απρίλιος-Οκτώβριος) και 2 € στη χαμηλή (Νοέμβριος-Μάρτιος)· άνω των 80 τ.μ. 15 € υψηλή και 4 € χαμηλή. Πηγή: ΑΑΔΕ.';
 
 /** Υψηλή τουριστική περίοδος (Απρ–Οκτ). monthIndex: 0=Ιανουάριος. */
 export function isHighSeasonMonth(monthIndex: number): boolean {
   return monthIndex >= 3 && monthIndex <= 9;
 }
 
-/** Ετήσιο ΤΑΚΚ από διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν). */
-export function climateLevyForNights(nightsByMonth: number[]): number {
+/** Ετήσιο ΤΑΚΚ από διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν), με βάση το εμβαδόν. */
+export function climateLevyForNights(nightsByMonth: number[], sqm?: number | null): number {
+  const r = climateLevyRates(sqm);
   return nightsByMonth.reduce((sum, n, i) =>
-    sum + Math.max(0, n) * (isHighSeasonMonth(i) ? CLIMATE_LEVY_PER_NIGHT_2025.high : CLIMATE_LEVY_PER_NIGHT_2025.low), 0);
+    sum + Math.max(0, n) * (isHighSeasonMonth(i) ? r.high : r.low), 0);
 }
 
 export interface ShortTermNet {
@@ -86,14 +105,14 @@ export interface ShortTermNet {
 /** Καθαρά έσοδα βραχυχρόνιας: μεικτά − προμήθειες − καθαρισμός − ΤΑΚΚ. */
 export function shortTermNet(input: {
   nightsByMonth: number[]; nightlyRate: number;
-  platformFeePct: number; cleaningPerStay: number; avgNightsPerStay: number;
+  platformFeePct: number; cleaningPerStay: number; avgNightsPerStay: number; sqm?: number | null;
 }): ShortTermNet {
   const totalNights = input.nightsByMonth.reduce((s, n) => s + Math.max(0, n || 0), 0);
   const grossRevenue = totalNights * Math.max(0, input.nightlyRate || 0);
   const platformFees = grossRevenue * Math.max(0, input.platformFeePct || 0) / 100;
   const stays = input.avgNightsPerStay > 0 ? totalNights / input.avgNightsPerStay : 0;
   const cleaningTotal = stays * Math.max(0, input.cleaningPerStay || 0);
-  const levy = climateLevyForNights(input.nightsByMonth);
+  const levy = climateLevyForNights(input.nightsByMonth, input.sqm);
   const net = grossRevenue - platformFees - cleaningTotal - levy;
   return { grossRevenue, platformFees, cleaningTotal, levy, net, stays };
 }

@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
-import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025 } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
@@ -201,6 +201,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
     mLines.push(RENTAL_TAX_SUMMARY_2026);
+    mLines.push(CLIMATE_LEVY_SUMMARY_2025);
     setMarketStr(mLines.join('\n'));
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε ο βοηθός να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──

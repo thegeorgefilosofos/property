@@ -11,20 +11,25 @@ import { createClient } from '@/lib/supabase/client';
 import { T, KPIGrid, InfoBanner, SecHdr, ExportButton, fe } from '@/components/Theme';
 import { downloadCsv } from './exportCsv';
 import { STAY_CHANNEL_LABELS } from '@/lib/clients/clients';
-import { RENTAL_TAX_ROWS_2026, CLIMATE_LEVY_PER_NIGHT_2025 } from '@/lib/billing/greekTax';
+import { RENTAL_TAX_ROWS_2026, climateLevyRates } from '@/lib/billing/greekTax';
 import { shortTermYearSummary, yearsWithStays, type TaxStay } from '@/lib/tax/shortTermTax';
 
 export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId: string; userId: string }) {
   const supabase = createClient();
   const [stays, setStays] = useState<TaxStay[]>([]);
+  const [sqm, setSqm] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('client_stays').select('check_in,check_out,nights,nightly_rate,total,channel').eq('user_id', userId).eq('property_id', propertyId);
+    const [{ data }, { data: prop }] = await Promise.all([
+      supabase.from('client_stays').select('check_in,check_out,nights,nightly_rate,total,channel').eq('user_id', userId).eq('property_id', propertyId),
+      supabase.from('user_properties').select('sqm').eq('id', propertyId).maybeSingle(),
+    ]);
     const list = (data || []) as TaxStay[];
     setStays(list);
+    setSqm(prop?.sqm != null ? Number(prop.sqm) : null);
     const ys = yearsWithStays(list);
     if (ys.length && !ys.includes(year)) setYear(ys[0]);
     setLoading(false);
@@ -41,7 +46,8 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
   }, [userId, propertyId, load]);
 
   const years = useMemo(() => { const ys = yearsWithStays(stays); return ys.length ? ys : [new Date().getFullYear()]; }, [stays]);
-  const sum = useMemo(() => shortTermYearSummary(stays, year), [stays, year]);
+  const sum = useMemo(() => shortTermYearSummary(stays, year, sqm), [stays, year, sqm]);
+  const levyRates = useMemo(() => climateLevyRates(sqm), [sqm]);
   const maxCh = useMemo(() => Math.max(1, ...sum.byChannel.map(c => c.revenue)), [sum]);
 
   const kpis = [
@@ -131,7 +137,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>ΤΑΚΚ ανά διανυκτέρευση: υψηλή περίοδος (Απρ–Οκτ) {CLIMATE_LEVY_PER_NIGHT_2025.high} €, χαμηλή {CLIMATE_LEVY_PER_NIGHT_2025.low} €.</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({sqm != null ? (sqm > 80 ? 'άνω των 80 τ.μ.' : 'έως 80 τ.μ.') : 'έως 80 τ.μ., όρισε εμβαδόν για ακρίβεια'}): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €.</div>
             </div>
           </div>
 
