@@ -387,9 +387,9 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                 { key: 'phoneLocal',  label: 'Απεριόριστες κλήσεις εντός', val: s.phoneLocal  },
                 { key: 'phoneMobile', label: 'Κλήσεις σε κινητά',          val: s.phoneMobile },
                 { key: 'phoneIntl',   label: 'Διεθνείς κλήσεις',           val: s.phoneIntl   },
-                { key: 'phoneVoip',   label: 'VoIP / App',                  val: s.phoneVoip   },
+                { key: 'phoneVoip',   label: 'VoIP / App',                  val: s.phoneVoip, tip: 'Κλήσεις μέσω διαδικτύου ή εφαρμογής (VoIP), για παράδειγμα Viber, WhatsApp, Skype' },
               ].map(f => (
-                <div key={f.key} onClick={() => upd({ [f.key]: !f.val } as any)}
+                <div key={f.key} onClick={() => upd({ [f.key]: !f.val } as any)} title={(f as any).tip}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
                   <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>

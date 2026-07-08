@@ -7,14 +7,14 @@ import { T, fe, Spinner } from '@/components/Theme';
 
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
-  { key: 'electricity',  label: 'Ρεύμα',              color: '#f59e0b', default: 80  },
-  { key: 'water',        label: 'Νερό',                color: '#3b82f6', default: 25  },
-  { key: 'internet',     label: 'Internet & Τηλεφωνία',color: '#8b5cf6', default: 35  },
-  { key: 'heating',      label: 'Θέρμανση',            color: '#ef4444', default: 60  },
-  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',color: '#10b981', default: 30  },
-  { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  color: '#ec4899', default: 50  },
-  { key: 'common',       label: 'Κοινόχρηστα',         color: '#6366f1', default: 40  },
-  { key: 'maintenance',  label: 'Συντήρηση',           color: '#84cc16', default: 20  },
+  { key: 'electricity',  label: 'Ρεύμα',              default: 80  },
+  { key: 'water',        label: 'Νερό',                default: 25  },
+  { key: 'internet',     label: 'Internet & Τηλεφωνία',default: 35  },
+  { key: 'heating',      label: 'Θέρμανση',            default: 60  },
+  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',default: 30  },
+  { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
+  { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
+  { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
 ] as const;
 
 type CatKey = typeof CATS[number]['key'];
