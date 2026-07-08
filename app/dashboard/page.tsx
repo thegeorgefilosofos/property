@@ -17,6 +17,7 @@ import TabChecklist from './components/TabChecklist';
 import TabDocuments from './components/TabDocuments';
 import TabComparison from './components/TabComparison';
 import TabClients from './components/TabClients';
+import PortfolioTab from './components/PortfolioTab';
 import AddPropertyWizard from './components/AddPropertyWizard';
 import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
@@ -83,6 +84,7 @@ const HEATING_LABELS: Record<string,string> = {
 };
 
 const NAV_ITEMS = [
+  { id:'portfolio',  label:'Χαρτοφυλάκιο' },
   { id:'overview',   label:'Επισκόπηση' },
   { id:'comparison', label:'Σύγκριση' },
   { id:'bills',      label:'Λογαριασμοί' },
@@ -103,6 +105,7 @@ const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.labe
 
 // Εικονίδια πλοήγησης, καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
 const NAV_ICON: Record<string,string> = {
+  portfolio: 'M4 5h6v6H4z|M14 5h6v6h-6z|M4 15h6v4H4z|M14 13h6v6h-6z',
   overview:  'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
   comparison:'M4 20V10|M10 20V4|M16 20v-7|M20 20H2',
   bills:     'M5 3h14v18l-3-2-2 2-2-2-2 2-3-2V3|M9 8h6|M9 12h6',
@@ -124,6 +127,7 @@ const NAV_ICON: Record<string,string> = {
 // Επαφές/Αρχείο/Εκκρεμότητες/Απογραφή ενσωματώθηκαν στην Επισκόπηση. Η Σύγκριση
 // και οι Ρυθμίσεις μένουν αυτόνομες. Καμία ομάδα «Το ακίνητο»/«Σύστημα».
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
+  { label: '',            ids: ['portfolio'] },
   { label: '',            ids: ['overview'] },
   { label: 'Οικονομικά',  ids: ['bills','expenses','roi','pricing','loan'] },
   { label: 'Μίσθωση',     ids: ['tenant','clients','calendar'] },
@@ -1055,7 +1059,7 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
-          {(profileType==='professional' ? NAV_GROUPS : NAV_GROUPS.filter(g=>!g.ids.includes('comparison'))).map((group,gi) => {
+          {(profileType==='professional' ? NAV_GROUPS : NAV_GROUPS.filter(g=>!g.ids.includes('comparison') && !g.ids.includes('portfolio'))).map((group,gi) => {
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
             const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
@@ -1182,6 +1186,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
+              {nav==='portfolio' && <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
