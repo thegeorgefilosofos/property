@@ -384,7 +384,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Τιμή Αγοράς (€)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <DatePicker label="Ημερομηνία Αγοράς" value={purchaseDate} onChange={setPurchaseDate} />
+                <Field label="Ημερομηνία Αγοράς">
+                  <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
+                </Field>
 
               </div>
               <div style={grid2}>
