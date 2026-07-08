@@ -71,13 +71,14 @@ export interface ShortTermYearSummary {
   byChannel: TaxChannelRow[];
 }
 
-/** Πλήρης φορολογική σύνοψη βραχυχρόνιας για ένα έτος, από τις διαμονές. */
-export function shortTermYearSummary(stays: TaxStay[], year: number): ShortTermYearSummary {
+/** Πλήρης φορολογική σύνοψη βραχυχρόνιας για ένα έτος, από τις διαμονές.
+ *  Το sqm καθορίζει τη σωστή κλίμακα του Τέλους Ανθεκτικότητας (>80 τ.μ.). */
+export function shortTermYearSummary(stays: TaxStay[], year: number, sqm?: number | null): ShortTermYearSummary {
   const inYear = stays.filter(s => y4(s.check_in) === String(year));
   const nightsByMonth = nightsByMonthForYear(stays, year);
   const totalNights = nightsByMonth.reduce((a, b) => a + b, 0);
   const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
-  const levy = climateLevyForNights(nightsByMonth);
+  const levy = climateLevyForNights(nightsByMonth, sqm);
   const incomeTax = rentalIncomeTax(grossRevenue);
   const net = grossRevenue - incomeTax - levy;
   return {

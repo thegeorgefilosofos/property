@@ -35,8 +35,12 @@ const sum = shortTermYearSummary(stays, 2026);
 ok('μεικτά 1500', sum.grossRevenue === 1500);
 ok('σύνολο νυχτών 8', sum.totalNights === 8);
 ok('πλήθος διαμονών 3', sum.stayCount === 3);
-// ΤΑΚΚ: 6 νύχτες υψηλή × 8 + 2 νύχτες χαμηλή × 2 = 48 + 4 = 52
-ok('ΤΑΚΚ = 52', sum.levy === 52 && sum.levy === climateLevyForNights(nbm));
+// ΤΑΚΚ (≤80 τ.μ.): 6 νύχτες υψηλή × 8 + 2 νύχτες χαμηλή × 2 = 48 + 4 = 52
+ok('ΤΑΚΚ ≤80τμ = 52', sum.levy === 52 && sum.levy === climateLevyForNights(nbm));
+// ΤΑΚΚ (>80 τ.μ.): 6 × 15 + 2 × 4 = 90 + 8 = 98
+const sumLarge = shortTermYearSummary(stays, 2026, 120);
+ok('ΤΑΚΚ >80τμ = 98', sumLarge.levy === 98 && sumLarge.levy === climateLevyForNights(nbm, 120));
+ok('εμβαδόν 80 = μικρή κλίμακα', shortTermYearSummary(stays, 2026, 80).levy === 52);
 ok('φόρος = κλίμακα(1500)', near(sum.incomeTax, rentalIncomeTax(1500)));
 ok('καθαρά = μεικτά - φόρος - ΤΑΚΚ', near(sum.net, 1500 - sum.incomeTax - 52));
 ok('effectiveRate = φόρος/μεικτά', near(sum.effectiveRate, sum.incomeTax / 1500));
