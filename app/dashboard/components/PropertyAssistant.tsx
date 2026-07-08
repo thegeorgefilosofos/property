@@ -361,8 +361,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }
       setInput((finalText + interim).trim());
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => { setListening(false); const t = finalText.trim(); if (t) { setInput(''); ask(t, true); } };
+    rec.onerror = (ev: any) => { setListening(false); if ((ev?.error || '') === 'not-allowed' || (ev?.error || '') === 'service-not-allowed') { setHandsFree(false); handsFreeRef.current = false; } };
+    rec.onend = () => {
+      setListening(false);
+      const t = finalText.trim();
+      if (t) { setInput(''); ask(t, true); }
+      // Hands-free: αν δεν πιάστηκε ομιλία (παύση/θόρυβος), ξανάνοιξε το μικρόφωνο
+      // ώστε ο κύκλος να μη «σπάει». Δεν ξεκινά αν μιλάει ο βοηθός ή ήδη ακούει.
+      else if (handsFreeRef.current) setTimeout(() => { if (handsFreeRef.current && !listeningRef.current && !(supportsTTS && window.speechSynthesis.speaking)) startListening(); }, 500);
+    };
     recRef.current = rec; setInput(''); setListening(true);
     try { rec.start(); } catch { setListening(false); }
   };

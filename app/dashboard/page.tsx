@@ -809,7 +809,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 function CollapseCard({ title, sub, badge, children }: { title: string; sub: string; badge?: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="card" style={{ marginBottom: 16 }}>
+    <div className={`card tool-card ${open ? 'tool-card--open' : ''}`} style={{ marginBottom: 16 }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
