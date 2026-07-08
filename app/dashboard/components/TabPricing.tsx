@@ -117,7 +117,10 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
     const avail = rows.filter(r => !r.booked).map(r => r.price);
     return { lo: avail.length ? Math.min(...avail) : 0, hi: avail.length ? Math.max(...avail) : 1 };
   }, [rows]);
-  const intensity = (p: number) => { const { lo, hi } = priceRange; return hi <= lo ? 0.5 : Math.max(0, Math.min(1, (p - lo) / (hi - lo))); };
+  // Κανονικοποίηση 0..1. Επιστρέφει και την «οπτική» ένταση με πιο απότομη
+  // καμπύλη ώστε οι μέρες αιχμής να ξεχωρίζουν έντονα από τις χαμηλές.
+  const norm = (p: number) => { const { lo, hi } = priceRange; return hi <= lo ? 0.5 : Math.max(0, Math.min(1, (p - lo) / (hi - lo))); };
+  const fillOpacity = (t: number) => 0.05 + Math.pow(t, 1.25) * 0.93;
 
   const months = useMemo(() => {
     const m = new Map<string, DayPrice[]>();
@@ -257,18 +260,21 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
                         const dayNum = i + 1;
                         const d = byDay.get(dayNum);
                         if (!d) return <div key={dayNum} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--bg-base)', opacity: 0.4 }} />;
-                        const t = intensity(d.price);
-                        const strong = t > 0.55 && !d.booked;
+                        const t = norm(d.price);
+                        const strong = t > 0.5 && !d.booked;        // λευκά ψηφία σε σκούρο φόντο
+                        const top = t > 0.82 && !d.booked;          // κορυφαία αιχμή: έξτρα έμφαση
                         return (
                           <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''} style={{
                             position: 'relative', aspectRatio: '1', borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
-                            border: sel?.date === d.date ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
+                            border: sel?.date === d.date ? '2px solid var(--accent)' : top ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,
+                            boxShadow: top ? '0 2px 10px -2px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+                            transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0,
                           }}>
-                            {!d.booked && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: 0.10 + t * 0.80 }} />}
-                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'rgba(255,255,255,0.85)' : 'var(--text-tertiary)' }}>{dayNum}</span>
-                            <span style={{ position: 'relative', fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? '#fff' : 'var(--text-primary)' }}>
+                            {!d.booked && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
+                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'rgba(255,255,255,0.9)' : 'var(--text-tertiary)' }}>{dayNum}</span>
+                            <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? '#fff' : 'var(--text-primary)' }}>
                               {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
                             </span>
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: strong ? '#fff' : 'var(--accent)' }} />}

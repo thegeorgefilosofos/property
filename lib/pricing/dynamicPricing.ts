@@ -48,7 +48,7 @@ export const SEASON_LABELS: Record<Season, string> = {
 
 // ── Εποχικότητα ελληνικού τουρισμού ανά μήνα (0=Ιαν ... 11=Δεκ) ──────────────
 // Πολλαπλασιαστής βάσης. Καλοκαίρι αιχμή, ενδιάμεσες shoulder, χειμώνας χαμηλά.
-const MONTH_MULT = [0.80, 0.80, 0.88, 1.00, 1.12, 1.30, 1.55, 1.60, 1.28, 1.05, 0.85, 0.92];
+const MONTH_MULT = [0.78, 0.78, 0.86, 1.00, 1.14, 1.34, 1.68, 1.80, 1.32, 1.04, 0.82, 0.92];
 function monthSeason(m: number): Season {
   const x = MONTH_MULT[m];
   if (x >= 1.45) return 'peak';
@@ -173,9 +173,11 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   else if (dow === 0 || dow === 1) dowMult = 0.95;
   if (dowMult !== 1) factors.push({ label: isWeekend ? 'Σαββατοκύριακο' : 'Καθημερινή', mult: dowMult });
 
-  // 3) Αργία / υψηλή ζήτηση
+  // 3) Αργία / υψηλή ζήτηση (μεγαλύτερο premium στην αιχμή: μια αργία τον
+  //    Αύγουστο αξίζει πολύ περισσότερο από μια αργία τον χειμώνα).
   const holidayName = holidayFor(date);
-  const holidayMult = holidayName ? 1.25 : 1;
+  const seasonNow = monthSeason(m);
+  const holidayMult = holidayName ? (seasonNow === 'peak' ? 1.40 : seasonNow === 'high' ? 1.30 : 1.22) : 1;
   if (holidayName) factors.push({ label: holidayName, mult: holidayMult });
 
   // 4) Lead time (last-minute)
