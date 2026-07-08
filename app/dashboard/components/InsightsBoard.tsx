@@ -31,7 +31,7 @@ export default function InsightsBoard({ insights, name, onNavigate }: {
     ? 'Όλα σε τάξη. Δεν υπάρχει κάτι που να χρειάζεται την προσοχή σου.'
     : urgent > 0
       ? `${urgent} ${urgent === 1 ? 'θέμα χρειάζεται' : 'θέματα χρειάζονται'} την προσοχή σου.`
-      : 'Μερικές ευκαιρίες για να βγάλεις περισσότερα από το ακίνητό σου.';
+      : 'Εδώ θα βρεις μερικές ευκαιρίες για να βγάλεις περισσότερα χρήματα από το ακίνητό σου.';
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
