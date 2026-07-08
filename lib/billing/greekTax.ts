@@ -59,36 +59,42 @@ export const RENTAL_TAX_SUMMARY_2026 =
   'Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.000 έως 24.000 €, 35% από 24.000 έως 35.000 €, 45% πάνω από 35.000 €.';
 
 // ── Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (ΤΑΚΚ), βραχυχρόνια μίσθωση /
-// αυτοεξυπηρετούμενα καταλύματα. Επιβάλλεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ανά ακίνητο, και
-// ΕΞΑΡΤΑΤΑΙ ΑΠΟ ΤΟ ΕΜΒΑΔΟΝ. Ποσά 2025:
-//   • έως 80 τ.μ.:   υψηλή περίοδος 8 €,  χαμηλή περίοδος 2 €
-//   • άνω των 80 τ.μ.: υψηλή περίοδος 15 €, χαμηλή περίοδος 4 €
-// Υψηλή περίοδος = Απρίλιος–Οκτώβριος, χαμηλή = Νοέμβριος–Μάρτιος.
+// αυτοεξυπηρετούμενα καταλύματα. Επιβάλλεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ, ανά ακίνητο. ΔΕΝ
+// είναι ενιαίο ποσό: εξαρτάται από τον ΤΥΠΟ/μέγεθος του ακινήτου και την περίοδο.
+// Ενδεικτικά ποσά 2025 (επιβεβαίωσε τα ισχύοντα στην ΑΑΔΕ):
+//   • διαμερίσματα/κατοικίες βραχυχρόνιας: υψηλή περίοδος 8 €, χαμηλή 2 €
+//   • ΜΟΝΟΚΑΤΟΙΚΙΕΣ άνω των 80 τ.μ.:        υψηλή περίοδος 15 €, χαμηλή 4 €
+// Το υψηλότερο κλιμάκιο (15/4) αφορά μονοκατοικίες >80 τ.μ., ΟΧΙ κάθε ακίνητο
+// >80 τ.μ. (ένα διαμέρισμα 100 τ.μ. παραμένει στο 8/2).
+// Υψηλή περίοδος = Απρίλιος–Οκτώβριος, χαμηλή = Νοέμβριος–Μάρτιος (ενδεικτικά).
 // Πηγές: ΑΑΔΕ (δήλωση/απόδοση τέλους ανθεκτικότητας), ν.5073/2023.
 export const CLIMATE_LEVY_STR_2025 = {
-  small: { high: 8, low: 2 },    // έως 80 τ.μ.
-  large: { high: 15, low: 4 },   // άνω των 80 τ.μ.
+  small: { high: 8, low: 2 },    // διαμερίσματα/κατοικίες
+  large: { high: 15, low: 4 },   // μονοκατοικίες άνω των 80 τ.μ.
 };
-// Συμβατότητα προς τα πίσω: προεπιλογή για ακίνητα έως 80 τ.μ.
+// Συμβατότητα προς τα πίσω: προεπιλογή (διαμέρισμα/κατοικία).
 export const CLIMATE_LEVY_PER_NIGHT_2025 = CLIMATE_LEVY_STR_2025.small;
 
-/** Συντελεστές ΤΑΚΚ ανά διανυκτέρευση, ανάλογα με το εμβαδόν (>80 τ.μ. = μεγάλη κλίμακα). */
-export function climateLevyRates(sqm?: number | null): { high: number; low: number } {
-  return sqm != null && sqm > 80 ? CLIMATE_LEVY_STR_2025.large : CLIMATE_LEVY_STR_2025.small;
+/**
+ * Συντελεστές ΤΑΚΚ ανά διανυκτέρευση. Το υψηλότερο κλιμάκιο ισχύει μόνο για
+ * ΜΟΝΟΚΑΤΟΙΚΙΑ άνω των 80 τ.μ.· τα διαμερίσματα (ακόμη και >80 τ.μ.) στο βασικό.
+ */
+export function climateLevyRates(sqm?: number | null, isHouse?: boolean): { high: number; low: number } {
+  return isHouse && sqm != null && sqm > 80 ? CLIMATE_LEVY_STR_2025.large : CLIMATE_LEVY_STR_2025.small;
 }
 
-/** Σύντομη περιγραφή του ΤΑΚΚ (για τον βοηθό / tooltips) — ακριβείς τιμές. */
+/** Σύντομη περιγραφή του ΤΑΚΚ (για τον βοηθό / tooltips) — ενδεικτικές τιμές 2025. */
 export const CLIMATE_LEVY_SUMMARY_2025 =
-  'Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (βραχυχρόνια μίσθωση, ανά διανυκτέρευση, ανά ακίνητο): έως 80 τ.μ. 8 € στην υψηλή περίοδο (Απρίλιος-Οκτώβριος) και 2 € στη χαμηλή (Νοέμβριος-Μάρτιος)· άνω των 80 τ.μ. 15 € υψηλή και 4 € χαμηλή. Πηγή: ΑΑΔΕ.';
+  'Τέλος Ανθεκτικότητας στην Κλιματική Κρίση (βραχυχρόνια μίσθωση, ανά διανυκτέρευση, ανά ακίνητο). Δεν είναι ενιαίο: εξαρτάται από τον τύπο του ακινήτου και την περίοδο. Ενδεικτικά 2025, διαμερίσματα/κατοικίες περίπου 8 € στην υψηλή περίοδο (Απρίλιος-Οκτώβριος) και 2 € στη χαμηλή· μονοκατοικίες άνω των 80 τ.μ. περίπου 15 € και 4 € αντίστοιχα. Τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ, επιβεβαίωσέ τα εκεί ή με τον λογιστή σου.';
 
 /** Υψηλή τουριστική περίοδος (Απρ–Οκτ). monthIndex: 0=Ιανουάριος. */
 export function isHighSeasonMonth(monthIndex: number): boolean {
   return monthIndex >= 3 && monthIndex <= 9;
 }
 
-/** Ετήσιο ΤΑΚΚ από διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν), με βάση το εμβαδόν. */
-export function climateLevyForNights(nightsByMonth: number[], sqm?: number | null): number {
-  const r = climateLevyRates(sqm);
+/** Ετήσιο ΤΑΚΚ από διανυκτερεύσεις ανά μήνα (12 τιμές, 0=Ιαν), με βάση τύπο/μέγεθος. */
+export function climateLevyForNights(nightsByMonth: number[], sqm?: number | null, isHouse?: boolean): number {
+  const r = climateLevyRates(sqm, isHouse);
   return nightsByMonth.reduce((sum, n, i) =>
     sum + Math.max(0, n) * (isHighSeasonMonth(i) ? r.high : r.low), 0);
 }
@@ -129,14 +135,14 @@ export interface ShortTermNet {
 /** Καθαρά έσοδα βραχυχρόνιας: μεικτά − προμήθειες − καθαρισμός − ΤΑΚΚ. */
 export function shortTermNet(input: {
   nightsByMonth: number[]; nightlyRate: number;
-  platformFeePct: number; cleaningPerStay: number; avgNightsPerStay: number; sqm?: number | null;
+  platformFeePct: number; cleaningPerStay: number; avgNightsPerStay: number; sqm?: number | null; isHouse?: boolean;
 }): ShortTermNet {
   const totalNights = input.nightsByMonth.reduce((s, n) => s + Math.max(0, n || 0), 0);
   const grossRevenue = totalNights * Math.max(0, input.nightlyRate || 0);
   const platformFees = grossRevenue * Math.max(0, input.platformFeePct || 0) / 100;
   const stays = input.avgNightsPerStay > 0 ? totalNights / input.avgNightsPerStay : 0;
   const cleaningTotal = stays * Math.max(0, input.cleaningPerStay || 0);
-  const levy = climateLevyForNights(input.nightsByMonth, input.sqm);
+  const levy = climateLevyForNights(input.nightsByMonth, input.sqm, input.isHouse);
   const net = grossRevenue - platformFees - cleaningTotal - levy;
   return { grossRevenue, platformFees, cleaningTotal, levy, net, stays };
 }
