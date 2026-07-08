@@ -539,8 +539,10 @@ body {
 }
 .client-card:focus-within { box-shadow: var(--highlight-inset-strong), var(--elev-2); }
 .client-card-act { opacity: 0; transition: opacity .15s ease; }
-.client-card:hover .client-card-act,
-.client-card:focus-within .client-card-act { opacity: 1; }
+/* Μόνο στο hover (φεύγει μόλις απομακρυνθεί ο κέρσορας). Για πληκτρολόγιο,
+   εμφανίζεται μόνο σε focus-visible, όχι σε mouse-focus που θα το «κόλλαγε». */
+.client-card:hover .client-card-act { opacity: 1; }
+.client-card:has(.client-card-act button:focus-visible) .client-card-act { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
 
 /* Filled card */

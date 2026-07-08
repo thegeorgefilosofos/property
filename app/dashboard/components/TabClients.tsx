@@ -866,11 +866,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {avatar(dc.full_name, 52)}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <button onClick={() => openEdit(dc)} title="Επεξεργασία στοιχείων"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                    {dc.full_name}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                  </button>
+                  <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
                   <Badge tone={TYPE_TONE[dc.type]}>{CLIENT_TYPE_LABELS[dc.type]}</Badge>
                   {dc.do_not_rent && <Badge tone="negative">Μαύρη λίστα</Badge>}
                 </div>
@@ -880,6 +876,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
                 <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 38, height: 38, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
               </div>
             </div>
@@ -943,7 +940,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
                 {unlinkedProps.length > 0 && (
                   <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: 36, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
-                    <option value="" disabled hidden>+ Σύνδεση ακινήτου</option>
+                    <option value="" disabled hidden>Πρόσθεσε ακίνητο</option>
                     {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 )}
