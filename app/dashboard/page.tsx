@@ -357,7 +357,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: string; onNavigate: (tab: string) => void }) {
+function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property; userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
+  const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
@@ -501,6 +502,15 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           Αναφορά (PDF)
         </button>
       </div>
+
+      {isDemo && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16, padding:'12px 16px', borderRadius:12, background:'var(--accent-soft)', border:'1px solid var(--accent-border)' }}>
+          <div style={{ fontSize:13, color:'var(--text-secondary)' }}>
+            <strong style={{ color:'var(--text-primary)' }}>Δείγμα (demo).</strong> Περιήγησε τα εργαλεία με έτοιμα δεδομένα. Όταν είσαι έτοιμος, καθάρισέ το και πρόσθεσε το δικό σου ακίνητο.
+          </div>
+          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:20, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily:"'Inter',sans-serif", color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
+        </div>
+      )}
 
       <OnboardingChecklist propertyId={prop.id} onNavigate={onNavigate} steps={[
         { key:'details', label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
@@ -794,7 +804,7 @@ export default function Dashboard() {
     setStatusDropdown(false);
     const wasLast = properties.length <= 1;
     // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
-    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays'];
+    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays','pricing_settings','ical_feeds'];
     await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
     await supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id);
     // Σβήσε τη συνομιλία/μνήμη του βοηθού για το συγκεκριμένο ακίνητο (τοπικά στον browser).
@@ -804,6 +814,24 @@ export default function Dashboard() {
     if (wasLast) { setNav('overview'); setShowAddModal(true); }
   };
   const deleteProperty = () => { if (selected) deletePropertyById(selected.id, selected.name); };
+
+  // Καθάρισμα demo με ένα κλικ: σβήνει τα δείγματα ακίνητα/πελάτες/διαμονές.
+  const cleanupDemo = async () => {
+    if (!user) return;
+    if (!window.confirm('Να αφαιρεθούν τα δείγματα (demo) δεδομένα;')) return;
+    const demoProps = properties.filter(p => (p.name || '').startsWith('Demo —'));
+    const childTables = ['expenses','calendar_events','bills','tenants','inventory_items','loans','property_settings','rent_comparables','property_documents','client_stays','pricing_settings','ical_feeds'];
+    for (const p of demoProps) {
+      await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', p.id)));
+      await supabase.from('user_properties').delete().eq('id', p.id).eq('user_id', user.id);
+      try { clearAssistantHistory(p.id); } catch {}
+    }
+    // Σβήσε και τους demo πελάτες (και τις διαμονές τους μέσω cascade στη βάση).
+    await supabase.from('clients').delete().eq('user_id', user.id).like('full_name', 'Demo —%');
+    setSelected(null);
+    await fetchProperties(user.id);
+    setNav('overview');
+  };
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
 
@@ -1016,7 +1044,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
@@ -1094,6 +1122,13 @@ export default function Dashboard() {
 
       {showWelcome&&user&&<WelcomeOnboarding userId={user.id}
         onAddProperty={()=>{ setShowWelcome(false); setShowAddModal(true); }}
+        onScanCreate={async()=>{
+          setShowWelcome(false);
+          const { data } = await supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single();
+          await fetchProperties(user.id);
+          if (data) setSelected(data);
+          setNav('overview'); setQuickAddOpen(true);
+        }}
         onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}
         onClose={()=>setShowWelcome(false)} />}
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}

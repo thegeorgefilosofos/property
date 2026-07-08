@@ -7,7 +7,9 @@
 // και προϋποθέτουν επιβεβαίωση από λογιστή.
 // ═══════════════════════════════════════════════════════════════════════════
 import { stayTotal } from '@/lib/clients/clients';
-import { climateLevyForNights, rentalIncomeTax } from '@/lib/billing/greekTax';
+import { climateLevyForNights, rentalIncomeTax, municipalAccommodationTax } from '@/lib/billing/greekTax';
+
+export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean }
 
 export interface TaxStay {
   check_in?: string | null;
@@ -65,25 +67,31 @@ export interface ShortTermYearSummary {
   stayCount: number;
   nightsByMonth: number[];
   levy: number;            // ΤΑΚΚ (τέλος ανθεκτικότητας)
+  municipalTax: number;    // τέλος παρεπιδημούντων (0,5% ή 0 με εξαίρεση)
+  municipalExempt: boolean;
   incomeTax: number;       // εκτιμώμενος φόρος εισοδήματος (κλίμακα ενοικίων)
-  net: number;             // μεικτά − φόρος − ΤΑΚΚ
+  net: number;             // μεικτά − φόρος − ΤΑΚΚ − τέλος παρεπιδημούντων
   effectiveRate: number;   // φόρος / μεικτά
   byChannel: TaxChannelRow[];
 }
 
 /** Πλήρης φορολογική σύνοψη βραχυχρόνιας για ένα έτος, από τις διαμονές.
- *  Το sqm καθορίζει τη σωστή κλίμακα του Τέλους Ανθεκτικότητας (>80 τ.μ.). */
-export function shortTermYearSummary(stays: TaxStay[], year: number, sqm?: number | null): ShortTermYearSummary {
+ *  Το meta (εμβαδόν, τύπος, πλήθος ακινήτων) καθορίζει τη σωστή κλίμακα του
+ *  Τέλους Ανθεκτικότητας (>80 τ.μ.) και την εξαίρεση του τέλους παρεπιδημούντων.
+ *  Χωρίς meta, το τέλος παρεπιδημούντων θεωρείται 0 (τυπική εξαίρεση μικρού ιδιοκτήτη). */
+export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: PropertyTaxMeta): ShortTermYearSummary {
   const inYear = stays.filter(s => y4(s.check_in) === String(year));
   const nightsByMonth = nightsByMonthForYear(stays, year);
   const totalNights = nightsByMonth.reduce((a, b) => a + b, 0);
   const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
-  const levy = climateLevyForNights(nightsByMonth, sqm);
+  const levy = climateLevyForNights(nightsByMonth, meta?.sqm);
+  const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
   const incomeTax = rentalIncomeTax(grossRevenue);
-  const net = grossRevenue - incomeTax - levy;
+  const net = grossRevenue - incomeTax - levy - municipalTax;
   return {
     year, grossRevenue, totalNights, stayCount: inYear.length, nightsByMonth,
-    levy, incomeTax, net, effectiveRate: grossRevenue > 0 ? incomeTax / grossRevenue : 0,
+    levy, municipalTax, municipalExempt: municipalTax === 0,
+    incomeTax, net, effectiveRate: grossRevenue > 0 ? incomeTax / grossRevenue : 0,
     byChannel: channelBreakdownForYear(stays, year),
   };
 }
