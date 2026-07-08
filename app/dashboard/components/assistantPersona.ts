@@ -154,6 +154,8 @@ ${navList}
   • ΚΑΤΑΧΩΡΗΣΗ ΔΑΠΑΝΗΣ: αν ο χρήστης πει ότι πλήρωσε/ξόδεψε κάτι («πλήρωσα 80€ τον υδραυλικό», «κατέγραψε λογαριασμό ρεύματος 120 ευρώ»), βάλε στο τέλος [[expense: σύντομη περιγραφή | ποσό]] (π.χ. [[expense: Υδραυλικός | 80]]). Η κατηγορία και το αν εκπίπτει προκύπτουν αυτόματα. Χρειάζεσαι ΜΟΝΟ περιγραφή + ποσό· αν λείπει το ποσό, ρώτα το με μία ερώτηση. Καταχωρείται ως ΠΛΗΡΩΜΕΝΗ δαπάνη· ο χρήστης μπορεί να τη διορθώσει στην καρτέλα Δαπάνες.
   • ΣΗΜΑΝΣΗ VIP: αν ο χρήστης θέλει να σημειώσει πελάτη ως VIP («κάνε VIP τον Γιώργο», «βγάλε το VIP από τη Μαρία»), βάλε [[vip: όνομα ή τηλέφωνο ή ΑΦΜ]] — βρίσκω τον πελάτη στο πελατολόγιο και εναλλάσσω το VIP. Χρησιμοποίησέ το μόνο για πελάτη που ήδη υπάρχει· αλλιώς πρότεινε πρώτα καταχώρηση με [[client:...]].
   • ΣΥΝΔΕΣΜΟΣ PRE-CHECK-IN: αν ο χρήστης θέλει να στείλει σε επισκέπτη τον σύνδεσμο προ-άφιξης («στείλε check-in στον Γιάννη», «φτιάξε σύνδεσμο άφιξης για τη Μαρία»), βάλε [[checkin: όνομα ή τηλέφωνο ή ΑΦΜ]] — δημιουργώ/αντιγράφω τον σύνδεσμο για να τον στείλει σε WhatsApp/Viber.
+  • ΠΡΟΣΘΗΚΗ ΕΠΑΦΗΣ (τεχνικός/πάροχος/συνεργάτης): αν ο χρήστης θέλει να κρατήσει μια χρήσιμη επαφή για το ακίνητο («πρόσθεσε τον υδραυλικό Νίκο 69…», «κράτα τον ηλεκτρολόγο»), βάλε [[contact: Όνομα | τηλέφωνο | ρόλος]] — μπαίνει στις Επαφές με αυτόματη κατηγοριοποίηση ρόλου. ΠΡΟΣΟΧΗ: αυτό είναι ΔΙΑΦΟΡΕΤΙΚΟ από το [[client:…]] — το [[contact:…]] είναι για μάστορες/παρόχους/συνεργάτες (καρτέλα Επαφές), ενώ το [[client:…]] για πελάτες/επισκέπτες/ενοικιαστές (Πελατολόγιο).
+  • ΝΕΑ ΕΚΚΡΕΜΟΤΗΤΑ: αν ο χρήστης θέλει να θυμάται/κάνει κάτι («βάλε να πληρώσω τον ΕΝΦΙΑ», «θύμισέ μου να καλέσω τον υδραυλικό»), βάλε [[task: σύντομη περιγραφή]] — μπαίνει στις Εκκρεμότητες με αυτόματη κατηγορία. (Αν έχει σαφή ημερομηνία/ώρα ραντεβού, προτίμησε [[book:…]] για το Ημερολόγιο· το [[task:…]] είναι για εκκρεμότητες χωρίς αυστηρή ώρα.)
   Βάλε το πολύ ΜΙΑ ετικέτα ανά απάντηση. Μην την εξηγείς, μην τη δείχνεις στον χρήστη, απλώς βάλ' την στο τέλος.
 
 ΑΠΟΡΡΗΤΟ & GDPR (να το ξέρεις και να καθησυχάζεις με ακρίβεια, χωρίς να υπόσχεσαι νομική βεβαιότητα):
@@ -227,7 +229,9 @@ export type AssistantAction =
   | { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string }
   | { type: 'expense'; description: string; amount: number }
   | { type: 'vip'; who: string }
-  | { type: 'checkin'; who: string };
+  | { type: 'checkin'; who: string }
+  | { type: 'contact'; name: string; phone?: string; role?: string }
+  | { type: 'task'; description: string };
 
 export function parseAction(text: string): { clean: string; action?: AssistantAction; remember?: string } {
   const go = text.match(/\[\[go:([a-z]+)\]\]/i);
@@ -250,6 +254,22 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   // Σύνδεσμος pre-check-in για πελάτη: [[checkin: όνομα ή τηλέφωνο ή ΑΦΜ]].
   const ck = text.match(/\[\[checkin:\s*([^\]]+?)\s*\]\]/i);
   const checkin = ck && ck[1].trim() ? { type: 'checkin' as const, who: ck[1].trim().slice(0, 120) } : undefined;
+  // Προσθήκη επαφής (τεχνικός/πάροχος): [[contact: Όνομα | τηλέφωνο | ρόλος]].
+  const ct = text.match(/\[\[contact:\s*([^\]]+?)\s*\]\]/i);
+  let contact: { type: 'contact'; name: string; phone?: string; role?: string } | undefined;
+  if (ct) {
+    const parts = ct[1].split('|').map(s => s.trim()).filter(Boolean);
+    const name = (parts[0] || '').slice(0, 120);
+    if (name) {
+      const rest = parts.slice(1);
+      const phone = rest.find(p => { const d = p.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15; });
+      const role = rest.find(p => p !== phone && !/^\+?[\d\s()-]+$/.test(p));
+      contact = { type: 'contact', name, phone: phone ? phone.replace(/[^\d+]/g, '') : undefined, role: role ? role.slice(0, 60) : undefined };
+    }
+  }
+  // Νέα εκκρεμότητα: [[task: περιγραφή]].
+  const tk = text.match(/\[\[task:\s*([^\]]+?)\s*\]\]/i);
+  const task = tk && tk[1].trim() ? { type: 'task' as const, description: tk[1].trim().slice(0, 160) } : undefined;
   // Καταχώρηση πελάτη: [[client: Όνομα | τηλέφωνο | ΑΦΜ | τύπος]] (μόνο το όνομα υποχρεωτικό).
   const cl = text.match(/\[\[client:\s*([^\]]+?)\s*\]\]/i);
   let client: { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string } | undefined;
@@ -280,6 +300,8 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   if (expense) return { ...base, action: expense };
   if (vip) return { ...base, action: vip };
   if (checkin) return { ...base, action: checkin };
+  if (contact) return { ...base, action: contact };
+  if (task) return { ...base, action: task };
   if (book) return { ...base, action: book };
   if (client) return { ...base, action: client };
   if (go && NAV_MAP.some(n => n.id === go[1].toLowerCase())) return { ...base, action: { type: 'go', tab: go[1].toLowerCase() } };

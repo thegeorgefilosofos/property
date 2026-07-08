@@ -23,6 +23,7 @@ import {
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
 import { classifyExpense } from '@/lib/expenses/classify';
+import { inferRole } from '@/lib/contacts/roles';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
@@ -274,6 +275,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'expense') { registerExpense(a.description, a.amount); return; }
     else if (a.type === 'vip') { toggleVip(a.who); return; }
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
+    else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
+    else if (a.type === 'task') { addTask(a.description); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -339,6 +342,40 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       } else throw new Error('no token');
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στο πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
+    }
+  };
+
+  // Προσθήκη επαφής (τεχνικός/πάροχος) στην καρτέλα Επαφές, με αυτόματο ρόλο.
+  const registerContact = async (name: string, phone?: string, role?: string) => {
+    const roleValue = inferRole(role || name);
+    try {
+      await supabase.from('contacts').insert({
+        property_id: propertyId, user_id: userId,
+        full_name: name.slice(0, 120), role: roleValue,
+        phone: phone || null, email: null, notes: null,
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Την κράτησα. Πρόσθεσα τον/την «${name}»${phone ? ` (${phone})` : ''} στις Επαφές του ακινήτου. Θέλεις να ανοίξω τις Επαφές για να προσθέσεις κι άλλα;`, action: { type: 'go', tab: 'contacts' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω την επαφή τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Επαφές.' }]);
+    }
+  };
+
+  // Προσθήκη νέας εκκρεμότητας με αυτόματη κατηγορία.
+  const addTask = async (description: string) => {
+    const d = description.slice(0, 200);
+    const category = /φόρο|ενφια|ε2|ε1|δήλωσ|ααδε|μισθωτήρι|ασφαλιστ/i.test(d) ? 'legal'
+      : /υδραυλικ|ηλεκτρολ|επισκευ|συντήρησ|βλάβη|βαφ|καθαρι|μάστορ/i.test(d) ? 'maintenance'
+      : /πληρωμ|λογαριασμ|δόση|κόστος/i.test(d) ? 'financial' : 'other';
+    try {
+      await supabase.from('checklist_items').insert({
+        property_id: propertyId, user_id: userId, description: d,
+        category, priority: 'normal', recurring: 'none',
+        status: 'pending', completed: false, note: null,
+        estimated_cost: 0, actual_cost: 0, sort_order: 0,
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}». Θέλεις να το δεις ή να βάλω προθεσμία;`, action: { type: 'go', tab: 'checklist' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να προσθέσω την εκκρεμότητα τώρα. Δοκίμασε από την καρτέλα Εκκρεμότητες.' }]);
     }
   };
 
@@ -596,6 +633,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
                           : m.action.type === 'vip' ? `Σήμανε VIP: ${m.action.who}`
                           : m.action.type === 'checkin' ? `Σύνδεσμος check-in: ${m.action.who}`
+                          : m.action.type === 'contact' ? `Πρόσθεσε επαφή: ${m.action.name}`
+                          : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
