@@ -7,6 +7,13 @@
 -- Idempotent: create-if-not-exists + upsert.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- Reference/seed δεδομένα (χωρίς δεδομένα χρήστη): τα ξαναφτιάχνουμε καθαρά ώστε το
+-- σχήμα να είναι ντετερμινιστικό ακόμη κι αν προϋπήρχε διαφορετική έκδοση των πινάκων.
+drop view  if exists public.active_loan_programs;
+drop table if exists public.loan_programs cascade;
+drop table if exists public.bank_rates    cascade;
+drop table if exists public.market_rates  cascade;
+
 -- ── market_rates: Euribor / ΕΚΤ / ΤτΕ (τροφοδοτείται καθημερινά από edge function) ──
 create table if not exists public.market_rates (
   id                bigint generated always as identity primary key,
