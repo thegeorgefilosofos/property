@@ -125,6 +125,15 @@ const BILL_CAT_FOLDER: Record<string, FolderKey> = {
   security: 'providers', cleaning: 'providers', garden: 'providers', pool: 'providers',
   elevator: 'providers', ac_service: 'providers', pest: 'providers', renovation: 'providers',
 };
+// Ομαδοποίηση λογαριασμών «ανά πάροχο»: κατηγορία → σταθερή ετικέτα (όχι το μοναδικό
+// όνομα κάθε λογαριασμού, που θα δημιουργούσε έναν υποφάκελο ανά λογαριασμό).
+const BILL_PROVIDER_LABEL: Record<string, string> = {
+  electricity: 'Ρεύμα', water: 'Νερό', gas: 'Φυσικό Αέριο', internet: 'Internet & Τηλεφωνία',
+  common: 'Κοινόχρηστα', streaming: 'Συνδρομές', enfia: 'ΕΝΦΙΑ', dimotika: 'Δημοτικά Τέλη',
+  insurance: 'Ασφάλεια', security: 'Ασφάλεια & Φύλαξη', cleaning: 'Καθαρισμός',
+  garden: 'Κήπος', pool: 'Πισίνα', elevator: 'Ανελκυστήρας', ac_service: 'Κλιματισμός',
+  pest: 'Απεντόμωση', renovation: 'Ανακαίνιση', other: 'Λοιπά',
+};
 
 /* ── Ενοποιημένο μοντέλο αρχείου ─────────────────────────────────────────── */
 type Source = 'document' | 'expense' | 'bill' | 'inventory';
@@ -255,7 +264,7 @@ export default function TabDocuments({
       out.push({
         id: `bill:${b.id}`, source: 'bill',
         folder: BILL_CAT_FOLDER[b.category] ?? 'bills',
-        title: b.name || 'Λογαριασμός', provider: b.name || null,
+        title: b.name || 'Λογαριασμός', provider: BILL_PROVIDER_LABEL[b.category] || 'Λοιποί λογαριασμοί',
         date: b.due_date || b.created_at || null,
         value: typeof b.amount === 'number' ? b.amount : (b.amount ? parseFloat(b.amount) : null),
         url: null, isImage: false, sizeBytes: null,
