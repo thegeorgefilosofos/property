@@ -14,7 +14,7 @@ import { resolveRent, resolveValue, computeYields } from '@/lib/billing/property
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
-import { clientStats, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
+import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import {
   type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
@@ -107,7 +107,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
       supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
-      supabase.from('client_stays').select('client_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost').eq('user_id', userId),
+      supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost').eq('user_id', userId),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -130,6 +130,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map((l: any) => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${Number(l.rate || 0).toFixed(2)}% ${rateTypeGr(l.rate_type)} σε ${l.years || 0} έτη`).join('; ')}`
       : 'Δεν έχει καταχωρηθεί δάνειο για αυτό το ακίνητο.';
 
+    // Έσοδα φιλοξενίας (διαμονές επισκεπτών από το Πελατολόγιο συνδεδεμένες σε αυτό το ακίνητο).
+    const propStays = (stayRows || []).filter((s: any) => s.property_id === propertyId);
+    const propHostRevenue = propStays.reduce((sum: number, s: any) => sum + stayTotal(s), 0);
+    const hostingLine = propStays.length
+      ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
+      : '';
+
     const lines = [
       `Ακίνητο: ${propContext.name}${propContext.propType ? ` (${propContext.propType})` : ''}${propContext.address ? `, ${propContext.address}` : ''}`,
       propContext.sqm ? `Εμβαδόν: ${propContext.sqm} τ.μ.` : '',
@@ -144,6 +151,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       leaseEnd ? `Λήξη μίσθωσης: ${leaseEnd}${daysLease != null ? ` (σε ${daysLease} ημέρες)` : ''}` : '',
       st?.insurance_company || st?.insurance_expiry ? `Ασφάλεια: ${st?.insurance_company || 'εταιρεία άγνωστη'}${st?.insurance_expiry ? `, λήξη ${st.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
       loanLine,
+      hostingLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));

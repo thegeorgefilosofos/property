@@ -30,6 +30,7 @@ import { useReportBranding } from '@/lib/reportBranding';
 import InsightsBoard from './components/InsightsBoard';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { stayTotal } from '@/lib/clients/clients';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
 import { canAddProperty } from '@/lib/billing/plans';
@@ -363,10 +364,11 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const [chk, setChk] = useState<{ due_date:string|null; status:string; priority:string }[]>([]);
   const [inv, setInv] = useState<{ name?:string|null; warranty_expiry:string|null; condition:string|null }[]>([]);
   const [loans, setLoans] = useState<{ amount:number; rate:number; years:number }[]>([]);
+  const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
@@ -374,9 +376,10 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select('amount,rate,years').eq('property_id',prop.id).eq('user_id',userId),
+      supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setLoading(false);
+    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, userId, year]);
 
@@ -390,6 +393,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       .on('postgres_changes', { event:'*', schema:'public', table:'maintenance_tasks', filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'checklist_items',   filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'loans',             filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'client_stays',       filter:`property_id=eq.${prop.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -409,6 +413,12 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const monthlyDebt = loans.reduce((s,l)=>s+annuityMonthly(l.amount||0,l.rate||0,l.years||0),0);
   const totalDebt = loans.reduce((s,l)=>s+(l.amount||0),0);
   const debtLtv = propValue>0 && totalDebt>0 ? (totalDebt/propValue)*100 : 0;
+  // Έσοδα φιλοξενίας από το Πελατολόγιο (διαμονές συνδεδεμένες σε αυτό το ακίνητο): η
+  // Επισκόπηση «ξέρει» πλέον τα πραγματικά έσοδα βραχυχρόνιας, όχι μόνο τον στόχο ενοικίου.
+  const todayIso = new Date().toISOString().slice(0,10);
+  const hostingYTD = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+stayTotal(s),0);
+  const hostingNights = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+(s.nights ?? 0),0);
+  const nextArrival = hostStays.map(s=>s.check_in).filter((d): d is string => !!d && d>=todayIso).sort()[0] || null;
   const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
   const monthlyExp = Array(12).fill(0);
   expenses.forEach(e => { monthlyExp[new Date(e.date).getMonth()] += e.amount; });
@@ -635,6 +645,26 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <span title="Δείκτης δανείου προς αξία ακινήτου (Loan to Value)" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Δάνειο προς αξία</span>
                 <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{debtLtv.toFixed(0)}%</span>
+              </div>
+            )}
+          </div>
+        )}
+        {hostStays.length > 0 && (
+          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από το Πελατολόγιο" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
+              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(hostingYTD))}</span>
+            </div>
+            {hostingNights > 0 && (
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Διανυκτερεύσεις</span>
+                <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{hostingNights}</span>
+              </div>
+            )}
+            {nextArrival && (
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Επόμενη άφιξη</span>
+                <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--accent)'}}>{new Date(nextArrival).toLocaleDateString('el-GR')}</span>
               </div>
             )}
           </div>
