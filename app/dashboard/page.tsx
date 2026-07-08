@@ -642,7 +642,7 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
             return [
             { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
             { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
-            { label:'Εκτ. Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
+            { label:'Εκτιμώμενος Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
             { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
             { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true, title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
           ]; })().map((k,i) => { const acc=(k as any).accent; return (
