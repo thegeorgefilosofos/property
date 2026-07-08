@@ -108,6 +108,7 @@ const NAV_ICON: Record<string,string> = {
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
   tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   roi:       'M3 17l6-6 4 4 8-8|M21 7v6h-6',
+  pricing:   'M20 12V7H4v10h10|M4 11h16|M16 19l2 2 4-4',
   loan:      'M3 21h18|M5 21V10l7-5 7 5v11|M9 21v-6h6v6',
   inventory: 'M21 16V8l-9-5-9 5v8l9 5 9-5z|M3.3 7 12 12l8.7-5|M12 22V12',
   checklist: 'M9 11l3 3L22 4|M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
@@ -120,10 +121,10 @@ const NAV_ICON: Record<string,string> = {
 // Ομαδοποιημένη πλοήγηση, λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',            ids: ['overview'] },
-  { label: 'Οικονομικά',  ids: ['bills','expenses','loan','roi'] },
-  { label: 'Μίσθωση',     ids: ['tenant','calendar'] },
-  { label: 'Το ακίνητο',  ids: ['inventory','documents','contacts','checklist'] },
-  { label: 'Εργαλεία',    ids: ['comparison','clients','settings'] },
+  { label: 'Οικονομικά',  ids: ['bills','expenses','roi','pricing','loan'] },
+  { label: 'Μίσθωση',     ids: ['tenant','clients','calendar'] },
+  { label: 'Το ακίνητο',  ids: ['inventory','documents','contacts','checklist','comparison'] },
+  { label: 'Σύστημα',     ids: ['settings'] },
 ];
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
@@ -704,6 +705,9 @@ export default function Dashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selected, setSelected] = useState<Property | null>(null);
   const [nav, setNav] = useState('overview');
+  // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
+  const [openGroup, setOpenGroup] = useState('Οικονομικά');
+  useEffect(() => { const g = NAV_GROUPS.find(gr => gr.ids.includes(nav)); if (g?.label) setOpenGroup(g.label); }, [nav]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCopyInventory, setShowCopyInventory] = useState(false);
@@ -873,10 +877,21 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
-          {NAV_GROUPS.map((group,gi) => (
+          {NAV_GROUPS.map((group,gi) => {
+            const hasHeader = !!group.label;
+            const open = !hasHeader || openGroup===group.label;
+            const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
+            return (
             <div className="sidebar-section" key={gi}>
-              {group.label && <div className="sidebar-section-label">{group.label}</div>}
-              {group.ids.map(id => { const badge=getBadge(id); return (
+              {hasHeader && (
+                <button type="button" className={`sidebar-section-header ${open?'open':''}`} aria-expanded={open}
+                  onClick={()=>setOpenGroup(cur=>cur===group.label?'':group.label)}>
+                  <span>{group.label}</span>
+                  {!open && groupBadge>0 && <span className="sidebar-section-badge">{groupBadge>9?'9+':groupBadge}</span>}
+                  <span className="sidebar-section-chevron" aria-hidden>{open?'▾':'▸'}</span>
+                </button>
+              )}
+              {open && group.ids.map(id => { const badge=getBadge(id); return (
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{NAV_LABEL[id]}</span>
@@ -884,7 +899,7 @@ export default function Dashboard() {
                 </button>
               );})}
             </div>
-          ))}
+          );})}
         </div>
         <div className="sidebar-footer">
           <div className="user-row" role="button" tabIndex={0} aria-label="Αποσύνδεση" onClick={signOut} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();signOut();}}} title="Αποσύνδεση">
