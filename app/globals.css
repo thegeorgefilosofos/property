@@ -521,6 +521,12 @@ body {
 }
 .card:hover { box-shadow: var(--highlight-inset-strong), var(--elev-2); border-color: var(--border-default); }
 
+/* Πτυσσόμενες κάρτες εργαλείων στην Επισκόπηση: διακριτικό 3D lift ΜΟΝΟ όταν
+   είναι κλειστές (χωρίς υπερβολές· ανοιχτές μένουν σταθερές για ανάγνωση). */
+.tool-card { transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
+.tool-card:not(.tool-card--open):hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--border-default); }
+@media (prefers-reduced-motion: reduce) { .tool-card:hover { transform: none; } }
+
 /* Κάρτα πελάτη (Πελατολόγιο) — ανυψωμένη, κλικαρίσιμη επιφάνεια με βάθος 3D.
    Ίδια αισθητική/tokens με τη γενική .card· hover/focus ανεβάζουν το επίπεδο και
    αποκαλύπτουν τις ενέργειες (.client-card-act). Δουλεύει σε light + dark. */
