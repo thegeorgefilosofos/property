@@ -24,7 +24,7 @@ import {
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
 interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
-type Action = { type: 'go'; tab: string } | { type: 'scan' };
+type Action = { type: 'go'; tab: string } | { type: 'scan' } | { type: 'book'; title: string; date: string };
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 
 const eur = (n?: number | null) => n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`;
@@ -177,7 +177,23 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (!a) return;
     if (a.type === 'scan') onScan();
     else if (a.type === 'go') onNavigate(a.tab);
+    else if (a.type === 'book') { bookAppointment(a.title, a.date); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
     if (!keepOpen) setOpen(false);
+  };
+
+  // Κράτηση ραντεβού: γράφει γεγονός στο Ημερολόγιο. Η υπάρχουσα ροή υπενθυμίσεων
+  // (send-reminders) στέλνει email 3 & 1 ημέρα πριν, αν ο χρήστης έχει ενεργές ειδοποιήσεις.
+  const bookAppointment = async (title: string, date: string) => {
+    try {
+      await supabase.from('calendar_events').insert({
+        property_id: propertyId, user_id: userId, title, category: 'financial',
+        event_date: date, priority: 'high', status: 'pending', source: 'assistant',
+        notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Υπενθύμιση 3 και 1 ημέρα πριν (email, εφόσον είναι ενεργές οι ειδοποιήσεις).',
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για τις ${new Date(date).toLocaleDateString('el-GR')} στο Ημερολόγιο και θα σου θυμίσω 3 και 1 ημέρα πριν. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω το ραντεβού τώρα. Δοκίμασε ξανά ή πρόσθεσέ το χειροκίνητα στο Ημερολόγιο.' }]);
+    }
   };
 
   // ── Φωνή: ομιλία στα ελληνικά (hands-free) ─────────────────────────────────
@@ -386,7 +402,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       border: m.role === 'user' ? 'none' : '1px solid var(--border-subtle)', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
                     {m.action && (
                       <button onClick={() => runAction(m.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο' : `Πήγαινε: ${navLabel(m.action.tab)}`}
+                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο' : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}` : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
                     )}

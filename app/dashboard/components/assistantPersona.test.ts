@@ -62,6 +62,25 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('no action', !r.action);
   ok('clean equals trimmed', r.clean === t.trim());
 }
+// book action: title | date
+{
+  const r = parseAction('Το έκλεισα. [[book: Ραντεβού με Εθνική για χρηματοδότηση | 2026-07-15]]');
+  ok('book action type', r.action?.type === 'book');
+  ok('book date parsed', (r.action as any)?.date === '2026-07-15');
+  ok('book title parsed', /Εθνική/.test((r.action as any)?.title || ''));
+  ok('book stripped', !/\[\[/.test(r.clean));
+}
+{
+  // date-first order still works
+  const r = parseAction('[[book: 2026-08-01 | Ραντεβού Alpha]]');
+  ok('book date-first', (r.action as any)?.date === '2026-08-01' && /Alpha/.test((r.action as any)?.title || ''));
+}
+{
+  // no valid date → no book action, still stripped
+  const r = parseAction('Πες μου πότε [[book: Ραντεβού χωρίς ημερομηνία]]');
+  ok('book without date → no action', r.action?.type !== 'book');
+  ok('book invalid stripped', !/\[\[/.test(r.clean));
+}
 
 // ── cleanForSpeech: markdown/bullets/arrows/newlines ─────────────────────────
 const speechCases: [string, (s: string) => boolean][] = [
