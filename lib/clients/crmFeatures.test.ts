@@ -1,7 +1,7 @@
 // Τεστ για messages/reports/ical. Τρέξε: npx tsx lib/clients/crmFeatures.test.ts
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink } from './messages';
 import { revenueByChannel, revenueByMonth, occupancyPct, nightsInRange, totals } from './reports';
-import { parseICal, guessChannel, isBlocked, nightsBetween } from './ical';
+import { parseICal, guessChannel, isBlocked, nightsBetween, icalToStayDrafts, stayKey } from './ical';
 
 let passed = 0, failed = 0; const fails: string[] = [];
 const ok = (n: string, c: boolean) => { c ? passed++ : (failed++, fails.length < 60 && fails.push(n)); };
@@ -71,6 +71,20 @@ ok('guessChannel other', guessChannel('example.com') === 'other');
 ok('isBlocked true', isBlocked('Airbnb (Not available)') === true);
 ok('isBlocked false', isBlocked('Reserved') === false);
 ok('nightsBetween', nightsBetween('2026-07-01', '2026-07-05') === 4);
+
+// ── icalToStayDrafts / stayKey ─────────────────────────────────────────────
+const drafts = icalToStayDrafts(evs, { propertyId: 'p1', channel: 'airbnb' });
+ok('drafts count', drafts.length === 2);
+ok('draft nights', drafts[0].nights === 4 && drafts[0].check_in === '2026-07-01' && drafts[0].check_out === '2026-07-05');
+ok('draft channel + property', drafts[0].channel === 'airbnb' && drafts[0].property_id === 'p1');
+ok('draft blocked flag', drafts[0].blocked === false);
+ok('draft blocked true', icalToStayDrafts(parseICal(['BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20260701', 'DTEND;VALUE=DATE:20260703', 'SUMMARY:Airbnb (Not available)', 'UID:b', 'END:VEVENT'].join('\r\n')), { propertyId: 'p1', channel: 'airbnb' })[0].blocked === true);
+ok('stayKey format', stayKey('p1', '2026-07-01', '2026-07-05') === 'p1|2026-07-01|2026-07-05');
+ok('stayKey dedup detects existing', (() => {
+  const existing = new Set([stayKey('p1', '2026-07-01', '2026-07-05')]);
+  const fresh = drafts.filter(d => !existing.has(stayKey(d.property_id, d.check_in, d.check_out)));
+  return fresh.length === 1 && fresh[0].check_in === '2026-08-10';
+})());
 
 console.log(`\ncrmFeatures — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
