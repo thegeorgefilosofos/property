@@ -16,6 +16,7 @@ interface Props {
   onAddProperty: () => void;                 // άνοιγμα wizard προσθήκης
   onScanCreate: () => void;                  // δημιουργία + άνοιγμα σάρωσης εγγράφου
   onDemoReady: (propertyId: string) => void; // μετά το seed, πήγαινε στο ακίνητο
+  onProfile?: (v: 'individual' | 'professional') => void; // επιλογή τύπου προφίλ
   onClose: () => void;                       // «αργότερα» / κλείσιμο
 }
 
@@ -39,10 +40,15 @@ const SLIDES = [
 
 const ic = (d: string) => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p, i) => <path key={i} d={p} />)}</svg>;
 
-export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate, onDemoReady, onClose }: Props) {
+export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate, onDemoReady, onProfile, onClose }: Props) {
   const supabase = createClient();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [profile, setProfile] = useState<'individual' | 'professional'>('individual');
+  const chooseProfile = (v: 'individual' | 'professional') => {
+    setProfile(v); onProfile?.(v);
+    supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' }).then(() => {});
+  };
 
   const mark = async (patch: Record<string, boolean>) => {
     try { await supabase.from('onboarding_progress').upsert({ user_id: userId, welcomed: true, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }); } catch {}
@@ -131,6 +137,25 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
           <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
         </div>
+
+        {/* Επιλογή τύπου προφίλ (μόνο στο πρώτο slide) */}
+        {step === 0 && (
+          <div style={{ padding: '18px 24px 0' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 10 }}>Τι σε περιγράφει;</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {([['individual', 'Ιδιώτης', 'δικά μου ακίνητα'], ['professional', 'Επαγγελματίας', 'διαχείριση πολλών']] as const).map(([v, t, sub]) => {
+                const on = profile === v;
+                return (
+                  <button key={v} onClick={() => chooseProfile(v)}
+                    style={{ textAlign: 'center', cursor: 'pointer', borderRadius: 12, padding: '11px 8px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface-raised)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Δείκτες βημάτων */}
         <div style={{ display: 'flex', gap: 7, justifyContent: 'center', padding: '20px 0 22px' }}>
