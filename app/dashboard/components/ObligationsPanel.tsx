@@ -16,21 +16,32 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
 }) {
   const supabase = createClient();
   const [obls, setObls] = useState<Obligation[]>([]);
-  const [synced, setSynced] = useState(false);
+  const [added, setAdded] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
     const { data: ten } = await supabase.from('tenants').select('lease_start,lease_end,monthly_rent').eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1);
     setObls(computeObligations(prop, ten?.[0] || null));
+    // Δες αν οι υποχρεώσεις είναι ήδη περασμένες στο Ημερολόγιο
+    const { count } = await supabase.from('calendar_events').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).eq('source', 'obligations');
+    setAdded((count || 0) > 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, prop.insurance_expiry, prop.enfia]);
 
   useEffect(() => { load(); }, [load]);
 
-  const syncToCalendar = async () => {
+  // Toggle: αν δεν είναι στο Ημερολόγιο τις προσθέτει, αλλιώς τις αφαιρεί.
+  const toggleCalendar = async () => {
     if (!obls.length) return;
     setSyncing(true);
-    // Καθάρισε τις παλιές αυτόματες εγγραφές και ξαναγράψε (idempotent)
+    if (added) {
+      const { error } = await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'obligations');
+      setSyncing(false);
+      if (!error) setAdded(false);
+      else alert('Σφάλμα: ' + error.message);
+      return;
+    }
+    // Καθάρισε τυχόν παλιές αυτόματες εγγραφές και ξαναγράψε (idempotent)
     await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', 'obligations');
     const rows = obls.map(o => ({
       property_id: propertyId, user_id: userId, title: o.title, event_date: o.date,
@@ -39,8 +50,8 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
     }));
     const { error } = await supabase.from('calendar_events').insert(rows);
     setSyncing(false);
-    if (!error) { setSynced(true); setTimeout(() => setSynced(false), 2600); }
-    else alert('Σφάλμα συγχρονισμού: ' + error.message);
+    if (!error) setAdded(true);
+    else alert('Σφάλμα: ' + error.message);
   };
 
   if (!obls.length) return null;
@@ -56,9 +67,9 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
             <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Φορολογικές & θεσμικές προθεσμίες + λήξεις ασφάλισης/μίσθωσης</div>
           </div>
         </div>
-        <button onClick={syncToCalendar} disabled={syncing} title="Πρόσθεσε στο Ημερολόγιο"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0 }}>
-          {synced ? 'Προστέθηκαν ✓' : syncing ? 'Συγχρονισμός…' : '+ Ημερολόγιο'}
+        <button onClick={toggleCalendar} disabled={syncing} title={added ? 'Αφαίρεση από το Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: added ? '1px solid var(--border-default)' : 'none', background: added ? 'transparent' : 'var(--accent)', color: added ? 'var(--text-secondary)' : 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
+          {syncing ? 'Ενημέρωση…' : added ? 'Προστέθηκε στο Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
         </button>
       </div>
 

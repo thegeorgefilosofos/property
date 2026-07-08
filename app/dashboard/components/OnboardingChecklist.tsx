@@ -48,12 +48,11 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
     <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent-border)', background: 'var(--accent-soft)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
-          <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ας ρυθμίσουμε το ακίνητό σου</div>
-          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount} από {steps.length} βήματα ολοκληρωμένα, λίγο ακόμα!</div>
+          <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ρύθμισε το ακίνητό σου</div>
+          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount === 0 ? 'Λίγα βήματα για να δουλέψει πλήρως' : `Ολοκλήρωσες ${doneCount} από ${steps.length} βήματα`}</div>
         </div>
         <button onClick={() => setMin(true)} title="Ελαχιστοποίηση"
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 600, flexShrink: 0, padding: 2 }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14" /></svg>
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 600, flexShrink: 0, padding: 2 }}>
           Ελαχιστοποίηση
         </button>
       </div>
