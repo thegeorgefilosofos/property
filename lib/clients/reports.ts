@@ -65,7 +65,7 @@ export function occupancyPct(stays: ReportStay[], from: string, to: string): num
 
 /** Συγκεντρωτικά για ένα σετ διαμονών: συνολικά έσοδα, νύχτες, πλήθος. */
 export function totals(stays: ReportStay[]): { revenue: number; nights: number; count: number } {
-  return stays.reduce((acc, s) => ({
+  return stays.reduce<{ revenue: number; nights: number; count: number }>((acc, s) => ({
     revenue: acc.revenue + stayTotal(s),
     nights: acc.nights + (nightsOf(s) || 0),
     count: acc.count + 1,
