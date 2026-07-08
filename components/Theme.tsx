@@ -130,11 +130,11 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
 }
 
 // ═══ PageTitle, τίτλος σελίδας/tab ════════════════════════════════════════
-export function PageTitle({ title, sub, right }: { title: string; sub?: string; right?: ReactNode }) {
+export function PageTitle({ title, sub, right, titleHint }: { title: string; sub?: string; right?: ReactNode; titleHint?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
       <div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>{title}</h1>
+        <h1 title={titleHint} style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.15, margin: 0 }}>{title}</h1>
         {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>{sub}</div>}
       </div>
       {right && <div style={{ display: 'flex', gap: 8 }}>{right}</div>}

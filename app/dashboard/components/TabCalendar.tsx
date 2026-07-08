@@ -891,7 +891,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {/* View toggle */}
         <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:8, overflow:'hidden' }}>
           {([['month','Μήνας',<Calendar size={13}/>],['week','Εβδομάδα',<CalendarDays size={13}/>],['list','Λίστα',<List size={13}/>],['timeline','Timeline',<BarChart2 size={13}/>]] as [ViewMode,string,React.ReactNode][]).map(([v,label,icon])=>(
-            <button key={v} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px', border:'none', cursor:'pointer', fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:500, background:viewMode===v?'var(--accent-dim)':'transparent', color:viewMode===v?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s', letterSpacing:'0.1px' }}>
+            <button key={v} title={v==='timeline'?'Χρονογραμμή':undefined} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px', border:'none', cursor:'pointer', fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:500, background:viewMode===v?'var(--accent-dim)':'transparent', color:viewMode===v?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s', letterSpacing:'0.1px' }}>
               {icon}{label}
             </button>
           ))}

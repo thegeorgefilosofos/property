@@ -18,12 +18,14 @@ export const EURIBOR_HISTORY = [
   {date:'2023-01',val:2.59},{date:'2023-04',val:3.27},{date:'2023-07',val:3.71},{date:'2023-10',val:3.97},
   {date:'2024-01',val:3.89},{date:'2024-04',val:3.88},{date:'2024-07',val:3.57},{date:'2024-10',val:3.08},
   {date:'2025-01',val:2.66},{date:'2025-04',val:2.40},{date:'2025-07',val:2.25},{date:'2025-10',val:2.20},
-  {date:'2026-01',val:2.19},{date:'2026-04',val:2.18},{date:'2026-06',val:2.18},
+  {date:'2026-01',val:2.30},{date:'2026-04',val:2.29},{date:'2026-06',val:2.32},
 ]
 
+// Εφεδρικές τιμές όταν ο πίνακας market_rates είναι κενός. Δείχνονται ΠΑΝΤΑ με
+// ημερομηνία επιβεβαίωσης, ποτέ ως «σημερινές». Πηγή: euribor-rates.eu (Euribor 3μ 30/06/2026).
 export const MARKET_FALLBACK: MarketRates = {
-  euribor_3m:2.18, euribor_1m:2.05, ecb_rate:2.40,
-  updated_at:'2026-06-08T00:00:00Z',
+  euribor_3m:2.324, euribor_1m:2.28, ecb_rate:2.15,
+  updated_at:'2026-06-30T00:00:00Z',
 }
 
 export const BANKS = [
@@ -36,10 +38,31 @@ export const BANKS = [
   { id:'attica', name:'Attica Bank', color:'#1E88E5', fixed3:'3.20-3.60', fixed5:'3.70-4.00', fixed10:'4.00-4.30', fixed15:'4.40-4.70', fixed20:'4.50-4.80', variable_spread_min:1.80, variable_spread_max:2.90, fixed_min:3.00, max_ltv:75, max_years:30, max_amount:200000, max_age:70, min_amount:15000, green_discount:0.10, spiti_mou:false, features:['Ευέλικτοι όροι','Γρήγορη εξέταση'], programs:['Εξοικονομώ'], fees:'Κατά περίπτωση', note:'Ευέλικτοι όροι', url:'https://www.atticabank.gr' },
 ]
 
+// Ημερομηνία τελευταίας επιβεβαίωσης των στατικών επιτοκίων τραπεζών (ενδεικτικά,
+// επιβεβαίωσε με την τράπεζα). Πηγές: vresdaneio.gr, daneiocalculator.gr, ΤτΕ/ΕΚΤ.
+export const BANKS_VERIFIED = '2026-07-08'
+export const RATES_DISCLAIMER = 'Ενδεικτικά επιτόκια, επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.'
+
+// Ενοποίηση σχήματος: τα στατικά δεδομένα χρησιμοποιούν fixed3.., ο πίνακας bank_rates
+// (live) χρησιμοποιεί fixed_3yr... Ο normBank γεφυρώνει τα δύο ώστε ο συγκριτικός
+// πίνακας να μη δείχνει «—» στην προεπιλεγμένη (fallback) κατάσταση.
+export function normBank<T extends Record<string, any>>(b: T) {
+  return {
+    ...b,
+    fixed_3yr:  b.fixed_3yr  ?? b.fixed3,
+    fixed_5yr:  b.fixed_5yr  ?? b.fixed5,
+    fixed_10yr: b.fixed_10yr ?? b.fixed10,
+    fixed_15yr: b.fixed_15yr ?? b.fixed15,
+    fixed_20yr: b.fixed_20yr ?? b.fixed20,
+    verified_at: b.verified_at ?? BANKS_VERIFIED,
+  }
+}
+export const BANKS_NORM = BANKS.map(normBank)
+
 export const STATE_PROGRAMS = [
-  { id:'spiti_mou_2', name:'Σπίτι μου ΙΙ', color:'#00897b', status:'active', type:'Κρατικό, Επιδότηση επιτοκίου 50%', desc:'Χρηματοδότηση έως 190.000€ για πρώτη κατοικία. 50% άτοκο από Ταμείο Ανάκαμψης.', max_amount:190000, max_prop_value:250000, max_ltv:90, max_sqm:150, age_min:25, age_max:50, duration:'3-30 χρόνια', deadline:'31/08/2026', deadline_urgent:true, total_budget:'2 δισ. ευρώ', criteria:['Ηλικία 25-50 ετών','Πρώτη & κύρια κατοικία','Εισόδημα ≤ 40.000€ / 50.000€ (οικογένεια)','Αξία ≤ 250.000€','Έως 150 τετραγωνικά μέτρα'], how_it_works:'50% = Ταμείο Ανάκαμψης (άτοκο) · 50% = τράπεζα με επιδοτούμενο επιτόκιο', extra:'Τρίτεκνοι/Πολύτεκνοι + γονείς 2 παιδιών (Έβρος): επιπλέον 50% επιδότηση', savings_example:'Δάνειο 150.000€ × 25χρ → εξοικονόμηση ~45.000€ τόκων', url:'https://greece20.gov.gr/home-loans/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς','Optima','CrediaBank'] },
+  { id:'spiti_mou_2', name:'Σπίτι μου ΙΙ', color:'#00897b', status:'active', type:'Κρατικό, άτοκο 50% (75% για τρίτεκνους)', desc:'Χρηματοδότηση έως 190.000€ για πρώτη & κύρια κατοικία. Το 50% του δανείου είναι άτοκο (πόροι Ταμείου Ανάκαμψης), το υπόλοιπο 50% με επιτόκιο τράπεζας.', max_amount:190000, max_prop_value:250000, max_ltv:90, max_sqm:150, age_min:25, age_max:50, duration:'3-30 χρόνια (χωρίς περίοδο χάριτος)', application_deadline:'31/05/2026', deadline:'31/08/2026', deadline_urgent:true, verified_at:'2026-07-08', total_budget:'2 δισ. ευρώ (50% Ταμείο Ανάκαμψης + 50% τράπεζες)', criteria:['Ηλικία 25-50 ετών (γεννηθέντες 1976-2001 για αιτήσεις 2026)','Πρώτη & κύρια κατοικία','Εισόδημα: ενδεικτικά έγγαμοι 35.000€ +5.000€/παιδί, μονογονεϊκές 39.000€ (επιβεβαίωσε στην πύλη)','Αξία συμβολαίου ≤ 250.000€','Έως 150 τετραγωνικά μέτρα','Έτος κατασκευής ακινήτου έως και 2007'], how_it_works:'50% του δανείου άτοκο (Ταμείο Ανάκαμψης) · 50% έντοκο (τράπεζα). Τρίτεκνοι/πολύτεκνοι: 75% άτοκο / 25% έντοκο', extra:'Τρίτεκνοι/Πολύτεκνοι: το άτοκο σκέλος ανεβαίνει στο 75%. Προθεσμία αίτησης 31/05/2026, σύναψη σύμβασης έως 31/08/2026', savings_example:'Δάνειο 150.000€ × 25 έτη με 50% άτοκο → εξοικονόμηση δεκάδων χιλιάδων € σε τόκους έναντι κανονικού δανείου', url:'https://stegasi.gov.gr/programs/spiti-mou-ii/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς','Optima','CrediaBank'] },
   { id:'anavathmizo', name:'Αναβαθμίζω το Σπίτι μου', color:'#7c4dff', status:'active', type:'Κρατικό, Δάνειο ενεργειακής αναβάθμισης', desc:'Δάνειο έως 25.000€ με επιδοτούμενο επιτόκιο από ΤΑΑ', max_amount:25000, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'3-15 χρόνια', deadline:'31/08/2026', deadline_urgent:true, total_budget:'80 εκ. ευρώ', criteria:['ΠΕΑ πριν και μετά','Αναβάθμιση ≥3 ενεργειακές κατηγορίες','Εξοικονόμηση >30%'], how_it_works:'Δάνειο για ενεργειακές παρεμβάσεις με επιδοτούμενο επιτόκιο', extra:'Αυξημένη επιδότηση για ΑμεΑ, τρίτεκνους, πολύτεκνους', savings_example:'Εξοικονόμηση ενέργειας + χαμηλό επιτόκιο = διπλό όφελος', url:'https://greece20.gov.gr/home-loans/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς','CrediaBank'] },
-  { id:'exoikonomo_2025', name:'Εξοικονομώ 2025', color:'#00897b', status:'active', type:'Επιδότηση ενεργειακής αναβάθμισης', desc:'Deadline 30/06/2026, ΤΕΕ ζητά παράταση έως 31/12/2026', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'Εφάπαξ', deadline:'30/06/2026 (αναμένεται παράταση)', deadline_urgent:true, total_budget:'Ταμείο Ανάκαμψης ΕΕ', criteria:['Εξοικονόμηση >30%','Αναβάθμιση ≥3 κατηγορίες','ΠΕΑ πριν και μετά'], how_it_works:'Επιδότηση κουφωμάτων, μόνωσης, θέρμανσης, φωτοβολταϊκών', extra:'Ειδικά κίνητρα για ΑμεΑ, τρίτεκνους, πολύτεκνους, νέους', savings_example:'Μείωση λογαριασμών + επιδότηση κόστους', url:'https://exoikonomo2025.gov.gr/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς'] },
+  { id:'exoikonomo_2025', name:'Εξοικονομώ 2025', color:'#00897b', status:'active', type:'Επιδότηση ενεργειακής αναβάθμισης', desc:'Η αρχική προθεσμία (30/06/2026) παρήλθε, εκκρεμεί ανακοίνωση παράτασης, επιβεβαίωσε στο exoikonomo2025.gov.gr', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'Εφάπαξ', deadline:'Έληξε 30/06/2026, εκκρεμεί παράταση', deadline_urgent:false, verified_at:'2026-07-08', total_budget:'Ταμείο Ανάκαμψης ΕΕ', criteria:['Εξοικονόμηση >30%','Αναβάθμιση ≥3 κατηγορίες','ΠΕΑ πριν και μετά'], how_it_works:'Επιδότηση κουφωμάτων, μόνωσης, θέρμανσης, φωτοβολταϊκών', extra:'Ειδικά κίνητρα για ΑμεΑ, τρίτεκνους, πολύτεκνους, νέους', savings_example:'Μείωση λογαριασμών + επιδότηση κόστους', url:'https://exoikonomo2025.gov.gr/', banks:['Εθνική','Alpha','Eurobank','Πειραιώς'] },
   { id:'exoikonomo_2026', name:'Εξοικονομώ 2026', color:'#60a5fa', status:'upcoming', type:'Επερχόμενο, 2ο εξάμηνο 2026', desc:'Νέος κύκλος €1.2 δισ., επιδότηση έως 80%, 62.000 κατοικίες', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'Αναμένεται', deadline:'2ο εξάμηνο 2026', deadline_urgent:false, total_budget:'1,2 δισ. ευρώ', criteria:['Χωρίς εισοδηματικό κριτήριο','Ιδιοκτήτες / Ενοικιαστές ≥7 ετών'], how_it_works:'Επιδότηση έως 80%, λεπτομέρειες αναμένονται', extra:'Μη δεσμευτείς ακόμα, παρακολούθα exoikonomo2025.gov.gr', savings_example:'Επιδότηση έως 80% κόστους αναβάθμισης', url:'https://selectra.gr/energeia/energeia-epidomata/exoikonomo', banks:['Αναμένεται'] },
   { id:'anakainizo_noikazo', name:'Ανακαινίζω & Νοικιάζω', color:'#e8710a', status:'active', type:'Επιδότηση ανακαίνισης + εγγυημένο ενοίκιο ΟΠΕΚΑ', desc:'40% επιδότηση + εγγυημένο ενοίκιο 5 χρόνια', max_amount:15000, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'5 χρόνια', deadline:'Τρέχον', deadline_urgent:false, total_budget:'Τρέχον', criteria:['Κενό ακίνητο ≥3 χρόνια','€5.000-€40.000','Μίσθωση ΟΠΕΚΑ','Δέσμευση 5ετίας'], how_it_works:'40% επιδότηση ανακαίνισης + ενοίκιο αγοράς από ΟΠΕΚΑ για 5 χρόνια', extra:'Εγγυημένο εισόδημα, ιδανικό για επενδυτές', savings_example:'Κενό ακίνητο → ανακαίνιση + εγγυημένο εισόδημα', url:'https://www.opeka.gr', banks:['Εθνική','Πειραιώς','Eurobank'] },
   { id:'gefyra_3', name:'Γέφυρα 3', color:'#D4A017', status:'active', type:'Επιδότηση δόσης, ευάλωτοι δανειολήπτες', desc:'Επιδότηση 50% αύξησης δόσης λόγω ανόδου Euribor', max_amount:null, max_prop_value:null, max_ltv:null, max_sqm:null, age_min:18, age_max:null, duration:'12 μήνες', deadline:'Τρέχον, ελέγξτε dovaluegreece.gr', deadline_urgent:false, total_budget:'Χρηματοδοτείται από τράπεζες', criteria:['Βεβαίωση ευάλωτου οφειλέτη','Κυμαινόμενο δάνειο','Εξασφάλιση πρώτης κατοικίας'], how_it_works:'50% αύξησης δόσης λόγω ΕΚΤ (βάση 30/06/2022) για 12 μήνες', extra:'Για ανέργους, χαμηλά εισοδήματα, συνταξιούχους', savings_example:'Αύξηση 80€/μήνα → επιδότηση 40€ × 12 = 480€/χρόνο', url:'https://dovaluegreece.gr/programma-epidotisis-dosis-logo-ayxisis-epitokion-gefyra-3', banks:['Όλες οι τράπεζες'] },
