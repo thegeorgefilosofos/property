@@ -2,6 +2,7 @@
 import {
   orthodoxEaster, holidayFor, realizedAdr, suggestBase, recommendPrices, priceForDate,
   summarize, suggestGuardrails, bookedDatesFromStays, SEASON_LABELS, indicativeMonthly,
+  projectRevenue, findGaps,
 } from './dynamicPricing';
 
 let passed = 0, failed = 0; const fails: string[] = [];
@@ -90,6 +91,28 @@ const im = indicativeMonthly(100);
 ok('12 μήνες', im.length === 12);
 ok('Αύγουστος (7) αιχμή & > Ιανουάριος (0)', im[7].season === 'peak' && im[7].weekday > im[0].weekday);
 ok('Σαββατοκύριακο > καθημερινή', im.every(r => r.weekend >= r.weekday));
+
+// ── projectRevenue: κέρδος vs σταθερής ───────────────────────────────────────
+const projRows = recommendPrices('2026-07-01', 31, { base: 100 }); // Ιούλιος: αιχμή → δυναμική > σταθερή
+const proj = projectRevenue(projRows, 100);
+ok('projection availableNights = 31', proj.availableNights === 31);
+ok('δυναμική > σταθερή σε αιχμή', proj.projRevenue > proj.flatRevenue && proj.uplift > 0);
+ok('occPct 0..100', proj.occPct >= 0 && proj.occPct <= 100);
+const projBooked = projectRevenue(recommendPrices('2026-07-01', 5, { base: 100, bookedDates: new Set(['2026-07-02', '2026-07-03']) }), 100);
+ok('booked εξαιρούνται από availableNights', projBooked.availableNights === 3);
+
+// ── findGaps: κενά προς πλήρωση ──────────────────────────────────────────────
+const gapRows = recommendPrices('2026-06-01', 10, { base: 100, bookedDates: new Set(['2026-06-04', '2026-06-05', '2026-06-08']) });
+const gaps = findGaps(gapRows, '2026-06-01');
+ok('βρίσκει κενά', gaps.length >= 2);
+ok('πρώτο κενό ξεκινά 06-01', gaps[0].start === '2026-06-01');
+ok('κενά έχουν fillPrice ≤ avgPrice', gaps.every(g => g.fillPrice <= g.avgPrice));
+ok('κοντινό κενό soon=true', gaps[0].soon === true);
+// κενό ανάμεσα σε κρατήσεις (06-06,06-07 μεταξύ 06-05 και 06-08) → hard
+const midGap = gaps.find(g => g.start === '2026-06-06');
+ok('κενό ανάμεσα σε κρατήσεις → hard', !!midGap && midGap.hard === true && midGap.nights === 2);
+// χωρίς κρατήσεις → ένα ενιαίο κενό
+ok('χωρίς κρατήσεις = 1 κενό', findGaps(recommendPrices('2026-06-01', 7, { base: 100 })).length === 1);
 
 // ── labels ──────────────────────────────────────────────────────────────────
 ok('season labels', SEASON_LABELS.peak === 'Αιχμή' && SEASON_LABELS.low === 'Χαμηλή');

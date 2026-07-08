@@ -140,11 +140,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       : '';
 
     // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
-    const priceBase = suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
+    // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
+    const { data: pset } = await supabase.from('pricing_settings').select('base,weekend_premium').eq('user_id', userId).eq('property_id', propertyId).maybeSingle();
+    const wkndPrem = pset?.weekend_premium != null ? Number(pset.weekend_premium) : 0.18;
+    const priceBase = (pset?.base != null ? Number(pset.base) : 0) || suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
     if (priceBase > 0) {
       const adrVal = realizedAdr(propStays);
       const MON = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
-      const table = indicativeMonthly(priceBase).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
+      const table = indicativeMonthly(priceBase, wkndPrem).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
       setPricingStr([
         `Βάση: ${eur(priceBase)}/νύχτα${adrVal > 0 ? ` (μέση πραγματική ADR ${eur(Math.round(adrVal))} από ${propStays.length} διαμονές)` : ' (εκτίμηση, χωρίς επαρκές ιστορικό)'}.`,
         `Ενδεικτικές τιμές ανά μήνα (καθημερινή/Σαββατοκύριακο): ${table}.`,
