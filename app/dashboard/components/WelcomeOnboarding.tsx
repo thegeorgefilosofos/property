@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T } from '@/components/Theme';
 
 interface Props {
   userId: string;
@@ -93,38 +93,62 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   const s = SLIDES[step];
   const last = step === SLIDES.length - 1;
 
+  // Premium κουμπιά (κεντραρισμένα, καθαρά, με hover) — χωρίς το γενικό Btn.
+  const primaryBtn: React.CSSProperties = {
+    width: '100%', height: 50, borderRadius: 13, border: 'none', cursor: busy ? 'default' : 'pointer',
+    background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: T.font.sans,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, letterSpacing: '-0.01em',
+    boxShadow: '0 8px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent)',
+    transition: 'filter 0.15s ease, transform 0.08s ease', opacity: busy ? 0.7 : 1,
+  };
+  const secondaryBtn: React.CSSProperties = {
+    width: '100%', height: 48, borderRadius: 13, cursor: busy ? 'default' : 'pointer',
+    background: 'var(--surface-raised)', color: 'var(--text-primary)', border: '1px solid var(--border-default)',
+    fontSize: 14, fontWeight: 600, fontFamily: T.font.sans, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: 'var(--highlight-inset), var(--elev-1)', transition: 'background 0.15s ease, transform 0.08s ease',
+  };
+  const linkBtn: React.CSSProperties = {
+    background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
+    padding: '8px 6px', width: '100%', textAlign: 'center',
+  };
+  const press = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.985)'; };
+  const release = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'none'; };
+  const brighten = (e: React.MouseEvent<HTMLButtonElement>) => { if (!busy) e.currentTarget.style.filter = 'brightness(1.06)'; };
+  const unbrighten = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'none'; };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 22, width: 'min(460px, 100%)', overflow: 'hidden', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
+      <style>{`@keyframes welcomeIn{from{opacity:0;transform:translateY(8px) scale(0.98)}to{opacity:1;transform:none}}`}</style>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 24, width: 'min(440px, 100%)', overflow: 'hidden', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans, animation: 'welcomeIn 0.3s cubic-bezier(0.2,0,0,1)' }}>
         {/* Κεφαλίδα: παράλειψη */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 14px 0' }}>
-          <button onClick={later} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, padding: 6 }}>Παράλειψη</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 16px 0' }}>
+          <button onClick={later} style={{ ...linkBtn, width: 'auto', color: 'var(--text-tertiary)', fontSize: 12, padding: 6 }}>Παράλειψη</button>
         </div>
 
         {/* Οπτικό + κείμενο */}
-        <div style={{ padding: '8px 32px 4px', textAlign: 'center' }}>
-          <div style={{ width: 68, height: 68, borderRadius: 18, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>{ic(s.icon)}</div>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 10 }}>{s.title}</div>
-          <div style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', minHeight: 88 }}>{s.body}</div>
+        <div style={{ padding: '4px 36px 4px', textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent) 8%, transparent))', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>{ic(s.icon)}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
+          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
         </div>
 
         {/* Δείκτες βημάτων */}
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '18px 0 20px' }}>
+        <div style={{ display: 'flex', gap: 7, justifyContent: 'center', padding: '20px 0 22px' }}>
           {SLIDES.map((_, i) => (
-            <span key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'all 0.25s ease' }} />
+            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 4, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'all 0.28s cubic-bezier(0.2,0,0,1)' }} />
           ))}
         </div>
 
         {/* Ενέργειες */}
-        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '0 24px 26px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {!last ? (
-            <Btn variant="primary" onClick={() => setStep(step + 1)}>Επόμενο</Btn>
+            <button onClick={() => setStep(step + 1)} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Επόμενο</button>
           ) : (
             <>
-              <Btn variant="primary" onClick={addProperty} disabled={busy}>Πρόσθεσε το πρώτο ακίνητο</Btn>
-              <Btn variant="secondary" onClick={startDemo} disabled={busy}>{busy ? 'Προετοιμασία demo…' : 'Δες demo με έτοιμα δεδομένα'}</Btn>
-              <button onClick={scanCreate} disabled={busy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, padding: 6 }}>ή σκάναρε λογαριασμό/συμβόλαιο για γρήγορη προσθήκη</button>
-              <button onClick={later} disabled={busy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, padding: 6 }}>Θα το κάνω αργότερα</button>
+              <button onClick={addProperty} disabled={busy} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Πρόσθεσε το πρώτο σου ακίνητο</button>
+              <button onClick={startDemo} disabled={busy} style={secondaryBtn} onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface-raised)'; release(e); }} onMouseDown={press} onMouseUp={release}>{busy ? 'Προετοιμασία demo…' : 'Δες demo με έτοιμα δεδομένα'}</button>
+              <button onClick={scanCreate} disabled={busy} style={{ ...linkBtn, color: 'var(--accent)' }}>ή σκάναρε λογαριασμό ή συμβόλαιο</button>
+              <button onClick={later} disabled={busy} style={{ ...linkBtn, color: 'var(--text-tertiary)' }}>Θα το κάνω αργότερα</button>
             </>
           )}
         </div>
