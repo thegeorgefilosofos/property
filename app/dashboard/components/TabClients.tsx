@@ -383,6 +383,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
   const chip = (active: boolean): React.CSSProperties => ({ padding: '7px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
   const msgLink: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };
+  const fGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 };
+  // Επικεφαλίδα ενότητας φόρμας (καθαρή, με τελεία accent και λεπτή γραμμή). Απλή
+  // συνάρτηση που επιστρέφει JSX (όχι component) ώστε να μη χάνουν focus τα πεδία.
+  const secHead = (t: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 13px' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
+      <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+    </div>
+  );
+  const initials = (form.full_name.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('') || '+').toUpperCase();
 
   const overdue = (c: Client) => c.next_date != null && c.stage !== 'closed' && c.next_date <= todayStr();
 
@@ -396,7 +407,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Πελατολόγιο" sub="Πλήρες αρχείο πελατών, επισκεπτών και ιδιοκτητών: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><ExportButton onClick={exportCsv} /><Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div>} />
+        right={clients.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><ExportButton onClick={exportCsv} /><Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
 
@@ -737,50 +748,70 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         </div>
       )}
 
-      {/* ── Φόρμα νέου/επεξεργασίας πελάτη ──────────────────────────────────── */}
+      {/* ── Φόρμα νέου/επεξεργασίας πελάτη (premium, δομημένη σε ενότητες) ───── */}
       {modalOpen && (
-        <div onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 24, width: 'min(620px, 100%)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 18 }}>{editing ? 'Επεξεργασία καταχώρησης' : 'Νέα καταχώρηση'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} />
+        <div onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+            {/* Sticky header με avatar αρχικών */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 700, fontSize: 15, fontFamily: T.font.sans, flexShrink: 0, letterSpacing: '0.02em' }}>{initials}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων και σχέσης' : 'Πελάτης, υποψήφιος ή ιδιοκτήτης'}</div>
               </div>
-              <CustomSelect label="Τύπος" value={form.type} onChange={v => setForm(f => ({ ...f, type: v as ClientType }))} options={typeOptions} />
-              <div>
-                <TextInput label="ΑΦΜ" value={form.afm} onChange={v => setForm(f => ({ ...f, afm: v.replace(/[^0-9]/g, '').slice(0, 9) }))} />
-                {form.afm.length === 9 && !isValidAfm(form.afm) && <div style={{ fontSize: 10, color: 'var(--negative)', marginTop: 4 }}>Μη έγκυρο ΑΦΜ (9 ψηφία)</div>}
+              <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+            </div>
+            {/* Σώμα με κύλιση, οργανωμένο σε ενότητες */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 22px' }}>
+              {secHead('Στοιχεία & επικοινωνία')}
+              <div style={fGrid}>
+                <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
+                <CustomSelect label="Τύπος" value={form.type} onChange={v => setForm(f => ({ ...f, type: v as ClientType }))} options={typeOptions} />
+                <div>
+                  <TextInput label="ΑΦΜ" value={form.afm} onChange={v => setForm(f => ({ ...f, afm: v.replace(/[^0-9]/g, '').slice(0, 9) }))} />
+                  {form.afm.length === 9 && !isValidAfm(form.afm) && <div style={{ fontSize: 10, color: 'var(--negative)', marginTop: 4 }}>Μη έγκυρο ΑΦΜ (9 ψηφία)</div>}
+                </div>
+                <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
+                <TextInput label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
+                <TextInput label="Διεύθυνση" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
+                <TextInput label="Αριθμός ταυτότητας" value={form.id_number} onChange={v => setForm(f => ({ ...f, id_number: v }))} />
+                <TextInput label="Εθνικότητα" value={form.nationality} onChange={v => setForm(f => ({ ...f, nationality: v }))} />
+                <TextInput label="Πηγή γνωριμίας" value={form.source} onChange={v => setForm(f => ({ ...f, source: v }))} placeholder="π.χ. Airbnb, σύσταση" />
               </div>
-              <TextInput label="Τηλέφωνο" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
-              <TextInput label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} type="email" />
-              <TextInput label="Διεύθυνση" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
-              <TextInput label="Αριθμός ταυτότητας" value={form.id_number} onChange={v => setForm(f => ({ ...f, id_number: v }))} />
-              <TextInput label="Εθνικότητα" value={form.nationality} onChange={v => setForm(f => ({ ...f, nationality: v }))} />
-              <TextInput label="Πηγή" value={form.source} onChange={v => setForm(f => ({ ...f, source: v }))} />
-              <CustomSelect label="Στάδιο" value={form.stage} onChange={v => setForm(f => ({ ...f, stage: v as Stage }))} options={stageOptions} />
-              <NumberInput label="Αξία ευκαιρίας" value={form.deal_value} onChange={v => setForm(f => ({ ...f, deal_value: v }))} suffix="€" />
-              <NumberInput label="Προϋπολογισμός" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} suffix="€" />
-              <TextInput label="Επόμενη ενέργεια" value={form.next_action} onChange={v => setForm(f => ({ ...f, next_action: v }))} placeholder="π.χ. Επίσκεψη ακινήτου" />
-              <DatePicker label="Ημερομηνία ενέργειας" value={form.next_date} onChange={v => setForm(f => ({ ...f, next_date: v }))} />
-              <div>
-                <div style={lbl}>Βαθμολογία</div>
-                <div style={{ height: 42, display: 'flex', alignItems: 'center' }}><Stars value={form.rating} onSet={n => setForm(f => ({ ...f, rating: n }))} size={22} /></div>
+
+              {secHead('Σχέση & στάδιο')}
+              <div style={fGrid}>
+                <CustomSelect label="Στάδιο" value={form.stage} onChange={v => setForm(f => ({ ...f, stage: v as Stage }))} options={stageOptions} />
+                <NumberInput label="Αξία ευκαιρίας" value={form.deal_value} onChange={v => setForm(f => ({ ...f, deal_value: v }))} suffix="€" />
+                <TextInput label="Επόμενη ενέργεια" value={form.next_action} onChange={v => setForm(f => ({ ...f, next_action: v }))} placeholder="π.χ. Επίσκεψη ακινήτου" />
+                <DatePicker label="Ημερομηνία ενέργειας" value={form.next_date} onChange={v => setForm(f => ({ ...f, next_date: v }))} />
+                <div>
+                  <div style={lbl}>Βαθμολογία</div>
+                  <div style={{ height: 42, display: 'flex', alignItems: 'center' }}><Stars value={form.rating} onSet={n => setForm(f => ({ ...f, rating: n }))} size={22} /></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
+                  <FlagSwitch on={form.do_not_rent} onChange={v => setForm(f => ({ ...f, do_not_rent: v }))} onLabel="Στη μαύρη λίστα" offLabel="Μαύρη λίστα / Προσοχή" />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div style={lbl}>Ετικέτες</div>
+                  <TagEditor tags={form.tags} onChange={t => setForm(f => ({ ...f, tags: t }))} />
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                <FlagSwitch on={form.do_not_rent} onChange={v => setForm(f => ({ ...f, do_not_rent: v }))} onLabel="Στη μαύρη λίστα" offLabel="Μαύρη λίστα / Προσοχή" />
+
+              {secHead('Αναζήτηση ακινήτου (μεσίτης)')}
+              <div style={fGrid}>
+                <NumberInput label="Προϋπολογισμός" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} suffix="€" />
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Textarea label="Ανάγκες και επιθυμίες" value={form.needs} onChange={v => setForm(f => ({ ...f, needs: v }))} placeholder="π.χ. 2 δωμάτια, κέντρο, έως 3ος όροφος, μπαλκόνι" rows={2} />
+                </div>
               </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={lbl}>Ετικέτες</div>
-                <TagEditor tags={form.tags} onChange={t => setForm(f => ({ ...f, tags: t }))} />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <Textarea label="Ανάγκες (μεσίτης)" value={form.needs} onChange={v => setForm(f => ({ ...f, needs: v }))} placeholder="π.χ. 2ΔΚΛ, κέντρο, έως 3ος όροφος" rows={2} />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} />
+
+              <div style={{ marginTop: 18 }}>
+                <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ελεύθερες σημειώσεις για τον πελάτη" />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+            {/* Sticky footer */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-surface)' }}>
               <Btn variant="ghost" onClick={() => setModalOpen(false)}>Ακύρωση</Btn>
               <Btn variant="primary" onClick={save} disabled={saving || !form.full_name.trim()}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
             </div>
