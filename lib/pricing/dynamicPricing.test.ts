@@ -1,7 +1,7 @@
 // Δοκιμές δυναμικής τιμολόγησης. Τρέξε: npx tsx lib/pricing/dynamicPricing.test.ts
 import {
   orthodoxEaster, holidayFor, realizedAdr, suggestBase, recommendPrices, priceForDate,
-  summarize, suggestGuardrails, bookedDatesFromStays, SEASON_LABELS,
+  summarize, suggestGuardrails, bookedDatesFromStays, SEASON_LABELS, indicativeMonthly,
 } from './dynamicPricing';
 
 let passed = 0, failed = 0; const fails: string[] = [];
@@ -84,6 +84,12 @@ ok('guardrails min<base<max', g.min < 100 && g.max > 100);
 // ── bookedDatesFromStays ────────────────────────────────────────────────────
 const bd = bookedDatesFromStays([{ check_in: '2026-07-01', check_out: '2026-07-04' }]);
 ok('booked set = 3 νύχτες (checkout exclusive)', bd.size === 3 && bd.has('2026-07-01') && bd.has('2026-07-03') && !bd.has('2026-07-04'));
+
+// ── indicativeMonthly ───────────────────────────────────────────────────────
+const im = indicativeMonthly(100);
+ok('12 μήνες', im.length === 12);
+ok('Αύγουστος (7) αιχμή & > Ιανουάριος (0)', im[7].season === 'peak' && im[7].weekday > im[0].weekday);
+ok('Σαββατοκύριακο > καθημερινή', im.every(r => r.weekend >= r.weekday));
 
 // ── labels ──────────────────────────────────────────────────────────────────
 ok('season labels', SEASON_LABELS.peak === 'Αιχμή' && SEASON_LABELS.low === 'Χαμηλή');
