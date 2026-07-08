@@ -358,7 +358,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property; userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
+function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
   const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
@@ -546,7 +546,7 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
 
       {/* Ο «σύμβουλος»: προτεραιοποιημένα, ενεργήσιμα insights (ελέγχεται από τις Προτιμήσεις) */}
       {prefs.liveNotifications && (
-        <InsightsBoard insights={insights} name={prop.name} onNavigate={onNavigate} />
+        <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} />
       )}
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
@@ -744,6 +744,7 @@ export default function Dashboard() {
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
+  const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
@@ -775,7 +776,7 @@ export default function Dashboard() {
       const refBy = (user.user_metadata as any)?.referred_by;
       if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan').eq('user_id', user.id).maybeSingle().then(({ data }) => setPlan(data?.plan || 'free'));
+      supabase.from('billing_profiles').select('plan, owner_name').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); });
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
@@ -1073,7 +1074,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}

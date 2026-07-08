@@ -75,7 +75,7 @@ ok(get(base({ inventory: [{ name: 'Πλυντήριο', warranty_expiry: inDays(
   ok(list[0].kind === 'urgent', 'urgent sorts first'); }
 
 // 19. Χαιρετισμός
-ok(greeting(new Date('2026-07-06T09:00:00').getTime(), 'Γιώργος Παπαδόπουλος') === 'Καλημέρα, Γιώργος', 'greeting morning + first name');
+ok(greeting(new Date('2026-07-06T09:00:00').getTime(), 'Γιώργος Παπαδόπουλος') === 'Καλημέρα, Γιώργο', 'greeting morning + first name (κλητική)');
 ok(greeting(new Date('2026-07-06T20:00:00').getTime()) === 'Καλό βράδυ', 'greeting evening no name');
 
 // 20. Ντετερμινισμός: ίδιο input → ίδιο output
