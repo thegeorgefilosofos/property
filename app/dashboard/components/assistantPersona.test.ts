@@ -81,6 +81,26 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('book without date → no action', r.action?.type !== 'book');
   ok('book invalid stripped', !/\[\[/.test(r.clean));
 }
+// client action: name | phone | afm | type
+{
+  const r = parseAction('Εντάξει. [[client: Γιάννης Νικολάου | 6941234567 | 090000045 | πελάτης]]');
+  ok('client action type', r.action?.type === 'client');
+  ok('client name', (r.action as any)?.name === 'Γιάννης Νικολάου');
+  ok('client phone', (r.action as any)?.phone === '6941234567');
+  ok('client afm', (r.action as any)?.afm === '090000045');
+  ok('client stripped', !/\[\[/.test(r.clean));
+}
+{
+  // only a name is required
+  const r = parseAction('[[client: Μαρία]]');
+  ok('client name-only', r.action?.type === 'client' && (r.action as any).name === 'Μαρία' && !(r.action as any).phone);
+}
+{
+  // empty name → no action
+  const r = parseAction('[[client: ]] κείμενο');
+  ok('client empty name → no action', r.action?.type !== 'client');
+  ok('client empty stripped', !/\[\[/.test(r.clean));
+}
 
 // ── cleanForSpeech: markdown/bullets/arrows/newlines ─────────────────────────
 const speechCases: [string, (s: string) => boolean][] = [
