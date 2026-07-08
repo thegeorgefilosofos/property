@@ -93,6 +93,30 @@ export function climateLevyForNights(nightsByMonth: number[], sqm?: number | nul
     sum + Math.max(0, n) * (isHighSeasonMonth(i) ? r.high : r.low), 0);
 }
 
+// ── Τέλος Παρεπιδημούντων (δημοτικό τέλος διαμονής), 0,5% επί των μεικτών ──────
+// Εξαίρεση: μονοκατοικίες και ακίνητα έως 80 τ.μ. που εκμισθώνονται αποκλειστικά
+// από φυσικά πρόσωπα, για έως 2 ακίνητα, ΔΕΝ επιβαρύνονται (0 €). Δηλαδή για τους
+// περισσότερους μικρούς ιδιοκτήτες βραχυχρόνιας το τέλος είναι μηδενικό.
+// Πηγές: ΑΑΔΕ / δήμοι. Επιβεβαίωσε με τον δήμο/λογιστή σου.
+export const MUNICIPAL_ACCOM_TAX_RATE = 0.005; // 0,5%
+
+/** Είναι το ακίνητο εξαιρεμένο από το τέλος παρεπιδημούντων; */
+export function isMunicipalTaxExempt(opts: { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean }): boolean {
+  const individual = opts.individual ?? true;
+  const count = opts.propertyCount ?? 1;
+  const smallOrHouse = (opts.isHouse ?? false) || (opts.sqm != null && opts.sqm <= 80);
+  return individual && count <= 2 && smallOrHouse;
+}
+
+/** Τέλος παρεπιδημούντων: 0,5% επί των μεικτών, ή 0 € αν ισχύει η εξαίρεση. */
+export function municipalAccommodationTax(gross: number, opts: { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean } = {}): number {
+  if (isMunicipalTaxExempt(opts)) return 0;
+  return Math.round(Math.max(0, gross) * MUNICIPAL_ACCOM_TAX_RATE * 100) / 100;
+}
+
+export const MUNICIPAL_ACCOM_SUMMARY =
+  'Τέλος παρεπιδημούντων (δημοτικό): 0,5% επί των μεικτών εσόδων. Εξαιρούνται μονοκατοικίες και ακίνητα έως 80 τ.μ. που εκμισθώνονται από φυσικά πρόσωπα με έως 2 ακίνητα (οπότε 0 € για τους περισσότερους ιδιοκτήτες βραχυχρόνιας). Επιβεβαίωσε με τον δήμο/λογιστή.';
+
 export interface ShortTermNet {
   grossRevenue: number;   // διανυκτερεύσεις × τιμή
   platformFees: number;   // προμήθειες πλατφορμών

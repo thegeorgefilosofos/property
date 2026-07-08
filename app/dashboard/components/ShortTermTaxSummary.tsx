@@ -18,18 +18,23 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
   const supabase = createClient();
   const [stays, setStays] = useState<TaxStay[]>([]);
   const [sqm, setSqm] = useState<number | null>(null);
+  const [isHouse, setIsHouse] = useState(false);
+  const [propCount, setPropCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data }, { data: prop }] = await Promise.all([
+    const [{ data }, { data: prop }, { count }] = await Promise.all([
       supabase.from('client_stays').select('check_in,check_out,nights,nightly_rate,total,channel').eq('user_id', userId).eq('property_id', propertyId),
-      supabase.from('user_properties').select('sqm').eq('id', propertyId).maybeSingle(),
+      supabase.from('user_properties').select('sqm,prop_type').eq('id', propertyId).maybeSingle(),
+      supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     ]);
     const list = (data || []) as TaxStay[];
     setStays(list);
     setSqm(prop?.sqm != null ? Number(prop.sqm) : null);
+    setIsHouse(['house', 'villa'].includes(String(prop?.prop_type || '')));
+    setPropCount(count || 1);
     const ys = yearsWithStays(list);
     if (ys.length && !ys.includes(year)) setYear(ys[0]);
     setLoading(false);
@@ -46,15 +51,16 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
   }, [userId, propertyId, load]);
 
   const years = useMemo(() => { const ys = yearsWithStays(stays); return ys.length ? ys : [new Date().getFullYear()]; }, [stays]);
-  const sum = useMemo(() => shortTermYearSummary(stays, year, sqm), [stays, year, sqm]);
+  const sum = useMemo(() => shortTermYearSummary(stays, year, { sqm, isHouse, propertyCount: propCount }), [stays, year, sqm, isHouse, propCount]);
   const levyRates = useMemo(() => climateLevyRates(sqm), [sqm]);
   const maxCh = useMemo(() => Math.max(1, ...sum.byChannel.map(c => c.revenue)), [sum]);
 
   const kpis = [
     { label: 'Μεικτά έσοδα', value: fe(sum.grossRevenue, 0), sub: `${sum.stayCount} διαμονές, ${sum.totalNights} νύχτες` },
     { label: 'Εκτ. φόρος εισοδήματος', value: fe(sum.incomeTax, 0), sub: `μέσος συντελεστής ${Math.round(sum.effectiveRate * 100)}%` },
-    { label: 'Τέλος Ανθεκτικότητας', value: fe(sum.levy, 0), sub: 'ΤΑΚΚ ανά διανυκτέρευση' },
-    { label: 'Καθαρά μετά φόρων', value: fe(sum.net, 0), sub: 'μεικτά μείον φόρος και ΤΑΚΚ', tone: 'positive' as const },
+    { label: 'Τέλος Ανθεκτικότητας', value: fe(sum.levy, 0), sub: 'ανά διανυκτέρευση' },
+    { label: 'Τέλος παρεπιδημούντων', value: sum.municipalExempt ? '0 €' : fe(sum.municipalTax, 0), sub: sum.municipalExempt ? 'εξαίρεση (δες σημείωση)' : '0,5% επί μεικτών' },
+    { label: 'Καθαρά μετά φόρων', value: fe(sum.net, 0), sub: 'μεικτά μείον φόροι και τέλη', tone: 'positive' as const },
   ];
 
   const exportCsv = () => {
@@ -67,6 +73,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
         ['Διαμονές', String(sum.stayCount)],
         ['Εκτ. φόρος εισοδήματος', String(Math.round(sum.incomeTax))],
         ['Τέλος Ανθεκτικότητας (ΤΑΚΚ)', String(Math.round(sum.levy))],
+        ['Τέλος παρεπιδημούντων', String(sum.municipalTax)],
         ['Καθαρά μετά φόρων', String(Math.round(sum.net))],
         ...sum.byChannel.map(c => [`Έσοδα ${STAY_CHANNEL_LABELS[c.channel as keyof typeof STAY_CHANNEL_LABELS] || 'Άλλο'}`, String(Math.round(c.revenue))]),
       ]);
@@ -137,7 +144,10 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({sqm != null ? (sqm > 80 ? 'άνω των 80 τ.μ.' : 'έως 80 τ.μ.') : 'έως 80 τ.μ., όρισε εμβαδόν για ακρίβεια'}): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €.</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
+                Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({sqm != null ? (sqm > 80 ? 'άνω των 80 τ.μ.' : 'έως 80 τ.μ.') : 'έως 80 τ.μ., όρισε εμβαδόν για ακρίβεια'}): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €.
+                <br />Τέλος παρεπιδημούντων 0,5% επί των μεικτών. {sum.municipalExempt ? 'Το ακίνητό σου εξαιρείται (μονοκατοικία ή έως 80 τ.μ., φυσικό πρόσωπο με έως 2 ακίνητα), άρα 0 €.' : 'Δεν πληροίς την εξαίρεση, οπότε εφαρμόζεται.'}
+              </div>
             </div>
           </div>
 

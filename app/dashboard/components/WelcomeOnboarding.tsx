@@ -14,6 +14,7 @@ import { T, Btn } from '@/components/Theme';
 interface Props {
   userId: string;
   onAddProperty: () => void;                 // άνοιγμα wizard προσθήκης
+  onScanCreate: () => void;                  // δημιουργία + άνοιγμα σάρωσης εγγράφου
   onDemoReady: (propertyId: string) => void; // μετά το seed, πήγαινε στο ακίνητο
   onClose: () => void;                       // «αργότερα» / κλείσιμο
 }
@@ -38,7 +39,7 @@ const SLIDES = [
 
 const ic = (d: string) => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p, i) => <path key={i} d={p} />)}</svg>;
 
-export default function WelcomeOnboarding({ userId, onAddProperty, onDemoReady, onClose }: Props) {
+export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate, onDemoReady, onClose }: Props) {
   const supabase = createClient();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -48,6 +49,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onDemoReady, 
   };
 
   const addProperty = async () => { await mark({}); onAddProperty(); };
+  const scanCreate = async () => { await mark({}); onScanCreate(); };
   const later = async () => { await mark({}); onClose(); };
 
   // Demo: δημιουργεί ένα δείγμα ακινήτου με διαμονές ώστε να λάμψουν τα εργαλεία.
@@ -121,6 +123,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onDemoReady, 
             <>
               <Btn variant="primary" onClick={addProperty} disabled={busy}>Πρόσθεσε το πρώτο ακίνητο</Btn>
               <Btn variant="secondary" onClick={startDemo} disabled={busy}>{busy ? 'Προετοιμασία demo…' : 'Δες demo με έτοιμα δεδομένα'}</Btn>
+              <button onClick={scanCreate} disabled={busy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, padding: 6 }}>ή σκάναρε λογαριασμό/συμβόλαιο για γρήγορη προσθήκη</button>
               <button onClick={later} disabled={busy} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, padding: 6 }}>Θα το κάνω αργότερα</button>
             </>
           )}
