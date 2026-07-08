@@ -102,6 +102,53 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('client empty stripped', !/\[\[/.test(r.clean));
 }
 
+// ── parseAction: [[expense: περιγραφή | ποσό]] ───────────────────────────────
+{
+  const r = parseAction('Το κατέγραψα. [[expense: Υδραυλικός | 80]]');
+  ok('expense type', r.action?.type === 'expense');
+  ok('expense description', (r.action as any)?.description === 'Υδραυλικός');
+  ok('expense amount', (r.action as any)?.amount === 80);
+  ok('expense stripped', !/\[\[/.test(r.clean));
+}
+{
+  // δεκαδικά με κόμμα + χιλιάδες με τελεία, οποιαδήποτε σειρά
+  const r = parseAction('[[expense: Ανακαίνιση μπάνιου | 1.200,50]]');
+  ok('expense thousands+decimal', (r.action as any)?.amount === 1200.5);
+}
+{
+  const r = parseAction('[[expense: Λογαριασμός ρεύματος | 120 €]]');
+  ok('expense euro sign', (r.action as any)?.amount === 120 && (r.action as any)?.description === 'Λογαριασμός ρεύματος');
+}
+{
+  // χωρίς ποσό ή μηδέν → δεν εκτελείται
+  ok('expense no amount → no action', parseAction('[[expense: Κάτι]]').action?.type !== 'expense');
+  ok('expense zero → no action', parseAction('[[expense: Κάτι | 0]]').action?.type !== 'expense');
+  ok('expense stripped anyway', !/\[\[/.test(parseAction('[[expense: Κάτι]]').clean));
+}
+
+// ── parseAction: [[vip: ...]] & [[checkin: ...]] ─────────────────────────────
+{
+  const r = parseAction('Έγινε. [[vip: Γιώργος Παπαδόπουλος]]');
+  ok('vip type', r.action?.type === 'vip');
+  ok('vip who', (r.action as any)?.who === 'Γιώργος Παπαδόπουλος');
+  ok('vip stripped', !/\[\[/.test(r.clean));
+}
+{
+  const r = parseAction('[[checkin: 6941234567]]');
+  ok('checkin type', r.action?.type === 'checkin');
+  ok('checkin who', (r.action as any)?.who === '6941234567');
+}
+{
+  ok('vip empty → no action', parseAction('[[vip: ]]').action?.type !== 'vip');
+  ok('checkin empty → no action', parseAction('[[checkin:]]').action?.type !== 'checkin');
+}
+{
+  // προτεραιότητα: expense πριν από go αν συνυπάρχουν
+  const r = parseAction('[[expense: Νερό | 40]] [[go:bills]]');
+  ok('expense wins over go', r.action?.type === 'expense');
+  ok('expense+go clean', !/\[\[/.test(r.clean));
+}
+
 // ── cleanForSpeech: markdown/bullets/arrows/newlines ─────────────────────────
 const speechCases: [string, (s: string) => boolean][] = [
   ['**Έντονο** κείμενο', s => s === 'Έντονο κείμενο'],
