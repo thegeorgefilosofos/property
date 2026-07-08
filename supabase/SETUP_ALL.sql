@@ -559,7 +559,13 @@ end $$;
 -- Loan market reference data (market_rates / bank_rates / loan_programs + view).
 -- Reference tables (ίδια για όλους): public read (RLS), εγγραφή μόνο service role.
 -- Ενδεικτικές τιμές με ημερομηνία επιβεβαίωσης. Idempotent.
+-- Μόνο reference/seed δεδομένα (χωρίς δεδομένα χρήστη) — τα ξαναφτιάχνουμε καθαρά
+-- ώστε το σχήμα να είναι ντετερμινιστικό ακόμη κι αν προϋπήρχε διαφορετική έκδοση.
 -- ═══════════════════════════════════════════════════════════════════════════
+drop view  if exists public.active_loan_programs;
+drop table if exists public.loan_programs cascade;
+drop table if exists public.bank_rates    cascade;
+drop table if exists public.market_rates  cascade;
 create table if not exists public.market_rates (
   id bigint generated always as identity primary key,
   euribor_1m numeric, euribor_3m numeric, euribor_6m numeric, euribor_12m numeric,
