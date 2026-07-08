@@ -366,7 +366,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
   const [selMonth, setSelMonth] = useState(now.getMonth()); // 0-indexed, επιλεγμένος μήνας στο γράφημα δαπανών
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [allExpenses, setAllExpenses] = useState<{ amount:number; date:string; category:string }[]>([]);
+  const [allExpenses, setAllExpenses] = useState<{ amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]>([]);
   const [chartYear, setChartYear] = useState(now.getFullYear()); // έτος γραφήματος δαπανών (προηγ./επόμενο)
   const [yearMenu, setYearMenu] = useState(false);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -388,8 +388,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select('amount,rate,years').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
-      // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους
-      supabase.from('expenses').select('amount,date,category').eq('property_id',prop.id).eq('user_id',userId),
+      // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
+      // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
+      supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setAllExpenses(allExp||[]); setLoading(false);
@@ -434,10 +435,21 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const nextArrival = hostStays.map(s=>s.check_in).filter((d): d is string => !!d && d>=todayIso).sort()[0] || null;
   const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
   const MONTHS_LONG = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
-  // Γράφημα: δαπάνες του ΕΠΙΛΕΓΜΕΝΟΥ έτους (chartYear), από όλο το ιστορικό.
-  const chartExp = allExpenses.filter(e => new Date(e.date).getFullYear() === chartYear);
+  // Γράφημα: δαπάνες του ΕΠΙΛΕΓΜΕΝΟΥ έτους (chartYear). Οι μη επαναλαμβανόμενες
+  // μετρούν στον μήνα της ημερομηνίας τους· οι επαναλαμβανόμενες (πάγιες, μόνο
+  // εφόσον ο χρήστης τις έχει σημάνει) προβάλλονται από την έναρξή τους και μετά,
+  // ανάλογα με τη συχνότητα. Καμία εφεύρεση, μόνο ό,τι έχει καταχωρήσει ο χρήστης.
+  const occMonths = (e: { date:string; is_recurring?:boolean; recurring_frequency?:string|null }, y: number): number[] => {
+    const d = new Date(e.date); const sy = d.getFullYear(); const sm = d.getMonth();
+    if (!e.is_recurring) return sy === y ? [sm] : [];
+    if (y < sy) return [];
+    const step = e.recurring_frequency === 'annual' ? 12 : e.recurring_frequency === 'biannual' ? 6 : e.recurring_frequency === 'quarterly' ? 3 : 1;
+    const out: number[] = [];
+    for (let m = 0; m < 12; m++) { const abs = (y - sy) * 12 + m - sm; if (abs >= 0 && abs % step === 0) out.push(m); }
+    return out;
+  };
   const monthlyExp = Array(12).fill(0);
-  chartExp.forEach(e => { monthlyExp[new Date(e.date).getMonth()] += e.amount; });
+  allExpenses.forEach(e => { occMonths(e, chartYear).forEach(m => { monthlyExp[m] += e.amount; }); });
   const maxExp = Math.max(...monthlyExp, 1);
   // Κατηγορίες τρέχοντος έτους (για την αναφορά PDF)
   const catMap: Record<string,number> = {};
@@ -445,7 +457,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   // Κατηγορίες για τον επιλεγμένο μήνα του chartYear (πίνακας δεξιά από το γράφημα)
   const selCatMap: Record<string,number> = {};
-  chartExp.forEach(e => { if (new Date(e.date).getMonth() === selMonth) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
+  allExpenses.forEach(e => { if (occMonths(e, chartYear).includes(selMonth)) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
   const selCatEntries = Object.entries(selCatMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const selMonthTotal = monthlyExp[selMonth] || 0;
   // Έτη για το dropdown: όσα έχουν δαπάνες + προηγούμενο/τρέχον/επόμενο, φθίνουσα.
@@ -616,6 +628,11 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
               </button>
             );})}
           </div>
+          {chartYear > now.getFullYear() && (
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.5}}>
+              Προβολή βάσει των επαναλαμβανόμενων (πάγιων) δαπανών που έχεις καταχωρήσει. Πρόσθεσε ή σήμανε πάγιες δαπάνες στις «Δαπάνες».
+            </div>
+          )}
         </div>
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>

@@ -42,6 +42,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const [touched, setTouched] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [gapTitles, setGapTitles] = useState<Set<string>>(new Set()); // κενά ήδη στο Ημερολόγιο
   const loadedSettings = useRef(false);
 
   // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
@@ -63,9 +64,15 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
     }
   }, [userId, propertyId]);
 
+  // Ποια κενά έχουν ήδη υπενθύμιση στο Ημερολόγιο (για toggle προσθήκη/αφαίρεση).
+  const loadGapEvents = useCallback(async () => {
+    const { data } = await supabase.from('calendar_events').select('title').eq('property_id', propertyId).eq('source', 'pricing_gap');
+    setGapTitles(new Set((data || []).map(r => r.title as string)));
+  }, [propertyId]);
+
   useEffect(() => {
-    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings()]); setLoading(false); })();
-  }, [loadStays, loadSettings]);
+    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings(), loadGapEvents()]); setLoading(false); })();
+  }, [loadStays, loadSettings, loadGapEvents]);
 
   // ── Realtime: διαμονές, iCal, ρυθμίσεις → ζωντανή ενημέρωση ────────────────
   useEffect(() => {
@@ -157,15 +164,29 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
 
-  // Ενέργεια: υπενθύμιση στο Ημερολόγιο για πλήρωση κενού.
-  const remindGap = async (g: Gap) => {
+  // Σταθερός τίτλος ανά κενό, για ταύτιση της εγγραφής στο Ημερολόγιο.
+  const gapTitle = (g: Gap) => `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`;
+
+  // Ενέργεια toggle: προσθήκη υπενθύμισης στο Ημερολόγιο ή αφαίρεσή της αν υπάρχει.
+  const toggleGap = async (g: Gap) => {
+    const title = gapTitle(g);
+    if (gapTitles.has(title)) {
+      const { error } = await supabase.from('calendar_events').delete()
+        .eq('property_id', propertyId).eq('source', 'pricing_gap').eq('title', title);
+      if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+      setGapTitles(prev => { const n = new Set(prev); n.delete(title); return n; });
+      flash('Αφαιρέθηκε από το Ημερολόγιο');
+      return;
+    }
     const rd = (() => { const wanted = addDaysIso(g.start, -5); return wanted < todayIso() ? todayIso() : wanted; })();
     const { error } = await supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId, title: `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`,
-      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'manual',
+      property_id: propertyId, user_id: userId, title,
+      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
       notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice, 0)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
     });
-    flash(error ? `Σφάλμα: ${error.message}` : 'Η υπενθύμιση προστέθηκε στο Ημερολόγιο');
+    if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+    setGapTitles(prev => new Set(prev).add(title));
+    flash('Προστέθηκε στο Ημερολόγιο');
   };
   // Ενέργεια: αντιγραφή κειμένου προσφοράς last minute.
   const copyOffer = (g: Gap) => {
@@ -259,7 +280,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                       <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
-                      <Btn variant="ghost" onClick={() => remindGap(g)}>Υπενθύμιση</Btn>
+                      <Btn variant={gapTitles.has(gapTitle(g)) ? 'secondary' : 'ghost'} onClick={() => toggleGap(g)}>{gapTitles.has(gapTitle(g)) ? 'Προστέθηκε στο Ημερολόγιο' : 'Υπενθύμιση'}</Btn>
                     </div>
                   </div>
                 ))}
