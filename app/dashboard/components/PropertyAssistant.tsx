@@ -298,7 +298,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
             <span className="pa-fab-spark" aria-hidden>
               <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
             </span>
-            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--positive)' }} />}
+            {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent)' }} />}
           </button>
         </div>
       )}
@@ -384,7 +384,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                 ))}
                 {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
                 {err && (
-                  <div style={{ background: err === 'key' ? 'var(--info-soft)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--info-border)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {err === 'key' ? `Ο ${identity.name} χρειάζεται ενεργό κλειδί AI για να απαντήσει. Μόλις ενεργοποιηθεί, θα μιλάει ζωντανά για το ακίνητό σου.` : 'Δεν μπόρεσα να απαντήσω τώρα, δοκίμασε ξανά σε λίγο.'}
                   </div>
                 )}

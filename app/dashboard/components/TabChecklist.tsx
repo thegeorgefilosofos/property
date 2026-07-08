@@ -960,7 +960,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
           {tags.map(t => <span key={t} style={{ fontSize: 9, padding: '2px 6px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>{t}</span>)}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: cat.color, fontWeight: 500, fontFamily: T.font.sans }}>{cat.label}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, fontFamily: T.font.sans }}>{cat.label}</span>
           {item.due_date && (
             <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-secondary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
               {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` (${Math.abs(due)}μ πριν)` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` (σε ${due}μ)` : ''}
@@ -969,7 +969,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
           {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{item.assigned_contact_name}</span>}
           {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' εκτ.'}</span>}
           {subtasks.length > 0 && <span style={{ fontSize: 11, color: subDone === subtasks.length ? 'var(--positive)' : 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-tasks</span>}
-          {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--info)' }}>{(item._comments || []).length} σχόλια</span>}
+          {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{(item._comments || []).length} σχόλια</span>}
         </div>
         {subtasks.length > 0 && (
           <div style={{ marginTop: 6, height: 3, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden', maxWidth: 120 }}>
@@ -1027,7 +1027,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
   const overdue = isOverdue(item.due_date, item.status)
   const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
   return (
-    <div onClick={onEdit} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderLeft: '3px solid ' + cat.color, borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+    <div onClick={onEdit} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderLeft: '3px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4, paddingRight: 8, fontFamily: T.font.sans }}>{item.description}</div>
@@ -1036,7 +1036,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
         </button>
       </div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
-        <span style={{ fontSize: 10, color: cat.color, fontFamily: T.font.sans }}>{cat.label}</span>
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
         <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: T.radius.pill, background: pri.bg, color: pri.color }}>{pri.label}</span>
         {item.due_date && <span style={{ fontSize: 10, color: overdue ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</span>}
         {item.estimated_cost > 0 && <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost}€</span>}
@@ -1066,14 +1066,14 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
           const overdue = isOverdue(item.due_date, item.status); const done = item.status === 'done'; const due = daysUntil(item.due_date)
           return (
             <div key={item.id} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--positive)' : overdue ? 'var(--negative)' : cat.color, border: '2px solid var(--bg-base)', zIndex: 1 }} />
+              <div style={{ position: 'absolute', left: -26, top: 8, width: 14, height: 14, borderRadius: '50%', background: done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--text-tertiary)', border: '2px solid var(--bg-base)', zIndex: 1 }} />
               <div onClick={() => onEdit(item)} style={{ background: 'var(--bg-surface)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.inner, padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = cat.color)} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', marginBottom: 4, fontFamily: T.font.sans }}>{item.description}</div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: cat.color }}>{cat.label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
                       <span style={{ fontSize: 11, color: pri.color }}>{pri.label}</span>
                       {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{item.assigned_contact_name}</span>}
                     </div>
@@ -1096,9 +1096,9 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
             const cat = getCat(item.category)
             return (
               <div key={item.id} onClick={() => onEdit(item)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
-                <span style={{ fontSize: 11, color: cat.color }}>{cat.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
               </div>
             )
           })}
@@ -1125,10 +1125,10 @@ function TemplateModal({ onSelect, onClose }: { onSelect: (key: string) => void;
         <div style={{ padding: '20px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, overflowY: 'auto' }}>
           {Object.entries(TEMPLATES).map(([key, t]) => (
             <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: T.radius.inner, border: '1px solid ' + t.color + '40', background: t.color + '08', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = t.color + '18'; e.currentTarget.style.borderColor = t.color }}
-              onMouseLeave={e => { e.currentTarget.style.background = t.color + '08'; e.currentTarget.style.borderColor = t.color + '40' }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.label}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{t.items.length} tasks · {t.items.filter(i => i.estimated_cost).reduce((s, i) => s + (i.estimated_cost || 0), 0)}€ εκτιμ.</div>
@@ -1585,7 +1585,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0, fontFamily: T.font.sans }}>Ζωντανά</div>
           {tenantInfo && tenantInfo.full_name && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)', flexShrink: 0 }} />
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{tenantInfo.full_name}</span>
               {tenantInfo.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{tenantInfo.phone}</span>}
               <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ενοικιαστής</span>
@@ -1601,7 +1601,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           {enfiaPaid && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--positive-soft)', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)' }}>
               <svg width="12" height="12" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span style={{ fontSize: 12, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans }}>ΕΝΦΙΑ εξοφλημένο</span>
+              <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 12, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans }}>ΕΝΦΙΑ εξοφλημένο</span>
             </div>
           )}
         </div>
@@ -1626,11 +1626,11 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           {[
             { label: 'Σύνολο', value: stats.total, color: 'var(--text-primary)', onClick: () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all') } },
             { label: 'Ολοκλήρωση', value: stats.done, color: 'var(--positive)', onClick: () => setFilterStatus('done') },
-            { label: 'Σε εξέλιξη', value: stats.inProgress, color: 'var(--info)', onClick: () => setFilterStatus('in_progress') },
+            { label: 'Σε εξέλιξη', value: stats.inProgress, color: 'var(--text-primary)', onClick: () => setFilterStatus('in_progress') },
             { label: 'Ληγμένα', value: stats.overdue, color: 'var(--negative)', onClick: () => setFilterStatus('overdue') },
             { label: 'Κρίσιμα', value: stats.critical, color: 'var(--negative)', onClick: () => setFilterPri('critical') },
             { label: 'Εκτιμ. Κόστος', value: stats.totalEstimated > 0 ? stats.totalEstimated.toLocaleString('el-GR') + '€' : '—', color: 'var(--accent)', onClick: undefined as any },
-            { label: 'Πραγματικό', value: stats.totalActual > 0 ? stats.totalActual.toLocaleString('el-GR') + '€' : '—', color: 'var(--warning)', onClick: undefined as any },
+            { label: 'Πραγματικό', value: stats.totalActual > 0 ? stats.totalActual.toLocaleString('el-GR') + '€' : '—', color: 'var(--text-primary)', onClick: undefined as any },
           ].map(s => (
             <div key={s.label} onClick={s.onClick} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px', textAlign: 'center', cursor: s.onClick ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
               onMouseEnter={e => { if (s.onClick) e.currentTarget.style.borderColor = 'var(--border-default)' }}
@@ -1689,8 +1689,8 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             const catDone = items.filter(i => i.category === c.id && i.status === 'done').length
             return (
               <button key={c.id} type="button" onClick={() => setFilterCat(filterCat === c.id ? 'all' : c.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? c.color : 'var(--border-subtle)'), background: filterCat === c.id ? c.color + '15' : 'transparent', color: filterCat === c.id ? c.color : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === c.id ? 'var(--accent-soft)' : 'transparent', color: filterCat === c.id ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
                 {c.label}
                 <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
@@ -1709,7 +1709,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
           <div style={{ color: 'var(--text-secondary)', marginBottom: 28, fontSize: 14, lineHeight: 1.6 }}>Ξεκίνα με ένα έτοιμο template<br />ή πρόσθεσε χειροκίνητα.</div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Templates</button>
-            <button type="button" onClick={loadAADECalendar} style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>ΑΑΔΕ Ημερολόγιο</button>
+            <button type="button" onClick={loadAADECalendar} title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{ padding: '11px 22px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>ΑΑΔΕ Ημερολόγιο</button>
             <button type="button" onClick={() => setShowAddModal(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, height: 40, padding: '0 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>+ Νέο Task</button>
           </div>
         </div>
@@ -1748,13 +1748,13 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             return (
               <div key={cat.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: cat.color, fontFamily: T.font.sans }}>{cat.label}</span>
-                  <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, ' + cat.color + '44, transparent)' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
+                  <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
                 </div>
                 <div style={{ height: 3, borderRadius: 2, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: catPct + '%', background: catPct === 100 ? 'var(--positive)' : cat.color, borderRadius: 2, transition: 'width 0.4s' }} />
+                  <div style={{ height: '100%', width: catPct + '%', background: catPct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
                 </div>
                 <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
                   {catItems.map((item, idx) => (

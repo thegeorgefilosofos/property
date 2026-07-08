@@ -195,7 +195,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
   });
 
   const SupplierChip = ({ s }: { s: string | null }) => s ? (
-    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--info)', background: 'var(--info-soft)', border: '1px solid var(--info-border)', borderRadius: T.radius.badge, padding: '1px 7px', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>{s}</span>
+    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '1px 7px', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>{s}</span>
   ) : null;
 
   return (
@@ -365,7 +365,7 @@ export default function TabDocuments({ propertyId, userId }: Props) {
                     </div>
                   </div>
                   <a href={r.signedUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 10, fontWeight: 600, color: 'var(--info)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--info-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' as const }}>
+                    style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' as const }}>
                     Άνοιγμα
                   </a>
                   <button onClick={() => del(r)} title="Διαγραφή"

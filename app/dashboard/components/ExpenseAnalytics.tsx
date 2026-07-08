@@ -346,7 +346,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {/* Σε σχέση με τον προηγούμενο μήνα */}
       {momText && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: momText.tone === 'up' ? 'var(--warning)' : momText.tone === 'down' ? 'var(--positive)' : 'var(--text-tertiary)' }} />
+          <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: momText.tone === 'up' ? 'var(--text-tertiary)' : momText.tone === 'down' ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>{momText.text}</span>
         </div>
       )}

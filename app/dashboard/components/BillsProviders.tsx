@@ -198,7 +198,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 10, color: 'var(--info)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -280,7 +280,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
           {/* Active % pill */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: s.dimotika ? 'rgba(26,115,232,0.07)' : 'var(--bg-base)', border: `1px solid ${s.dimotika ? 'rgba(26,115,232,0.2)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--info)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {s.dimotika ? `${s.dimotika}%` : '—'}
             </span>
             <div>
@@ -293,7 +293,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
           {s.dimotikaCalcCons && s.dimotikaCalcAmount && parseFloat(s.dimotikaCalcCons) > 0 && (
             <button
               onClick={() => upd({ dimotika: (parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1) })}
-              style={{ background: 'var(--info)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+              style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: T.radius.btn, padding: '8px 16px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
               Εφαρμογή {(parseFloat(s.dimotikaCalcAmount) / parseFloat(s.dimotikaCalcCons) * 100).toFixed(1)}%
             </button>
           )}
@@ -326,7 +326,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
         {selectedPlan && (
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', flexShrink: 0 }}/>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-default)', flexShrink: 0 }}/>
             <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{selectedPlan.note} · {selectedPlan.hasPhone ? 'Περιλαμβάνει σταθερό τηλέφωνο' : 'Χωρίς σταθερό τηλέφωνο'}</span>
             {provData?.url && (
               <a href={provData.url} target="_blank" rel="noopener noreferrer"
@@ -390,9 +390,9 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                 { key: 'phoneVoip',   label: 'VoIP / App',                  val: s.phoneVoip   },
               ].map(f => (
                 <div key={f.key} onClick={() => upd({ [f.key]: !f.val } as any)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'rgba(52,168,83,0.08)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--positive)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--positive)' : 'var(--border-default)', flexShrink: 0 }}/>
-                  <span style={{ fontSize: 11, color: f.val ? 'var(--positive)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: f.val ? 'rgba(26,115,232,0.08)' : 'var(--bg-base)', border: `1px solid ${f.val ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.btn, padding: '7px 14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: f.val ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0 }}/>
+                  <span style={{ fontSize: 11, color: f.val ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: f.val ? 600 : 400, fontFamily: T.font.sans }}>{f.label}</span>
                 </div>
               ))}
             </div>
@@ -419,7 +419,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
                         style={{ cursor: 'pointer', background: isCur ? 'rgba(26,115,232,0.08)' : 'transparent', transition: 'background 0.15s' }}>
                         <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
-                        <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--positive)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>
+                        <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? '✓' : '—'}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
                         <td style={{ padding: '7px 10px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(plan.price)}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
@@ -522,7 +522,7 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
               ))}
             </div>
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              Μέσος Όρος: Φυσικό αέριο ~0.08 €/kWh · Πετρέλαιο ~0.10 €/kWh · Αντλία θερμότητας ~0.06 €/kWh, 2026
+              Μέσος Όρος: Φυσικό αέριο ~0.08 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span> · Πετρέλαιο ~0.10 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span> · Αντλία θερμότητας ~0.06 €/<span title="Κιλοβατώρα — μονάδα ενέργειας">kWh</span>, 2026
             </div>
           </div>
         )}
@@ -530,9 +530,9 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Φυσικό Αέριο → μετακόμισε σε αφιερωμένο tab ─────────────────────── */}
-      <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.18)', borderRadius: T.radius.card, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: T.radius.inner, background: 'rgba(249,115,22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2"><path d="M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z"/></svg>
+      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 32, height: 32, borderRadius: T.radius.inner, background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><path d="M12 2C12 2 7 8 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-4 .5 2-.5 3-1.5 2.5.5-2-.5-4-2-5.5z"/></svg>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>Το Φυσικό Αέριο έχει το δικό του tab</div>
