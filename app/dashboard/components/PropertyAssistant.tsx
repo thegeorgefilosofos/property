@@ -56,6 +56,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [pricingStr, setPricingStr] = useState('');
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const listeningRef = useRef(false);
 
   // Ταυτότητα από localStorage (μία φορά)
   useEffect(() => {
@@ -63,6 +64,21 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (saved) { setIdentity(saved); setHasIdentity(true); }
     else { setHasIdentity(false); }
   }, []);
+
+  // Κλείσιμο με κλικ εκτός πάνελ (χωρίς να χρειάζεται το «×»). Δεν κλείνει όταν
+  // επεξεργάζεσαι ταυτότητα ή όταν «ακούει», για να μη χαθεί η ενέργεια.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (editing || listeningRef.current) return;
+      const el = e.target as Element | null;
+      if (el && el.closest('.pa-panel, .pa-fab')) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing]);
 
   // Μνήμη ανά ακίνητο: φόρτωσε προηγούμενη συζήτηση (αν το επιτρέπει ο χρήστης),
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
@@ -275,6 +291,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [handsFree, setHandsFree] = useState(false);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
   const recRef = useRef<any>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const handsFreeRef = useRef(false);
@@ -582,7 +599,7 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
 
       <div>
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>Πώς θέλεις να σου μιλάει;</div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό, σαν φίλος, ή στον πληθυντικό, πιο επίσημα.</div>
+        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα, ή στον πληθυντικό για πιο επίσημο ύφος.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {ADDRESS_OPTIONS.map(a => {
             const active = formal === a.value;
