@@ -2,7 +2,7 @@
 import {
   orthodoxEaster, holidayFor, realizedAdr, suggestBase, recommendPrices, priceForDate,
   summarize, suggestGuardrails, bookedDatesFromStays, SEASON_LABELS, indicativeMonthly,
-  projectRevenue, findGaps,
+  projectRevenue, findGaps, estimateSeasonalOccupancy, suggestBaseFallback, OCC_BY_SEASON,
 } from './dynamicPricing';
 
 let passed = 0, failed = 0; const fails: string[] = [];
@@ -113,6 +113,24 @@ const midGap = gaps.find(g => g.start === '2026-06-06');
 ok('κενό ανάμεσα σε κρατήσεις → hard', !!midGap && midGap.hard === true && midGap.nights === 2);
 // χωρίς κρατήσεις → ένα ενιαίο κενό
 ok('χωρίς κρατήσεις = 1 κενό', findGaps(recommendPrices('2026-06-01', 7, { base: 100 })).length === 1);
+
+// ── estimateSeasonalOccupancy (προσωπική πληρότητα από ιστορικό) ─────────────
+ok('χωρίς ιστορικό → προεπιλογές', (() => { const o = estimateSeasonalOccupancy([]); return o.peak === OCC_BY_SEASON.peak && o.low === OCC_BY_SEASON.low; })());
+ok('τιμές στο [0,1]', (() => { const o = estimateSeasonalOccupancy([{ check_in: '2026-08-01', check_out: '2026-08-20' }]); return (['peak','high','mid','low'] as const).every(s => o[s] >= 0 && o[s] <= 1); })());
+ok('πολλές νύχτες αιχμής → κινείται προς παρατηρούμενη', (() => {
+  // γεμάτος Αύγουστος πολλών ετών → observed υψηλό → peak > προεπιλογή
+  const many = [{ check_in: '2026-08-01', check_out: '2026-08-31' }, { check_in: '2025-08-01', check_out: '2025-08-31' }, { check_in: '2024-08-01', check_out: '2024-08-31' }];
+  return estimateSeasonalOccupancy(many).peak > OCC_BY_SEASON.peak - 0.01;
+})());
+
+// ── suggestBaseFallback (#2) ─────────────────────────────────────────────────
+ok('fallback από ενοίκιο', suggestBaseFallback(900, null) === Math.round((900 / 30) * 2.2 / 5) * 5);
+ok('fallback από εμβαδόν όταν λείπει ενοίκιο', suggestBaseFallback(null, 60) === Math.round(60 * 1.6 / 5) * 5);
+ok('fallback παίρνει το μεγαλύτερο σήμα', suggestBaseFallback(300, 80) === Math.max(Math.round((300 / 30) * 2.2 / 5) * 5, Math.round(80 * 1.6 / 5) * 5));
+ok('fallback χωρίς δεδομένα → 0', suggestBaseFallback(null, null) === 0);
+
+// projectRevenue με προσωπική πληρότητα
+ok('projectRevenue δέχεται occ map', (() => { const r = recommendPrices('2026-07-01', 10, { base: 100 }); const low = projectRevenue(r, 100, { peak: 0.1, high: 0.1, mid: 0.1, low: 0.1 }); const high = projectRevenue(r, 100, { peak: 0.9, high: 0.9, mid: 0.9, low: 0.9 }); return high.projRevenue > low.projRevenue; })());
 
 // ── labels ──────────────────────────────────────────────────────────────────
 ok('season labels', SEASON_LABELS.peak === 'Αιχμή' && SEASON_LABELS.low === 'Χαμηλή');

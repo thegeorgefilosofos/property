@@ -14,8 +14,8 @@ import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, fe, fd } 
 import { NumberInput } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import {
-  recommendPrices, summarize, suggestBase, suggestGuardrails, bookedDatesFromStays,
-  realizedAdr, projectRevenue, findGaps, SEASON_LABELS,
+  recommendPrices, summarize, suggestBase, suggestBaseFallback, suggestGuardrails, bookedDatesFromStays,
+  realizedAdr, projectRevenue, findGaps, estimateSeasonalOccupancy, SEASON_LABELS,
   type DayPrice, type PricingStay, type Gap,
 } from '@/lib/pricing/dynamicPricing';
 
@@ -26,7 +26,7 @@ const MONTH_NAMES = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτ
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
-export default function TabPricing({ propertyId, userId, propertyRent }: Props) {
+export default function TabPricing({ propertyId, userId, propertyRent, propertySqm }: Props) {
   const supabase = createClient();
   const [stays, setStays] = useState<PricingStay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,22 +78,28 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
   // Αρχική πρόταση βάσης (μόνο αν δεν υπάρχουν αποθηκευμένες ρυθμίσεις).
   useEffect(() => {
     if (touched || loadedSettings.current) return;
-    const b = suggestBase(stays) || (propertyRent ? Math.round((propertyRent / 30) * 2.2) : 0);
+    const b = suggestBase(stays) || suggestBaseFallback(propertyRent, propertySqm);
     if (b > 0) { setBase(b); const g = suggestGuardrails(b); setMin(g.min); setMax(g.max); }
-  }, [stays, propertyRent, touched]);
+  }, [stays, propertyRent, propertySqm, touched]);
 
   // ── Αποθήκευση ρυθμίσεων (debounced) ──────────────────────────────────────
+  const settingsRef = useRef({ base, min, max, wknd, minStay, touched });
+  useEffect(() => { settingsRef.current = { base, min, max, wknd, minStay, touched }; });
+  const persist = useCallback((v: { base: number; min: number; max: number; wknd: number; minStay: number }) =>
+    supabase.from('pricing_settings').upsert({
+      user_id: userId, property_id: propertyId, base: v.base, min_price: v.min || null, max_price: v.max || null,
+      weekend_premium: v.wknd / 100, min_stay: v.minStay, updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,property_id' }), [userId, propertyId]);
   useEffect(() => {
     if (!touched || base <= 0) return;
-    const t = setTimeout(async () => {
-      await supabase.from('pricing_settings').upsert({
-        user_id: userId, property_id: propertyId, base, min_price: min || null, max_price: max || null,
-        weekend_premium: wknd / 100, min_stay: minStay, updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,property_id' });
-      setSavedTick(x => x + 1);
-    }, 700);
+    const t = setTimeout(async () => { await persist({ base, min, max, wknd, minStay }); setSavedTick(x => x + 1); }, 700);
     return () => clearTimeout(t);
-  }, [base, min, max, wknd, minStay, touched, userId, propertyId]);
+  }, [base, min, max, wknd, minStay, touched, persist]);
+  // Flush κατά την έξοδο: η τελευταία αλλαγή δεν χάνεται αν φύγεις μέσα στα 700ms.
+  useEffect(() => () => {
+    const v = settingsRef.current;
+    if (v.touched && v.base > 0) persist(v);
+  }, [persist]);
 
   const bookedDates = useMemo(() => bookedDatesFromStays(stays), [stays]);
   const adr = useMemo(() => realizedAdr(stays), [stays]);
@@ -103,7 +109,10 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
     : [], [base, min, max, horizon, stays, bookedDates, wknd]);
 
   const sum = useMemo(() => summarize(rows), [rows]);
-  const projection = useMemo(() => base > 0 ? projectRevenue(rows, base) : null, [rows, base]);
+  // Πληρότητα: προσωπική από το ιστορικό σου (αν υπάρχει αρκετό), αλλιώς βάση.
+  const occBySeason = useMemo(() => estimateSeasonalOccupancy(stays), [stays]);
+  const personalizedOcc = stays.length >= 4;
+  const projection = useMemo(() => base > 0 ? projectRevenue(rows, base, occBySeason) : null, [rows, base, occBySeason]);
   const gaps = useMemo(() => findGaps(rows, todayIso()), [rows]);
 
   const kpis = useMemo(() => [
@@ -205,7 +214,7 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
                   <span style={{ fontSize: 26, fontWeight: 800, fontFamily: T.font.num, color: 'var(--accent)' }}>{fe(projection.projRevenue, 0)}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>με δυναμική τιμή</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>έναντι {fe(projection.flatRevenue, 0)} με σταθερή. Εκτίμηση {projection.expectedNights} κρατημένων νυχτών ({projection.occPct}% πληρότητα).</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>έναντι {fe(projection.flatRevenue, 0)} με σταθερή. Εκτίμηση {projection.expectedNights} κρατημένων νυχτών ({projection.occPct}% πληρότητα, {personalizedOcc ? 'από το ιστορικό σου' : 'ενδεικτική'}).</div>
               </div>
               <div style={{ background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
                 <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 10 }}>Εκτιμώμενο επιπλέον κέρδος</div>
@@ -264,7 +273,9 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
                         const strong = t > 0.5 && !d.booked;        // λευκά ψηφία σε σκούρο φόντο
                         const top = t > 0.82 && !d.booked;          // κορυφαία αιχμή: έξτρα έμφαση
                         return (
-                          <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''} style={{
+                          <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''}
+                            aria-label={`${fd(d.date)}: ${d.booked ? 'ήδη κλεισμένη' : `προτεινόμενη τιμή ${fe(d.price, 0)}`}${d.holidayName ? `, ${d.holidayName}` : ''}`}
+                            aria-pressed={sel?.date === d.date} style={{
                             position: 'relative', aspectRatio: '1', borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
                             border: sel?.date === d.date ? '2px solid var(--accent)' : top ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,
