@@ -792,7 +792,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
                 {broker && (
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {c.budget != null && <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num }}>Προϋπ/σμός {fe(c.budget, 0)}</span>}
+                    {c.budget != null && <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num }}>Προϋπολογισμός {fe(c.budget, 0)}</span>}
                     {c.needs && c.needs.trim() && <span style={{ marginLeft: c.budget != null ? 8 : 0 }}>{c.needs}</span>}
                   </div>
                 )}
