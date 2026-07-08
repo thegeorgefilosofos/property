@@ -93,6 +93,10 @@ export const fn = (n: number, d = 0) =>
 export const fd = (d: string | Date) =>
   new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
 
+// Πλήρης μορφή χωρίς συντομογραφία μήνα («30 Ιουνίου 2026»).
+export const fdLong = (d: string | Date) =>
+  new Date(d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
+
 // ── Σημασιολογικοί τόνοι, ρόλοι, όχι αυθαίρετα χρώματα ─────────────────────
 export type Tone = 'accent' | 'info' | 'positive' | 'warning' | 'negative' | 'neutral';
 
