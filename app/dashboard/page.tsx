@@ -542,6 +542,12 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
   return (
     <div>
+      {/* Task-first hero: το πρώτο πράγμα που βλέπει ο χρήστης είναι ο χαιρετισμός
+          και οι πιο σημαντικές ενέργειες που χρειάζονται τώρα (ελέγχεται από Προτιμήσεις). */}
+      {prefs.liveNotifications && (
+        <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} maxVisible={4} />
+      )}
+
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
         <button onClick={()=>printPropertyStatement({
           propName: prop.name, address: prop.address||undefined,
@@ -593,11 +599,6 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           </div>
         ))}
       </div>
-
-      {/* Ο «σύμβουλος»: προτεραιοποιημένα, ενεργήσιμα insights (ελέγχεται από τις Προτιμήσεις) */}
-      {prefs.liveNotifications && (
-        <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} />
-      )}
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
 

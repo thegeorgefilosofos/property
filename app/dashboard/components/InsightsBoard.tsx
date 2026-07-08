@@ -18,12 +18,14 @@ const DOT: Record<InsightKind, string> = {
   positive: 'var(--positive)',
 };
 
-export default function InsightsBoard({ insights, name, onSaveName, onNavigate }: {
+export default function InsightsBoard({ insights, name, onSaveName, onNavigate, maxVisible }: {
   insights: Insight[];
   name?: string | null;
   onSaveName?: (n: string) => void | Promise<void>;
   onNavigate: (tab: string) => void;
+  maxVisible?: number;   // αν οριστεί, δείχνει τα πρώτα N με «δες όλα» (εστιασμένο hero)
 }) {
+  const [expanded, setExpanded] = useState(false);
   // Το χρονικό μέρος του χαιρετισμού εξαρτάται από την ώρα → μόνο στον client
   // (αποφυγή hydration mismatch). Το όνομα προστίθεται ξεχωριστά, στην κλητική.
   const [timePart, setTimePart] = useState<string>('');
@@ -42,6 +44,12 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate }
       : 'Εδώ θα βρεις μερικές ευκαιρίες για να βγάλεις περισσότερα χρήματα από το ακίνητό σου.';
 
   const heading = timePart ? `${timePart}${name && name.trim() ? `, ${vocative(name)}` : ''}` : 'Η εικόνα σου';
+
+  // Εστιασμένο hero: δείξε τα πιο σημαντικά (ήδη ταξινομημένα κατά προτεραιότητα),
+  // με διακριτικό «δες όλα» όταν υπάρχουν περισσότερα.
+  const cap = maxVisible && maxVisible > 0 ? maxVisible : insights.length;
+  const shown = expanded ? insights : insights.slice(0, cap);
+  const hidden = insights.length - shown.length;
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
@@ -65,7 +73,7 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate }
 
       {insights.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {insights.map((it, idx) => (
+          {shown.map((it, idx) => (
             <div key={it.id} style={{
               display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 14,
               padding: '14px 4px', borderTop: idx === 0 ? 'none' : '1px solid var(--border-subtle)',
@@ -89,6 +97,12 @@ export default function InsightsBoard({ insights, name, onSaveName, onNavigate }
               )}
             </div>
           ))}
+          {(hidden > 0 || expanded) && insights.length > cap && (
+            <button onClick={() => setExpanded(e => !e)}
+              style={{ alignSelf: 'flex-start', marginTop: 8, background: 'none', border: 'none', padding: '4px 2px', cursor: 'pointer', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, fontFamily: "'Inter', sans-serif" }}>
+              {expanded ? 'Λιγότερα' : `Δες όλα (${insights.length})`}
+            </button>
+          )}
         </div>
       )}
     </div>
