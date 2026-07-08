@@ -65,7 +65,8 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {shown.map(o => {
           const overdue = o.daysUntil < 0;
-          const badge = overdue ? `${Math.abs(o.daysUntil)} ημ. πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ημ.`;
+          const dabs = Math.abs(o.daysUntil);
+          const badge = overdue ? `${dabs} ${dabs === 1 ? 'ημέρα' : 'ημέρες'} πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ${o.daysUntil === 1 ? 'ημέρα' : 'ημέρες'}`;
           return (
             <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : 'calendar')}
               style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
