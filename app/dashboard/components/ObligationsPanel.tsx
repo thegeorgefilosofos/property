@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd } from '@/components/Theme';
+import { T, fdLong } from '@/components/Theme';
 import { computeObligations, oblToCalendarCategory, type Obligation, type OblProp } from './obligations';
 
 export default function ObligationsPanel({ propertyId, userId, prop, onNavigate }: {
@@ -88,7 +88,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
                   <span style={{ fontFamily: T.font.mono, fontSize: 11, fontWeight: 700, color: o.tone === 'negative' ? 'var(--negative)' : o.tone === 'warning' ? 'var(--warning)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{badge}</span>
                 </div>
                 <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.5 }}>
-                  <span style={{ fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{fd(o.date)}</span> · {o.note}
+                  <span style={{ fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{fdLong(o.date)}</span> · {o.note}
                 </div>
               </div>
             </div>
