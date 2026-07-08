@@ -67,7 +67,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
   const kpis = [
     { label: 'Μεικτά έσοδα', value: fe(sum.grossRevenue, 0), sub: `${sum.stayCount} διαμονές, ${sum.totalNights} νύχτες` },
-    { label: 'Εκτ. φόρος εισοδήματος', value: fe(sum.incomeTax, 0), sub: `μέσος συντελεστής ${Math.round(sum.effectiveRate * 100)}%` },
+    { label: 'Εκτιμώμενος φόρος εισοδήματος', value: fe(sum.incomeTax, 0), sub: `μέσος συντελεστής ${Math.round(sum.effectiveRate * 100)}%` },
     { label: 'Τέλος Ανθεκτικότητας', value: fe(sum.levy, 0), sub: 'ανά διανυκτέρευση' },
     { label: 'Τέλος παρεπιδημούντων', value: sum.municipalExempt ? '0 €' : fe(sum.municipalTax, 0), sub: sum.municipalExempt ? 'εξαίρεση (δες σημείωση)' : '0,5% επί μεικτών' },
     { label: 'Καθαρά μετά φόρων', value: fe(sum.net, 0), sub: 'μεικτά μείον φόροι και τέλη', tone: 'positive' as const },
