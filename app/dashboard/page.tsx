@@ -55,8 +55,8 @@ interface Task     { id:string; title:string; due_date:string|null; priority:str
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
 const STATUS_COLORS: Record<string,string> = {
-  rented:'var(--positive)', vacant:'var(--warning)', own_use:'var(--info)',
-  renovation:'var(--accent)', for_sale:'var(--negative)', seasonal:'var(--info)', disputed:'var(--negative)',
+  rented:'var(--accent)', vacant:'var(--warning)', own_use:'var(--accent)',
+  renovation:'var(--accent)', for_sale:'var(--accent)', seasonal:'var(--accent)', disputed:'var(--negative)',
 };
 const STATUS_LABELS: Record<string,string> = {
   rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία',
@@ -335,8 +335,8 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
                 {preview.map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',marginBottom:4}}><span>{item.name}</span><span style={{color:'var(--text-tertiary)'}}>{item.category}</span></div>)}
               </div>
             )}
-            <div style={{padding:'12px 16px',background:'var(--warning-dim)',borderRadius:12}}>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--warning)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
+            <div style={{padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
+              <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)'}}>Τα αντικείμενα θα αντιγραφούν χωρίς ιστορικά επισκευών.</p>
             </div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button onClick={onClose} style={{height:40,padding:'0 24px',borderRadius:20,border:'none',background:'transparent',color:'var(--accent)',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Ακύρωση</button>
@@ -408,7 +408,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
   const catMap: Record<string,number> = {};
   expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const catColors = ['var(--accent)','var(--positive)','var(--info)','var(--warning)','var(--negative)'];
+  const catColors = ['var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)'];
 
   // ── Cross-tab live alerts, επερχόμενα γεγονότα & εκκρεμότητες ──────────────
   const daysUntil = (d: string | null | undefined) => d ? Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000) : null;
@@ -490,13 +490,13 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
       <div className="kpi-grid kpi-grid-5" style={{marginBottom:24}}>
         {[
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent) },
-          { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%` },
-          { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%` },
+          { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
+          { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
           { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD) },
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ημ.`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
-          <div key={i} className="kpi-card">
+          <div key={i} className="kpi-card" title={(k as any).title}>
             <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
           </div>
@@ -555,7 +555,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
             <tbody>
               {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτ. ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
-                  <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
+                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτ. ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
                 </tr>
               ))}
@@ -567,7 +567,7 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
           {tasks.length===0
             ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'20px 0'}}>Δεν υπάρχουν εκκρεμείς εργασίες</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {tasks.map(t => { const pc=t.priority==='high'?'var(--negative)':t.priority==='medium'?'var(--warning)':'var(--text-tertiary)'; return (
+                {tasks.map(t => { const pc=t.priority==='high'?'var(--border-subtle)':t.priority==='medium'?'var(--border-subtle)':'var(--border-subtle)'; return (
                   <div key={t.id} style={{display:'flex',alignItems:'flex-start',gap:10}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:pc,marginTop:6,flexShrink:0}}/>
                     <div>
@@ -609,9 +609,9 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
             { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
             { label:'Εκτ. Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
             { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
-            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true },
+            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true, title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
           ]; })().map((k,i) => { const acc=(k as any).accent; return (
-            <div key={i} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
+            <div key={i} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
@@ -620,14 +620,14 @@ function OverviewTab({ prop, userId, onNavigate }: { prop: Property; userId: str
         {pendingExpYTD > 0 && (
           <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--positive)',display:'inline-block'}}/>
+              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
               <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Πληρωμένα</span>
               <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(paidExpYTD)}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--warning)',display:'inline-block'}}/>
+              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block'}}/>
               <span style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Εκκρεμή</span>
-              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--warning)'}}>{fmtEur(pendingExpYTD)}</span>
+              <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(pendingExpYTD)}</span>
             </div>
           </div>
         )}
@@ -707,6 +707,28 @@ export default function Dashboard() {
     await supabase.from('user_properties').update({ status_detail: status }).eq('id', selected.id);
     setStatusDropdown(false);
     await fetchProperties(user.id);
+  };
+
+  // Οριστική διαγραφή του τρέχοντος ακινήτου μαζί με τα συνδεδεμένα δεδομένα του.
+  // Αν ήταν το τελευταίο ακίνητο, ανοίγει αυτόματα η νέα καταχώρηση (ξεκινάς από την αρχή).
+  const deleteProperty = async () => {
+    if (!selected||!user) return;
+    const ok = window.confirm(
+      `Οριστική διαγραφή του ακινήτου «${selected.name}»;\n\n`+
+      `Θα διαγραφούν όλα τα συνδεδεμένα στοιχεία του (έσοδα, δαπάνες, λογαριασμοί, `+
+      `ενοικιαστής, δάνεια, απογραφή, έγγραφα). Η ενέργεια δεν αναιρείται.`
+    );
+    if (!ok) return;
+    setStatusDropdown(false);
+    const pid = selected.id;
+    const wasLast = properties.length <= 1;
+    // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
+    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences'];
+    await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
+    await supabase.from('user_properties').delete().eq('id', pid).eq('user_id', user.id);
+    setSelected(null);
+    await fetchProperties(user.id);
+    if (wasLast) { setNav('overview'); setShowAddModal(true); }
   };
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
@@ -823,27 +845,42 @@ export default function Dashboard() {
               <div style={{flex:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <span style={{fontFamily:"'Inter',sans-serif",fontSize:17,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
+                  {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} style={{display:'flex',alignItems:'center',gap:6,height:32,padding:'0 12px',borderRadius:8,border:`1px solid ${statusColor}44`,background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:statusColor}}>
-                      <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}<span style={{fontSize:10,opacity:0.7}}>▾</span>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:`1px solid ${statusColor}44`,background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:statusColor,transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
                     </button>
                     {statusDropdown && (
                       <>
                       {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
-                      <div style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'8px 0',zIndex:100,minWidth:180,boxShadow:'var(--shadow-lg)'}}>
-                        {Object.entries(STATUS_LABELS).map(([k,v]) => (
-                          <button key={k} onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'10px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                            <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>{v}
-                          </button>
-                        ))}
+                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
+                        {Object.entries(STATUS_LABELS).map(([k,v]) => {
+                          const active = (selected.status_detail||'')===k;
+                          return (
+                            <button key={k} role="menuitem" onClick={()=>updateStatus(k)} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:active?600:400,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[k]||'var(--text-secondary)',flexShrink:0}}/>
+                              <span style={{flex:1}}>{v}</span>
+                              {active && <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
+                            </button>
+                          );
+                        })}
+                        <div style={{height:1,background:'var(--border-subtle)',margin:'6px 12px'}}/>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Εργαλεία ακινήτου</div>
+                        <button role="menuitem" onClick={()=>{setStatusDropdown(false);setEditProperty(selected);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                          Επεξεργασία στοιχείων
+                        </button>
+                        <button role="menuitem" onClick={deleteProperty} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--negative)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--negative-dim)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>
+                          Διαγραφή ακινήτου
+                        </button>
                       </div>
                       </>
                     )}
                   </div>
-                  <button onClick={()=>setEditProperty(selected)} title="Επεξεργασία στοιχείων ακινήτου" aria-label="Επεξεργασία ακινήτου" style={{display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:'50%',border:'none',background:'transparent',color:'var(--text-tertiary)',cursor:'pointer',flexShrink:0,transition:'background 0.15s, color 0.15s'}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-tertiary)'}}>
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  </button>
                 </div>
                 <div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τετραγωνικά`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}

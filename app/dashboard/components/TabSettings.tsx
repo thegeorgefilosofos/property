@@ -318,7 +318,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
           <div style={cardGap}>
             {sectionTitle('Μητρώο & Φορολογικά')}
             <div style={grid}>
-              <div><label style={lbl}>ΑΤΑΚ</label><input style={inp} value={prop.atak||''} onChange={e=>setP({atak:e.target.value.replace(/[^0-9]/g,'').slice(0,11)||null})} inputMode="numeric" placeholder="11 ψηφία"/></div>
+              <div><label style={lbl} title="Αριθμός Ταυτότητας Ακινήτου (από το Ε9)">ΑΤΑΚ</label><input style={inp} value={prop.atak||''} onChange={e=>setP({atak:e.target.value.replace(/[^0-9]/g,'').slice(0,11)||null})} inputMode="numeric" placeholder="11 ψηφία"/></div>
               <div><NumberInput label="Εκτ. ΕΝΦΙΑ (€/έτος)" value={ns(prop.enfia)} onChange={v=>setP({enfia:numOrNull(v)})} suffix="€" /></div>
               <div><NumberInput label="Τιμή Αγοράς (€)" value={ns(prop.purchase_price)} onChange={v=>setP({purchase_price:numOrNull(v)})} suffix="€" /></div>
               <div><label style={lbl}>Ημερομηνία Αγοράς</label><DatePicker value={prop.purchase_date||''} onChange={v=>setP({purchase_date:v||null})}/></div>
@@ -352,9 +352,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             {sectionTitle('Συνδρομή')}
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap' }}>
               <div>
-                <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:100,padding:'4px 12px' }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
-                  <span style={{ fontSize:12,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
+                <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'transparent',border:'1px solid var(--border-subtle)',borderRadius:100,padding:'4px 12px' }}>
+                  <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-secondary)' }}/>
+                  <span style={{ fontSize:12,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
                 </div>
                 <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Για περισσότερα: Ιδιοκτήτης 6,90 € τον μήνα (έως δεκαπέντε ακίνητα) ή Επαγγελματίας 19 € τον μήνα (απεριόριστα).</div>
               </div>
@@ -552,7 +552,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     {buyCalc && buyCalc.taxBase>=(parseFloat(objVal)||0) && parseFloat(objVal)>parseFloat(contractVal) && (
                       <div style={{ fontSize:11,color:'var(--warning)',background:'var(--warning-soft)',
                         border:'1px solid var(--warning-border)',borderRadius:8,padding:'8px 12px' }}>
-                        ΦΜΑ υπολογίζεται επί αντικειμενικής ({fe(parseFloat(objVal))})
+                        <span title="Φόρος Μεταβίβασης Ακινήτων">ΦΜΑ</span> υπολογίζεται επί αντικειμενικής ({fe(parseFloat(objVal))})
                       </div>
                     )}
                   </div>
@@ -576,9 +576,9 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                         <input type="number" style={inp} value={mortgageAmt} onChange={e=>setMortgageAmt(e.target.value)}/></div>
                     )}
                     {isFirstHome && (
-                      <div style={{ fontSize:11,color:'var(--positive)',background:'var(--positive-soft)',
-                        border:'1px solid var(--positive-border)',borderRadius:8,padding:'8px 12px' }}>
-                        Αφορολόγητο ποσό: έως €200.000. ΦΜΑ μόνο για το υπερβάλλον.
+                      <div style={{ fontSize:11,color:'var(--text-secondary)',background:'var(--bg-base)',
+                        border:'1px solid var(--border-subtle)',borderRadius:8,padding:'8px 12px' }}>
+                        Αφορολόγητο ποσό: έως €200.000. <span title="Φόρος Μεταβίβασης Ακινήτων">ΦΜΑ</span> μόνο για το υπερβάλλον.
                       </div>
                     )}
                   </div>
@@ -594,7 +594,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
                       </div>
                       <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--warning)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
+                        <div style={{ fontSize:20,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
                           {buyCalc.cv>0?((buyCalc.total/buyCalc.cv)*100).toFixed(1):'—'}%
                         </div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Επί Αξίας</div>
@@ -602,13 +602,13 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     </div>
                     <div style={cardGap}>
                       {sectionTitle('Ανάλυση')}
-                      {statRow(`ΦΜΑ 3%${isFirstHome?' (μειωμένο)':''}`, fe(buyCalc.fma), 'var(--negative)')}
+                      {statRow(`ΦΜΑ 3%${isFirstHome?' (μειωμένο)':''}`, fe(buyCalc.fma))}
                       {statRow('Συμβολαιογράφος', fe(buyCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου 24%', fe(buyCalc.notaryVat), 'var(--warning)')}
+                      {statRow('ΦΠΑ Συμβολαιογράφου 24%', fe(buyCalc.notaryVat))}
                       {buyCalc.lawyer>0 && statRow('Δικηγόρος', fe(buyCalc.lawyer))}
-                      {buyCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου 24%', fe(buyCalc.lawyerVat), 'var(--warning)')}
+                      {buyCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου 24%', fe(buyCalc.lawyerVat))}
                       {buyCalc.broker>0 && statRow('Μεσίτης 2%', fe(buyCalc.broker))}
-                      {buyCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη 24%', fe(buyCalc.brokerVat), 'var(--warning)')}
+                      {buyCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη 24%', fe(buyCalc.brokerVat))}
                       {statRow('Τέλος Μεταγραφής 0.5%', fe(buyCalc.reg))}
                       {buyCalc.mortg>0 && statRow('Έξοδα Υποθήκης ~1%', fe(buyCalc.mortg))}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
@@ -619,7 +619,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     <div style={{ ...card,border:'1px solid var(--accent)',background:'var(--accent-soft)' }}>
                       {sectionTitle('Συνολικό Κεφάλαιο')}
                       {statRow('Τίμημα Ακινήτου', fe(buyCalc.cv))}
-                      {statRow('Έξοδα Αγοράς', fe(buyCalc.total), 'var(--negative)')}
+                      {statRow('Έξοδα Αγοράς', fe(buyCalc.total))}
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
                         <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Συνολικό Κεφάλαιο</span>
                         <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
@@ -669,7 +669,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                         <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
                       </div>
-                      <div style={{ ...card,textAlign:'center',background:'var(--positive-soft)',borderColor:'var(--positive-border)' }}>
+                      <div style={{ ...card,textAlign:'center' }}>
                         <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
                         <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Καθαρά Έσοδα</div>
                       </div>
@@ -677,13 +677,13 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     <div style={cardGap}>
                       {sectionTitle('Ανάλυση')}
                       {statRow('Συμβολαιογράφος', fe(sellCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου', fe(sellCalc.notaryVat), 'var(--warning)')}
+                      {statRow('ΦΠΑ Συμβολαιογράφου', fe(sellCalc.notaryVat))}
                       {sellCalc.lawyer>0 && statRow('Δικηγόρος', fe(sellCalc.lawyer))}
-                      {sellCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου', fe(sellCalc.lawyerVat), 'var(--warning)')}
+                      {sellCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου', fe(sellCalc.lawyerVat))}
                       {sellCalc.broker>0 && statRow('Μεσίτης 2%', fe(sellCalc.broker))}
-                      {sellCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη', fe(sellCalc.brokerVat), 'var(--warning)')}
+                      {sellCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη', fe(sellCalc.brokerVat))}
                       {statRow('Πιστοποιητικά & ΔΟΥ', fe(150))}
-                      {sellCalc.gainTax>0 && statRow(`Φόρος Κέρδους 15% (${sellCalc.yrs}χρ κατοχή)`, fe(sellCalc.gainTax), 'var(--negative)')}
+                      {sellCalc.gainTax>0 && statRow(`Φόρος Κέρδους 15% (${sellCalc.yrs}χρ κατοχή)`, fe(sellCalc.gainTax))}
                       {sellCalc.gain>0 && sellCalc.gainTax===0 && (
                         <div style={{ fontSize:11,color:'var(--positive)',background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:8,padding:'8px 12px',margin:'4px 0' }}>
                           Κέρδος {fe(sellCalc.gain)}, Αφορολόγητο ({sellCalc.yrs} χρόνια κατοχής)
@@ -754,8 +754,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                 <div>
                   <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
                     {[
-                      {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'var(--positive)'},
-                      {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'var(--warning)'},
+                      {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'var(--text-primary)'},
+                      {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'var(--text-primary)'},
                       {label:'Φόρος',value:fe(e2Result.tax),color:'var(--negative)'},
                       {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'var(--accent)'},
                     ].map((k,i)=>(
@@ -772,16 +772,16 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                       <div key={i} style={{ marginBottom:10 }}>
                         <div style={{ display:'flex',justifyContent:'space-between',marginBottom:3 }}>
                           <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{b.label}</span>
-                          <span style={{ fontSize:12,fontWeight:600,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
+                          <span style={{ fontSize:12,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
                         </div>
                         <div style={{ height:4,background:'var(--border-subtle)',borderRadius:2 }}>
-                          <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--negative)',borderRadius:2 }}/>
+                          <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--text-secondary)',borderRadius:2 }}/>
                         </div>
                       </div>
                     ))}
                     <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize:11,color:'var(--text-secondary)' }}>Πραγματικός Συντελεστής</span>
-                      <span style={{ fontSize:13,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>
+                      <span style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>
                         {e2Result.effectiveRate.toFixed(1)}%
                       </span>
                     </div>
@@ -793,11 +793,11 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                   <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,marginBottom:14 }}>
                     {sectionTitle('Κωδικοί Ε2, Τι να γράψεις')}
                     {[
-                      {code:'Κωδ. 101',label:'Ακαθάριστα Μισθώματα',value:fe(parseFloat(e2Rent)||0),color:'var(--positive)'},
-                      {code:'Κωδ. 102',label:'Εκπιπτόμενες Δαπάνες',value:fe(parseFloat(e2Deductible)||0),color:'var(--info)'},
-                      {code:'Κωδ. 103',label:'Καθαρό Φορολογητέο',value:fe(e2Result.taxable),color:'var(--warning)'},
-                      {code:'Κωδ. 401',label:'Φόρος Εισοδήματος',value:fe(e2Result.tax),color:'var(--negative)'},
-                      {code:'Προκαταβολή 55%',label:'Επόμενο έτος',value:fe(e2Result.advance),color:'var(--warning)'},
+                      {code:'Κωδ. 101',label:'Ακαθάριστα Μισθώματα',value:fe(parseFloat(e2Rent)||0),color:'var(--text-primary)'},
+                      {code:'Κωδ. 102',label:'Εκπιπτόμενες Δαπάνες',value:fe(parseFloat(e2Deductible)||0),color:'var(--text-primary)'},
+                      {code:'Κωδ. 103',label:'Καθαρό Φορολογητέο',value:fe(e2Result.taxable),color:'var(--text-primary)'},
+                      {code:'Κωδ. 401',label:'Φόρος Εισοδήματος',value:fe(e2Result.tax),color:'var(--text-primary)'},
+                      {code:'Προκαταβολή 55%',label:'Επόμενο έτος',value:fe(e2Result.advance),color:'var(--text-primary)'},
                     ].map((row,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
@@ -813,8 +813,8 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     {sectionTitle('Σημαντικές Προθεσμίες')}
                     {[
                       {label:'Υποβολή Ε1/Ε2',desc:'30 Ιουνίου κάθε χρόνο',color:'var(--accent)'},
-                      {label:'Καταχώρηση Μισθωτηρίου',desc:'Εντός 30 ημερών από υπογραφή',color:'var(--negative)'},
-                      {label:'Ηλεκτρονική Πληρωμή',desc:'Έκπτωση 5% αν πληρώσεις online',color:'var(--positive)'},
+                      {label:'Καταχώρηση Μισθωτηρίου',desc:'Εντός 30 ημερών από υπογραφή',color:'var(--text-primary)'},
+                      {label:'Ηλεκτρονική Πληρωμή',desc:'Έκπτωση 5% αν πληρώσεις online',color:'var(--text-primary)'},
                     ].map((d,i)=>(
                       <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
                         <div>
@@ -825,7 +825,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
                     ))}
                   </div>
 
-                  <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer"
+                  <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer" title="ΑΑΔΕ — Ανεξάρτητη Αρχή Δημοσίων Εσόδων"
                     style={{ display:'flex',alignItems:'center',gap:6,padding:'10px 14px',
                       background:'var(--accent-soft)',border:'1px solid var(--accent-border)',
                       borderRadius:8,textDecoration:'none',color:'var(--accent)',fontSize:12,
@@ -852,7 +852,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             </div>
             <Btn variant="primary" onClick={async()=>{ const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
             <div style={{ marginTop:12 }}>
-              <InfoBanner tone="warning">Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου· το ΑΤΑΚ και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ.</InfoBanner>
+              <InfoBanner tone="warning">Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου· το <span title="Αριθμός Ταυτότητας Ακινήτου (από το Ε9)">ΑΤΑΚ</span> και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>.</InfoBanner>
             </div>
           </div>
 

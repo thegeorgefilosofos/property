@@ -46,7 +46,7 @@ const CATEGORY_OPTIONS = [
   { value: 'other',       label: 'Άλλο'                       },
 ];
 
-const CONFIDENCE_DOT = { high: 'var(--positive)', medium: 'var(--warning)', low: 'var(--text-tertiary)' };
+const CONFIDENCE_DOT = { high: 'var(--text-secondary)', medium: 'var(--text-tertiary)', low: 'var(--text-tertiary)' };
 const CONFIDENCE_LBL = { high: 'Σίγουρο', medium: 'Πιθανό', low: 'Άγνωστο' };
 
 const BANKS = [
@@ -320,7 +320,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Εισαγωγή Τραπεζικού Λογαριασμού</div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Αυτόματη αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ, CSV, Excel, PDF, εικόνες</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Αυτόματη αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>, CSV, Excel, PDF, εικόνες</div>
       </div>
 
       {step === 'upload' && (
@@ -361,7 +361,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
 
           {importing && (
             <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans }}>
-              Ανάλυση αρχείου με AI, παρακαλώ περίμενε...
+              Ανάλυση αρχείου με <span title="Τεχνητή νοημοσύνη (Artificial Intelligence)">AI</span>, παρακαλώ περίμενε...
             </div>
           )}
           {error && (
@@ -397,7 +397,7 @@ export default function BillsBankImport({ propertyId, userId = '', onImported }:
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{selectedBank}</div>
                           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Μέσω {selected.sub} · Μορφή αρχείου: <span style={{ fontFamily: T.font.mono, color: 'var(--accent)' }}>{selected.format}</span></div>
                         </div>
-                        <a href={selected.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, fontWeight: 600, color: 'var(--info)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                        <a href={selected.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
                           Άνοιξε {selected.sub} →
                         </a>
                       </div>

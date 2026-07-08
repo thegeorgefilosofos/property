@@ -65,8 +65,8 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πληρότητα & Βραχυχρόνια</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: ΑΜΑ, πληρότητα, σύγκριση με μακροχρόνια</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: <span title="Αριθμός Μητρώου Ακινήτου — αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ">ΑΜΑ</span>, πληρότητα, σύγκριση με μακροχρόνια</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -90,7 +90,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Αριθμός Μητρώου Ακινήτου (ΑΜΑ)</div>
+                  <div title="Αριθμός Μητρώου Ακινήτου — μοναδικός αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Αριθμός Μητρώου Ακινήτου (ΑΜΑ)</div>
                   <input value={d.ama} onChange={e => upd({ ama: e.target.value })} placeholder="π.χ. 0000000000000"
                     style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
                 </div>
@@ -134,14 +134,14 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
                 {kpi('Προμήθειες πλατφορμών', `− ${fe(net.platformFees)}`, 'var(--text-secondary)')}
                 {kpi('Καθαρισμός', `− ${fe(net.cleaningTotal)}`, 'var(--text-secondary)')}
                 {kpi('Τέλος ανθεκτικότητας', `− ${fe(net.levy)}`, 'var(--text-secondary)')}
-                {kpi('Καθαρά έσοδα', fe(net.net), 'var(--positive)')}
+                {kpi('Καθαρά έσοδα', fe(net.net), 'var(--text-primary)')}
                 {kpi('Διαφορά vs μακροχρόνια', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, diff >= 0 ? 'var(--positive)' : 'var(--negative)')}
               </div>
 
-              <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', marginTop: 6, flexShrink: 0 }} />
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-strong)', marginTop: 6, flexShrink: 0 }} />
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της ΑΑΔΕ και αναγραφή του <strong>ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο Ε2. Τα καθαρά έσοδα αφαιρούν προμήθειες πλατφορμών, καθαρισμό και το <strong>Τέλος Ανθεκτικότητας</strong> (8 € την υψηλή περίοδο, 2 € τη χαμηλή, ανά διανυκτέρευση), όχι όμως τον φόρο εισοδήματος. Οι ακριβείς μήνες και τα ποσά του τέλους ορίζονται από την ΑΑΔΕ.
+                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span> και αναγραφή του <strong title="Αριθμός Μητρώου Ακινήτου (βραχυχρόνια μίσθωση)">ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking). Τα έσοδα δηλώνονται στο <span title="Έντυπο δήλωσης εισοδήματος από ακίνητα (ενοίκια)">Ε2</span>. Τα καθαρά έσοδα αφαιρούν προμήθειες πλατφορμών, καθαρισμό και το <strong>Τέλος Ανθεκτικότητας</strong> (8 € την υψηλή περίοδο, 2 € τη χαμηλή, ανά διανυκτέρευση), όχι όμως τον φόρο εισοδήματος. Οι ακριβείς μήνες και τα ποσά του τέλους ορίζονται από την <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>.
                 </div>
               </div>
             </>

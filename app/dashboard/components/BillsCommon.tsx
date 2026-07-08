@@ -229,9 +229,9 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
       {transferMsg && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: 'var(--bg-surface)', border: `1px solid ${transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--positive)'}`, borderRadius: T.radius.card, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, fontFamily: T.font.sans, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', minWidth: 300 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--positive)' }}/>
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--positive)' }}>{transferMsg}</span>
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: 'var(--bg-surface)', border: `1px solid ${transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, fontFamily: T.font.sans, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', minWidth: 300 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--text-secondary)' }}/>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: transferMsg.startsWith('Σφάλμα') ? 'var(--negative)' : 'var(--text-primary)' }}>{transferMsg}</span>
           <button onClick={() => setTransferMsg(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>✕</button>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       </div>
 
       {/* ── Οδηγός ευθύνης: ποιος πληρώνει τι (ελληνικό πλαίσιο) ──────────── */}
-      <InfoBanner tone="info">
+      <InfoBanner tone="neutral">
         <strong>Ποιος πληρώνει τι:</strong> τα <strong>λειτουργικά κοινόχρηστα</strong> (καθαρισμός, ρεύμα/λάμπες κλιμακοστασίου, ασανσέρ, κηπουρός, αμοιβή διαχειριστή) βαρύνουν τον <strong>ενοικιαστή</strong>. Οι <strong>έκτακτες/κεφαλαιουχικές δαπάνες</strong> (επισκευή στέγης/ασανσέρ, μονώσεις, αντικαταστάσεις) και το <strong>αποθεματικό</strong> βαρύνουν τον <strong>ιδιοκτήτη</strong>. Οι έκτακτες εισφορές παρακάτω μεταφέρονται αυτόματα στις Δαπάνες σου.
       </InfoBanner>
 
@@ -289,9 +289,9 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : '—'}</div>
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '3px 8px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' as const,
-                background: r.payer === 'tenant' ? 'var(--accent-soft)' : 'var(--warning-soft)',
-                border: `1px solid ${r.payer === 'tenant' ? 'var(--accent-border)' : 'var(--warning-border)'}`,
-                color: r.payer === 'tenant' ? 'var(--accent)' : 'var(--warning)' }}>
+                background: r.payer === 'tenant' ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                border: `1px solid ${r.payer === 'tenant' ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
+                color: r.payer === 'tenant' ? 'var(--accent)' : 'var(--text-secondary)' }}>
                 {r.payer === 'tenant' ? 'Ενοικιαστής' : 'Ιδιοκτήτης'}
               </span>
             </div>
@@ -303,7 +303,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             {[
               { label: 'Το σύνολό μου / μήνα',   value: fe(myCatTotal),   color: 'var(--text-primary)' },
               { label: 'Βαρύνει ενοικιαστή',     value: fe(tenantBurden), color: 'var(--accent)'       },
-              { label: 'Βαρύνει εσένα',          value: fe(ownerBurden),  color: 'var(--warning)'      },
+              { label: 'Βαρύνει εσένα',          value: fe(ownerBurden),  color: 'var(--text-primary)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 16px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
@@ -368,7 +368,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 </div>
                 {opt.url && isCur && (
                   <a href={opt.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 9, color: 'var(--info)', textDecoration: 'none', fontFamily: T.font.sans, marginTop: 5, display: 'block', fontWeight: 600 }}>
+                    style={{ fontSize: 9, color: 'var(--accent)', textDecoration: 'none', fontFamily: T.font.sans, marginTop: 5, display: 'block', fontWeight: 600 }}>
                     Επίσκεψη →
                   </a>
                 )}
@@ -392,7 +392,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{p.price}</span>
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{p.note}</div>
-                  <span style={{ fontSize: 9, color: 'var(--info)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη →</span>
+                  <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, fontFamily: T.font.sans, marginTop: 6, display: 'inline-block' }}>Επίσκεψη →</span>
                 </a>
               ))}
             </div>
@@ -464,16 +464,16 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{e.reason}</span>
               {e.date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{new Date(e.date).toLocaleDateString('el-GR')}</span>}
               {e.transferredToExpenses && (
-                <span style={{ fontSize: 9, color: 'var(--positive)', marginLeft: 12, background: 'rgba(52,168,83,0.1)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', marginLeft: 12, background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
                   Στις Δαπάνες ✓
                 </span>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(e.amount))}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(e.amount))}</span>
               {!e.transferredToExpenses && (
                 <button onClick={() => transferToExpenses(i)} disabled={transferring === i}
-                  style={{ fontSize: 10, color: 'var(--info)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
+                  style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: transferring === i ? 'not-allowed' : 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600, opacity: transferring === i ? 0.6 : 1, transition: 'all 0.15s' }}>
                   {transferring === i ? 'Μεταφορά...' : 'Μεταφορά στις Δαπάνες →'}
                 </button>
               )}
@@ -488,7 +488,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {totalExtras > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12 }}>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο έκτακτων εισφορών</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalExtras)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(totalExtras)}</span>
           </div>
         )}
       </div>
@@ -570,7 +570,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginTop: 14 }}>
             {[
               { label: 'Μέσο Μηνιαίο',      value: fe(monthlyAvg),                                         color: 'var(--text-primary)' },
-              { label: 'Ακριβότερος Μήνας',  value: fe(Math.max(...history.map(v => parseFloat(v) || 0))), color: 'var(--negative)'     },
+              { label: 'Ακριβότερος Μήνας',  value: fe(Math.max(...history.map(v => parseFloat(v) || 0))), color: 'var(--text-primary)' },
               { label: 'Ετήσιο Εκτιμώμενο', value: fe(monthlyAvg * 12),                                    color: 'var(--text-primary)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>

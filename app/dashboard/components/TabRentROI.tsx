@@ -192,7 +192,7 @@ const g3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 12, marginBottom: 12 };
 
 // ─── SectionLabel ─────────────────────────────────────────────────────────────
-const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode }) => (
+const SectionLabel = ({ label, right }: { label: React.ReactNode; right?: React.ReactNode }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
@@ -206,7 +206,7 @@ const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size = 'md' }: {
-  label: string; value: string; sub?: string; color?: string;
+  label: React.ReactNode; value: string; sub?: string; color?: string;
   badge?: { text: string; color: string }; size?: 'sm' | 'md' | 'lg';
 }) {
   const fs = size === 'lg' ? 24 : size === 'md' ? 20 : 15;
@@ -243,7 +243,7 @@ function KPICard({ label, value, sub, color = 'var(--text-primary)', badge, size
 
 // ─── Stat Row ─────────────────────────────────────────────────────────────────
 function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: {
-  label: string; value: string; color?: string; bold?: boolean;
+  label: React.ReactNode; value: string; color?: string; bold?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
@@ -256,7 +256,7 @@ function StatRow({ label, value, color = 'var(--text-primary)', bold = false }: 
 // ─── Info Banner ──────────────────────────────────────────────────────────────
 function InfoBanner({ type = 'info', children }: { type?: 'info' | 'warning' | 'success' | 'danger'; children: React.ReactNode }) {
   const colors = {
-    info: 'var(--info)',
+    info: 'var(--border-subtle)',
     warning: 'var(--warning)',
     success: 'var(--positive)',
     danger: 'var(--negative)',
@@ -270,7 +270,7 @@ function InfoBanner({ type = 'info', children }: { type?: 'info' | 'warning' | '
 }
 
 // ─── Score Bar ────────────────────────────────────────────────────────────────
-function ScoreBar({ label, score, max = 100, color }: { label: string; score: number; max?: number; color: string }) {
+function ScoreBar({ label, score, max = 100, color }: { label: React.ReactNode; score: number; max?: number; color: string }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -675,7 +675,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   height: 42,
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-default)',
-                  borderLeft: `3px solid ${yearToBadge(constructionYear_n).color}`,
+                  borderLeft: '3px solid var(--border-subtle)',
                   borderRadius: 10,
                   padding: '0 14px',
                   display: 'flex',
@@ -683,7 +683,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                   fontSize: 14,
                   fontFamily: "'Inter', sans-serif",
                   letterSpacing: 0,
-                  color: yearToBadge(constructionYear_n).color,
+                  color: 'var(--text-primary)',
                   whiteSpace: 'nowrap' as const,
                   boxSizing: 'border-box' as const,
                 }}>
@@ -720,7 +720,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           badge={calc.grossYield >= 5 ? { text: 'Καλό', color: 'var(--positive)' } : undefined}
         />
         <KPICard label="Καθαρή Απόδοση" value={fp(calc.netYield)} color={calc.netYield >= 3 ? 'var(--positive)' : calc.netYield >= 1.5 ? 'var(--warning)' : 'var(--negative)'} />
-        <KPICard label="Κεφαλαιακή Απόδοση" value={fp(calc.capRate)} color="var(--text-primary)" />
+        <KPICard label={<span title="Καθαρά έσοδα / αξία ακινήτου (Capitalization rate)">Κεφαλαιακή Απόδοση</span>} value={fp(calc.capRate)} color="var(--text-primary)" />
         <KPICard label="Περίοδος Απόσβεσης" value={calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—'} color="var(--text-primary)" />
         <KPICard label="Καθαρό / Μήνα" value={fe(calc.afterTax / 12)} color={calc.afterTax > 0 ? 'var(--positive)' : 'var(--negative)'} />
       </div>
@@ -836,17 +836,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
         {/* P&L */}
         <div style={cardStyle}>
-          <SectionLabel label="Κατάσταση Αποτελεσμάτων Χρήσης (P&L)" />
-          <StatRow label="Ακαθάριστο Ενοίκιο / έτος" value={fe(calc.annual)} color="var(--positive)" />
-          {calc.reduction > 0 && <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} color="var(--info)" />}
-          <StatRow label="Δαπάνες Ακινήτου συνολικά" value={`-${fe(calc.totalExp)}`} color="var(--warning)" />
+          <SectionLabel label={<>Κατάσταση Αποτελεσμάτων Χρήσης (<span title="Κατάσταση Αποτελεσμάτων (Profit & Loss)">P&L</span>)</>} />
+          <StatRow label="Ακαθάριστο Ενοίκιο / έτος" value={fe(calc.annual)} />
+          {calc.reduction > 0 && <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} />}
+          <StatRow label="Δαπάνες Ακινήτου συνολικά" value={`-${fe(calc.totalExp)}`} />
           {calc.mgmt > 0 && <StatRow label="   Προμήθεια Διαχείρισης" value={`-${fe(calc.mgmt)}`} color="var(--text-tertiary)" />}
           {calc.ins > 0 && <StatRow label="   Ασφάλεια" value={`-${fe(calc.ins)}`} color="var(--text-tertiary)" />}
           {calc.maint > 0 && <StatRow label="   Αποθεματικό Συντήρησης" value={`-${fe(calc.maint)}`} color="var(--text-tertiary)" />}
           {calc.enfiaFinal > 0 && <StatRow label="   ΕΝΦΙΑ (μετά έκπτωση)" value={`-${fe(calc.enfiaFinal)}`} color="var(--text-tertiary)" />}
           {expenses > 0 && <StatRow label="   Λοιπές Δαπάνες" value={`-${fe(expenses)}`} color="var(--text-tertiary)" />}
           <StatRow label="Καθαρό Εισόδημα (προ φόρου)" value={fe(calc.netIncome)} color="var(--accent)" bold />
-          <StatRow label="Φόρος Εισοδήματος" value={`-${fe(calc.tax)}`} color="var(--negative)" />
+          <StatRow label="Φόρος Εισοδήματος" value={`-${fe(calc.tax)}`} />
           <StatRow label="Αποσβέσεις Κτηρίου / έτος" value={`-${fe(calc.depB)}`} color="var(--text-tertiary)" />
           <StatRow label="Αποσβέσεις Εξοπλισμού / έτος" value={`-${fe(calc.depE)}`} color="var(--text-tertiary)" />
           <StatRow label="Καθαρό Εισόδημα (μετά φόρου)" value={fe(calc.afterTax)} color={calc.afterTax >= 0 ? 'var(--positive)' : 'var(--negative)'} bold />
@@ -863,10 +863,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>συνολική βαθμολογία / 100</div>
             </div>
             <div style={{ paddingTop: 8 }}>
-              <ScoreBar label="Απόδοση (Yield)" score={calc.yieldScore} max={40} color="var(--accent)" />
-              <ScoreBar label="Μίσθωση και Πληρότητα" score={calc.locationScore} max={20} color="var(--info)" />
-              <ScoreBar label="Ταμειακή Ροή" score={calc.finScore} max={20} color="var(--positive)" />
-              <ScoreBar label="Μόχλευση (LTV)" score={calc.ltvScore} max={20} color="var(--warning)" />
+              <ScoreBar label={<>Απόδοση (<span title="Απόδοση επένδυσης: καθαρά έσοδα / αξία ακινήτου">Yield</span>)</>} score={calc.yieldScore} max={40} color="var(--accent)" />
+              <ScoreBar label="Μίσθωση και Πληρότητα" score={calc.locationScore} max={20} color="var(--accent)" />
+              <ScoreBar label="Ταμειακή Ροή" score={calc.finScore} max={20} color="var(--accent)" />
+              <ScoreBar label={<>Μόχλευση (<span title="Δάνειο προς αξία ακινήτου (Loan to Value)">LTV</span>)</>} score={calc.ltvScore} max={20} color="var(--accent)" />
             </div>
           </div>
         </div>
@@ -922,7 +922,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Ιδιοκτησία μέσω Εταιρείας" />
           <div style={g2}>
             <CustomSelect label="Έδρα / Δομή Ιδιοκτησίας" value={companyHq} onChange={setCompanyHq} options={COMPANY_HQ} />
-            <KPICard label="Φορολογικός Συντελεστής" value={fp(calc.compRate, 0)} color="var(--info)" />
+            <KPICard label="Φορολογικός Συντελεστής" value={fp(calc.compRate, 0)} color="var(--text-primary)" />
           </div>
           {companyHq !== 'none' && (
             <div style={g3}>
@@ -935,7 +935,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           {companyHq === 'uae' && <InfoBanner type="info">Ηνωμένα Αραβικά Εμιράτα: Εταιρικός φόρος 9% (Free Zone 0%). Χρειάζεται φορολογική κατοικία. Δεν ισχύει αυτόματα για ακίνητα Ελλάδας.</InfoBanner>}
           {companyHq === 'greece' && <InfoBanner type="warning">Ελληνική εταιρεία: Συντελεστής 22% + μέρισμα 5% = πραγματικό φορτίο ~26-27%. Συνήθως δεν συμφέρει για 1-2 ακίνητα.</InfoBanner>}
           {companyHq === 'usa' && <InfoBanner type="info">Ηνωμένες Πολιτείες: Ομοσπονδιακός φόρος 21% + πολιτειακός. Σύνθετη δομή, απαιτείται Αμερικανός λογιστής.</InfoBanner>}
-          <InfoBanner type="danger">Πέραν των 3 ακινήτων σε Airbnb/βραχυχρόνια μίσθωση: Υποχρεωτική εγγραφή επιχείρησης στην ΑΑΔΕ.</InfoBanner>
+          <InfoBanner type="danger">Πέραν των 3 ακινήτων σε Airbnb/βραχυχρόνια μίσθωση: Υποχρεωτική εγγραφή επιχείρησης στην <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>.</InfoBanner>
         </div>
 
         <RentComparables propertyId={propertyId} userId={userId} actualRent={calc.ar} />
@@ -960,11 +960,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Φορολογική Ανάλυση Ενοικίων, Νόμος 5246/2025" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
-              <StatRow label="Ακαθάριστο Ενοίκιο" value={fe(calc.annual)} color="var(--positive)" />
-              <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} color="var(--info)" />
-              <StatRow label="Φορολογητέο Εισόδημα" value={fe(calc.taxable)} color="var(--warning)" />
-              <StatRow label="Φόρος" value={fe(calc.tax)} color="var(--negative)" />
-              <StatRow label="Πραγματικός Φορολογικός Συντελεστής" value={fp(calc.effectiveRate)} color="var(--negative)" />
+              <StatRow label="Ακαθάριστο Ενοίκιο" value={fe(calc.annual)} />
+              <StatRow label="Τεκμαρτή Έκπτωση Δαπανών (-5%)" value={`-${fe(calc.reduction)}`} />
+              <StatRow label="Φορολογητέο Εισόδημα" value={fe(calc.taxable)} />
+              <StatRow label="Φόρος" value={fe(calc.tax)} />
+              <StatRow label="Πραγματικός Φορολογικός Συντελεστής" value={fp(calc.effectiveRate)} />
               <StatRow label="Καθαρό μετά φόρου" value={fe(calc.afterTax)} color={calc.afterTax > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
               {electronic && calc.electronicSaving > 0 && (
                 <InfoBanner type="success">
@@ -1001,7 +1001,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         </div>
 
         <div style={cardStyle}>
-          <SectionLabel label="ΕΝΦΙΑ 2026, Εκπτώσεις και Μειώσεις" />
+          <SectionLabel label={<><span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span> 2026, Εκπτώσεις και Μειώσεις</>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 20 }}>
             <div>
               {[
@@ -1010,7 +1010,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 'Μείωση 50%: Κύρια κατοικία σε οικισμό έως 1.500 κατοίκων (αξία έως €400.000)',
                 'Απαλλαγή 2027: Οικισμοί έως 1.500 κατοίκους (περιορισμένη εφαρμογή)',
               ].map((t, i) => (
-                <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, padding: '8px 10px', background: 'var(--bg-surface)', borderRadius: 6, lineHeight: 1.5, fontFamily: "'Inter', sans-serif", borderLeft: '2px solid var(--positive)' }}>
+                <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, padding: '8px 10px', background: 'var(--bg-surface)', borderRadius: 6, lineHeight: 1.5, fontFamily: "'Inter', sans-serif", borderLeft: '2px solid var(--border-subtle)' }}>
                   {t}
                 </div>
               ))}
@@ -1034,8 +1034,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { title: 'Ποινή Πρόωρης Αποχώρησης', color: 'var(--warning)', text: `${sc2.penalty_months} μήνες ενοίκιο = ${fe(calc.ar * parseFloat(sc2.penalty_months))}. Αν ο ενοικιαστής φύγει πρόωρα δικαιούσαι εγγύηση (${fe(parseFloat(cfg.deposit) || 0)}) και ποινή.` },
               { title: 'Βλάβη / Κλοπή / Φθορά', color: 'var(--info)', text: 'Η εγγύηση καλύπτει φθορές πέραν φυσικής χρήσης. Η ασφάλεια κατοικίας καλύπτει κλοπή και βλάβες. Τεκμηρίωσε με φωτογραφίες πριν και μετά.' },
             ].map((t, i) => (
-              <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${t.color}` }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: t.color, marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
+              <div key={i} style={{ ...innerStyle, borderLeft: '3px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>{t.text}</div>
               </div>
             ))}
@@ -1044,7 +1044,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
         {/* E2 Quick Reference */}
         <div style={cardStyle}>
-          <SectionLabel label="Βοηθός Δήλωσης Ε2, Τι να γράψεις" />
+          <SectionLabel label={<>Βοηθός Δήλωσης <span title="Έντυπο Ε2: αναλυτική κατάσταση μισθωμάτων ακινήτων">Ε2</span>, Τι να γράψεις</>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
             <div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -1060,7 +1060,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', fontFamily: "'Inter', sans-serif", marginRight: 8 }}>{row.code}</span>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{row.label}</span>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{row.value}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -1074,9 +1074,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
                 { label: 'Καταχώρηση Μισθωτηρίου AADE', value: 'εντός 30 ημερών', color: 'var(--info)' },
                 { label: 'Τεκμαρτή έκπτωση δαπανών', value: `-${fe(calc.reduction)}`, color: 'var(--positive)' },
               ].map((item, i) => (
-                <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
+                <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--border-subtle)', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>{item.label}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{item.value}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{item.value}</span>
                 </div>
               ))}
               <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer"
@@ -1101,8 +1101,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { season: 'Μέση Σεζόν', aKey: 'adr_mid', oKey: 'occ_mid', dKey: 'dur_mid', uKey: 'unit_mid', color: 'var(--warning)' },
               { season: 'Υψηλή Σεζόν', aKey: 'adr_high', oKey: 'occ_high', dKey: 'dur_high', uKey: 'unit_high', color: 'var(--positive)' },
             ].map((s, i) => (
-              <div key={i} style={{ ...innerStyle, borderLeft: `3px solid ${s.color}`, display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: s.color, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>{s.season}</div>
+              <div key={i} style={{ ...innerStyle, borderLeft: '3px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>{s.season}</div>
                 <NumberInput label="Μέση Τιμή ανά Νύχτα" value={(airbnb as any)[s.aKey]} onChange={(v: string) => sa(s.aKey, v)} suffix="€" step={5} />
                 <NumberInput label="Πληρότητα %" value={(airbnb as any)[s.oKey]} onChange={(v: string) => sa(s.oKey, v)} suffix="%" step={5} />
                 <div style={{ marginBottom: 12 }}>
@@ -1178,17 +1178,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
           <div style={cardStyle}>
             <SectionLabel label="Αποτελέσματα Airbnb" />
-            <StatRow label="Ακαθάριστα Έσοδα" value={fe(abb.rev)} color="var(--positive)" />
-            <StatRow label="Μέση Τιμή ανά Νύχτα (ADR)" value={`${fe(abb.adr)}/νύχτα`} color="var(--accent)" />
-            <StatRow label="Έσοδα ανά Διαθέσιμη Νύχτα (RevPAR)" value={`${fe(abb.revPAR)}/νύχτα`} color="var(--info)" />
-            <StatRow label="Προμήθεια Πλατφόρμας" value={`-${fe(abb.pCost)}`} color="var(--warning)" />
-            <StatRow label={`Κόστος Καθαρισμών (${abb.bookings} bookings)`} value={`-${fe(abb.cCost)}`} color="var(--warning)" />
-            <StatRow label="Δαπάνες Ακινήτου" value={`-${fe(expenses)}`} color="var(--warning)" />
-            <StatRow label="Επιπλέον Παροχές και Φθορές" value={`-${fe(abb.extras)}`} color="var(--warning)" />
+            <StatRow label="Ακαθάριστα Έσοδα" value={fe(abb.rev)} />
+            <StatRow label={<>Μέση Τιμή ανά Νύχτα (<span title="Μέση τιμή ανά διανυκτέρευση (Average Daily Rate)">ADR</span>)</>} value={`${fe(abb.adr)}/νύχτα`} color="var(--accent)" />
+            <StatRow label={<>Έσοδα ανά Διαθέσιμη Νύχτα (<span title="Έσοδα ανά διαθέσιμη διανυκτέρευση (Revenue per Available Room)">RevPAR</span>)</>} value={`${fe(abb.revPAR)}/νύχτα`} />
+            <StatRow label="Προμήθεια Πλατφόρμας" value={`-${fe(abb.pCost)}`} />
+            <StatRow label={`Κόστος Καθαρισμών (${abb.bookings} bookings)`} value={`-${fe(abb.cCost)}`} />
+            <StatRow label="Δαπάνες Ακινήτου" value={`-${fe(expenses)}`} />
+            <StatRow label="Επιπλέον Παροχές και Φθορές" value={`-${fe(abb.extras)}`} />
             <StatRow label="Καθαρό προ φόρου" value={fe(abb.net)} color={abb.net > 0 ? 'var(--positive)' : 'var(--negative)'} />
-            <StatRow label="Φόρος εισοδήματος" value={`-${fe(abb.abbTax)}`} color="var(--negative)" />
+            <StatRow label="Φόρος εισοδήματος" value={`-${fe(abb.abbTax)}`} />
             <StatRow label="Καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color={abb.abbAfterTax > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
-            <StatRow label="Μέση Ετήσια Πληρότητα" value={fp(abb.avgOcc)} color="var(--accent)" />
+            <StatRow label={<>Μέση Ετήσια <span title="Ποσοστό κατειλημμένων διανυκτερεύσεων (occupancy)">Πληρότητα</span></>} value={fp(abb.avgOcc)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
             <SectionLabel label="Airbnb vs Μακροχρόνια Μίσθωση" />
@@ -1202,7 +1202,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               </div>
             </div>
             <div style={g2}>
-              <KPICard label="Airbnb καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color="var(--positive)" />
+              <KPICard label="Airbnb καθαρό μετά φόρου" value={fe(abb.abbAfterTax)} color="var(--text-primary)" />
               <KPICard label="Μακροχρόνια μετά φόρου" value={fe(calc.afterTax)} color="var(--accent)" />
             </div>
             <InfoBanner type="warning">
@@ -1221,7 +1221,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { title: 'Όριο 3 Ακινήτων', desc: 'Από 3 ακίνητα και πάνω σε βραχυχρόνια μίσθωση: υποχρεωτική έναρξη επιχειρηματικής δραστηριότητας + ΦΠΑ + λογιστής.', url: null, urgent: true },
               { title: 'Κανονισμός Πολυκατοικίας', desc: 'Απαιτείται συγκατάθεση 3/4 των ιδιοκτητών. Έλεγχε τον κανονισμό της πολυκατοικίας σου.', url: null, urgent: false },
             ].map((item, i) => (
-              <div key={i} style={{ background: 'var(--bg-surface)', border: `1px solid ${item.urgent ? 'var(--negative)' : 'var(--border-subtle)'}`, borderLeft: `3px solid ${item.urgent ? 'var(--negative)' : 'var(--info)'}`, borderRadius: 8, padding: '12px 14px' }}>
+              <div key={i} style={{ background: 'var(--bg-surface)', border: `1px solid ${item.urgent ? 'var(--negative)' : 'var(--border-subtle)'}`, borderLeft: `3px solid ${item.urgent ? 'var(--negative)' : 'var(--border-subtle)'}`, borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: item.urgent ? 'var(--negative)' : 'var(--text-primary)', fontFamily: "'Inter', sans-serif", marginBottom: 4 }}>{item.title}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5, marginBottom: item.url ? 8 : 0 }}>{item.desc}</div>
                 {item.url && (
@@ -1277,7 +1277,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <SectionLabel label="Πρόωρη Αποπληρωμή" />
           <div style={g2}>
             <NumberInput label="Ποσό Πρόωρης Αποπληρωμής" value={loan.early_repayment} onChange={v => sl('early_repayment', v)} suffix="€" step={1000} />
-            <KPICard label="Εκτιμώμενη Εξοικονόμηση Τόκων" value={calc.interestSaved > 0 ? fe(calc.interestSaved) : '—'} color="var(--positive)" sub="Εκτίμηση βάσει υπολοίπου δανείου" />
+            <KPICard label="Εκτιμώμενη Εξοικονόμηση Τόκων" value={calc.interestSaved > 0 ? fe(calc.interestSaved) : '—'} color="var(--text-primary)" sub="Εκτίμηση βάσει υπολοίπου δανείου" />
           </div>
           <InfoBanner type="info">
             Η πρόωρη αποπληρωμή συμφέρει αν το επιτόκιο δανείου υπερβαίνει την απόδοση εναλλακτικής επένδυσης (ETF, καταθέσεις). Ελέγξτε για πρόωρη εξόφληση στο συμβόλαιο.
@@ -1336,8 +1336,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               { title: 'Φωτοβολταϊκά Στέγης', text: 'Επιδότηση έως 50%. Αντλία θερμότητας: εξοικονόμηση ~60% στη θέρμανση. Απόσβεση 5-8 χρόνια.' },
               { title: 'Ηλιακός Θερμοσίφωνας', text: 'Κόστος €800-1.500. Εξοικονόμηση €150-300/έτος. Απόσβεση 4-6 χρόνια. Επιδότηση διαθέσιμη.' },
             ].map((t, i) => (
-              <div key={i} style={{ ...innerStyle, borderLeft: '3px solid var(--positive)' }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--positive)', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
+              <div key={i} style={{ ...innerStyle, borderLeft: '3px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 6, fontFamily: "'Inter', sans-serif" }}>{t.title}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>{t.text}</div>
               </div>
             ))}
@@ -1349,17 +1349,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={cardStyle}>
             <SectionLabel label="Ανάλυση Δανείου" />
             <div style={g4}>
-              <KPICard label="Κάλυψη Δανείου (DSCR)" value={`${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} sub={calc.DSCR >= 1.25 ? 'Υγιές' : calc.DSCR >= 1 ? 'Οριακό' : 'Κίνδυνος'} />
-              <KPICard label="Δάνειο / Αξία (LTV)" value={fp(calc.LTV)} color={calc.LTV <= 60 ? 'var(--positive)' : calc.LTV <= 80 ? 'var(--warning)' : 'var(--negative)'} sub={`Equity: ${fe(calc.equity)}`} />
+              <KPICard label={<>Κάλυψη Δανείου (<span title="Δείκτης κάλυψης εξυπηρέτησης χρέους (καθαρά έσοδα / δόση δανείου)">DSCR</span>)</>} value={`${calc.DSCR.toFixed(2)}x`} color={calc.DSCR >= 1.25 ? 'var(--positive)' : calc.DSCR >= 1 ? 'var(--warning)' : 'var(--negative)'} sub={calc.DSCR >= 1.25 ? 'Υγιές' : calc.DSCR >= 1 ? 'Οριακό' : 'Κίνδυνος'} />
+              <KPICard label={<>Δάνειο / Αξία (<span title="Δάνειο προς αξία ακινήτου (Loan to Value)">LTV</span>)</>} value={fp(calc.LTV)} color={calc.LTV <= 60 ? 'var(--positive)' : calc.LTV <= 80 ? 'var(--warning)' : 'var(--negative)'} sub={`Equity: ${fe(calc.equity)}`} />
               <KPICard label="Ταμειακή Ροή μετά Δάνειο" value={`${fe(calc.cfDebt / 12)}/μήνα`} color={calc.cfDebt > 0 ? 'var(--positive)' : 'var(--negative)'} />
               <KPICard label="Κάλυψη Τόκων" value={`${calc.ic.toFixed(2)}x`} color={calc.ic >= 2 ? 'var(--positive)' : calc.ic >= 1 ? 'var(--warning)' : 'var(--negative)'} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
               <div>
                 <StatRow label="Αξία Ακινήτου" value={fe(calc.myVal)} />
-                <StatRow label="Υπόλοιπο Δανείου" value={fe(calc.loanBal)} color="var(--negative)" />
-                <StatRow label="Ίδια Κεφάλαια (Equity)" value={fe(calc.equity)} color="var(--positive)" bold />
-                <StatRow label="Ετήσια Εξυπηρέτηση Δανείου" value={fe(calc.annualDebt)} color="var(--warning)" />
+                <StatRow label="Υπόλοιπο Δανείου" value={fe(calc.loanBal)} />
+                <StatRow label="Ίδια Κεφάλαια (Equity)" value={fe(calc.equity)} bold />
+                <StatRow label="Ετήσια Εξυπηρέτηση Δανείου" value={fe(calc.annualDebt)} />
                 <StatRow label="Ταμειακή Ροή μετά Δάνειο / έτος" value={fe(calc.cfDebt)} color={calc.cfDebt > 0 ? 'var(--positive)' : 'var(--negative)'} bold />
               </div>
               <div>
@@ -1389,7 +1389,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <div>
               <StatRow label="Εκτιμώμενη Έκπτωση" value={`-${sc2.auction_discount}%`} color="var(--accent)" />
               <StatRow label="Εκτιμώμενη Αξία Πλειστηριασμού" value={fe(calc.myVal * (1 - (parseFloat(sc2.auction_discount) || 25) / 100))} color="var(--accent)" />
-              <StatRow label="Εξοικονόμηση έναντι Αγοράς" value={fe(calc.myVal * (parseFloat(sc2.auction_discount) || 25) / 100)} color="var(--positive)" />
+              <StatRow label="Εξοικονόμηση έναντι Αγοράς" value={fe(calc.myVal * (parseFloat(sc2.auction_discount) || 25) / 100)} />
             </div>
             <div>
               <InfoBanner type="warning">
@@ -1433,14 +1433,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16, marginBottom: 16 }}>
           <div style={cardStyle}>
             <SectionLabel label="Νέα Εκτίμηση" />
-            <StatRow label="Νέο Ενοίκιο / Μήνα" value={fe(scen.newRent)} color="var(--positive)" />
-            <StatRow label="Ετήσιο Εισόδημα (με κενή περίοδο)" value={fe(scen.newAnnual)} color="var(--positive)" />
+            <StatRow label="Νέο Ενοίκιο / Μήνα" value={fe(scen.newRent)} />
+            <StatRow label="Ετήσιο Εισόδημα (με κενή περίοδο)" value={fe(scen.newAnnual)} />
             <StatRow label="Καθαρό μετά φόρου" value={fe(scen.newNet)} color={scen.newNet > 0 ? 'var(--positive)' : 'var(--negative)'} />
             <StatRow label={`Αξία ακινήτου σε ${sc2.years} χρόνια`} value={fe(scen.futVal)} color="var(--accent)" />
-            <StatRow label="Υπεραξία" value={fe(scen.capGain)} color="var(--positive)" />
-            <StatRow label="Σύνολο Ενοικίων (μετά φόρου)" value={fe(scen.rentTotal)} color="var(--positive)" />
-            <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} color="var(--positive)" bold />
-            <StatRow label="CAGR Αξίας Ακινήτου" value={fp(scen.cagr)} color="var(--info)" />
+            <StatRow label="Υπεραξία" value={fe(scen.capGain)} />
+            <StatRow label="Σύνολο Ενοικίων (μετά φόρου)" value={fe(scen.rentTotal)} />
+            <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} bold />
+            <StatRow label={<><span title="Σύνθετος ετήσιος ρυθμός ανάπτυξης (Compound Annual Growth Rate)">CAGR</span> Αξίας Ακινήτου</>} value={fp(scen.cagr)} />
             <StatRow label="Μέση Ετήσια Απόδοση" value={fp(scen.irr)} color="var(--accent)" />
           </div>
           <div style={cardStyle}>
@@ -1467,16 +1467,16 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
 
         {/* Monte Carlo */}
         <div style={cardStyle}>
-          <SectionLabel label="Ανάλυση Πιθανοτήτων (Monte Carlo)" />
+          <SectionLabel label={<>Ανάλυση Πιθανοτήτων (<span title="Προσομοίωση με πολλές τυχαίες επαναλήψεις για το εύρος πιθανών αποτελεσμάτων">Monte Carlo</span>)</>} />
           <div style={g3}>
             <NumberInput label="Αριθμός Προσομοιώσεων" value={sc2.mc_runs} onChange={v => ss('mc_runs', v)} suffix="runs" step={100} />
             <NumberInput label="Μεταβλητότητα Ενοικίου %" value={sc2.mc_rent_std} onChange={v => ss('mc_rent_std', v)} suffix="%" step={5} />
             <NumberInput label="Μεταβλητότητα Αξίας %" value={sc2.mc_value_std} onChange={v => ss('mc_value_std', v)} suffix="%" step={5} />
           </div>
           <div style={g4}>
-            <KPICard label="Απαισιόδοξο (10ο εκατοστ.)" value={fe(scen.mcP10)} color="var(--negative)" sub="Κακό σενάριο" />
+            <KPICard label="Απαισιόδοξο (10ο εκατοστ.)" value={fe(scen.mcP10)} color="var(--text-primary)" sub="Κακό σενάριο" />
             <KPICard label="Βασικό (50ο εκατοστ.)" value={fe(scen.mcP50)} color="var(--accent)" sub="Πιθανότερο σενάριο" />
-            <KPICard label="Αισιόδοξο (90ο εκατοστ.)" value={fe(scen.mcP90)} color="var(--positive)" sub="Καλό σενάριο" />
+            <KPICard label="Αισιόδοξο (90ο εκατοστ.)" value={fe(scen.mcP90)} color="var(--text-primary)" sub="Καλό σενάριο" />
             <KPICard label="Πιθανότητα Κέρδους" value={fp(scen.mcPositive, 0)} color={scen.mcPositive >= 70 ? 'var(--positive)' : scen.mcPositive >= 50 ? 'var(--warning)' : 'var(--negative)'} sub={`σε ${sc2.mc_runs} προσομοιώσεις`} />
           </div>
           <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden', marginTop: 4 }}>
@@ -1507,19 +1507,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               </div>
             </div>
             <div>
-              <div style={{ ...innerStyle, borderLeft: '3px solid var(--negative)', marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--negative)', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>Πώληση Τώρα</div>
+              <div style={{ ...innerStyle, borderLeft: '3px solid var(--border-subtle)', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>Πώληση Τώρα</div>
                 <StatRow label="Αξία Πώλησης" value={fe(calc.myVal)} />
-                <StatRow label={`Αμοιβή Μεσίτη (${sc2.sell_agent_pct}%)`} value={`-${fe(calc.myVal * (parseFloat(sc2.sell_agent_pct) / 100))}`} color="var(--negative)" />
-                <StatRow label={`Φόρος Μεταβίβασης (${sc2.sell_tax_pct}%)`} value={`-${fe(calc.myVal * (parseFloat(sc2.sell_tax_pct) / 100))}`} color="var(--negative)" />
-                <StatRow label="Καθαρά Χρήματα" value={fe(scen.sellNow)} color="var(--warning)" bold />
+                <StatRow label={`Αμοιβή Μεσίτη (${sc2.sell_agent_pct}%)`} value={`-${fe(calc.myVal * (parseFloat(sc2.sell_agent_pct) / 100))}`} />
+                <StatRow label={`Φόρος Μεταβίβασης (${sc2.sell_tax_pct}%)`} value={`-${fe(calc.myVal * (parseFloat(sc2.sell_tax_pct) / 100))}`} />
+                <StatRow label="Καθαρά Χρήματα" value={fe(scen.sellNow)} bold />
               </div>
-              <div style={{ ...innerStyle, borderLeft: '3px solid var(--positive)' }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--positive)', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>Κράτα {sc2.years} Χρόνια</div>
-                <StatRow label="Ενοίκια (καθαρά)" value={fe(scen.rentTotal)} color="var(--positive)" />
-                <StatRow label={`Αξία σε ${sc2.years} χρόνια`} value={fe(scen.futVal)} color="var(--positive)" />
-                <StatRow label="Καθαρά από Πώληση" value={fe(scen.sellFuture)} color="var(--positive)" />
-                <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} color="var(--positive)" bold />
+              <div style={{ ...innerStyle, borderLeft: '3px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 10, fontFamily: "'Inter', sans-serif" }}>Κράτα {sc2.years} Χρόνια</div>
+                <StatRow label="Ενοίκια (καθαρά)" value={fe(scen.rentTotal)} />
+                <StatRow label={`Αξία σε ${sc2.years} χρόνια`} value={fe(scen.futVal)} />
+                <StatRow label="Καθαρά από Πώληση" value={fe(scen.sellFuture)} />
+                <StatRow label="Συνολική Απόδοση" value={fe(scen.total)} bold />
               </div>
             </div>
           </div>

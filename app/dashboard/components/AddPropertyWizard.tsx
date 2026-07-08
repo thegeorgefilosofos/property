@@ -15,8 +15,8 @@ const HEATING_OPTS: [string, string][] = [
 
 // ── Domain constants (kept in sync με το dashboard/page.tsx) ────────────────
 const STATUS_COLORS: Record<string, string> = {
-  rented: 'var(--positive)', vacant: 'var(--warning)', own_use: 'var(--info)',
-  renovation: 'var(--accent)', for_sale: 'var(--negative)', seasonal: 'var(--info)', disputed: 'var(--negative)',
+  rented: 'var(--text-secondary)', vacant: 'var(--text-secondary)', own_use: 'var(--text-secondary)',
+  renovation: 'var(--text-secondary)', for_sale: 'var(--text-secondary)', seasonal: 'var(--text-secondary)', disputed: 'var(--text-secondary)',
 };
 const STATUS_LABELS: Record<string, string> = {
   rented: 'Ενοικιάζεται', vacant: 'Κενό', own_use: 'Ιδιοχρησία',
@@ -417,7 +417,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || '—'}</div>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
                 </div>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: `1px solid ${STATUS_COLORS[effStatus]}44`, fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 100, border: '1px solid var(--border-subtle)', fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: STATUS_COLORS[effStatus] }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[effStatus] }} />{STATUS_LABELS[effStatus]}
                 </span>
               </div>
@@ -447,7 +447,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτ. ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
                     <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημ. Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}

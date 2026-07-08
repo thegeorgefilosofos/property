@@ -7,14 +7,14 @@ import { T, fe, Spinner } from '@/components/Theme';
 
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
-  { key: 'electricity',  label: 'Ρεύμα',              color: '#f59e0b', default: 80  },
-  { key: 'water',        label: 'Νερό',                color: '#3b82f6', default: 25  },
-  { key: 'internet',     label: 'Internet & Τηλεφωνία',color: '#8b5cf6', default: 35  },
-  { key: 'heating',      label: 'Θέρμανση',            color: '#ef4444', default: 60  },
-  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',color: '#10b981', default: 30  },
-  { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  color: '#ec4899', default: 50  },
-  { key: 'common',       label: 'Κοινόχρηστα',         color: '#6366f1', default: 40  },
-  { key: 'maintenance',  label: 'Συντήρηση',           color: '#84cc16', default: 20  },
+  { key: 'electricity',  label: 'Ρεύμα',              default: 80  },
+  { key: 'water',        label: 'Νερό',                default: 25  },
+  { key: 'internet',     label: 'Internet & Τηλεφωνία',default: 35  },
+  { key: 'heating',      label: 'Θέρμανση',            default: 60  },
+  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',default: 30  },
+  { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
+  { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
+  { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
 ] as const;
 
 type CatKey = typeof CATS[number]['key'];
@@ -203,7 +203,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--positive)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+            <span title="Ζωντανή ενημέρωση δεδομένων σε πραγματικό χρόνο" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--positive)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: rtOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block' }}/>
               Live
             </span>
@@ -248,9 +248,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {([
           { label: 'Στόχος / μήνα',    value: fe(masterBudget), color: 'var(--text-primary)' },
-          { label: 'Πραγματικό',        value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--positive)' },
+          { label: 'Πραγματικό',        value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)' },
           { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)), color: 'var(--text-primary)' },
-          { label: 'Κατηγ. σε υπέρβαση', value: String(overBudget.length), color: overBudget.length > 0 ? 'var(--negative)' : 'var(--positive)' },
+          { label: 'Κατηγ. σε υπέρβαση', value: String(overBudget.length), color: overBudget.length > 0 ? 'var(--negative)' : 'var(--text-primary)' },
         ] as const).map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
@@ -327,7 +327,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {!editMode && (() => {
         const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
         const isOver = actualTotal > masterBudget;
-        const col    = isOver ? 'var(--negative)' : pct > 80 ? 'var(--warning)' : 'var(--positive)';
+        const col    = isOver ? 'var(--negative)' : pct > 80 ? 'var(--warning)' : 'var(--accent)';
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
             {secHdr('Σύνολο Μήνα')}
@@ -364,7 +364,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             const pct     = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
             const isOver  = actual > budget && actual > 0;
             const isWarn  = !isOver && pct > 80;
-            const col     = isOver ? 'var(--negative)' : isWarn ? 'var(--warning)' : cat.color;
+            const col     = isOver ? 'var(--negative)' : isWarn ? 'var(--warning)' : 'var(--accent)';
 
             return (
               <div key={cat.key}>
