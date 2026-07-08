@@ -13,6 +13,8 @@ import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { annuityMonthly } from '@/lib/loans/recommend';
+import { clientStats, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import {
   type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
@@ -23,7 +25,7 @@ import {
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
 interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
-type Action = { type: 'go'; tab: string } | { type: 'scan' };
+type Action = { type: 'go'; tab: string } | { type: 'scan' } | { type: 'book'; title: string; date: string } | { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string };
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 
 const eur = (n?: number | null) => n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`;
@@ -49,6 +51,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [ctxStr, setCtxStr] = useState('');
   const [insightsStr, setInsightsStr] = useState('');
   const [marketStr, setMarketStr] = useState('');
+  const [clientsStr, setClientsStr] = useState('');
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +66,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr(''); setInsightsStr(''); setMarketStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr('');
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
@@ -94,7 +97,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const now = new Date();
     const year = now.getFullYear();
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }] = await Promise.all([
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }] = await Promise.all([
       supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -102,6 +105,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
+      supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
+      supabase.from('client_stays').select('client_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost').eq('user_id', userId),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -117,6 +123,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const leaseEnd = t?.lease_end || null;
     const daysLease = leaseEnd ? Math.ceil((new Date(leaseEnd).getTime() - Date.now()) / 86400000) : null;
 
+    const loanRows = loans || [];
+    const rateTypeGr = (rt?: string) => rt === 'variable' ? 'κυμαινόμενο' : rt === 'mixed' ? 'μεικτό' : 'σταθερό';
+    const monthlyDebt = loanRows.reduce((s, l: any) => s + annuityMonthly(l.amount || 0, l.rate || 0, l.years || 0), 0);
+    const loanLine = loanRows.length
+      ? `Δάνεια (${loanRows.length}): εκτιμώμενη συνολική μηνιαία δόση ${eur(Math.round(monthlyDebt))}. ${loanRows.map((l: any) => `${l.bank || 'τράπεζα'} ${eur(l.amount || 0)} με ${Number(l.rate || 0).toFixed(2)}% ${rateTypeGr(l.rate_type)} σε ${l.years || 0} έτη`).join('; ')}`
+      : 'Δεν έχει καταχωρηθεί δάνειο για αυτό το ακίνητο.';
+
     const lines = [
       `Ακίνητο: ${propContext.name}${propContext.propType ? ` (${propContext.propType})` : ''}${propContext.address ? `, ${propContext.address}` : ''}`,
       propContext.sqm ? `Εμβαδόν: ${propContext.sqm} τ.μ.` : '',
@@ -130,6 +143,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       t ? `Ενοικιαστής: ${t.full_name || 'καταχωρημένος'}${t.deposit_amount ? `, εγγύηση ${eur(t.deposit_amount)}` : ''}` : 'Δεν έχει καταχωρηθεί ενοικιαστής.',
       leaseEnd ? `Λήξη μίσθωσης: ${leaseEnd}${daysLease != null ? ` (σε ${daysLease} ημέρες)` : ''}` : '',
       st?.insurance_company || st?.insurance_expiry ? `Ασφάλεια: ${st?.insurance_company || 'εταιρεία άγνωστη'}${st?.insurance_expiry ? `, λήξη ${st.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
+      loanLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));
@@ -159,6 +173,28 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
     mLines.push(RENTAL_TAX_SUMMARY_2026);
     setMarketStr(mLines.join('\n'));
+
+    // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε ο βοηθός να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
+    const clientRoster = clientRows || [];
+    if (clientRoster.length) {
+      const staysByClient = new Map<string, any[]>();
+      (stayRows || []).forEach((s: any) => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
+      const cLines = clientRoster.slice(0, 50).map((c: any) => {
+        const cs = clientStats(staysByClient.get(c.id) || []);
+        const bits: string[] = [c.full_name, CLIENT_TYPE_LABELS[c.type as ClientType] || c.type];
+        if (c.phone) bits.push(`τηλ ${c.phone}`);
+        if (c.afm) bits.push(`ΑΦΜ ${c.afm}`);
+        if (typeof c.rating === 'number') bits.push(`βαθμολογία ${c.rating}/5`);
+        if (cs.stayCount) bits.push(`${cs.stayCount} διαμονές, ${cs.nights} νύχτες, έσοδα ${eur(cs.revenue)}${cs.lastVisit ? `, τελευταία ${cs.lastVisit}` : ''}`);
+        if (cs.hasDamage) bits.push(`φθορές ${eur(cs.damageTotal)}`);
+        if (c.do_not_rent) bits.push('ΠΡΟΣΟΧΗ/μαύρη λίστα');
+        if (c.budget) bits.push(`προϋπολογισμός ${eur(c.budget)}`);
+        if (c.needs) bits.push(`ανάγκες: ${c.needs}`);
+        return `• ${bits.filter(Boolean).join(' · ')}`;
+      });
+      const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα Πελατολόγιο)` : '';
+      setClientsStr(`Σύνολο πελατών: ${clientRoster.length}\n${cLines.join('\n')}${extra}`);
+    } else setClientsStr('');
   }, [propertyId, userId, propContext, supabase]);
 
   useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
@@ -167,7 +203,41 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (!a) return;
     if (a.type === 'scan') onScan();
     else if (a.type === 'go') onNavigate(a.tab);
+    else if (a.type === 'book') { bookAppointment(a.title, a.date); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
+    else if (a.type === 'client') { registerClient(a); return; }
     if (!keepOpen) setOpen(false);
+  };
+
+  // Καταχώρηση νέου πελάτη στο Πελατολόγιο (από τον βοηθό, με φωνή ή κείμενο).
+  const registerClient = async (a: { name: string; phone?: string; afm?: string; ctype?: string }) => {
+    const raw = (a.ctype || '').toLowerCase();
+    const ctype: ClientType = /owner|ιδιοκτ/.test(raw) ? 'owner' : /client|πελατ/.test(raw) ? 'client' : 'lead';
+    try {
+      await supabase.from('clients').insert({
+        user_id: userId, full_name: a.name, type: ctype,
+        phone: a.phone || null, afm: a.afm || null, stage: 'lead',
+      });
+      setClientsStr('');
+      loadContext();
+      setMsgs(m => [...m, { role: 'assistant', text: `Τον καταχώρησα. Πρόσθεσα τον/την «${a.name}»${a.phone ? ` (${a.phone})` : ''} στο Πελατολόγιο ως ${CLIENT_TYPE_LABELS[ctype]}. Θέλεις να ανοίξω την καρτέλα για να συμπληρώσεις κι άλλα στοιχεία;`, action: { type: 'go', tab: 'clients' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τον πελάτη τώρα. Δοκίμασε ξανά ή πρόσθεσέ τον από την καρτέλα Πελατολόγιο.' }]);
+    }
+  };
+
+  // Κράτηση ραντεβού: γράφει γεγονός στο Ημερολόγιο. Η υπάρχουσα ροή υπενθυμίσεων
+  // (send-reminders) στέλνει email 3 & 1 ημέρα πριν, αν ο χρήστης έχει ενεργές ειδοποιήσεις.
+  const bookAppointment = async (title: string, date: string) => {
+    try {
+      await supabase.from('calendar_events').insert({
+        property_id: propertyId, user_id: userId, title, category: 'financial',
+        event_date: date, priority: 'high', status: 'pending', source: 'assistant',
+        notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Υπενθύμιση 3 και 1 ημέρα πριν (email, εφόσον είναι ενεργές οι ειδοποιήσεις).',
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για τις ${new Date(date).toLocaleDateString('el-GR')} στο Ημερολόγιο και θα σου θυμίσω 3 και 1 ημέρα πριν. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω το ραντεβού τώρα. Δοκίμασε ξανά ή πρόσθεσέ το χειροκίνητα στο Ημερολόγιο.' }]);
+    }
   };
 
   // ── Φωνή: ομιλία στα ελληνικά (hands-free) ─────────────────────────────────
@@ -247,6 +317,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const system = buildSystemPrompt(identity, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {
         insights: insightsStr || undefined,
         market: marketStr || undefined,
+        clients: clientsStr || undefined,
         memories: identity.memory ? memories.map(m => m.text) : undefined,
         today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
       });
@@ -376,7 +447,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       border: m.role === 'user' ? 'none' : '1px solid var(--border-subtle)', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
                     {m.action && (
                       <button onClick={() => runAction(m.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο' : `Πήγαινε: ${navLabel(m.action.tab)}`}
+                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο' : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}` : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}` : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
                     )}

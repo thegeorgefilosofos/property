@@ -1116,7 +1116,7 @@ function TemplateModal({ onSelect, onClose }: { onSelect: (key: string) => void;
         <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα Templates</h3>
+              <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Έτοιμα <span title="έτοιμα πρότυπα">Templates</span></h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>Φόρτωσε έτοιμη λίστα εργασιών με ένα κλικ</p>
             </div>
             <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}>✕</button>
@@ -1245,7 +1245,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Γρήγορη κατηγοριοποίηση και αναζήτηση.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 {ITEM_TAGS.map(t => (
-                  <button key={t} type="button" onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
+                  <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
                     style={{ padding: '6px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
                     {form.tags.includes(t) ? '✓ ' : ''}{t}
                   </button>
@@ -1521,6 +1521,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
 
       <PageTitle
         title="Checklist"
+        titleHint="Λίστα ελέγχου εργασιών"
         sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
         right={
           <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -1672,7 +1673,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         </select>
         <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
           {(['list', 'board', 'timeline'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+            <button key={v} type="button" title={v === 'board' ? 'Πίνακας καρτών (kanban)' : v === 'timeline' ? 'Χρονογραμμή' : undefined} onClick={() => setViewMode(v)} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
               {v === 'list' ? 'Λίστα' : v === 'board' ? 'Board' : 'Timeline'}
             </button>
           ))}

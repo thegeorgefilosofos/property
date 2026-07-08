@@ -1185,7 +1185,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
           {/* View Tabs */}
           <div style={{ display:'flex', borderBottom:'1px solid var(--border-subtle)', marginBottom:24, overflowX:'auto' as const, scrollbarWidth:'none' as const }}>
             {VTABS.map(t=>(
-              <button key={t.id} onClick={()=>setViewTab(t.id)} style={{ ...s.tabBtn(viewTab===t.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+              <button key={t.id} title={t.id==='dashboard'?'Πίνακας επισκόπησης':undefined} onClick={()=>setViewTab(t.id)} style={{ ...s.tabBtn(viewTab===t.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                 {t.label}
                 {t.badge&&t.badge>0&&<span style={{ minWidth:18, height:18, borderRadius:9, background:'var(--negative)', color:'#fff', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{t.badge}</span>}
               </button>
