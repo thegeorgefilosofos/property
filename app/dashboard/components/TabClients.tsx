@@ -29,7 +29,7 @@ interface Client {
   afm: string | null; phone: string | null; email: string | null; notes: string | null;
   stage: Stage; deal_value: number | null; next_action: string | null; next_date: string | null;
   created_at: string; updated_at: string;
-  rating: number | null; tags: string[] | null; do_not_rent: boolean | null;
+  rating: number | null; tags: string[] | null; do_not_rent: boolean | null; vip: boolean | null;
   address: string | null; id_number: string | null; nationality: string | null;
   budget: number | null; needs: string | null; source: string | null;
 }
@@ -82,13 +82,13 @@ const noteKindOptions = NOTE_KINDS.map(k => ({ value: k, label: NOTE_KIND_LABELS
 interface FormState {
   type: ClientType; full_name: string; afm: string; phone: string; email: string; notes: string;
   stage: Stage; deal_value: string; next_action: string; next_date: string;
-  rating: number; tags: string[]; do_not_rent: boolean; address: string; id_number: string;
+  rating: number; tags: string[]; do_not_rent: boolean; vip: boolean; address: string; id_number: string;
   nationality: string; source: string; budget: string; needs: string;
 }
 const emptyForm = (): FormState => ({
   type: 'lead', full_name: '', afm: '', phone: '', email: '', notes: '',
   stage: 'lead', deal_value: '', next_action: '', next_date: '',
-  rating: 0, tags: [], do_not_rent: false, address: '', id_number: '',
+  rating: 0, tags: [], do_not_rent: false, vip: false, address: '', id_number: '',
   nationality: '', source: '', budget: '', needs: '',
 });
 
@@ -124,7 +124,7 @@ function Stars({ value, max = 5, onSet, size = 15 }: { value: number; max?: numb
 }
 
 // ── Διακόπτης σήματος (μαύρη λίστα / φθορές) σε var(--negative) ─────────────
-function FlagSwitch({ on, onChange, onLabel, offLabel, tone = 'negative' }: { on: boolean; onChange: (v: boolean) => void; onLabel: string; offLabel: string; tone?: 'negative' | 'warning' }) {
+function FlagSwitch({ on, onChange, onLabel, offLabel, tone = 'negative' }: { on: boolean; onChange: (v: boolean) => void; onLabel: string; offLabel: string; tone?: 'negative' | 'warning' | 'accent' | 'positive' }) {
   const c = `var(--${tone})`;
   return (
     <button onClick={() => onChange(!on)} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -341,7 +341,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     if (!clientMatches(c, search)) return false;
     if (segment !== 'all') {
       const st = statsByClient.get(c.id);
-      if (segment === 'vip' && !((c.rating || 0) >= 4 || (st?.revenue || 0) >= 1000)) return false;
+      if (segment === 'vip' && !(c.vip || (c.rating || 0) >= 4 || (st?.revenue || 0) >= 1000)) return false;
       if (segment === 'repeat' && !((st?.stayCount || 0) >= 2)) return false;
       if (segment === 'flagged' && !isFlagged(c)) return false;
     }
@@ -368,7 +368,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       type: c.type, full_name: c.full_name, afm: c.afm || '', phone: c.phone || '', email: c.email || '',
       notes: c.notes || '', stage: c.stage, deal_value: c.deal_value != null ? String(c.deal_value) : '',
       next_action: c.next_action || '', next_date: c.next_date || '',
-      rating: c.rating || 0, tags: c.tags || [], do_not_rent: !!c.do_not_rent, address: c.address || '',
+      rating: c.rating || 0, tags: c.tags || [], do_not_rent: !!c.do_not_rent, vip: !!c.vip, address: c.address || '',
       id_number: c.id_number || '', nationality: c.nationality || '', source: c.source || '',
       budget: c.budget != null ? String(c.budget) : '', needs: c.needs || '',
     });
@@ -393,7 +393,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       afm: form.afm.trim() || null, phone: form.phone.trim() || null, email: form.email.trim() || null,
       notes: form.notes.trim() || null, stage: form.stage, deal_value: num(form.deal_value),
       next_action: form.next_action.trim() || null, next_date: form.next_date || null,
-      rating: form.rating || 0, tags: form.tags, do_not_rent: form.do_not_rent,
+      rating: form.rating || 0, tags: form.tags, do_not_rent: form.do_not_rent, vip: form.vip,
       address: form.address.trim() || null, id_number: form.id_number.trim() || null,
       nationality: form.nationality.trim() || null, source: form.source.trim() || null,
       budget: num(form.budget), needs: form.needs.trim() || null,
@@ -732,6 +732,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       <Badge tone={TYPE_TONE[c.type]}>{CLIENT_TYPE_LABELS[c.type]}</Badge>
+                      {c.vip && <Badge tone="accent">VIP</Badge>}
                       {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
                       {st.hasDamage && !c.do_not_rent && <Badge tone="negative">Φθορές</Badge>}
                     </div>
@@ -868,6 +869,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
                   <Badge tone={TYPE_TONE[dc.type]}>{CLIENT_TYPE_LABELS[dc.type]}</Badge>
+                  {dc.vip && <Badge tone="accent">VIP</Badge>}
                   {dc.do_not_rent && <Badge tone="negative">Μαύρη λίστα</Badge>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -888,6 +890,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Μαύρη λίστα + ετικέτες */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, marginTop: 14 }}>
               <FlagSwitch on={!!dc.do_not_rent} onChange={v => patchClient(dc.id, { do_not_rent: v })} onLabel="Στη μαύρη λίστα / Προσοχή" offLabel="Μαύρη λίστα / Προσοχή" />
+              <FlagSwitch on={!!dc.vip} onChange={v => patchClient(dc.id, { vip: v })} onLabel="VIP πελάτης" offLabel="Σήμανση ως VIP" tone="accent" />
               <div>
                 <div style={lbl}>Ετικέτες</div>
                 <TagEditor tags={dc.tags || []} onChange={t => patchClient(dc.id, { tags: t })} />
@@ -1368,6 +1371,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
                   <FlagSwitch on={form.do_not_rent} onChange={v => setForm(f => ({ ...f, do_not_rent: v }))} onLabel="Στη μαύρη λίστα" offLabel="Μαύρη λίστα / Προσοχή" />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
+                  <FlagSwitch on={form.vip} onChange={v => setForm(f => ({ ...f, vip: v }))} onLabel="VIP πελάτης" offLabel="Σήμανση ως VIP" tone="accent" />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <div style={lbl}>Ετικέτες</div>
