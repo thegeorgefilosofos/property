@@ -642,6 +642,7 @@ alter table public.clients add column if not exists nationality text;
 alter table public.clients add column if not exists budget numeric;
 alter table public.clients add column if not exists needs text;
 alter table public.clients add column if not exists source text;
+alter table public.clients add column if not exists vip boolean default false;
 create table if not exists public.client_stays (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
