@@ -378,10 +378,12 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const [inv, setInv] = useState<{ name?:string|null; warranty_expiry:string|null; condition:string|null }[]>([]);
   const [loans, setLoans] = useState<{ amount:number; rate:number; years:number }[]>([]);
   const [hostStays, setHostStays] = useState<{ check_in:string|null; check_out:string|null; total:number|null; nights:number|null; nightly_rate:number|null }[]>([]);
+  const [contactCount, setContactCount] = useState(0);   // πλήθος επαφών (για το πλακίδιο-σύνοψη)
+  const [docCount, setDocCount] = useState(0);           // πλήθος εγγράφων στο αρχείο
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp },{ count:cCount },{ count:dCount }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
@@ -393,9 +395,13 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
       // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
       supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
+      // Μόνο πλήθη (head) για τα πλακίδια-σύνοψη Επαφές / Αρχείο.
+      supabase.from('contacts').select('id',{count:'exact',head:true}).eq('property_id',prop.id),
+      supabase.from('property_documents').select('id',{count:'exact',head:true}).eq('property_id',prop.id),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setAllExpenses(allExp||[]); setLoading(false);
+    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setAllExpenses(allExp||[]);
+    setContactCount(cCount||0); setDocCount(dCount||0); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, userId, year]);
 
@@ -410,6 +416,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       .on('postgres_changes', { event:'*', schema:'public', table:'checklist_items',   filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'loans',             filter:`property_id=eq.${prop.id}` }, () => load())
       .on('postgres_changes', { event:'*', schema:'public', table:'client_stays',       filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'inventory_items',     filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'contacts',            filter:`property_id=eq.${prop.id}` }, () => load())
+      .on('postgres_changes', { event:'*', schema:'public', table:'property_documents',  filter:`property_id=eq.${prop.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -493,6 +502,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   if (chkOverdue.length) alerts.push({ tone:'negative', label:`${chkOverdue.length} εκπρόθεσμα στοιχεία στο Checklist` });
   else if (chkCritical.length) alerts.push({ tone:'warning', label:`${chkCritical.length} κρίσιμα στοιχεία στο Checklist`, sub:'Απαιτούν προσοχή' });
   const warrantySoon = inv.filter(i => { const x = daysUntil(i.warranty_expiry); return x != null && x >= 0 && x <= 90; });
+  // Σύνοψη εκκρεμοτήτων για το πλακίδιο: πλήθος ανοιχτών + όσα χρήζουν προσοχής.
+  const openChk = chk.length;
+  const chkAttention = new Set([...chkOverdue, ...chkCritical]).size;
   const badCond      = inv.filter(i => i.condition === 'Κακή' || i.condition === 'Εκτός Λειτουργίας');
   if (warrantySoon.length) alerts.push({ tone:'info', label:`${warrantySoon.length} εγγυήσεις λήγουν σύντομα`, sub:'Εντός 90 ημερών, δες την Απογραφή' });
   if (badCond.length) alerts.push({ tone:'warning', label:`${badCond.length} αντικείμενα σε κακή κατάσταση`, sub:'Χρειάζονται επισκευή ή αντικατάσταση' });
@@ -787,44 +799,34 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
       <PaymentLinks />
 
-      {/* Ενσωματωμένα εργαλεία ακινήτου (πρώην «Το ακίνητο») */}
-      <CollapseCard title="Επαφές" sub="Πάροχοι, τράπεζες, τεχνικοί και επαφές του ακινήτου">
-        <TabContacts propertyId={prop.id} userId={userId} embedded />
-      </CollapseCard>
-      <CollapseCard title="Αρχείο" sub="Φωτογραφίες, λογαριασμοί, συμβόλαια και τιμολόγια">
-        <TabDocuments propertyId={prop.id} userId={userId} embedded />
-      </CollapseCard>
-      <CollapseCard title="Εκκρεμότητες" sub="Λίστα ελέγχου εργασιών, προθεσμίες, πρωτόκολλα παράδοσης" badge={chk.filter(c => c.status !== 'done' && c.status !== 'skipped').length}>
-        <TabChecklist propertyId={prop.id} userId={userId} embedded />
-      </CollapseCard>
-      <CollapseCard title="Απογραφή" sub="Εξοπλισμός, αξία, εγγυήσεις και αποσβέσεις">
-        <TabInventory propertyId={prop.id} userId={userId} embedded />
-      </CollapseCard>
+      {/* Εργαλεία ακινήτου: ελαφριά πλακίδια-σύνοψη που ανοίγουν την εστιασμένη
+          προβολή (πρώην «Το ακίνητο»). Δεν φορτώνουν βαριά περιεχόμενα στην
+          Επισκόπηση, μόνο ζωντανό αριθμό + ένα κλικ για την πλήρη καρτέλα. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
+        <ToolTile title="Εκκρεμότητες" metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
+        <ToolTile title="Επαφές" metric={contactCount ? `${contactCount} ${contactCount === 1 ? 'επαφή' : 'επαφές'}` : 'Πρόσθεσε επαφές'} sub="Πάροχοι, τράπεζες, τεχνικοί" onOpen={() => onNavigate('contacts')} />
+        <ToolTile title="Αρχείο" metric={docCount ? `${docCount} ${docCount === 1 ? 'έγγραφο' : 'έγγραφα'}` : 'Ανέβασε έγγραφα'} sub="Συμβόλαια, λογαριασμοί, φωτογραφίες" onOpen={() => onNavigate('documents')} />
+        <ToolTile title="Απογραφή" metric={inv.length ? `${inv.length} ${inv.length === 1 ? 'αντικείμενο' : 'αντικείμενα'}` : 'Κατέγραψε εξοπλισμό'} sub="Εξοπλισμός, εγγυήσεις, αποσβέσεις" badge={warrantySoon.length} onOpen={() => onNavigate('inventory')} />
+      </div>
     </div>
   );
 }
 
-// Πτυσσόμενη κάρτα εργαλείου στην Επισκόπηση (ίδια αισθητική με τα υπόλοιπα
-// «Διαχείριση & Εργαλεία»). Το περιεχόμενο φορτώνεται μόνο όταν ανοίξει (lazy).
-function CollapseCard({ title, sub, badge, children }: { title: string; sub: string; badge?: number; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+// Πλακίδιο-σύνοψη εργαλείου στην Επισκόπηση: ζωντανός αριθμός + ένα κλικ ανοίγει
+// την πλήρη, εστιασμένη καρτέλα (αντί να φορτώνει βαρύ περιεχόμενο εδώ).
+function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric: string; sub: string; badge?: number; onOpen: () => void }) {
   return (
-    <div className={`card tool-card ${open ? 'tool-card--open' : ''}`} style={{ marginBottom: 16 }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>{title}</div>
-            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {badge ? <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--negative)', color: '#fff', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>{badge > 9 ? '9+' : badge}</span> : null}
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+    <button onClick={onOpen} className="card tool-card" style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--negative)', color: '#fff', fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>
       </div>
-      {open && <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>{children}</div>}
-    </div>
+      <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{metric}</span>
+      <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</span>
+    </button>
   );
 }
 
