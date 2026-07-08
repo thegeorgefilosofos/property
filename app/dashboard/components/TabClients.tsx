@@ -892,7 +892,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Μαύρη λίστα + ετικέτες */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, marginTop: 14 }}>
               <FlagSwitch on={!!dc.do_not_rent} onChange={v => patchClient(dc.id, { do_not_rent: v })} onLabel="Στη μαύρη λίστα / Προσοχή" offLabel="Μαύρη λίστα / Προσοχή" />
-              <FlagSwitch on={!!dc.vip} onChange={v => patchClient(dc.id, { vip: v })} onLabel="VIP πελάτης" offLabel="Σήμανση ως VIP" tone="accent" />
+              <FlagSwitch on={!!dc.vip} onChange={v => patchClient(dc.id, { vip: v })} onLabel="VIP" offLabel="VIP" tone="accent" />
               <div>
                 <div style={lbl}>Ετικέτες</div>
                 <TagEditor tags={dc.tags || []} onChange={t => patchClient(dc.id, { tags: t })} />
@@ -1445,7 +1445,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <FlagSwitch on={form.do_not_rent} onChange={v => setForm(f => ({ ...f, do_not_rent: v }))} onLabel="Στη μαύρη λίστα" offLabel="Μαύρη λίστα / Προσοχή" />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                  <FlagSwitch on={form.vip} onChange={v => setForm(f => ({ ...f, vip: v }))} onLabel="VIP πελάτης" offLabel="Σήμανση ως VIP" tone="accent" />
+                  <FlagSwitch on={form.vip} onChange={v => setForm(f => ({ ...f, vip: v }))} onLabel="VIP" offLabel="VIP" tone="accent" />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <div style={lbl}>Ετικέτες</div>
