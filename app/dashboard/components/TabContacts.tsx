@@ -43,7 +43,7 @@ const iStyle: React.CSSProperties = {
 // ─── ROLE GROUPS, Πλήρης Ελληνική Λίστα ─────────────────────────────────────
 const GROUPS = [
   {
-    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#3949ab', Icon: Building2,
+    id: 'authorities', label: 'Δημόσιες Αρχές', color: '#1a73e8', Icon: Building2,
     roles: [
       { value: 'doy', label: 'ΔΟΥ' },
       { value: 'ktimatologio', label: 'Κτηματολόγιο' },
@@ -56,7 +56,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#e8710a', Icon: Zap,
+    id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#1a73e8', Icon: Zap,
     roles: [
       { value: 'elec_dei', label: 'ΔΕΗ' },
       { value: 'elec_heron', label: 'Heron Energy' },
@@ -76,7 +76,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#039be5', Icon: Wifi,
+    id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#1a73e8', Icon: Wifi,
     roles: [
       { value: 'tel_ote', label: 'OTE / Cosmote' },
       { value: 'tel_vodafone', label: 'Vodafone' },
@@ -94,7 +94,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#7e57c2', Icon: Landmark,
+    id: 'banks', label: 'Τράπεζες & Χρηματοδότηση', color: '#1a73e8', Icon: Landmark,
     roles: [
       { value: 'bank_alpha', label: 'Alpha Bank' },
       { value: 'bank_eurobank', label: 'Eurobank' },
@@ -114,7 +114,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#00897b', Icon: Shield,
+    id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#1a73e8', Icon: Shield,
     roles: [
       { value: 'ins_interamerican', label: 'Interamerican' },
       { value: 'ins_allianz', label: 'Allianz Ελλάδα' },
@@ -135,7 +135,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: '#5e35b1', Icon: Building2,
+    id: 'real_estate', label: 'Μεσιτεία & Αξιολόγηση', color: '#1a73e8', Icon: Building2,
     roles: [
       { value: 'agent', label: 'Μεσίτης Ακινήτων' },
       { value: 'appraiser', label: 'Εκτιμητής Ακινήτων' },
@@ -145,7 +145,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: '#e8710a', Icon: Wrench,
+    id: 'technical', label: 'Τεχνικοί & Μάστορες', color: '#1a73e8', Icon: Wrench,
     roles: [
       { value: 'plumber', label: 'Υδραυλικός' },
       { value: 'electrician', label: 'Ηλεκτρολόγος' },
@@ -166,7 +166,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#34a853', Icon: Trees,
+    id: 'outdoor', label: 'Εξωτερικοί Χώροι & Υπηρεσίες', color: '#1a73e8', Icon: Trees,
     roles: [
       { value: 'gardener', label: 'Κηπουρός' },
       { value: 'pool', label: 'Συντηρητής Πισίνας' },
@@ -177,7 +177,7 @@ const GROUPS = [
     ],
   },
   {
-    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#4285f4', Icon: UserCheck,
+    id: 'tenants', label: 'Ενοικιαστές & Γείτονες', color: '#1a73e8', Icon: UserCheck,
     roles: [
       { value: 'tenant', label: 'Ενοικιαστής' },
       { value: 'prev_tenant', label: 'Πρώην Ενοικιαστής' },
