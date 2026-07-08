@@ -97,7 +97,7 @@ function SecHead({ label, sub, right }: { label: string; sub?: string; right?: R
   );
 }
 
-export default function TabDocuments({ propertyId, userId }: Props) {
+export default function TabDocuments({ propertyId, userId, embedded }: Props & { embedded?: boolean }) {
   const supabase = createClient();
   const { prefs } = useAppPreferences(propertyId);
   const [tab, setTab] = useState<'photo' | 'document'>('photo');
@@ -202,12 +202,12 @@ export default function TabDocuments({ propertyId, userId }: Props) {
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       {/* Header + segmented control */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' as const }}>
-        <div>
+        {!embedded && <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.15 }}>Φωτογραφίες & Αρχείο</h1>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
             Τεκμηρίωση κατάστασης ακινήτου και αρχείο λογαριασμών, συμβολαίων και τιμολογίων ανά πάροχο και κατηγορία
           </div>
-        </div>
+        </div>}
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 4 }}>
           <button onClick={() => setTab('photo')} style={segBtn('photo')}>
             Φωτογραφίες <span style={{ fontSize: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', opacity: 0.8 }}>{photoCount}</span>
