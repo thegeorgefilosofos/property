@@ -124,8 +124,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('market_rates').select('euribor_3m,bog_housing_new,updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('energy_tariffs').select('kwh_day').eq('valid_month', month).order('kwh_day'),
       supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
-      supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
-      supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost').eq('user_id', userId),
+      supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
+      supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -226,17 +226,31 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (clientRoster.length) {
       const staysByClient = new Map<string, any[]>();
       (stayRows || []).forEach((s: any) => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
+      const nowMs = Date.now();
+      const revSince = (arr: any[], days: number) => arr.reduce((s, st) => {
+        const d = st.check_out || st.check_in; if (!d) return s;
+        const t = new Date(d).getTime(); if (isNaN(t) || (nowMs - t) > days * 86400000 || t > nowMs) return s;
+        return s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0));
+      }, 0);
       const cLines = clientRoster.slice(0, 50).map((c: any) => {
-        const cs = clientStats(staysByClient.get(c.id) || []);
+        const arr = staysByClient.get(c.id) || [];
+        const cs = clientStats(arr);
+        const lastBooking = arr.map((s: any) => s.check_in).filter(Boolean).sort().slice(-1)[0] || null;
+        const lastNote = arr.slice().sort((a: any, b: any) => String(a.check_in || '').localeCompare(String(b.check_in || ''))).map((s: any) => s.notes).filter((n: any) => n && String(n).trim()).slice(-1)[0];
         const bits: string[] = [c.full_name, CLIENT_TYPE_LABELS[c.type as ClientType] || c.type];
+        if (c.vip) bits.push('VIP');
+        if (cs.stayCount >= 2) bits.push('επαναλαμβανόμενος (2+ διαμονές)');
         if (c.phone) bits.push(`τηλ ${c.phone}`);
         if (c.afm) bits.push(`ΑΦΜ ${c.afm}`);
         if (typeof c.rating === 'number') bits.push(`βαθμολογία ${c.rating}/5`);
-        if (cs.stayCount) bits.push(`${cs.stayCount} διαμονές, ${cs.nights} νύχτες, έσοδα ${eur(cs.revenue)}${cs.lastVisit ? `, τελευταία ${cs.lastVisit}` : ''}`);
+        if (cs.stayCount) bits.push(`${cs.stayCount} διαμονές, ${cs.nights} νύχτες, συνολικά έσοδα ${eur(cs.revenue)}`);
+        if (cs.stayCount) bits.push(`έσοδα: τελευταίος μήνας ${eur(revSince(arr, 30))}, εξάμηνο ${eur(revSince(arr, 182))}, έτος ${eur(revSince(arr, 365))}`);
+        if (lastBooking) bits.push(`τελευταία κράτηση ${lastBooking}`);
         if (cs.hasDamage) bits.push(`φθορές ${eur(cs.damageTotal)}`);
         if (c.do_not_rent) bits.push('ΠΡΟΣΟΧΗ/μαύρη λίστα');
         if (c.budget) bits.push(`προϋπολογισμός ${eur(c.budget)}`);
         if (c.needs) bits.push(`ανάγκες: ${c.needs}`);
+        if (lastNote) bits.push(`σημείωση τελευταίας διαμονής: «${String(lastNote).slice(0, 160)}»`);
         return `• ${bits.filter(Boolean).join(' · ')}`;
       });
       const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα Πελατολόγιο)` : '';

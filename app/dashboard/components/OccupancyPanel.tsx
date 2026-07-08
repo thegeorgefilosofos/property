@@ -85,18 +85,18 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
             <span style={{ width: 40, height: 24, borderRadius: 12, padding: 2, flexShrink: 0, background: d.shortTerm ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
               <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: d.shortTerm ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
             </span>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 600 }}>Βραχυχρόνια μίσθωση (Airbnb / επιπλωμένο)</span>
+            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 600 }}>Βραχυχρόνια μίσθωση (Airbnb / Booking)</span>
           </button>
 
           {d.shortTerm && (
             <>
               {/* ── Βασικά στοιχεία, ενιαία πεδία ─────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12, marginBottom: 18 }}>
-                <TextInput label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)" value={d.ama} onChange={v => upd({ ama: v })} placeholder="π.χ. 0000000000000" />
+                <TextInput label="Αριθμός Μητρώου (ΑΜΑ)" value={d.ama} onChange={v => upd({ ama: v })} placeholder="π.χ. 0000000000000" />
                 <NumberInput label="Τιμή ανά νύχτα" value={d.nightlyRate} onChange={v => upd({ nightlyRate: v })} suffix="€" step={5} placeholder="60" />
                 <NumberInput label="Προμήθεια πλατφόρμας" value={d.platformFeePct} onChange={v => upd({ platformFeePct: v })} suffix="%" step={1} max={100} />
                 <NumberInput label="Καθαρισμός ανά διαμονή" value={d.cleaningPerStay} onChange={v => upd({ cleaningPerStay: v })} suffix="€" step={5} />
-                <NumberInput label="Μέσες νύχτες ανά κράτηση" value={d.avgNightsPerStay} onChange={v => upd({ avgNightsPerStay: v })} suffix="νύχτ" step={1} min={1} />
+                <NumberInput label="Μέσες νύχτες ανά κράτηση" value={d.avgNightsPerStay} onChange={v => upd({ avgNightsPerStay: v })} suffix="νύχτες" step={1} min={1} />
               </div>
 
               {/* ── Νύχτες με κράτηση ανά μήνα ───────────────────────────── */}

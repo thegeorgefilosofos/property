@@ -366,6 +366,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
   const [selMonth, setSelMonth] = useState(now.getMonth()); // 0-indexed, επιλεγμένος μήνας στο γράφημα δαπανών
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [allExpenses, setAllExpenses] = useState<{ amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]>([]);
+  const [chartYear, setChartYear] = useState(now.getFullYear()); // έτος γραφήματος δαπανών (προηγ./επόμενο)
+  const [yearMenu, setYearMenu] = useState(false);
   const [bills, setBills] = useState<Bill[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -376,7 +379,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs }] = await Promise.all([
+    const [{ data:exp },{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },{ data:allExp }] = await Promise.all([
       supabase.from('expenses').select('*').eq('property_id',prop.id).eq('user_id',userId).gte('date',`${year}-01-01`),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(5),
@@ -385,9 +388,12 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select('amount,rate,years').eq('property_id',prop.id).eq('user_id',userId),
       supabase.from('client_stays').select('check_in,check_out,total,nights,nightly_rate').eq('property_id',prop.id).eq('user_id',userId),
+      // Χωριστά: ΟΛΕΣ οι δαπάνες (κάθε έτους) για το γράφημα με επιλογή έτους.
+      // Οι επαναλαμβανόμενες (πάγιες) προβάλλονται στους επόμενους μήνες/έτη.
+      supabase.from('expenses').select('amount,date,category,is_recurring,recurring_frequency').eq('property_id',prop.id).eq('user_id',userId),
     ]);
     setExpenses(exp||[]); setBills(bil||[]); setTasks(tsk||[]); setTenant(ten?.[0]||null);
-    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setLoading(false);
+    setChk(ci||[]); setInv(iv||[]); setLoans(ln||[]); setHostStays(hs||[]); setAllExpenses(allExp||[]); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, userId, year]);
 
@@ -408,6 +414,10 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   }, [prop.id, load]);
 
   const totalExpYTD = expenses.reduce((s,e)=>s+e.amount,0);
+  // Τάση δαπανών σε σχέση με πέρσι (από όλο το ιστορικό), για ένδειξη στο KPI.
+  const expThisY = allExpenses.filter(e => new Date(e.date).getFullYear() === year).reduce((s,e)=>s+e.amount,0);
+  const expPrevY = allExpenses.filter(e => new Date(e.date).getFullYear() === year-1).reduce((s,e)=>s+e.amount,0);
+  const expDeltaPct = expPrevY > 0 ? Math.round((expThisY - expPrevY)/expPrevY*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
   const paidExpYTD = expenses.filter(e => (e as any).paid !== false).reduce((s,e)=>s+e.amount,0);
@@ -428,17 +438,37 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   const hostingNights = hostStays.filter(s=>((s.check_in||s.check_out||'').slice(0,4))===String(year)).reduce((sum,s)=>sum+(s.nights ?? 0),0);
   const nextArrival = hostStays.map(s=>s.check_in).filter((d): d is string => !!d && d>=todayIso).sort()[0] || null;
   const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαϊ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+  const MONTHS_LONG = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+  // Γράφημα: δαπάνες του ΕΠΙΛΕΓΜΕΝΟΥ έτους (chartYear). Οι μη επαναλαμβανόμενες
+  // μετρούν στον μήνα της ημερομηνίας τους· οι επαναλαμβανόμενες (πάγιες, μόνο
+  // εφόσον ο χρήστης τις έχει σημάνει) προβάλλονται από την έναρξή τους και μετά,
+  // ανάλογα με τη συχνότητα. Καμία εφεύρεση, μόνο ό,τι έχει καταχωρήσει ο χρήστης.
+  const occMonths = (e: { date:string; is_recurring?:boolean; recurring_frequency?:string|null }, y: number): number[] => {
+    const d = new Date(e.date); const sy = d.getFullYear(); const sm = d.getMonth();
+    if (!e.is_recurring) return sy === y ? [sm] : [];
+    if (y < sy) return [];
+    const step = e.recurring_frequency === 'annual' ? 12 : e.recurring_frequency === 'biannual' ? 6 : e.recurring_frequency === 'quarterly' ? 3 : 1;
+    const out: number[] = [];
+    for (let m = 0; m < 12; m++) { const abs = (y - sy) * 12 + m - sm; if (abs >= 0 && abs % step === 0) out.push(m); }
+    return out;
+  };
   const monthlyExp = Array(12).fill(0);
-  expenses.forEach(e => { monthlyExp[new Date(e.date).getMonth()] += e.amount; });
+  allExpenses.forEach(e => { occMonths(e, chartYear).forEach(m => { monthlyExp[m] += e.amount; }); });
   const maxExp = Math.max(...monthlyExp, 1);
+  // Κατηγορίες τρέχοντος έτους (για την αναφορά PDF)
   const catMap: Record<string,number> = {};
   expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  // Κατηγορίες για τον επιλεγμένο μήνα (πίνακας δεξιά από το γράφημα)
+  // Κατηγορίες για τον επιλεγμένο μήνα του chartYear (πίνακας δεξιά από το γράφημα)
   const selCatMap: Record<string,number> = {};
-  expenses.forEach(e => { if (new Date(e.date).getMonth() === selMonth) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
+  allExpenses.forEach(e => { if (occMonths(e, chartYear).includes(selMonth)) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
   const selCatEntries = Object.entries(selCatMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const selMonthTotal = monthlyExp[selMonth] || 0;
+  // Έτη για το dropdown: όσα έχουν δαπάνες + προηγούμενο/τρέχον/επόμενο, φθίνουσα.
+  const chartYears = Array.from(new Set<number>([
+    ...allExpenses.map(e => new Date(e.date).getFullYear()),
+    now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1,
+  ])).sort((a,b) => b - a);
   const catColors = ['var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)'];
 
   // ── Cross-tab live alerts, επερχόμενα γεγονότα & εκκρεμότητες ──────────────
@@ -533,13 +563,15 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent) },
           { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
           { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
-          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD) },
-          { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ημ.`):fmtEur(propValue),
+          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD),
+            sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'▲':expDeltaPct<0?'▼':''} ${Math.abs(expDeltaPct)}% σε σχέση με πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
+          { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
           <div key={i} className="kpi-card" title={(k as any).title}>
             <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
+            {(k as any).sub && <div style={{fontSize:11,fontWeight:600,marginTop:4,color:(k as any).sub.color,fontFamily:"'Inter',sans-serif"}}>{(k as any).sub.text}</div>}
           </div>
         ))}
       </div>
@@ -562,7 +594,35 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
       <div className="grid-main">
         <div className="card">
-          <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
+          <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <span><span className="section-dot"/> Δαπάνες {chartYear} ανά μήνα</span>
+            <div style={{position:'relative'}}>
+              <button type="button" onClick={()=>setYearMenu(m=>!m)} title="Άλλαξε έτος"
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:26,padding:'0 8px 0 10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                {chartYear}
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:yearMenu?'rotate(180deg)':'none',transition:'transform 0.2s',opacity:0.8}}><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {yearMenu && (
+                <>
+                  <div onClick={()=>setYearMenu(false)} style={{position:'fixed',inset:0,zIndex:40}}/>
+                  <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,zIndex:50,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--elev-3)',padding:6,minWidth:120,maxHeight:220,overflowY:'auto'}}>
+                    {chartYears.map(y => {
+                      const sel = y===chartYear; const future = y>now.getFullYear();
+                      return (
+                        <button key={y} type="button" onClick={()=>{setChartYear(y);setYearMenu(false);}}
+                          style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'100%',padding:'8px 10px',borderRadius:7,border:'none',background:sel?'var(--accent-dim)':'transparent',color:sel?'var(--accent)':'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontSize:13,fontWeight:sel?700:500,cursor:'pointer',textAlign:'left'}}
+                          onMouseEnter={e=>{if(!sel)e.currentTarget.style.background='var(--bg-hover)';}}
+                          onMouseLeave={e=>{if(!sel)e.currentTarget.style.background='transparent';}}>
+                          {y}
+                          {future && <span style={{fontFamily:"'Inter',sans-serif",fontSize:9,fontWeight:600,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.05em'}}>μελλοντικό</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
           <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
             {monthlyExp.map((v,i) => {
               const active = i===selMonth;
@@ -574,14 +634,19 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
               </button>
             );})}
           </div>
+          {chartYear > now.getFullYear() && (
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.5}}>
+              Προβολή βάσει των επαναλαμβανόμενων (πάγιων) δαπανών που έχεις καταχωρήσει. Πρόσθεσε ή σήμανε πάγιες δαπάνες στις «Δαπάνες».
+            </div>
+          )}
         </div>
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-            <span><span className="section-dot"/> Κατηγορίες Δαπανών · {MONTHS[selMonth]} {year}</span>
+            <span><span className="section-dot"/> Κατηγορίες Δαπανών · {MONTHS_LONG[selMonth]} {chartYear}</span>
             {selMonthTotal>0 && <span style={{fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
           </div>
           {selCatEntries.length===0
-            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS[selMonth]}</div>
+            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS_LONG[selMonth]} {chartYear}</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {selCatEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>

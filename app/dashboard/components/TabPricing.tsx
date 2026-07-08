@@ -42,6 +42,10 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const [touched, setTouched] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [gapTitles, setGapTitles] = useState<Set<string>>(new Set()); // κενά ήδη στο Ημερολόγιο
+  const compsKey = `pos-pricing-comps-${propertyId}`;
+  const [comps, setComps] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(compsKey) || '[]'); } catch { return []; } });
+  const [compsOpen, setCompsOpen] = useState(false);
   const loadedSettings = useRef(false);
 
   // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
@@ -63,9 +67,15 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
     }
   }, [userId, propertyId]);
 
+  // Ποια κενά έχουν ήδη υπενθύμιση στο Ημερολόγιο (για toggle προσθήκη/αφαίρεση).
+  const loadGapEvents = useCallback(async () => {
+    const { data } = await supabase.from('calendar_events').select('title').eq('property_id', propertyId).eq('source', 'pricing_gap');
+    setGapTitles(new Set((data || []).map(r => r.title as string)));
+  }, [propertyId]);
+
   useEffect(() => {
-    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings()]); setLoading(false); })();
-  }, [loadStays, loadSettings]);
+    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings(), loadGapEvents()]); setLoading(false); })();
+  }, [loadStays, loadSettings, loadGapEvents]);
 
   // ── Realtime: διαμονές, iCal, ρυθμίσεις → ζωντανή ενημέρωση ────────────────
   useEffect(() => {
@@ -76,6 +86,9 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [userId, propertyId, loadStays, loadSettings]);
+
+  // Τιμές ανταγωνισμού: τοπική αποθήκευση (βοήθημα βαθμονόμησης, ανά ακίνητο).
+  useEffect(() => { try { localStorage.setItem(compsKey, JSON.stringify(comps)); } catch { /* ignore */ } }, [comps, compsKey]);
 
   // Αρχική πρόταση βάσης (μόνο αν δεν υπάρχουν αποθηκευμένες ρυθμίσεις).
   useEffect(() => {
@@ -157,15 +170,29 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
 
-  // Ενέργεια: υπενθύμιση στο Ημερολόγιο για πλήρωση κενού.
-  const remindGap = async (g: Gap) => {
+  // Σταθερός τίτλος ανά κενό, για ταύτιση της εγγραφής στο Ημερολόγιο.
+  const gapTitle = (g: Gap) => `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`;
+
+  // Ενέργεια toggle: προσθήκη υπενθύμισης στο Ημερολόγιο ή αφαίρεσή της αν υπάρχει.
+  const toggleGap = async (g: Gap) => {
+    const title = gapTitle(g);
+    if (gapTitles.has(title)) {
+      const { error } = await supabase.from('calendar_events').delete()
+        .eq('property_id', propertyId).eq('source', 'pricing_gap').eq('title', title);
+      if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+      setGapTitles(prev => { const n = new Set(prev); n.delete(title); return n; });
+      flash('Αφαιρέθηκε από το Ημερολόγιο');
+      return;
+    }
     const rd = (() => { const wanted = addDaysIso(g.start, -5); return wanted < todayIso() ? todayIso() : wanted; })();
     const { error } = await supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId, title: `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`,
-      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'manual',
+      property_id: propertyId, user_id: userId, title,
+      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'pricing_gap',
       notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice, 0)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
     });
-    flash(error ? `Σφάλμα: ${error.message}` : 'Η υπενθύμιση προστέθηκε στο Ημερολόγιο');
+    if (error) { flash(`Σφάλμα: ${error.message}`); return; }
+    setGapTitles(prev => new Set(prev).add(title));
+    flash('Προστέθηκε στο Ημερολόγιο');
   };
   // Ενέργεια: αντιγραφή κειμένου προσφοράς last minute.
   const copyOffer = (g: Gap) => {
@@ -213,6 +240,48 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
         {savedTick > 0 && <span style={{ color: 'var(--positive)' }}>Οι ρυθμίσεις αποθηκεύτηκαν.</span>}
       </div>
 
+      {/* Βαθμονόμηση βάσης από τον ανταγωνισμό (προαιρετικό, τοπικό) */}
+      {(() => {
+        const compNums = comps.map(c => parseFloat(c)).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
+        const median = compNums.length ? (compNums.length % 2 ? compNums[(compNums.length - 1) / 2] : Math.round((compNums[compNums.length / 2 - 1] + compNums[compNums.length / 2]) / 2)) : 0;
+        const compBase = median ? Math.max(5, Math.round((median * 0.9) / 5) * 5) : 0;
+        const setComp = (i: number, v: string) => setComps(prev => { const n = [...prev]; n[i] = v; return n; });
+        return (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} onClick={() => setCompsOpen(o => !o)}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>διάμεση {fe(median, 0)}</span>}
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: compsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+              </div>
+            </div>
+            {compsOpen && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10, marginBottom: 12 }}>
+                  {[0, 1, 2, 3].map(i => (
+                    <NumberInput key={i} label={`Ανταγωνιστής ${i + 1}`} value={comps[i] || ''} onChange={v => setComp(i, v)} suffix="€" step={5} placeholder="—" />
+                  ))}
+                </div>
+                {compBase > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                      Προτεινόμενη βάση <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(compBase, 0)}</strong> / νύχτα
+                      <span style={{ color: 'var(--text-tertiary)' }}> (διάμεση − 10%, αφού η βάση αφορά καθημερινή εκτός αιχμής· η εποχή/ΣΚ προστίθενται από πάνω)</span>
+                    </div>
+                    <Btn variant="secondary" onClick={() => { mark(setBase)(compBase); const g = suggestGuardrails(compBase); mark(setMin)(g.min); mark(setMax)(g.max); }}>Χρησιμοποίησε αυτή τη βάση</Btn>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Πρόσθεσε 1-4 τιμές ανταγωνιστών (π.χ. από Airbnb/Booking για παρόμοια ακίνητα) για να δεις προτεινόμενη βάση. Αποθηκεύεται τοπικά στη συσκευή σου.</div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Φόρτωση…</div>
       ) : base <= 0 ? (
@@ -259,7 +328,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                       <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
-                      <Btn variant="ghost" onClick={() => remindGap(g)}>Υπενθύμιση</Btn>
+                      <Btn variant={gapTitles.has(gapTitle(g)) ? 'secondary' : 'ghost'} onClick={() => toggleGap(g)}>{gapTitles.has(gapTitle(g)) ? 'Προστέθηκε στο Ημερολόγιο' : 'Υπενθύμιση'}</Btn>
                     </div>
                   </div>
                 ))}

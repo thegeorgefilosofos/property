@@ -1151,7 +1151,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={g4}>
             <NumberInput label="Προμήθεια Πλατφόρμας %" value={airbnb.platform_fee} onChange={v => sa('platform_fee', v)} suffix="%" step={1} />
             <NumberInput label="Κόστος Καθαρισμού" value={airbnb.cleaning_cost} onChange={v => sa('cleaning_cost', v)} suffix="€" step={5} />
-            <NumberInput label="Καθαρισμός ανά Χ Νύχτες" value={airbnb.cleaning_per_nights} onChange={v => sa('cleaning_per_nights', v)} suffix="νύχτ" step={1} />
+            <NumberInput label="Καθαρισμός ανά Χ Νύχτες" value={airbnb.cleaning_per_nights} onChange={v => sa('cleaning_per_nights', v)} suffix="νύχτες" step={1} />
             <NumberInput label="Αποθεματικό Φθορών / έτος" value={airbnb.damage_reserve} onChange={v => sa('damage_reserve', v)} suffix="€" step={50} />
           </div>
         </div>
@@ -1165,7 +1165,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="Άλλα Έξοδα Υπηρεσιών / έτος" value={airbnb.extra_services} onChange={v => sa('extra_services', v)} suffix="€" step={50} />
           </div>
           <div style={g4}>
-            <NumberInput label="Ποδήλατα (αριθμός)" value={airbnb.bike_count} onChange={v => sa('bike_count', v)} suffix="τεμ" step={1} />
+            <NumberInput label="Ποδήλατα (αριθμός)" value={airbnb.bike_count} onChange={v => sa('bike_count', v)} suffix="τεμάχια" step={1} />
             <NumberInput label="Κόστος Ποδηλάτου ανά τεμάχιο" value={airbnb.bike_cost} onChange={v => sa('bike_cost', v)} suffix="€" step={10} />
             <NumberInput label="Συντήρηση Πισίνας / έτος" value={airbnb.pool_maintenance} onChange={v => sa('pool_maintenance', v)} suffix="€" step={50} />
             <NumberInput label="Κήπος / Ξεχορτάριασμα / έτος" value={airbnb.garden_maintenance} onChange={v => sa('garden_maintenance', v)} suffix="€" step={20} />
