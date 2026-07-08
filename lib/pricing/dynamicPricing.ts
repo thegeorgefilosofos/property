@@ -228,6 +228,73 @@ export function suggestGuardrails(base: number): { min: number; max: number } {
   return { min: round5(base * 0.6), max: round5(base * 2.2) };
 }
 
+// ── Προβολή εσόδων & κέρδος έναντι σταθερής τιμής ───────────────────────────
+// Εκτιμώμενη πληρότητα ανά εποχή (ενδεικτική· ρεαλιστική για ελληνική αγορά).
+export const OCC_BY_SEASON: Record<Season, number> = { peak: 0.90, high: 0.72, mid: 0.52, low: 0.32 };
+
+export interface Projection {
+  availableNights: number;   // διαθέσιμες νύχτες στο διάστημα (μη κλεισμένες)
+  expectedNights: number;    // αναμενόμενες κρατημένες νύχτες (εκτίμηση)
+  occPct: number;            // εκτιμώμενη πληρότητα %
+  projRevenue: number;       // προβλεπόμενα έσοδα με δυναμική τιμή
+  flatRevenue: number;       // προβλεπόμενα έσοδα με σταθερή τιμή (βάση)
+  uplift: number;            // διαφορά (€) υπέρ της δυναμικής
+  upliftPct: number;         // % βελτίωση
+}
+
+/** Προβολή εσόδων στο διάστημα, με εκτιμώμενη πληρότητα ανά εποχή. */
+export function projectRevenue(rows: DayPrice[], base: number): Projection {
+  const avail = rows.filter(r => !r.booked);
+  let exp = 0, proj = 0, flat = 0;
+  for (const r of avail) {
+    const o = OCC_BY_SEASON[r.season];
+    exp += o; proj += r.price * o; flat += base * o;
+  }
+  const uplift = Math.round(proj - flat);
+  return {
+    availableNights: avail.length,
+    expectedNights: Math.round(exp),
+    occPct: avail.length ? Math.round((exp / avail.length) * 100) : 0,
+    projRevenue: Math.round(proj),
+    flatRevenue: Math.round(flat),
+    uplift,
+    upliftPct: flat > 0 ? Math.round((uplift / flat) * 100) : 0,
+  };
+}
+
+// ── Κενές μέρες προς πλήρωση (actionable gaps) ──────────────────────────────
+export interface Gap {
+  start: string; end: string;   // end = τελευταία διαθέσιμη νύχτα (inclusive)
+  nights: number;
+  avgPrice: number;
+  fillPrice: number;            // προτεινόμενη τιμή πλήρωσης (με έκπτωση)
+  season: Season;
+  soon: boolean;                // ξεκινά εντός 14 ημερών
+  hard: boolean;                // δύσκολο κενό (κοντό & ανάμεσα σε κρατήσεις)
+}
+
+/** Εντοπίζει συνεχόμενα διαθέσιμα διαστήματα (κενά) προς πλήρωση, με προτεινόμενη τιμή. */
+export function findGaps(rows: DayPrice[], today?: string): Gap[] {
+  const gaps: Gap[] = [];
+  let i = 0;
+  while (i < rows.length) {
+    if (rows[i].booked) { i++; continue; }
+    const startIdx = i;
+    while (i < rows.length && !rows[i].booked) i++;
+    const endIdx = i - 1;
+    const run = rows.slice(startIdx, endIdx + 1);
+    const prevBooked = startIdx > 0 && rows[startIdx - 1].booked;
+    const nextBooked = endIdx < rows.length - 1 && rows[endIdx + 1].booked;
+    const start = run[0].date, end = run[run.length - 1].date;
+    const avg = Math.round(run.reduce((s, r) => s + r.price, 0) / run.length);
+    const soon = today ? (new Date(start).getTime() - new Date(today).getTime()) / 86400000 <= 14 : false;
+    const hard = run.length <= 3 && prevBooked && nextBooked;
+    const disc = hard ? 0.82 : soon ? 0.90 : 0.95; // μεγαλύτερη έκπτωση σε δύσκολα/κοντινά κενά
+    gaps.push({ start, end, nights: run.length, avgPrice: avg, fillPrice: Math.max(1, Math.round(avg * disc / 5) * 5), season: run[Math.floor(run.length / 2)].season, soon, hard });
+  }
+  return gaps;
+}
+
 // ── Ενδεικτικός πίνακας ανά μήνα (για τον AI βοηθό: γρήγορη αναφορά τιμών) ────
 export interface MonthlyIndicative { month: number; season: Season; weekday: number; weekend: number }
 /** Ενδεικτική τιμή καθημερινής/Σαββατοκύριακου ανά μήνα (χωρίς αργία/last minute). */
