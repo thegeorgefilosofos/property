@@ -7,6 +7,8 @@
 // δέχεται ένα input και επιστρέφει insights. Το `now` περνάει ρητά (ντετερμινισμός).
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { vocative } from '../greekName';
+
 export type InsightKind = 'urgent' | 'attention' | 'opportunity' | 'positive';
 
 export interface Insight {
@@ -168,6 +170,6 @@ export function computeInsights(input: InsightInput): Insight[] {
 export function greeting(now: number, name?: string | null): string {
   const h = new Date(now).getHours();
   const part = h < 5 ? 'Καλό ξημέρωμα' : h < 12 ? 'Καλημέρα' : h < 18 ? 'Καλησπέρα' : 'Καλό βράδυ';
-  const who = name && name.trim() ? `, ${name.trim().split(' ')[0]}` : '';
+  const who = name && name.trim() ? `, ${vocative(name)}` : '';
   return `${part}${who}`;
 }

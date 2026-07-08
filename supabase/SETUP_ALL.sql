@@ -143,6 +143,7 @@ create table if not exists public.billing_profiles (
   user_id       uuid primary key references auth.users(id) on delete cascade,
   doc_type      text        default 'receipt',   -- receipt (Απόδειξη) | invoice (Τιμολόγιο)
   full_name     text,
+  owner_name    text,                             -- μικρό/εμφανιζόμενο όνομα ιδιοκτήτη (προσφώνηση)
   company_name  text,
   afm           text,                             -- ΑΦΜ
   doy           text,                             -- ΔΟΥ
@@ -162,6 +163,8 @@ create table if not exists public.billing_profiles (
 );
 
 alter table public.billing_profiles enable row level security;
+-- Ιδιοκτήτης: εμφανιζόμενο όνομα προσφώνησης (idempotent για υπάρχουσες βάσεις)
+alter table public.billing_profiles add column if not exists owner_name text;
 
 drop policy if exists "own_billing_profile" on public.billing_profiles;
 create policy "own_billing_profile" on public.billing_profiles for all
