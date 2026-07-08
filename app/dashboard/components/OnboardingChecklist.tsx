@@ -2,8 +2,9 @@
 
 // ═══════════════════════════════════════════════════════════════════════════
 // OnboardingChecklist, καθοδήγηση πρώτης χρήσης. Εμφανίζεται στην Επισκόπηση
-// όσο το ακίνητο είναι «άδειο» και σβήνει μόλις ολοκληρωθούν τα βήματα (ή με
-// «Απόκρυψη», που θυμάται ανά ακίνητο). Κάθε βήμα οδηγεί στο σχετικό tab.
+// όσο το ακίνητο είναι «άδειο» και σβήνει μόνο όταν ολοκληρωθούν τα βήματα.
+// Το «Ελαχιστοποίηση» ΔΕΝ το εξαφανίζει: το μαζεύει σε μια λεπτή γραμμή που
+// μπορείς να ξανανοίξεις (η κατάσταση θυμάται ανά ακίνητο). Google-minimal.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
@@ -14,14 +15,34 @@ export interface SetupStep { key: string; label: string; hint: string; done: boo
 export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
   propertyId: string; steps: SetupStep[]; onNavigate: (tab: string) => void;
 }) {
-  const dismissKey = `pos-onboarding-${propertyId}`;
-  const [dismissed, setDismissed] = useState(() => { try { return !!localStorage.getItem(dismissKey); } catch { return false; } });
+  const minKey = `pos-onboarding-min-${propertyId}`;
+  const [minimized, setMinimized] = useState(() => { try { return !!localStorage.getItem(minKey); } catch { return false; } });
 
   const doneCount = steps.filter(s => s.done).length;
-  if (dismissed || doneCount === steps.length) return null;
+  if (doneCount === steps.length) return null; // ολοκληρώθηκε → φεύγει μόνο του
 
-  const dismiss = () => { try { localStorage.setItem(dismissKey, '1'); } catch {} setDismissed(true); };
+  const setMin = (v: boolean) => { try { v ? localStorage.setItem(minKey, '1') : localStorage.removeItem(minKey); } catch {} setMinimized(v); };
   const pct = Math.round((doneCount / steps.length) * 100);
+
+  // ── Ελαχιστοποιημένη μορφή: λεπτή γραμμή, ανοίγει με ένα κλικ ──────────────
+  if (minimized) {
+    return (
+      <button onClick={() => setMin(false)}
+        style={{ width: '100%', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
+        <div style={{ position: 'relative', width: 26, height: 26, flexShrink: 0 }}>
+          <svg width={26} height={26} viewBox="0 0 26 26" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="13" cy="13" r="11" fill="none" stroke="var(--border-subtle)" strokeWidth="2.5" />
+            <circle cx="13" cy="13" r="11" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${(pct / 100) * 69.1} 69.1`} />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Ρύθμιση ακινήτου</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 1 }}>{doneCount} από {steps.length} βήματα · πάτησε για να συνεχίσεις</div>
+        </div>
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+    );
+  }
 
   return (
     <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent-border)', background: 'var(--accent-soft)' }}>
@@ -30,7 +51,11 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
           <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ας ρυθμίσουμε το ακίνητό σου</div>
           <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount} από {steps.length} βήματα ολοκληρωμένα, λίγο ακόμα!</div>
         </div>
-        <button onClick={dismiss} title="Απόκρυψη" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 600, flexShrink: 0 }}>Απόκρυψη</button>
+        <button onClick={() => setMin(true)} title="Ελαχιστοποίηση"
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 600, flexShrink: 0, padding: 2 }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14" /></svg>
+          Ελαχιστοποίηση
+        </button>
       </div>
 
       {/* Progress */}

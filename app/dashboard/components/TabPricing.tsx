@@ -37,6 +37,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const [minStay, setMinStay] = useState(1);
   const nowYear = new Date().getFullYear();
   const [pyear, setPyear] = useState(nowYear); // έτος τιμολόγησης
+  const [showPast, setShowPast] = useState(false); // εμφάνιση περασμένων μηνών
   const [sel, setSel] = useState<DayPrice | null>(null);
   const [touched, setTouched] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
@@ -105,17 +106,20 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const bookedDates = useMemo(() => bookedDatesFromStays(stays), [stays]);
   const adr = useMemo(() => realizedAdr(stays), [stays]);
 
-  // Διάστημα: από σήμερα (αν είναι το τρέχον έτος) έως το τέλος του επιλεγμένου
-  // έτους, ώστε το ημερολόγιο να φτάνει μέχρι 31 Δεκεμβρίου του έτους.
-  const range = useMemo(() => {
-    const from = pyear === nowYear ? todayIso() : `${pyear}-01-01`;
-    const to = `${pyear}-12-31`;
-    const days = Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000) + 1);
+  // Όλο το έτος (Ιαν–Δεκ) για το ημερολόγιο. Οι υπολογισμοί (έσοδα/πληρότητα/
+  // κενά) γίνονται μόνο στις ΜΕΛΛΟΝΤΙΚΕΣ ημέρες· οι περασμένοι μήνες μπορούν να
+  // εμφανιστούν στο ημερολόγιο αλλά μένουν κρυμμένοι από προεπιλογή.
+  const yearDays = useMemo(() => {
+    const from = `${pyear}-01-01`;
+    const days = Math.max(1, Math.round((new Date(`${pyear}-12-31`).getTime() - new Date(from).getTime()) / 86400000) + 1);
     return { from, days };
-  }, [pyear, nowYear]);
-  const rows = useMemo(() => base > 0
-    ? recommendPrices(range.from, range.days, { base, min: min || undefined, max: max || undefined, stays, bookedDates, today: todayIso(), weekendPremium: wknd / 100 })
-    : [], [base, min, max, range, stays, bookedDates, wknd]);
+  }, [pyear]);
+  const yearRows = useMemo(() => base > 0
+    ? recommendPrices(yearDays.from, yearDays.days, { base, min: min || undefined, max: max || undefined, stays, bookedDates, today: todayIso(), weekendPremium: wknd / 100 })
+    : [], [base, min, max, yearDays, stays, bookedDates, wknd]);
+  // Μελλοντικές ημέρες (για KPIs/προβολή/κενά): από σήμερα και μετά για το τρέχον
+  // έτος, όλες για μελλοντικά έτη.
+  const rows = useMemo(() => pyear === nowYear ? yearRows.filter(r => r.date >= todayIso()) : yearRows, [yearRows, pyear, nowYear]);
 
   const sum = useMemo(() => summarize(rows), [rows]);
   // Πληρότητα: προσωπική από το ιστορικό σου (αν υπάρχει αρκετό), αλλιώς βάση.
@@ -140,11 +144,16 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const norm = (p: number) => { const { lo, hi } = priceRange; return hi <= lo ? 0.5 : Math.max(0, Math.min(1, (p - lo) / (hi - lo))); };
   const fillOpacity = (t: number) => 0.05 + Math.pow(t, 1.25) * 0.93;
 
+  // Ομαδοποίηση όλου του έτους ανά μήνα (για το ημερολόγιο).
   const months = useMemo(() => {
     const m = new Map<string, DayPrice[]>();
-    rows.forEach(r => { const k = r.date.slice(0, 7); const a = m.get(k) || []; a.push(r); m.set(k, a); });
+    yearRows.forEach(r => { const k = r.date.slice(0, 7); const a = m.get(k) || []; a.push(r); m.set(k, a); });
     return [...m.entries()];
-  }, [rows]);
+  }, [yearRows]);
+  const todayMonth = todayIso().slice(0, 7);
+  const isPastMonth = (key: string) => pyear === nowYear && key < todayMonth;
+  const pastCount = useMemo(() => months.filter(([k]) => isPastMonth(k)).length, [months, pyear, nowYear]);
+  const visibleMonths = useMemo(() => months.filter(([k]) => showPast || !isPastMonth(k)), [months, showPast, pyear, nowYear]);
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
 
@@ -260,9 +269,10 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
 
           {/* Ημερολόγιο-heatmap */}
           <div style={{ marginTop: 24 }}>
-            <SecHdr label="Ημερολόγιο τιμών" sub="Πιο σκούρο μπλε = υψηλότερη προτεινόμενη τιμή. Πάτησε μια ημέρα για ανάλυση." />
+            <SecHdr label="Ημερολόγιο τιμών" sub="Πιο σκούρο μπλε = υψηλότερη προτεινόμενη τιμή. Πάτησε μια ημέρα για ανάλυση."
+              right={pastCount > 0 ? <button onClick={() => setShowPast(v => !v)} style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-secondary)', cursor: 'pointer' }}>{showPast ? 'Κρύψε προηγούμενους μήνες' : `Δείξε προηγούμενους μήνες (${pastCount})`}</button> : undefined} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-              {months.map(([key, days]) => {
+              {visibleMonths.map(([key, days]) => {
                 const [yy, mm] = key.split('-').map(Number);
                 const firstDow = new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay();
                 const lead = (firstDow + 6) % 7;
@@ -278,9 +288,10 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                         const dayNum = i + 1;
                         const d = byDay.get(dayNum);
                         if (!d) return <div key={dayNum} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--bg-base)', opacity: 0.4 }} />;
-                        const t = norm(d.price);
-                        const strong = t > 0.5 && !d.booked;        // λευκά ψηφία σε σκούρο φόντο
-                        const top = t > 0.82 && !d.booked;          // κορυφαία αιχμή: έξτρα έμφαση
+                        const past = pyear === nowYear && d.date < todayIso();
+                        const t = past ? 0 : norm(d.price);
+                        const strong = !past && t > 0.5 && !d.booked;   // λευκά ψηφία σε σκούρο φόντο
+                        const top = !past && t > 0.82 && !d.booked;     // κορυφαία αιχμή: έξτρα έμφαση
                         return (
                           <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''}
                             aria-label={`${fd(d.date)}: ${d.booked ? 'ήδη κλεισμένη' : `προτεινόμενη τιμή ${fe(d.price, 0)}`}${d.holidayName ? `, ${d.holidayName}` : ''}`}
@@ -290,9 +301,9 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,
                             boxShadow: top ? '0 2px 10px -2px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                            transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0,
+                            transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0, opacity: past ? 0.4 : 1,
                           }}>
-                            {!d.booked && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
+                            {!d.booked && !past && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
                             <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'rgba(255,255,255,0.9)' : 'var(--text-tertiary)' }}>{dayNum}</span>
                             <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? '#fff' : 'var(--text-primary)' }}>
                               {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
