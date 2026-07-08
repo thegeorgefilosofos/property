@@ -458,7 +458,10 @@ alter table public.user_properties add column if not exists enfia numeric;
 alter table public.user_properties add column if not exists purchase_price numeric;
 alter table public.user_properties add column if not exists purchase_date date;
 alter table public.user_properties add column if not exists year_built integer;
-alter table public.user_properties add column if not exists floor integer;
+alter table public.user_properties add column if not exists floor text;
+-- Αν το floor προϋπήρχε ως integer (παλιότερη έκδοση), μετέτρεψέ το σε text
+-- ώστε να δέχεται ονομασίες ορόφων (Ισόγειο, Υπόγειο, Δώμα κ.λπ.). Idempotent.
+do $$ begin alter table public.user_properties alter column floor type text using floor::text; exception when others then null; end $$;
 alter table public.user_properties add column if not exists pea_class text;
 alter table public.user_properties add column if not exists heating text;
 alter table public.user_properties add column if not exists parking_spaces integer;
