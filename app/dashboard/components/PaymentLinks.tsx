@@ -24,7 +24,7 @@ const BANKS: LinkItem[] = [
   { label: 'Alpha Bank', sub: 'e-banking', url: 'https://www.alpha.gr/el/idiotes' },
   { label: 'Eurobank', sub: 'e-banking', url: 'https://ebanking.eurobank.gr/' },
   { label: 'Optima bank', sub: 'e-banking', url: 'https://www.optimabank.gr' },
-  { label: 'Credia Bank', sub: 'e-banking', url: 'https://www.crediabank.gr' },
+  { label: 'CrediaBank', sub: 'e-banking', url: 'https://www.crediabank.com' },
   { label: 'Revolut', sub: 'e-banking', url: 'https://www.revolut.com' },
 ];
 
