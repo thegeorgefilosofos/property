@@ -662,3 +662,16 @@ drop policy if exists own_client_notes on public.client_notes;
 create policy own_client_notes on public.client_notes for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 do $$ begin alter publication supabase_realtime add table public.client_stays; exception when duplicate_object then null; when others then raise notice 'rt client_stays skip: %', sqlerrm; end $$;
 do $$ begin alter publication supabase_realtime add table public.client_notes; exception when duplicate_object then null; when others then raise notice 'rt client_notes skip: %', sqlerrm; end $$;
+
+-- ── Έγγραφα ανά πελάτη (metadata· αρχεία στο υπάρχον bucket property-files) ──
+create table if not exists public.client_documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_id uuid not null references public.clients(id) on delete cascade,
+  name text not null, file_path text not null, mime text, size bigint,
+  kind text default 'other', created_at timestamptz not null default now()
+);
+create index if not exists client_documents_client_idx on public.client_documents(client_id);
+alter table public.client_documents enable row level security;
+drop policy if exists own_client_documents on public.client_documents;
+create policy own_client_documents on public.client_documents for all using (user_id = auth.uid()) with check (user_id = auth.uid());
