@@ -165,12 +165,14 @@ interface Props {
   onSaveToCalendar:(monthly:number,years:number,startDate:string,bankName:string)=>Promise<void>
   onSaveToExpenses:(monthly:number,bankName:string)=>Promise<void>
   onStateChange?:(s:any)=>void
+  // Αρχικές τιμές από το πραγματικό ακίνητο του χρήστη (προαιρετικά).
+  initial?:{loanAmount?:string;propValue?:string;sqm?:string}
 }
 
-export default function TabLoanCalculator({propertyId,userId,market,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange}:Props) {
-  const [loanAmount,  setLoanAmount]  = useState('150000')
-  const [propValue,   setPropValue]   = useState('185000')
-  const [sqm,         setSqm]         = useState('80')
+export default function TabLoanCalculator({propertyId,userId,market,initial,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange}:Props) {
+  const [loanAmount,  setLoanAmount]  = useState(initial?.loanAmount || '150000')
+  const [propValue,   setPropValue]   = useState(initial?.propValue || '185000')
+  const [sqm,         setSqm]         = useState(initial?.sqm || '80')
   const [propType,    setPropType]    = useState('residence')
   const [area,        setArea]        = useState('attica_center_std')
   const [rate,        setRate]        = useState('3.50')

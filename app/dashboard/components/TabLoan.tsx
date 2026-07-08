@@ -66,8 +66,11 @@ interface CalcState {
   rateType:RateType;effectiveRate:number;monthly:number;totalInterest:number;propertyValue:number
 }
 
-export default function TabLoan({propertyId,userId}:{propertyId:string;userId:string}) {
+export default function TabLoan({propertyId,userId,propertyValue,propertyRent,propertySqm,propertyYearBuilt}:{propertyId:string;userId:string;propertyValue?:number;propertyRent?:number;propertySqm?:number;propertyYearBuilt?:number}) {
   const supabase = createClient()
+  // Πραγματικά στοιχεία του ακινήτου του χρήστη (αντί για γενικές προεπιλογές).
+  const initValue  = propertyValue && propertyValue > 0 ? Math.round(propertyValue) : 200000
+  const initAmount = propertyValue && propertyValue > 0 ? Math.round(propertyValue * 0.8) : 150000
   const [tab,setTab] = useState<'calculator'|'banks'|'programs'|'advisor'|'guide'|'saved'>('calculator')
   const [saved,setSaved] = useState<SavedLoan[]>([])
   const [filterSpiti,setFS] = useState(false)
@@ -81,9 +84,9 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
   const PROGRAMS = livePrograms.length ? livePrograms : PROGRAMS_STATIC
 
   const [calcState,setCalcState] = useState<CalcState>({
-    loanType:'purchase',borrowerType:'individual',loanAmount:150000,
+    loanType:'purchase',borrowerType:'individual',loanAmount:initAmount,
     years:25,rateType:'fixed',effectiveRate:3.5,
-    monthly:calcMonthly(150000,3.5,25),totalInterest:0,propertyValue:200000,
+    monthly:calcMonthly(initAmount,3.5,25),totalInterest:0,propertyValue:initValue,
   })
 
   const [advType,setAdvType] = useState<LoanType>('purchase')
@@ -188,6 +191,10 @@ export default function TabLoan({propertyId,userId}:{propertyId:string;userId:st
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
           market={{euribor_3m:market.euribor_3m,euribor_1m:market.euribor_1m,ecb_rate:market.ecb_rate,updated_at:market.updated_at}}
+          initial={{
+            loanAmount:String(initAmount), propValue:String(initValue),
+            sqm: propertySqm && propertySqm>0 ? String(Math.round(propertySqm)) : undefined,
+          }}
           onSaveLoan={handleSaveLoan}
           onSaveToCalendar={handleSaveCal}
           onSaveToExpenses={handleSaveExp}
