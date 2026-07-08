@@ -17,17 +17,20 @@ import { annuityMonthly } from '@/lib/loans/recommend';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
 import {
-  type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
+  type AssistantIdentity, type Gender, type Memory, type AssistantAction, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
   loadHistory, saveHistory, clearHistory,
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
+import { classifyExpense } from '@/lib/expenses/classify';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
 interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
-type Action = { type: 'go'; tab: string } | { type: 'scan' } | { type: 'book'; title: string; date: string } | { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string };
+type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
+// Ελαφρύ ευρετήριο πελατών για να «βρίσκει» ο βοηθός από όνομα/τηλέφωνο/ΑΦΜ.
+type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
 
 const eur = (n?: number | null) => n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`;
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
@@ -57,6 +60,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
+  const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (VIP, check-in)
 
   // Ταυτότητα από localStorage (μία φορά)
   useEffect(() => {
@@ -223,6 +227,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε ο βοηθός να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
     const clientRoster = clientRows || [];
+    clientsRef.current = clientRoster.map((c: any) => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || ''), vip: !!c.vip }));
     if (clientRoster.length) {
       const staysByClient = new Map<string, any[]>();
       (stayRows || []).forEach((s: any) => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
@@ -266,7 +271,75 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'go') onNavigate(a.tab);
     else if (a.type === 'book') { bookAppointment(a.title, a.date); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
     else if (a.type === 'client') { registerClient(a); return; }
+    else if (a.type === 'expense') { registerExpense(a.description, a.amount); return; }
+    else if (a.type === 'vip') { toggleVip(a.who); return; }
+    else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     if (!keepOpen) setOpen(false);
+  };
+
+  // Βρες πελάτη από όνομα/τηλέφωνο/ΑΦΜ (ανεκτικό: μερικό όνομα, ψηφία τηλεφώνου).
+  const findClient = (who: string): ClientLite | null => {
+    const q = (who || '').trim().toLowerCase();
+    if (!q) return null;
+    const digits = q.replace(/\D/g, '');
+    const list = clientsRef.current;
+    if (digits.length >= 6) {
+      const byNum = list.find(c => c.afm.replace(/\D/g, '') === digits || c.phone.replace(/\D/g, '').endsWith(digits));
+      if (byNum) return byNum;
+    }
+    const exact = list.find(c => c.name.toLowerCase() === q);
+    if (exact) return exact;
+    const partial = list.filter(c => c.name.toLowerCase().includes(q));
+    return partial.length === 1 ? partial[0] : null;   // αν είναι διφορούμενο, μη μαντεύεις
+  };
+
+  // Καταχώρηση δαπάνης με μία φράση: η κατηγορία/ομάδα προκύπτει αυτόματα.
+  const registerExpense = async (description: string, amount: number) => {
+    const { group, category, deductible } = classifyExpense(description);
+    try {
+      await supabase.from('expenses').insert({
+        property_id: propertyId, user_id: userId,
+        description: description.slice(0, 120), amount,
+        category, expense_group: group,
+        date: new Date().toISOString().split('T')[0],
+        paid_by: 'owner', payment_method: 'cash', paid: true,
+      });
+      setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε ο βοηθός να «ξέρει» τη νέα δαπάνη
+      loadContext();
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Θέλεις να την ανοίξω για να προσθέσεις απόδειξη ή ΦΠΑ;`, action: { type: 'go', tab: 'expenses' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τη δαπάνη τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Δαπάνες.' }]);
+    }
+  };
+
+  // Εναλλαγή VIP σε υπάρχοντα πελάτη.
+  const toggleVip = async (who: string) => {
+    const c = findClient(who);
+    if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα ποιον πελάτη εννοείς με «${who}». Πες μου το ακριβές όνομα ή το τηλέφωνο, ή δες το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
+    const next = !c.vip;
+    try {
+      await supabase.from('clients').update({ vip: next }).eq('id', c.id).eq('user_id', userId);
+      c.vip = next; setClientsStr(''); loadContext();
+      setMsgs(m => [...m, { role: 'assistant', text: next ? `Έγινε. Σήμανα τον/την «${c.name}» ως VIP. Θα εμφανίζεται στο φίλτρο VIP του πελατολογίου.` : `Έγινε. Αφαίρεσα το VIP από τον/την «${c.name}».`, action: { type: 'go', tab: 'clients' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το αλλάξω τώρα. Δοκίμασε από το πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
+    }
+  };
+
+  // Δημιουργία/αντιγραφή συνδέσμου pre-check-in για πελάτη.
+  const makeCheckinLink = async (who: string) => {
+    const c = findClient(who);
+    if (!c) { setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα ξεκάθαρα τον πελάτη «${who}». Πες μου ακριβές όνομα ή τηλέφωνο, ή άνοιξε το πελατολόγιο.`, action: { type: 'go', tab: 'clients' } }]); return; }
+    try {
+      const { data } = await supabase.from('checkin_links').upsert({ user_id: userId, client_id: c.id, property_id: propertyId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle();
+      if (data?.token) {
+        const url = `${window.location.origin}/checkin/${data.token}`;
+        try { await navigator.clipboard.writeText(url); } catch { /* το εμφανίζουμε ούτως ή άλλως */ }
+        setMsgs(m => [...m, { role: 'assistant', text: `Έτοιμο. Αντέγραψα τον σύνδεσμο check-in για τον/την «${c.name}». Στείλ' τον στον επισκέπτη σε WhatsApp ή Viber:\n${url}`, action: { type: 'go', tab: 'clients' } }]);
+      } else throw new Error('no token');
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στο πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
+    }
   };
 
   // Καταχώρηση νέου πελάτη στο Πελατολόγιο (από τον βοηθό, με φωνή ή κείμενο).
@@ -361,8 +434,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       }
       setInput((finalText + interim).trim());
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => { setListening(false); const t = finalText.trim(); if (t) { setInput(''); ask(t, true); } };
+    rec.onerror = (ev: any) => { setListening(false); if ((ev?.error || '') === 'not-allowed' || (ev?.error || '') === 'service-not-allowed') { setHandsFree(false); handsFreeRef.current = false; } };
+    rec.onend = () => {
+      setListening(false);
+      const t = finalText.trim();
+      if (t) { setInput(''); ask(t, true); }
+      // Hands-free: αν δεν πιάστηκε ομιλία (παύση/θόρυβος), ξανάνοιξε το μικρόφωνο
+      // ώστε ο κύκλος να μη «σπάει». Δεν ξεκινά αν μιλάει ο βοηθός ή ήδη ακούει.
+      else if (handsFreeRef.current) setTimeout(() => { if (handsFreeRef.current && !listeningRef.current && !(supportsTTS && window.speechSynthesis.speaking)) startListening(); }, 500);
+    };
     recRef.current = rec; setInput(''); setListening(true);
     try { rec.start(); } catch { setListening(false); }
   };
@@ -510,7 +590,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       border: m.role === 'user' ? 'none' : '1px solid var(--border-subtle)', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
                     {m.action && (
                       <button onClick={() => runAction(m.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο' : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}` : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}` : `Πήγαινε: ${navLabel(m.action.tab)}`}
+                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο'
+                          : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
+                          : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}`
+                          : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
+                          : m.action.type === 'vip' ? `Σήμανε VIP: ${m.action.who}`
+                          : m.action.type === 'checkin' ? `Σύνδεσμος check-in: ${m.action.who}`
+                          : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
                     )}

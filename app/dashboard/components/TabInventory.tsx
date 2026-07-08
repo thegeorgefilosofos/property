@@ -1394,7 +1394,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId}:TabInventoryProps) {
+export default function TabInventory({propertyId,userId,embedded}:TabInventoryProps & {embedded?:boolean}) {
   const [activeTab,setActiveTab] = useState<'overview'|'items'|'warranties'|'handover'|'maintenance'|'exports'>('overview')
   const [items,setItems] = useState<InventoryItem[]>([])
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
@@ -1481,7 +1481,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
 
-      <PageTitle
+      {!embedded && <PageTitle
         title="Απογραφή"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<>
@@ -1496,7 +1496,7 @@ export default function TabInventory({propertyId,userId}:TabInventoryProps) {
             />
           </div>
         </>}
-      />
+      />}
 
       {!loading&&(items.length===0
         ? <InfoBanner tone="info">Δεν υπάρχουν ακόμη αντικείμενα στην απογραφή. Πρόσθεσε το πρώτο αντικείμενο ή χρησιμοποίησε τη Μαζική Εισαγωγή για να ξεκινήσεις.</InfoBanner>
