@@ -21,8 +21,11 @@ const COLLECT: LinkItem[] = [
 const BANKS: LinkItem[] = [
   { label: 'Εθνική (i-bank)', sub: 'e-banking', url: 'https://ibank.nbg.gr/' },
   { label: 'Πειραιώς (winbank)', sub: 'e-banking', url: 'https://www.winbank.gr/' },
-  { label: 'Alpha Bank', sub: 'myAlpha web', url: 'https://www.alpha.gr/el/idiotes' },
+  { label: 'Alpha Bank', sub: 'e-banking', url: 'https://www.alpha.gr/el/idiotes' },
   { label: 'Eurobank', sub: 'e-banking', url: 'https://ebanking.eurobank.gr/' },
+  { label: 'Optima bank', sub: 'e-banking', url: 'https://www.optimabank.gr' },
+  { label: 'Credia Bank', sub: 'e-banking', url: 'https://www.crediabank.gr' },
+  { label: 'Revolut', sub: 'e-banking', url: 'https://www.revolut.com' },
 ];
 
 function LinkGrid({ items }: { items: LinkItem[] }) {
