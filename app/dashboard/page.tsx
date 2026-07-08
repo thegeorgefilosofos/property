@@ -121,12 +121,14 @@ const NAV_ICON: Record<string,string> = {
 };
 
 // Ομαδοποιημένη πλοήγηση, λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
+// Επαφές/Αρχείο/Εκκρεμότητες/Απογραφή ενσωματώθηκαν στην Επισκόπηση. Η Σύγκριση
+// και οι Ρυθμίσεις μένουν αυτόνομες. Καμία ομάδα «Το ακίνητο»/«Σύστημα».
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',            ids: ['overview'] },
   { label: 'Οικονομικά',  ids: ['bills','expenses','roi','pricing','loan'] },
   { label: 'Μίσθωση',     ids: ['tenant','clients','calendar'] },
-  { label: 'Το ακίνητο',  ids: ['inventory','documents','contacts','checklist','comparison'] },
-  { label: 'Σύστημα',     ids: ['settings'] },
+  { label: '',            ids: ['comparison'] },
+  { label: '',            ids: ['settings'] },
 ];
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
@@ -784,6 +786,44 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       <PortalShare propertyId={prop.id} userId={userId} />
       <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
       <PaymentLinks />
+
+      {/* Ενσωματωμένα εργαλεία ακινήτου (πρώην «Το ακίνητο») */}
+      <CollapseCard title="Επαφές" sub="Πάροχοι, τράπεζες, τεχνικοί και επαφές του ακινήτου">
+        <TabContacts propertyId={prop.id} userId={userId} embedded />
+      </CollapseCard>
+      <CollapseCard title="Αρχείο" sub="Φωτογραφίες, λογαριασμοί, συμβόλαια και τιμολόγια">
+        <TabDocuments propertyId={prop.id} userId={userId} embedded />
+      </CollapseCard>
+      <CollapseCard title="Εκκρεμότητες" sub="Λίστα ελέγχου εργασιών, προθεσμίες, πρωτόκολλα παράδοσης" badge={chk.filter(c => c.status !== 'done' && c.status !== 'skipped').length}>
+        <TabChecklist propertyId={prop.id} userId={userId} embedded />
+      </CollapseCard>
+      <CollapseCard title="Απογραφή" sub="Εξοπλισμός, αξία, εγγυήσεις και αποσβέσεις">
+        <TabInventory propertyId={prop.id} userId={userId} embedded />
+      </CollapseCard>
+    </div>
+  );
+}
+
+// Πτυσσόμενη κάρτα εργαλείου στην Επισκόπηση (ίδια αισθητική με τα υπόλοιπα
+// «Διαχείριση & Εργαλεία»). Το περιεχόμενο φορτώνεται μόνο όταν ανοίξει (lazy).
+function CollapseCard({ title, sub, badge, children }: { title: string; sub: string; badge?: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>{title}</div>
+            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {badge ? <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--negative)', color: '#fff', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>{badge > 9 ? '9+' : badge}</span> : null}
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+        </div>
+      </div>
+      {open && <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>{children}</div>}
     </div>
   );
 }

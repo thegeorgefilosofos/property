@@ -1006,7 +1006,7 @@ function GroupDivider({ group, count }: { group: typeof GROUPS[0]; count: number
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function TabContacts({ propertyId, userId }: TabContactsProps) {
+export default function TabContacts({ propertyId, userId, embedded }: TabContactsProps & { embedded?: boolean }) {
   const branding = useReportBranding(userId)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -1100,7 +1100,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
 
       {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(26,115,232,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
-      <PageTitle
+      {!embedded && <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
         right={<>
@@ -1109,7 +1109,7 @@ export default function TabContacts({ propertyId, userId }: TabContactsProps) {
           <button type="button" onClick={() => exportContactsPDF(contacts, branding)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
           <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
         </>}
-      />
+      />}
 
       {contacts.length > 0 && <KPIGrid items={kpiItems} />}
 

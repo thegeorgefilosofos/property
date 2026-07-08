@@ -1308,7 +1308,7 @@ function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { ite
 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function TabChecklist({ propertyId, userId }: TabChecklistProps) {
+export default function TabChecklist({ propertyId, userId, embedded }: TabChecklistProps & { embedded?: boolean }) {
   const [items, setItems] = useState<ChecklistItem[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -1519,7 +1519,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
         </div>
       )}
 
-      <PageTitle
+      {!embedded && <PageTitle
         title="Checklist"
         titleHint="Λίστα ελέγχου εργασιών"
         sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
@@ -1544,7 +1544,7 @@ export default function TabChecklist({ propertyId, userId }: TabChecklistProps) 
             </button>
           </div>
         }
-      />
+      />}
 
       <KPIGrid items={kpiItems} />
 
