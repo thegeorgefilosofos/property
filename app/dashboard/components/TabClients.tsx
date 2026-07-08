@@ -219,6 +219,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [reportsOpen, setReportsOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
+  const [checkins, setCheckins] = useState<any[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
+  const [checkinCopied, setCheckinCopied] = useState(false);
 
   // Εισαγωγή iCal (Airbnb/Booking): συγχρονισμός κρατήσεων/διαμονών ανά ακίνητο.
   const [icalOpen, setIcalOpen] = useState(false);
@@ -422,6 +424,19 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const patchClient = async (id: string, patch: Partial<Client>) => {
     await supabase.from('clients').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
     load();
+  };
+
+  // Pre-check-in: φόρτωση υποβολών του ανοιχτού πελάτη + δημιουργία/αντιγραφή συνδέσμου
+  useEffect(() => {
+    if (!openId) { setCheckins([]); setCheckinCopied(false); return; }
+    supabase.from('guest_checkins').select('*').eq('client_id', openId).order('created_at', { ascending: false }).then(({ data }) => setCheckins(data || []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
+  const copyCheckinLink = async () => {
+    if (!openId) return;
+    const propId = (propsByClient.get(openId) || [])[0]?.id || null;
+    const { data } = await supabase.from('checkin_links').upsert({ user_id: userId, client_id: openId, property_id: propId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle();
+    if (data?.token) { try { await navigator.clipboard.writeText(`${window.location.origin}/checkin/${data.token}`); } catch { /* ignore */ } setCheckinCopied(true); setTimeout(() => setCheckinCopied(false), 2600); }
   };
 
   const linkProperty = async (clientId: string, propId: string) => {
@@ -950,6 +965,28 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </select>
                 )}
               </div>
+            </div>
+
+            {/* Check-in επισκέπτη: σύνδεσμος για να συμπληρώσει τα στοιχεία του πριν την άφιξη */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={lbl}>Check-in επισκέπτη</div>
+                <Btn variant="secondary" onClick={copyCheckinLink}>{checkinCopied ? 'Ο σύνδεσμος αντιγράφηκε' : 'Αντιγραφή συνδέσμου'}</Btn>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: checkins.length ? 12 : 0 }}>
+                Στείλε τον σύνδεσμο στον επισκέπτη για να συμπληρώσει τα στοιχεία διαμονής του (ταυτότητα, εθνικότητα, άφιξη) πριν φτάσει.
+              </div>
+              {checkins.map(ci => (
+                <div key={ci.id} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', marginTop: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{ci.full_name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{fd(ci.created_at)}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
+                    {[ci.id_number && `Ταυτότητα ${ci.id_number}`, ci.nationality, ci.birth_date && `γεν. ${fd(ci.birth_date)}`, ci.phone, ci.arrival_date && `άφιξη ${fd(ci.arrival_date)}`, ci.guests_count && `${ci.guests_count} άτομα`, ci.accepts_rules && 'αποδοχή κανόνων'].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά) */}
