@@ -165,9 +165,9 @@ const Badge = ({label,color}:{label:string;color:string}) => (
   <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:500,fontFamily:"'Inter',sans-serif",color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
 )
 
-const EnergyBadge = ({cls}:{cls:string}) => !cls ? null : (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,color:'#fff',background:ENERGY_COLOR[cls]||'#888',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{cls}</span>
-)
+const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const c=ENERGY_COLOR[cls]||'var(--text-tertiary)'; return (
+  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,color:c,background:c+'18',border:`1px solid ${c}30`,letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{cls}</span>
+) }
 
 const DepBar = ({pct,left}:{pct:number;left:number}) => {
   const c = pct<40?'var(--positive)':pct<70?'var(--warning)':'var(--negative)'
@@ -1089,9 +1089,10 @@ function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:s
   const valid = withW.filter(i=>daysUntil(i.warranty_expiry)>90)
   const pushCal = async(item:InventoryItem) => {
     setPushing(item.id)
-    await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,event_type:'reminder',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium'})
-    setPushed(p=>new Set(p).add(item.id))
+    const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
     setPushing(null)
+    if(error){alert('Δεν μπόρεσα να προσθέσω την υπενθύμιση: '+error.message);return}
+    setPushed(p=>new Set(p).add(item.id))
   }
   const WSection = ({title,color,list}:{title:string;color:string;list:InventoryItem[]}) => list.length===0?null:(
     <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
@@ -1470,18 +1471,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).eq('user_id',userId).limit(1),
     ])
     if(iR.data){
+      // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
+      // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
       const loadedItems=iR.data.map((i:any)=>({...i,photos:i.photos||[],tags:i.tags||[]}))
       setItems(loadedItems)
-      for(const item of loadedItems){
-        const dep=calcDepreciationPct(item as InventoryItem)
-        const warranty=daysUntil(item.warranty_expiry)
-        if(dep>=100&&item.purchase_date){
-          await supabase.from('calendar_events').upsert({property_id:propertyId,user_id:userId,title:`Αντικατάσταση: ${item.name}`,description:`Πλήρης απόσβεση, εκτιμ. κόστος ${item.replacement_cost?fmtEur(item.replacement_cost):'άγνωστο'}`,event_date:new Date().toISOString().split('T')[0],event_type:'reminder',priority:'medium'},{onConflict:'property_id,title'})
-        }
-        if(warranty>=0&&warranty<=30&&item.warranty_expiry){
-          await supabase.from('calendar_events').upsert({property_id:propertyId,user_id:userId,title:`Εγγύηση λήγει: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,event_type:'reminder',priority:'high'},{onConflict:'property_id,title'})
-        }
-      }
     }
     if(rR.data)setRepairs(rR.data)
     if(hR.data)setHandovers(hR.data as InventoryHandover[])

@@ -1065,9 +1065,14 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }
   const fetchContacts = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('contacts').select('*').eq('property_id', propertyId).order('created_at', { ascending: false })
-    setContacts((data || []).map(parseContact)); setLoading(false)
-  }, [propertyId])
+    // Φέρνουμε ΟΛΕΣ τις επαφές του χρήστη και δείχνουμε: αυτές του τρέχοντος ακινήτου
+    // ΣΥΝ όσες έχουν οριστεί «όλο το χαρτοφυλάκιο» (ώστε οι επαγγελματικές επαφές
+    // χαρτοφυλακίου να εμφανίζονται πραγματικά σε κάθε ακίνητο, όχι μόνο ως ετικέτα).
+    const { data } = await supabase.from('contacts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    const parsed = (data || []).map(parseContact)
+    setContacts(parsed.filter(c => c.property_id === propertyId || c._extra?.scope === 'portfolio'))
+    setLoading(false)
+  }, [propertyId, userId])
   useEffect(() => { fetchContacts() }, [fetchContacts])
 
   const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setError(null); setModalTab('basic'); setShowModal(true) }

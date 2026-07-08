@@ -80,8 +80,10 @@ export function depreciate(item: DepreciableItem, now: number = Date.now()): Dep
     ageYears: age,
     usefulLife: life,
     bookValue: Math.round(value * remainingFraction),
-    depreciatedPct: Math.min(100, Math.round((age / life) * 100)),
-    yearsRemaining: Math.max(0, Math.round(life - age)),
+    // floor: το 100% («πλήρης απόσβεση») εμφανίζεται ΜΟΝΟ όταν age >= life, ποτέ νωρίτερα.
+    depreciatedPct: age >= life ? 100 : Math.floor((age / life) * 100),
+    // ceil: δείχνει ≥1 χρόνο όσο απομένει έστω λίγος χρόνος· 0 μόνο στο τέλος ζωής.
+    yearsRemaining: age >= life ? 0 : Math.max(1, Math.ceil(life - age)),
   }
 }
 

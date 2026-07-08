@@ -1483,7 +1483,22 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
 
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const bulkComplete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id))); setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν`) }
+  const bulkComplete = async () => {
+    const count = selected.size; if (!count) return
+    const ids = [...selected]
+    await Promise.all(ids.map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id)))
+    // Επαναλαμβανόμενες: δημιούργησε την επόμενη εμφάνιση (ίδια λογική με τη μονή ολοκλήρωση),
+    // ώστε το bulk-complete να μη «χάνει» την επανάληψη.
+    const recurring = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.recurring !== 'none' && !!it.due_date && it.status !== 'done')
+    if (recurring.length) await Promise.all(recurring.map(item => supabase.from('checklist_items').insert({
+      property_id: item.property_id, user_id: item.user_id,
+      description: item.description, category: item.category, priority: item.priority,
+      recurring: item.recurring, due_date: nextDueDate(item.due_date!, item.recurring), status: 'pending', completed: false,
+      note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+      estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+    })))
+    setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
+  }
   const bulkDelete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id))); setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`) }
 
   const stats = useMemo(() => {
