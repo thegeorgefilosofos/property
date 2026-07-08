@@ -729,6 +729,7 @@ export default function Dashboard() {
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
+  const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
@@ -831,6 +832,21 @@ export default function Dashboard() {
     setSelected(null);
     await fetchProperties(user.id);
     setNav('overview');
+  };
+
+  // Κλείσιμο σάρωσης: αν ήταν προσχέδιο από scan-to-create και δεν αποθηκεύτηκε
+  // τίποτα (κανένα έγγραφο), σβήσε το κενό ακίνητο ώστε να μη μένουν σκουπίδια.
+  const closeQuickAdd = async () => {
+    setQuickAddOpen(false);
+    const draft = scanDraftId; setScanDraftId(null);
+    if (draft && user) {
+      const { count } = await supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('property_id', draft);
+      if ((count || 0) === 0) {
+        await supabase.from('user_properties').delete().eq('id', draft).eq('user_id', user.id);
+        if (selected?.id === draft) setSelected(null);
+        await fetchProperties(user.id);
+      }
+    }
   };
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
@@ -1107,15 +1123,15 @@ export default function Dashboard() {
 
       {quickAddOpen&&user&&selected&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.44)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
-          onClick={e=>{if(e.target===e.currentTarget)setQuickAddOpen(false);}}>
+          onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
           <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
-            <button onClick={()=>setQuickAddOpen(false)} aria-label="Κλείσιμο"
+            <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
               style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
               <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
+            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>
           </div>
         </div>
       )}
@@ -1126,7 +1142,7 @@ export default function Dashboard() {
           setShowWelcome(false);
           const { data } = await supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single();
           await fetchProperties(user.id);
-          if (data) setSelected(data);
+          if (data) { setSelected(data); setScanDraftId(data.id); }
           setNav('overview'); setQuickAddOpen(true);
         }}
         onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}

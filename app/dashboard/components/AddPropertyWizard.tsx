@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn } from '@/components/Theme';
+import { DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
@@ -376,9 +377,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Τιμή Αγοράς (€)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <Field label="Ημερομηνία Αγοράς">
-                  <input style={inputStyle} type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
+                <DatePicker label="Ημερομηνία Αγοράς" value={purchaseDate} onChange={setPurchaseDate} />
+
               </div>
               <div style={grid2}>
                 <Field label="Εκτ. ΕΝΦΙΑ (€/έτος)">

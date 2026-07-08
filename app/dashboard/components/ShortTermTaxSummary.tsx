@@ -11,12 +11,14 @@ import { createClient } from '@/lib/supabase/client';
 import { T, KPIGrid, InfoBanner, SecHdr, ExportButton, fe } from '@/components/Theme';
 import { downloadCsv } from './exportCsv';
 import { STAY_CHANNEL_LABELS } from '@/lib/clients/clients';
-import { RENTAL_TAX_ROWS_2026, climateLevyRates } from '@/lib/billing/greekTax';
+import { RENTAL_TAX_ROWS_2026, climateLevyRates, rentalIncomeTax } from '@/lib/billing/greekTax';
 import { shortTermYearSummary, yearsWithStays, type TaxStay } from '@/lib/tax/shortTermTax';
+import { stayTotal } from '@/lib/clients/clients';
 
 export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId: string; userId: string }) {
   const supabase = createClient();
   const [stays, setStays] = useState<TaxStay[]>([]);
+  const [allStays, setAllStays] = useState<TaxStay[]>([]);
   const [sqm, setSqm] = useState<number | null>(null);
   const [isHouse, setIsHouse] = useState(false);
   const [propCount, setPropCount] = useState(1);
@@ -25,13 +27,15 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data }, { data: prop }, { count }] = await Promise.all([
+    const [{ data }, { data: all }, { data: prop }, { count }] = await Promise.all([
       supabase.from('client_stays').select('check_in,check_out,nights,nightly_rate,total,channel').eq('user_id', userId).eq('property_id', propertyId),
+      supabase.from('client_stays').select('check_in,total,nightly_rate,nights').eq('user_id', userId),
       supabase.from('user_properties').select('sqm,prop_type').eq('id', propertyId).maybeSingle(),
       supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     ]);
     const list = (data || []) as TaxStay[];
     setStays(list);
+    setAllStays((all || []) as TaxStay[]);
     setSqm(prop?.sqm != null ? Number(prop.sqm) : null);
     setIsHouse(['house', 'villa'].includes(String(prop?.prop_type || '')));
     setPropCount(count || 1);
@@ -53,6 +57,12 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
   const years = useMemo(() => { const ys = yearsWithStays(stays); return ys.length ? ys : [new Date().getFullYear()]; }, [stays]);
   const sum = useMemo(() => shortTermYearSummary(stays, year, { sqm, isHouse, propertyCount: propCount }), [stays, year, sqm, isHouse, propCount]);
   const levyRates = useMemo(() => climateLevyRates(sqm), [sqm]);
+  // Ενοποιημένη εικόνα: ο φόρος εισοδήματος είναι προοδευτικός στο ΣΥΝΟΛΟ των
+  // εσόδων σου, όχι ανά ακίνητο. Υπολογίζουμε τα συνολικά μεικτά βραχυχρόνιας.
+  const unified = useMemo(() => {
+    const totalGross = allStays.filter(s => (s.check_in || '').slice(0, 4) === String(year)).reduce((sum2, s) => sum2 + stayTotal(s), 0);
+    return { totalGross, totalTax: rentalIncomeTax(totalGross) };
+  }, [allStays, year]);
   const maxCh = useMemo(() => Math.max(1, ...sum.byChannel.map(c => c.revenue)), [sum]);
 
   const kpis = [
@@ -150,6 +160,15 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
               </div>
             </div>
           </div>
+
+          {propCount > 1 && unified.totalGross > 0 && (
+            <div style={{ marginTop: 16, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Ενοποιημένη εικόνα ({propCount} ακίνητα)</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Ο φόρος εισοδήματος είναι προοδευτικός στο <strong>σύνολο</strong> των εσόδων σου. Στο σύνολο των ακινήτων σου, τα μεικτά βραχυχρόνιας για το {year} είναι <strong style={{ fontFamily: T.font.num }}>{fe(unified.totalGross, 0)}</strong> και ο εκτιμώμενος φόρος εισοδήματος <strong style={{ fontFamily: T.font.num }}>{fe(unified.totalTax, 0)}</strong>. Η ανά-ακίνητο εκτίμηση παραπάνω είναι ενδεικτική κατανομή.
+              </div>
+            </div>
+          )}
 
           <InfoBanner tone="warning">
             Ενδεικτική εκτίμηση. Ο φόρος εισοδήματος υπολογίζεται προοδευτικά επί του <strong>συνολικού</strong> εισοδήματός σου από ακίνητα (εδώ εμφανίζεται επί των μεικτών αυτού του ακινήτου, πριν τυχόν εκπτώσεις δαπανών). Με 3 ή περισσότερα ακίνητα βραχυχρόνιας ενδέχεται να θεωρηθεί επιχειρηματική δραστηριότητα (ΦΠΑ, διαφορετική μεταχείριση). Πηγές: ΑΑΔΕ, ν.5073/2023. Επιβεβαίωσε πάντα με τον λογιστή σου.

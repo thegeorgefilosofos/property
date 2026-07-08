@@ -124,10 +124,24 @@ function nightsBetween(a?: string | null, b?: string | null): number {
   return Math.round((y - x) / 86400000);
 }
 
-/** Προτεινόμενη βάση από το ιστορικό: μέση ADR εκτός αιχμής (πιο συντηρητική). */
+/** Προτεινόμενη βάση από το ιστορικό: μέση πραγματική ADR. */
 export function suggestBase(stays: PricingStay[]): number {
   const adr = realizedAdr(stays);
   return adr > 0 ? Math.round(adr) : 0;
+}
+
+/**
+ * Αρχική εκτίμηση βάσης όταν ΔΕΝ υπάρχει ιστορικό, από δύο σήματα:
+ *   • μηνιαίο (μακροχρόνιο) ενοίκιο ÷ 30 × 2,2 (τυπική σχέση βραχυ/μακρο ADR)
+ *   • εμβαδόν × ~1,6 €/τ.μ./νύχτα (ενδεικτικό αστικό)
+ * Παίρνει το μεγαλύτερο διαθέσιμο σήμα, στρογγυλεμένο. Είναι αφετηρία που ο
+ * χρήστης προσαρμόζει· χωρίς τοποθεσία κάθε εκτίμηση είναι κατά προσέγγιση.
+ */
+export function suggestBaseFallback(monthlyRent?: number | null, sqm?: number | null): number {
+  const rentBased = monthlyRent && monthlyRent > 0 ? (monthlyRent / 30) * 2.2 : 0;
+  const sqmBased = sqm && sqm > 0 ? sqm * 1.6 : 0;
+  const b = Math.max(rentBased, sqmBased);
+  return b > 0 ? Math.max(5, Math.round(b / 5) * 5) : 0;
 }
 
 // ── Πληρότητα γύρω από μια ημερομηνία (demand pace) ─────────────────────────
@@ -244,12 +258,46 @@ export interface Projection {
   upliftPct: number;         // % βελτίωση
 }
 
-/** Προβολή εσόδων στο διάστημα, με εκτιμώμενη πληρότητα ανά εποχή. */
-export function projectRevenue(rows: DayPrice[], base: number): Projection {
+/** Νύχτες ανά ημερολογιακό μήνα (0..11) από όλες τις διαμονές, όλων των ετών. */
+function staysNightsByMonth(stays: PricingStay[]): number[] {
+  const out = new Array(12).fill(0);
+  for (const s of stays) {
+    if (s.check_in && s.check_out) {
+      let d = s.check_in.slice(0, 10); const end = s.check_out.slice(0, 10); let g = 0;
+      while (d < end && g++ < 400) { out[Number(d.slice(5, 7)) - 1]++; d = addDays(d, 1); }
+    } else if (s.check_in) {
+      out[new Date(s.check_in).getUTCMonth()] += (s.nights ?? 0);
+    }
+  }
+  return out;
+}
+
+/**
+ * Εκτιμώμενη πληρότητα ανά εποχή από το ΔΙΚΟ σου ιστορικό, αναμεμειγμένη με μια
+ * λογική βάση (prior). Με λίγα δεδομένα μένει κοντά στη βάση· με πολλά, κινείται
+ * προς την πραγματική σου πληρότητα. Επιστρέφει τιμές στο [0,1].
+ */
+export function estimateSeasonalOccupancy(stays: PricingStay[]): Record<Season, number> {
+  const nbm = staysNightsByMonth(stays);
+  const booked: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
+  const monthsObs: Record<Season, number> = { peak: 0, high: 0, mid: 0, low: 0 };
+  for (let m = 0; m < 12; m++) { const se = monthSeason(m); booked[se] += nbm[m]; if (nbm[m] > 0) monthsObs[se]++; }
+  const out = {} as Record<Season, number>;
+  const W = 20; // βάρος prior (σε νύχτες)
+  (['peak', 'high', 'mid', 'low'] as Season[]).forEach(se => {
+    const dataNights = booked[se];
+    const observed = Math.min(1, dataNights / (Math.max(1, monthsObs[se]) * 30.4));
+    out[se] = dataNights > 0 ? (W * OCC_BY_SEASON[se] + dataNights * observed) / (W + dataNights) : OCC_BY_SEASON[se];
+  });
+  return out;
+}
+
+/** Προβολή εσόδων στο διάστημα, με πληρότητα ανά εποχή (προσωπική ή προεπιλογή). */
+export function projectRevenue(rows: DayPrice[], base: number, occBySeason: Record<Season, number> = OCC_BY_SEASON): Projection {
   const avail = rows.filter(r => !r.booked);
   let exp = 0, proj = 0, flat = 0;
   for (const r of avail) {
-    const o = OCC_BY_SEASON[r.season];
+    const o = occBySeason[r.season];
     exp += o; proj += r.price * o; flat += base * o;
   }
   const uplift = Math.round(proj - flat);
