@@ -617,3 +617,42 @@ insert into public.loan_programs (program_id, name, icon, color, status, type_la
  ('exoikonomo_2025','Εξοικονομώ 2025','leaf','#1a73e8','ended','Επιδότηση ενεργειακής αναβάθμισης','Η αρχική προθεσμία (30/06/2026) παρήλθε, εκκρεμεί ανακοίνωση παράτασης.','Επιδότηση κουφωμάτων, μόνωσης, θέρμανσης, φωτοβολταϊκών.','Επιβεβαίωσε στο exoikonomo2025.gov.gr.','Μείωση λογαριασμών συν επιδότηση.',null,null,null,null,18,null,'Εφάπαξ',date '2026-06-30','Έληξε 30/06/2026, εκκρεμεί παράταση',false,'Ταμείο Ανάκαμψης',array['Εξοικονόμηση > 30%','Αναβάθμιση ≥ 3 κατηγορίες','ΠΕΑ πριν και μετά'],array['Εθνική','Alpha','Eurobank','Πειραιώς'],'https://exoikonomo2025.gov.gr/',date '2026-07-08'),
  ('anakainizo_noikazo','Ανακαινίζω και Νοικιάζω','key','#1a73e8','active','Επιδότηση ανακαίνισης και εγγυημένο ενοίκιο','40% επιδότηση ανακαίνισης συν εγγυημένο ενοίκιο για 5 έτη μέσω ΟΠΕΚΑ.','40% επιδότηση ανακαίνισης και ενοίκιο αγοράς από ΟΠΕΚΑ για 5 έτη.','Εγγυημένο εισόδημα, ιδανικό για επενδυτές.','Κενό ακίνητο: ανακαίνιση συν εγγυημένο εισόδημα.',15000,null,null,null,18,null,'5 έτη',null,'Τρέχον, έλεγξε στον φορέα',false,'Τρέχον',array['Κενό ακίνητο ≥ 3 έτη','Δαπάνη 5.000-40.000€','Μίσθωση μέσω ΟΠΕΚΑ','Δέσμευση 5ετίας'],array['Εθνική','Πειραιώς','Eurobank'],'https://www.opeka.gr',date '2026-07-08')
 on conflict (program_id) do update set name=excluded.name, color=excluded.color, status=excluded.status, type_label=excluded.type_label, description=excluded.description, how_it_works=excluded.how_it_works, extra_info=excluded.extra_info, savings_example=excluded.savings_example, max_amount=excluded.max_amount, max_prop_value=excluded.max_prop_value, max_ltv=excluded.max_ltv, max_sqm=excluded.max_sqm, age_min=excluded.age_min, age_max=excluded.age_max, duration_label=excluded.duration_label, deadline=excluded.deadline, deadline_label=excluded.deadline_label, deadline_urgent=excluded.deadline_urgent, total_budget=excluded.total_budget, criteria=excluded.criteria, participating_banks=excluded.participating_banks, source_url=excluded.source_url, verified_at=excluded.verified_at;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Πελατολόγιο premium: clients extra columns + client_stays + client_notes.
+-- ═══════════════════════════════════════════════════════════════════════════
+alter table public.clients add column if not exists rating integer;
+alter table public.clients add column if not exists tags text[] default '{}';
+alter table public.clients add column if not exists do_not_rent boolean default false;
+alter table public.clients add column if not exists address text;
+alter table public.clients add column if not exists id_number text;
+alter table public.clients add column if not exists nationality text;
+alter table public.clients add column if not exists budget numeric;
+alter table public.clients add column if not exists needs text;
+alter table public.clients add column if not exists source text;
+create table if not exists public.client_stays (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_id uuid not null references public.clients(id) on delete cascade,
+  property_id text, check_in date, check_out date, nights integer, guests integer,
+  nightly_rate numeric, total numeric, channel text, rating integer,
+  damages boolean default false, damage_cost numeric, damage_note text, notes text,
+  created_at timestamptz not null default now()
+);
+create index if not exists client_stays_user_idx on public.client_stays(user_id);
+create index if not exists client_stays_client_idx on public.client_stays(client_id);
+alter table public.client_stays enable row level security;
+drop policy if exists own_client_stays on public.client_stays;
+create policy own_client_stays on public.client_stays for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create table if not exists public.client_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_id uuid not null references public.clients(id) on delete cascade,
+  kind text default 'note', body text not null, created_at timestamptz not null default now()
+);
+create index if not exists client_notes_client_idx on public.client_notes(client_id);
+alter table public.client_notes enable row level security;
+drop policy if exists own_client_notes on public.client_notes;
+create policy own_client_notes on public.client_notes for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+do $$ begin alter publication supabase_realtime add table public.client_stays; exception when duplicate_object then null; when others then raise notice 'rt client_stays skip: %', sqlerrm; end $$;
+do $$ begin alter publication supabase_realtime add table public.client_notes; exception when duplicate_object then null; when others then raise notice 'rt client_notes skip: %', sqlerrm; end $$;
