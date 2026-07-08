@@ -1073,6 +1073,40 @@ body {
   color: var(--text-tertiary);
   padding: 8px 12px 4px;
 }
+/* Collapsible group header (accordion) */
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sidebar-section-header:hover { background: var(--surface-hover, rgba(128,128,128,0.08)); color: var(--text-secondary); }
+.sidebar-section-header.open { color: var(--text-secondary); }
+.sidebar-section-chevron { margin-left: auto; font-size: 10px; opacity: 0.7; }
+.sidebar-section-header.open .sidebar-section-chevron { opacity: 1; }
+.sidebar-section-badge {
+  margin-left: auto;
+  min-width: 18px; height: 18px;
+  border-radius: 9px;
+  background: var(--negative);
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 5px;
+}
+.sidebar-section-header .sidebar-section-badge + .sidebar-section-chevron { margin-left: 6px; }
 
 /* Google Navigation Drawer items */
 .sidebar-item {

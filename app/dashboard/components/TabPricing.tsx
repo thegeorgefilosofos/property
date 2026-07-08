@@ -1,21 +1,22 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Δυναμική τιμολόγηση: διαφανείς προτάσεις τιμής/νύχτα για βραχυχρόνια μίσθωση.
-// Βασίζεται στο ιστορικό διαμονών του ακινήτου (χειροκίνητο + iCal), στην
-// ελληνική εποχικότητα, στις αργίες, στην ημέρα εβδομάδας, στο lead time και
-// στην πληρότητα. Κάθε τιμή είναι εξηγήσιμη (ανάλυση παραγόντων). Οι τιμές είναι
-// ΠΡΟΤΑΣΕΙΣ: τις εφαρμόζεις εσύ στα κανάλια (Airbnb/Booking).
-// Σχεδίαση: near-monochrome μπλε, premium, Google-minimal.
+// Δυναμική τιμολόγηση (v2): διαφανείς προτάσεις τιμής/νύχτα για βραχυχρόνια
+// μίσθωση, με προβολή εσόδων και κέρδους έναντι σταθερής τιμής, εντοπισμό κενών
+// ημερών προς πλήρωση (με ενέργειες), και αποθήκευση ρυθμίσεων ανά ακίνητο.
+// Επικοινωνεί με το υπόλοιπο app σε πραγματικό χρόνο: ενημερώνεται από τις
+// διαμονές/iCal (πληρότητα) και ενημερώνει (ρυθμίσεις + υπενθυμίσεις ημερολογίου).
+// Σχεδίαση: near-monochrome μπλε, premium 3D, Google-minimal, τυποποιημένα πεδία.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, fe, fd } from '@/components/Theme';
 import { NumberInput } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import {
   recommendPrices, summarize, suggestBase, suggestGuardrails, bookedDatesFromStays,
-  realizedAdr, SEASON_LABELS, type DayPrice, type PricingStay,
+  realizedAdr, projectRevenue, findGaps, SEASON_LABELS,
+  type DayPrice, type PricingStay, type Gap,
 } from '@/lib/pricing/dynamicPricing';
 
 interface Props { propertyId: string; userId: string; propertyRent?: number; propertySqm?: number }
@@ -23,6 +24,7 @@ interface Props { propertyId: string; userId: string; propertyRent?: number; pro
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
 const MONTH_NAMES = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const todayIso = () => new Date().toISOString().slice(0, 10);
+const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
 export default function TabPricing({ propertyId, userId, propertyRent }: Props) {
   const supabase = createClient();
@@ -31,65 +33,119 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
   const [base, setBase] = useState(0);
   const [min, setMin] = useState(0);
   const [max, setMax] = useState(0);
+  const [wknd, setWknd] = useState(18);      // premium Σαββατοκύριακου (%)
+  const [minStay, setMinStay] = useState(1);
   const [horizon, setHorizon] = useState(60);
   const [sel, setSel] = useState<DayPrice | null>(null);
   const [touched, setTouched] = useState(false);
+  const [savedTick, setSavedTick] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const loadedSettings = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
+  const loadStays = useCallback(async () => {
     const { data } = await supabase.from('client_stays').select('check_in,check_out,nights,nightly_rate,total').eq('user_id', userId).eq('property_id', propertyId);
     setStays((data || []) as PricingStay[]);
-    setLoading(false);
   }, [userId, propertyId]);
 
-  useEffect(() => { load(); }, [load]);
-
-  // Πρόταση βάσης: από ADR ιστορικού· αλλιώς χοντρική εκτίμηση από μηνιαίο ενοίκιο.
-  useEffect(() => {
-    if (touched) return;
-    const fromHistory = suggestBase(stays);
-    const fallback = propertyRent ? Math.round((propertyRent / 30) * 2.2) : 0;
-    const b = fromHistory || fallback;
-    if (b > 0) {
-      setBase(b);
-      const g = suggestGuardrails(b);
-      setMin(g.min); setMax(g.max);
+  const loadSettings = useCallback(async () => {
+    const { data } = await supabase.from('pricing_settings').select('*').eq('user_id', userId).eq('property_id', propertyId).maybeSingle();
+    if (data) {
+      if (data.base != null) setBase(Number(data.base));
+      if (data.min_price != null) setMin(Number(data.min_price));
+      if (data.max_price != null) setMax(Number(data.max_price));
+      if (data.weekend_premium != null) setWknd(Math.round(Number(data.weekend_premium) * 100));
+      if (data.min_stay != null) setMinStay(Number(data.min_stay));
+      loadedSettings.current = true;
+      setTouched(true); // υπάρχουν αποθηκευμένες τιμές, μην τις παρακάμψεις με auto
     }
+  }, [userId, propertyId]);
+
+  useEffect(() => {
+    (async () => { setLoading(true); await Promise.all([loadStays(), loadSettings()]); setLoading(false); })();
+  }, [loadStays, loadSettings]);
+
+  // ── Realtime: διαμονές, iCal, ρυθμίσεις → ζωντανή ενημέρωση ────────────────
+  useEffect(() => {
+    const ch = supabase.channel('pricing-' + propertyId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_stays', filter: `user_id=eq.${userId}` }, () => loadStays())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ical_feeds', filter: `user_id=eq.${userId}` }, () => loadStays())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pricing_settings', filter: `user_id=eq.${userId}` }, () => loadSettings())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [userId, propertyId, loadStays, loadSettings]);
+
+  // Αρχική πρόταση βάσης (μόνο αν δεν υπάρχουν αποθηκευμένες ρυθμίσεις).
+  useEffect(() => {
+    if (touched || loadedSettings.current) return;
+    const b = suggestBase(stays) || (propertyRent ? Math.round((propertyRent / 30) * 2.2) : 0);
+    if (b > 0) { setBase(b); const g = suggestGuardrails(b); setMin(g.min); setMax(g.max); }
   }, [stays, propertyRent, touched]);
+
+  // ── Αποθήκευση ρυθμίσεων (debounced) ──────────────────────────────────────
+  useEffect(() => {
+    if (!touched || base <= 0) return;
+    const t = setTimeout(async () => {
+      await supabase.from('pricing_settings').upsert({
+        user_id: userId, property_id: propertyId, base, min_price: min || null, max_price: max || null,
+        weekend_premium: wknd / 100, min_stay: minStay, updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,property_id' });
+      setSavedTick(x => x + 1);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [base, min, max, wknd, minStay, touched, userId, propertyId]);
 
   const bookedDates = useMemo(() => bookedDatesFromStays(stays), [stays]);
   const adr = useMemo(() => realizedAdr(stays), [stays]);
 
   const rows = useMemo(() => base > 0
-    ? recommendPrices(todayIso(), horizon, { base, min: min || undefined, max: max || undefined, stays, bookedDates, today: todayIso() })
-    : [], [base, min, max, horizon, stays, bookedDates]);
+    ? recommendPrices(todayIso(), horizon, { base, min: min || undefined, max: max || undefined, stays, bookedDates, today: todayIso(), weekendPremium: wknd / 100 })
+    : [], [base, min, max, horizon, stays, bookedDates, wknd]);
 
   const sum = useMemo(() => summarize(rows), [rows]);
+  const projection = useMemo(() => base > 0 ? projectRevenue(rows, base) : null, [rows, base]);
+  const gaps = useMemo(() => findGaps(rows, todayIso()), [rows]);
 
   const kpis = useMemo(() => [
     { label: 'Μέση τιμή / νύχτα', value: base > 0 ? fe(sum.avg, 0) : '—', sub: 'διαθέσιμες ημέρες' },
     { label: 'Αιχμή', value: base > 0 ? fe(sum.max, 0) : '—', sub: 'υψηλότερη πρόταση' },
-    { label: 'Χαμηλότερη', value: base > 0 ? fe(sum.min, 0) : '—', sub: 'χαμηλότερη πρόταση' },
-    { label: 'Κλεισμένες', value: String(sum.bookedCount), sub: `σε ${horizon} ημέρες`, tone: 'neutral' as const },
-  ], [sum, base, horizon]);
+    { label: 'Εκτιμώμενη πληρότητα', value: projection ? projection.occPct + '%' : '—', sub: `σε ${horizon} ημέρες` },
+    { label: 'Κέρδος vs σταθερής', value: projection ? `+${fe(projection.uplift, 0)}` : '—', sub: projection ? `+${projection.upliftPct}% έσοδα` : '', tone: (projection && projection.uplift > 0 ? 'positive' : 'neutral') as 'positive' | 'neutral' },
+  ], [sum, base, horizon, projection]);
 
-  // Ένταση χρώματος heatmap: κανονικοποίηση τιμής στο [min..max] του διαστήματος.
   const priceRange = useMemo(() => {
     const avail = rows.filter(r => !r.booked).map(r => r.price);
     return { lo: avail.length ? Math.min(...avail) : 0, hi: avail.length ? Math.max(...avail) : 1 };
   }, [rows]);
-  const intensity = (p: number) => {
-    const { lo, hi } = priceRange;
-    if (hi <= lo) return 0.5;
-    return Math.max(0, Math.min(1, (p - lo) / (hi - lo)));
-  };
+  // Κανονικοποίηση 0..1. Επιστρέφει και την «οπτική» ένταση με πιο απότομη
+  // καμπύλη ώστε οι μέρες αιχμής να ξεχωρίζουν έντονα από τις χαμηλές.
+  const norm = (p: number) => { const { lo, hi } = priceRange; return hi <= lo ? 0.5 : Math.max(0, Math.min(1, (p - lo) / (hi - lo))); };
+  const fillOpacity = (t: number) => 0.05 + Math.pow(t, 1.25) * 0.93;
 
-  // Ομαδοποίηση ανά μήνα για το ημερολόγιο.
   const months = useMemo(() => {
     const m = new Map<string, DayPrice[]>();
     rows.forEach(r => { const k = r.date.slice(0, 7); const a = m.get(k) || []; a.push(r); m.set(k, a); });
     return [...m.entries()];
   }, [rows]);
+
+  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
+
+  // Ενέργεια: υπενθύμιση στο Ημερολόγιο για πλήρωση κενού.
+  const remindGap = async (g: Gap) => {
+    const rd = (() => { const wanted = addDaysIso(g.start, -5); return wanted < todayIso() ? todayIso() : wanted; })();
+    const { error } = await supabase.from('calendar_events').insert({
+      property_id: propertyId, user_id: userId, title: `Γέμισε κενές μέρες ${fd(g.start)} - ${fd(g.end)}`,
+      category: 'reminder', event_date: rd, priority: g.soon ? 'high' : 'medium', status: 'pending', source: 'manual',
+      notes: `${g.nights} κενές νύχτες. Προτεινόμενη τιμή πλήρωσης ${fe(g.fillPrice, 0)}/νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}.`,
+    });
+    flash(error ? `Σφάλμα: ${error.message}` : 'Η υπενθύμιση προστέθηκε στο Ημερολόγιο');
+  };
+  // Ενέργεια: αντιγραφή κειμένου προσφοράς last minute.
+  const copyOffer = (g: Gap) => {
+    const txt = `Τελευταία διαθεσιμότητα ${fd(g.start)} - ${fd(g.end)} (${g.nights} ${g.nights === 1 ? 'νύχτα' : 'νύχτες'}) σε ειδική τιμή ${fe(g.fillPrice, 0)} ανά νύχτα${minStay > 1 ? `, ελάχιστη διαμονή ${minStay} νύχτες` : ''}. Κλείσε τώρα, οι ημερομηνίες είναι περιορισμένες.`;
+    navigator.clipboard?.writeText(txt);
+    flash('Το κείμενο προσφοράς αντιγράφηκε');
+  };
 
   const exportCsv = () => {
     downloadCsv('dynamic-pricing.csv',
@@ -97,38 +153,38 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
       rows.map(r => [r.date, WEEKDAYS[(r.dow + 6) % 7], String(r.price), SEASON_LABELS[r.season], r.holidayName || '', r.booked ? 'Κλεισμένο' : 'Διαθέσιμο']));
   };
 
-  const setBaseManual = (v: number) => { setTouched(true); setBase(v); };
+  const mark = (fn: (v: number) => void) => (v: number) => { setTouched(true); fn(v); };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <PageTitle title="Δυναμική τιμολόγηση" titleHint="Προτεινόμενη τιμή ανά νύχτα, με βάση τα δικά σου δεδομένα και την ελληνική εποχικότητα. Τις τιμές τις εφαρμόζεις εσύ στα κανάλια."
-        sub="Διαφανείς προτάσεις τιμής: εποχή, ημέρα εβδομάδας, αργίες, ζήτηση και last minute — όλα εξηγήσιμα."
+      <PageTitle title="Δυναμική τιμολόγηση" titleHint="Προτεινόμενη τιμή ανά νύχτα με βάση τα δικά σου δεδομένα και την ελληνική εποχικότητα. Οι τιμές είναι προτάσεις, τις εφαρμόζεις εσύ στα κανάλια."
+        sub="Έσοδα, κέρδος έναντι σταθερής τιμής, κενές μέρες προς πλήρωση και ημερολόγιο τιμών — όλα εξηγήσιμα και ζωντανά."
         right={rows.length > 0 ? <ExportButton onClick={exportCsv} /> : undefined} />
 
       <InfoBanner tone="info">
-        Οι τιμές είναι <strong>προτάσεις</strong>, όχι αυτόματη αλλαγή στα κανάλια. Βασίζονται στο ιστορικό διαμονών του ακινήτου (χειροκίνητο και iCal), στη γνωστή εποχικότητα της ελληνικής αγοράς, στις αργίες, στην ημέρα της εβδομάδας και στη ζήτηση. Πάτησε μια ημέρα για να δεις πώς προκύπτει η τιμή της.
+        Οι τιμές είναι <strong>προτάσεις</strong>, όχι αυτόματη αλλαγή στα κανάλια. Βασίζονται στο ιστορικό διαμονών (χειροκίνητο και iCal), στην ελληνική εποχικότητα, στις αργίες, στην ημέρα της εβδομάδας και στη ζήτηση. Οι κλεισμένες ημέρες και οι ρυθμίσεις ενημερώνονται <strong>σε πραγματικό χρόνο</strong>. Η εκτιμώμενη πληρότητα είναι ενδεικτική.
       </InfoBanner>
 
-      {/* Ρυθμίσεις */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, margin: '18px 0' }}>
-        <NumberInput label="Βασική τιμή / νύχτα" value={base ? String(base) : ''} onChange={v => setBaseManual(Number(v) || 0)} suffix="€" />
-        <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => { setTouched(true); setMin(Number(v) || 0); }} suffix="€" />
-        <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => { setTouched(true); setMax(Number(v) || 0); }} suffix="€" />
+      {/* Ρυθμίσεις (τυποποιημένα πεδία, αποθηκεύονται αυτόματα) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, margin: '18px 0 6px' }}>
+        <NumberInput label="Βασική τιμή / νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
+        <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => mark(setMin)(Number(v) || 0)} suffix="€" />
+        <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => mark(setMax)(Number(v) || 0)} suffix="€" />
+        <NumberInput label="Premium Σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
+        <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Ορίζοντας</div>
           <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 42 }}>
             {[30, 60, 90].map(h => (
-              <button key={h} onClick={() => setHorizon(h)} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, background: horizon === h ? 'var(--accent)' : 'transparent', color: horizon === h ? '#fff' : 'var(--text-secondary)' }}>{h} ημ.</button>
+              <button key={h} onClick={() => setHorizon(h)} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, background: horizon === h ? 'var(--accent)' : 'transparent', color: horizon === h ? '#fff' : 'var(--text-secondary)' }}>{h}</button>
             ))}
           </div>
         </div>
       </div>
-
-      {adr > 0 && (
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
-          Μέση πραγματική τιμή που έχεις πετύχει (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr, 0)}</strong> / νύχτα, από {stays.length} διαμονές. Χρησιμοποιείται ως αφετηρία.
-        </div>
-      )}
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
+        {adr > 0 && <>Μέση πραγματική τιμή (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr, 0)}</strong> / νύχτα από {stays.length} διαμονές. </>}
+        {savedTick > 0 && <span style={{ color: 'var(--positive)' }}>Οι ρυθμίσεις αποθηκεύτηκαν.</span>}
+      </div>
 
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Φόρτωση…</div>
@@ -140,6 +196,50 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
         <>
           <KPIGrid items={kpis} />
 
+          {/* Προβολή εσόδων & κέρδους (3D premium) */}
+          {projection && (
+            <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
+              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 10 }}>Προβολή εσόδων ({horizon} ημέρες)</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 26, fontWeight: 800, fontFamily: T.font.num, color: 'var(--accent)' }}>{fe(projection.projRevenue, 0)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>με δυναμική τιμή</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>έναντι {fe(projection.flatRevenue, 0)} με σταθερή. Εκτίμηση {projection.expectedNights} κρατημένων νυχτών ({projection.occPct}% πληρότητα).</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 10 }}>Εκτιμώμενο επιπλέον κέρδος</div>
+                <div style={{ fontSize: 30, fontWeight: 800, fontFamily: T.font.num, color: 'var(--accent)' }}>+{fe(projection.uplift, 0)}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>+{projection.upliftPct}% έναντι σταθερής τιμής, στο ίδιο επίπεδο πληρότητας.</div>
+              </div>
+            </div>
+          )}
+
+          {/* Κενές μέρες προς πλήρωση (actionable) */}
+          {gaps.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <SecHdr label="Κενές μέρες προς πλήρωση" sub="Διαστήματα χωρίς κράτηση, με προτεινόμενη τιμή και άμεσες ενέργειες" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {gaps.slice(0, 8).map((g, i) => (
+                  <div key={i} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {fd(g.start)} - {fd(g.end)}
+                        {g.hard && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: 6, padding: '1px 6px' }}>δύσκολο κενό</span>}
+                        {g.soon && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 6, padding: '1px 6px' }}>άμεσα</span>}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>{fe(g.fillPrice, 0)}</strong>/νύχτα</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
+                      <Btn variant="ghost" onClick={() => remindGap(g)}>Υπενθύμιση</Btn>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Ημερολόγιο-heatmap */}
           <div style={{ marginTop: 24 }}>
             <SecHdr label="Ημερολόγιο τιμών" sub="Πιο σκούρο μπλε = υψηλότερη προτεινόμενη τιμή. Πάτησε μια ημέρα για ανάλυση." />
@@ -147,7 +247,7 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
               {months.map(([key, days]) => {
                 const [yy, mm] = key.split('-').map(Number);
                 const firstDow = new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay();
-                const lead = (firstDow + 6) % 7; // Δευτέρα-πρώτη
+                const lead = (firstDow + 6) % 7;
                 const byDay = new Map(days.map(d => [Number(d.date.slice(8, 10)), d]));
                 const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
                 return (
@@ -160,18 +260,21 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
                         const dayNum = i + 1;
                         const d = byDay.get(dayNum);
                         if (!d) return <div key={dayNum} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--bg-base)', opacity: 0.4 }} />;
-                        const t = intensity(d.price);
-                        const strong = t > 0.55 && !d.booked;
+                        const t = norm(d.price);
+                        const strong = t > 0.5 && !d.booked;        // λευκά ψηφία σε σκούρο φόντο
+                        const top = t > 0.82 && !d.booked;          // κορυφαία αιχμή: έξτρα έμφαση
                         return (
                           <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''} style={{
                             position: 'relative', aspectRatio: '1', borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
-                            border: sel?.date === d.date ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
+                            border: sel?.date === d.date ? '2px solid var(--accent)' : top ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,
+                            boxShadow: top ? '0 2px 10px -2px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+                            transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0,
                           }}>
-                            {!d.booked && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: 0.10 + t * 0.80 }} />}
-                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'rgba(255,255,255,0.85)' : 'var(--text-tertiary)' }}>{dayNum}</span>
-                            <span style={{ position: 'relative', fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? '#fff' : 'var(--text-primary)' }}>
+                            {!d.booked && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
+                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'rgba(255,255,255,0.9)' : 'var(--text-tertiary)' }}>{dayNum}</span>
+                            <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? '#fff' : 'var(--text-primary)' }}>
                               {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
                             </span>
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: strong ? '#fff' : 'var(--accent)' }} />}
@@ -183,7 +286,6 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
                 );
               })}
             </div>
-            {/* Υπόμνημα */}
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', alignItems: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />χαμηλή → υψηλή τιμή</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία / υψηλή ζήτηση</span>
@@ -224,6 +326,11 @@ export default function TabPricing({ propertyId, userId, propertyRent }: Props) 
             </div>
           )}
         </>
+      )}
+
+      {/* Toast ενεργειών */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--text-primary)', color: 'var(--bg-surface)', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev-3)', zIndex: 2000 }}>{toast}</div>
       )}
     </div>
   );

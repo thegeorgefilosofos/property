@@ -6,6 +6,7 @@ import { useMarketRates } from '@/app/hooks/useMarketData';
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, Toggle } from './UIComponents';
 import RentComparables from './RentComparables';
 import RentROIReport from './RentROIReport';
+import ShortTermTaxSummary from './ShortTermTaxSummary';
 import { T, fe } from '@/components/Theme';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 
@@ -1086,6 +1087,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
               </a>
             </div>
           </div>
+        </div>
+
+        <div style={cardStyle}>
+          <ShortTermTaxSummary propertyId={propertyId} userId={userId} />
         </div>
       </>)}
 

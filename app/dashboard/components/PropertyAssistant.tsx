@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T } from '@/components/Theme';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
-import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
+import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
@@ -140,11 +140,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       : '';
 
     // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
-    const priceBase = suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
+    // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
+    const { data: pset } = await supabase.from('pricing_settings').select('base,weekend_premium').eq('user_id', userId).eq('property_id', propertyId).maybeSingle();
+    const wkndPrem = pset?.weekend_premium != null ? Number(pset.weekend_premium) : 0.18;
+    const priceBase = (pset?.base != null ? Number(pset.base) : 0) || suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
     if (priceBase > 0) {
       const adrVal = realizedAdr(propStays);
       const MON = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
-      const table = indicativeMonthly(priceBase).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
+      const table = indicativeMonthly(priceBase, wkndPrem).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
       setPricingStr([
         `Βάση: ${eur(priceBase)}/νύχτα${adrVal > 0 ? ` (μέση πραγματική ADR ${eur(Math.round(adrVal))} από ${propStays.length} διαμονές)` : ' (εκτίμηση, χωρίς επαρκές ιστορικό)'}.`,
         `Ενδεικτικές τιμές ανά μήνα (καθημερινή/Σαββατοκύριακο): ${table}.`,
@@ -198,6 +201,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const kwh = (tar || []).map(r => Number((r as any).kwh_day)).filter(v => v > 0).sort((a, b) => a - b);
     if (kwh.length) mLines.push(`Τιμή ρεύματος σε σταθερά τιμολόγια αυτόν τον μήνα: από ${kwh[0].toFixed(3).replace('.', ',')} έως ${kwh[kwh.length - 1].toFixed(3).replace('.', ',')} ευρώ ανά κιλοβατώρα.`);
     mLines.push(RENTAL_TAX_SUMMARY_2026);
+    mLines.push(CLIMATE_LEVY_SUMMARY_2025);
+    mLines.push(MUNICIPAL_ACCOM_SUMMARY);
     setMarketStr(mLines.join('\n'));
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε ο βοηθός να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
