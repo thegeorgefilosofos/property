@@ -933,7 +933,7 @@ export default function Dashboard() {
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
-              {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id}/>}
+              {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
