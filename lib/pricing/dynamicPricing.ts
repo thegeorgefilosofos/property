@@ -228,6 +228,18 @@ export function suggestGuardrails(base: number): { min: number; max: number } {
   return { min: round5(base * 0.6), max: round5(base * 2.2) };
 }
 
+// ── Ενδεικτικός πίνακας ανά μήνα (για τον AI βοηθό: γρήγορη αναφορά τιμών) ────
+export interface MonthlyIndicative { month: number; season: Season; weekday: number; weekend: number }
+/** Ενδεικτική τιμή καθημερινής/Σαββατοκύριακου ανά μήνα (χωρίς αργία/last minute). */
+export function indicativeMonthly(base: number, weekendPremium = 0.18): MonthlyIndicative[] {
+  const out: MonthlyIndicative[] = [];
+  for (let m = 0; m < 12; m++) {
+    const mm = MONTH_MULT[m];
+    out.push({ month: m, season: monthSeason(m), weekday: round5(base * mm), weekend: round5(base * mm * (1 + weekendPremium)) });
+  }
+  return out;
+}
+
 /** Σύνολο κλεισμένων ημερομηνιών από διαμονές (για occupancy/pace). */
 export function bookedDatesFromStays(stays: PricingStay[]): Set<string> {
   const s = new Set<string>();

@@ -15,6 +15,7 @@ import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026 } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
+import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
 import {
   type AssistantIdentity, type Gender, type Memory, DEFAULT_IDENTITY, GENDER_OPTIONS, ADDRESS_OPTIONS, NAME_SUGGESTIONS,
   NAV_MAP, buildSystemPrompt, parseAction, cleanForSpeech, loadIdentity, saveIdentity,
@@ -52,6 +53,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [insightsStr, setInsightsStr] = useState('');
   const [marketStr, setMarketStr] = useState('');
   const [clientsStr, setClientsStr] = useState('');
+  const [pricingStr, setPricingStr] = useState('');
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +68,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr('');
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
@@ -136,6 +138,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const hostingLine = propStays.length
       ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
       : '';
+
+    // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
+    const priceBase = suggestBase(propStays) || (propContext.targetRent ? Math.round((propContext.targetRent / 30) * 2.2) : 0);
+    if (priceBase > 0) {
+      const adrVal = realizedAdr(propStays);
+      const MON = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+      const table = indicativeMonthly(priceBase).map(r => `${MON[r.month]} ${r.weekday}/${r.weekend}`).join(', ');
+      setPricingStr([
+        `Βάση: ${eur(priceBase)}/νύχτα${adrVal > 0 ? ` (μέση πραγματική ADR ${eur(Math.round(adrVal))} από ${propStays.length} διαμονές)` : ' (εκτίμηση, χωρίς επαρκές ιστορικό)'}.`,
+        `Ενδεικτικές τιμές ανά μήνα (καθημερινή/Σαββατοκύριακο): ${table}.`,
+        `Πρόσθετοι κανόνες: αργίες και υψηλή ζήτηση (Δεκαπενταύγουστος, Πάσχα, Εορτές, Πρωτοχρονιά) περίπου +25%. Last minute σε κενές κοντινές ημέρες περίπου -8% έως -15%. Υψηλή πληρότητα γύρω από την ημερομηνία ανεβάζει έως +12%.`,
+        `Για ημερομηνία που ζητά ο χρήστης: πάρε τον μήνα από τον πίνακα (καθημερινή ή Σαββατοκύριακο) και πρόσθεσε αργία/ζήτηση αν ισχύει. Οι τιμές είναι ενδεικτικές προτάσεις.`,
+      ].join('\n'));
+    } else {
+      setPricingStr('Δεν έχει οριστεί βασική τιμή ούτε υπάρχει ιστορικό διαμονών. Για προτάσεις τιμής, ο χρήστης ορίζει βασική τιμή στην καρτέλα Τιμολόγηση.');
+    }
 
     const lines = [
       `Ακίνητο: ${propContext.name}${propContext.propType ? ` (${propContext.propType})` : ''}${propContext.address ? `, ${propContext.address}` : ''}`,
@@ -326,6 +344,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
+        pricing: pricingStr || undefined,
         memories: identity.memory ? memories.map(m => m.text) : undefined,
         today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
       });
