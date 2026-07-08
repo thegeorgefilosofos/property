@@ -221,6 +221,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [reportYearMenu, setReportYearMenu] = useState(false);
   const [checkins, setCheckins] = useState<any[]>([]);   // υποβολές pre-check-in του ανοιχτού πελάτη
   const [checkinCopied, setCheckinCopied] = useState(false);
+  // Εισαγωγή κράτησης από email (Airbnb/Booking) με τη βοήθεια του AI
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailText, setEmailText] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailErr, setEmailErr] = useState('');
+  const [emailDraft, setEmailDraft] = useState<{ name: string; check_in: string; check_out: string; total: string; channel: string } | null>(null);
 
   // Εισαγωγή iCal (Airbnb/Booking): συγχρονισμός κρατήσεων/διαμονών ανά ακίνητο.
   const [icalOpen, setIcalOpen] = useState(false);
@@ -437,6 +443,50 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const propId = (propsByClient.get(openId) || [])[0]?.id || null;
     const { data } = await supabase.from('checkin_links').upsert({ user_id: userId, client_id: openId, property_id: propId, active: true }, { onConflict: 'user_id,client_id' }).select('token').maybeSingle();
     if (data?.token) { try { await navigator.clipboard.writeText(`${window.location.origin}/checkin/${data.token}`); } catch { /* ignore */ } setCheckinCopied(true); setTimeout(() => setCheckinCopied(false), 2600); }
+  };
+
+  // Εισαγωγή κράτησης από email: ανάλυση με AI → πρόχειρη διαμονή προς αποθήκευση.
+  const parseEmail = async () => {
+    const text = emailText.trim();
+    if (text.length < 20) { setEmailErr('Επικόλλησε το κείμενο του email κράτησης.'); return; }
+    setEmailBusy(true); setEmailErr('');
+    try {
+      const res = await fetch('/api/anthropic', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-5', max_tokens: 500,
+          system: `Από αυτό το email κράτησης (Airbnb/Booking/άλλο) εξάγαγε τα στοιχεία. Επέστρεψε ΜΟΝΟ valid JSON χωρίς markdown:
+{"guest_name":"","check_in":"YYYY-MM-DD","check_out":"YYYY-MM-DD","total":0,"channel":"airbnb|booking|direct|other"}
+Αν κάτι λείπει, βάλε "" ή 0. Το total είναι το ποσό που εισπράττει ο οικοδεσπότης (payout) αν φαίνεται.`,
+          messages: [{ role: 'user', content: [{ type: 'text', text: text.slice(0, 8000) }] }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEmailErr(data.error || 'Σφάλμα ανάλυσης.'); setEmailBusy(false); return; }
+      const raw = ((data.content || []).find((c: any) => c.type === 'text')?.text || '{}').replace(/```json?|```/g, '').trim();
+      const p = JSON.parse(raw);
+      setEmailDraft({ name: p.guest_name || '', check_in: p.check_in || '', check_out: p.check_out || '', total: p.total ? String(p.total) : '', channel: p.channel || 'other' });
+    } catch { setEmailErr('Δεν ήταν δυνατή η ανάλυση. Δοκίμασε ξανά ή καταχώρησε χειροκίνητα.'); }
+    setEmailBusy(false);
+  };
+  const saveEmailStay = async () => {
+    if (!emailDraft || !emailDraft.name.trim()) return;
+    setEmailBusy(true);
+    const name = emailDraft.name.trim();
+    let clientId = clients.find(c => c.full_name.trim().toLowerCase() === name.toLowerCase())?.id || null;
+    if (!clientId) {
+      const { data } = await supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name, stage: 'lead' }).select('id').maybeSingle();
+      clientId = data?.id || null;
+    }
+    if (clientId) {
+      const nights = stayNights(emailDraft.check_in, emailDraft.check_out) || null;
+      await supabase.from('client_stays').insert({
+        user_id: userId, client_id: clientId, check_in: emailDraft.check_in || null, check_out: emailDraft.check_out || null,
+        nights, total: parseFloat(emailDraft.total) || null, channel: emailDraft.channel || null,
+      });
+    }
+    setEmailBusy(false); setEmailOpen(false); setEmailText(''); setEmailDraft(null);
+    load(); loadStays();
   };
 
   const linkProperty = async (clientId: string, propId: string) => {
@@ -700,7 +750,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Πελατολόγιο" sub="Πλήρες αρχείο πελατών, επισκεπτών και ιδιοκτητών: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
 
@@ -1183,6 +1233,48 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               )}
             </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Εισαγωγή κράτησης από email (AI) ──────────────────────────────── */}
+      {emailOpen && (
+        <div onClick={() => setEmailOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(600px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή από email</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό</div>
+              </div>
+              <button onClick={() => setEmailOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 22px' }}>
+              {!emailDraft ? (
+                <>
+                  <Textarea label="Κείμενο email" value={emailText} onChange={setEmailText} rows={8} placeholder="Επικόλλησε εδώ το περιεχόμενο του email κράτησης…" />
+                  {emailErr && <div style={{ marginTop: 10, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{emailErr}</div>}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                    <Btn variant="ghost" onClick={() => setEmailOpen(false)}>Ακύρωση</Btn>
+                    <Btn variant="primary" onClick={parseEmail} disabled={emailBusy || emailText.trim().length < 20}>{emailBusy ? 'Ανάλυση…' : 'Ανάλυση'}</Btn>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Έλεγξε και διόρθωσε αν χρειάζεται, μετά αποθήκευσε. Θα δημιουργηθεί ο πελάτης (αν δεν υπάρχει) και η διαμονή.</div>
+                  <div style={fGrid}>
+                    <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα επισκέπτη" value={emailDraft.name} onChange={v => setEmailDraft(d => d && { ...d, name: v })} /></div>
+                    <DatePicker label="Άφιξη" value={emailDraft.check_in} onChange={v => setEmailDraft(d => d && { ...d, check_in: v })} />
+                    <DatePicker label="Αναχώρηση" value={emailDraft.check_out} onChange={v => setEmailDraft(d => d && { ...d, check_out: v })} />
+                    <NumberInput label="Ποσό (payout)" value={emailDraft.total} onChange={v => setEmailDraft(d => d && { ...d, total: v })} suffix="€" />
+                    <CustomSelect label="Κανάλι" value={emailDraft.channel} onChange={v => setEmailDraft(d => d && { ...d, channel: v })} options={channelOptions} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                    <Btn variant="ghost" onClick={() => setEmailDraft(null)}>Πίσω</Btn>
+                    <Btn variant="primary" onClick={saveEmailStay} disabled={emailBusy || !emailDraft.name.trim()}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση διαμονής'}</Btn>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
