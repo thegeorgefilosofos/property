@@ -11,9 +11,10 @@ export interface MsgContext {
   checkIn?: string | null;   // YYYY-MM-DD
   checkOut?: string | null;  // YYYY-MM-DD
   ownerName?: string | null;
+  discountPct?: number | null; // για πρόταση επιστροφής (προεπιλογή 10%)
 }
 
-export type MsgTemplateId = 'welcome' | 'checkin' | 'during' | 'review' | 'thanks';
+export type MsgTemplateId = 'welcome' | 'checkin' | 'during' | 'review' | 'thanks' | 'returning';
 
 export interface MsgTemplate {
   id: MsgTemplateId;
@@ -68,6 +69,14 @@ export const MSG_TEMPLATES: MsgTemplate[] = [
     build: c => {
       const n = firstName(c.clientName);
       return `${n ? n + ', ' : ''}ευχαριστούμε που μας εμπιστεύτηκες. Θα χαρούμε πολύ να σε φιλοξενήσουμε ξανά στο ${propRef(c)}, όποτε θελήσεις. Καλό ταξίδι!`;
+    },
+  },
+  {
+    id: 'returning', label: 'Προσφορά επιστροφής',
+    build: c => {
+      const n = firstName(c.clientName);
+      const pct = c.discountPct && c.discountPct > 0 ? Math.round(c.discountPct) : 10;
+      return `${n ? n + ', ' : ''}χαρήκαμε πολύ που σε φιλοξενήσαμε στο ${propRef(c)}! Επειδή είσαι από τους αγαπημένους μας επισκέπτες, θα θέλαμε να σου προσφέρουμε έκπτωση ${pct}% στην επόμενη διαμονή σου. Πες μας ποιες ημερομηνίες σκέφτεσαι και το κανονίζουμε.`;
     },
   },
 ];
