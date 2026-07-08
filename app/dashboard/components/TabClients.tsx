@@ -19,6 +19,8 @@ import {
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
   type ClientType, type Stage,
 } from '@/lib/clients/clients';
+import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
+import { revenueByChannel, revenueByMonth, occupancyPct, totals } from '@/lib/clients/reports';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 interface Client {
@@ -192,8 +194,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ClientType>('all');
-  const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [segment, setSegment] = useState<'all' | 'vip' | 'repeat' | 'flagged'>('all');
   const [view, setView] = useState<'list' | 'board'>('list');
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   // Φόρμα νέου/επεξεργασίας πελάτη
   const [modalOpen, setModalOpen] = useState(false);
@@ -266,14 +269,23 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     staysByClient.forEach((arr, id) => m.set(id, clientStats(arr)));
     return m;
   }, [staysByClient]);
+  // Όλες οι διαμονές του χρήστη (για τις Αναφορές), υπολογισμένες μία φορά.
+  const allStays = useMemo(() => [...staysByClient.values()].flat(), [staysByClient]);
+  const year = new Date().getFullYear();
 
   const isFlagged = useCallback((c: Client) => !!c.do_not_rent || !!statsByClient.get(c.id)?.hasDamage, [statsByClient]);
 
-  const filtered = useMemo(() => clients.filter(c =>
-    (typeFilter === 'all' || c.type === typeFilter) &&
-    (!flaggedOnly || isFlagged(c)) &&
-    clientMatches(c, search)
-  ), [clients, search, typeFilter, flaggedOnly, isFlagged]);
+  const filtered = useMemo(() => clients.filter(c => {
+    if (typeFilter !== 'all' && c.type !== typeFilter) return false;
+    if (!clientMatches(c, search)) return false;
+    if (segment !== 'all') {
+      const st = statsByClient.get(c.id);
+      if (segment === 'vip' && !((c.rating || 0) >= 4 || (st?.revenue || 0) >= 1000)) return false;
+      if (segment === 'repeat' && !((st?.stayCount || 0) >= 2)) return false;
+      if (segment === 'flagged' && !isFlagged(c)) return false;
+    }
+    return true;
+  }), [clients, search, typeFilter, segment, statsByClient, isFlagged]);
 
   const kpis = useMemo(() => {
     const revenue = clientStats(stays).revenue;
@@ -461,11 +473,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const dc = openId ? clients.find(c => c.id === openId) || null : null;
   const dcStays = dc ? (staysByClient.get(dc.id) || []).slice().sort((a, b) => (b.check_in || '').localeCompare(a.check_in || '')) : [];
   const dcStats = dc ? clientStats(dcStays) : null;
+  // Πλαίσιο για τα πρότυπα μηνυμάτων: πελάτης + πρώτο συνδεδεμένο ακίνητο + πιο
+  // πρόσφατη διαμονή (τα dcStays είναι σε φθίνουσα σειρά, άρα [0] = πιο πρόσφατη).
+  const dcFirstProp = dc ? (propsByClient.get(dc.id) || [])[0] : undefined;
+  const msgCtx = dc ? { clientName: dc.full_name, propertyName: dcFirstProp?.name, address: undefined, checkIn: dcStays[0]?.check_in, checkOut: dcStays[0]?.check_out } : null;
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Πελατολόγιο" sub="Πλήρες αρχείο πελατών, επισκεπτών και ιδιοκτητών: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={clients.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><ExportButton onClick={exportCsv} /><Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+        right={clients.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn><ExportButton onClick={exportCsv} /><Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
 
@@ -475,7 +491,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button style={chip(typeFilter === 'all')} onClick={() => setTypeFilter('all')}>Όλοι</button>
           {CLIENT_TYPES.map(t => <button key={t} style={chip(typeFilter === t)} onClick={() => setTypeFilter(t)}>{CLIENT_TYPE_LABELS[t]}</button>)}
-          <button style={chip(flaggedOnly)} onClick={() => setFlaggedOnly(v => !v)}>Με επισήμανση</button>
+          <button style={chip(segment === 'vip')} title="Βαθμολογία 4+ ή υψηλά έσοδα" onClick={() => setSegment(s => s === 'vip' ? 'all' : 'vip')}>VIP</button>
+          <button style={chip(segment === 'repeat')} onClick={() => setSegment(s => s === 'repeat' ? 'all' : 'repeat')}>Επαναλαμβανόμενοι</button>
+          <button style={chip(segment === 'flagged')} title="Μαύρη λίστα ή φθορές" onClick={() => setSegment(s => s === 'flagged' ? 'all' : 'flagged')}>Με επισήμανση</button>
         </div>
         <div style={{ display: 'flex', gap: 0, marginLeft: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 20, overflow: 'hidden' }}>
           {(['list', 'board'] as const).map(v => (
@@ -827,6 +845,32 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               )}
             </div>
 
+            {/* Μηνύματα (έτοιμα πρότυπα προς τον πελάτη/επισκέπτη) */}
+            <div style={{ marginBottom: 24 }}>
+              <SecHdr label="Μηνύματα" sub="Έτοιμα πρότυπα για WhatsApp, Viber ή αντιγραφή" />
+              {!dc.phone && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>Πρόσθεσε τηλέφωνο για αποστολή.</div>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {MSG_TEMPLATES.map(t => {
+                  const text = buildMessage(t.id, msgCtx!);
+                  return (
+                    <div key={t.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0, flex: '1 1 240px' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{t.label}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{text}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
+                          {dc.phone && <a href={whatsappLink(msgDigits(dc.phone), text)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>}
+                          <a href={viberTextLink(text)} style={msgLink}>Viber</a>
+                          <button onClick={() => navigator.clipboard?.writeText(text)} style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>Αντιγραφή</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Χρονολόγιο (σχόλια) */}
             <div>
               <SecHdr label="Χρονολόγιο" sub="Σχόλια, τηλεφωνήματα, επισκέψεις" />
@@ -859,6 +903,85 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               )}
             </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Αναφορές (premium modal, ίδιο chrome με τη φόρμα) ──────────────── */}
+      {reportsOpen && (
+        <div onClick={() => setReportsOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(720px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+            {/* Sticky header: εικονίδιο + τίτλος + κλείσιμο */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" /><rect x="12" y="6" width="3" height="11" /><rect x="17" y="13" width="3" height="4" /></svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Αναφορές</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Έσοδα, κανάλια και πληρότητα φιλοξενίας</div>
+              </div>
+              <button onClick={() => setReportsOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+            </div>
+            {/* Σώμα με κύλιση */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 24px 24px' }}>
+              {allStays.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, lineHeight: 1.6, padding: '52px 16px' }}>
+                  Δεν υπάρχουν καταγεγραμμένες διαμονές ακόμη. Πρόσθεσε διαμονές στους πελάτες για να δεις έσοδα ανά κανάλι, ανά μήνα και την πληρότητα της χρονιάς.
+                </div>
+              ) : (() => {
+                const tot = totals(allStays);
+                const chRows = revenueByChannel(allStays);
+                const maxCh = Math.max(1, ...chRows.map(r => r.revenue));
+                const months = revenueByMonth(allStays, year);
+                const maxMonth = Math.max(1, ...months);
+                const occ = occupancyPct(allStays, `${year}-01-01`, `${year + 1}-01-01`);
+                const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
+                const monthNames = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+                return (
+                  <>
+                    {secHead('Σύνοψη')}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
+                      {statTile('Έσοδα', fe(tot.revenue, 0))}
+                      {statTile('Νύχτες', String(tot.nights))}
+                      {statTile('Διαμονές', String(tot.count))}
+                      {statTile('Πληρότητα φέτος', occ + '%', { title: `1 Ιαν ${year} έως 31 Δεκ ${year}` })}
+                    </div>
+
+                    {secHead('Έσοδα ανά κανάλι')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+                      {chRows.map(r => (
+                        <div key={r.channel}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 4 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {secHead(`Έσοδα ανά μήνα (${year})`)}
+                    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
+                        {months.map((v, i) => (
+                          <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                            <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--accent)', borderRadius: '3px 3px 0 0' }} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0 6px' }} />
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {monthInitials.map((m, i) => (
+                          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
