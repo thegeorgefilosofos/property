@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn } from '@/components/Theme';
+import { DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
@@ -80,9 +81,13 @@ const inputStyle: React.CSSProperties = {
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
+  display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3,
+  fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
   letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 7,
 };
+
+// Όροφοι (ελληνική ονοματολογία): κείμενο, όχι αριθμός.
+const FLOOR_OPTS = ['Υπόγειο', 'Ημιυπόγειο', 'Ισόγειο', 'Υπερυψωμένο ισόγειο', 'Ημιώροφος', '1ος', '2ος', '3ος', '4ος', '5ος', '6ος', '7ος και άνω', 'Δώμα / Ρετιρέ'];
 const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; };
 const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none'; };
 
@@ -92,7 +97,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 interface ExistingProperty {
   id: string; name?: string | null; prop_type?: string | null; address?: string | null;
-  postal_code?: string | null; sqm?: number | null; floor?: number | null; year_built?: number | null;
+  postal_code?: string | null; sqm?: number | null; floor?: number | string | null; year_built?: number | null;
   value?: number | null; purchase_price?: number | null; target_rent?: number | null;
   ownership?: number | string | null; status_detail?: string | null; atak?: string | null;
   obj_value?: number | string | null; enfia?: number | string | null; pea_class?: string | null;
@@ -166,7 +171,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       value: valueN,
       purchase_price: num(purchasePrice),
       target_rent: storedRent,
-      floor: isLandLike ? null : (floor ? parseInt(floor) : null),
+      floor: isLandLike ? null : (floor.trim() || null),
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
       status_detail: effStatus,
@@ -325,7 +330,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                       <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
                     </Field>
                     <Field label="Όροφος">
-                      <input style={monoInputStyle} type="number" value={floor} onChange={e => setFloor(e.target.value)} placeholder="2" onFocus={onFocus} onBlur={onBlur} />
+                      <select style={selectStyle} value={floor} onChange={e => setFloor(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                        <option value="">Επίλεξε</option>
+                        {FLOOR_OPTS.map(f => <option key={f} value={f}>{f}</option>)}
+                      </select>
                     </Field>
                     <Field label="Έτος Κατασκευής">
                       <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
@@ -376,12 +384,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Τιμή Αγοράς (€)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="120000" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <Field label="Ημερομηνία Αγοράς">
-                  <input style={inputStyle} type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
+                <DatePicker label="Ημερομηνία Αγοράς" value={purchaseDate} onChange={setPurchaseDate} />
+
               </div>
               <div style={grid2}>
-                <Field label="Εκτ. ΕΝΦΙΑ (€/έτος)">
+                <Field label="Εκτιμώμενος ΕΝΦΙΑ (€/έτος)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} placeholder="320" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
                 <Field label={rentLabel}>
@@ -439,7 +446,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
                   ['Εμπορική Αξία', valueN != null ? fe(valueN, 0) : '—'],
                   num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
-                  num(enfia) != null ? ['Εκτ. ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
+                  num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
                   ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : '—'],
                   purchaseDate ? ['Ημ. Αγοράς', new Date(purchaseDate).toLocaleDateString('el-GR')] : null,
                   [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
@@ -447,7 +454,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],
                 ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτ. ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                    <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
                     <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημ. Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}

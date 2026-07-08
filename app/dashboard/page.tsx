@@ -49,7 +49,7 @@ interface Property {
   purchase_date: string | null; target_rent: number | null; enfia: number | null;
   insurance_amount: number | null; insurance_company: string | null;
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
-  atak: string | null; floor: number | null; heating: string | null;
+  atak: string | null; floor: number | string | null; heating: string | null;
   parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
   rental_mode: string | null; client_id: string | null;
   notes: string | null; status_detail: string | null; created_at: string;
@@ -74,6 +74,7 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 const PROP_TYPES = ['apartment','house','studio','maisonette','office','shop','warehouse','land','parking','storage','villa','other'];
+const FLOOR_OPTS = ['Υπόγειο','Ημιυπόγειο','Ισόγειο','Υπερυψωμένο ισόγειο','Ημιώροφος','1ος','2ος','3ος','4ος','5ος','6ος','7ος και άνω','Δώμα / Ρετιρέ'];
 
 const HEATING_LABELS: Record<string,string> = {
   central_gas:'Κεντρική (αέριο)', autonomous_gas:'Αυτόνομη (αέριο)', oil:'Πετρέλαιο',
@@ -220,7 +221,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
       sqm: form.sqm ? parseFloat(form.sqm) : null, value: form.value ? parseFloat(form.value) : null,
       purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
       target_rent: form.target_rent ? parseFloat(form.target_rent) : null,
-      floor: form.floor ? parseInt(form.floor) : null, year_built: form.year_built ? parseInt(form.year_built) : null,
+      floor: form.floor || null, year_built: form.year_built ? parseInt(form.year_built) : null,
       ownership: form.ownership ? parseFloat(form.ownership) : 100, status_detail: form.status_detail||'vacant',
     });
     setSaving(false); onSaved();
@@ -249,7 +250,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
             <div><label style={mdLabel}>Διεύθυνση</label><input style={mdInput} value={form.address} onChange={e=>sf('address',e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={focusInput} onBlur={blurInput}/></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:16}}>
               <div><label style={mdLabel}>Εμβαδόν (τετραγωνικά μέτρα)</label><input style={mdInput} type="number" value={form.sqm} onChange={e=>sf('sqm',e.target.value)} placeholder="35" onFocus={focusInput} onBlur={blurInput}/></div>
-              <div><label style={mdLabel}>Όροφος</label><input style={mdInput} type="number" value={form.floor} onChange={e=>sf('floor',e.target.value)} placeholder="2" onFocus={focusInput} onBlur={blurInput}/></div>
+              <div><label style={mdLabel}>Όροφος</label><select style={mdSel} value={form.floor} onChange={e=>sf('floor',e.target.value)} onFocus={focusInput} onBlur={blurInput}><option value="">Επίλεξε</option>{FLOOR_OPTS.map(f=><option key={f} value={f}>{f}</option>)}</select></div>
               <div><label style={mdLabel}>Έτος Κατασκευής</label><input style={mdInput} type="number" value={form.year_built} onChange={e=>sf('year_built',e.target.value)} placeholder="1995" onFocus={focusInput} onBlur={blurInput}/></div>
             </div>
           </div>
@@ -587,9 +588,9 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
           <div className="section-label"><span className="section-dot"/> Στοιχεία Ακινήτου</div>
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <tbody>
-              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτ. ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
+              {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
-                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτ. ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
+                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
                 </tr>
               ))}
@@ -729,6 +730,7 @@ export default function Dashboard() {
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
+  const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
@@ -831,6 +833,21 @@ export default function Dashboard() {
     setSelected(null);
     await fetchProperties(user.id);
     setNav('overview');
+  };
+
+  // Κλείσιμο σάρωσης: αν ήταν προσχέδιο από scan-to-create και δεν αποθηκεύτηκε
+  // τίποτα (κανένα έγγραφο), σβήσε το κενό ακίνητο ώστε να μη μένουν σκουπίδια.
+  const closeQuickAdd = async () => {
+    setQuickAddOpen(false);
+    const draft = scanDraftId; setScanDraftId(null);
+    if (draft && user) {
+      const { count } = await supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('property_id', draft);
+      if ((count || 0) === 0) {
+        await supabase.from('user_properties').delete().eq('id', draft).eq('user_id', user.id);
+        if (selected?.id === draft) setSelected(null);
+        await fetchProperties(user.id);
+      }
+    }
   };
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = '/login'; };
@@ -1107,15 +1124,15 @@ export default function Dashboard() {
 
       {quickAddOpen&&user&&selected&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.44)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
-          onClick={e=>{if(e.target===e.currentTarget)setQuickAddOpen(false);}}>
+          onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
           <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
-            <button onClick={()=>setQuickAddOpen(false)} aria-label="Κλείσιμο"
+            <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
               style={{position:'absolute',top:16,right:16,width:34,height:34,borderRadius:'50%',border:'none',background:'var(--bg-hover)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-secondary)'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg-elevated)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--bg-hover)'}>
               <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{await fetchProperties(user.id);}}/>
+            <DocumentScan propertyId={selected.id} userId={user.id} onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>
           </div>
         </div>
       )}
@@ -1126,7 +1143,7 @@ export default function Dashboard() {
           setShowWelcome(false);
           const { data } = await supabase.from('user_properties').insert({ user_id:user.id, name:'Νέο ακίνητο', prop_type:'apartment', status_detail:'vacant' }).select('*').single();
           await fetchProperties(user.id);
-          if (data) setSelected(data);
+          if (data) { setSelected(data); setScanDraftId(data.id); }
           setNav('overview'); setQuickAddOpen(true);
         }}
         onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}
