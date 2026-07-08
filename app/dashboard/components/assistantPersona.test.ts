@@ -149,6 +149,32 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('expense+go clean', !/\[\[/.test(r.clean));
 }
 
+// ── parseAction: [[contact: ...]] & [[task: ...]] ────────────────────────────
+{
+  const r = parseAction('Την κράτησα. [[contact: Νίκος Υδραυλικός | 6941234567 | υδραυλικός]]');
+  ok('contact type', r.action?.type === 'contact');
+  ok('contact name', (r.action as any)?.name === 'Νίκος Υδραυλικός');
+  ok('contact phone', (r.action as any)?.phone === '6941234567');
+  ok('contact role', (r.action as any)?.role === 'υδραυλικός');
+  ok('contact stripped', !/\[\[/.test(r.clean));
+}
+{
+  const r = parseAction('[[contact: ΔΕΗ]]');
+  ok('contact name-only', r.action?.type === 'contact' && (r.action as any).name === 'ΔΕΗ' && !(r.action as any).phone);
+  ok('contact empty → no action', parseAction('[[contact: ]]').action?.type !== 'contact');
+}
+{
+  const r = parseAction('Έγινε. [[task: Πληρωμή ΕΝΦΙΑ]]');
+  ok('task type', r.action?.type === 'task');
+  ok('task description', (r.action as any)?.description === 'Πληρωμή ΕΝΦΙΑ');
+  ok('task empty → no action', parseAction('[[task:]]').action?.type !== 'task');
+}
+{
+  // contact & client είναι διακριτά (διαφορετικές καρτέλες)
+  ok('contact ≠ client', parseAction('[[contact: Νίκος]]').action?.type === 'contact');
+  ok('client stays client', parseAction('[[client: Μαρία]]').action?.type === 'client');
+}
+
 // ── cleanForSpeech: markdown/bullets/arrows/newlines ─────────────────────────
 const speechCases: [string, (s: string) => boolean][] = [
   ['**Έντονο** κείμενο', s => s === 'Έντονο κείμενο'],
