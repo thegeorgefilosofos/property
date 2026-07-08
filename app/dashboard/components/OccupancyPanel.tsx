@@ -5,12 +5,13 @@
 // Ελληνικό-specific: αριθμός ΑΜΑ (Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής, ΑΑΔΕ).
 // Παρακολουθεί νύχτες/μήνα → ποσοστό πληρότητας, έσοδα, σύγκριση με μακροχρόνια.
 // Αποθηκεύεται στο bills_settings (section 'occupancy'), κανένα νέο migration.
-// Blueground-aligned: occupancy + performance ανά μονάδα.
+// Ενιαία πεδία (UIComponents) για ομοιόμορφη, ευθυγραμμισμένη εμφάνιση.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe } from '@/components/Theme';
+import { NumberInput, TextInput } from './UIComponents';
 import { shortTermNet } from '@/lib/billing/greekTax';
 
 const MONTHS = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
@@ -46,6 +47,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
   const totalNights = nightsNum.reduce((s, v) => s + v, 0);
   const totalDays = DAYS.reduce((a, b) => a + b, 0);
   const occupancyPct = totalDays > 0 ? (totalNights / totalDays) * 100 : 0;
+  const peakMonth = nightsNum.reduce((best, v, i) => v > nightsNum[best] ? i : best, 0);
   // Καθαρά έσοδα: μεικτά − προμήθειες πλατφορμών − καθαρισμός − Τέλος Ανθεκτικότητας.
   const net = shortTermNet({ nightsByMonth: nightsNum, nightlyRate: rate, platformFeePct: parseFloat(d.platformFeePct) || 0, cleaningPerStay: parseFloat(d.cleaningPerStay) || 0, avgNightsPerStay: parseFloat(d.avgNightsPerStay) || 0 });
   const stRevenue = net.grossRevenue;
@@ -70,7 +72,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {d.shortTerm && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{occupancyPct.toFixed(0)}%</span>}
+          {d.shortTerm && totalNights > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{occupancyPct.toFixed(0)}%</span>}
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </div>
@@ -79,7 +81,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
           {/* Toggle */}
           <button type="button" role="switch" aria-checked={d.shortTerm} onClick={() => upd({ shortTerm: !d.shortTerm })}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: d.shortTerm ? 16 : 0 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: d.shortTerm ? 18 : 0 }}>
             <span style={{ width: 40, height: 24, borderRadius: 12, padding: 2, flexShrink: 0, background: d.shortTerm ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
               <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: d.shortTerm ? 'translateX(16px)' : 'translateX(0)', transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)' }}/>
             </span>
@@ -88,46 +90,37 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
           {d.shortTerm && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <div title="Αριθμός Μητρώου Ακινήτου — μοναδικός αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Αριθμός Μητρώου Ακινήτου (ΑΜΑ)</div>
-                  <input value={d.ama} onChange={e => upd({ ama: e.target.value })} placeholder="π.χ. 0000000000000"
-                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Τιμή ανά νύχτα (€)</div>
-                  <input value={d.nightlyRate} onChange={e => upd({ nightlyRate: e.target.value })} type="number" placeholder="60"
-                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Προμήθεια πλατφόρμας (%)</div>
-                  <input value={d.platformFeePct} onChange={e => upd({ platformFeePct: e.target.value })} type="number" placeholder="15"
-                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Καθαρισμός ανά διαμονή (€)</div>
-                  <input value={d.cleaningPerStay} onChange={e => upd({ cleaningPerStay: e.target.value })} type="number" placeholder="40"
-                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Μέσες νύχτες ανά κράτηση</div>
-                  <input value={d.avgNightsPerStay} onChange={e => upd({ avgNightsPerStay: e.target.value })} type="number" placeholder="3"
-                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
-                </div>
+              {/* ── Βασικά στοιχεία, ενιαία πεδία ─────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12, marginBottom: 18 }}>
+                <TextInput label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)" value={d.ama} onChange={v => upd({ ama: v })} placeholder="π.χ. 0000000000000" />
+                <NumberInput label="Τιμή ανά νύχτα" value={d.nightlyRate} onChange={v => upd({ nightlyRate: v })} suffix="€" step={5} placeholder="60" />
+                <NumberInput label="Προμήθεια πλατφόρμας" value={d.platformFeePct} onChange={v => upd({ platformFeePct: v })} suffix="%" step={1} max={100} />
+                <NumberInput label="Καθαρισμός ανά διαμονή" value={d.cleaningPerStay} onChange={v => upd({ cleaningPerStay: v })} suffix="€" step={5} />
+                <NumberInput label="Μέσες νύχτες ανά κράτηση" value={d.avgNightsPerStay} onChange={v => upd({ avgNightsPerStay: v })} suffix="νύχτ" step={1} min={1} />
               </div>
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 6, marginBottom: 16 }}>
-                {MONTHS.map((m, i) => (
-                  <div key={m} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 3 }}>{m}</div>
-                    <input value={d.nights[i]} onChange={e => setNight(i, e.target.value)} type="number" min={0} max={DAYS[i]} placeholder="0"
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '7px 4px', fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none' }} />
-                  </div>
-                ))}
+              {/* ── Νύχτες με κράτηση ανά μήνα ───────────────────────────── */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{totalNights}</strong> / {totalDays}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, marginBottom: 18 }}>
+                {MONTHS.map((m, i) => {
+                  const isPeak = totalNights > 0 && i === peakMonth;
+                  return (
+                    <div key={m} style={{ textAlign: 'center', minWidth: 0 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: isPeak ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
+                      <input value={d.nights[i]} onChange={e => setNight(i, e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" placeholder="0"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 8, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = isPeak ? 'var(--accent-border)' : 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; }} />
+                    </div>
+                  );
+                })}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 10, marginBottom: 14 }}>
+              {/* ── Αποτελέσματα ─────────────────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
                 {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`, 'var(--accent)')}
                 {kpi('Νύχτες / έτος', String(totalNights))}
                 {kpi('Μεικτά έσοδα', fe(stRevenue))}

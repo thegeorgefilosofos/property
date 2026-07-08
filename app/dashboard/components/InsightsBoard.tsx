@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import type { Insight, InsightKind } from '@/lib/insights/engine';
 import { greeting } from '@/lib/insights/engine';
+import { vocative } from '@/lib/greekName';
 
 const DOT: Record<InsightKind, string> = {
   urgent: 'var(--negative)',
@@ -17,28 +18,48 @@ const DOT: Record<InsightKind, string> = {
   positive: 'var(--positive)',
 };
 
-export default function InsightsBoard({ insights, name, onNavigate }: {
+export default function InsightsBoard({ insights, name, onSaveName, onNavigate }: {
   insights: Insight[];
   name?: string | null;
+  onSaveName?: (n: string) => void | Promise<void>;
   onNavigate: (tab: string) => void;
 }) {
-  // Ο χαιρετισμός εξαρτάται από την ώρα → μόνο στον client (αποφυγή hydration mismatch).
-  const [hello, setHello] = useState<string>('');
-  useEffect(() => { setHello(greeting(Date.now(), name)); }, [name]);
+  // Το χρονικό μέρος του χαιρετισμού εξαρτάται από την ώρα → μόνο στον client
+  // (αποφυγή hydration mismatch). Το όνομα προστίθεται ξεχωριστά, στην κλητική.
+  const [timePart, setTimePart] = useState<string>('');
+  useEffect(() => { setTimePart(greeting(Date.now(), '')); }, []);
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const startEdit = () => { setDraft((name || '').trim()); setEditing(true); };
+  const save = () => { setEditing(false); onSaveName?.(draft.trim()); };
 
   const urgent = insights.filter(i => i.kind === 'urgent' || i.kind === 'attention').length;
   const sub = insights.length === 0
     ? 'Όλα σε τάξη. Δεν υπάρχει κάτι που να χρειάζεται την προσοχή σου.'
     : urgent > 0
       ? `${urgent} ${urgent === 1 ? 'θέμα χρειάζεται' : 'θέματα χρειάζονται'} την προσοχή σου.`
-      : 'Μερικές ευκαιρίες για να βγάλεις περισσότερα από το ακίνητό σου.';
+      : 'Εδώ θα βρεις μερικές ευκαιρίες για να βγάλεις περισσότερα χρήματα από το ακίνητό σου.';
+
+  const heading = timePart ? `${timePart}${name && name.trim() ? `, ${vocative(name)}` : ''}` : 'Η εικόνα σου';
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 'clamp(18px, 2.4vw, 24px)', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: insights.length ? 18 : 0 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0 }}>
-          {hello || 'Η εικόνα σου'}
-        </h2>
+        {editing ? (
+          <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') save(); else if (e.key === 'Escape') setEditing(false); }}
+            onBlur={save} placeholder="Το όνομά σου" maxLength={40}
+            style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', background: 'var(--bg-elevated)', border: '1px solid var(--accent)', boxShadow: '0 0 0 3px var(--accent-dim)', borderRadius: 8, padding: '4px 10px', outline: 'none', fontFamily: "'Inter', sans-serif", minWidth: 180 }} />
+        ) : (
+          <h2 onClick={onSaveName ? startEdit : undefined} title={onSaveName ? 'Άλλαξε το όνομά σου' : undefined}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: 0, cursor: onSaveName ? 'pointer' : 'default' }}>
+            {heading}
+            {onSaveName && (name && name.trim()
+              ? <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              : <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>· πρόσθεσε το όνομά σου</span>)}
+          </h2>
+        )}
         <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{sub}</span>
       </div>
 

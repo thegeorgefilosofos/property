@@ -358,12 +358,13 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property; userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
+function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
   const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
   const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
+  const [selMonth, setSelMonth] = useState(now.getMonth()); // 0-indexed, επιλεγμένος μήνας στο γράφημα δαπανών
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -433,6 +434,11 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
   const catMap: Record<string,number> = {};
   expenses.forEach(e => { catMap[e.category] = (catMap[e.category]||0) + e.amount; });
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  // Κατηγορίες για τον επιλεγμένο μήνα (πίνακας δεξιά από το γράφημα)
+  const selCatMap: Record<string,number> = {};
+  expenses.forEach(e => { if (new Date(e.date).getMonth() === selMonth) selCatMap[e.category] = (selCatMap[e.category]||0) + e.amount; });
+  const selCatEntries = Object.entries(selCatMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const selMonthTotal = monthlyExp[selMonth] || 0;
   const catColors = ['var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)','var(--border-subtle)'];
 
   // ── Cross-tab live alerts, επερχόμενα γεγονότα & εκκρεμότητες ──────────────
@@ -540,7 +546,7 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
 
       {/* Ο «σύμβουλος»: προτεραιοποιημένα, ενεργήσιμα insights (ελέγχεται από τις Προτιμήσεις) */}
       {prefs.liveNotifications && (
-        <InsightsBoard insights={insights} name={prop.name} onNavigate={onNavigate} />
+        <InsightsBoard insights={insights} name={ownerName} onSaveName={onSaveOwnerName} onNavigate={onNavigate} />
       )}
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
@@ -558,20 +564,26 @@ function OverviewTab({ prop, userId, onNavigate, onCleanDemo }: { prop: Property
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Δαπάνες {year} ανά μήνα</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
-            {monthlyExp.map((v,i) => (
-              <div key={i} title={`${MONTHS[i]}: ${fmtEur(v)}`} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'default'}}>
-                <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:i===month-1?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:i===month-1?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:i===month-1?700:400,color:i===month-1?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
-              </div>
-            ))}
+            {monthlyExp.map((v,i) => {
+              const active = i===selMonth;
+              return (
+              <button key={i} type="button" onClick={()=>setSelMonth(i)} title={`${MONTHS[i]}: ${fmtEur(v)}`} aria-pressed={active}
+                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',background:'transparent',border:'none',padding:0,height:'100%',justifyContent:'flex-end'}}>
+                <div style={{width:'100%',height:`${maxExp>0?(v/maxExp)*100:0}%`,background:active?'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 76%, #6ea8ff) 100%)':'var(--bg-hover)',borderRadius:'6px 6px 2px 2px',minHeight:v>0?4:0,transition:'height 0.45s cubic-bezier(.2,0,0,1)',boxShadow:active?'0 4px 10px -4px rgba(26,115,232,.4)':'none'}}/>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:active?700:400,color:active?'var(--accent)':'var(--text-tertiary)'}}>{MONTHS[i]}</div>
+              </button>
+            );})}
           </div>
         </div>
         <div className="card">
-          <div className="section-label"><span className="section-dot"/> Κατηγορίες Δαπανών</div>
-          {catEntries.length===0
-            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες</div>
+          <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <span><span className="section-dot"/> Κατηγορίες Δαπανών · {MONTHS[selMonth]} {year}</span>
+            {selMonthTotal>0 && <span style={{fontFamily:"'Roboto Mono',monospace",fontSize:12,color:'var(--text-secondary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(selMonthTotal)}</span>}
+          </div>
+          {selCatEntries.length===0
+            ? <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-tertiary)',fontSize:14,textAlign:'center',padding:'30px 0'}}>Δεν υπάρχουν δαπάνες για {MONTHS[selMonth]}</div>
             : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {catEntries.map(([cat,amt],i) => (
+                {selCatEntries.map(([cat,amt],i) => (
                   <div key={cat} style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:8,height:8,borderRadius:2,background:catColors[i],flexShrink:0}}/>
                     <div style={{flex:1,fontFamily:"'Inter',sans-serif",fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
@@ -732,6 +744,7 @@ export default function Dashboard() {
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
+  const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
@@ -763,7 +776,7 @@ export default function Dashboard() {
       const refBy = (user.user_metadata as any)?.referred_by;
       if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan').eq('user_id', user.id).maybeSingle().then(({ data }) => setPlan(data?.plan || 'free'));
+      supabase.from('billing_profiles').select('plan, owner_name').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); });
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
@@ -1061,7 +1074,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
               {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}

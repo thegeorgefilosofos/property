@@ -19,14 +19,14 @@ export const DEFAULT_IDENTITY: AssistantIdentity = { name: 'Άριελ', gender:
 
 // Πώς θέλει ο χρήστης να του απευθύνεται ο βοηθός.
 export const ADDRESS_OPTIONS: { value: boolean; label: string; hint: string }[] = [
-  { value: false, label: 'Στον ενικό', hint: 'εσύ, φιλικά' },
-  { value: true,  label: 'Στον πληθυντικό', hint: 'εσείς, πιο επίσημα' },
+  { value: false, label: 'Στον ενικό', hint: 'πιο φιλικά' },
+  { value: true,  label: 'Στον πληθυντικό', hint: 'πιο επίσημα' },
 ];
 
+// Ουδέτερο ενοποιεί το «non-binary»: ίδια, χωρίς έμφυλους αυτο-χαρακτηρισμούς.
 export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'female',    label: 'Γυναίκα' },
   { value: 'male',      label: 'Άντρας' },
-  { value: 'nonbinary', label: 'Non-binary' },
   { value: 'neutral',   label: 'Ουδέτερο' },
 ];
 
