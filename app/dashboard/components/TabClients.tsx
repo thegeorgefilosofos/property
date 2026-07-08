@@ -561,24 +561,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                 )}
 
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
-                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Ακίνητα</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {linked.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>-</span>}
+                {linked.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
                     {linked.map(p => (
-                      <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                        <button onClick={e => { e.stopPropagation(); onSelectProperty?.(p.id); }} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, padding: 0, fontFamily: T.font.sans }}>{p.name}</button>
-                        <button onClick={e => { e.stopPropagation(); unlinkProperty(p.id); }} title="Αποσύνδεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
-                      </span>
+                      <button key={p.id} onClick={e => { e.stopPropagation(); onSelectProperty?.(p.id); }} title={`Άνοιγμα: ${p.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '4px 9px', borderRadius: 7, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /></svg>{p.name}
+                      </button>
                     ))}
                   </div>
-                  {unlinkedProps.length > 0 && (
-                    <select value="" onClick={e => e.stopPropagation()} onChange={e => { if (e.target.value) linkProperty(c.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12 }}>
-                      <option value="">Σύνδεση ακινήτου…</option>
-                      {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  )}
-                </div>
+                )}
               </div>
             );
           })}
@@ -656,18 +647,18 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Επικοινωνία */}
             <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 20 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                {[
-                  ['Τηλέφωνο', dc.phone ? <a href={`tel:${dc.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.phone}</a> : '-'],
-                  ['Email', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : '-'],
-                  ['Διεύθυνση', dc.address || '-'],
-                  ['ΑΦΜ', dc.afm ? <span style={{ fontFamily: T.font.mono }}>{dc.afm}</span> : '-'],
-                  ['Ταυτότητα', dc.id_number || '-'],
-                  ['Εθνικότητα', dc.nationality || '-'],
-                  ['Πηγή', dc.source || '-'],
-                ].map(([k, v], i) => (
+                {([
+                  ['Τηλέφωνο', dc.phone ? <a href={`tel:${dc.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.phone}</a> : null],
+                  ['Email', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
+                  ['Διεύθυνση', dc.address || null],
+                  ['ΑΦΜ', dc.afm ? <span style={{ fontFamily: T.font.mono }}>{dc.afm}</span> : null],
+                  ['Ταυτότητα', dc.id_number || null],
+                  ['Εθνικότητα', dc.nationality || null],
+                  ['Πηγή', dc.source || null],
+                ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k as string}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{v as React.ReactNode}</div>
+                    <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -686,16 +677,38 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {dc.notes && dc.notes.trim() && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{dc.notes}</div>}
             </div>
 
-            {/* Αναλυτικά: σειρά από πανομοιότυπα πλακίδια statTile (dashboard) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 24 }}>
-              {statTile('Έσοδα', fe(dcStats.revenue, 0))}
-              {statTile('Διανυκτερεύσεις', String(dcStats.nights))}
-              {statTile('Διαμονές', String(dcStats.stayCount))}
-              {statTile('Μέση βαθμολογία', dcStats.avgRating != null ? `${dcStats.avgRating}/5` : '-')}
-              {statTile('ADR', fe(dcStats.adr, 0), { title: 'Μέση τιμή ανά διανυκτέρευση' })}
-              {statTile('Τελευταία επίσκεψη', dcStats.lastVisit ? fd(dcStats.lastVisit) : '-')}
-              {statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: dcStats.damageTotal > 0 })}
+            {/* Συνδεδεμένα ακίνητα (ο έλεγχος σύνδεσης ζει εδώ, όχι στην κάρτα) */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ ...lbl, marginBottom: 8 }}>Συνδεδεμένα ακίνητα</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {(propsByClient.get(dc.id) || []).map(p => (
+                  <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '6px 11px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                    <button onClick={() => onSelectProperty?.(p.id)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: 0, fontFamily: T.font.sans }}>{p.name}</button>
+                    <button onClick={() => unlinkProperty(p.id)} title="Αποσύνδεση" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 15 }}>×</button>
+                  </span>
+                ))}
+                {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
+                {unlinkedProps.length > 0 && (
+                  <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: 36, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
+                    <option value="">+ Σύνδεση ακινήτου</option>
+                    {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+              </div>
             </div>
+
+            {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά) */}
+            {dcStats.stayCount > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10, marginBottom: 24 }}>
+                {statTile('Έσοδα', fe(dcStats.revenue, 0))}
+                {statTile('Νύχτες', String(dcStats.nights))}
+                {statTile('Διαμονές', String(dcStats.stayCount))}
+                {statTile('Βαθμολογία', dcStats.avgRating != null ? `${dcStats.avgRating}/5` : '-')}
+                {statTile('ADR', fe(dcStats.adr, 0), { title: 'Μέση τιμή ανά διανυκτέρευση' })}
+                {statTile('Τελευταία', dcStats.lastVisit ? fd(dcStats.lastVisit) : '-')}
+                {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: true })}
+              </div>
+            )}
 
             {/* Διαμονές / Επισκέψεις */}
             <div style={{ marginBottom: 24 }}>
