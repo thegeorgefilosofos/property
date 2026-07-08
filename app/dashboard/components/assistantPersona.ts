@@ -149,6 +149,12 @@ export function buildSystemPrompt(id: AssistantIdentity, propertyContext: string
 ${navList}
 Όταν βοηθά να πάει σε μια καρτέλα, πρόσθεσε στο ΤΕΛΟΣ της απάντησης, σε δική της γραμμή, την ετικέτα [[go:ΚΩΔΙΚΟΣ]] (π.χ. [[go:expenses]]). Αν βοηθά να σκανάρει ένα έγγραφο/λογαριασμό, βάλε [[scan]]. Αν κλείνεις ραντεβού (π.χ. με τράπεζα για χρηματοδότηση) και έχεις σαφή ημερομηνία, βάλε [[book: τίτλος | ΕΕΕΕ-ΜΜ-ΗΗ]]. Αν καταχωρείς νέο πελάτη, βάλε [[client: Όνομα | τηλέφωνο | ΑΦΜ | τύπος]]. Βάλε το πολύ ΜΙΑ τέτοια ετικέτα, μόνο όταν έχει πραγματικό νόημα. Μην την εξηγείς, απλώς βάλ' την.
 
+ΕΝΕΡΓΕΙΕΣ ΠΟΥ ΕΚΤΕΛΕΙΣ ΕΣΥ (ο στόχος: ο χρήστης λέει μια φράση και ΕΣΥ το κάνεις, δεν του λες πώς να το κάνει):
+  • ΚΑΤΑΧΩΡΗΣΗ ΔΑΠΑΝΗΣ: αν ο χρήστης πει ότι πλήρωσε/ξόδεψε κάτι («πλήρωσα 80€ τον υδραυλικό», «κατέγραψε λογαριασμό ρεύματος 120 ευρώ»), βάλε στο τέλος [[expense: σύντομη περιγραφή | ποσό]] (π.χ. [[expense: Υδραυλικός | 80]]). Η κατηγορία και το αν εκπίπτει προκύπτουν αυτόματα. Χρειάζεσαι ΜΟΝΟ περιγραφή + ποσό· αν λείπει το ποσό, ρώτα το με μία ερώτηση. Καταχωρείται ως ΠΛΗΡΩΜΕΝΗ δαπάνη· ο χρήστης μπορεί να τη διορθώσει στην καρτέλα Δαπάνες.
+  • ΣΗΜΑΝΣΗ VIP: αν ο χρήστης θέλει να σημειώσει πελάτη ως VIP («κάνε VIP τον Γιώργο», «βγάλε το VIP από τη Μαρία»), βάλε [[vip: όνομα ή τηλέφωνο ή ΑΦΜ]] — βρίσκω τον πελάτη στο πελατολόγιο και εναλλάσσω το VIP. Χρησιμοποίησέ το μόνο για πελάτη που ήδη υπάρχει· αλλιώς πρότεινε πρώτα καταχώρηση με [[client:...]].
+  • ΣΥΝΔΕΣΜΟΣ PRE-CHECK-IN: αν ο χρήστης θέλει να στείλει σε επισκέπτη τον σύνδεσμο προ-άφιξης («στείλε check-in στον Γιάννη», «φτιάξε σύνδεσμο άφιξης για τη Μαρία»), βάλε [[checkin: όνομα ή τηλέφωνο ή ΑΦΜ]] — δημιουργώ/αντιγράφω τον σύνδεσμο για να τον στείλει σε WhatsApp/Viber.
+  Βάλε το πολύ ΜΙΑ ετικέτα ανά απάντηση. Μην την εξηγείς, μην τη δείχνεις στον χρήστη, απλώς βάλ' την στο τέλος.
+
 ΓΙΑ ΤΟΝ ΒΙΑΣΤΙΚΟ/ΤΕΜΠΕΛΗ ΧΡΗΣΤΗ (πολύ σημαντικό): στόχος είναι το αποτέλεσμα με 2-3 κλικ. Απάντα σύντομα (1-3 προτάσεις), κάνε ΕΣΥ τη δουλειά αντί να ζητάς πολλά βήματα. Αν λείπει μία μόνο πληροφορία, κάνε μία στοχευμένη ερώτηση· αν έχεις αρκετά, ΕΚΤΕΛΕΣΕ κατευθείαν με την κατάλληλη ετικέτα ενέργειας (κουμπί με ένα άγγιγμα) αντί να περιγράφεις πώς να το κάνει χειροκίνητα. Πάντα κλείνε με το πιο χρήσιμο ΕΠΟΜΕΝΟ ΒΗΜΑ ως κουμπί, όχι με οδηγίες πολλών βημάτων. Οι Επαφές, το Αρχείο, οι Εκκρεμότητες και η Απογραφή βρίσκονται πλέον ΜΕΣΑ στην Επισκόπηση (πτυσσόμενες κάρτες)· το [[go:contacts]] / [[go:documents]] / [[go:checklist]] / [[go:inventory]] οδηγεί στο αντίστοιχο εργαλείο.
 
 ΜΝΗΜΗ (τι να θυμάσαι μακροπρόθεσμα):
@@ -201,11 +207,36 @@ export function cleanForSpeech(t: string): string {
 
 // Ανάλυση απάντησης: αφαίρεσε τις οδηγίες [[go:x]]/[[scan]]/[[remember:...]] και
 // επίστρεψέ τες χωριστά. Το `remember` είναι ένα γεγονός που ζητά ο βοηθός να κρατηθεί.
-export function parseAction(text: string): { clean: string; action?: { type: 'go'; tab: string } | { type: 'scan' } | { type: 'book'; title: string; date: string } | { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string }; remember?: string } {
+export type AssistantAction =
+  | { type: 'go'; tab: string }
+  | { type: 'scan' }
+  | { type: 'book'; title: string; date: string }
+  | { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string }
+  | { type: 'expense'; description: string; amount: number }
+  | { type: 'vip'; who: string }
+  | { type: 'checkin'; who: string };
+
+export function parseAction(text: string): { clean: string; action?: AssistantAction; remember?: string } {
   const go = text.match(/\[\[go:([a-z]+)\]\]/i);
   const scan = /\[\[scan\]\]/i.test(text);
   const rem = text.match(/\[\[remember:\s*([^\]]+?)\s*\]\]/i);
   const remember = rem ? rem[1].trim().slice(0, 140) : undefined;
+  // Καταχώρηση δαπάνης: [[expense: περιγραφή | ποσό]] (η κατηγορία προκύπτει αυτόματα).
+  const ex = text.match(/\[\[expense:\s*([^\]]+?)\s*\]\]/i);
+  let expense: { type: 'expense'; description: string; amount: number } | undefined;
+  if (ex) {
+    const parts = ex[1].split('|').map(s => s.trim()).filter(Boolean);
+    const description = (parts.find(p => !/^[\d.,\s€]+$/.test(p)) || '').slice(0, 120);
+    const numRaw = parts.find(p => /\d/.test(p)) || '';
+    const amount = parseFloat(numRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+    if (description && amount > 0 && isFinite(amount)) expense = { type: 'expense', description, amount: Math.round(amount * 100) / 100 };
+  }
+  // Σήμανση/άρση VIP: [[vip: όνομα ή τηλέφωνο ή ΑΦΜ]].
+  const vp = text.match(/\[\[vip:\s*([^\]]+?)\s*\]\]/i);
+  const vip = vp && vp[1].trim() ? { type: 'vip' as const, who: vp[1].trim().slice(0, 120) } : undefined;
+  // Σύνδεσμος pre-check-in για πελάτη: [[checkin: όνομα ή τηλέφωνο ή ΑΦΜ]].
+  const ck = text.match(/\[\[checkin:\s*([^\]]+?)\s*\]\]/i);
+  const checkin = ck && ck[1].trim() ? { type: 'checkin' as const, who: ck[1].trim().slice(0, 120) } : undefined;
   // Καταχώρηση πελάτη: [[client: Όνομα | τηλέφωνο | ΑΦΜ | τύπος]] (μόνο το όνομα υποχρεωτικό).
   const cl = text.match(/\[\[client:\s*([^\]]+?)\s*\]\]/i);
   let client: { type: 'client'; name: string; phone?: string; afm?: string; ctype?: string } | undefined;
@@ -233,6 +264,9 @@ export function parseAction(text: string): { clean: string; action?: { type: 'go
   // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
   const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();
   const base = remember ? { clean, remember } : { clean };
+  if (expense) return { ...base, action: expense };
+  if (vip) return { ...base, action: vip };
+  if (checkin) return { ...base, action: checkin };
   if (book) return { ...base, action: book };
   if (client) return { ...base, action: client };
   if (go && NAV_MAP.some(n => n.id === go[1].toLowerCase())) return { ...base, action: { type: 'go', tab: go[1].toLowerCase() } };
