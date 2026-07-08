@@ -100,7 +100,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {pending.length > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--negative)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', fontFamily: T.font.sans }}>{pending.length}</span>}
+          {pending.length > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', fontFamily: T.font.sans }}>{pending.length}</span>}
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                     const st = STATUS_META[r.status] || STATUS_META.new;
                     const done = r.status === 'done';
                     return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: done ? 'var(--bg-elevated)' : `var(--${st.tone}-soft)`, border: `1px solid ${done ? 'var(--border-subtle)' : `var(--${st.tone}-border)`}`, borderRadius: 10, padding: '10px 12px' }}>
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>{r.title}</span>
@@ -139,8 +139,8 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                           <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>{fd(r.created_at)}{r.contact ? ` · ${r.contact}` : ''}</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
-                          {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--warning-border)', background: 'var(--bg-surface)', color: 'var(--warning)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
-                          {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)', background: 'var(--bg-surface)', color: 'var(--positive)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
+                          {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
+                          {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
                           {!done && <button onClick={() => toCalendar(r)} disabled={synced.has(r.id)} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: synced.has(r.id) ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: synced.has(r.id) ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: synced.has(r.id) ? 0.6 : 1 }}>{synced.has(r.id) ? 'Στο Ημερολόγιο ✓' : '→ Ημερολόγιο'}</button>}
                           {done && costFor !== r.id && <button onClick={() => { setCostFor(r.id); setCost(''); }} style={{ height: 26, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>→ Δαπάνη</button>}
                           {done && costFor === r.id && (

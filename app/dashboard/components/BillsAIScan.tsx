@@ -457,8 +457,8 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               <Field label="Περίοδος" value={edited.period} onChange={v => setEdited(p => ({ ...p!, period: v }))}/>
 
               {edited.category === 'electricity' && (
-                <div style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Ρεύματος</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
                     <Field label="Κατανάλωση (kWh)" type="number" value={edited.kwh    || ''} onChange={v => setEdited(p => ({ ...p!, kwh:     parseFloat(v) || undefined }))}/>
                     <Field label="ΕΡΤ (€)"          type="number" value={edited.ert    || ''} onChange={v => setEdited(p => ({ ...p!, ert:     parseFloat(v) || undefined }))}/>
@@ -469,8 +469,8 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               )}
 
               {edited.category === 'water' && (
-                <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Νερού</div>
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Νερού</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 8 }}>
                     <Field label="Κατανάλωση (m³)"     type="number" value={edited.cubic_meters  || ''} onChange={v => setEdited(p => ({ ...p!, cubic_meters:  parseFloat(v) || undefined }))}/>
                     <Field label="Ένδειξη προηγ."       type="number" value={edited.meter_prev    || ''} onChange={v => setEdited(p => ({ ...p!, meter_prev:    parseFloat(v) || undefined }))}/>
@@ -480,8 +480,8 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               )}
 
               {edited.category === 'gas' && (
-                <div style={{ background: 'rgba(242,153,0,0.04)', border: '1px solid rgba(242,153,0,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Αερίου</div>
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Αερίου</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 8 }}>
                     <Field label="Κατανάλωση (m³)"     type="number" value={edited.cubic_meters  || ''} onChange={v => setEdited(p => ({ ...p!, cubic_meters:  parseFloat(v) || undefined }))}/>
                     <Field label="Χρέωση ενέργειας (€)" type="number" value={edited.energy_charge || ''} onChange={v => setEdited(p => ({ ...p!, energy_charge: parseFloat(v) || undefined }))}/>
@@ -491,8 +491,8 @@ export default function BillsAIScan({ propertyId, userId = '', onSaved }: Props)
               )}
 
               {edited.category === 'common' && (
-                <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.inner, padding: 12 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Κοινοχρήστων</div>
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 12 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Λεπτομέρειες Κοινοχρήστων</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
                     <Field label="Χιλιοστά διαμ/τος (‰)" type="number" value={edited.millesimi || ''} onChange={v => setEdited(p => ({ ...p!, millesimi: parseFloat(v) || undefined }))}/>
                   </div>

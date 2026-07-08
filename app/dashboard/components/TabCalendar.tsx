@@ -388,8 +388,8 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12 }}>
         {[
           { label:'Σύνολο εκκρεμή', value:totalAmt>0?totalAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--accent)' },
-          { label:'Ήδη πληρώθηκαν', value:paidAmt>0?paidAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--positive)' },
-          { label:'Γεγονότα έτους', value:`${events.length}`, color:'var(--info)' },
+          { label:'Ήδη πληρώθηκαν', value:paidAmt>0?paidAmt.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:'var(--text-primary)' },
+          { label:'Γεγονότα έτους', value:`${events.length}`, color:'var(--text-primary)' },
         ].map(s=>(
           <div key={s.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
             <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{s.label}</p>
@@ -492,10 +492,10 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16, boxShadow:'var(--shadow-sm)' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
         <div>
-          <p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--positive)', letterSpacing:'0.1px' }}>Auto-Pull Δεδομένων</p>
+          <p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Auto-Pull Δεδομένων</p>
           {lastSync&&<p style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:2 }}>Τελευταίος sync: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={syncing} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:syncing?'transparent':'var(--positive-dim)', border:'1px solid var(--positive)', borderRadius:18, cursor:syncing?'not-allowed':'pointer', color:'var(--positive)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500 }}>
+        <button onClick={syncAll} disabled={syncing} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:syncing?'transparent':'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:18, cursor:syncing?'not-allowed':'pointer', color:'var(--accent)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500 }}>
           <RefreshCw size={14} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός...':'Sync τώρα'}
         </button>
       </div>
@@ -503,18 +503,18 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
         {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Από τους λογαριασμούς'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Εργασίες συντήρησης'},{key:'rent',label:'Ενοίκιο',icon:<Euro size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
           const active=sources[key as keyof typeof sources]
           return (
-            <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--positive-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--positive)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
-              <span style={{ color:active?'var(--positive)':'var(--text-tertiary)' }}>{icon}</span>
+            <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
+              <span style={{ color:active?'var(--accent)':'var(--text-tertiary)' }}>{icon}</span>
               <div style={{ textAlign:'left' }}>
-                <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", color:active?'var(--positive)':'var(--text-secondary)' }}>{label}</p>
+                <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", color:active?'var(--accent)':'var(--text-secondary)' }}>{label}</p>
                 <p style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{desc}</p>
               </div>
-              <span style={{ color:active?'var(--positive)':'var(--text-tertiary)' }}>{active?<ToggleRight size={16}/>:<ToggleLeft size={16}/>}</span>
+              <span style={{ color:active?'var(--accent)':'var(--text-tertiary)' }}>{active?<ToggleRight size={16}/>:<ToggleLeft size={16}/>}</span>
             </button>
           )
         })}
       </div>
-      {msg&&<p style={{ marginTop:8, fontSize:13, fontFamily:"'Inter',sans-serif", color:'var(--positive)' }}>{msg}</p>}
+      {msg&&<p style={{ marginTop:8, fontSize:13, fontFamily:"'Inter',sans-serif", color:'var(--text-secondary)' }}>{msg}</p>}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
@@ -631,7 +631,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.recurring?12:0 }}>
               <div>
                 <p style={{ fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</p>
-                <p style={{ fontFamily:"'Inter',sans-serif", fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.25px' }}>Ενοίκιο, δόση, ΕΝΦΙΑ και άλλα</p>
+                <p style={{ fontFamily:"'Inter',sans-serif", fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.25px' }}>Ενοίκιο, δόση, <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span> και άλλα</p>
               </div>
               <div onClick={()=>setForm(f=>({...f,recurring:!f.recurring}))} style={{ width:52, height:32, borderRadius:16, border:`2px solid ${form.recurring?'var(--accent)':'var(--border-default)'}`, background:form.recurring?'var(--accent)':'transparent', position:'relative', transition:'all 0.2s', cursor:'pointer', flexShrink:0 }}>
                 <span style={{ position:'absolute', top:'50%', transform:'translateY(-50%)', width:form.recurring?24:16, height:form.recurring?24:16, borderRadius:'50%', background:form.recurring?'var(--accent-text)':'var(--text-secondary)', left:form.recurring?'calc(100% - 26px)':'2px', transition:'all 0.2s' }}/>
@@ -848,8 +848,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {[
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--positive)', icon:<AlertTriangle size={14}/>},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα!':`σε ${daysUntil(nextEvent.event_date)}μ`):'—', color:'var(--info)', icon:<Clock size={14}/>},
-          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'#8b5cf6':'var(--text-secondary)', icon:<Shield size={14}/>},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα!':`σε ${daysUntil(nextEvent.event_date)}μ`):'—', color:'var(--text-primary)', icon:<Clock size={14}/>},
+          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>},
         ].map(kpi=>(
           <div key={kpi.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
@@ -876,9 +876,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             </div>
           )}
           {expiring.length>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.3)', borderRadius:8, padding:'10px 16px' }}>
-              <Shield size={14} color="#8b5cf6"/>
-              <p style={{ fontSize:14, color:'#8b5cf6', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:8, padding:'10px 16px' }}>
+              <Shield size={14} color="var(--warning)"/>
+              <p style={{ fontSize:14, color:'var(--warning)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
                 {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών, {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
               </p>
             </div>
@@ -910,13 +910,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         <input placeholder="Αναζήτηση..." value={searchQ} onChange={e=>setSearchQ(e.target.value)}
           style={{ flex:1, minWidth:120, height:36, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px', outline:'none' }}/>
 
-        <button onClick={()=>{setBulkMode(b=>!b);setSelectedIds(new Set())}} style={toolBtn(bulkMode,'var(--info)')}>
+        <button onClick={()=>{setBulkMode(b=>!b);setSelectedIds(new Set())}} style={toolBtn(bulkMode,'var(--accent)')}>
           <CheckSquare size={14}/>Bulk
         </button>
         <button onClick={()=>setShowFilters(f=>!f)} style={toolBtn(showFilters)}>
           <Filter size={14}/>Φίλτρα
         </button>
-        <button onClick={()=>setShowAutoPull(f=>!f)} style={toolBtn(showAutoPull,'var(--positive)')}>
+        <button onClick={()=>setShowAutoPull(f=>!f)} style={toolBtn(showAutoPull,'var(--accent)')}>
           <RefreshCw size={14}/>Sync
         </button>
         <button onClick={exportICal} style={toolBtn(false)}>
@@ -940,9 +940,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {/* Bulk action bar */}
       {bulkMode&&selectedIds.size>0&&(
-        <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--info-dim)', border:'1px solid var(--border-accent)', borderRadius:8, padding:'10px 16px' }}>
-          <span style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--info)' }}>{selectedIds.size} επιλεγμένα</span>
-          <button onClick={bulkMarkPaid} style={{ height:32, padding:'0 16px', background:'var(--positive-dim)', border:'1px solid var(--positive)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--positive)', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>Πληρωμένα</button>
+        <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--accent-dim)', border:'1px solid var(--border-accent)', borderRadius:8, padding:'10px 16px' }}>
+          <span style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--accent)' }}>{selectedIds.size} επιλεγμένα</span>
+          <button onClick={bulkMarkPaid} style={{ height:32, padding:'0 16px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--accent)', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>Πληρωμένα</button>
           <button onClick={bulkDelete} style={{ height:32, padding:'0 16px', background:'var(--negative-dim)', border:'1px solid var(--negative)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--negative)', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>Διαγραφή</button>
           <button onClick={()=>setSelectedIds(new Set(filtered.map(e=>e.id)))} style={{ height:32, padding:'0 16px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:16, cursor:'pointer', fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>Επιλογή όλων</button>
         </div>
@@ -995,7 +995,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
           {overdue.length>0&&<Section title="Εκπρόθεσμα" color="var(--negative)" events={overdue} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {thisWeek.length>0&&<Section title="Επόμενες 7 μέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--info)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {filtered.length===0&&<div style={{ textAlign:'center', padding:'50px 0' }}><Calendar size={28} color="var(--text-tertiary)" style={{ margin:'0 auto 12px' }}/><p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)' }}>Δεν υπάρχουν γεγονότα</p></div>}

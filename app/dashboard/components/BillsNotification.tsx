@@ -35,8 +35,8 @@ interface ManualReminder {
 const SEV: Record<Severity, { bg: string; border: string; dot: string; text: string; label: string }> = {
   critical: { bg: 'rgba(197,34,31,0.06)',  border: 'rgba(197,34,31,0.2)',   dot: 'var(--negative)', text: 'var(--negative)', label: 'Επείγον'    },
   warning:  { bg: 'rgba(242,153,0,0.05)',  border: 'rgba(242,153,0,0.2)',   dot: 'var(--warning)',  text: 'var(--warning)',  label: 'Προσοχή'    },
-  info:     { bg: 'rgba(26,115,232,0.04)', border: 'rgba(26,115,232,0.15)', dot: 'var(--info)',     text: 'var(--info)',     label: 'Πληροφορία' },
-  tip:      { bg: 'rgba(52,168,83,0.04)',  border: 'rgba(52,168,83,0.15)',  dot: 'var(--positive)', text: 'var(--positive)', label: 'Συμβουλή'   },
+  info:     { bg: 'transparent',           border: 'var(--border-subtle)',  dot: 'var(--text-tertiary)', text: 'var(--text-secondary)', label: 'Πληροφορία' },
+  tip:      { bg: 'transparent',           border: 'var(--border-subtle)',  dot: 'var(--text-tertiary)', text: 'var(--text-secondary)', label: 'Συμβουλή'   },
 };
 
 const AUDIENCE_OPTIONS = [

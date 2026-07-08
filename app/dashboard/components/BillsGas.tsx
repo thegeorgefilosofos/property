@@ -180,9 +180,9 @@ const secHdr = (label: string, sub?: string) => (
 
 const bc = (badge: string) => {
   switch (badge) {
-    case 'ΜΠΛΕ':    return { bg: 'rgba(26,115,232,0.08)',  border: 'rgba(26,115,232,0.25)',  color: 'var(--info)' };
-    case 'ΚΙΤΡΙΝΟ': return { bg: 'rgba(242,153,0,0.08)',   border: 'rgba(242,153,0,0.25)',   color: 'var(--warning)' };
-    case 'ΕΙΔΙΚΟ':  return { bg: 'rgba(52,168,83,0.08)',   border: 'rgba(52,168,83,0.25)',   color: 'var(--positive)' };
+    case 'ΜΠΛΕ':    return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
+    case 'ΚΙΤΡΙΝΟ': return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
+    case 'ΕΙΔΙΚΟ':  return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
     default:         return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
   }
 };
@@ -191,7 +191,7 @@ const bc = (badge: string) => {
 const priceBadge = (status: PriceStatus) => {
   switch (status) {
     case 'verified':   return { label: '✓ Επιβεβαιωμένη', color: 'var(--positive)', bg: 'rgba(52,168,83,0.08)',  border: 'rgba(52,168,83,0.25)' };
-    case 'formula':    return { label: 'ƒ Τύπος TTF',     color: 'var(--info)',     bg: 'rgba(26,115,232,0.08)', border: 'rgba(26,115,232,0.25)' };
+    case 'formula':    return { label: 'ƒ Τύπος TTF',     color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)' };
     case 'indicative': return { label: '~ Ενδεικτική',    color: 'var(--warning)',  bg: 'rgba(242,153,0,0.08)',  border: 'rgba(242,153,0,0.25)' };
   }
 };
@@ -318,9 +318,9 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
       {/* ── Διαφάνεια τιμών, τι ακριβώς βλέπεις ── */}
       <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-        <strong style={{ color: 'var(--info)' }}>Διαφάνεια τιμών:</strong> Οι τιμές αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος), χωρίς ρυθμιζόμενες χρεώσεις δικτύου, ΕΦΚ και ΦΠΑ, ο τελικός λογαριασμός είναι υψηλότερος.
+        <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Οι τιμές αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος), χωρίς ρυθμιζόμενες χρεώσεις δικτύου, <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span>, ο τελικός λογαριασμός είναι υψηλότερος.
         Σήμανση κάθε τιμής: <span style={{ color: 'var(--positive)', fontWeight: 700 }}>✓ Επιβεβαιωμένη</span> (επίσημη, {LAST_VERIFIED}) ·{' '}
-        <span style={{ color: 'var(--info)', fontWeight: 700 }}>ƒ Τύπος TTF</span> (υπολογίζεται από τον επίσημο τύπο του παρόχου) ·{' '}
+        <span title="Δείκτης χονδρικής τιμής φυσικού αερίου στην ευρωπαϊκή αγορά (Title Transfer Facility)" style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>ƒ Τύπος TTF</span> (υπολογίζεται από τον επίσημο τύπο του παρόχου) ·{' '}
         <span style={{ color: 'var(--warning)', fontWeight: 700 }}>~ Ενδεικτική</span> (τάξη μεγέθους, επιβεβαίωσε στον πάροχο).
       </div>
 
@@ -376,7 +376,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, paddingBottom: 6 }}>
             Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή TTF.
             Η μηνιαία τιμή δημοσιεύεται στο{' '}
-            <a href="https://www.eex.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>EEX</a>
+            <a href="https://www.eex.com" target="_blank" rel="noopener noreferrer" title="Ευρωπαϊκό Χρηματιστήριο Ενέργειας (European Energy Exchange)" style={{ color: 'var(--accent)', textDecoration: 'none' }}>EEX</a>
             {' '}και στους λογαριασμούς των παρόχων.
           </div>
         </div>
@@ -392,17 +392,17 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                 ); })()}
               </div>
               <a href={provider?.url} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 10, color: bc(tariff.badge).color, border: `1px solid ${bc(tariff.badge).border}`, borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
+                style={{ fontSize: 10, color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
                 Επίσημη σελίδα →
               </a>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>
             {tariff.sourceNote && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>Πηγή: {tariff.sourceNote}</div>}
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
-              <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: bc(tariff.badge).color }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
+              <span title="Κιλοβατώρα — μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
               <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Αρχικό πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
               {tariff.dual_fuel_discount && (
-                <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
+                <span title="Κοινός πάροχος ρεύματος και αερίου με ενιαία έκπτωση" style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
               )}
             </div>
             {tariff.fixedNote && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{tariff.fixedNote}</div>}
@@ -428,8 +428,8 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           </div>
 
           {savings > 1 && (
-            <div style={{ background: 'rgba(52,168,83,0.05)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }}/>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
                 Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το φθηνότερο τιμολόγιο, επιβεβαίωσε πάντα την τρέχουσα προσφορά στον πάροχο.
               </span>
@@ -450,7 +450,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
                   const isBest = i === 0;
                   const diff   = t.monthly - bestMonthly;
                   return (
-                    <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(26,115,232,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: t.isCurrent ? 'rgba(26,115,232,0.04)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
                         {!t.isCurrent && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
                         {t.providerLabel}
@@ -504,9 +504,9 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
         if (hints.length === 0) return null;
 
         const SEV_STYLE = {
-          warning: { bg: 'rgba(242,153,0,0.05)', border: 'rgba(242,153,0,0.2)', dot: 'var(--warning)' },
-          info:    { bg: 'rgba(26,115,232,0.04)', border: 'rgba(26,115,232,0.15)', dot: 'var(--info)' },
-          tip:     { bg: 'rgba(52,168,83,0.04)', border: 'rgba(52,168,83,0.15)', dot: 'var(--positive)' },
+          warning: { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--warning)' },
+          info:    { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--accent)' },
+          tip:     { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--accent)' },
         };
 
         return (
@@ -528,18 +528,18 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
       <div style={card}>
         {secHdr('Χρήσιμες Πληροφορίες')}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Το δίκτυο διανομής ανήκει στον τοπικό διαχειριστή (ΕΔΑ Αττικής, ΕΔΑ ΘΕΣΣ ή ΔΕΔΑ), δεν αλλάζει όποιον πάροχο κι αν επιλέξεις. Η αλλαγή παρόχου είναι καθαρά εμπορική, δεν γίνεται καμία επέμβαση στον αγωγό ή τον λέβητα, και ολοκληρώνεται σε περίπου 3 εβδομάδες χωρίς χρέωση.
           </div>
-          <div style={{ background: 'rgba(242,153,0,0.04)', border: '1px solid rgba(242,153,0,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Πρόσεχε την «έκπτωση συνέπειας»: πολλά προγράμματα διαφημίζουν χαμηλή τιμή που ισχύει μόνο με εμπρόθεσμη εξόφληση, αν αργήσεις μία πληρωμή, χρεώνεσαι τη βασική (υψηλότερη) τιμή. Σύγκρινε πάντα και την «καθαρή» τιμή χωρίς έκπτωση.
           </div>
-          <div style={{ background: 'rgba(242,153,0,0.04)', border: '1px solid rgba(242,153,0,0.15)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Τα κίτρινα/κυμαινόμενα τιμολόγια ακολουθούν τον δείκτη TTF (ευρωπαϊκή χονδρεμπορική αγορά). Οι τιμές ανεβαίνουν συνήθως τον χειμώνα λόγω ζήτησης θέρμανσης, αν θες σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.
           </div>
           <a href="https://www.gov.gr/upourgeia/oloi-foreis/ruthmistike-arkhe-apobleton-energeias-kai-udaton/sugkrise-timon-elektrikes-energeias-kai-phusikou-aeriou" target="_blank" rel="noopener noreferrer"
-            style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--info)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
-            Επίσημη Σύγκριση Τιμών ΡΑΑΕΥ (gov.gr) →
+            style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
+            Επίσημη Σύγκριση Τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> (gov.gr) →
           </a>
         </div>
       </div>

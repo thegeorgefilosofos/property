@@ -249,13 +249,13 @@ const PROVIDERS = [
 ];
 
 const BADGE_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  'ΠΡΑΣΙΝΟ':  { bg: 'rgba(52,168,83,0.1)',  color: 'var(--positive)', border: 'rgba(52,168,83,0.25)'  },
-  'ΚΙΤΡΙΝΟ':  { bg: 'rgba(242,153,0,0.1)',  color: 'var(--warning)',  border: 'rgba(242,153,0,0.25)'  },
-  'ΜΠΛΕ':     { bg: 'rgba(26,115,232,0.1)', color: 'var(--info)',     border: 'rgba(26,115,232,0.25)' },
-  'VNM':      { bg: 'rgba(26,115,232,0.1)', color: 'var(--accent)',   border: 'rgba(26,115,232,0.25)' },
-  'ΔΥΝΑΜΙΚΟ': { bg: 'rgba(139,92,246,0.1)', color: '#7c4dff',         border: 'rgba(139,92,246,0.25)' },
+  'ΠΡΑΣΙΝΟ':  { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
+  'ΚΙΤΡΙΝΟ':  { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
+  'ΜΠΛΕ':     { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
+  'VNM':      { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
+  'ΔΥΝΑΜΙΚΟ': { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
   // FIX: 'FLAT' badge δεν είχε χρώμα, έπεφτε στο γκρι fallback. Τώρα distinct teal.
-  'FLAT':     { bg: 'rgba(6,182,212,0.1)',  color: '#00acc1',         border: 'rgba(6,182,212,0.25)'  },
+  'FLAT':     { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' },
 };
 const bc = (badge: string) => BADGE_COLORS[badge] || { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
 
@@ -428,7 +428,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Ρεύμα</div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED}, Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
         </div>
-        <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer"
+        <a href={RAAYEY_URL} target="_blank" rel="noopener noreferrer" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων"
           style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.25)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
           Σύγκριση ΡΑΑΕΥ →
         </a>
@@ -479,7 +479,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{tariff.name}</span>
               <span style={{ fontSize: 9, fontWeight: 800, color: tariffBc.color, background: tariffBc.border, padding: '2px 10px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{tariff.badge}</span>
               {tariff.contract_months ? (
-                <span style={{ fontSize: 9, color: 'var(--info)', background: 'rgba(26,115,232,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid rgba(26,115,232,0.2)', fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   {tariff.contract_months} μήνες
                 </span>
               ) : (
@@ -487,23 +487,23 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   Χωρίς δέσμευση
                 </span>
               )}
-              {tariff.no_fixed && <span style={{ fontSize: 9, color: 'var(--positive)', background: 'rgba(52,168,83,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
-              {tariff.smart_meter && <span style={{ fontSize: 9, color: '#7c4dff', background: 'rgba(139,92,246,0.08)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος Μετρητής</span>}
+              {tariff.no_fixed && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
+              {tariff.smart_meter && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος Μετρητής</span>}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{tariff.desc}</div>
             {tariff.desc.includes('ΜΔΚΑ') && (
-              <div style={{ marginTop: 6, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.18)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια ("κίτρινα") που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://www.raaey.gr" target="_blank" style={{ color: "var(--info)", fontWeight: 600 }}>ΡΑΑΕΥ →</a>
+              <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                  <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια ("κίτρινα") που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://www.raaey.gr" target="_blank" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων" style={{ color: "var(--accent)", fontWeight: 600 }}>ΡΑΑΕΥ →</a>
                 </span>
               </div>
             )}
             {/* FIX: new, Picasso-family flat packages had no explanation of the tolerance/overage/settlement mechanic anywhere in the UI */}
             {tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh != null && tariff.flat_overage_rate != null && (
-              <div style={{ marginTop: 6, background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.18)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#00acc1" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span style={{ fontSize: 10, color: '#00acc1', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+              <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   Σταθερό μηνιαίο ποσό για {tariff.contract_months || 12} μήνες (προμήθεια + ρυθμιζόμενες χρεώσεις, όχι υπέρ τρίτων). Ανοχή υπέρβασης 5% χωρίς χρέωση· πάνω από αυτό, {fk(tariff.flat_overage_rate)}/kWh. Ετήσια εκκαθάριση.
                 </span>
               </div>
@@ -543,7 +543,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             )}
           </div>
           <a href={providerObj.url} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 10, color: tariffBc.color, border: `1px solid ${tariffBc.border}`, borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
+            style={{ fontSize: 10, color: 'var(--accent)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
             Επίσκεψη →
           </a>
         </div>
@@ -608,7 +608,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
         {/* kWh history */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό Κατανάλωσης, kWh ανά μήνα</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό Κατανάλωσης, <span title="κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ηλεκτρικής ενέργειας">kWh</span> ανά μήνα</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
             {MONTHS_GR.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
@@ -647,8 +647,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             </div>
           </div>
           {savings > 1 && (
-            <div style={{ background: 'rgba(52,168,83,0.05)', border: '1px solid rgba(52,168,83,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }}/>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
                 Μπορείς να εξοικονομήσεις <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το καλύτερο τιμολόγιο
               </span>
@@ -667,7 +667,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   const isBest  = i === 0;
                   const isCur   = t.isCurrent;
                   return (
-                    <tr key={t.id} style={{ background: isCur ? 'rgba(26,115,232,0.04)' : isBest ? 'rgba(52,168,83,0.03)' : 'transparent' }}>
+                    <tr key={t.id} style={{ background: isCur ? 'rgba(26,115,232,0.04)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                         {isCur && <span style={{ fontSize: 7, color: 'var(--accent)', marginRight: 6, fontWeight: 800, textTransform: 'uppercase' as const }}>▶ ΤΡΕΧΟΝ</span>}
                         {!isCur && isBest && <span style={{ fontSize: 7, color: 'var(--positive)', marginRight: 6, fontWeight: 800 }}>★ ΚΑΛΥΤΕΡΟ</span>}
@@ -678,7 +678,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         <span style={{ fontSize: 8, fontWeight: 700, color: rowBc.color, background: rowBc.border, padding: '2px 8px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{t.badge}</span>
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
-                        {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? 'VNM' : `${fk(t.kwh_day)}`}
+                        {t.type === 'fixed_monthly' ? 'all-in' : t.type === 'vnm' ? <span title="Εικονική Καθαρή Μέτρηση (Virtual Net Metering)">VNM</span> : `${fk(t.kwh_day)}`}
                       </td>
                       <td style={{ padding: '8px 10px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const }}>
                         {/* FIX: fixed_monthly tariffs showed a misleading "0.00 €" pagio (implying free, like no_fixed), now shows, instead */}
@@ -766,8 +766,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
         const SEV_STYLE = {
           warning: { bg: 'rgba(242,153,0,0.05)', border: 'rgba(242,153,0,0.2)', dot: 'var(--warning)', text: 'var(--warning)' },
-          info:    { bg: 'rgba(26,115,232,0.04)', border: 'rgba(26,115,232,0.15)', dot: 'var(--info)', text: 'var(--info)' },
-          tip:     { bg: 'rgba(52,168,83,0.04)', border: 'rgba(52,168,83,0.15)', dot: 'var(--positive)', text: 'var(--positive)' },
+          info:    { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--text-tertiary)', text: 'var(--accent)' },
+          tip:     { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--text-tertiary)', text: 'var(--accent)' },
         };
 
         return (

@@ -526,7 +526,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             if (group.length === 0) return null;
             const bg     = type === 'danger'  ? 'rgba(197,34,31,0.06)'  : type === 'warning' ? 'rgba(242,153,0,0.06)'  : 'rgba(26,115,232,0.05)';
             const border = type === 'danger'  ? 'rgba(197,34,31,0.2)'   : type === 'warning' ? 'rgba(242,153,0,0.2)'   : 'rgba(26,115,232,0.15)';
-            const col    = type === 'danger'  ? 'var(--negative)'        : type === 'warning' ? 'var(--warning)'        : 'var(--info)';
+            const col    = type === 'danger'  ? 'var(--negative)'        : type === 'warning' ? 'var(--warning)'        : 'var(--accent)';
             const label  = type === 'danger'  ? 'Ληξιπρόθεσμα'          : type === 'warning' ? 'Προσεχείς Πληρωμές'   : 'Πληροφορίες';
             return (
               <div key={type} style={{ background: bg, border: `1px solid ${border}`, borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 8 }}>
@@ -537,7 +537,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     <span style={{ flex: 1, fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{a.msg}</span>
                     {a.bill && (
                       <button onClick={() => togglePaid(a.bill!)}
-                        style={{ fontSize: 10, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.3)', borderRadius: T.radius.badge, padding: '4px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 700, whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
+                        style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', border: '1px solid rgba(26,115,232,0.3)', borderRadius: T.radius.badge, padding: '4px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 700, whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
                         Πληρώθηκε
                       </button>
                     )}
@@ -606,7 +606,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               return (
                 <div key={c.value} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: `1px solid ${over ? 'rgba(197,34,31,0.25)' : near ? 'rgba(242,153,0,0.25)' : 'var(--border-subtle)'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, flex: 1 }}>{c.label}</span>
                     {current > 0 && <span style={{ fontSize: 10, color: over ? 'var(--negative)' : near ? 'var(--warning)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{current.toLocaleString('el-GR')}€</span>}
                   </div>
@@ -704,7 +704,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             const cfg = {
               overdue:  { label: 'Ληξιπρόθεσμοι', color: 'var(--negative)' },
               upcoming: { label: 'Εκκρεμείς',      color: 'var(--warning)'  },
-              paid:     { label: 'Πληρωμένοι',     color: 'var(--positive)' },
+              paid:     { label: 'Πληρωμένοι',     color: 'var(--text-secondary)' },
             }[group];
             return (
               <div key={group} style={{ marginBottom: 16 }}>
@@ -716,20 +716,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   const daysLeft = b.due_date ? Math.ceil((new Date(b.due_date).getTime() - today.getTime()) / 86400000) : null;
                   return (
                     <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', opacity: b.paid ? 0.55 : 1 }}>
-                      <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--positive)' : 'var(--border-default)'}`, background: b.paid ? 'var(--positive)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <button onClick={() => togglePaid(b.id)} style={{ width: 22, height: 22, borderRadius: T.radius.badge, border: `2px solid ${b.paid ? 'var(--accent)' : 'var(--border-default)'}`, background: b.paid ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {b.paid && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
                       </button>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' as const, marginBottom: 3 }}>
-                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                           <span style={{ fontSize: 12, fontWeight: 600, textDecoration: b.paid ? 'line-through' : 'none', color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{b.name}</span>
                           {b.recurring && <span style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>ΠΑΓΙΟ</span>}
                           <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontWeight: 600, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>{c.label}</span>
-                          {b.vat_rate ? <span style={{ fontSize: 8, color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>ΦΠΑ {b.vat_rate}%</span> : null}
+                          {b.vat_rate ? <span title="Φόρος Προστιθέμενης Αξίας" style={{ fontSize: 8, color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>ΦΠΑ {b.vat_rate}%</span> : null}
                         </div>
                         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' as const }}>
                           {b.period && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{b.period}</span>}
-                          {b.kwh && <span style={{ fontSize: 10, color: 'var(--info)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{b.kwh} kWh</span>}
+                          {b.kwh && <span title="Κιλοβατώρες — μονάδα κατανάλωσης ηλεκτρικής ενέργειας" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{b.kwh} kWh</span>}
                           {b.due_date && <span style={{ fontSize: 10, fontFamily: T.font.sans, color: daysLeft !== null && daysLeft < 0 ? 'var(--negative)' : daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
                             {daysLeft !== null && daysLeft < 0 ? `${Math.abs(daysLeft)} ημέρες καθυστέρηση` : daysLeft === 0 ? 'Λήγει σήμερα' : daysLeft !== null ? `σε ${daysLeft} ημέρες` : new Date(b.due_date).toLocaleDateString('el-GR')}
                           </span>}
@@ -738,7 +738,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                       </div>
                       <span style={{ fontSize: 15, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(b.amount, 2)}</span>
                       {!b.paid && (
-                        <button onClick={() => togglePaid(b.id)} style={{ fontSize: 10, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid var(--positive)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600 }}>
+                        <button onClick={() => togglePaid(b.id)} style={{ fontSize: 10, color: 'var(--accent)', background: 'rgba(26,115,232,0.1)', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, fontWeight: 600 }}>
                           Πληρώθηκε
                         </button>
                       )}
@@ -764,7 +764,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         style={{ width: 26, height: 26, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(26,115,232,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--info)'; }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(26,115,232,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}>
                         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -876,9 +876,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           advice.push({ type: 'tip', title: 'Υψηλά πάγια έξοδα', body: `${fe(calc.totalMonthly, 0)}/μήνα είναι πάνω από τον μέσο όρο. Ετήσιο κόστος: ${fe(calc.totalMonthly * 12, 0)}. Εξετάστε αναθεώρηση παρόχων.` });
         if (advice.length === 0) return null;
         const colors = {
-          tip:     { bg: 'rgba(26,115,232,0.06)',  border: 'rgba(26,115,232,0.2)',  color: 'var(--info)',     dot: 'var(--info)' },
+          tip:     { bg: 'rgba(26,115,232,0.06)',  border: 'rgba(26,115,232,0.2)',  color: 'var(--accent)',   dot: 'var(--accent)' },
           warning: { bg: 'rgba(197,34,31,0.06)',   border: 'rgba(197,34,31,0.2)',   color: 'var(--negative)', dot: 'var(--negative)' },
-          saving:  { bg: 'rgba(52,168,83,0.06)',   border: 'rgba(52,168,83,0.2)',   color: 'var(--positive)', dot: 'var(--positive)' },
+          saving:  { bg: 'rgba(26,115,232,0.06)',   border: 'rgba(26,115,232,0.2)',   color: 'var(--accent)',   dot: 'var(--accent)' },
         };
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
@@ -930,7 +930,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <div key={c.value} style={{ marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{c.label}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -942,7 +942,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                 </div>
                 <div style={{ position: 'relative', height: 6, background: 'var(--bg-overlay)', borderRadius: 3 }}>
                   {c.benchmark > 0 && <div style={{ position: 'absolute', left: '50%', top: -2, width: 2, height: 10, background: 'var(--border-default)', borderRadius: 1 }}/>}
-                  <div style={{ height: '100%', width: `${Math.min(barPct, 100)}%`, background: overBudget ? 'var(--negative)' : isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : c.color, borderRadius: 3, transition: 'width 0.5s' }}/>
+                  <div style={{ height: '100%', width: `${Math.min(barPct, 100)}%`, background: overBudget ? 'var(--negative)' : isHigh ? 'var(--negative)' : pct < -10 ? 'var(--positive)' : 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }}/>
                 </div>
               </div>
             );
@@ -1008,7 +1008,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <tr key={c.value}>
                     <td style={{ padding: '4px 8px', fontSize: 10, borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' as const }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                         <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{c.label}</span>
                       </div>
                     </td>
@@ -1035,7 +1035,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     {t > 0 ? Math.round(t) : '—'}
                   </td>
                 ))}
-                <td style={{ padding: 8, fontWeight: 700, color: 'var(--warning)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontSize: 11 }}>
+                <td style={{ padding: 8, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontSize: 11 }}>
                   {fe(calc.historyTotals.reduce((a, b) => a + b, 0), 0)}
                 </td>
               </tr>
@@ -1080,12 +1080,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     return (
                       <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }}/>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                           <span style={{ fontSize: 11, color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none', fontFamily: T.font.sans }}>{b.name}</span>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: b.paid ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
-                          <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 3, background: b.paid ? 'rgba(52,168,83,0.1)' : 'rgba(197,34,31,0.1)', color: b.paid ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans }}>{b.paid ? 'Πληρώθηκε' : 'ΕΚΚΡΕΜΕΣ'}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: b.paid ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(b.amount, 2)}</span>
+                          <span style={{ fontSize: 8, padding: '1px 6px', borderRadius: 3, background: b.paid ? 'var(--bg-elevated)' : 'rgba(197,34,31,0.1)', color: b.paid ? 'var(--text-tertiary)' : 'var(--negative)', fontFamily: T.font.sans }}>{b.paid ? 'Πληρώθηκε' : 'ΕΚΚΡΕΜΕΣ'}</span>
                         </div>
                       </div>
                     );

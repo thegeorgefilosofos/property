@@ -437,7 +437,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Πρόσθεσε ένα έγγραφο</div>
         <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong>, λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, ΕΝΦΙΑ, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
+          Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong>, λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span>, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
         </div>
       </div>
 
@@ -533,7 +533,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
 
             {/* Προειδοποίηση ελλείψεων */}
             {(v.blocking.length > 0 || v.recommended.length > 0) && (
-              <div style={{ background: v.blocking.length ? 'var(--warning-soft)' : 'var(--info-soft)', border: `1px solid ${v.blocking.length ? 'var(--warning-border)' : 'var(--info-border)'}`, borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14 }}>
+              <div style={{ background: v.blocking.length ? 'var(--warning-soft)' : 'var(--bg-elevated)', border: `1px solid ${v.blocking.length ? 'var(--warning-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 14 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                   {v.blocking.length
                     ? <>Χρειάζονται τα βασικά: <strong>{v.blocking.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. Συμπλήρωσέ τα για να αποθηκεύσω σωστά.</>

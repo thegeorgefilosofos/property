@@ -162,8 +162,8 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
   }
 
   const catColors: Record<string, string> = {
-    financial: 'var(--accent)', bills: '#4285f4', maintenance: '#34a853',
-    contract: '#a142f4', tenant: '#f29900', reminder: '#5f6368',
+    financial: 'var(--text-secondary)', bills: 'var(--text-secondary)', maintenance: 'var(--text-secondary)',
+    contract: 'var(--text-secondary)', tenant: 'var(--text-secondary)', reminder: 'var(--text-secondary)',
   }
   const catLabels: Record<string, string> = {
     financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση',
@@ -184,7 +184,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
             </div>
             <div>
               <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>Έξυπνες Προτάσεις</p>
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Ανάλυση με AI βάσει των δεδομένων του ακινήτου</p>
+              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Ανάλυση με <span title="Τεχνητή Νοημοσύνη (Artificial Intelligence)">AI</span> βάσει των δεδομένων του ακινήτου</p>
             </div>
           </div>
           <button onClick={generateSuggestions} disabled={loadingSugg} style={{
@@ -209,7 +209,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
               return (
                 <div key={idx} style={{
                   background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                  borderLeft: `3px solid ${color}`, borderRadius: T.radius.inner, padding: '12px 14px',
+                  borderLeft: '3px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px',
                   display: 'flex', alignItems: 'center', gap: 12,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -228,8 +228,8 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button onClick={() => addSuggestion(s, idx)} disabled={isAdded} style={{
                       display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
-                      background: 'var(--positive-soft)', border: '1px solid var(--positive-border)',
-                      borderRadius: 100, cursor: 'pointer', color: 'var(--positive)', fontSize: 10, fontWeight: 600,
+                      background: 'var(--accent-soft)', border: '1px solid var(--accent-border)',
+                      borderRadius: 100, cursor: 'pointer', color: 'var(--accent)', fontSize: 10, fontWeight: 600,
                       fontFamily: T.font.sans, whiteSpace: 'nowrap',
                     }}>
                       {isAdded ? <Check size={10}/> : <Plus size={10}/>}
