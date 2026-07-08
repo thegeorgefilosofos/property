@@ -217,6 +217,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [segment, setSegment] = useState<'all' | 'vip' | 'repeat' | 'flagged'>('all');
   const [view, setView] = useState<'list' | 'board'>('list');
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [reportYear, setReportYear] = useState(new Date().getFullYear());
+  const [reportYearMenu, setReportYearMenu] = useState(false);
 
   // Εισαγωγή iCal (Airbnb/Booking): συγχρονισμός κρατήσεων/διαμονών ανά ακίνητο.
   const [icalOpen, setIcalOpen] = useState(false);
@@ -878,7 +880,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
+                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία Στοιχείων</Btn>
                 <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 38, height: 38, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
               </div>
             </div>
@@ -943,7 +945,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
                 {unlinkedProps.length > 0 && (
                   <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: 36, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
-                    <option value="" disabled hidden>Πρόσθεσε ακίνητο</option>
+                    <option value="" disabled hidden>Πρόσθεσε Ακίνητο</option>
                     {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 )}
@@ -1271,23 +1273,93 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   Δεν υπάρχουν καταγεγραμμένες διαμονές ακόμη. Πρόσθεσε διαμονές στους πελάτες για να δεις έσοδα ανά κανάλι, ανά μήνα και την πληρότητα της χρονιάς.
                 </div>
               ) : (() => {
-                const tot = totals(allStays);
-                const chRows = revenueByChannel(allStays);
+                const yearOf = (s: Stay) => { const d = s.check_in || s.check_out; return d ? new Date(d).getFullYear() : null; };
+                const yearsAvail = Array.from(new Set(allStays.map(yearOf).filter((y): y is number => y != null)));
+                if (!yearsAvail.includes(reportYear)) yearsAvail.push(reportYear);
+                yearsAvail.sort((a, b) => b - a);
+                const yStays = allStays.filter(s => yearOf(s) === reportYear);
+                const tot = totals(yStays);
+                const adr = tot.nights > 0 ? Math.round(tot.revenue / tot.nights) : 0;
+                const chRows = revenueByChannel(yStays);
                 const maxCh = Math.max(1, ...chRows.map(r => r.revenue));
-                const months = revenueByMonth(allStays, year);
+                const months = revenueByMonth(yStays, reportYear);
                 const maxMonth = Math.max(1, ...months);
-                const occ = occupancyPct(allStays, `${year}-01-01`, `${year + 1}-01-01`);
+                const occ = occupancyPct(yStays, `${reportYear}-01-01`, `${reportYear + 1}-01-01`);
+                // Ποιότητα φιλοξενίας
+                let ratingSum = 0, ratingCount = 0, damages = 0;
+                yStays.forEach(s => { if (typeof s.rating === 'number') { ratingSum += s.rating; ratingCount++; } if (s.damages) damages++; });
+                const avgRating = ratingCount ? Math.round((ratingSum / ratingCount) * 10) / 10 : null;
+                // Επαναλαμβανόμενοι + κορυφαίοι πελάτες της χρονιάς
+                const perClientCount = new Map<string, number>();
+                const perClientRev = new Map<string, number>();
+                yStays.forEach(s => {
+                  perClientCount.set(s.client_id, (perClientCount.get(s.client_id) || 0) + 1);
+                  perClientRev.set(s.client_id, (perClientRev.get(s.client_id) || 0) + stayTotal(s));
+                });
+                const repeatY = [...perClientCount.values()].filter(n => n >= 2).length;
+                const topClients = [...perClientRev.entries()]
+                  .map(([id, rev]) => ({ id, rev, count: perClientCount.get(id) || 0, name: clients.find(c => c.id === id)?.full_name || 'Πελάτης' }))
+                  .sort((a, b) => b.rev - a.rev).slice(0, 5);
+                const maxTop = Math.max(1, ...topClients.map(t => t.rev));
                 const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
                 const monthNames = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
                 return (
                   <>
+                    {/* Επιλογή έτους */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
+                      <div style={{ position: 'relative' }}>
+                        <button type="button" onClick={() => setReportYearMenu(m => !m)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 30, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                          {reportYear}
+                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
+                        </button>
+                        {reportYearMenu && (
+                          <>
+                            <div onClick={() => setReportYearMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
+                              {yearsAvail.map(y => (
+                                <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}
+                                  style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 7, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
                     {secHead('Σύνοψη')}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
                       {statTile('Έσοδα', fe(tot.revenue, 0))}
                       {statTile('Νύχτες', String(tot.nights))}
                       {statTile('Διαμονές', String(tot.count))}
-                      {statTile('Πληρότητα φέτος', occ + '%', { title: `1 Ιαν ${year} έως 31 Δεκ ${year}` })}
+                      {statTile('Πληρότητα', occ + '%', { title: `1 Ιαν ${reportYear} έως 31 Δεκ ${reportYear}` })}
                     </div>
+
+                    {secHead('Ποιότητα φιλοξενίας')}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
+                      {statTile('Μέση τιμή / νύχτα', fe(adr, 0), { title: 'Average Daily Rate' })}
+                      {statTile('Επαναλαμβανόμενοι', String(repeatY), { title: 'Πελάτες με 2+ διαμονές τη χρονιά' })}
+                      {statTile('Μέση βαθμολογία', avgRating != null ? `${avgRating}/5` : '—')}
+                      {statTile('Φθορές', String(damages))}
+                    </div>
+
+                    {topClients.length > 0 && (<>
+                      {secHead('Κορυφαίοι πελάτες')}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+                        {topClients.map(t => (
+                          <button key={t.id} onClick={() => { setReportsOpen(false); setOpenId(t.id); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', display: 'block' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(t.rev, 0)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{t.count} {t.count === 1 ? 'διαμονή' : 'διαμονές'}</span></span>
+                            </div>
+                            <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.max(2, (t.rev / maxTop) * 100)}%`, height: '100%', background: 'var(--accent)', borderRadius: 4 }} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>)}
 
                     {secHead('Έσοδα ανά κανάλι')}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
@@ -1304,7 +1376,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       ))}
                     </div>
 
-                    {secHead(`Έσοδα ανά μήνα (${year})`)}
+                    {secHead(`Έσοδα ανά μήνα (${reportYear})`)}
                     <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                         {months.map((v, i) => (
