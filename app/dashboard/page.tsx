@@ -414,6 +414,10 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
   }, [prop.id, load]);
 
   const totalExpYTD = expenses.reduce((s,e)=>s+e.amount,0);
+  // Τάση δαπανών σε σχέση με πέρσι (από όλο το ιστορικό), για ένδειξη στο KPI.
+  const expThisY = allExpenses.filter(e => new Date(e.date).getFullYear() === year).reduce((s,e)=>s+e.amount,0);
+  const expPrevY = allExpenses.filter(e => new Date(e.date).getFullYear() === year-1).reduce((s,e)=>s+e.amount,0);
+  const expDeltaPct = expPrevY > 0 ? Math.round((expThisY - expPrevY)/expPrevY*100) : null;
   // Διαχωρισμός πληρωμένων/εκκρεμών: το σύνολο (accrual) οδηγεί την απόδοση, αλλά
   // δείχνουμε ξεχωριστά τι έχει πληρωθεί και τι εκκρεμεί (π.χ. σαρωμένοι λογαριασμοί).
   const paidExpYTD = expenses.filter(e => (e as any).paid !== false).reduce((s,e)=>s+e.amount,0);
@@ -559,13 +563,15 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           { label:'Μηνιαίο Ενοίκιο', value:fmtEur(rent) },
           { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
           { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
-          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD) },
+          { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD),
+            sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'▲':expDeltaPct<0?'▼':''} ${Math.abs(expDeltaPct)}% σε σχέση με πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
           <div key={i} className="kpi-card" title={(k as any).title}>
             <div className="kpi-value" style={{color:k.color||'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{k.value}</div>
             <div className="kpi-label">{k.label}</div>
+            {(k as any).sub && <div style={{fontSize:11,fontWeight:600,marginTop:4,color:(k as any).sub.color,fontFamily:"'Inter',sans-serif"}}>{(k as any).sub.text}</div>}
           </div>
         ))}
       </div>
