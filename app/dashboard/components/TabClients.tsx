@@ -15,7 +15,7 @@ import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UI
 import { downloadCsv } from './exportCsv';
 import {
   CLIENT_TYPES, CLIENT_TYPE_LABELS, PIPELINE_STAGES, STAGE_LABELS,
-  isValidAfm, stayNights, clientStats, normalizePhone,
+  isValidAfm, stayNights, stayTotal, clientStats, normalizePhone,
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
   type ClientType, type Stage,
 } from '@/lib/clients/clients';
@@ -168,6 +168,21 @@ const statTile = (label: string, value: React.ReactNode, opts?: { neg?: boolean;
   </div>
 );
 
+// Μικρο-γράφημα (sparkline) εσόδων ανά διαμονή. Καθαρό inline SVG, χωρίς βιβλιοθήκη.
+const sparkline = (values: number[], h = 34): React.ReactNode => {
+  if (!values || values.length < 2) return null;
+  const max = Math.max(...values), min = Math.min(...values, 0), range = (max - min) || 1, n = values.length;
+  const x = (i: number) => (i / (n - 1)) * 100;
+  const y = (v: number) => h - 3 - ((v - min) / range) * (h - 6);
+  const d = 'M' + values.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' L');
+  return (
+    <svg viewBox={`0 0 100 ${h}`} width="100%" height={h} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden>
+      <path d={`${d} L100,${h} L0,${h} Z`} fill="var(--accent-soft)" />
+      <path d={d} fill="none" stroke="var(--accent)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 export default function TabClients({ userId, onSelectProperty }: { userId: string; onSelectProperty?: (id: string) => void }) {
   const supabase = createClient();
   const [clients, setClients] = useState<Client[]>([]);
@@ -289,6 +304,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   const save = async () => {
     if (!form.full_name.trim()) return;
+    // Εντοπισμός διπλότυπου σε νέα εγγραφή: ίδιο τηλέφωνο ή ίδιο ΑΦΜ.
+    if (!editing) {
+      const np = normalizePhone(form.phone), afm = form.afm.trim();
+      const dup = clients.find(c => (np.length >= 8 && normalizePhone(c.phone) === np) || (afm.length === 9 && (c.afm || '') === afm));
+      if (dup) {
+        const by = np.length >= 8 && normalizePhone(dup.phone) === np ? 'αυτό το τηλέφωνο' : 'αυτό το ΑΦΜ';
+        if (!window.confirm(`Υπάρχει ήδη πελάτης με ${by}: «${dup.full_name}». Θέλεις σίγουρα να δημιουργήσεις νέα εγγραφή;`)) return;
+      }
+    }
     setSaving(true);
     const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const payload = {
@@ -587,14 +611,20 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {col.map(c => (
-                    <div key={c.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, marginBottom: 6, alignItems: 'flex-start' }}>
-                        <button onClick={() => setOpenId(c.id)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: 0, textAlign: 'left', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</button>
-                        {c.do_not_rent ? <Badge tone="negative">Προσοχή</Badge> : <Badge tone={TYPE_TONE[c.type]}>{CLIENT_TYPE_LABELS[c.type]}</Badge>}
+                    <div key={c.id} className="client-card" role="button" tabIndex={0}
+                      onClick={() => setOpenId(c.id)}
+                      onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(c.id); } }}
+                      style={{ borderRadius: 12, padding: 11, display: 'flex', flexDirection: 'column', gap: 9, borderColor: c.do_not_rent ? 'var(--negative-border)' : undefined }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        {avatar(c.full_name, 30)}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
+                          {c.deal_value != null && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(c.deal_value, 0)}</div>}
+                        </div>
+                        {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
                       </div>
-                      {c.deal_value != null && <div style={{ fontSize: 12, fontWeight: 700, fontFamily: T.font.num, marginBottom: 6 }}>{fe(c.deal_value, 0)}</div>}
-                      {c.next_action && <div style={{ fontSize: 11, color: overdue(c) ? 'var(--negative)' : 'var(--text-tertiary)', marginBottom: 8 }}>{c.next_action}</div>}
-                      <select value={c.stage} onChange={e => setStage(c, e.target.value as Stage)} style={{ ...inp, cursor: 'pointer', fontSize: 11, padding: '5px 8px' }}>
+                      {c.next_action && <div style={{ fontSize: 11, color: overdue(c) ? 'var(--negative)' : 'var(--text-tertiary)' }}>{c.next_action}</div>}
+                      <select value={c.stage} onClick={e => e.stopPropagation()} onChange={e => setStage(c, e.target.value as Stage)} style={{ ...inp, cursor: 'pointer', fontSize: 11, height: 32, padding: '4px 8px' }}>
                         {PIPELINE_STAGES.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
                       </select>
                     </div>
@@ -707,6 +737,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {statTile('ADR', fe(dcStats.adr, 0), { title: 'Μέση τιμή ανά διανυκτέρευση' })}
                 {statTile('Τελευταία', dcStats.lastVisit ? fd(dcStats.lastVisit) : '-')}
                 {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal, 0), { neg: true })}
+              </div>
+            )}
+
+            {/* Μικρο-γράφημα: πορεία εσόδων ανά διαμονή (μόνο για επαναλαμβανόμενους) */}
+            {dcStays.length >= 2 && (
+              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: '12px 14px 8px', marginBottom: 24, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Πορεία εσόδων ανά διαμονή</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(dcStats.revenue, 0)} συνολικά</span>
+                </div>
+                {sparkline(dcStays.slice().reverse().map(s => stayTotal(s)), 36)}
               </div>
             )}
 
