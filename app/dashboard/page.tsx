@@ -1187,6 +1187,15 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="app-content">
+              {['contacts','documents','checklist','inventory'].includes(nav) && (
+                <button onClick={()=>setNav('overview')}
+                  style={{display:'inline-flex',alignItems:'center',gap:7,marginBottom:16,padding:'7px 14px 7px 11px',borderRadius:100,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:'pointer',transition:'background .15s,color .15s,border-color .15s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.borderColor='color-mix(in srgb, var(--accent) 45%, transparent)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)';}}>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+                  Επισκόπηση
+                </button>
+              )}
               {nav==='portfolio' && <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
@@ -1197,11 +1206,11 @@ export default function Dashboard() {
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
-              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
-              {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
-              {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
+              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
-              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id}/>}
+              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={profileType} onProfileChange={setProfileType}/>}
             </div>
           </>

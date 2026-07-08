@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { PageTitle, KPIGrid, SecHdr, InfoBanner, fe, fn, fd, Spinner, ExportButton } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDate, csvSafe } from './exportCsv'
+import { depreciate, replacementSuggestion, portfolioSummary, USEFUL_LIFE_YEARS } from '@/lib/inventory/depreciation'
 
 const supabase = createSupabaseClient()
 
@@ -42,7 +43,7 @@ interface MaintenanceSchedule {
   item_name: string; task: string; interval_months: number
   last_done: string; next_due: string; notes: string
 }
-interface TabInventoryProps { propertyId: string; userId: string }
+interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
 
 const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
 const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
@@ -71,10 +72,8 @@ const CATEGORY_ICONS: Record<string,string> = {
   'Έπιπλα':'','Ηλεκτρικές Συσκευές':'','Ηλεκτρονικά':'',
   'Υδραυλικά':'','Θέρμανση & Ψύξη':'','Φωτιστικά':'','Διακόσμηση':'','Λοιπά':'',
 }
-const DEPRECIATION_YEARS: Record<string,number> = {
-  'Έπιπλα':10,'Ηλεκτρικές Συσκευές':6,'Ηλεκτρονικά':3,'Υδραυλικά':15,
-  'Θέρμανση & Ψύξη':12,'Φωτιστικά':8,'Διακόσμηση':20,'Λοιπά':8,
-}
+// Ωφέλιμη ζωή ανά κατηγορία: πηγή αλήθειας στο lib/inventory/depreciation.ts (μοιράζεται με τα τεστ).
+const DEPRECIATION_YEARS = USEFUL_LIFE_YEARS
 const REPLACEMENT_RANGES: Record<string,{min:number;max:number}> = {
   'Ηλεκτρικές Συσκευές':{min:200,max:1200},'Ηλεκτρονικά':{min:150,max:2000},
   'Θέρμανση & Ψύξη':{min:300,max:3000},'Φωτιστικά':{min:30,max:500},
@@ -90,21 +89,10 @@ const DEFAULT_MAINTENANCE = [
   {task:'Έλεγχος αντλίας θερμότητας',interval_months:12,category:'Θέρμανση & Ψύξη'},
 ]
 
-const calcCurrentValue = (item: InventoryItem) => {
-  if (!item.purchase_value || !item.purchase_date) return item.purchase_value || 0
-  const years = (Date.now() - new Date(item.purchase_date).getTime()) / (1000*60*60*24*365)
-  return Math.round(item.purchase_value * Math.max(0, 1 - years/(DEPRECIATION_YEARS[item.category]||8)))
-}
-const calcDepreciationPct = (item: InventoryItem) => {
-  if (!item.purchase_date) return 0
-  const years = (Date.now() - new Date(item.purchase_date).getTime()) / (1000*60*60*24*365)
-  return Math.min(100, Math.round((years/(DEPRECIATION_YEARS[item.category]||8))*100))
-}
-const calcYearsLeft = (item: InventoryItem) => {
-  if (!item.purchase_date) return 0
-  const years = (Date.now() - new Date(item.purchase_date).getTime()) / (1000*60*60*24*365)
-  return Math.max(0, Math.round((DEPRECIATION_YEARS[item.category]||8) - years))
-}
+// Οι υπολογισμοί απόσβεσης διοχετεύονται στην καθαρή μηχανή του lib (μία πηγή αλήθειας).
+const calcCurrentValue = (item: InventoryItem) => depreciate(item).bookValue
+const calcDepreciationPct = (item: InventoryItem) => depreciate(item).depreciatedPct
+const calcYearsLeft = (item: InventoryItem) => depreciate(item).yearsRemaining
 const calcAgeDisplay = (d: string) => {
   if (!d) return ''
   const ms = Date.now() - new Date(d).getTime()
@@ -196,6 +184,24 @@ const DepBar = ({pct,left}:{pct:number;left:number}) => {
         }
       </div>
     </div>
+  )
+}
+
+// Ήπια ένδειξη πρότασης αντικατάστασης — calm, όχι «κόκκινος συναγερμός».
+function ReplacementHint({item,compact}:{item:InventoryItem;compact?:boolean}) {
+  const s = replacementSuggestion(item)
+  if (s.severity === 'none') return null
+  const due = s.severity === 'due'
+  const tip = s.reasons.join(' · ')
+  if (due) return (
+    <div title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,padding:compact?'2px 8px':'6px 10px',borderRadius:compact?20:8,background:'var(--warning-soft)',border:'1px solid var(--warning-border)',maxWidth:'100%'}}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <span style={{fontSize:compact?9:10,color:'var(--warning)',fontFamily:"'Inter',sans-serif",fontWeight:600,letterSpacing:compact?'0.02em':0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Προτείνεται αντικατάσταση</span>
+    </div>
+  )
+  // soft: πλησιάζει τέλος ωφέλιμης ζωής
+  return (
+    <span title={tip} style={{fontSize:compact?9:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>Πλησιάζει το τέλος ζωής</span>
   )
 }
 
@@ -700,7 +706,9 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   )
 }
 
-function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number}) {
+function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional'}) {
+  const summary = portfolioSummary(items)
+  const needReplacement = items.filter(i=>replacementSuggestion(i).suggested)
   const totalPurchase = items.reduce((s,i)=>s+(i.purchase_value||0),0)
   const totalCurrent = items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const totalRepairs = repairs.reduce((s,r)=>s+(r.cost||0),0)
@@ -709,7 +717,6 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
   const byCategory = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
   const maxVal = Math.max(...byCategory.map(x=>x.val),1)
   const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
-  const fullyDep = items.filter(i=>calcDepreciationPct(i)>=100&&i.purchase_date)
   const warrantySoon = items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90})
   const badCondition = items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας')
   const badEnergy = electricItems.filter(i=>!['A+++','A++','A+'].includes(i.energy_class||''))
@@ -748,6 +755,47 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
           :<StatCard label="Ρεύμα" value="—" sub="Πρόσθεσε Watt"/>
         }
       </div>
+      {summary.totalOriginal>0&&(
+        <div style={cardStyle}>
+          <SectionLabel label={profileType==='professional'?'Απόσβεση & Αξία Χαρτοφυλακίου':'Αξία & Απόσβεση'} right={<span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>εκτιμήσεις</span>}/>
+          <div style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6,gap:8}}>
+              <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Διατηρούμενη αξία</span>
+              <span style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(summary.totalBookValue)} <span style={{color:'var(--text-tertiary)',fontWeight:400}}>/ {fmtEur(summary.totalOriginal)}</span></span>
+            </div>
+            <div style={{height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
+              <div style={{height:'100%',width:`${summary.totalOriginal>0?Math.round((summary.totalBookValue/summary.totalOriginal)*100):0}%`,background:'var(--accent)',borderRadius:3,transition:'width 0.5s'}}/>
+            </div>
+            <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:"'Inter',sans-serif"}}>Μέση απόσβεση {summary.avgDepreciatedPct}% · εκτιμ. απομείωση −{fmtEur(summary.totalDepreciation)}</p>
+          </div>
+          {profileType==='professional'&&(
+            <>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8}}>
+                {[
+                  {label:'Αξία Αγοράς',value:fmtEur(summary.totalOriginal),color:'var(--text-primary)'},
+                  {label:'Τρέχουσα Αξία',value:fmtEur(summary.totalBookValue),color:'var(--text-primary)'},
+                  {label:'Προς Αντικατάσταση',value:String(summary.needAttentionCount),color:summary.needAttentionCount>0?'var(--warning)':'var(--text-primary)'},
+                  {label:'Προϋπ. Αντικατάστασης',value:fmtEur(summary.replacementBudget),color:'var(--text-primary)'},
+                ].map((k,i)=>(
+                  <div key={i} style={{textAlign:'center',padding:'10px 6px',background:'var(--bg-elevated)',borderRadius:8}}>
+                    <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:k.color,marginBottom:3}}>{k.value}</p>
+                    <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:"'Inter',sans-serif"}}>{k.label}</p>
+                  </div>
+                ))}
+              </div>
+              {summary.replacementBudget>0&&(
+                <div style={{marginTop:12,padding:'10px 14px',background:'var(--warning-soft)',borderRadius:10,border:'1px solid var(--warning-border)'}}>
+                  <p style={{fontSize:12,color:'var(--warning)',fontFamily:"'Inter',sans-serif"}}>Εκτιμώμενος προϋπολογισμός αντικατάστασης για {summary.needAttentionCount} {summary.needAttentionCount===1?'αντικείμενο':'αντικείμενα'}: <strong style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fmtEur(summary.replacementBudget)}</strong></p>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>Βάσει δηλωμένου κόστους αντικατάστασης ή αξίας αγοράς. Προτείνεται πρόβλεψη στον ετήσιο προϋπολογισμό.</p>
+                </div>
+              )}
+            </>
+          )}
+          {profileType!=='professional'&&summary.needAttentionCount>0&&(
+            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{summary.needAttentionCount} {summary.needAttentionCount===1?'αντικείμενο προτείνεται':'αντικείμενα προτείνονται'} για αντικατάσταση.</p>
+          )}
+        </div>
+      )}
       {totalDiscount>0&&(
         <div style={{padding:'12px 16px',background:'var(--positive-dim)',borderRadius:12,border:'1px solid var(--positive-border)',display:'flex',alignItems:'center',gap:12}}>
           <div>
@@ -810,7 +858,7 @@ function OverviewTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inv
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
         {[
-          {title:'Πλήρης Απόσβεση',color:'var(--negative)',items:fullyDep,render:(item:InventoryItem)=><span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{item.replacement_cost?fmtEur(item.replacement_cost):'—'}</span>},
+          {title:'Προτείνεται Αντικατάσταση',color:'var(--warning)',items:needReplacement,render:(item:InventoryItem)=><span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{item.replacement_cost?fmtEur(item.replacement_cost):'—'}</span>},
           {title:'Εγγυήσεις ≤90 Μέρες',color:'var(--warning)',items:warrantySoon,render:(item:InventoryItem)=><Badge label={warrantyStatus(item.warranty_expiry).label} color={warrantyStatus(item.warranty_expiry).color}/>},
           {title:'Χρειάζονται Προσοχή',color:'var(--negative)',items:badCondition,render:(item:InventoryItem)=><Badge label={item.condition} color={CONDITION_COLOR[item.condition]}/>},
         ].map(({title,color,items:list,render})=>(
@@ -955,6 +1003,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                     </div>
                   )}
                   <DepBar pct={depPct} left={left}/>
+                  <ReplacementHint item={item}/>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
                     <div style={{padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:10,textAlign:'center'}}>
                       <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{fmtEur(curVal)}</p>
@@ -1008,6 +1057,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                   <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginBottom:4}}>{item.brand?`${item.brand} · `:''}{item.room||''}{age?` · ${age}`:''}</p>
                   {(item.tags||[]).length>0&&<div style={{display:'flex',gap:3,flexWrap:'wrap',marginBottom:4}}>{(item.tags||[]).map(t=><span key={t} style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'var(--accent-dim)',color:'var(--accent)',fontFamily:"'Inter',sans-serif"}}>{t}</span>)}</div>}
                   <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
+                  {replacementSuggestion(item).suggested&&<div style={{marginTop:4}}><ReplacementHint item={item} compact/></div>}
                 </div>
                 <p style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{item.category}</p>
                 <div>{item.energy_class?<EnergyBadge cls={item.energy_class}/>:<span style={{fontSize:11,color:'var(--text-tertiary)'}}>—</span>}</div>
@@ -1394,7 +1444,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId,embedded}:TabInventoryProps & {embedded?:boolean}) {
+export default function TabInventory({propertyId,userId,profileType='individual',embedded}:TabInventoryProps & {embedded?:boolean}) {
   const [activeTab,setActiveTab] = useState<'overview'|'items'|'warranties'|'handover'|'maintenance'|'exports'>('overview')
   const [items,setItems] = useState<InventoryItem[]>([])
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
@@ -1469,6 +1519,8 @@ export default function TabInventory({propertyId,userId,embedded}:TabInventoryPr
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
   const warnCount=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
   const actionCount=items.filter(needsAction).length
+  const invSummary=portfolioSummary(items)
+  const replacementCount=items.filter(i=>replacementSuggestion(i).suggested).length
   const totalValue=items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const warrantyExpiringCount=items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}).length
   const badConditionCount=items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας').length
@@ -1503,7 +1555,8 @@ export default function TabInventory({propertyId,userId,embedded}:TabInventoryPr
         : <>
             <KPIGrid items={[
               {label:'Σύνολο Αντικειμένων',value:fn(items.length)},
-              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:'Τρέχουσα αξία μετά απόσβεση'},
+              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'Τρέχουσα αξία μετά απόσβεση'},
+              {label:'Προς Αντικατάσταση',value:fn(replacementCount),tone:replacementCount>0?'warning':'neutral',sub:profileType==='professional'&&invSummary.replacementBudget>0?`~${fe(invSummary.replacementBudget,0)} προϋπ.`:'Απόσβεση, κατάσταση ή εγγύηση'},
               {label:'Εγγυήσεις που Λήγουν',value:fn(warrantyExpiringCount),tone:warrantyExpiringCount>0?'warning':'neutral',sub:'Εντός 90 ημερών'},
               {label:'Αντικείμενα σε Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
               {label:'Επόμενη Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστέρηση`:undefined},
@@ -1534,7 +1587,7 @@ export default function TabInventory({propertyId,userId,embedded}:TabInventoryPr
         ?<Spinner label="Φόρτωση…" />
         :(
           <>
-            {activeTab==='overview'&&<OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice}/>}
+            {activeTab==='overview'&&<OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType}/>}
             {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition}/>}
             {activeTab==='warranties'&&<WarrantiesTab items={items} userId={userId} propertyId={propertyId}/>}
             {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}

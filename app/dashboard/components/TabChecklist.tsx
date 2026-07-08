@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, type KPIItem } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Badge, type KPIItem, type Tone } from '@/components/Theme'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
 const supabase = createSupabaseClient()
@@ -30,7 +30,10 @@ interface ChecklistItem {
 }
 interface Contact { id: string; full_name: string; role: string; phone?: string | null }
 interface SmartSuggestion { title: string; reason: string; templateKey: string }
+type ProfileType = 'individual' | 'professional'
 interface TabChecklistProps { propertyId: string; userId: string }
+// Templates που αφορούν κυρίως επαγγελματική διαχείριση χαρτοφυλακίου, κρύβονται στο απλό προφίλ ιδιώτη.
+const PRO_ONLY_TEMPLATES = ['renovation', 'airbnb', 'purchase']
 
 const iStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: T.radius.inner,
@@ -190,6 +193,20 @@ function daysUntil(d: string | null) { if (!d) return null; return Math.round((n
 function getCat(id: string) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1] }
 function getPri(v: string) { return PRIORITIES.find(p => p.value === v) || PRIORITIES[2] }
 function getStatusMeta(v: string) { return STATUSES.find(s => s.value === v) || STATUSES[0] }
+// ── Ήρεμες οπτικές ενδείξεις (χαμηλός κορεσμός, όχι «σουπερμάρκετ») ──────────
+// Μόνο η κρίσιμη/υψηλή προτεραιότητα παίρνει χρώμα· οι υπόλοιπες μένουν ουδέτερες.
+function priDotColor(v: string) { return v === 'critical' ? 'var(--negative)' : v === 'high' ? 'var(--warning)' : 'var(--text-tertiary)' }
+function statusTone(v: string): Tone { return v === 'done' ? 'positive' : v === 'in_progress' ? 'info' : 'neutral' }
+// Μικρή, διακριτική ένδειξη προτεραιότητας: τελεία + ήσυχη ετικέτα.
+function PriorityCue({ priority }: { priority: string }) {
+  const label = getPri(priority).label
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: priDotColor(priority), flexShrink: 0 }} />
+      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: priority === 'critical' ? 600 : 400 }}>{label}</span>
+    </span>
+  )
+}
 function nextDueDate(due: string, recurring: Recurring): string {
   const d = new Date(due)
   if (recurring === 'monthly') d.setMonth(d.getMonth() + 1)
@@ -892,10 +909,10 @@ ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
 
 
 // ─── ItemRow ──────────────────────────────────────────────────────────────────
-function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onAddToExpenses, onDuplicate, onBulkSelect, bulkSelected, bulkMode }: {
+function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onAddToExpenses, onDuplicate, onSelect, selected, selectionActive }: {
   item: ChecklistItem; allItems: ChecklistItem[]; onToggle: () => void; onEdit: () => void; onDelete: () => void
   onAddToCalendar: () => void; onAddToExpenses: () => void; onDuplicate: () => void
-  onBulkSelect?: () => void; bulkSelected?: boolean; bulkMode?: boolean
+  onSelect?: () => void; selected?: boolean; selectionActive?: boolean
 }) {
   const [hov, setHov] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -903,7 +920,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
 
-  const cat = getCat(item.category); const pri = getPri(item.priority); const sm = getStatusMeta(item.status)
+  const cat = getCat(item.category); const sm = getStatusMeta(item.status)
   const overdue = isOverdue(item.due_date, item.status); const due = daysUntil(item.due_date)
   const done = item.status === 'done'
   const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
@@ -924,39 +941,39 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
     setShowMenu(s => !s)
   }
 
-  const cbColor = bulkMode ? (bulkSelected ? 'var(--accent)' : 'var(--border-default)') : done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--border-default)'
-  const cbBg = bulkMode ? (bulkSelected ? 'var(--accent)' : 'transparent') : done ? 'var(--positive)' : 'transparent'
+  const cbColor = done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--border-default)'
+  const cbBg = done ? 'var(--positive)' : 'transparent'
+  const selectVisible = hov || selectionActive || !!selected
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', background: bulkSelected ? 'var(--info-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked ? 0.6 : 1, position: 'relative' }}>
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked && !selected ? 0.6 : 1, position: 'relative' }}>
 
-      <button type="button" onClick={() => { if (bulkMode) onBulkSelect?.(); else if (!blocked) onToggle() }}
-        style={{ width: 20, height: 20, borderRadius: bulkMode ? 5 : 6, flexShrink: 0, marginTop: 2, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked && !bulkMode ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-        onMouseEnter={e => { if (!bulkMode && !done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
-        onMouseLeave={e => { if (!bulkMode && !done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
-        {(done || (bulkMode && bulkSelected)) && (
-          <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke={done ? '#000' : 'var(--accent-text)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      {/* Επιλογή για μαζικές ενέργειες — εμφανίζεται στο hover ή όταν υπάρχει ενεργή επιλογή, χωρίς μετατόπιση διάταξης */}
+      <div style={{ flexShrink: 0, marginTop: 2, width: 18, opacity: selectVisible ? 1 : 0, pointerEvents: selectVisible ? 'auto' : 'none', transition: 'opacity 0.15s' }}>
+        <button type="button" aria-label="Επιλογή εργασίας" onClick={e => { e.stopPropagation(); onSelect?.() }}
+          style={{ width: 18, height: 18, borderRadius: 5, border: '2px solid ' + (selected ? 'var(--accent)' : 'var(--border-default)'), background: selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+          {selected && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </button>
+      </div>
+
+      <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
+        style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+        onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
+        onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
+        {done && (
+          <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         )}
-        {!bulkMode && blocked && !done && <span style={{ fontSize: 9 }} />}
       </button>
 
-      <div style={{ flex: 1, minWidth: 0, cursor: bulkMode ? 'pointer' : 'default' }} onClick={bulkMode ? () => onBulkSelect?.() : undefined}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.55 : 1, fontFamily: T.font.sans }}>
             {item.description}
           </span>
-          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: pri.bg, color: pri.color, fontWeight: 600, flexShrink: 0, fontFamily: T.font.sans }}>
-            {pri.label}
-          </span>
-          {item.status !== 'pending' && (
-            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: sm.bg, color: sm.color, fontWeight: 600, flexShrink: 0 }}>{sm.label}</span>
-          )}
-          {item.recurring !== 'none' && (
-            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)', flexShrink: 0 }}>
-              {RECURRING_OPTIONS.find(r => r.value === item.recurring)?.label}
-            </span>
-          )}
+          <PriorityCue priority={item.priority} />
+          {item.status !== 'pending' && <Badge tone={statusTone(item.status)}>{sm.label}</Badge>}
+          {item.recurring !== 'none' && <Badge tone="neutral">{RECURRING_OPTIONS.find(r => r.value === item.recurring)?.label}</Badge>}
           {tags.map(t => <span key={t} style={{ fontSize: 9, padding: '2px 6px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>{t}</span>)}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -978,7 +995,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         )}
       </div>
 
-      {hov && !bulkMode && (
+      {hov && (
         <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
           <button type="button" onClick={onEdit}
             style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
@@ -1023,7 +1040,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
 
 // ─── BoardCard ────────────────────────────────────────────────────────────────
 function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: () => void; onEdit: () => void }) {
-  const cat = getCat(item.category); const pri = getPri(item.priority)
+  const cat = getCat(item.category)
   const overdue = isOverdue(item.due_date, item.status)
   const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
   return (
@@ -1037,7 +1054,7 @@ function BoardCard({ item, onToggle, onEdit }: { item: ChecklistItem; onToggle: 
       </div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: subtasks.length > 0 ? 8 : 0 }}>
         <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
-        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: T.radius.pill, background: pri.bg, color: pri.color }}>{pri.label}</span>
+        <PriorityCue priority={item.priority} />
         {item.due_date && <span style={{ fontSize: 10, color: overdue ? 'var(--negative)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</span>}
         {item.estimated_cost > 0 && <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost}€</span>}
       </div>
@@ -1062,7 +1079,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
       <div style={{ position: 'relative', paddingLeft: 32 }}>
         <div style={{ position: 'absolute', left: 10, top: 0, bottom: 0, width: 2, background: 'var(--border-subtle)' }} />
         {withDates.map(item => {
-          const cat = getCat(item.category); const pri = getPri(item.priority)
+          const cat = getCat(item.category)
           const overdue = isOverdue(item.due_date, item.status); const done = item.status === 'done'; const due = daysUntil(item.due_date)
           return (
             <div key={item.id} style={{ marginBottom: 14, position: 'relative' }}>
@@ -1074,7 +1091,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
                     <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', marginBottom: 4, fontFamily: T.font.sans }}>{item.description}</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
-                      <span style={{ fontSize: 11, color: pri.color }}>{pri.label}</span>
+                      <PriorityCue priority={item.priority} />
                       {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{item.assigned_contact_name}</span>}
                     </div>
                   </div>
@@ -1109,7 +1126,8 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
 }
 
 // ─── TemplateModal ────────────────────────────────────────────────────────────
-function TemplateModal({ onSelect, onClose }: { onSelect: (key: string) => void; onClose: () => void }) {
+function TemplateModal({ onSelect, onClose, profileType = 'individual' }: { onSelect: (key: string) => void; onClose: () => void; profileType?: ProfileType }) {
+  const entries = Object.entries(TEMPLATES).filter(([key]) => profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key))
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 620, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
@@ -1123,7 +1141,7 @@ function TemplateModal({ onSelect, onClose }: { onSelect: (key: string) => void;
           </div>
         </div>
         <div style={{ padding: '20px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, overflowY: 'auto' }}>
-          {Object.entries(TEMPLATES).map(([key, t]) => (
+          {entries.map(([key, t]) => (
             <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
@@ -1308,7 +1326,7 @@ function QuickExpenseModal({ item, propertyId, userId, onClose, onSaved }: { ite
 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function TabChecklist({ propertyId, userId, embedded }: TabChecklistProps & { embedded?: boolean }) {
+export default function TabChecklist({ propertyId, userId, embedded, profileType = 'individual' }: TabChecklistProps & { embedded?: boolean; profileType?: ProfileType }) {
   const [items, setItems] = useState<ChecklistItem[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -1323,8 +1341,8 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
   const [quickExpenseItem, setQuickExpenseItem] = useState<ChecklistItem | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [bulkMode, setBulkMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([])
@@ -1392,10 +1410,10 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && bulkMode) { setBulkMode(false); setSelected(new Set()) }
+      if (e.key === 'Escape' && selected.size > 0) setSelected(new Set())
     }
     document.addEventListener('keydown', handler); return () => document.removeEventListener('keydown', handler)
-  }, [bulkMode])
+  }, [selected])
 
   const saveItem = async (form: ReturnType<typeof mkEmpty>) => {
     const noteJson = serializeNote({ note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags })
@@ -1465,8 +1483,8 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
   }
 
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const bulkComplete = async () => { const count = selected.size; await Promise.all([...selected].map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id))); setSelected(new Set()); setBulkMode(false); fetchAll(); showToast(`${count} tasks ολοκληρώθηκαν`) }
-  const bulkDelete = async () => { const count = selected.size; if (!confirm(`Διαγραφή ${count} tasks;`)) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id))); setSelected(new Set()); setBulkMode(false); fetchAll(); showToast(`${count} tasks διαγράφηκαν`) }
+  const bulkComplete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id))); setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν`) }
+  const bulkDelete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id))); setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`) }
 
   const stats = useMemo(() => {
     const total = items.length; const done = items.filter(i => i.status === 'done').length
@@ -1497,12 +1515,14 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
   const usedCats = CATEGORIES.filter(c => items.some(i => i.category === c.id))
   const hasFilters = filterStatus !== 'all' || filterCat !== 'all' || filterPri !== 'all' || !!search
 
+  // Ήρεμη σειρά KPI: οι αριθμοί μένουν --text-primary (neutral). Χρώμα κρατιέται
+  // ΜΟΝΟ για ένα πραγματικά επείγον σήμα — τα εκπρόθεσμα, όταν υπάρχουν.
   const kpiItems: KPIItem[] = [
     { label: 'Σύνολο Εργασιών', value: fn(stats.total) },
-    { label: 'Ολοκληρωμένα', value: fn(stats.done), tone: 'positive', sub: `${stats.pct}% πρόοδος` },
+    { label: 'Ολοκληρωμένα', value: fn(stats.done), sub: `${stats.pct}% πρόοδος` },
     { label: 'Εκπρόθεσμα', value: fn(stats.overdue), tone: stats.overdue > 0 ? 'negative' : 'neutral' },
-    { label: 'Κρίσιμα Εκκρεμή', value: fn(stats.critical), tone: stats.critical > 0 ? 'warning' : 'neutral' },
-    { label: 'Ποσοστό Ολοκλήρωσης', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'accent' },
+    { label: 'Κρίσιμα Εκκρεμή', value: fn(stats.critical) },
+    { label: 'Ποσοστό Ολοκλήρωσης', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral' },
   ]
 
   return (
@@ -1528,7 +1548,6 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
             <button type="button" onClick={() => setHideCompleted(h => !h)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
               {hideCompleted ? 'Εμφάνιση ολοκληρωμένων' : 'Απόκρυψη ολοκληρωμένων'}
             </button>
-            <button type="button" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'var(--accent-soft)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>{bulkMode ? 'Έξοδος' : 'Επιλογή'}</button>
             <button type="button" onClick={() => setShowTemplates(true)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Templates</button>
             <button type="button" onClick={loadAADECalendar} title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων — φόρτωση ημερολογίου φορολογικών υποχρεώσεων"
               style={{ padding: '8px 13px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
@@ -1538,7 +1557,7 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
             </button>
             <button type="button" onClick={() => exportChecklistExcel(items)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Excel</button>
             <button type="button" onClick={() => exportChecklistPDF(items, branding)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>PDF</button>
-            <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>
+            {profileType === 'professional' && <button type="button" onClick={() => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding)} style={{ padding: '6px 11px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Πρωτόκολλο Παράδοσης</button>}
             <button type="button" onClick={() => { setEditItem(null); setShowAddModal(true) }} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 18px', height: 34, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'opacity 0.15s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               + Νέο Task
             </button>
@@ -1610,45 +1629,21 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
 
       {/* Progress */}
       {stats.total > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Συνολική Πρόοδος</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{stats.pct}%</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+              {(stats.totalEstimated > 0 || stats.totalActual > 0) && (
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+                  {stats.totalActual > 0 ? `${stats.totalActual.toLocaleString('el-GR')}€ πραγμ.` : ''}{stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}{stats.totalEstimated > 0 ? `${stats.totalEstimated.toLocaleString('el-GR')}€ εκτιμ.` : ''}
+                </span>
+              )}
+              <span style={{ fontSize: 12, fontWeight: 700, color: stats.pct === 100 ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{stats.pct}%</span>
+            </div>
           </div>
           <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: stats.pct + '%', background: stats.pct === 100 ? 'var(--positive)' : 'var(--accent)', borderRadius: 4, transition: 'width 0.6s cubic-bezier(.4,0,.2,1)' }} />
           </div>
-        </div>
-      )}
-
-      {/* KPI Cards */}
-      {stats.total > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 20 }}>
-          {[
-            { label: 'Σύνολο', value: stats.total, color: 'var(--text-primary)', onClick: () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all') } },
-            { label: 'Ολοκλήρωση', value: stats.done, color: 'var(--positive)', onClick: () => setFilterStatus('done') },
-            { label: 'Σε εξέλιξη', value: stats.inProgress, color: 'var(--text-primary)', onClick: () => setFilterStatus('in_progress') },
-            { label: 'Ληγμένα', value: stats.overdue, color: 'var(--negative)', onClick: () => setFilterStatus('overdue') },
-            { label: 'Κρίσιμα', value: stats.critical, color: 'var(--negative)', onClick: () => setFilterPri('critical') },
-            { label: 'Εκτιμ. Κόστος', value: stats.totalEstimated > 0 ? stats.totalEstimated.toLocaleString('el-GR') + '€' : '—', color: 'var(--accent)', onClick: undefined as any },
-            { label: 'Πραγματικό', value: stats.totalActual > 0 ? stats.totalActual.toLocaleString('el-GR') + '€' : '—', color: 'var(--text-primary)', onClick: undefined as any },
-          ].map(s => (
-            <div key={s.label} onClick={s.onClick} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px', textAlign: 'center', cursor: s.onClick ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
-              onMouseEnter={e => { if (s.onClick) e.currentTarget.style.borderColor = 'var(--border-default)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Bulk bar */}
-      {bulkMode && selected.size === 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', marginBottom: 14, background: 'var(--accent-soft)', border: '1px solid var(--border-accent)', borderRadius: T.radius.inner }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>Κάνε κλικ στις εργασίες για να τις επιλέξεις</span>
-          <button type="button" onClick={() => setSelected(new Set(filtered.map(i => i.id)))} style={{ padding: '5px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Επιλογή όλων ({filtered.length})</button>
-          <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ padding: '5px 10px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 16, color: 'var(--text-secondary)', cursor: 'pointer' }}>✕</button>
         </div>
       )}
 
@@ -1723,10 +1718,10 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 16, alignItems: 'start' }}>
           {STATUSES.map(s => (
             <div key={s.value}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: T.radius.inner, background: s.bg, marginBottom: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, fontFamily: T.font.sans }}>{s.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + '20', borderRadius: T.radius.pill, padding: '1px 7px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: T.radius.inner, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', marginBottom: 10 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.value === 'done' ? 'var(--positive)' : s.value === 'in_progress' ? 'var(--info)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1, fontFamily: T.font.sans }}>{s.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{boardCols[s.value as keyof typeof boardCols].length}</span>
               </div>
               {boardCols[s.value as keyof typeof boardCols].map(item => (
                 <BoardCard key={item.id} item={item} onToggle={() => toggleItem(item)} onEdit={() => { setEditItem(item); setShowAddModal(true) }} />
@@ -1766,9 +1761,9 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
                       onAddToCalendar={() => addToCalendar(item)}
                       onAddToExpenses={() => setQuickExpenseItem(item)}
                       onDuplicate={() => duplicateItem(item)}
-                      onBulkSelect={() => toggleSelect(item.id)}
-                      bulkSelected={selected.has(item.id)}
-                      bulkMode={bulkMode}
+                      onSelect={() => toggleSelect(item.id)}
+                      selected={selected.has(item.id)}
+                      selectionActive={selected.size > 0}
                     />
                   ))}
                 </div>
@@ -1778,35 +1773,35 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
         </div>
       )}
 
-      {/* Floating bulk toolbar */}
-      {bulkMode && selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
-          <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'Όλα επιλεγμένα' : 'επιλεγμένα'}</span>
+      {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία */}
+      {selected.size > 0 && (
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
+          <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+            <div style={{ minWidth: 24, height: 24, padding: '0 6px', borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             {[
+              { label: selected.size === filtered.length ? 'Καθαρισμός επιλογής' : `Επιλογή όλων (${filtered.length})`, fn: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))) }, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
               { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--positive)', hoverBg: 'var(--positive-soft)' },
-              { label: selected.size === filtered.length ? 'Αποεπιλογή' : `Όλα (${filtered.length})`, fn: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))) }, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
-              { label: 'Διαγραφή', fn: bulkDelete, color: 'var(--negative)', hoverBg: 'var(--negative-soft)' },
+              { label: 'Διαγραφή', fn: () => setBulkDeleteConfirm(true), color: 'var(--negative)', hoverBg: 'var(--negative-soft)' },
             ].map((a, i, arr) => (
               <button key={i} type="button" onClick={a.fn}
-                style={{ flex: 1, padding: '12px 0', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans }}
+                style={{ flex: 1, padding: '12px 4px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
                 onMouseEnter={e => e.currentTarget.style.background = a.hoverBg}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 {a.label}
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }}
+          <button type="button" aria-label="Ακύρωση επιλογής" onClick={() => setSelected(new Set())}
             style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-surface)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
         </div>
       )}
 
-      {showTemplates && <TemplateModal onSelect={loadTemplate} onClose={() => setShowTemplates(false)} />}
+      {showTemplates && <TemplateModal onSelect={loadTemplate} onClose={() => setShowTemplates(false)} profileType={profileType} />}
       {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }} />}
       {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => showToast('Δαπάνη καταχωρήθηκε')} />}
 
@@ -1821,6 +1816,22 @@ export default function TabChecklist({ propertyId, userId, embedded }: TabCheckl
             <div style={{ display: 'flex', gap: 12 }}>
               <button type="button" onClick={() => setDeleteId(null)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
               <button type="button" onClick={() => deleteItem(deleteId!)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>Διαγραφή</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkDeleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+            </div>
+            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700, fontFamily: T.font.sans }}>Διαγραφή {selected.size} εργασιών;</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 28px', lineHeight: 1.5 }}>Αυτή η ενέργεια δεν αναιρείται.</p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button type="button" onClick={() => setBulkDeleteConfirm(false)} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
+              <button type="button" onClick={bulkDelete} style={{ flex: 1, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--negative)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>Διαγραφή</button>
             </div>
           </div>
         </div>
