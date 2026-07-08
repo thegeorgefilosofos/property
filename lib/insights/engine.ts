@@ -154,7 +154,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     .map(x => -x);
   const lastExpenseDays = daysAgo.length ? Math.min(...daysAgo) : null;
   if (expenses.length === 0) {
-    out.push({ id: 'no-expenses', kind: 'opportunity', title: 'Ξεκίνα με μία φωτογραφία', detail: 'Βγάλε φωτογραφία έναν λογαριασμό ή μια απόδειξη και θα καταχωρηθεί μόνη της. Έτσι αρχίζει να χτίζεται η εικόνα των εξόδων σου.', action: { label: 'Σάρωση', tab: 'scan' } });
+    out.push({ id: 'no-expenses', kind: 'opportunity', title: 'Ξεκίνα με μία φωτογραφία', detail: 'Βγάλε φωτογραφία έναν λογαριασμό ή μια απόδειξη πληρωμής που σχετίζεται με το ακίνητό σου και θα καταχωρηθεί αυτόματα, με τη βοήθεια του AI, στη σωστή θέση. Έτσι, εύκολα και γρήγορα, αρχίζει να χτίζεται η εικόνα των εξόδων σου.', action: { label: 'Σάρωση', tab: 'scan' } });
   } else if (lastExpenseDays !== null && lastExpenseDays > 45) {
     out.push({ id: 'stale', kind: 'attention', title: 'Έχεις καιρό να καταχωρήσεις κάτι', detail: `Πάνω από ${lastExpenseDays} ημέρες χωρίς νέα καταχώρηση. Μια γρήγορη φωτογραφία κρατά την εικόνα ενημερωμένη.`, action: { label: 'Σάρωση', tab: 'scan' } });
   }

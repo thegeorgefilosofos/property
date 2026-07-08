@@ -70,7 +70,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (editing || listeningRef.current) return;
+      if (listeningRef.current) return; // μη διακόπτεις ενεργή φωνή
       const el = e.target as Element | null;
       if (el && el.closest('.pa-panel, .pa-fab')) return;
       setOpen(false);
@@ -78,7 +78,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editing]);
+  }, [open]);
 
   // Μνήμη ανά ακίνητο: φόρτωσε προηγούμενη συζήτηση (αν το επιτρέπει ο χρήστης),
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
@@ -599,7 +599,7 @@ function IdentityEditor({ draft, onSave, onCancel, onClearMemory, hasMemory, fac
 
       <div>
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>Πώς θέλεις να σου μιλάει;</div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα, ή στον πληθυντικό για πιο επίσημο ύφος.</div>
+        <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {ADDRESS_OPTIONS.map(a => {
             const active = formal === a.value;
