@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
-import { T, fe, PageTitle, InfoBanner, Btn } from '@/components/Theme';
+import { T, fe, PageTitle, InfoBanner, Btn, Badge } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import { runE2Export } from './e2Export';
@@ -119,6 +119,41 @@ function AccountantLink({ userId }: { userId: string }) {
       <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>Δώσε στον λογιστή σου έναν ασφαλή σύνδεσμο μόνο-ανάγνωσης με την εικόνα εσόδων/δαπανών των ακινήτων σου ανά έτος. Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.</div>
       {url && <div style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
       <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε ✓' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
+    </div>
+  );
+}
+
+// Ενσωματώσεις: ειλικρινής εικόνα του τι δουλεύει ΤΩΡΑ και τι έρχεται (χρειάζεται
+// εξωτερική υποδομή). Καμία ψεύτικη σύνδεση — μόνο πραγματική κατάσταση.
+function IntegrationsCard() {
+  const LIVE: { name: string; desc: string }[] = [
+    { name: 'Airbnb / Booking (iCal)', desc: 'Συγχρονισμός κρατήσεων μέσω συνδέσμου iCal, στο Πελατολόγιο.' },
+    { name: 'Εισαγωγή από email', desc: 'Το AI διαβάζει email κράτησης και δημιουργεί πελάτη και διαμονή.' },
+    { name: 'Πύλη λογιστή', desc: 'Ασφαλής σύνδεσμος μόνο-ανάγνωσης με εικόνα εσόδων/δαπανών ανά έτος.' },
+    { name: 'Πύλη επισκέπτη (check-in)', desc: 'Ο επισκέπτης συμπληρώνει στοιχεία άφιξης πριν φτάσει, με συγκατάθεση GDPR.' },
+    { name: 'Σύνδεσμοι πληρωμής', desc: 'Κουμπιά προς e-banking τραπεζών, Revolut και IRIS για είσπραξη ενοικίου.' },
+  ];
+  const SOON: { name: string; desc: string }[] = [
+    { name: 'Channel manager δύο κατευθύνσεων', desc: 'Αμφίδρομος συγχρονισμός τιμών και διαθεσιμότητας. Απαιτεί επίσημη σύνδεση με τα API των καναλιών.' },
+    { name: 'Πληρωμές εντός εφαρμογής', desc: 'Είσπραξη με κάρτα ή IRIS μέσω αδειοδοτημένου παρόχου (π.χ. Stripe, Viva). Απαιτεί εμπορικό λογαριασμό.' },
+    { name: 'Τραπεζικές ροές (open banking)', desc: 'Αυτόματη άντληση κινήσεων λογαριασμού. Απαιτεί αδειοδοτημένο πάροχο PSD2.' },
+    { name: 'Ζωντανά δεδομένα αγοράς', desc: 'Τρέχουσες τιμές και αποδόσεις ανά περιοχή από επίσημες πηγές δεδομένων.' },
+  ];
+  const Row = ({ name, desc, live }: { name: string; desc: string; live: boolean }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border-subtle)' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</div>
+        <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 2 }}>{desc}</div>
+      </div>
+      <Badge tone={live ? 'positive' : 'neutral'}>{live ? 'Ενεργό' : 'Σύντομα'}</Badge>
+    </div>
+  );
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Ενσωματώσεις</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>Τι λειτουργεί ήδη και τι ετοιμάζουμε. Είμαστε ξεκάθαροι: όσα χρειάζονται εξωτερική υποδομή ή αδειοδότηση σημειώνονται ως «Σύντομα», χωρίς ψεύτικα κουμπιά.</div>
+      {LIVE.map(i => <Row key={i.name} {...i} live />)}
+      {SOON.map(i => <Row key={i.name} {...i} live={false} />)}
     </div>
   );
 }
@@ -438,6 +473,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
           <ProfileTypeCard userId={userId} value={profileType} onChange={v => onProfileChange?.(v)} />
           <AccountantLink userId={userId} />
+          <IntegrationsCard />
           <Referral userId={userId} />
         </div>
       )}

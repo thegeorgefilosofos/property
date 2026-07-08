@@ -286,8 +286,13 @@ create table if not exists public.guest_checkins (
   arrival_date date,
   guests_count integer,
   accepts_rules boolean default false,
+  privacy_consent boolean default false,
+  privacy_consent_at timestamptz,
   created_at   timestamptz default now()
 );
+-- GDPR consent (idempotent για υπάρχουσες εγκαταστάσεις):
+alter table public.guest_checkins add column if not exists privacy_consent boolean default false;
+alter table public.guest_checkins add column if not exists privacy_consent_at timestamptz;
 alter table public.guest_checkins enable row level security;
 drop policy if exists own_guest_checkins on public.guest_checkins;
 create policy own_guest_checkins on public.guest_checkins for all
@@ -304,23 +309,26 @@ begin
 end; $$;
 grant execute on function public.get_checkin_context(text) to anon, authenticated;
 
+drop function if exists public.submit_checkin(text,text,text,text,text,text,text,text,integer,boolean);
 create or replace function public.submit_checkin(
   p_token text, p_full_name text, p_id_number text, p_nationality text,
   p_birth_date text, p_phone text, p_email text, p_arrival_date text,
-  p_guests integer, p_accepts boolean)
+  p_guests integer, p_accepts boolean, p_privacy_consent boolean)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare v_link record;
 begin
   select * into v_link from checkin_links where token = p_token and active = true;
   if not found then return false; end if;
   if coalesce(trim(p_full_name), '') = '' then return false; end if;
-  insert into guest_checkins(token, user_id, client_id, property_id, full_name, id_number, nationality, birth_date, phone, email, arrival_date, guests_count, accepts_rules)
+  -- Χωρίς ρητή συγκατάθεση GDPR δεν αποθηκεύουμε προσωπικά δεδομένα.
+  if coalesce(p_privacy_consent, false) = false then return false; end if;
+  insert into guest_checkins(token, user_id, client_id, property_id, full_name, id_number, nationality, birth_date, phone, email, arrival_date, guests_count, accepts_rules, privacy_consent, privacy_consent_at)
     values (p_token, v_link.user_id, v_link.client_id, v_link.property_id, left(p_full_name,160), left(p_id_number,60),
             left(p_nationality,60), nullif(p_birth_date,'')::date, left(p_phone,40), left(p_email,160),
-            nullif(p_arrival_date,'')::date, p_guests, coalesce(p_accepts,false));
+            nullif(p_arrival_date,'')::date, p_guests, coalesce(p_accepts,false), true, now());
   return true;
 end; $$;
-grant execute on function public.submit_checkin(text,text,text,text,text,text,text,text,integer,boolean) to anon, authenticated;
+grant execute on function public.submit_checkin(text,text,text,text,text,text,text,text,integer,boolean,boolean) to anon, authenticated;
 
 -- ─── 20260708270000_accountant_portal.sql ───
 -- ─────────────────────────────────────────────────────────────────────────

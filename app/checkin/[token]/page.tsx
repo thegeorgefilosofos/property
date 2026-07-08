@@ -29,6 +29,7 @@ export default function GuestCheckin() {
   const [arrival, setArrival] = useState('');
   const [guests, setGuests] = useState('');
   const [accepts, setAccepts] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState('');
@@ -48,7 +49,7 @@ export default function GuestCheckin() {
       p_token: token, p_full_name: fullName.trim(), p_id_number: idNumber.trim(),
       p_nationality: nationality.trim(), p_birth_date: birthDate || '', p_phone: phone.trim(),
       p_email: email.trim(), p_arrival_date: arrival || '', p_guests: parseInt(guests, 10) || null,
-      p_accepts: accepts,
+      p_accepts: accepts, p_privacy_consent: privacyConsent,
     });
     setSending(false);
     if (error || !ok) { setErr('Δεν ήταν δυνατή η υποβολή. Έλεγξε τα στοιχεία και δοκίμασε ξανά.'); return; }
@@ -110,10 +111,25 @@ export default function GuestCheckin() {
                     <input type="checkbox" checked={accepts} onChange={e => setAccepts(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />
                     Αποδέχομαι τους κανόνες του καταλύματος
                   </label>
+
+                  {/* GDPR: ρητή συγκατάθεση επεξεργασίας προσωπικών δεδομένων (υποχρεωτική) */}
+                  <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                      <input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
+                      <span>
+                        Συναινώ στην επεξεργασία των στοιχείων μου από τον οικοδεσπότη, αποκλειστικά για τη νόμιμη δήλωση διαμονής και την επικοινωνία της κράτησης. Έλαβα γνώση της{' '}
+                        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'underline' }}>Πολιτικής Απορρήτου</a>.
+                      </span>
+                    </label>
+                  </div>
+
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
-                  <button type="submit" disabled={sending || !fullName.trim()} style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !fullName.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !fullName.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
+                  <button type="submit" disabled={sending || !fullName.trim() || !privacyConsent} style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !fullName.trim() || !privacyConsent) ? 'not-allowed' : 'pointer', opacity: (sending || !fullName.trim() || !privacyConsent) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή στοιχείων'}
                   </button>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>
+                    Τα στοιχεία σου διαβιβάζονται κρυπτογραφημένα και τα βλέπει μόνο ο οικοδεσπότης. Μπορείς να ζητήσεις διαγραφή τους όποτε θες.
+                  </div>
                 </form>
               </div>
             )}

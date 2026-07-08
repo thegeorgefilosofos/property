@@ -206,6 +206,15 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('knows broker', /ΜΕΣΙΤΗΣ/.test(p));
   ok('knows accountant', /ΛΟΓΙΣΤΗΣ/.test(p));
 }
+// GDPR & ενσωματώσεις: ο advisor ξέρει το απόρρητο και είναι ειλικρινής για τι δουλεύει
+{
+  const p = buildSystemPrompt(id(), 'x');
+  ok('knows GDPR', /GDPR/.test(p) && /\/privacy/.test(p));
+  ok('knows data rights', /φορητότητα|διαγραφή/.test(p));
+  ok('knows checkin consent', /συγκατάθεση/.test(p));
+  ok('knows integrations live vs soon', /ΕΝΕΡΓΑ ΤΩΡΑ/.test(p) && /ΕΡΧΟΝΤΑΙ/.test(p));
+  ok('honest about channel manager/open banking', /channel manager/i.test(p) && /open banking/i.test(p));
+}
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
 ok('compare when provided', buildSystemPrompt(id(), 'x', '1. Σπίτι Α: αξία 200.000 €').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));

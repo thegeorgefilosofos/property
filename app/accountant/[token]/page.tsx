@@ -127,7 +127,7 @@ export default function AccountantPortal() {
             ))}
 
             {props.length === 0 && <div style={{ ...card, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Δεν υπάρχουν ακίνητα για αυτή τη χρονιά.</div>}
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS · read-only</div>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS · read-only · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Απόρρητο</a></div>
           </>
         )}
       </div>
