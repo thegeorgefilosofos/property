@@ -1,0 +1,77 @@
+// Τεστ για messages/reports/ical. Τρέξε: npx tsx lib/clients/crmFeatures.test.ts
+import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink } from './messages';
+import { revenueByChannel, revenueByMonth, occupancyPct, nightsInRange, totals } from './reports';
+import { parseICal, guessChannel, isBlocked, nightsBetween } from './ical';
+
+let passed = 0, failed = 0; const fails: string[] = [];
+const ok = (n: string, c: boolean) => { c ? passed++ : (failed++, fails.length < 60 && fails.push(n)); };
+
+// ── messages ──────────────────────────────────────────────────────────────
+const ctx = { clientName: 'Γιώργος Παπαδόπουλος', propertyName: 'Το Σπίτι μου', address: 'Αρύββου 45', checkIn: '2026-07-15' };
+for (const t of MSG_TEMPLATES) {
+  const body = t.build(ctx);
+  ok(`msg ${t.id} non-empty`, body.length > 10);
+  ok(`msg ${t.id} uses first name`, body.includes('Γιώργος'));
+  ok(`msg ${t.id} uses property`, body.includes('Το Σπίτι μου'));
+  ok(`msg ${t.id} no leftover placeholder`, !/\{[a-z]+\}/i.test(body));
+  ok(`msg ${t.id} no em-dash`, !body.includes('—'));
+}
+ok('buildMessage welcome', buildMessage('welcome', ctx).includes('Καλωσόρισες') || buildMessage('welcome', ctx).length > 0);
+ok('buildMessage unknown → empty', buildMessage('nope' as any, ctx) === '');
+ok('welcome without name still works', buildMessage('welcome', { propertyName: 'Βίλα' }).length > 5);
+ok('whatsappLink encodes text', whatsappLink('306941234567', 'Γεια σου!').startsWith('https://wa.me/306941234567?text=') && whatsappLink('306941234567', 'Γεια σου!').includes('%'));
+ok('viberLink forward', viberLink('Γεια').startsWith('viber://forward?text='));
+
+// ── reports ─────────────────────────────────────────────────────────────────
+const stays = [
+  { channel: 'airbnb', check_in: '2026-01-01', check_out: '2026-01-06', nightly_rate: 100 },   // 5 νύχτες, 500
+  { channel: 'airbnb', check_in: '2026-02-10', check_out: '2026-02-12', total: 300 },           // 2 νύχτες, 300
+  { channel: 'booking', check_in: '2026-01-20', check_out: '2026-01-23', nightly_rate: 80 },     // 3 νύχτες, 240
+  { channel: 'direct', check_in: '2026-03-01', check_out: '2026-03-02', total: 120 },            // 1 νύχτα, 120
+];
+const byCh = revenueByChannel(stays);
+ok('channels sorted by revenue', byCh[0].channel === 'airbnb' && byCh[0].revenue === 800);
+ok('channel airbnb nights', byCh.find(r => r.channel === 'airbnb')!.nights === 7);
+ok('channel booking count', byCh.find(r => r.channel === 'booking')!.count === 1);
+ok('channel labels', byCh.every(r => typeof r.label === 'string' && r.label.length > 0));
+const byM = revenueByMonth(stays, 2026);
+ok('month jan revenue', byM[0] === 740);   // 500 + 240
+ok('month feb revenue', byM[1] === 300);
+ok('month mar revenue', byM[2] === 120);
+ok('month array length 12', byM.length === 12);
+ok('other year zero', revenueByMonth(stays, 2025).every(v => v === 0));
+ok('nightsInRange full', nightsInRange({ check_in: '2026-01-01', check_out: '2026-01-06' }, '2026-01-01', '2026-02-01') === 5);
+ok('nightsInRange clipped', nightsInRange({ check_in: '2026-01-30', check_out: '2026-02-05' }, '2026-01-01', '2026-02-01') === 2);
+ok('nightsInRange outside', nightsInRange({ check_in: '2026-05-01', check_out: '2026-05-03' }, '2026-01-01', '2026-02-01') === 0);
+ok('occupancy jan (10 of 31)', occupancyPct(stays, '2026-01-01', '2026-02-01') === Math.round((8 / 31) * 1000) / 10);
+ok('occupancy zero range', occupancyPct(stays, '2026-01-01', '2026-01-01') === 0);
+ok('occupancy capped 100', occupancyPct([{ check_in: '2026-01-01', check_out: '2026-03-01' }], '2026-01-01', '2026-01-10') === 100);
+const tot = totals(stays);
+ok('totals revenue', tot.revenue === 1160 && tot.nights === 11 && tot.count === 4);
+
+// ── ical ─────────────────────────────────────────────────────────────────────
+const ics = [
+  'BEGIN:VCALENDAR', 'VERSION:2.0',
+  'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20260701', 'DTEND;VALUE=DATE:20260705', 'SUMMARY:Reserved', 'UID:abc@airbnb.com', 'END:VEVENT',
+  'BEGIN:VEVENT', 'DTSTART:20260810T140000Z', 'DTEND:20260812T110000Z', 'SUMMARY:Guest stay', 'UID:def', 'END:VEVENT',
+  'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20260901', 'DTEND;VALUE=DATE:20260901', 'SUMMARY:Bad', 'UID:zero', 'END:VEVENT', // μηδενική διάρκεια → αγνοείται
+  'END:VCALENDAR',
+].join('\r\n');
+const evs = parseICal(ics);
+ok('ical parses 2 valid events', evs.length === 2);
+ok('ical dates', evs[0].start === '2026-07-01' && evs[0].end === '2026-07-05');
+ok('ical datetime form', evs[1].start === '2026-08-10' && evs[1].end === '2026-08-12');
+ok('ical uid', evs[0].uid === 'abc@airbnb.com');
+ok('ical summary', evs[0].summary === 'Reserved');
+ok('ical empty text → []', parseICal('').length === 0);
+ok('ical folded line', parseICal('BEGIN:VEVENT\r\nDTSTART;VALUE=DATE:20260701\r\nDTEND;VALUE=DATE:20260703\r\nSUMMARY:Long\r\n  name here\r\nUID:x\r\nEND:VEVENT')[0].summary === 'Long name here');
+ok('guessChannel airbnb', guessChannel('https://calendar.airbnb.com/x.ics') === 'airbnb');
+ok('guessChannel booking', guessChannel('admin.booking.com/ical') === 'booking');
+ok('guessChannel other', guessChannel('example.com') === 'other');
+ok('isBlocked true', isBlocked('Airbnb (Not available)') === true);
+ok('isBlocked false', isBlocked('Reserved') === false);
+ok('nightsBetween', nightsBetween('2026-07-01', '2026-07-05') === 4);
+
+console.log(`\ncrmFeatures — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
+if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
+console.log('όλα πέρασαν');
