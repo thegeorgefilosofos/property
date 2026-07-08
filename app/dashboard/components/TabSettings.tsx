@@ -97,6 +97,32 @@ const HEATING_OPTS:[string,string][] = [
   ['ac_only','Κλιματιστικά'],['none','Χωρίς θέρμανση'],['other','Άλλο'],
 ];
 
+// Σύνδεσμος λογιστή (read-only, ανά χρήστη): δημιουργία/αντιγραφή.
+function AccountantLink({ userId }: { userId: string }) {
+  const supabase = createClient();
+  const [url, setUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    supabase.from('accountant_links').select('token').eq('user_id', userId).maybeSingle().then(({ data }) => { if (data?.token) setUrl(`${window.location.origin}/accountant/${data.token}`); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+  const gen = async () => {
+    setBusy(true);
+    const { data } = await supabase.from('accountant_links').upsert({ user_id: userId, active: true }, { onConflict: 'user_id' }).select('token').maybeSingle();
+    setBusy(false);
+    if (data?.token) { const u = `${window.location.origin}/accountant/${data.token}`; setUrl(u); try { await navigator.clipboard.writeText(u); setCopied(true); setTimeout(() => setCopied(false), 2600); } catch { /* ignore */ } }
+  };
+  return (
+    <div className="card">
+      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Σύνδεσμος για τον λογιστή σου</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>Δώσε στον λογιστή σου έναν ασφαλή σύνδεσμο μόνο-ανάγνωσης με την εικόνα εσόδων/δαπανών των ακινήτων σου ανά έτος. Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.</div>
+      {url && <div style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
+      <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε ✓' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
+    </div>
+  );
+}
+
 export default function TabSettings({ propertyId, userId }: { propertyId:string; userId:string }) {
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
@@ -373,6 +399,7 @@ export default function TabSettings({ propertyId, userId }: { propertyId:string;
             <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά tab από το κουμπί «Εξαγωγή CSV».</InfoBanner>
           </div>
 
+          <AccountantLink userId={userId} />
           <Referral userId={userId} />
         </div>
       )}
