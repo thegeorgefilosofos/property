@@ -19,6 +19,7 @@ import TabComparison from './components/TabComparison';
 import TabClients from './components/TabClients';
 import AddPropertyWizard from './components/AddPropertyWizard';
 import DocumentScan from './components/DocumentScan';
+import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton } from '@/components/Theme';
@@ -717,6 +718,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
+  const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
 
@@ -751,6 +753,15 @@ export default function Dashboard() {
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
       supabase.from('billing_profiles').select('plan').eq('user_id', user.id).maybeSingle().then(({ data }) => setPlan(data?.plan || 'free'));
       await fetchProperties(user.id);
+      // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
+      // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
+      try {
+        const [{ data: ob }, { count }] = await Promise.all([
+          supabase.from('onboarding_progress').select('welcomed').eq('user_id', user.id).maybeSingle(),
+          supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        ]);
+        if (!ob?.welcomed && (count || 0) === 0) setShowWelcome(true);
+      } catch {}
       setLoading(false);
     };
     init();
@@ -1081,6 +1092,10 @@ export default function Dashboard() {
         </div>
       )}
 
+      {showWelcome&&user&&<WelcomeOnboarding userId={user.id}
+        onAddProperty={()=>{ setShowWelcome(false); setShowAddModal(true); }}
+        onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}
+        onClose={()=>setShowWelcome(false)} />}
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showCopyInventory&&user&&selected&&<CopyInventoryModal properties={properties} currentPropertyId={selected.id} userId={user.id} onClose={()=>setShowCopyInventory(false)} onCopied={()=>setShowCopyInventory(false)}/>}
