@@ -71,3 +71,45 @@ export function nightsBetween(start: string, end: string): number {
   if (isNaN(a) || isNaN(b) || b <= a) return 0;
   return Math.round((b - a) / 86400000);
 }
+
+// ── Μετατροπή σε προσχέδια διαμονών για εισαγωγή ────────────────────────────
+export interface StayDraft {
+  property_id: string;
+  check_in: string;   // YYYY-MM-DD
+  check_out: string;  // YYYY-MM-DD
+  nights: number;
+  channel: 'airbnb' | 'booking' | 'other';
+  blocked: boolean;   // απλό μπλοκάρισμα ημερομηνιών (όχι κράτηση)
+  uid: string;
+}
+
+/** Κλειδί ταυτοποίησης διαμονής (για αποφυγή διπλοεγγραφών κατά την εισαγωγή). */
+export function stayKey(propertyId: string, checkIn: string, checkOut: string): string {
+  return `${propertyId}|${checkIn}|${checkOut}`;
+}
+
+/**
+ * Μετατρέπει events iCal σε προσχέδια διαμονών για συγκεκριμένο ακίνητο/κανάλι.
+ * Αγνοεί events με μηδενικές νύχτες. Δεν αφαιρεί διπλότυπα εδώ (γίνεται με stayKey
+ * απέναντι στις υπάρχουσες διαμονές, στο σημείο εισαγωγής).
+ */
+export function icalToStayDrafts(
+  events: ICalEvent[],
+  opts: { propertyId: string; channel: 'airbnb' | 'booking' | 'other' }
+): StayDraft[] {
+  const out: StayDraft[] = [];
+  for (const e of events) {
+    const nights = nightsBetween(e.start, e.end);
+    if (nights <= 0) continue;
+    out.push({
+      property_id: opts.propertyId,
+      check_in: e.start,
+      check_out: e.end,
+      nights,
+      channel: opts.channel,
+      blocked: isBlocked(e.summary),
+      uid: e.uid,
+    });
+  }
+  return out;
+}

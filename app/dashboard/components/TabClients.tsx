@@ -21,6 +21,7 @@ import {
 } from '@/lib/clients/clients';
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
 import { revenueByChannel, revenueByMonth, occupancyPct, totals } from '@/lib/clients/reports';
+import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 interface Client {
@@ -41,6 +42,21 @@ interface Stay {
 }
 interface Note { id: string; user_id: string; client_id: string; kind: string; body: string; created_at: string; }
 interface PropRow { id: string; name: string; prop_type: string | null; status_detail: string | null; client_id: string | null; }
+interface ClientDoc {
+  id: string; user_id: string; client_id: string; name: string; file_path: string;
+  mime: string | null; size: number | null; kind: string; created_at: string;
+  signedUrl?: string;
+}
+
+// Είδη εγγράφων πελάτη (ταυτότητα, συμβόλαιο, απόδειξη, άλλο).
+const DOC_KINDS = ['id', 'contract', 'receipt', 'other'] as const;
+const DOC_KIND_LABELS: Record<string, string> = { id: 'Ταυτότητα / Διαβατήριο', contract: 'Συμβόλαιο', receipt: 'Απόδειξη', other: 'Άλλο' };
+const fmtBytes = (n?: number | null) => {
+  if (!n || n <= 0) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 // Τύπος & στάδιο: κατηγορικά → ουδέτερα badges (χωρίς διακοσμητικό χρώμα).
 const TYPE_TONE: Record<ClientType, 'neutral'> = { owner: 'neutral', lead: 'neutral', client: 'neutral' };
@@ -198,6 +214,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [view, setView] = useState<'list' | 'board'>('list');
   const [reportsOpen, setReportsOpen] = useState(false);
 
+  // Εισαγωγή iCal (Airbnb/Booking): συγχρονισμός κρατήσεων/διαμονών ανά ακίνητο.
+  const [icalOpen, setIcalOpen] = useState(false);
+  const [icalText, setIcalText] = useState('');
+  const [icalUrl, setIcalUrl] = useState('');
+  const [icalPropertyId, setIcalPropertyId] = useState('');
+  const [icalChannel, setIcalChannel] = useState<'airbnb' | 'booking' | 'other'>('airbnb');
+  const [icalIncludeBlocked, setIcalIncludeBlocked] = useState(false);
+  const [icalEvents, setIcalEvents] = useState<ICalEvent[] | null>(null);
+  const [icalBusy, setIcalBusy] = useState(false);
+  const [icalMsg, setIcalMsg] = useState<{ text: string; error?: boolean } | null>(null);
+
   // Φόρμα νέου/επεξεργασίας πελάτη
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
@@ -216,6 +243,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   // Φόρμα σχολίου
   const [noteForm, setNoteForm] = useState<{ kind: string; body: string }>({ kind: 'note', body: '' });
+
+  // Έγγραφα πελάτη (ταυτότητα, συμβόλαιο, αποδείξεις)
+  const [docs, setDocs] = useState<ClientDoc[]>([]);
+  const [docKind, setDocKind] = useState<string>('other');
+  const [docBusy, setDocBusy] = useState(false);
+  const [docMsg, setDocMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const docFileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const [{ data: cl }, { data: pr }] = await Promise.all([
@@ -237,6 +271,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setNotes((data || []) as Note[]);
   }, [userId]);
 
+  const loadDocs = useCallback(async (clientId: string) => {
+    const { data } = await supabase.from('client_documents').select('*').eq('user_id', userId).eq('client_id', clientId).order('created_at', { ascending: false });
+    const list = (data || []) as ClientDoc[];
+    const paths = list.map(d => d.file_path);
+    if (paths.length) {
+      const { data: signed } = await supabase.storage.from('property-files').createSignedUrls(paths, 60 * 60 * 24);
+      if (signed) list.forEach((d, i) => { d.signedUrl = signed[i]?.signedUrl ?? undefined; });
+    }
+    setDocs(list);
+  }, [userId]);
+
   useEffect(() => { load(); loadStays(); }, [load, loadStays]);
 
   // Real-time: clients / client_stays / client_notes
@@ -245,12 +290,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${userId}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_stays', filter: `user_id=eq.${userId}` }, () => loadStays())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_notes', filter: `user_id=eq.${userId}` }, () => { if (openIdRef.current) loadNotes(openIdRef.current); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_documents', filter: `user_id=eq.${userId}` }, () => { if (openIdRef.current) loadDocs(openIdRef.current); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_properties', filter: `user_id=eq.${userId}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [userId, load, loadStays, loadNotes]);
+  }, [userId, load, loadStays, loadNotes, loadDocs]);
 
-  useEffect(() => { if (openId) loadNotes(openId); else setNotes([]); }, [openId, loadNotes]);
+  useEffect(() => {
+    if (openId) { loadNotes(openId); loadDocs(openId); }
+    else { setNotes([]); setDocs([]); }
+    setDocMsg(null); setDocKind('other');
+  }, [openId, loadNotes, loadDocs]);
 
   const propsByClient = useMemo(() => {
     const m = new Map<string, PropRow[]>();
@@ -421,6 +471,109 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
   const delNote = async (n: Note) => { await supabase.from('client_notes').delete().eq('id', n.id); if (openId) loadNotes(openId); };
 
+  // ── Έγγραφα πελάτη ────────────────────────────────────────────────────────
+  const onDocFile = async (file: File | null | undefined) => {
+    if (!file || !openId) return;
+    setDocBusy(true); setDocMsg(null);
+    const safe = file.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${userId}/clients/${openId}/${Date.now()}_${safe}`;
+    const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
+    if (upErr) { setDocMsg({ text: `Σφάλμα ανεβάσματος: ${upErr.message}`, error: true }); setDocBusy(false); return; }
+    const { error: insErr } = await supabase.from('client_documents').insert({
+      user_id: userId, client_id: openId, name: file.name, file_path: path,
+      mime: file.type || null, size: file.size, kind: docKind,
+    });
+    if (insErr) {
+      await supabase.storage.from('property-files').remove([path]);
+      setDocMsg({ text: `Σφάλμα καταχώρησης: ${insErr.message}`, error: true }); setDocBusy(false); return;
+    }
+    setDocBusy(false); setDocMsg({ text: 'Το έγγραφο προστέθηκε' });
+    setTimeout(() => setDocMsg(null), 3000);
+    if (docFileRef.current) docFileRef.current.value = '';
+    loadDocs(openId);
+  };
+  const delDoc = async (d: ClientDoc) => {
+    if (!confirm('Να διαγραφεί οριστικά το έγγραφο;')) return;
+    await supabase.storage.from('property-files').remove([d.file_path]);
+    await supabase.from('client_documents').delete().eq('id', d.id);
+    if (openId) loadDocs(openId);
+  };
+
+  // ── Εισαγωγή iCal ─────────────────────────────────────────────────────────
+  const openIcal = () => {
+    setIcalText(''); setIcalUrl(''); setIcalEvents(null); setIcalMsg(null);
+    setIcalChannel('airbnb'); setIcalIncludeBlocked(false);
+    setIcalPropertyId(props[0]?.id || '');
+    setIcalOpen(true);
+  };
+  // Ανάλυση: προτεραιότητα στο επικολλημένο κείμενο· αν δοθεί μόνο URL, δοκίμασε
+  // κατέβασμα (συνήθως αποτυγχάνει λόγω CORS των Airbnb/Booking, οπότε ζητάμε
+  // επικόλληση του .ics — έντιμη συμπεριφορά, χωρίς ψεύτικη υπόσχεση).
+  const parseIcalInput = async () => {
+    setIcalBusy(true); setIcalMsg(null); setIcalEvents(null);
+    try {
+      let text = icalText.trim();
+      if (!text && icalUrl.trim()) {
+        try {
+          const res = await fetch(icalUrl.trim());
+          if (!res.ok) throw new Error(String(res.status));
+          text = await res.text();
+          const ch = guessChannel(icalUrl);
+          if (ch !== 'other') setIcalChannel(ch);
+        } catch {
+          setIcalMsg({ text: 'Δεν ήταν δυνατό το κατέβασμα από το URL (το επιτρέπει ο πάροχος μόνο από διακομιστή). Άνοιξε τον σύνδεσμο, αντίγραψε το περιεχόμενο .ics και επικόλλησέ το εδώ.', error: true });
+          setIcalBusy(false); return;
+        }
+      }
+      if (!text) { setIcalMsg({ text: 'Επικόλλησε το περιεχόμενο του .ics ή δώσε έγκυρο URL.', error: true }); setIcalBusy(false); return; }
+      const evs = parseICal(text);
+      if (evs.length === 0) { setIcalMsg({ text: 'Δεν βρέθηκαν εγγραφές ημερολογίου στο κείμενο.', error: true }); setIcalBusy(false); return; }
+      setIcalEvents(evs);
+    } finally { setIcalBusy(false); }
+  };
+  // Συνθετικός πελάτης ανά κανάλι για τις εισαγόμενες κρατήσεις (το iCal δεν
+  // περιέχει ταυτότητα επισκέπτη). Δημιουργείται μία φορά, με σαφή ονομασία.
+  const ensureChannelClient = async (channel: 'airbnb' | 'booking' | 'other'): Promise<string | null> => {
+    const name = channel === 'airbnb' ? 'Κρατήσεις Airbnb' : channel === 'booking' ? 'Κρατήσεις Booking' : 'Κρατήσεις καναλιού';
+    const existing = clients.find(c => c.full_name === name && c.type === 'client');
+    if (existing) return existing.id;
+    const { data, error } = await supabase.from('clients').insert({
+      user_id: userId, type: 'client', full_name: name, stage: 'closed',
+      notes: 'Συγκεντρωτικός πελάτης για κρατήσεις που εισάγονται από iCal (χωρίς στοιχεία επισκέπτη).',
+    }).select('id').single();
+    if (error || !data) return null;
+    return (data as { id: string }).id;
+  };
+  const importIcal = async () => {
+    if (!icalEvents || !icalPropertyId) return;
+    setIcalBusy(true); setIcalMsg(null);
+    const drafts = icalToStayDrafts(icalEvents, { propertyId: icalPropertyId, channel: icalChannel })
+      .filter(d => icalIncludeBlocked || !d.blocked);
+    if (drafts.length === 0) { setIcalMsg({ text: 'Δεν υπάρχουν κρατήσεις προς εισαγωγή (μόνο μπλοκαρίσματα ημερομηνιών).', error: true }); setIcalBusy(false); return; }
+    const clientId = await ensureChannelClient(icalChannel);
+    if (!clientId) { setIcalMsg({ text: 'Σφάλμα δημιουργίας πελάτη καναλιού.', error: true }); setIcalBusy(false); return; }
+    // Αποφυγή διπλοεγγραφών: κλειδί ακίνητο+άφιξη+αναχώρηση απέναντι στις υπάρχουσες.
+    const existingKeys = new Set(stays.map(s => stayKey(s.property_id || '', s.check_in || '', s.check_out || '')));
+    const fresh = drafts.filter(d => !existingKeys.has(stayKey(d.property_id, d.check_in, d.check_out)));
+    const skipped = drafts.length - fresh.length;
+    if (fresh.length === 0) { setIcalMsg({ text: `Όλες οι ${drafts.length} κρατήσεις υπάρχουν ήδη. Καμία νέα εισαγωγή.` }); setIcalBusy(false); loadStays(); return; }
+    const rows = fresh.map(d => ({
+      user_id: userId, client_id: clientId, property_id: d.property_id,
+      check_in: d.check_in, check_out: d.check_out, nights: d.nights, channel: d.channel,
+      notes: `Εισαγωγή iCal · ${d.uid}`,
+    }));
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += 50) {
+      const { error } = await supabase.from('client_stays').insert(rows.slice(i, i + 50));
+      if (error) { setIcalMsg({ text: `Σφάλμα εισαγωγής: ${error.message}`, error: true }); setIcalBusy(false); loadStays(); return; }
+      inserted += rows.slice(i, i + 50).length;
+    }
+    setIcalBusy(false);
+    setIcalMsg({ text: `Εισήχθησαν ${inserted} κρατήσεις${skipped > 0 ? ` · ${skipped} υπήρχαν ήδη` : ''}.` });
+    setIcalEvents(null); setIcalText(''); setIcalUrl('');
+    loadStays(); load();
+  };
+
   // ── Εξαγωγή CSV (εμπλουτισμένη) ────────────────────────────────────────────
   const exportCsv = () => {
     const rows = clients.map(c => {
@@ -481,7 +634,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Πελατολόγιο" sub="Πλήρες αρχείο πελατών, επισκεπτών και ιδιοκτητών: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
-        right={clients.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn><ExportButton onClick={exportCsv} /><Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
+        right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
 
@@ -871,6 +1024,42 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               </div>
             </div>
 
+            {/* Έγγραφα (ταυτότητα, συμβόλαιο, αποδείξεις) */}
+            <div style={{ marginBottom: 24 }}>
+              <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις — ασφαλής αποθήκευση" />
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ minWidth: 200, flex: '1 1 200px' }}>
+                  <CustomSelect label="Είδος εγγράφου" value={docKind} onChange={setDocKind} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
+                </div>
+                <input ref={docFileRef} type="file" style={{ display: 'none' }} onChange={e => onDocFile(e.target.files?.[0])} />
+                <Btn variant="secondary" onClick={() => docFileRef.current?.click()} disabled={docBusy}>{docBusy ? 'Ανέβασμα…' : 'Ανέβασμα αρχείου'}</Btn>
+              </div>
+              {docMsg && <div style={{ fontSize: 12, color: docMsg.error ? 'var(--negative)' : 'var(--positive)', marginBottom: 12 }}>{docMsg.text}</div>}
+              {docs.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>Δεν έχουν αποθηκευτεί έγγραφα.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {docs.map(d => (
+                    <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                          {DOC_KIND_LABELS[d.kind] || 'Άλλο'}{fmtBytes(d.size) ? ` · ${fmtBytes(d.size)}` : ''} · {fd(d.created_at)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {d.signedUrl && <a href={d.signedUrl} target="_blank" rel="noopener noreferrer" style={msgLink}>Άνοιγμα</a>}
+                        <button onClick={() => delDoc(d)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Διαγραφή</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Χρονολόγιο (σχόλια) */}
             <div>
               <SecHdr label="Χρονολόγιο" sub="Σχόλια, τηλεφωνήματα, επισκέψεις" />
@@ -904,6 +1093,73 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               )}
             </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Εισαγωγή iCal (Airbnb/Booking) ────────────────────────────────── */}
+      {icalOpen && (
+        <div onClick={() => setIcalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(680px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή iCal</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Συγχρονισμός κρατήσεων από Airbnb ή Booking</div>
+              </div>
+              <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
+              <InfoBanner tone="info">Το iCal δίνει μόνο τις ημερομηνίες κράτησης, χωρίς όνομα επισκέπτη ή τιμή. Οι εισαγωγές καταχωρούνται σε συγκεντρωτικό πελάτη ανά κανάλι (π.χ. «Κρατήσεις Airbnb») για σωστή πληρότητα και ιστορικό. Άνοιξε στο Airbnb ή Booking τον σύνδεσμο εξαγωγής ημερολογίου (Export calendar), αντίγραψε το περιεχόμενο και επικόλλησέ το εδώ.</InfoBanner>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, margin: '16px 0' }}>
+                <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
+                <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <TextInput label="Σύνδεσμος iCal (προαιρετικά)" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <Textarea label="Περιεχόμενο .ics (επικόλληση)" value={icalText} onChange={setIcalText} rows={6} placeholder="BEGIN:VCALENDAR ..." />
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+                <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>{icalBusy ? 'Ανάλυση…' : 'Ανάλυση'}</Btn>
+                {icalEvents && <FlagSwitch on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} onLabel="Και μπλοκαρίσματα ημερομηνιών" offLabel="Μόνο κρατήσεις" />}
+              </div>
+              {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--positive)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
+              {icalEvents && (() => {
+                const drafts = icalToStayDrafts(icalEvents, { propertyId: icalPropertyId || 'x', channel: icalChannel });
+                const bookings = drafts.filter(d => !d.blocked);
+                const blocks = drafts.filter(d => d.blocked);
+                const toImport = icalIncludeBlocked ? drafts : bookings;
+                const nights = toImport.reduce((s, d) => s + d.nights, 0);
+                return (
+                  <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14, marginBottom: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 12 }}>
+                      {statTile('Κρατήσεις', String(bookings.length))}
+                      {statTile('Μπλοκαρίσματα', String(blocks.length))}
+                      {statTile('Νύχτες προς εισαγωγή', String(nights))}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                      {toImport.slice(0, 40).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 8 }}>
+                          <span>{fd(d.check_in)} - {fd(d.check_out)}</span>
+                          <span style={{ color: 'var(--text-tertiary)' }}>{d.nights} νύχτες{d.blocked ? ' · μπλοκάρισμα' : ''}</span>
+                        </div>
+                      ))}
+                      {toImport.length > 40 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: 4 }}>και άλλες {toImport.length - 40}…</div>}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {icalEvents && (
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+                <Btn variant="ghost" onClick={() => setIcalOpen(false)}>Κλείσιμο</Btn>
+                <Btn variant="primary" onClick={importIcal} disabled={icalBusy || !icalPropertyId}>{icalBusy ? 'Εισαγωγή…' : 'Εισαγωγή κρατήσεων'}</Btn>
+              </div>
+            )}
           </div>
         </div>
       )}
