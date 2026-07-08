@@ -47,6 +47,10 @@ interface ClientDoc {
   mime: string | null; size: number | null; kind: string; created_at: string;
   signedUrl?: string;
 }
+interface IcalFeed {
+  id: string; user_id: string; property_id: string; channel: string; url: string;
+  include_blocked: boolean; active: boolean; last_synced_at: string | null; last_status: string | null; created_at: string;
+}
 
 // Είδη εγγράφων πελάτη (ταυτότητα, συμβόλαιο, απόδειξη, άλλο).
 const DOC_KINDS = ['id', 'contract', 'receipt', 'other'] as const;
@@ -224,6 +228,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [icalEvents, setIcalEvents] = useState<ICalEvent[] | null>(null);
   const [icalBusy, setIcalBusy] = useState(false);
   const [icalMsg, setIcalMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [icalFeeds, setIcalFeeds] = useState<IcalFeed[]>([]);
 
   // Φόρμα νέου/επεξεργασίας πελάτη
   const [modalOpen, setModalOpen] = useState(false);
@@ -282,7 +287,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setDocs(list);
   }, [userId]);
 
-  useEffect(() => { load(); loadStays(); }, [load, loadStays]);
+  const loadIcalFeeds = useCallback(async () => {
+    const { data } = await supabase.from('ical_feeds').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    setIcalFeeds((data || []) as IcalFeed[]);
+  }, [userId]);
+
+  useEffect(() => { load(); loadStays(); loadIcalFeeds(); }, [load, loadStays, loadIcalFeeds]);
 
   // Real-time: clients / client_stays / client_notes
   useEffect(() => {
@@ -291,10 +301,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_stays', filter: `user_id=eq.${userId}` }, () => loadStays())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_notes', filter: `user_id=eq.${userId}` }, () => { if (openIdRef.current) loadNotes(openIdRef.current); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_documents', filter: `user_id=eq.${userId}` }, () => { if (openIdRef.current) loadDocs(openIdRef.current); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ical_feeds', filter: `user_id=eq.${userId}` }, () => loadIcalFeeds())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_properties', filter: `user_id=eq.${userId}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [userId, load, loadStays, loadNotes, loadDocs]);
+  }, [userId, load, loadStays, loadNotes, loadDocs, loadIcalFeeds]);
 
   useEffect(() => {
     if (openId) { loadNotes(openId); loadDocs(openId); }
@@ -506,30 +517,70 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setIcalPropertyId(props[0]?.id || '');
     setIcalOpen(true);
   };
-  // Ανάλυση: προτεραιότητα στο επικολλημένο κείμενο· αν δοθεί μόνο URL, δοκίμασε
-  // κατέβασμα (συνήθως αποτυγχάνει λόγω CORS των Airbnb/Booking, οπότε ζητάμε
-  // επικόλληση του .ics — έντιμη συμπεριφορά, χωρίς ψεύτικη υπόσχεση).
-  const parseIcalInput = async () => {
+  // Χειροκίνητη ανάλυση επικολλημένου .ics (τοπικά, χωρίς δίκτυο).
+  const parseIcalInput = () => {
+    setIcalMsg(null); setIcalEvents(null);
+    const text = icalText.trim();
+    if (!text) { setIcalMsg({ text: 'Επικόλλησε το περιεχόμενο του .ics ή χρησιμοποίησε τον σύνδεσμο παραπάνω.', error: true }); return; }
+    const evs = parseICal(text);
+    if (evs.length === 0) { setIcalMsg({ text: 'Δεν βρέθηκαν εγγραφές ημερολογίου στο κείμενο.', error: true }); return; }
+    setIcalEvents(evs);
+  };
+  // Ανάκτηση από URL μέσω edge function (server-side fetch, παρακάμπτει το CORS).
+  const fetchIcalFromUrl = async () => {
+    const url = icalUrl.trim();
+    if (!url) { setIcalMsg({ text: 'Δώσε τον σύνδεσμο iCal (URL).', error: true }); return; }
     setIcalBusy(true); setIcalMsg(null); setIcalEvents(null);
+    const ch = guessChannel(url);
+    if (ch !== 'other') setIcalChannel(ch);
     try {
-      let text = icalText.trim();
-      if (!text && icalUrl.trim()) {
-        try {
-          const res = await fetch(icalUrl.trim());
-          if (!res.ok) throw new Error(String(res.status));
-          text = await res.text();
-          const ch = guessChannel(icalUrl);
-          if (ch !== 'other') setIcalChannel(ch);
-        } catch {
-          setIcalMsg({ text: 'Δεν ήταν δυνατό το κατέβασμα από το URL (το επιτρέπει ο πάροχος μόνο από διακομιστή). Άνοιξε τον σύνδεσμο, αντίγραψε το περιεχόμενο .ics και επικόλλησέ το εδώ.', error: true });
-          setIcalBusy(false); return;
-        }
+      const { data, error } = await supabase.functions.invoke('ical-sync', { body: { action: 'preview', url } });
+      if (error || !data?.ok) {
+        const detail = data?.error || error?.message || '';
+        setIcalMsg({ text: `Δεν ήταν δυνατή η ανάκτηση από το URL${detail ? `: ${detail}` : ''}. Αν δεν έχει ενεργοποιηθεί ο αυτόματος συγχρονισμός, άνοιξε τον σύνδεσμο, αντίγραψε το .ics και επικόλλησέ το κάτω.`, error: true });
+        setIcalBusy(false); return;
       }
-      if (!text) { setIcalMsg({ text: 'Επικόλλησε το περιεχόμενο του .ics ή δώσε έγκυρο URL.', error: true }); setIcalBusy(false); return; }
-      const evs = parseICal(text);
-      if (evs.length === 0) { setIcalMsg({ text: 'Δεν βρέθηκαν εγγραφές ημερολογίου στο κείμενο.', error: true }); setIcalBusy(false); return; }
-      setIcalEvents(evs);
+      setIcalEvents((data.events || []) as ICalEvent[]);
+      if (!data.events?.length) setIcalMsg({ text: 'Δεν βρέθηκαν κρατήσεις στο ημερολόγιο.', error: true });
+    } catch (e) {
+      setIcalMsg({ text: `Σφάλμα ανάκτησης: ${String(e)}`, error: true });
     } finally { setIcalBusy(false); }
+  };
+  // Αποθήκευση συνδέσμου για αυτόματο συγχρονισμό + άμεσος πρώτος συγχρονισμός.
+  const saveIcalFeed = async () => {
+    const url = icalUrl.trim();
+    if (!url || !icalPropertyId) { setIcalMsg({ text: 'Επίλεξε ακίνητο και δώσε τον σύνδεσμο iCal.', error: true }); return; }
+    setIcalBusy(true); setIcalMsg(null);
+    const { error } = await supabase.from('ical_feeds').upsert({
+      user_id: userId, property_id: icalPropertyId, channel: icalChannel, url, include_blocked: icalIncludeBlocked, active: true,
+    }, { onConflict: 'user_id,property_id,url' });
+    if (error) { setIcalMsg({ text: `Σφάλμα αποθήκευσης: ${error.message}`, error: true }); setIcalBusy(false); return; }
+    await loadIcalFeeds();
+    setIcalBusy(false);
+    setIcalMsg({ text: 'Ο σύνδεσμος αποθηκεύτηκε. Ο συγχρονισμός θα τρέχει αυτόματα· μπορείς και χειροκίνητα με «Συγχρονισμός τώρα».' });
+    syncIcalNow(icalPropertyId);
+  };
+  // Άμεσος συγχρονισμός των αποθηκευμένων συνδέσμων (όλων ή ενός ακινήτου).
+  const syncIcalNow = async (propertyId?: string) => {
+    setIcalBusy(true); setIcalMsg(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('ical-sync', { body: { action: 'sync', propertyId } });
+      if (error || !data?.ok) {
+        setIcalMsg({ text: `Ο συγχρονισμός απέτυχε${data?.error ? `: ${data.error}` : ''}. Βεβαιώσου ότι έχει γίνει deploy η function ical-sync.`, error: true });
+      } else {
+        const failed = (data.results || []).filter((r: { ok: boolean }) => !r.ok).length;
+        setIcalMsg({ text: `Συγχρονισμός ολοκληρώθηκε: ${data.inserted || 0} νέες κρατήσεις από ${data.feeds || 0} συνδέσμους${failed ? ` (${failed} με σφάλμα)` : ''}.`, error: failed > 0 });
+        loadStays(); load();
+      }
+      loadIcalFeeds();
+    } catch (e) {
+      setIcalMsg({ text: `Σφάλμα συγχρονισμού: ${String(e)}`, error: true });
+    } finally { setIcalBusy(false); }
+  };
+  const delIcalFeed = async (f: IcalFeed) => {
+    if (!confirm('Να αφαιρεθεί ο σύνδεσμος αυτόματου συγχρονισμού; Οι ήδη εισαγμένες κρατήσεις παραμένουν.')) return;
+    await supabase.from('ical_feeds').delete().eq('id', f.id);
+    loadIcalFeeds();
   };
   // Συνθετικός πελάτης ανά κανάλι για τις εισαγόμενες κρατήσεις (το iCal δεν
   // περιέχει ταυτότητα επισκέπτη). Δημιουργείται μία φορά, με σαφή ονομασία.
@@ -1112,19 +1163,52 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 24px' }}>
-              <InfoBanner tone="info">Το iCal δίνει μόνο τις ημερομηνίες κράτησης, χωρίς όνομα επισκέπτη ή τιμή. Οι εισαγωγές καταχωρούνται σε συγκεντρωτικό πελάτη ανά κανάλι (π.χ. «Κρατήσεις Airbnb») για σωστή πληρότητα και ιστορικό. Άνοιξε στο Airbnb ή Booking τον σύνδεσμο εξαγωγής ημερολογίου (Export calendar), αντίγραψε το περιεχόμενο και επικόλλησέ το εδώ.</InfoBanner>
+              <InfoBanner tone="info">Το iCal δίνει μόνο τις ημερομηνίες κράτησης, χωρίς όνομα επισκέπτη ή τιμή. Οι εισαγωγές καταχωρούνται σε συγκεντρωτικό πελάτη ανά κανάλι (π.χ. «Κρατήσεις Airbnb») για σωστή πληρότητα και ιστορικό. Αποθήκευσε τον σύνδεσμο για αυτόματο συγχρονισμό, ή επικόλλησε χειροκίνητα το .ics.</InfoBanner>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, margin: '16px 0' }}>
                 <CustomSelect label="Ακίνητο" value={icalPropertyId} onChange={setIcalPropertyId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επίλεξε ακίνητο" />
                 <CustomSelect label="Κανάλι" value={icalChannel} onChange={v => setIcalChannel(v as 'airbnb' | 'booking' | 'other')} options={[{ value: 'airbnb', label: 'Airbnb' }, { value: 'booking', label: 'Booking' }, { value: 'other', label: 'Άλλο' }]} />
               </div>
-              <div style={{ marginBottom: 14 }}>
-                <TextInput label="Σύνδεσμος iCal (προαιρετικά)" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <Textarea label="Περιεχόμενο .ics (επικόλληση)" value={icalText} onChange={setIcalText} rows={6} placeholder="BEGIN:VCALENDAR ..." />
+
+              {/* Αυτόματος συγχρονισμός μέσω συνδέσμου (server-side, χωρίς CORS) */}
+              {secHead('Αυτόματος συγχρονισμός (σύνδεσμος)')}
+              <div style={{ marginBottom: 12 }}>
+                <TextInput label="Σύνδεσμος iCal (URL)" value={icalUrl} onChange={setIcalUrl} placeholder="https://www.airbnb.com/calendar/ical/....ics" />
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-                <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>{icalBusy ? 'Ανάλυση…' : 'Ανάλυση'}</Btn>
+                <Btn variant="secondary" onClick={fetchIcalFromUrl} disabled={icalBusy || !icalUrl.trim()}>{icalBusy ? 'Ανάκτηση…' : 'Ανάκτηση & προεπισκόπηση'}</Btn>
+                <Btn variant="primary" onClick={saveIcalFeed} disabled={icalBusy || !icalUrl.trim() || !icalPropertyId}>Αποθήκευση & αυτόματος συγχρονισμός</Btn>
+              </div>
+
+              {/* Αποθηκευμένοι σύνδεσμοι (ανά επιλεγμένο ακίνητο) */}
+              {icalPropertyId && icalFeeds.filter(f => f.property_id === icalPropertyId).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+                  {icalFeeds.filter(f => f.property_id === icalPropertyId).map(f => (
+                    <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.url}</div>
+                          <div style={{ fontSize: 11, color: f.last_status?.startsWith('error') ? 'var(--negative)' : 'var(--text-secondary)', marginTop: 4 }}>
+                            {f.last_synced_at ? `Τελευταίος συγχρονισμός: ${fd(f.last_synced_at)}${f.last_status ? ` · ${f.last_status}` : ''}` : 'Δεν έχει συγχρονιστεί ακόμη'}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => syncIcalNow(f.property_id)} disabled={icalBusy} style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>Συγχρονισμός τώρα</button>
+                          <button onClick={() => delIcalFeed(f)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, padding: 0 }}>Αφαίρεση</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Χειροκίνητη εισαγωγή με επικόλληση */}
+              {secHead('Χειροκίνητα (επικόλληση .ics)')}
+              <div style={{ marginBottom: 12 }}>
+                <Textarea label="Περιεχόμενο .ics" value={icalText} onChange={setIcalText} rows={5} placeholder="BEGIN:VCALENDAR ..." />
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+                <Btn variant="secondary" onClick={parseIcalInput} disabled={icalBusy}>Ανάλυση επικόλλησης</Btn>
                 {icalEvents && <FlagSwitch on={icalIncludeBlocked} onChange={setIcalIncludeBlocked} onLabel="Και μπλοκαρίσματα ημερομηνιών" offLabel="Μόνο κρατήσεις" />}
               </div>
               {icalMsg && <div style={{ fontSize: 12, color: icalMsg.error ? 'var(--negative)' : 'var(--positive)', marginBottom: 12, lineHeight: 1.5 }}>{icalMsg.text}</div>}
