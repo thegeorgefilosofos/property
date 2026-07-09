@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { T, fe, Spinner } from '@/components/Theme';
 import { sortBills, BILL_SORT_LABELS, type BillSort } from '@/lib/billing/parse';
+import { PAID_BY_OPTIONS, SHARED_SCOPES, ownerShareAmount, paidByLabel } from '@/lib/expenses/sharing';
 
 const MONTHS_GR =['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 
@@ -316,6 +317,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     category: 'electricity', name: '', amount: '', kwh: '',
     period: '', date_from: '', due_date: '', recurring: true,
     notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '',
+    paid_by: 'owner', share_percent: '', share_note: '',
   });
   const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -394,6 +396,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
     const period = form.period === 'custom'
       ? (form.date_from && form.due_date ? `${fmtDateGR(form.date_from)}, ${fmtDateGR(form.due_date)}` : '')
       : form.period;
+    const shared = SHARED_SCOPES.has(form.paid_by);
+    const sharePercent = shared ? (form.share_percent ? parseFloat(form.share_percent) : 50) : null;
+    const shareNote = shared ? (form.share_note || null) : null;
     const payload = {
       property_id: propertyId, user_id: userId,
       category: form.category, name: form.name, amount: parseFloat(form.amount),
@@ -403,6 +408,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       ert: form.ert ? parseFloat(form.ert) : null,
       etmear: form.etmear ? parseFloat(form.etmear) : null,
       dimotika: form.dimotika_amt ? parseFloat(form.dimotika_amt) : null,
+      paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
     };
     const { data, error } = await supabase.from('bills').insert(payload).select().single();
     if (!error && data) {
@@ -413,11 +419,12 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             property_id: propertyId, user_id: userId, amount: parseFloat(form.amount),
             description: form.name, date: new Date().toISOString().split('T')[0],
             category: cat(form.category).label, expense_group: 'bills',
+            paid_by: form.paid_by, share_percent: sharePercent, share_note: shareNote,
           });
         } catch (_) {}
       }
     }
-    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', date_from: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '' });
+    setForm({ category: 'electricity', name: '', amount: '', kwh: '', period: '', date_from: '', due_date: '', recurring: true, notes: '', vat_rate: '6', ert: '', etmear: '', dimotika_amt: '', paid_by: 'owner', share_percent: '', share_note: '' });
     setShowForm(false);
     setSaving(false);
   };
@@ -442,7 +449,11 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         await supabase.from('expenses').insert({
           property_id: propertyId, user_id: userId, bill_id: id, amount: bill.amount,
           description: bill.name, date: new Date().toISOString().split('T')[0],
-          category: g.cat, expense_group: g.group, paid_by: 'owner', paid: true,
+          category: g.cat, expense_group: g.group,
+          paid_by: (bill as any).paid_by || 'owner',
+          share_percent: (bill as any).share_percent ?? null,
+          share_note: (bill as any).share_note ?? null,
+          paid: true,
         });
       } catch (_) {}
     }
@@ -664,6 +675,20 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               </div>
             </div>
           )}
+          {/* Διαμοιρασμός λογαριασμού — ίδιο μοντέλο με τις δαπάνες */}
+          <div style={{ display: 'grid', gridTemplateColumns: SHARED_SCOPES.has(form.paid_by) ? '1.4fr 1fr 2fr' : '1.4fr', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+            <CustomSelect label="Πληρώνει / Διαμοιρασμός" value={form.paid_by} onChange={v => sf('paid_by', v)} options={PAID_BY_OPTIONS}/>
+            {SHARED_SCOPES.has(form.paid_by) && <>
+              <NumberInput label="Το μερίδιό μου" value={form.share_percent} onChange={v => sf('share_percent', v)} placeholder="50" suffix="%" step={1} max={100}/>
+              <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note', v)} placeholder="για παράδειγμα συνιδιοκτήτης, ενοικιαστής"/>
+            </>}
+          </div>
+          {SHARED_SCOPES.has(form.paid_by) && form.amount && parseFloat(form.amount) > 0 && (
+            <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+              Δικό σου μερίδιο: <strong style={{ color: 'var(--text-primary)' }}>{fe(ownerShareAmount({ amount: parseFloat(form.amount), paid_by: form.paid_by, share_percent: form.share_percent ? parseFloat(form.share_percent) : null }))}</strong>
+              <span style={{ color: 'var(--text-tertiary)' }}> από {fe(parseFloat(form.amount))} συνολικά</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: T.radius.btn, padding: '9px 16px', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
             <button onClick={addBill} disabled={!form.name || !form.amount || saving}
@@ -724,6 +749,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                           <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                           <span style={{ fontSize: 12, fontWeight: 600, textDecoration: b.paid ? 'line-through' : 'none', color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{b.name}</span>
                           {b.recurring && <span style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>ΠΑΓΙΟ</span>}
+                          {SHARED_SCOPES.has((b as any).paid_by || '') && <span title={(b as any).share_note ? `Μοιρασμένο με ${(b as any).share_note} · μερίδιό μου ${fe(ownerShareAmount({ amount: b.amount, paid_by: (b as any).paid_by, share_percent: (b as any).share_percent }))}` : 'Μοιρασμένος λογαριασμός'} style={{ fontSize: 8, background: 'var(--bg-overlay)', color: 'var(--text-secondary)', padding: '1px 6px', borderRadius: 3, fontWeight: 600, fontFamily: T.font.sans }}>μοιρασμένο · {(b as any).share_percent != null ? (b as any).share_percent : 50}%</span>}
                           <span style={{ fontSize: 8, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontWeight: 600, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>{c.label}</span>
                           {b.vat_rate ? <span title="Φόρος Προστιθέμενης Αξίας" style={{ fontSize: 8, color: 'var(--text-tertiary)', background: 'var(--bg-overlay)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>ΦΠΑ {b.vat_rate}%</span> : null}
                         </div>
@@ -759,6 +785,9 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                             ert: String((b as any).ert || ''),
                             etmear: String(b.etmear || ''),
                             dimotika_amt: String(b.dimotika || ''),
+                            paid_by: (b as any).paid_by || 'owner',
+                            share_percent: String((b as any).share_percent ?? ''),
+                            share_note: (b as any).share_note || '',
                           });
                           setShowForm(true);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
