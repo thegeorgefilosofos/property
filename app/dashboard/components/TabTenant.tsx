@@ -1555,6 +1555,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     };
     setForm(f); setFormDocs([]); setSvcUI(svcUIFrom(f));
     setEditId(t.id); setFormTab('profile'); setIsForm(true);
+    // Επαναφόρτωση των εγγράφων που έχουν ήδη ανέβει για ΑΥΤΟΝ τον ενοικιαστή
+    // (ταυτότητα, μισθωτήρια — και προηγούμενα με τον ίδιο ενοικιαστή).
+    supabase.from('property_documents').select('id,file_name,title').eq('property_id',propertyId).eq('user_id',userId).eq('supplier','tenant:'+t.id)
+      .then(({data})=>{ setFormDocs((data||[]).map((d:{id:string;file_name:string|null;title:string|null})=>({ id:d.id, file_name:d.file_name||'έγγραφο', tag:(d.title||'').startsWith('Έγγραφο ταυτοποίησης')?'id':'lease' as 'id'|'lease' }))); });
   };
 
   // Ανέβασμα εγγράφου φόρμας (ταυτοποίηση ή μισθωτήριο) — ίδιο μοτίβο με το
@@ -1568,7 +1572,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       if(upErr){ setError(upErr.message); setDocBusy(false); return; }
       const label=tag==='id'?'Έγγραφο ταυτοποίησης':'Μισθωτήριο / έγγραφο';
       const title=`${label} — ${form.full_name.trim()||file.name}`.slice(0,200);
-      const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
+      const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
       if(insErr){ setError(insErr.message); setDocBusy(false); return; }
       if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
       notify('Το έγγραφο ανέβηκε');
@@ -1613,6 +1617,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     const{data:savedRow,error:err}=await q;
     if(err){setError(err.message);setSaving(false);return;}
     const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
+    // Έγγραφα που ανέβηκαν κατά την ΠΡΟΣΘΗΚΗ (πριν υπάρξει id) συνδέονται τώρα με τον ενοικιαστή.
+    if(savedTenant?.id && !editId && formDocs.length){
+      await supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id));
+    }
     if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
     setSaving(false);setIsForm(false);
     notify(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
