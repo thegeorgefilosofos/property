@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fd, fe, fn, KPIGrid, Spinner, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
+import { T, fd, fe, fn, KPIGrid, Spinner, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton } from '@/components/Theme';
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
+import { downloadCsv } from './exportCsv';
 import { useAppPreferences } from './useAppPreferences';
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -86,7 +87,7 @@ const FOLDERS: { key: FolderKey; label: string }[] = [
   { key: 'providers',  label: 'Πάροχοι' },
   { key: 'warranties', label: 'Εγγυήσεις' },
   { key: 'invoices',   label: 'Τιμολόγια' },
-  { key: 'bank',       label: 'Τραπεζικά έγγραφα' },
+  { key: 'bank',       label: 'Τραπεζικά' },
   { key: 'photos',     label: 'Φωτογραφίες' },
   { key: 'other',      label: 'Λοιπά' },
 ];
@@ -401,47 +402,54 @@ export default function TabDocuments({
   const sep = <svg {...S} width={14} height={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>;
 
   const totalValue = items.reduce((s, i) => s + (i.value || 0), 0);
-  const providerCount = new Set(items.map(i => i.provider).filter(Boolean)).size;
+  const photoCount = items.filter(i => i.folder === 'photos').length;
+  const docCount = items.length - photoCount;
+  const activeCategories = FOLDERS.filter(f => counts.count[f.key]).length;
+
+  const exportCsv = () => downloadCsv('archeio.csv',
+    ['Όνομα', 'Φάκελος', 'Πάροχος', 'Ημερομηνία', 'Αξία (€)', 'Πηγή'],
+    items.slice().sort(byDateDesc).map(i => [
+      i.title, FOLDER_LABEL[i.folder], i.provider || '', i.date ? fd(i.date) : '',
+      i.value != null ? String(i.value) : '', ORIGIN_LABEL[i.source] || 'Αρχείο',
+    ]));
+
+  // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).
+  const uploadBtn = (
+    <Btn variant="primary" onClick={() => setShowUpload(s => !s)}>
+      <svg {...S} width={15} height={15}><path d="M12 5v14M5 12h14"/></svg>Νέο αρχείο
+    </Btn>
+  );
+  const headerActions = (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {items.length > 0 && <ExportButton onClick={exportCsv} />}
+      {uploadBtn}
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       {!embedded && (
         <PageTitle title="Αρχείο"
           sub="Ένας οργανωμένος ψηφιακός φάκελος — συμβόλαια, έγγραφα, φόροι, λογαριασμοί, πάροχοι, εγγυήσεις, τιμολόγια και φωτογραφίες, αυτόματα ταξινομημένα ώστε να τα βρίσκεις με 2 κλικ"
-          right={<button onClick={() => setShowUpload(s => !s)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '10px 18px', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
-            <svg {...S} width={15} height={15}><path d="M12 5v14M5 12h14"/></svg>Νέο αρχείο
-          </button>}/>
+          right={headerActions}/>
       )}
 
       <KPIGrid items={[
         { label: 'Σύνολο αρχείων', value: fn(items.length) },
-        { label: 'Πάροχοι',        value: fn(providerCount) },
-        { label: 'Κατηγορίες',     value: fn(FOLDERS.filter(f => counts.count[f.key]).length) },
-        { label: 'Καταγεγραμμένη αξία', value: totalValue > 0 ? fe(totalValue) : '—' },
+        { label: 'Έγγραφα',        value: fn(docCount) },
+        { label: 'Φωτογραφίες',    value: fn(photoCount) },
+        isPro
+          ? { label: 'Καταγεγραμμένη αξία', value: totalValue > 0 ? fe(totalValue) : '—' }
+          : { label: 'Κατηγορίες', value: fn(activeCategories) },
       ]}/>
-
-      {embedded && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button onClick={() => setShowUpload(s => !s)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '9px 16px', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
-            <svg {...S} width={15} height={15}><path d="M12 5v14M5 12h14"/></svg>Νέο αρχείο
-          </button>
-        </div>
-      )}
 
       {colWarn && <InfoBanner tone="warning">Ορισμένα Έξοδα δεν διαθέτουν στήλη συνημμένου αρχείου· εμφανίζονται μόνο όσα έχουν επισυναπτόμενη απόδειξη/τιμολόγιο.</InfoBanner>}
 
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Αρχειοθέτηση νέου εγγράφου</span>
-            </div>
-            <button onClick={() => setShowUpload(false)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15 }}>✕</button>
-          </div>
+          <SecHdr label="Αρχειοθέτηση νέου εγγράφου" sub="Το αρχείο τοποθετείται αυτόματα στον σωστό φάκελο"
+            right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>✕</button>}/>
 
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
             {([['document', 'Έγγραφο'], ['photo', 'Φωτογραφία']] as const).map(([k, l]) => (
@@ -471,11 +479,10 @@ export default function TabDocuments({
             <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Προαιρετικές σημειώσεις"/>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '10px 20px', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+            <Btn variant="primary" onClick={() => fileRef.current?.click()} disabled={uploading}>
               <svg {...S} width={14} height={14}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               {uploading ? 'Ανέβασμα…' : 'Επιλογή & Ανέβασμα'}
-            </button>
+            </Btn>
             <input ref={fileRef} type="file" accept={form.kind === 'photo' ? 'image/*' : undefined} style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }}/>
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{form.kind === 'photo' ? 'PNG, JPEG, WebP…' : 'PDF, εικόνα, Word, Excel…'}</span>
@@ -500,15 +507,17 @@ export default function TabDocuments({
           {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}>✕</button>}
         </div>
 
-        <div style={{ display: 'flex', gap: 3, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 3 }}>
-          {([['grid', <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>],
-             ['list', <><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></>]] as const).map(([k, ic]) => (
-            <button key={k} onClick={() => setView(k)} title={k === 'grid' ? 'Πλέγμα' : 'Λίστα'}
-              style={{ width: 32, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.badge, border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, overflow: 'hidden' }}>
+          {([['grid', 'Πλέγμα', <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>],
+             ['list', 'Λίστα', <><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></>]] as const).map(([k, title, ic]) => (
+            <button key={k} onClick={() => setView(k)} title={title}
+              style={{ width: 38, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
               <svg {...S} width={15} height={15}>{ic}</svg>
             </button>
           ))}
         </div>
+
+        {embedded && headerActions}
       </div>
 
       {/* ── Περιεχόμενο ─────────────────────────────────────────────────── */}
@@ -521,7 +530,7 @@ export default function TabDocuments({
           items.length === 0 ? (
             <div className="card"><EmptyState title="Το αρχείο είναι κενό"
               hint="Ανέβασε το πρώτο συμβόλαιο, λογαριασμό ή τιμολόγιο. Ό,τι καταχωρείς στα Έξοδα, τους Λογαριασμούς ή την Απογραφή αρχειοθετείται κι εδώ αυτόματα."
-              action={<button onClick={() => setShowUpload(true)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '9px 18px', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Νέο αρχείο</button>}/></div>
+              action={<Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
           ) : view === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
               {FOLDERS.map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key] || 0} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
@@ -727,7 +736,7 @@ function FileInner({ items, view, showFolder, onOpenLightbox, onDelete }: {
               {showFolder && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-              {[i.provider, i.date ? fd(i.date) : null, i.sizeBytes ? fmtSize(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
+              {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtSize(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
             </div>
           </div>
           {i.value != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(i.value)}</span>}
@@ -741,8 +750,15 @@ function FileInner({ items, view, showFolder, onOpenLightbox, onDelete }: {
   );
 }
 
+// Σήματα προέλευσης: πάροχος (αν υπάρχει) + πηγή αρχειοθέτησης (Έξοδα/Λογαριασμοί/
+// Απογραφή). Εμφανίζονται μία φορά ώστε να μην επαναλαμβάνονται στη γραμμή meta.
 function OriginTag({ i }: { i: Item }) {
   const label = ORIGIN_LABEL[i.source];
-  if (!label) return i.provider ? <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '1px 7px' }}>{i.provider}</span> : null;
-  return <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '1px 7px' }}>από {label}</span>;
+  if (!i.provider && !label) return null;
+  return (
+    <>
+      {i.provider && <Badge tone="neutral">{i.provider}</Badge>}
+      {label && <Badge tone="neutral">από {label}</Badge>}
+    </>
+  );
 }
