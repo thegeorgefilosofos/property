@@ -32,9 +32,19 @@ type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 // Ελαφρύ ευρετήριο πελατών για να «βρίσκει» ο βοηθός από όνομα/τηλέφωνο/ΑΦΜ.
 type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
+// Ελαφρύ ευρετήριο επαφών (τεχνικοί/πάροχοι) για επικοινωνία (WhatsApp/Viber/email/κλήση).
+type ContactLite = { name: string; role: string; phone: string; email: string };
 
 const eur = (n?: number | null) => n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`;
 const navLabel = (id: string) => NAV_MAP.find(n => n.id === id)?.label || id;
+const onlyDigits = (p: string) => (p || '').replace(/\D/g, '');
+// Ετικέτα κουμπιού επικοινωνίας ανά κανάλι (χωρίς emoji, ελληνικά).
+const reachLabel = (ch: 'whatsapp' | 'viber' | 'email' | 'call', name: string) =>
+  ch === 'call' ? `Κλήση ${name}`
+    : ch === 'email' ? `Email προς ${name}`
+    : ch === 'viber' ? `Άνοιγμα Viber προς ${name}`
+    : `Άνοιγμα WhatsApp προς ${name}`;
+const CH_HUMAN: Record<'whatsapp' | 'viber' | 'email' | 'call', string> = { whatsapp: 'WhatsApp', viber: 'Viber', email: 'email', call: 'κλήση' };
 
 const SUGGESTED = [
   'Τι εκκρεμεί τώρα;',
@@ -63,6 +73,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
   const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (VIP, check-in)
+  const contactsRef = useRef<ContactLite[]>([]); // ευρετήριο επαφών για επικοινωνία (WhatsApp/Viber/email/κλήση)
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
   const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
   const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
@@ -277,6 +288,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ο βοηθός ΠΟΙΟΝ
     // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
     const techRoster = (contactRows || []).filter((c: any) => c.full_name);
+    contactsRef.current = techRoster.map((c: any) => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') }));
     if (techRoster.length) {
       const tLines = techRoster.slice(0, 60).map((c: any) => {
         const bits = [c.full_name, roleLabel(c.role || 'other')];
@@ -299,6 +311,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'vip') { toggleVip(a.who); return; }
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
+    else if (a.type === 'reach') { reachContact(a); return; }
     else if (a.type === 'task') { addTask(a.description); return; }
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     if (!keepOpen) setOpen(false);
@@ -318,6 +331,71 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (exact) return exact;
     const partial = list.filter(c => c.name.toLowerCase().includes(q));
     return partial.length === 1 ? partial[0] : null;   // αν είναι διφορούμενο, μη μαντεύεις
+  };
+
+  // Βρες επαφή (τεχνικό/πάροχο) από όνομα ή ρόλο. Ανεκτικό: ακριβές όνομα → μερικό
+  // όνομα → ετικέτα ρόλου → συμπερασμένος ρόλος. Επιστρέφει την καλύτερη μοναδική.
+  const findContact = (name: string): ContactLite | null => {
+    const q = (name || '').trim().toLowerCase();
+    if (!q) return null;
+    const list = contactsRef.current;
+    const exact = list.find(c => c.name.toLowerCase() === q);
+    if (exact) return exact;
+    const partial = list.filter(c => { const n = c.name.toLowerCase(); return !!n && (n.includes(q) || q.includes(n)); });
+    if (partial.length) return partial[0];
+    const byRoleLabel = list.filter(c => { const rl = roleLabel(c.role || 'other').toLowerCase(); return !!rl && (rl.includes(q) || q.includes(rl)); });
+    if (byRoleLabel.length) return byRoleLabel[0];
+    const inferred = inferRole(q);
+    if (inferred && inferred !== 'other') {
+      const byRole = list.filter(c => (c.role || 'other') === inferred);
+      if (byRole.length) return byRole[0];
+    }
+    return null;
+  };
+
+  // Χτίζει «τίμιο» deep link προς την επαφή. Δεν στέλνει τίποτα — απλώς ανοίγει το μέσο.
+  // Επιστρέφει είτε το url, είτε ποιο στοιχείο λείπει (τηλέφωνο ή email).
+  const buildReachLink = (c: ContactLite, channel: 'whatsapp' | 'viber' | 'email' | 'call', text?: string): { url?: string; need?: 'phone' | 'email' } => {
+    const t = (text || '').trim();
+    if (channel === 'email') {
+      if (!c.email) return { need: 'email' };
+      const subject = encodeURIComponent('Επικοινωνία');
+      return { url: `mailto:${c.email}?subject=${subject}${t ? `&body=${encodeURIComponent(t)}` : ''}` };
+    }
+    // whatsapp / viber / call: χρειάζονται τηλέφωνο
+    if (!c.phone) return { need: 'phone' };
+    let d = onlyDigits(c.phone);
+    if (!d) return { need: 'phone' };
+    if (d.length === 10) d = `30${d}`;   // ελληνικός αριθμός 10 ψηφίων → διεθνής με πρόθεμα 30
+    if (channel === 'viber') return { url: `viber://chat?number=${d}` };   // το Viber δεν προ-συμπληρώνει κείμενο
+    if (channel === 'call') return { url: `tel:+${d}` };
+    return { url: `https://wa.me/${d}${t ? `?text=${encodeURIComponent(t)}` : ''}` };   // whatsapp
+  };
+
+  // Επικοινωνία με επαφή: αναλύει ποιον εννοεί ο χρήστης, χτίζει τον σύνδεσμο και
+  // σπρώχνει μήνυμα με κουμπί που ΑΝΟΙΓΕΙ το μέσο όταν το πατήσει ο χρήστης (όχι αυτόματα).
+  const reachContact = (a: { name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string }) => {
+    const c = findContact(a.name);
+    if (!c) {
+      setMsgs(m => [...m, { role: 'assistant', text: `Δεν βρήκα την επαφή «${a.name}». Ποιον εννοείς;`, action: { type: 'go', tab: 'contacts' } }]);
+      return;
+    }
+    const link = buildReachLink(c, a.channel, a.text);
+    if (link.url) {
+      const how = a.channel === 'call' ? `να καλέσεις τον/την «${c.name}»`
+        : a.channel === 'email' ? `να ανοίξει το email προς τον/την «${c.name}»`
+          : `να ανοίξει το ${a.channel === 'viber' ? 'Viber' : 'WhatsApp'} προς τον/την «${c.name}»`;
+      setMsgs(m => [...m, { role: 'assistant', text: `Πάτησε ${how}. Το μήνυμα δεν φεύγει μόνο του — ανοίγει η εφαρμογή για να το στείλεις εσύ.`, action: { type: 'reach', name: c.name, channel: a.channel, text: a.text } }]);
+      return;
+    }
+    // Λείπει το απαραίτητο στοιχείο για το κανάλι — πρότεινε διαθέσιμη εναλλακτική.
+    if (link.need === 'phone') {
+      if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email — να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
+      else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο ούτε email. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
+    } else {
+      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο — να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
+      else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email ούτε τηλέφωνο. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
+    }
   };
 
   // Καταχώρηση δαπάνης με μία φράση: η κατηγορία/ομάδα προκύπτει αυτόματα.
@@ -582,11 +660,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const { clean, action, remember } = parseAction(raw);
       // Μόνιμη μνήμη: κράτησε το γεγονός που ζήτησε ο βοηθός (μόνο αν το επιτρέπει η ρύθμιση).
       if (remember && identity.memory) setMemories(addMemory(userId, remember));
-      setMsgs(m => [...m, { role: 'assistant', text: clean, action }]);
+      // Η «επικοινωνία με επαφή» δεν εμφανίζεται ως κουμπί στο πρώτο μήνυμα· την
+      // «εκτελούμε» αμέσως (ανάλυση επαφής) ώστε να προκύψει είτε κουμπί-σύνδεσμος
+      // που ανοίγει το μέσο με ένα άγγιγμα, είτε ερώτηση/εναλλακτική αν λείπει κάτι.
+      const isReach = action?.type === 'reach';
+      setMsgs(m => [...m, { role: 'assistant', text: clean, action: isReach ? undefined : action }]);
+      if (isReach) runAction(action, true);
       // Φωνητική απάντηση + εκτέλεση ενέργειας / συνέχιση συνομιλίας.
       if (viaVoice || handsFreeRef.current) {
         speak(clean, () => {
-          if (action) runAction(action, true);
+          if (action && !isReach) runAction(action, true);
           if (handsFreeRef.current) setTimeout(() => startListening(), 350);
         });
       }
@@ -695,7 +778,20 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
                       border: m.role === 'user' ? 'none' : '1px solid var(--border-subtle)', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
-                    {m.action && (
+                    {m.action && (m.action.type === 'reach' ? (() => {
+                      // Κουμπί/σύνδεσμος επικοινωνίας: ανοίγει το μέσο ΜΟΝΟ με το άγγιγμα
+                      // του χρήστη (ποτέ αυτόματα). Για tel:/mailto: ρεαλιστικό <a>, για
+                      // WhatsApp/Viber άνοιγμα σε νέα καρτέλα.
+                      const ract = m.action;
+                      const c = findContact(ract.name);
+                      const link = c ? buildReachLink(c, ract.channel, ract.text) : null;
+                      if (!link?.url) return null;
+                      const style = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' } as const;
+                      const inner = (<>{reachLabel(ract.channel, ract.name)}<svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></>);
+                      return (ract.channel === 'call' || ract.channel === 'email')
+                        ? <a href={link.url} style={style}>{inner}</a>
+                        : <button onClick={() => window.open(link.url!, '_blank')} style={style}>{inner}</button>;
+                    })() : (
                       <button onClick={() => runAction(m.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                         {m.action.type === 'scan' ? 'Σκάναρε έγγραφο'
                           : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
@@ -709,7 +805,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
-                    )}
+                    ))}
                   </div>
                 ))}
                 {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}

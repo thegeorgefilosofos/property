@@ -172,6 +172,9 @@ ${navList}
     Πρότεινε επίσης να καταχωρήσει τον επαγγελματία που θα βρει στις Επαφές με [[contact:…]] για την επόμενη φορά. Να είσαι ΕΙΛΙΚΡΙΝΗΣ: μη λες ότι «κλείνεις» εσύ συνεργείο που δεν υπάρχει· δίνεις κατεύθυνση και προγραμματίζεις μόνο ό,τι όντως γίνεται μέσα στην εφαρμογή (ημερολόγιο, επαφές). (Σημείωση: μελλοντικά ενδέχεται να εμφανίζεται «προτεινόμενος επαγγελματίας» ως χορηγούμενη πρόταση — αν δεν υπάρχει, μην την επινοείς.)
   • ΕΠΟΧΙΚΟΤΗΤΑ/ΠΡΟΛΗΨΗ: όπου έχει νόημα, θύμισε προληπτικά τακτικές εργασίες (π.χ. καθαρισμός/έλεγχος κλιματιστικών πριν το καλοκαίρι, συντήρηση καυστήρα/λέβητα πριν τον χειμώνα, καθαρισμός υδρορροών) και πρότεινε να τις προγραμματίσεις με τη σωστή επαφή.
 
+ΕΠΙΚΟΙΝΩΝΙΑ ΜΕ ΤΙΣ ΕΠΑΦΕΣ (μπορείς να ξεκινήσεις WhatsApp, Viber, email ή τηλεφωνική κλήση προς τους αποθηκευμένους επαγγελματίες του χρήστη — τεχνικούς, υδραυλικούς, λογιστές, δικηγόρους, παρόχους):
+Οι επαφές δίνονται παραπάνω, στη λίστα «ΟΙ ΕΠΑΦΕΣ ΤΟΥ ΧΡΗΣΤΗ». Όταν ο χρήστης σου ζητά να επικοινωνήσεις με κάποιον («πάρε τηλέφωνο τον υδραυλικό», «στείλε whatsapp στον λογιστή ότι…», «email στη δικηγόρο»), βάλε στο ΤΕΛΟΣ της απάντησης, σε δική της γραμμή, την ετικέτα [[reach:<ακριβές ή κοντινό όνομα ή ρόλος>|<κανάλι>|<μήνυμα>]] και γράψε μια σύντομη, φυσική επιβεβαίωση. Κανάλια: whatsapp, viber, email, call. Το τρίτο πεδίο (μήνυμα) είναι προαιρετικό — βάλ' το όταν ο χρήστης υπαγορεύει τι να πει. Αν πει απλώς «στείλε μήνυμα» χωρίς κανάλι, προτίμησε whatsapp αν η επαφή έχει τηλέφωνο, αλλιώς email. Αν ΔΕΝ καταλαβαίνεις με σιγουριά ΠΟΙΑ επαφή εννοεί (διφορούμενο ή δεν υπάρχει), ΡΩΤΑ ποιον εννοεί αντί να μαντέψεις. Να είσαι ειλικρινής: η εφαρμογή δεν στέλνει τίποτα μόνη της — ανοίγει το αντίστοιχο μέσο (WhatsApp/Viber/email/κλήση) για να το στείλει ο ίδιος με ένα άγγιγμα.
+
 ΑΠΟΡΡΗΤΟ & GDPR (να το ξέρεις και να καθησυχάζεις με ακρίβεια, χωρίς να υπόσχεσαι νομική βεβαιότητα):
   • Η εφαρμογή σέβεται τον GDPR (Καν. ΕΕ 2016/679) και τον ν. 4624/2019. Πλήρης Πολιτική Απορρήτου υπάρχει στη σελίδα /privacy.
   • Απομόνωση δεδομένων ανά χρήστη (Row Level Security): κάθε χρήστης βλέπει ΜΟΝΟ τα δικά του δεδομένα. Κρυπτογράφηση κατά τη μεταφορά (TLS). Τα δεδομένα δεν πωλούνται και δεν χρησιμοποιούνται για εκπαίδευση μοντέλων AI.
@@ -249,7 +252,8 @@ export type AssistantAction =
   | { type: 'checkin'; who: string }
   | { type: 'contact'; name: string; phone?: string; role?: string }
   | { type: 'task'; description: string }
-  | { type: 'paid'; description: string; amount?: number };
+  | { type: 'paid'; description: string; amount?: number }
+  | { type: 'reach'; name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string };
 
 export function parseAction(text: string): { clean: string; action?: AssistantAction; remember?: string } {
   const go = text.match(/\[\[go:([a-z]+)\]\]/i);
@@ -328,9 +332,35 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
     const title = (parts.find(p => !/^\d{4}-\d{2}-\d{2}$/.test(p)) || 'Ραντεβού').slice(0, 120);
     if (date && !isNaN(new Date(date).getTime())) book = { type: 'book', title, date };
   }
+  // Επικοινωνία με αποθηκευμένη επαφή: [[reach: όνομα/ρόλος | κανάλι | προαιρετικό μήνυμα]].
+  // Το μήνυμα μπορεί να έχει κενά/στίξη (ακόμη και «|») αλλά όχι «]]». Σπάμε σε 3 μέρη
+  // με βάση τα πρώτα δύο «|» ώστε το κείμενο να μένει ανέπαφο. Ανεκτικό: κανάλι πεζά,
+  // και αν λείπει/είναι άκυρο, προεπιλογή whatsapp.
+  const rc = text.match(/\[\[reach:\s*([\s\S]+?)\s*\]\]/i);
+  let reach: { type: 'reach'; name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string } | undefined;
+  if (rc) {
+    const inner = rc[1];
+    const bar1 = inner.indexOf('|');
+    let name = inner.trim();
+    let chRaw = '';
+    let txt: string | undefined;
+    if (bar1 !== -1) {
+      name = inner.slice(0, bar1).trim();
+      const rest = inner.slice(bar1 + 1);
+      const bar2 = rest.indexOf('|');
+      if (bar2 === -1) { chRaw = rest.trim(); }
+      else { chRaw = rest.slice(0, bar2).trim(); txt = rest.slice(bar2 + 1).trim() || undefined; }
+    }
+    name = name.slice(0, 120);
+    const ch = chRaw.toLowerCase();
+    const channel: 'whatsapp' | 'viber' | 'email' | 'call' =
+      ch === 'viber' || ch === 'email' || ch === 'call' ? ch : 'whatsapp';
+    if (name) reach = { type: 'reach', name, channel, text: txt ? txt.slice(0, 800) : undefined };
+  }
   // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
   const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();
   const base = remember ? { clean, remember } : { clean };
+  if (reach) return { ...base, action: reach };
   if (expense) return { ...base, action: expense };
   if (vip) return { ...base, action: vip };
   if (checkin) return { ...base, action: checkin };
