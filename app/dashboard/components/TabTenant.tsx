@@ -343,11 +343,16 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
   );
 }
 
+// Μέση ετήσια μεταβολή ΔΤΚ (ΕΛΣΤΑΤ) — ΜΙΑ πηγή, χρησιμοποιείται και στην
+// Αναπροσαρμογή και στην πρόταση Ανανέωσης, ώστε να μη διαφωνούν ποτέ.
+const CPI_BY_YEAR:Record<number,number>={2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8,2025:2.5};
+const LATEST_CPI_YEAR=Math.max(...Object.keys(CPI_BY_YEAR).map(Number));
+const LATEST_CPI_PCT=CPI_BY_YEAR[LATEST_CPI_YEAR];
+
 // ─── Αναπροσαρμογή Ενοικίου (ΔΤΚ) ────────────────────────────────────────────
 function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const branding = useReportBranding(userId);
-  // Μέση ετήσια μεταβολή ΔΤΚ (ΕΛΣΤΑΤ). 2025: +2,5% (μέσος όρος δωδεκαμήνου).
-  const TDE:Record<number,number>={2015:0.0,2016:0.0,2017:1.1,2018:0.8,2019:0.5,2020:-1.3,2021:0.6,2022:9.3,2023:4.2,2024:2.8,2025:2.5};
+  const TDE=CPI_BY_YEAR;
   const fmtE=(n:number)=>`${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
   const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
   const rent=tenant.monthly_rent||0;
@@ -1321,7 +1326,6 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
 
 // ─── Ανανέωση & Αναπροσαρμογή (Renewal View) ────────────────────────────────────
 // Νόμος (ΔΤΚ) μέσω RentAdjustView + πρόταση βάσει αγοράς/περιοχής από rent_comparables.
-const LATEST_CPI_PCT=2.5; // ΔΤΚ 2025 (ΕΛΣΤΑΤ, μέσος όρος δωδεκαμήνου) — ενδεικτικό όριο νόμου.
 function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; comps:RentComp[] }) {
   const rent=tenant.monthly_rent||0;
   const rentComps=comps.filter(c=>(c.listing_type||'rent')==='rent'&&(c.rent||0)>0);
