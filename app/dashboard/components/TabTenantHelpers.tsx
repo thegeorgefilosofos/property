@@ -29,6 +29,7 @@ export const C = {
 export type ServiceBy = 'owner' | 'tenant' | 'split';
 export type CleaningPkg = 'none' | '2x2h' | '2x3h' | 'custom';
 export type LeaseType = 'monthly' | 'biannual' | 'annual' | '18months' | '24months' | '36months' | 'custom';
+export type LeaseCategory = 'residential' | 'commercial';
 export type PaymentFreq = 'monthly' | 'bimonthly' | 'quarterly';
 export type IdDocType = 'Αστυνομική Ταυτότητα' | 'Διαβατήριο' | 'Στρατιωτική Ταυτότητα' | 'Φοιτητικό Πάσο' | 'Άλλο';
 export interface StreamingSvc { name: string; cost_owner: number; charged_tenant: number; included: boolean; }
@@ -41,6 +42,15 @@ export const LEASE_LABELS: Record<LeaseType, string> = {
 };
 export const LEASE_MONTHS: Record<LeaseType, number | null> = {
   monthly:1, biannual:6, annual:12, '18months':18, '24months':24, '36months':36, custom:null,
+};
+export const LEASE_CATEGORY_LABELS: Record<LeaseCategory, string> = {
+  residential:'Κατοικία', commercial:'Επαγγελματική',
+};
+// Τέλος χαρτοσήμου επαγγελματικής μίσθωσης (3,6% επί του μισθώματος).
+export const COMMERCIAL_STAMP_DUTY = 0.036;
+// Ελάχιστη νόμιμη διάρκεια μίσθωσης (μήνες) ανά τύπο.
+export const MIN_LEASE_MONTHS: Record<LeaseCategory, number> = {
+  residential:36, commercial:36,
 };
 export const SERVICE_BY_LABELS: Record<ServiceBy, string> = {
   owner:'Ιδιοκτήτης', tenant:'Ενοικιαστής', split:'50/50',

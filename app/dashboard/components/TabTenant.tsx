@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
   StreamingConfig, CleaningConfig, InvestmentCalc, PrepayCalc,
-  LEASE_LABELS, SERVICE_BY_LABELS, ID_DOCS,
+  LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, MIN_LEASE_MONTHS, SERVICE_BY_LABELS, ID_DOCS,
   MONTHS_FULL, MONTHS_S, FREQ_OPTIONS, EXTRA_CATS,
   syncTenantSchedule, type TenantScheduleInput,
 } from './TabTenantHelpers';
@@ -15,7 +15,7 @@ import {
   DatePicker as DateField,
   ServiceBySelect,
 } from './UIComponents';
-import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
+import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { reportAccent, brandName, brandContactLine, useReportBranding } from '@/lib/reportBranding';
@@ -37,7 +37,7 @@ interface Tenant {
   full_name:string; email:string|null; phone:string|null; phone_work:string|null;
   nationality:string|null; profession:string|null; employer:string|null;
   afm:string|null; id_doc_type:IdDocType|null; id_doc_number:string|null; iban:string|null; notes:string|null;
-  lease_type:LeaseType|null; lease_start:string|null; lease_end:string|null; custom_lease_days:number|null;
+  lease_type:LeaseType|null; lease_category:LeaseCategory|null; lease_start:string|null; lease_end:string|null; custom_lease_days:number|null;
   monthly_rent:number|null; payment_frequency:PaymentFreq|null;
   deposit_amount:number|null; deposit_invested:boolean; deposit_returned:boolean; deposit_return_date:string|null;
   deposit_invest_rate:number|null; deposit_invest_type:string|null; deposit_invest_term:string|null;
@@ -64,6 +64,12 @@ interface RentPayment { id:string; tenant_id:string; property_id:string; user_id
 const PAY_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή','Κάρτα'] as const;
 type PayMethod = typeof PAY_METHODS[number];
 const todayISO = () => new Date().toISOString().slice(0,10);
+// Τελευταία ημέρα του ΕΠΟΜΕΝΟΥ μήνα από μια ημερομηνία (προθεσμία δήλωσης ΑΑΔΕ).
+const lastDayNextMonth = (iso:string) => {
+  const d = new Date(iso+'T00:00:00'); if(isNaN(d.getTime())) return '—';
+  const last = new Date(d.getFullYear(), d.getMonth()+2, 0);
+  return last.toLocaleDateString('el-GR', { day:'2-digit', month:'long', year:'numeric' });
+};
 interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meeting'|'note'; summary:string; date:string; outcome:string|null; }
 interface TabTenantProps { propertyId:string; userId:string; }
 
@@ -944,9 +950,9 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
         setScan({stage:'match',doc,method,docId,periodId: open[0]?.id});
         return;
       }
-      // Match στην πλησιέστερη ανοιχτή δόση κατά μήνα + ποσό (±10%).
+      // Match στην πλησιέστερη ανοιχτή δόση κατά μήνα + ποσό (±1%).
       const [y,m]=[Number(dateISO.slice(0,4)),Number(dateISO.slice(5,7))];
-      const scored=open.map(p=>({p,amtOk:amount>0&&p.amount>0?Math.abs(p.amount-amount)/p.amount<=0.10:false,dist:Math.abs((p.period_year*12+p.period_month)-(y*12+m))}));
+      const scored=open.map(p=>({p,amtOk:amount>0&&p.amount>0?Math.abs(p.amount-amount)/p.amount<=0.01:false,dist:Math.abs((p.period_year*12+p.period_month)-(y*12+m))}));
       const amt=scored.filter(x=>x.amtOk).sort((a,b)=>a.dist-b.dist);
       const best=amt[0]||[...scored].sort((a,b)=>a.dist-b.dist)[0];
       setScan({stage:'match',doc,method,docId,periodId:best?.p.id});
@@ -1124,13 +1130,15 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
   const annualRent=Math.max(0,(tenant.monthly_rent||0)*12);
   const tax=annualRent>0?rentalIncomeTax(annualRent):0;
   const effRate=annualRent>0?effectiveRentalRate(annualRent):0;
-  const net=annualRent-tax;
-  const isCommercial=false; // Η καρτέλα παρακολουθεί μίσθωση κατοικίας· βλ. σημείωση χαρτοσήμου.
+  const isCommercial=tenant.lease_category==='commercial';
+  const stampDuty=isCommercial?annualRent*COMMERCIAL_STAMP_DUTY:0;   // 3,6% επί του μισθώματος
+  const net=annualRent-tax-stampDuty;
 
   const kpis:KPIItem[]=[
     { label:'Ετήσιο Ακαθάριστο Ενοίκιο', value:fe(annualRent), tone:'accent' },
-    { label:'Εκτιμώμενος Φόρος Εισοδήματος', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${(effRate*100).toFixed(1)}%`:undefined },
-    { label:'Καθαρό μετά τον Φόρο', value:fe(net), tone:'positive' },
+    { label:'Φόρος Εισοδήματος από Ενοίκια', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${(effRate*100).toFixed(1)}%`:undefined },
+    ...(isCommercial?[{ label:'Τέλος Χαρτοσήμου (3,6%)', value:fe(stampDuty), tone:'warning' as const }]:[]),
+    { label:'Καθαρό μετά Φόρο & Τέλη', value:fe(net), tone:'positive' },
   ];
 
   const linkCard=(label:string,desc:string,url:string,urgent=false)=>(
@@ -1156,7 +1164,7 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
   return (
     <div>
       <KPIGrid items={kpis}/>
-      <InfoBanner tone="warning">Όλα τα ποσά είναι ΕΝΔΕΙΚΤΙΚΑ, βάσει της κλίμακας φόρου εισοδήματος από ακίνητα (2026). Για την τελική δήλωση (Ε1/Ε2), τις εκπτώσεις και τις ειδικές περιπτώσεις, συμβουλέψου λογιστή ή την ΑΑΔΕ.</InfoBanner>
+      <InfoBanner tone="info">Οι υπολογισμοί βασίζονται στα στοιχεία που έχεις καταχωρήσει: ενοίκιο {fe(tenant.monthly_rent||0)}/μήνα και τύπος μίσθωσης «{tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:'—'}». Για την οριστική δήλωση Ε1/Ε2 και τυχόν εκπτώσεις που ισχύουν στην περίπτωσή σου, επιβεβαίωσε με λογιστή ή την ΑΑΔΕ.</InfoBanner>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16, marginTop:16 }}>
         {/* Φόρος εισοδήματος από ενοίκια */}
@@ -1178,14 +1186,14 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
             </tbody>
           </table>
           </div>
-          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του ετήσιου ακαθάριστου ενοικίου ({fe(annualRent)}). ΕΝΔΕΙΚΤΙΚΟ, συμβουλέψου λογιστή ή την ΑΑΔΕ.</div>
+          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του ετήσιου ακαθάριστου ενοικίου σου ({fe(annualRent)}), σύνολο {fe(tax)}. Επιβεβαίωσε την τελική δήλωση με λογιστή ή την ΑΑΔΕ.</div>
         </div>
 
         {/* Νομικές υποχρεώσεις */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
           <SectionTitle>Υποχρεώσεις & Πλαίσιο</SectionTitle>
           <InfoBlock title="ΑΑΔΕ, Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης" tone="var(--warning)">
-            Κάθε νέα μίσθωση (και κάθε τροποποίηση/λύση) δηλώνεται ηλεκτρονικά στην ΑΑΔΕ, εντός της προθεσμίας που ορίζει η υπηρεσία (συνήθως έως το τέλος του επόμενου μήνα από την έναρξη). Χωρίς δήλωση δεν αναγνωρίζεται φορολογικά η μίσθωση. ΕΝΔΕΙΚΤΙΚΟ.
+            Κάθε νέα μίσθωση, καθώς και κάθε τροποποίηση ή λύση, δηλώνεται ηλεκτρονικά στην ΑΑΔΕ έως το τέλος του επόμενου μήνα από την έναρξη ή τη μεταβολή.{tenant.lease_start?` Για έναρξη ${fmtD(tenant.lease_start)}, προθεσμία δήλωσης έως ${lastDayNextMonth(tenant.lease_start)}.`:''} Χωρίς τη δήλωση δεν αναγνωρίζεται φορολογικά η μίσθωση. Επιβεβαίωσε την ακριβή προθεσμία στην ΑΑΔΕ (σύνδεσμος πιο κάτω).
           </InfoBlock>
           <InfoBlock title="Ηλεκτρονική πληρωμή ενοικίου" tone={tenant.e_payment?'var(--positive)':'var(--negative)'}>
             {tenant.e_payment
@@ -1196,10 +1204,14 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
             Η αναπροσαρμογή μισθώματος γίνεται μία φορά τον χρόνο, βάσει Δείκτη Τιμών Καταναλωτή (ΕΛΣΤΑΤ), εφόσον προβλέπεται στη σύμβαση. Χρησιμοποίησε την καρτέλα «Αναπροσαρμογή Ενοικίου».
           </InfoBlock>
           <InfoBlock title="Ελάχιστη διάρκεια & εγγύηση">
-            Για μίσθωση κατοικίας ισχύει η τριετής ελάχιστη προστασία διάρκειας, ακόμη κι αν συμφωνηθεί μικρότερος χρόνος. Η εγγύηση{tenant.deposit_amount?` (${fe(tenant.deposit_amount)})`:''} επιστρέφεται στη λήξη, μετά από έλεγχο για φθορές. ΕΝΔΕΙΚΤΙΚΟ.
+            {isCommercial
+              ?'Για επαγγελματική μίσθωση ισχύει η ελάχιστη νόμιμη διάρκεια των τριών ετών.'
+              :'Για μίσθωση κατοικίας ισχύει η τριετής ελάχιστη προστασία διάρκειας, ακόμη κι αν συμφωνηθεί μικρότερος χρόνος.'} Η εγγύηση{tenant.deposit_amount?` (${fe(tenant.deposit_amount)})`:''} επιστρέφεται στη λήξη, μετά από έλεγχο για φθορές.
           </InfoBlock>
-          <InfoBlock title="Χαρτόσημο επαγγελματικής μίσθωσης" tone="var(--text-tertiary)">
-            Στην επαγγελματική μίσθωση επιβάλλεται τέλος χαρτοσήμου 3,6% επί του μισθώματος (δεν ισχύει στην κατοικία). {isCommercial?'Ισχύει για την τρέχουσα μίσθωση.':'Η παρούσα καρτέλα αφορά μίσθωση κατοικίας, δεν υπολογίζεται χαρτόσημο. Αν πρόκειται για επαγγελματική μίσθωση, συμβουλέψου λογιστή.'}
+          <InfoBlock title="Τέλος χαρτοσήμου" tone={isCommercial?'var(--warning)':'var(--positive)'}>
+            {isCommercial
+              ?`Επαγγελματική μίσθωση: τέλος χαρτοσήμου 3,6% επί του μισθώματος. Για ετήσιο ενοίκιο ${fe(annualRent)}, το τέλος ανέρχεται σε ${fe(stampDuty)} τον χρόνο (${fe(stampDuty/12)} τον μήνα), που κατανέμεται συνήθως 50/50 μεταξύ εκμισθωτή και μισθωτή.`
+              :'Μίσθωση κατοικίας: δεν επιβάλλεται τέλος χαρτοσήμου.'}
           </InfoBlock>
           <div style={{ marginTop:16 }}>
             {linkCard('ΑΑΔΕ, Δηλώσεις Μίσθωσης Ακινήτων','Ηλεκτρονική υποβολή & πληροφορίες','https://www.aade.gr/polites/misthoseis-akiniton-dilosi-plirophoriakon-stoicheion',true)}
@@ -1215,7 +1227,7 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
 const blank=()=>({
   full_name:'',email:'',phone:'',phone_work:'',nationality:'',profession:'',employer:'',afm:'',
   id_doc_type:'' as IdDocType|'',id_doc_number:'',iban:'',notes:'',
-  lease_type:'annual' as LeaseType,lease_start:'',lease_end:'',custom_lease_days:365,
+  lease_type:'annual' as LeaseType,lease_category:'' as LeaseCategory|'',lease_start:'',lease_end:'',custom_lease_days:365,
   monthly_rent:'',payment_frequency:'monthly' as PaymentFreq,
   deposit_amount:'',deposit_invested:false,deposit_returned:false,deposit_return_date:'',
   deposit_invest_rate:'',deposit_invest_type:'',deposit_invest_term:'',
@@ -1290,7 +1302,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       full_name:tenant.full_name||'',email:tenant.email||'',phone:tenant.phone||'',phone_work:tenant.phone_work||'',
       nationality:tenant.nationality||'',profession:tenant.profession||'',employer:tenant.employer||'',afm:tenant.afm||'',
       id_doc_type:(tenant.id_doc_type as IdDocType)||'',id_doc_number:tenant.id_doc_number||'',iban:tenant.iban||'',notes:tenant.notes||'',
-      lease_type:tenant.lease_type||'annual',lease_start:tenant.lease_start?.split('T')[0]||'',lease_end:tenant.lease_end?.split('T')[0]||'',custom_lease_days:tenant.custom_lease_days||365,
+      lease_type:tenant.lease_type||'annual',lease_category:tenant.lease_category||'',lease_start:tenant.lease_start?.split('T')[0]||'',lease_end:tenant.lease_end?.split('T')[0]||'',custom_lease_days:tenant.custom_lease_days||365,
       monthly_rent:n(tenant.monthly_rent),payment_frequency:tenant.payment_frequency||'monthly',
       deposit_amount:n(tenant.deposit_amount),deposit_invested:tenant.deposit_invested||false,deposit_returned:tenant.deposit_returned||false,deposit_return_date:tenant.deposit_return_date?.split('T')[0]||'',
       deposit_invest_rate:n(tenant.deposit_invest_rate),deposit_invest_type:tenant.deposit_invest_type||'',deposit_invest_term:tenant.deposit_invest_term||'',
@@ -1314,7 +1326,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   };
 
   const save=async()=>{
-    if(!form.full_name.trim()){setError('Το ονοματεπώνυμο είναι υποχρεωτικό');return;}
+    if(!form.full_name.trim()){setError('Το ονοματεπώνυμο είναι υποχρεωτικό');setFormTab('profile');return;}
+    if(!form.lease_category){setError('Ο τύπος μίσθωσης (κατοικία ή επαγγελματική) είναι υποχρεωτικός');setFormTab('lease');return;}
     setSaving(true);setError(null);
     const n=(v:string)=>v?Math.max(0,parseFloat(v)):null;
     const payload={
@@ -1322,7 +1335,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       email:form.email||null,phone:form.phone||null,phone_work:form.phone_work||null,
       nationality:form.nationality||null,profession:form.profession||null,employer:form.employer||null,afm:form.afm||null,
       id_doc_type:form.id_doc_type||null,id_doc_number:form.id_doc_number||null,iban:form.iban||null,notes:form.notes||null,
-      lease_type:form.lease_type||null,lease_start:form.lease_start||null,lease_end:form.lease_end||null,custom_lease_days:form.custom_lease_days||null,
+      lease_type:form.lease_type||null,lease_category:form.lease_category||null,lease_start:form.lease_start||null,lease_end:form.lease_end||null,custom_lease_days:form.custom_lease_days||null,
       monthly_rent:n(form.monthly_rent),payment_frequency:form.payment_frequency||null,
       deposit_amount:n(form.deposit_amount),deposit_invested:form.deposit_invested,deposit_returned:form.deposit_returned,deposit_return_date:form.deposit_return_date||null,
       deposit_invest_rate:n(form.deposit_invest_rate),deposit_invest_type:form.deposit_invest_type||null,deposit_invest_term:form.deposit_invest_term||null,
@@ -1498,6 +1511,15 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
 
           {formTab==='lease'&&(
             <>
+              <SectionTitle>Τύπος Μίσθωσης <span style={{ color:'var(--negative)' }}>*</span></SectionTitle>
+              <div style={{ display:'flex', gap:6, marginBottom:6, flexWrap:'wrap' as const }}>
+                {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
+                  <button key={lc} onClick={()=>sf('lease_category',lc)} style={{ padding:'8px 18px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.lease_category===lc?'var(--accent)':'var(--border-default)'}`, background:form.lease_category===lc?'var(--accent-dim)':'transparent', color:form.lease_category===lc?'var(--accent)':'var(--text-secondary)', transition:'all 0.15s', fontWeight:form.lease_category===lc?700:400 }}>{LEASE_CATEGORY_LABELS[lc]}</button>
+                ))}
+              </div>
+              <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginBottom:18, lineHeight:1.5 }}>
+                Καθορίζει τη φορολογική μεταχείριση. Στην επαγγελματική μίσθωση προστίθεται τέλος χαρτοσήμου 3,6% επί του μισθώματος.
+              </div>
               <SectionTitle>Διάρκεια Μίσθωσης</SectionTitle>
               <div style={{ display:'flex', gap:6, marginBottom:18, flexWrap:'wrap' as const }}>
                 {(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>(
@@ -1689,7 +1711,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
                 <SectionTitle>Στοιχεία Συμβολαίου</SectionTitle>
                 {([
-                  ['Τύπος Μίσθωσης',tenant.lease_type?LEASE_LABELS[tenant.lease_type]:'—'],
+                  ['Είδος Μίσθωσης',tenant.lease_category?LEASE_CATEGORY_LABELS[tenant.lease_category]:'—'],
+                  ['Διάρκεια Μίσθωσης',tenant.lease_type?LEASE_LABELS[tenant.lease_type]:'—'],
                   ['Ημερομηνία Έναρξης',fmtD(tenant.lease_start)],
                   ['Ημερομηνία Λήξης',()=>{const d=daysLeft(tenant.lease_end);const st=leaseSt(d);return(<span style={{ display:'flex', alignItems:'center', gap:8 }}>{fmtD(tenant.lease_end)}{st&&<StatusBadge label={st.label} color={st.color} bg={st.bg}/>}</span>);}],
                   ['Μηνιαίο Ενοίκιο',<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(tenant.monthly_rent)}</span>],

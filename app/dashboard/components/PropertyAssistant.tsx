@@ -344,7 +344,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const markPaid = async (description: string, amount?: number) => {
     const q = (description || '').trim().toLowerCase();
     const norm = (s: string) => s.toLowerCase();
-    const amtOk = (a: number) => amount == null || (a > 0 && Math.abs(a - amount) / a <= 0.10);
+    const amtOk = (a: number) => amount == null || (a > 0 && Math.abs(a - amount) / a <= 0.01);
     const bills = openBillsRef.current;
     const rents = openRentRef.current;
     // Υποψήφια: λογαριασμοί (όνομα/κατηγορία περιέχει το κείμενο) + δόσεις ενοικίου
