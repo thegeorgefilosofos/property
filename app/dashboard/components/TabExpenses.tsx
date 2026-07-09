@@ -6,6 +6,7 @@ import { CustomSelect, DatePicker, NumberInput, TextInput, Textarea, Toggle } fr
 import ExpenseAnalytics from './ExpenseAnalytics';
 import { Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
+import { SHARED_SCOPES, ownerShareAmount } from '@/lib/expenses/sharing';
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ interface Expense {
   vehicle_lease_monthly: number | null; vehicle_lease_type: string | null;
   vehicle_lease_count: number | null;
   broker_commission_pct: number | null; broker_commission_amount: number | null;
+  share_percent: number | null; share_note: string | null;
   travel_type: string | null; travel_destination: string | null;
   exhibition_name: string | null; exhibition_booth_cost: number | null;
   floor_type: string | null;
@@ -85,11 +87,17 @@ const PAYMENT_METHODS = [
 ];
 
 const PAID_BY_OPTIONS = [
-  { value: 'owner',   label: 'Ιδιοκτήτης' },
-  { value: 'tenant',  label: 'Ενοικιαστής' },
-  { value: 'split',   label: '50/50' },
-  { value: 'company', label: 'Εταιρεία' },
+  { value: 'owner',    label: 'Μόνο εγώ' },
+  { value: 'co_owner', label: 'Με συνιδιοκτήτη' },
+  { value: 'tenant',   label: 'Ενοικιαστής' },
+  { value: 'family',   label: 'Με οικογένεια' },
+  { value: 'parents',  label: 'Με γονείς' },
+  { value: 'split',    label: 'Μοιρασμένο 50/50' },
+  { value: 'company',  label: 'Εταιρεία' },
 ];
+
+// Η λογική διαμοιρασμού (SHARED_SCOPES, ownerShareAmount) ζει σε καθαρή,
+// δοκιμασμένη βιβλιοθήκη: '@/lib/expenses/sharing'.
 
 const VAT_RATES       = [{ value:'0',label:'0%' },{ value:'6',label:'6%' },{ value:'13',label:'13%' },{ value:'24',label:'24%' }];
 const RECURRING_FREQ  = [{ value:'monthly',label:'Μηνιαία' },{ value:'quarterly',label:'Τριμηνιαία' },{ value:'biannual',label:'Εξαμηνιαία' },{ value:'annual',label:'Ετήσια' }];
@@ -165,6 +173,7 @@ const blank = () => ({
   cashback_pct:'', cashback_amount:'', original_price:'', discount_amount:'',
   vat_rate:'24', vat_amount:'', is_recurring:false, recurring_frequency:'monthly',
   notes:'', paid:true, store_vendor:'', interest_rate:'', attachment_url:'',
+  share_percent:'', share_note:'',
 });
 
 function expenseToForm(e: Expense) {
@@ -180,6 +189,7 @@ function expenseToForm(e: Expense) {
     vat_rate:String(e.vat_rate||'24'), vat_amount:String(e.vat_amount||''),
     is_recurring:e.is_recurring||false, recurring_frequency:e.recurring_frequency||'monthly',
     notes:e.notes||'', paid:e.paid??true, store_vendor:e.store_vendor||'', interest_rate:'', attachment_url:(e as any).attachment_url||'',
+    share_percent:String(e.share_percent??''), share_note:e.share_note||'',
   };
 }
 
@@ -436,8 +446,25 @@ function ExpenseForm({
         <CustomSelect label="Κατηγορία" value={form.category} onChange={v => sf('category',v)}
           options={(EXPENSE_GROUPS[form.expense_group]?.categories||[]).map(c => ({ value:c, label:c }))} />
         <DatePicker label="Ημερομηνία" value={form.date} onChange={v => sf('date',v)} />
-        <CustomSelect label="Πληρώνει" value={form.paid_by} onChange={v => sf('paid_by',v)} options={PAID_BY_OPTIONS} />
+        <CustomSelect label="Πληρώνει / Διαμοιρασμός" value={form.paid_by} onChange={v => sf('paid_by',v)} options={PAID_BY_OPTIONS} />
       </div>
+
+      {/* Διαμοιρασμός — εμφανίζεται μόνο όταν η δαπάνη μοιράζεται */}
+      {SHARED_SCOPES.has(form.paid_by) && (
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--accent)', borderRadius:8, padding:'12px 14px', marginBottom:12 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:12, alignItems:'end' }}>
+            <NumberInput label="Το μερίδιό μου" value={form.share_percent} onChange={v => sf('share_percent',v)} placeholder="50" suffix="%" step={1} max={100} />
+            <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note',v)} placeholder="για παράδειγμα αδερφός, γονείς, συνιδιοκτήτης" />
+          </div>
+          {form.amount && parseFloat(form.amount) > 0 && (
+            <div style={{ marginTop:10, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
+              Δικό σου μερίδιο: <strong style={{ color:'var(--text-primary)' }}>{fmtEur(parseFloat(form.amount) * (form.share_percent ? Math.max(0,Math.min(100,parseFloat(form.share_percent))) : 50) / 100)}</strong>
+              <span style={{ color:'var(--text-tertiary)' }}> από {fmtEur(parseFloat(form.amount))} συνολικά</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={g2}>
         <div>
           <label style={labelStyle}>Περιγραφή</label>
@@ -1253,6 +1280,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       store_vendor:f.store_vendor||null,
       is_recurring:f.is_recurring, recurring_frequency:f.is_recurring?f.recurring_frequency:null,
       notes:f.notes||null, paid:f.paid,
+      share_percent: SHARED_SCOPES.has(f.paid_by) ? (f.share_percent ? parseFloat(f.share_percent) : 50) : null,
+      share_note: SHARED_SCOPES.has(f.paid_by) ? (f.share_note || null) : null,
       attachment_url:(f as any).attachment_url||null,
       energy_class:null, serial_number:null, warranty_months:null, purchase_year:null,
       model_sku:null, vehicle_lease_model:null, vehicle_lease_months:null,
@@ -1334,6 +1363,8 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   const totalVat     = processed.reduce((s,e) => s+(e.vat_amount||0), 0);
   const totalOwner   = processed.filter(e => !e.paid_by||e.paid_by==='owner').reduce((s,e) => s+e.amount, 0);
   const totalTenant  = processed.filter(e => e.paid_by==='tenant').reduce((s,e) => s+e.amount, 0);
+  const totalMyShare = processed.reduce((s,e) => s + ownerShareAmount(e), 0);
+  const hasShared    = processed.some(e => SHARED_SCOPES.has(e.paid_by||''));
   const deductible   = processed.filter(e => EXPENSE_GROUPS[e.expense_group||'']?.taxDeductible).reduce((s,e) => s+e.amount, 0);
   const unpaidTotal  = processed.filter(e => !e.paid).reduce((s,e) => s+e.amount, 0);
 
@@ -1578,7 +1609,9 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       <div style={{ display:'grid', gridTemplateColumns:'repeat(6,minmax(0,1fr))', gap:10, marginBottom:12 }}>
         {[
           { label:'Σύνολο δαπανών',      value:fmtEur(total),         accent:false, primary:true },
-          { label:'Κόστος ιδιοκτήτη',   value:fmtEur(totalOwner),    accent:false },
+          hasShared
+            ? { label:'Δικό μου μερίδιο', value:fmtEur(totalMyShare), accent:false }
+            : { label:'Κόστος ιδιοκτήτη', value:fmtEur(totalOwner),   accent:false },
           { label:'Κόστος ενοικιαστή',  value:fmtEur(totalTenant),   accent:false },
           { label:'Εκπιπτόμενες',        value:fmtEur(deductible),    accent:deductible>0 },
           { label:'Συνολικό cashback',   value:fmtEur(totalCashback), accent:totalCashback>0 },
@@ -1996,14 +2029,17 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{processed.length} δαπάνες</div>
         <ExportButton disabled={processed.length===0} onClick={() => {
           const pmLabel = (v:string|null) => PAYMENT_METHODS.find(p=>p.value===v)?.label || v || '';
-          const paidByLabel = (v:string|null) => v==='tenant'?'Ενοικιαστής':v==='owner'?'Ιδιοκτήτης':(v||'');
+          const paidByLabel = (v:string|null) => PAID_BY_OPTIONS.find(p=>p.value===v)?.label || v || '';
           downloadCsv(
             `dapanes_${new Date().toISOString().slice(0,10)}`,
-            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
+            ['Ημερομηνία','Περιγραφή','Κατηγορία','Ομάδα','Ποσό (€)','Πληρώνει','Μερίδιό μου (€)','Μοιρασμένο με','Τρόπος Πληρωμής','ΦΠΑ (€)','Cashback (€)','Δόσεις','Πληρώθηκε','Κατάστημα','Σημειώσεις'],
             processed.map(e => [
               csvDate(e.date), e.description, e.category,
               EXPENSE_GROUPS[e.expense_group||'']?.label || e.expense_group || '',
-              csvEur(e.amount), paidByLabel(e.paid_by), pmLabel(e.payment_method),
+              csvEur(e.amount), paidByLabel(e.paid_by),
+              SHARED_SCOPES.has(e.paid_by||'') ? csvEur(ownerShareAmount(e)) : '',
+              SHARED_SCOPES.has(e.paid_by||'') ? (e.share_note||'') : '',
+              pmLabel(e.payment_method),
               csvEur(e.vat_amount), csvEur(e.cashback_amount), e.installments || '',
               e.paid ? 'Ναι' : 'Όχι', e.store_vendor || '', (e.notes||'').replace(/\n/g,' '),
             ])
@@ -2100,6 +2136,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                                 <div style={{ display:'flex', gap:4, marginTop:2 }}>
                                   {e.is_recurring && <span style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>{freqLabel[e.recurring_frequency||'']||'Επαναλ.'}</span>}
                                   {!e.paid && <span style={{ fontSize:9, background:'var(--warning-dim)', color:'var(--warning)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>Εκκρεμεί</span>}
+                                  {SHARED_SCOPES.has(e.paid_by||'') && <span title={e.share_note?`Μοιρασμένο με ${e.share_note}`:'Μοιρασμένη δαπάνη'} style={{ fontSize:9, background:'var(--bg-hover)', color:'var(--text-secondary)', padding:'1px 6px', borderRadius:3, fontFamily:"'Inter', sans-serif" }}>μοιρασμένο · {e.share_percent!=null?e.share_percent:50}%</span>}
                                   {e.warranty_months && (() => {
                                     const exp = new Date(e.date+'T00:00:00'); exp.setMonth(exp.getMonth()+e.warranty_months);
                                     const days = Math.ceil((exp.getTime()-Date.now())/86400000);
@@ -2121,6 +2158,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                               <td style={{ padding:'9px 10px', fontFamily:"'Roboto Mono', monospace", fontVariantNumeric:'tabular-nums', fontWeight:700, color:e.paid?'var(--text-primary)':'var(--warning)', whiteSpace:'nowrap' }}>
                                 {fmtEur(e.amount)}
                                 {e.original_price && e.original_price > e.amount && <div style={{ fontSize:10, color:'var(--text-tertiary)', textDecoration:'line-through', fontWeight:400 }}>{fmtEur(e.original_price)}</div>}
+                                {SHARED_SCOPES.has(e.paid_by||'') && <div style={{ fontSize:10, color:'var(--text-tertiary)', fontWeight:400 }} title="Το μερίδιό σου">εγώ: {fmtEur(ownerShareAmount(e))}</div>}
                               </td>
                               <td style={{ padding:'9px 10px' }}>
                                 <div style={{ display:'flex', gap:3 }}>
@@ -2168,7 +2206,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
               {[
                 { label:'Σύνολο', value:fmtEur(total), color:'var(--text-primary)' },
-                { label:'Ιδιοκτήτης', value:fmtEur(totalOwner), color:'var(--text-primary)' },
+                ...(hasShared?[{ label:'Δικό μου μερίδιο', value:fmtEur(totalMyShare), color:'var(--text-primary)' }]:[{ label:'Ιδιοκτήτης', value:fmtEur(totalOwner), color:'var(--text-primary)' }]),
                 ...(totalTenant>0?[{ label:'Ενοικιαστής', value:fmtEur(totalTenant), color:'var(--text-primary)' }]:[]),
                 ...(totalCashback>0?[{ label:'Επιστροφή', value:fmtEur(totalCashback), color:'var(--positive)' }]:[]),
                 ...(totalVat>0?[{ label:'ΦΠΑ', value:fmtEur(totalVat), color:'var(--text-primary)' }]:[]),
