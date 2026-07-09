@@ -899,3 +899,16 @@ end;
 $$;
 revoke all on function public.delete_my_account() from public;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ── Ενοικιαστές: rent ledger + αντιστοίχιση αποδείξεων (βλ. 20260709160000) ──
+alter table public.rent_payments add column if not exists method         text;
+alter table public.rent_payments add column if not exists receipt_url    text;
+alter table public.rent_payments add column if not exists receipt_doc_id uuid;
+alter table public.rent_payments add column if not exists due_date       date;
+do $$
+begin
+  if not exists (select 1 from pg_indexes where schemaname='public' and indexname='rent_payments_tenant_period_uidx') then
+    create unique index rent_payments_tenant_period_uidx on public.rent_payments (tenant_id, period_year, period_month);
+  end if;
+exception when others then null;
+end $$;
