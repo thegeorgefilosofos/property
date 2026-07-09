@@ -674,14 +674,18 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 }
 
 // ─── Rent Ledger helpers ──────────────────────────────────────────────────────
-// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(lease_end, τρέχων μήνας).
+// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(αποχώρηση, λήξη, τρέχων μήνας).
+// Ο ενοικιαστής που έχει αποχωρήσει ΔΕΝ συσσωρεύει νέες δόσεις μετά την αποχώρηση.
 function expectedPeriods(tenant:Tenant, rentDueDay:number):{year:number;month:number;due_date:string}[] {
   if(!tenant.lease_start||!tenant.monthly_rent||tenant.monthly_rent<=0) return [];
   const start=new Date(tenant.lease_start+'T00:00:00');
   if(isNaN(start.getTime())) return [];
   const now=new Date(); now.setHours(0,0,0,0);
-  const endCap=tenant.lease_end?new Date(tenant.lease_end+'T00:00:00'):now;
-  const last=endCap<now?endCap:now;
+  // Όριο δημιουργίας: το νωρίτερο από αποχώρηση, λήξη μίσθωσης, ή τρέχων μήνας.
+  const caps=[now];
+  if(tenant.move_out_date){ const d=new Date(tenant.move_out_date+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
+  if(tenant.lease_end){ const d=new Date(tenant.lease_end+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
+  const last=caps.reduce((a,b)=>b<a?b:a);
   const out:{year:number;month:number;due_date:string}[]=[];
   let y=start.getFullYear(), m=start.getMonth();
   const lastKey=last.getFullYear()*12+last.getMonth();
