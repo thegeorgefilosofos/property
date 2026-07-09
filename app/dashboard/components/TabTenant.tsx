@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
   StreamingConfig, CleaningConfig, InvestmentCalc,
-  LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, MIN_LEASE_MONTHS, SERVICE_BY_LABELS, ID_DOCS,
+  LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, MIN_LEASE_MONTHS, ID_DOCS,
   MONTHS_FULL, MONTHS_S, FREQ_OPTIONS, EXTRA_CATS,
   syncTenantSchedule, type TenantScheduleInput,
 } from './TabTenantHelpers';
@@ -47,11 +47,11 @@ interface Tenant {
   welcome_basket:boolean; welcome_basket_amount:number|null; welcome_basket_contents:string|null;
   parking_included:boolean; parking_extra:boolean; parking_extra_price:number|null;
   parking_type:string|null; parking_has_electricity:boolean; parking_notes:string|null;
-  ac_service_by:ServiceBy|null; ac_service_frequency:string|null;
-  solar_service_by:ServiceBy|null; solar_service_frequency:string|null;
-  heat_pump_service_by:ServiceBy|null; heat_pump_service_frequency:string|null;
-  solar_panels_service_by:ServiceBy|null; solar_panels_service_frequency:string|null;
-  pest_control_by:ServiceBy|null; pest_control_frequency:string|null; annual_services_notes:string|null;
+  ac_service_by:ServiceBy|null; ac_service_frequency:string|null; ac_service_owner_pct:number|null;
+  solar_service_by:ServiceBy|null; solar_service_frequency:string|null; solar_service_owner_pct:number|null;
+  heat_pump_service_by:ServiceBy|null; heat_pump_service_frequency:string|null; heat_pump_service_owner_pct:number|null;
+  solar_panels_service_by:ServiceBy|null; solar_panels_service_frequency:string|null; solar_panels_service_owner_pct:number|null;
+  pest_control_by:ServiceBy|null; pest_control_frequency:string|null; pest_control_owner_pct:number|null; annual_services_notes:string|null;
   prepay_option:boolean; prepay_months:number|null; prepay_discount_pct:number|null;
   prepay_invested:boolean; prepay_invest_rate:number|null; prepay_invest_type:string|null; prepay_invest_term:string|null;
   lease_doc_url:string|null; lease_doc_name:string|null; lease_doc_external_url:string|null;
@@ -83,8 +83,13 @@ interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meet
 interface TabTenantProps { propertyId:string; userId:string; }
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
-// Ποιος επιβαρύνεται συντήρηση — συμπαγές select (αντί για τρία κουμπιά).
-const SERVICE_BY_OPTIONS = (Object.keys(SERVICE_BY_LABELS) as ServiceBy[]).map(k => ({ value:k, label:SERVICE_BY_LABELS[k] }));
+// ─── Owner-share helpers (ποσοστό ιδιοκτήτη 0–100 ⇄ enum *_service_by) ──────────
+// Στη φόρτωση: αν η στήλη ποσοστού είναι null, παράγουμε την αρχική τιμή από το
+// υπάρχον enum (owner→100, tenant→0, split→50) ώστε τα παλιά δεδομένα να δείχνουν σωστά.
+const ownerPctFromBy = (pct:number|null|undefined, by:ServiceBy|null|undefined):number =>
+  pct != null ? Math.max(0, Math.min(100, Math.round(pct))) : by === 'tenant' ? 0 : by === 'split' ? 50 : 100;
+// Στην αποθήκευση: κρατάμε το enum συγχρονισμένο με το ποσοστό (100→owner, 0→tenant, αλλιώς split).
+const byFromOwnerPct = (pct:number):ServiceBy => { const p = Math.round(pct); return p >= 100 ? 'owner' : p <= 0 ? 'tenant' : 'split'; };
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -103,7 +108,7 @@ function SectionTitle({ children, dot='var(--accent)' }: { children: React.React
 // Διακριτική ενότητα υπηρεσίας με προοδευτική αποκάλυψη (quiet toggle → λεπτομέρεια).
 function SvcSection({ title, hint, open, onToggle, children }: { title:string; hint?:string; open:boolean; onToggle:()=>void; children:React.ReactNode }) {
   return (
-    <div style={{ border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, borderRadius:T.radius.inner, marginBottom:10, background:'var(--bg-elevated)', overflow:'hidden', transition:'border-color 0.15s' }}>
+    <div style={{ border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, borderRadius:T.radius.inner, marginBottom:10, background:'var(--bg-elevated)', overflow:open?'visible':'hidden', transition:'border-color 0.15s' }}>
       <div onClick={onToggle} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'13px 16px', cursor:'pointer', userSelect:'none' as const }}>
         <div style={{ minWidth:0 }}>
           <div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</div>
@@ -112,6 +117,102 @@ function SvcSection({ title, hint, open, onToggle, children }: { title:string; h
         <div style={{ pointerEvents:'none' as const, flexShrink:0 }}><Toggle on={open} onChange={()=>{}} size="sm"/></div>
       </div>
       {open&&<div style={{ padding:'2px 16px 18px' }}>{children}</div>}
+    </div>
+  );
+}
+
+// ─── SplitBar ─────────────────────────────────────────────────────────────────
+// Premium έλεγχος κατανομής κόστους ιδιοκτήτη/ενοικιαστή (0–100). Τρία γρήγορα
+// presets σε pills + συρόμενη μπάρα για οποιονδήποτε διαμοιρασμό. Πλήρως
+// προσβάσιμο με πληκτρολόγιο (βέλη / PageUp-Down / Home / End).
+function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const clamp = (n:number) => Math.max(0, Math.min(100, Math.round(n)));
+  const fromClientX = (clientX:number) => {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0) return;
+    onChange(clamp(((clientX - r.left) / r.width) * 100));
+  };
+  const onDown = (e:React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    setDragging(true); fromClientX(e.clientX);
+  };
+  const onMove = (e:React.PointerEvent<HTMLDivElement>) => { if (dragging) fromClientX(e.clientX); };
+  const onUp = (e:React.PointerEvent<HTMLDivElement>) => {
+    setDragging(false);
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+  };
+  const onKey = (e:React.KeyboardEvent<HTMLDivElement>) => {
+    const steps:Record<string,number> = { ArrowLeft:-1, ArrowDown:-1, ArrowRight:1, ArrowUp:1, PageDown:-10, PageUp:10 };
+    let next:number|undefined;
+    if (e.key in steps) next = owner + steps[e.key];
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = 100;
+    if (next === undefined) return;
+    e.preventDefault(); onChange(clamp(next));
+  };
+  const tenant = 100 - owner;
+  const presets:[string,number][] = [['Ιδιοκτήτης',100],['Μοιρασμένο',50],['Ενοικιαστής',0]];
+  return (
+    <div>
+      {/* Ζωντανή ένδειξη */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12, marginBottom:11 }}>
+        <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>
+          Ιδιοκτήτης <strong style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:13, fontWeight:700 }}>{owner}%</strong>
+        </span>
+        <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>
+          Ενοικιαστής <strong style={{ color:'var(--text-primary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:13, fontWeight:700 }}>{tenant}%</strong>
+        </span>
+      </div>
+      {/* Μπάρα, σύρσιμο ή πληκτρολόγιο */}
+      <div
+        ref={trackRef}
+        role="slider"
+        aria-label="Κατανομή κόστους ιδιοκτήτη προς ενοικιαστή"
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={owner}
+        aria-valuetext={`Ιδιοκτήτης ${owner}%, Ενοικιαστής ${tenant}%`}
+        tabIndex={0}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onKeyDown={onKey}
+        style={{
+          position:'relative', height:14, borderRadius:999,
+          background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)',
+          cursor:'pointer', touchAction:'none', outline:'none',
+        }}
+      >
+        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${owner}%`, background:'var(--accent)', borderRadius:999, transition: dragging ? 'none' : 'width 0.18s cubic-bezier(0.2,0,0,1)' }}/>
+        <div style={{
+          position:'absolute', top:'50%', left:`${owner}%`, transform:'translate(-50%,-50%)',
+          width:22, height:22, borderRadius:'50%',
+          background:'var(--bg-surface)', border:'2px solid var(--accent)',
+          boxShadow: dragging ? 'var(--elev-3)' : 'var(--elev-2)',
+          transition: dragging ? 'none' : 'left 0.18s cubic-bezier(0.2,0,0,1), box-shadow 0.15s',
+          display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none',
+        }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)' }}/>
+        </div>
+      </div>
+      {/* Γρήγορα presets */}
+      <div style={{ display:'flex', gap:6, marginTop:12 }}>
+        {presets.map(([label,val])=>{
+          const active = owner === val;
+          return (
+            <button key={label} type="button" onClick={()=>onChange(val)}
+              style={{
+                flex:1, height:30, borderRadius:999, cursor:'pointer',
+                fontFamily:T.font.sans, fontSize:11, fontWeight: active ? 600 : 500,
+                border:`1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`,
+                background: active ? 'var(--accent-dim)' : 'transparent',
+                color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                transition:'all 0.15s',
+              }}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1159,11 +1260,11 @@ const blank=()=>({
   e_payment:true,streaming:null as StreamingSvc[]|null,cleaning:null as CleaningCfg|null,extra_perks:'',
   welcome_basket:false,welcome_basket_amount:'',welcome_basket_contents:'',
   parking_included:false,parking_extra:false,parking_extra_price:'',parking_type:'',parking_has_electricity:false,parking_notes:'',
-  ac_service_by:'owner' as ServiceBy,ac_service_frequency:'annual',
-  solar_service_by:'owner' as ServiceBy,solar_service_frequency:'annual',
-  heat_pump_service_by:'owner' as ServiceBy,heat_pump_service_frequency:'annual',
-  solar_panels_service_by:'owner' as ServiceBy,solar_panels_service_frequency:'annual',
-  pest_control_by:'owner' as ServiceBy,pest_control_frequency:'',annual_services_notes:'',
+  ac_service_by:'owner' as ServiceBy,ac_service_frequency:'annual',ac_service_owner_pct:100,
+  solar_service_by:'owner' as ServiceBy,solar_service_frequency:'annual',solar_service_owner_pct:100,
+  heat_pump_service_by:'owner' as ServiceBy,heat_pump_service_frequency:'annual',heat_pump_service_owner_pct:100,
+  solar_panels_service_by:'owner' as ServiceBy,solar_panels_service_frequency:'annual',solar_panels_service_owner_pct:100,
+  pest_control_by:'owner' as ServiceBy,pest_control_frequency:'',pest_control_owner_pct:100,annual_services_notes:'',
   prepay_option:false,prepay_months:3,prepay_discount_pct:'',
   prepay_invested:false,prepay_invest_rate:'',prepay_invest_type:'',prepay_invest_term:'',
   lease_doc_external_url:'',
@@ -1544,11 +1645,11 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       welcome_basket:t.welcome_basket||false,welcome_basket_amount:n(t.welcome_basket_amount),welcome_basket_contents:t.welcome_basket_contents||'',
       parking_included:t.parking_included||false,parking_extra:t.parking_extra||false,parking_extra_price:n(t.parking_extra_price),
       parking_type:t.parking_type||'',parking_has_electricity:t.parking_has_electricity||false,parking_notes:t.parking_notes||'',
-      ac_service_by:t.ac_service_by||'owner',ac_service_frequency:t.ac_service_frequency||'annual',
-      solar_service_by:t.solar_service_by||'owner',solar_service_frequency:t.solar_service_frequency||'annual',
-      heat_pump_service_by:t.heat_pump_service_by||'owner',heat_pump_service_frequency:t.heat_pump_service_frequency||'annual',
-      solar_panels_service_by:t.solar_panels_service_by||'owner',solar_panels_service_frequency:t.solar_panels_service_frequency||'annual',
-      pest_control_by:t.pest_control_by||'owner',pest_control_frequency:t.pest_control_frequency||'',annual_services_notes:t.annual_services_notes||'',
+      ac_service_by:t.ac_service_by||'owner',ac_service_frequency:t.ac_service_frequency||'annual',ac_service_owner_pct:ownerPctFromBy(t.ac_service_owner_pct,t.ac_service_by),
+      solar_service_by:t.solar_service_by||'owner',solar_service_frequency:t.solar_service_frequency||'annual',solar_service_owner_pct:ownerPctFromBy(t.solar_service_owner_pct,t.solar_service_by),
+      heat_pump_service_by:t.heat_pump_service_by||'owner',heat_pump_service_frequency:t.heat_pump_service_frequency||'annual',heat_pump_service_owner_pct:ownerPctFromBy(t.heat_pump_service_owner_pct,t.heat_pump_service_by),
+      solar_panels_service_by:t.solar_panels_service_by||'owner',solar_panels_service_frequency:t.solar_panels_service_frequency||'annual',solar_panels_service_owner_pct:ownerPctFromBy(t.solar_panels_service_owner_pct,t.solar_panels_service_by),
+      pest_control_by:t.pest_control_by||'owner',pest_control_frequency:t.pest_control_frequency||'',pest_control_owner_pct:ownerPctFromBy(t.pest_control_owner_pct,t.pest_control_by),annual_services_notes:t.annual_services_notes||'',
       prepay_option:t.prepay_option||false,prepay_months:t.prepay_months||3,prepay_discount_pct:n(t.prepay_discount_pct),
       prepay_invested:t.prepay_invested||false,prepay_invest_rate:n(t.prepay_invest_rate),prepay_invest_type:t.prepay_invest_type||'',prepay_invest_term:t.prepay_invest_term||'',
       lease_doc_external_url:t.lease_doc_external_url||'',
@@ -1602,11 +1703,11 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       welcome_basket:form.welcome_basket,welcome_basket_amount:n(form.welcome_basket_amount),welcome_basket_contents:form.welcome_basket_contents||null,
       parking_included:form.parking_included,parking_extra:form.parking_extra,parking_extra_price:n(form.parking_extra_price),
       parking_type:form.parking_type||null,parking_has_electricity:form.parking_has_electricity,parking_notes:form.parking_notes||null,
-      ac_service_by:form.ac_service_by||null,ac_service_frequency:form.ac_service_frequency||null,
-      solar_service_by:form.solar_service_by||null,solar_service_frequency:form.solar_service_frequency||null,
-      heat_pump_service_by:form.heat_pump_service_by||null,heat_pump_service_frequency:form.heat_pump_service_frequency||null,
-      solar_panels_service_by:form.solar_panels_service_by||null,solar_panels_service_frequency:form.solar_panels_service_frequency||null,
-      pest_control_by:form.pest_control_by||null,pest_control_frequency:form.pest_control_frequency||null,annual_services_notes:form.annual_services_notes||null,
+      ac_service_by:byFromOwnerPct(form.ac_service_owner_pct),ac_service_owner_pct:form.ac_service_owner_pct,ac_service_frequency:form.ac_service_frequency||null,
+      solar_service_by:byFromOwnerPct(form.solar_service_owner_pct),solar_service_owner_pct:form.solar_service_owner_pct,solar_service_frequency:form.solar_service_frequency||null,
+      heat_pump_service_by:byFromOwnerPct(form.heat_pump_service_owner_pct),heat_pump_service_owner_pct:form.heat_pump_service_owner_pct,heat_pump_service_frequency:form.heat_pump_service_frequency||null,
+      solar_panels_service_by:byFromOwnerPct(form.solar_panels_service_owner_pct),solar_panels_service_owner_pct:form.solar_panels_service_owner_pct,solar_panels_service_frequency:form.solar_panels_service_frequency||null,
+      pest_control_by:byFromOwnerPct(form.pest_control_owner_pct),pest_control_owner_pct:form.pest_control_owner_pct,pest_control_frequency:form.pest_control_frequency||null,annual_services_notes:form.annual_services_notes||null,
       prepay_option:form.prepay_option,prepay_months:form.prepay_months||null,prepay_discount_pct:n(form.prepay_discount_pct),
       prepay_invested:form.prepay_invested,prepay_invest_rate:n(form.prepay_invest_rate),prepay_invest_type:form.prepay_invest_type||null,prepay_invest_term:form.prepay_invest_term||null,
       lease_doc_external_url:form.lease_doc_external_url||null,
@@ -2101,15 +2202,21 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <CleaningConfig value={form.cleaning} onChange={v=>sf('cleaning',v)}/>
                 </SvcSection>
 
-                <SvcSection title="Ετήσιες Συντηρήσεις" hint="Ποιος επιβαρύνεται τη συντήρηση κάθε εγκατάστασης και πόσο συχνά." open={svcUI.maint} onToggle={()=>setSvcUI(u=>({...u,maint:!u.maint}))}>
-                  {[{label:'Κλιματιστικό',byKey:'ac_service_by',freqKey:'ac_service_frequency'},{label:'Ηλιακός Θερμοσίφωνας',byKey:'solar_service_by',freqKey:'solar_service_frequency'},{label:'Αντλία Θερμότητας',byKey:'heat_pump_service_by',freqKey:'heat_pump_service_frequency'},{label:'Φωτοβολταϊκά',byKey:'solar_panels_service_by',freqKey:'solar_panels_service_frequency'},{label:'Απεντόμωση / Μυοκτονία',byKey:'pest_control_by',freqKey:'pest_control_frequency'}].map(({label,byKey,freqKey})=>(
-                    <div key={byKey} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,140px),1fr))', gap:12, alignItems:'end', padding:'10px 0', borderBottom:'1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, alignSelf:'center' }}>{label}</div>
-                      <SelectField label="Επιβαρύνεται" value={(form as any)[byKey]} onChange={v=>sf(byKey,v)} options={SERVICE_BY_OPTIONS}/>
-                      <SelectField label="Συχνότητα" value={(form as any)[freqKey]} onChange={v=>sf(freqKey,v)} options={FREQ_OPTIONS} placeholder="Χωρίς"/>
-                    </div>
-                  ))}
-                  <div style={{ marginTop:14 }}>
+                <SvcSection title="Ετήσιες Συντηρήσεις" hint="Πώς μοιράζεται το κόστος κάθε συντήρησης ανάμεσα σε ιδιοκτήτη και ενοικιαστή, και πόσο συχνά επαναλαμβάνεται." open={svcUI.maint} onToggle={()=>setSvcUI(u=>({...u,maint:!u.maint}))}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                    {[{label:'Κλιματιστικό',pctKey:'ac_service_owner_pct',freqKey:'ac_service_frequency'},{label:'Ηλιακός Θερμοσίφωνας',pctKey:'solar_service_owner_pct',freqKey:'solar_service_frequency'},{label:'Αντλία Θερμότητας',pctKey:'heat_pump_service_owner_pct',freqKey:'heat_pump_service_frequency'},{label:'Φωτοβολταϊκά',pctKey:'solar_panels_service_owner_pct',freqKey:'solar_panels_service_frequency'},{label:'Απεντόμωση / Μυοκτονία',pctKey:'pest_control_owner_pct',freqKey:'pest_control_frequency'}].map(({label,pctKey,freqKey})=>(
+                      <div key={pctKey} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, boxShadow:'var(--elev-1)', padding:'16px 18px' }}>
+                        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:14, flexWrap:'wrap' as const, marginBottom:16 }}>
+                          <div style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{label}</div>
+                          <div style={{ width:184, maxWidth:'100%' }}>
+                            <SelectField label="Συχνότητα Συντήρησης" value={(form as any)[freqKey]} onChange={v=>sf(freqKey,v)} options={FREQ_OPTIONS} placeholder="Χωρίς"/>
+                          </div>
+                        </div>
+                        <SplitBar owner={(form as any)[pctKey]} onChange={v=>sf(pctKey,v)}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:16 }}>
                     <Textarea label="Σημειώσεις Συντηρήσεων" value={form.annual_services_notes} onChange={v=>sf('annual_services_notes',v)}/>
                   </div>
                 </SvcSection>
@@ -2122,7 +2229,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   </div>
                   <div style={{ ...s.g3, marginBottom:16 }}>
                     <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
-                    <div><div title="Ηλεκτρικό όχημα — υποδομή φόρτισης" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης EV</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
+                    <div><div title="Υποδομή φόρτισης για ηλεκτρικό όχημα" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης Ηλεκτρικού Οχήματος</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
                   </div>
                   <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="για παράδειγμα Θέση Νο. 12, υπόγειο Β..."/>
                 </SvcSection>

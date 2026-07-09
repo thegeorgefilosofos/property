@@ -142,13 +142,13 @@ export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | n
             <Toggle on={svc.included} onChange={() => toggle(i)} />
             <span style={{ fontSize:'13px', color: svc.included ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{svc.name}</span>
             <NumberInput
-              label="ΚΟΣΤΟΣ ΙΔΙΟΚΤΗΤΗ"
+              label="Κόστος ιδιοκτήτη"
               value={svc.cost_owner.toString()}
               onChange={v => upd(i, 'cost_owner', parseFloat(v)||0)}
               suffix="€" step={0.01}
             />
             <NumberInput
-              label="ΧΡΕΩΣΗ ΕΝΟΙΚΙΑΣΤΗ"
+              label="Χρέωση ενοικιαστή"
               value={svc.charged_tenant.toString()}
               onChange={v => upd(i, 'charged_tenant', parseFloat(v)||0)}
               suffix="€" step={0.01}
@@ -156,12 +156,15 @@ export function StreamingConfig({ value, onChange }: { value: StreamingSvc[] | n
           </div>
         ))}
       </div>
+      <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.5, marginBottom:'12px' }}>
+        το γενικό κόστος και πόσο το χρεώνεις στον ενοικιαστή
+      </div>
       {inc.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'8px', padding:'12px', background:'var(--bg-elevated)', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
           {[
-            { label:'Κόστος Ιδιοκτήτη/μήνα', val:fmt(totalOwner), color:'var(--negative)' },
-            { label:'Χρέωση Ενοικιαστή/μήνα', val:fmt(totalTenant), color:'var(--accent)' },
-            { label:'Αποτέλεσμα', val:(profit>=0?'+':'')+fmt(profit), color:profit>=0?'var(--positive)':'var(--negative)' },
+            { label:'Κόστος ιδιοκτήτη / μήνα', val:fmt(totalOwner), color:'var(--negative)' },
+            { label:'Χρέωση ενοικιαστή / μήνα', val:fmt(totalTenant), color:'var(--accent)' },
+            { label:'Αποτέλεσμα / μήνα', val:(profit>=0?'+':'')+fmt(profit), color:profit>=0?'var(--positive)':'var(--negative)' },
           ].map(({ label, val, color }) => (
             <div key={label} style={{ textAlign:'center' }}>
               <div style={{ fontSize:'14px', fontWeight:700, color, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{val}</div>
@@ -194,7 +197,7 @@ export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null;
   return (
     <div>
       <div style={{ display:'flex', gap:'6px', marginBottom:'14px', flexWrap:'wrap' }}>
-        {[['none','Χωρίς'],['2x2h','2 × 2ώρ/μήνα'],['2x3h','2 × 3ώρ/μήνα'],['custom','Προσαρμοσμένο']].map(([v,l]) => (
+        {[['none','Χωρίς'],['2x2h','Δύο φορές × δύο ώρες / μήνα'],['2x3h','Δύο φορές × τρεις ώρες / μήνα'],['custom','Προσαρμοσμένο']].map(([v,l]) => (
           <button
             key={v}
             onClick={() => sel(v)}
@@ -212,21 +215,24 @@ export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null;
       {value && value.package !== 'none' && (
         <div style={{ background:'var(--bg-elevated)', padding:'16px', borderRadius:'10px', border:'1px solid var(--border-subtle)' }}>
           <div style={{ ...s.g4, marginBottom:'12px' }}>
-            <NumberInput label="Φορές/μήνα"      value={value.times.toString()}            onChange={v=>upd('times',parseFloat(v)||0)}/>
-            <NumberInput label="Ώρες/επίσκεψη"   value={value.hours.toString()}            onChange={v=>upd('hours',parseFloat(v)||0)}/>
-            <NumberInput label="Τιμή/ώρα"        value={value.price_per_hour.toString()}   onChange={v=>upd('price_per_hour',parseFloat(v)||0)} suffix="€" step={0.5}/>
-            <NumberInput label="Κόστος ιδιοκτ."  value={value.total_owner.toString()}      onChange={v=>upd('total_owner',parseFloat(v)||0)} suffix="€"/>
+            <NumberInput label="Φορές τον μήνα"     value={value.times.toString()}            onChange={v=>upd('times',parseFloat(v)||0)}/>
+            <NumberInput label="Ώρες ανά επίσκεψη"  value={value.hours.toString()}            onChange={v=>upd('hours',parseFloat(v)||0)}/>
+            <NumberInput label="Τιμή ανά ώρα"       value={value.price_per_hour.toString()}   onChange={v=>upd('price_per_hour',parseFloat(v)||0)} suffix="€" step={0.5}/>
+            <NumberInput label="Κόστος ιδιοκτήτη"   value={value.total_owner.toString()}      onChange={v=>upd('total_owner',parseFloat(v)||0)} suffix="€"/>
           </div>
           <div style={s.g2}>
-            <NumberInput label="Χρέωση ενοικ." value={value.total_tenant.toString()} onChange={v=>upd('total_tenant',parseFloat(v)||0)} suffix="€"/>
+            <NumberInput label="Χρέωση ενοικιαστή" value={value.total_tenant.toString()} onChange={v=>upd('total_tenant',parseFloat(v)||0)} suffix="€"/>
             <div style={{ display:'flex', alignItems:'center', paddingTop:'18px' }}>
               <div style={{ textAlign:'center', flex:1 }}>
                 <div style={{ fontSize:'16px', fontWeight:700, color:profit>=0?'var(--positive)':'var(--negative)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>
                   {profit>=0?'+':''}{fmt(profit)}
                 </div>
-                <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αποτέλεσμα/μήνα</div>
+                <div style={{ fontSize:'9px', color:'var(--text-secondary)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:'3px' }}>Αποτέλεσμα / μήνα</div>
               </div>
             </div>
+          </div>
+          <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.5, marginTop:'12px' }}>
+            το γενικό κόστος και πόσο το χρεώνεις στον ενοικιαστή
           </div>
         </div>
       )}
