@@ -1,9 +1,9 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Πελατολόγιο (CRM): πλήρης σχέση & αρχείο φιλοξενίας ανά πελάτη/επισκέπτη.
+// Πελάτης: εργαλείο φιλοξενίας βραχυχρόνιας μίσθωσης ανά επισκέπτη.
 // Βαθμολογία, σχόλια/χρονολόγιο, ΑΦΜ, επικοινωνία, διεύθυνση, ιστορικό διαμονών,
-// φθορές, τιμή/έσοδα, ανάγκες/προϋπολογισμός (μεσίτες). Cross-property (ανά χρήστη).
+// φθορές, τιμή/έσοδα, VIP/μαύρη λίστα. Cross-property (ανά χρήστη).
 // Σχεδίαση: near-monochrome μπλε· χρώμα μόνο σε γνήσια σήματα (φθορές/μαύρη λίστα).
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -14,10 +14,8 @@ import {
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import {
-  CLIENT_TYPES, CLIENT_TYPE_LABELS, PIPELINE_STAGES, STAGE_LABELS,
   isValidAfm, stayNights, stayTotal, clientStats, normalizePhone,
   clientMatches, STAY_CHANNELS, STAY_CHANNEL_LABELS, NOTE_KINDS, NOTE_KIND_LABELS,
-  type ClientType, type Stage,
 } from '@/lib/clients/clients';
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
 import { revenueByChannel, revenueByMonth, occupancyPct, totals } from '@/lib/clients/reports';
@@ -25,13 +23,12 @@ import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } fr
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 interface Client {
-  id: string; user_id: string; type: ClientType; full_name: string;
+  id: string; user_id: string; type: string; full_name: string;
   afm: string | null; phone: string | null; email: string | null; notes: string | null;
-  stage: Stage; deal_value: number | null; next_action: string | null; next_date: string | null;
   created_at: string; updated_at: string;
   rating: number | null; tags: string[] | null; do_not_rent: boolean | null; vip: boolean | null;
   address: string | null; id_number: string | null; nationality: string | null;
-  budget: number | null; needs: string | null; source: string | null;
+  source: string | null;
 }
 interface Stay {
   id: string; user_id: string; client_id: string; property_id: string | null;
@@ -62,9 +59,6 @@ const fmtBytes = (n?: number | null) => {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// Τύπος & στάδιο: κατηγορικά → ουδέτερα badges (χωρίς διακοσμητικό χρώμα).
-const TYPE_TONE: Record<ClientType, 'neutral'> = { owner: 'neutral', lead: 'neutral', client: 'neutral' };
-const STAGE_TONE: Record<Stage, 'neutral' | 'positive'> = { lead: 'neutral', viewing: 'neutral', offer: 'neutral', closed: 'positive' };
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // Deep-links μηνυμάτων. Το normalizePhone αφαιρεί +30/0030· για 10ψήφιο κινητό
@@ -73,23 +67,19 @@ const msgDigits = (p?: string | null) => { const d = normalizePhone(p); return d
 const waLink = (p?: string | null) => `https://wa.me/${msgDigits(p)}`;
 const viberLink = (p?: string | null) => `viber://chat?number=%2B${msgDigits(p)}`;
 
-const typeOptions = CLIENT_TYPES.map(t => ({ value: t, label: CLIENT_TYPE_LABELS[t] }));
-const stageOptions = PIPELINE_STAGES.map(s => ({ value: s, label: STAGE_LABELS[s] }));
 const channelOptions = STAY_CHANNELS.map(c => ({ value: c, label: STAY_CHANNEL_LABELS[c] }));
 const noteKindOptions = NOTE_KINDS.map(k => ({ value: k, label: NOTE_KIND_LABELS[k] }));
 
 // ── Κατάσταση φόρμας πελάτη (αριθμοί ως strings για τα NumberInput) ──────────
 interface FormState {
-  type: ClientType; full_name: string; afm: string; phone: string; email: string; notes: string;
-  stage: Stage; deal_value: string; next_action: string; next_date: string;
+  full_name: string; afm: string; phone: string; email: string; notes: string;
   rating: number; tags: string[]; do_not_rent: boolean; vip: boolean; address: string; id_number: string;
-  nationality: string; source: string; budget: string; needs: string;
+  nationality: string; source: string;
 }
 const emptyForm = (): FormState => ({
-  type: 'lead', full_name: '', afm: '', phone: '', email: '', notes: '',
-  stage: 'lead', deal_value: '', next_action: '', next_date: '',
+  full_name: '', afm: '', phone: '', email: '', notes: '',
   rating: 0, tags: [], do_not_rent: false, vip: false, address: '', id_number: '',
-  nationality: '', source: '', budget: '', needs: '',
+  nationality: '', source: '',
 });
 
 interface StayForm {
@@ -213,9 +203,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | ClientType>('all');
   const [segment, setSegment] = useState<'all' | 'vip' | 'repeat' | 'flagged'>('all');
-  const [view, setView] = useState<'list' | 'board'>('list');
   const [reportsOpen, setReportsOpen] = useState(false);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearMenu, setReportYearMenu] = useState(false);
@@ -347,7 +335,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const isFlagged = useCallback((c: Client) => !!c.do_not_rent || !!statsByClient.get(c.id)?.hasDamage, [statsByClient]);
 
   const filtered = useMemo(() => clients.filter(c => {
-    if (typeFilter !== 'all' && c.type !== typeFilter) return false;
     if (!clientMatches(c, search)) return false;
     if (segment !== 'all') {
       const st = statsByClient.get(c.id);
@@ -356,7 +343,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       if (segment === 'flagged' && !isFlagged(c)) return false;
     }
     return true;
-  }), [clients, search, typeFilter, segment, statsByClient, isFlagged]);
+  }), [clients, search, segment, statsByClient, isFlagged]);
 
   const kpis = useMemo(() => {
     const revenue = clientStats(stays).revenue;
@@ -375,12 +362,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const openEdit = (c: Client) => {
     setEditing(c);
     setForm({
-      type: c.type, full_name: c.full_name, afm: c.afm || '', phone: c.phone || '', email: c.email || '',
-      notes: c.notes || '', stage: c.stage, deal_value: c.deal_value != null ? String(c.deal_value) : '',
-      next_action: c.next_action || '', next_date: c.next_date || '',
+      full_name: c.full_name, afm: c.afm || '', phone: c.phone || '', email: c.email || '',
+      notes: c.notes || '',
       rating: c.rating || 0, tags: c.tags || [], do_not_rent: !!c.do_not_rent, vip: !!c.vip, address: c.address || '',
       id_number: c.id_number || '', nationality: c.nationality || '', source: c.source || '',
-      budget: c.budget != null ? String(c.budget) : '', needs: c.needs || '',
     });
     setModalOpen(true);
   };
@@ -397,16 +382,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       }
     }
     setSaving(true);
-    const num = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const payload = {
-      user_id: userId, type: form.type, full_name: form.full_name.trim(),
+      user_id: userId, type: 'client', full_name: form.full_name.trim(),
       afm: form.afm.trim() || null, phone: form.phone.trim() || null, email: form.email.trim() || null,
-      notes: form.notes.trim() || null, stage: form.stage, deal_value: num(form.deal_value),
-      next_action: form.next_action.trim() || null, next_date: form.next_date || null,
+      notes: form.notes.trim() || null,
       rating: form.rating || 0, tags: form.tags, do_not_rent: form.do_not_rent, vip: form.vip,
       address: form.address.trim() || null, id_number: form.id_number.trim() || null,
       nationality: form.nationality.trim() || null, source: form.source.trim() || null,
-      budget: num(form.budget), needs: form.needs.trim() || null,
       updated_at: new Date().toISOString(),
     };
     if (editing) await supabase.from('clients').update(payload).eq('id', editing.id);
@@ -418,11 +400,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     if (!confirm('Να διαγραφεί η καταχώρηση;')) return;
     await supabase.from('clients').delete().eq('id', c.id);
     if (openId === c.id) setOpenId(null);
-    load();
-  };
-
-  const setStage = async (c: Client, stage: Stage) => {
-    await supabase.from('clients').update({ stage, updated_at: new Date().toISOString() }).eq('id', c.id);
     load();
   };
 
@@ -475,7 +452,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const name = emailDraft.name.trim();
     let clientId = clients.find(c => c.full_name.trim().toLowerCase() === name.toLowerCase())?.id || null;
     if (!clientId) {
-      const { data } = await supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name, stage: 'lead' }).select('id').maybeSingle();
+      const { data } = await supabase.from('clients').insert({ user_id: userId, type: 'client', full_name: name }).select('id').maybeSingle();
       clientId = data?.id || null;
     }
     if (clientId) {
@@ -656,7 +633,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const existing = clients.find(c => c.full_name === name && c.type === 'client');
     if (existing) return existing.id;
     const { data, error } = await supabase.from('clients').insert({
-      user_id: userId, type: 'client', full_name: name, stage: 'closed',
+      user_id: userId, type: 'client', full_name: name,
       notes: 'Συγκεντρωτικός πελάτης για κρατήσεις που εισάγονται από iCal (χωρίς στοιχεία επισκέπτη).',
     }).select('id').single();
     if (error || !data) return null;
@@ -697,21 +674,19 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const rows = clients.map(c => {
       const st = statsByClient.get(c.id) || clientStats([]);
       return [
-        CLIENT_TYPE_LABELS[c.type] || c.type, c.full_name, c.afm || '', c.phone || '', c.email || '',
+        c.full_name, c.afm || '', c.phone || '', c.email || '',
         c.address || '', c.id_number || '', c.nationality || '', c.source || '',
-        STAGE_LABELS[c.stage] || c.stage, c.deal_value != null ? String(Math.round(c.deal_value)) : '',
         c.rating != null ? String(c.rating) : '', (c.tags || []).join(' | '), c.do_not_rent ? 'ΝΑΙ' : '',
         String(st.stayCount), String(st.nights), String(Math.round(st.revenue)), String(Math.round(st.adr)),
         st.avgRating != null ? String(st.avgRating) : '', st.lastVisit || '', st.damageTotal ? String(Math.round(st.damageTotal)) : '',
-        c.budget != null ? String(Math.round(c.budget)) : '', c.needs || '',
         (propsByClient.get(c.id) || []).map(p => p.name).join(' | '),
       ];
     });
-    downloadCsv(`pelatologio_${todayStr()}`, [
-      'Τύπος', 'Ονοματεπώνυμο', 'ΑΦΜ', 'Τηλέφωνο', 'Email', 'Διεύθυνση', 'Ταυτότητα', 'Εθνικότητα', 'Πηγή',
-      'Στάδιο', 'Αξία ευκαιρίας', 'Βαθμολογία', 'Ετικέτες', 'Μαύρη λίστα',
+    downloadCsv(`pelates_${todayStr()}`, [
+      'Ονοματεπώνυμο', 'ΑΦΜ', 'Τηλέφωνο', 'Email', 'Διεύθυνση', 'Ταυτότητα', 'Εθνικότητα', 'Πηγή',
+      'Βαθμολογία', 'Ετικέτες', 'Μαύρη λίστα',
       'Διαμονές', 'Νύχτες', 'Έσοδα', 'ADR', 'Μέση βαθμολογία', 'Τελευταία επίσκεψη', 'Φθορές',
-      'Προϋπολογισμός', 'Ανάγκες', 'Ακίνητα',
+      'Ακίνητα',
     ], rows);
   };
 
@@ -734,8 +709,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   );
   const initials = (form.full_name.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('') || '+').toUpperCase();
 
-  const overdue = (c: Client) => c.next_date != null && c.stage !== 'closed' && c.next_date <= todayStr();
-
   if (loading) return <Spinner label="Φόρτωση…" />;
 
   const unlinkedProps = props.filter(p => !p.client_id);
@@ -749,7 +722,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <PageTitle title="Πελατολόγιο" sub="Πλήρες αρχείο πελατών, επισκεπτών και ιδιοκτητών: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
+      <PageTitle title="Πελάτης" sub="Πλήρες αρχείο επισκεπτών βραχυχρόνιας μίσθωσης: βαθμολογία, ιστορικό διαμονών, φθορές και επικοινωνία σε ένα σημείο."
         right={(clients.length > 0 || props.length > 0) ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Btn variant="ghost" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>{props.length > 0 && <Btn variant="ghost" onClick={openIcal}>Εισαγωγή iCal</Btn>}{clients.length > 0 && <Btn variant="ghost" onClick={() => setReportsOpen(true)}>Αναφορές</Btn>}{clients.length > 0 && <ExportButton onClick={exportCsv} />}<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn></div> : undefined} />
 
       <KPIGrid items={kpis} />
@@ -758,27 +731,20 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
           style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button style={chip(typeFilter === 'all')} onClick={() => setTypeFilter('all')}>Όλοι</button>
-          {CLIENT_TYPES.map(t => <button key={t} style={chip(typeFilter === t)} onClick={() => setTypeFilter(t)}>{CLIENT_TYPE_LABELS[t]}</button>)}
+          <button style={chip(segment === 'all')} onClick={() => setSegment('all')}>Όλοι</button>
           <button style={chip(segment === 'vip')} title="Βαθμολογία 4+ ή υψηλά έσοδα" onClick={() => setSegment(s => s === 'vip' ? 'all' : 'vip')}>VIP</button>
           <button style={chip(segment === 'repeat')} onClick={() => setSegment(s => s === 'repeat' ? 'all' : 'repeat')}>Επαναλαμβανόμενοι</button>
           <button style={chip(segment === 'flagged')} title="Μαύρη λίστα ή φθορές" onClick={() => setSegment(s => s === 'flagged' ? 'all' : 'flagged')}>Με επισήμανση</button>
         </div>
-        <div style={{ display: 'flex', gap: 0, marginLeft: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 20, overflow: 'hidden' }}>
-          {(['list', 'board'] as const).map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: '7px 16px', border: 'none', background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? 'var(--accent-text)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500 }}>{v === 'list' ? 'Λίστα' : 'Στάδια'}</button>
-          ))}
-        </div>
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState title="Δεν υπάρχουν καταχωρήσεις ακόμη" hint="Πρόσθεσε ιδιοκτήτες, υποψήφιους ή πελάτες, κατέγραψε τις διαμονές τους και σύνδεσέ τους με τα ακίνητά σου." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
-      ) : view === 'list' ? (
+        <EmptyState title="Δεν υπάρχουν επισκέπτες ακόμη" hint="Πρόσθεσε τους επισκέπτες σου, κατέγραψε τις διαμονές τους και σύνδεσέ τους με τα ακίνητά σου." action={<Btn variant="primary" onClick={openNew}>Νέα καταχώρηση</Btn>} />
+      ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 14 }}>
           {filtered.map(c => {
             const linked = propsByClient.get(c.id) || [];
             const st = statsByClient.get(c.id) || clientStats([]);
-            const broker = (c.type === 'client' || c.type === 'lead') && (c.budget != null || (c.needs && c.needs.trim()));
             return (
               <div key={c.id} className="client-card" role="button" tabIndex={0}
                 onClick={() => setOpenId(c.id)}
@@ -798,7 +764,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      <Badge tone={TYPE_TONE[c.type]}>{CLIENT_TYPE_LABELS[c.type]}</Badge>
                       {c.vip && <Badge tone="accent">VIP</Badge>}
                       {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
                       {st.hasDamage && !c.do_not_rent && <Badge tone="negative">Φθορές</Badge>}
@@ -855,24 +820,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                 )}
 
-                {broker && (
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {c.budget != null && <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num }}>Προϋπολογισμός {fe(c.budget, 0)}</span>}
-                    {c.needs && c.needs.trim() && <span style={{ marginLeft: c.budget != null ? 8 : 0 }}>{c.needs}</span>}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <Badge tone={STAGE_TONE[c.stage]}>{STAGE_LABELS[c.stage]}</Badge>
-                  {c.deal_value != null && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(c.deal_value, 0)}</span>}
-                </div>
-
-                {c.next_action && (
-                  <div style={{ fontSize: 12, color: overdue(c) ? 'var(--negative)' : 'var(--text-secondary)' }}>
-                    {c.next_action}{c.next_date && <span style={{ marginLeft: 6, fontSize: 11 }}>· {overdue(c) ? 'Εκπρόθεσμο' : 'Λήγει'} {new Date(c.next_date).toLocaleDateString('el-GR')}</span>}
-                  </div>
-                )}
-
                 {linked.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
                     {linked.map(p => (
@@ -882,43 +829,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     ))}
                   </div>
                 )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
-          {PIPELINE_STAGES.map(stage => {
-            const col = filtered.filter(c => c.stage === stage);
-            const sum = col.reduce((s, c) => s + (c.deal_value || 0), 0);
-            return (
-              <div key={stage} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 12, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{STAGE_LABELS[stage]} · {col.length}</span>
-                  {sum > 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(sum, 0)}</span>}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {col.map(c => (
-                    <div key={c.id} className="client-card" role="button" tabIndex={0}
-                      onClick={() => setOpenId(c.id)}
-                      onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(c.id); } }}
-                      style={{ borderRadius: 12, padding: 11, display: 'flex', flexDirection: 'column', gap: 9, borderColor: c.do_not_rent ? 'var(--negative-border)' : undefined }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        {avatar(c.full_name, 30)}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
-                          {c.deal_value != null && <div style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(c.deal_value, 0)}</div>}
-                        </div>
-                        {c.do_not_rent && <Badge tone="negative">Προσοχή</Badge>}
-                      </div>
-                      {c.next_action && <div style={{ fontSize: 11, color: overdue(c) ? 'var(--negative)' : 'var(--text-tertiary)' }}>{c.next_action}</div>}
-                      <select value={c.stage} onClick={e => e.stopPropagation()} onChange={e => setStage(c, e.target.value as Stage)} style={{ ...inp, cursor: 'pointer', fontSize: 11, height: 32, padding: '4px 8px' }}>
-                        {PIPELINE_STAGES.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                  {col.length === 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: '12px 0' }}>-</div>}
-                </div>
               </div>
             );
           })}
@@ -935,7 +845,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
-                  <Badge tone={TYPE_TONE[dc.type]}>{CLIENT_TYPE_LABELS[dc.type]}</Badge>
                   {dc.vip && <Badge tone="accent">VIP</Badge>}
                   {dc.do_not_rent && <Badge tone="negative">Μαύρη λίστα</Badge>}
                 </div>
@@ -986,12 +895,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                   <a href={waLink(dc.phone)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>
                   <a href={viberLink(dc.phone)} style={msgLink}>Viber</a>
-                </div>
-              )}
-              {(dc.type === 'client' || dc.type === 'lead') && (dc.budget != null || (dc.needs && dc.needs.trim())) && (
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {dc.budget != null && <div><span style={{ color: 'var(--text-tertiary)' }}>Προϋπολογισμός: </span><span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(dc.budget, 0)}</span></div>}
-                  {dc.needs && dc.needs.trim() && <div style={{ marginTop: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>Ανάγκες: </span>{dc.needs}</div>}
                 </div>
               )}
               {dc.notes && dc.notes.trim() && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{dc.notes}</div>}
@@ -1538,7 +1441,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 700, fontSize: 15, fontFamily: T.font.sans, flexShrink: 0, letterSpacing: '0.02em' }}>{initials}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων και σχέσης' : 'Πελάτης, υποψήφιος ή ιδιοκτήτης'}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}</div>
               </div>
               <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
@@ -1547,7 +1450,6 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {secHead('Στοιχεία & επικοινωνία')}
               <div style={fGrid}>
                 <div style={{ gridColumn: '1 / -1' }}><TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} /></div>
-                <CustomSelect label="Τύπος" value={form.type} onChange={v => setForm(f => ({ ...f, type: v as ClientType }))} options={typeOptions} />
                 <div>
                   <TextInput label="ΑΦΜ" value={form.afm} onChange={v => setForm(f => ({ ...f, afm: v.replace(/[^0-9]/g, '').slice(0, 9) }))} />
                   {form.afm.length === 9 && !isValidAfm(form.afm) && <div style={{ fontSize: 10, color: 'var(--negative)', marginTop: 4 }}>Μη έγκυρο ΑΦΜ (9 ψηφία)</div>}
@@ -1560,12 +1462,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <TextInput label="Πηγή γνωριμίας" value={form.source} onChange={v => setForm(f => ({ ...f, source: v }))} placeholder="π.χ. Airbnb, σύσταση" />
               </div>
 
-              {secHead('Σχέση & στάδιο')}
+              {secHead('Βαθμολογία & σήματα')}
               <div style={fGrid}>
-                <CustomSelect label="Στάδιο" value={form.stage} onChange={v => setForm(f => ({ ...f, stage: v as Stage }))} options={stageOptions} />
-                <NumberInput label="Αξία ευκαιρίας" value={form.deal_value} onChange={v => setForm(f => ({ ...f, deal_value: v }))} suffix="€" />
-                <TextInput label="Επόμενη ενέργεια" value={form.next_action} onChange={v => setForm(f => ({ ...f, next_action: v }))} placeholder="π.χ. Επίσκεψη ακινήτου" />
-                <DatePicker label="Ημερομηνία ενέργειας" value={form.next_date} onChange={v => setForm(f => ({ ...f, next_date: v }))} />
                 <div>
                   <div style={lbl}>Βαθμολογία</div>
                   <div style={{ height: 42, display: 'flex', alignItems: 'center' }}><Stars value={form.rating} onSet={n => setForm(f => ({ ...f, rating: n }))} size={22} /></div>
@@ -1582,16 +1480,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               </div>
 
-              {secHead('Αναζήτηση ακινήτου (μεσίτης)')}
-              <div style={fGrid}>
-                <NumberInput label="Προϋπολογισμός" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} suffix="€" />
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <Textarea label="Ανάγκες και επιθυμίες" value={form.needs} onChange={v => setForm(f => ({ ...f, needs: v }))} placeholder="π.χ. 2 δωμάτια, κέντρο, έως 3ος όροφος, μπαλκόνι" rows={2} />
-                </div>
-              </div>
-
               <div style={{ marginTop: 18 }}>
-                <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ελεύθερες σημειώσεις για τον πελάτη" />
+                <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} rows={3} placeholder="Ελεύθερες σημειώσεις για τον επισκέπτη" />
               </div>
             </div>
             {/* Sticky footer */}

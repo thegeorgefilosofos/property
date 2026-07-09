@@ -487,6 +487,14 @@ create policy "own_rent_comparables" on public.rent_comparables for all
 alter table public.expenses        add column if not exists bill_id uuid references public.bills(id) on delete set null;
 alter table public.calendar_events add column if not exists bill_id uuid references public.bills(id) on delete set null;
 
+-- Διαμοιρασμός δαπανών & λογαριασμών: ποσοστό ιδιοκτήτη + σημείωση προσώπου
+-- (βλ. migration 20260709120000). Ίδιο μοντέλο σε expenses και bills.
+alter table public.expenses        add column if not exists share_percent numeric;
+alter table public.expenses        add column if not exists share_note    text;
+alter table public.bills           add column if not exists paid_by       text default 'owner';
+alter table public.bills           add column if not exists share_percent numeric;
+alter table public.bills           add column if not exists share_note    text;
+
 create index if not exists expenses_bill_id_idx        on public.expenses(bill_id);
 create index if not exists calendar_events_bill_id_idx on public.calendar_events(bill_id);
 

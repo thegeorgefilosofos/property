@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { NumberInput, TextInput, CustomSelect } from './UIComponents';
+import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 
 // ── Category definitions ──────────────────────────────────────────────────────
@@ -15,28 +15,14 @@ const CATS = [
   { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
   { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
   { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
+  { key: 'other',        label: 'Λοιπές δαπάνες',      default: 50  },
 ] as const;
 
 type CatKey = typeof CATS[number]['key'];
 
-// ── Participant (split cost person) ──────────────────────────────────────────
-interface Participant {
-  id:    string;
-  name:  string;
-  role:  string; // για παράδειγμα Σύζυγος, Οικογένεια, Ενοικιαστής, Εταίρος
-  share: number; // percentage 0-100
-  color: string;
-}
-
-const ROLE_OPTIONS = [
-  { value: 'spouse',    label: 'Σύζυγος'     },
-  { value: 'family',    label: 'Οικογένεια'  },
-  { value: 'partner',   label: 'Εταίρος'     },
-  { value: 'tenant',    label: 'Ενοικιαστής' },
-  { value: 'other',     label: 'Άλλο'        },
-];
-
-const PARTICIPANT_COLORS = ['#3b82f6','#8b5cf6','#10b981','#ec4899','#f59e0b','#ef4444'];
+// Ο διαμοιρασμός δαπανών/λογαριασμών γίνεται πλέον ΑΝΑ ΕΓΓΡΑΦΗ (πεδίο
+// «Πληρώνει / Διαμοιρασμός» στη δαπάνη ή τον λογαριασμό) — ΕΝΑ μοντέλο σε όλη
+// την εφαρμογή. Ο προϋπολογισμός εδώ κρατά μόνο στόχους έναντι πραγματικών.
 
 interface Props { propertyId: string; userId?: string; }
 
@@ -46,23 +32,17 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const initBudgets = (): Record<string, string> => {
-    const b: Record<string, string> = { total: '340' };
+    const b: Record<string, string> = { total: '390' };
     CATS.forEach(c => { b[c.key] = String(c.default); });
     return b;
   };
 
   const [budgets,      setBudgets]      = useState<Record<string, string>>(initBudgets);
   const [actuals,      setActuals]      = useState<Record<string, number>>({});
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [editMode,     setEditMode]     = useState(false);
-  const [showSplit,    setShowSplit]     = useState(false);
   const [rtOk,         setRtOk]         = useState(false);
-  // New participant form
-  const [newName,      setNewName]      = useState('');
-  const [newRole,      setNewRole]      = useState('spouse');
-  const [newShare,     setNewShare]     = useState('50');
 
   const mapCategory = (cat: string): CatKey | 'other' => {
     const m: Record<string, CatKey> = {
@@ -86,16 +66,18 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const start = `${y}-${m}-01`;
       const end   = `${y}-${m}-${new Date(y, now.getMonth() + 1, 0).getDate()}T23:59:59`;
 
-      const [budgetRes, billsRes, settRes] = await Promise.all([
+      const [budgetRes, billsRes, settRes, expRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
         supabase.from('bills').select('category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
+        // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
+        // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
+        supabase.from('expenses').select('amount,date,bill_id,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', `${y}-${m}-31`),
       ]);
 
       if (budgetRes.data?.data) {
         const saved = budgetRes.data.data as Record<string, unknown>;
         setBudgets(prev => { const n = { ...prev }; Object.entries(saved).forEach(([k, v]) => { if (k !== 'participants') n[k] = String(v); }); return n; });
-        if ((saved as any).participants) setParticipants((saved as any).participants);
       }
 
       const billActuals: Record<string, number> = {};
@@ -121,6 +103,14 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const ins = getSett('insurance');
       if (ins && !billActuals.insurance) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
 
+      // Έξοδα εκτός λογαριασμών του μήνα: η συντήρηση πάει στη «Συντήρηση»,
+      // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
+      (expRes.data ?? []).forEach((e: any) => {
+        const amt = e.amount || 0;
+        if (e.expense_group === 'maintenance') billActuals.maintenance = (billActuals.maintenance || 0) + amt;
+        else billActuals.other = (billActuals.other || 0) + amt;
+      });
+
       setActuals(billActuals);
     } catch (_) {}
     finally { setLoading(false); }
@@ -134,23 +124,24 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       .channel(`budget_${propertyId}`)
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills_settings', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
+      .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'expenses', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .subscribe(s => { if (mounted) setRtOk(s === 'SUBSCRIBED'); });
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId, loadData]);
 
-  const saveBudgets = useCallback((data: Record<string, string>, parts?: Participant[]) => {
+  const saveBudgets = useCallback((data: Record<string, string>) => {
     if (!propertyId) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       setSaving(true);
       try {
         await supabase.from('bills_settings').upsert(
-          { property_id: propertyId, user_id: userId, section: 'budgets', data: { ...data, participants: parts ?? participants } },
+          { property_id: propertyId, user_id: userId, section: 'budgets', data },
           { onConflict: 'property_id,section' }
         );
       } finally { setSaving(false); }
     }, 800);
-  }, [propertyId, userId, participants]);
+  }, [propertyId, userId]);
 
   const updateBudget = (key: string, val: string) => {
     const next = { ...budgets, [key]: val };
@@ -158,33 +149,10 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
     saveBudgets(next);
   };
 
-  const addParticipant = () => {
-    if (!newName.trim()) return;
-    const colorIdx = participants.length % PARTICIPANT_COLORS.length;
-    const next: Participant[] = [...participants, {
-      id:    `p_${Date.now()}`,
-      name:  newName.trim(),
-      role:  ROLE_OPTIONS.find(r => r.value === newRole)?.label || newRole,
-      share: Math.min(100, Math.max(0, parseFloat(newShare) || 50)),
-      color: PARTICIPANT_COLORS[colorIdx],
-    }];
-    setParticipants(next);
-    saveBudgets(budgets, next);
-    setNewName(''); setNewShare('50');
-  };
-
-  const removeParticipant = (id: string) => {
-    const next = participants.filter(p => p.id !== id);
-    setParticipants(next);
-    saveBudgets(budgets, next);
-  };
-
   // ── Derived numbers ────────────────────────────────────────────────────────
   const masterBudget  = parseFloat(budgets.total) || CATS.reduce((s, c) => s + c.default, 0);
   const actualTotal   = CATS.reduce((s, c) => s + (actuals[c.key] || 0), 0);
   const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > (parseFloat(budgets[c.key]) || c.default));
-  const totalParticipantShare = participants.reduce((s, p) => s + p.share, 0);
-  const myShare = Math.max(0, 100 - totalParticipantShare);
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -214,10 +182,6 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowSplit(v => !v)}
-            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 500, borderRadius: T.radius.btn, border: `1px solid ${showSplit ? 'var(--accent)' : 'var(--border-default)'}`, background: showSplit ? 'rgba(26,115,232,0.08)' : 'transparent', color: showSplit ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
-            Διαμοιρασμός{participants.length > 0 ? ` (${participants.length})` : ''}
-          </button>
           <button onClick={() => setEditMode(v => !v)}
             style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
             {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
@@ -259,70 +223,6 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         ))}
       </div>
 
-      {/* ── Διαμοιρασμός Κόστους ────────────────────────────────────────────── */}
-      {showSplit && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-          {secHdr('Διαμοιρασμός Κόστους')}
-
-          {/* My share visual */}
-          {(participants.length > 0 || true) && (
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ display: 'flex', height: 32, borderRadius: T.radius.inner, overflow: 'hidden', marginBottom: 10, gap: 2 }}>
-                {/* My share */}
-                <div title={`Εγώ: ${myShare.toFixed(0)}%`}
-                  style={{ flex: myShare, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: myShare > 5 ? undefined : 0, overflow: 'hidden', borderRadius: 6 }}>
-                  {myShare > 10 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)', whiteSpace: 'nowrap' }}>Εγώ {myShare.toFixed(0)}%</span>}
-                </div>
-                {/* Participants */}
-                {participants.map(p => (
-                  <div key={p.id} title={`${p.name}: ${p.share.toFixed(0)}%`}
-                    style={{ flex: p.share, background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: p.share > 5 ? undefined : 0, overflow: 'hidden', borderRadius: 6 }}>
-                    {p.share > 10 && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{p.name.split(' ')[0]} {p.share.toFixed(0)}%</span>}
-                  </div>
-                ))}
-              </div>
-
-              {/* Summary */}
-              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }}/>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εγώ, {fe(masterBudget * myShare / 100)}/μήνα</span>
-                </div>
-                {participants.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }}/>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{p.name} ({p.role}), {fe(masterBudget * p.share / 100)}/μήνα</span>
-                    <button onClick={() => removeParticipant(p.id)}
-                      style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add participant form */}
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Πρόσθεσε Συμμετέχοντα</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10, alignItems: 'flex-end' }}>
-              <TextInput label="Όνομα" value={newName} onChange={setNewName} placeholder="για παράδειγμα Μαρία, Οικογένεια"/>
-              <CustomSelect label="Σχέση" value={newRole} onChange={setNewRole} options={ROLE_OPTIONS}/>
-              <NumberInput label="Ποσοστό (%)" value={newShare} onChange={setNewShare} suffix="%" step={5}/>
-              <button onClick={addParticipant} disabled={!newName.trim()}
-                style={{ height: 40, padding: '0 18px', background: newName.trim() ? 'var(--accent)' : 'var(--bg-overlay)', color: newName.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', border: 'none', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, cursor: newName.trim() ? 'pointer' : 'not-allowed', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-                + Προσθήκη
-              </button>
-            </div>
-            {totalParticipantShare >= 100 && (
-              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--warning)', fontFamily: T.font.sans }}>
-                Το σύνολο ποσοστών φτάνει {totalParticipantShare.toFixed(0)}%, το δικό σου μερίδιο θα γίνει 0%.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Master progress */}
       {!editMode && (() => {
         const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
@@ -342,14 +242,6 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
               <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
             </div>
-
-            {/* My personal share */}
-            {participants.length > 0 && (
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Το δικό μου μερίδιο ({myShare.toFixed(0)}%)</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(masterBudget * myShare / 100)}</span>
-              </div>
-            )}
           </div>
         );
       })()}
@@ -403,7 +295,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
         {editMode && (
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '340'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="340"/>
+            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
               <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
