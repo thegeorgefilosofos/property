@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
@@ -1143,12 +1143,12 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {!embedded && <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
-        right={<>
-          <button type="button" title="Μαζική επιλογή και ενέργειες σε πολλές επαφές" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid ' + (bulkMode ? 'var(--accent)' : 'var(--border-subtle)'), background: bulkMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: bulkMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Bulk</button>
-          <button type="button" onClick={() => exportContactsExcel(contacts)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή Excel</button>
-          <button type="button" onClick={() => exportContactsPDF(contacts, branding)} style={{ padding: '9px 14px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Εξαγωγή PDF</button>
-          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 22px', height: 38, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>+ Νέα Επαφή</button>
-        </>}
+        right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Btn variant={bulkMode ? 'secondary' : 'ghost'} onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
+          <Btn variant="ghost" onClick={() => exportContactsExcel(contacts)}>Εξαγωγή Excel</Btn>
+          <Btn variant="ghost" onClick={() => exportContactsPDF(contacts, branding)}>Εξαγωγή PDF</Btn>
+          <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
+        </div>}
       />}
 
       {contacts.length > 0 && <KPIGrid items={kpiItems} />}
@@ -1216,9 +1216,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <option value="alpha">Αλφαβητικά</option>
           <option value="rating">Αξιολόγηση</option>
         </select>
-        <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '6px 14px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
+            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '7px 16px', border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500, fontFamily: T.font.sans, transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
           ))}
         </div>
       </div>
@@ -1243,8 +1243,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
             const count = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id).length; const active = filterGroup === g.id; const GroupIcon = g.Icon
             return (
-              <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? g.color : 'var(--border-subtle)'), background: active ? g.color + '15' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? g.color : 'var(--text-secondary)', fontWeight: active ? 700 : 400, transition: 'all 0.15s' }}>
-                <GroupIcon size={12} />{g.label}<span style={{ background: active ? g.color : 'var(--bg-elevated)', color: active ? '#fff' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{count}</span>
+              <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+                <GroupIcon size={12} />{g.label}<span style={{ background: active ? 'var(--accent)' : 'var(--bg-elevated)', color: active ? 'var(--accent-text)' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{count}</span>
               </button>
             )
           })}
@@ -1268,14 +1268,13 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {loading ? (
         <Spinner label="Φόρτωση…" />
       ) : contacts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px dashed var(--border-default)' }}>
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.2" style={{ margin: '0 auto 18px', display: 'block', opacity: 0.35 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Δεν υπάρχουν επαφές</div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς<br />και όλες τις επαφές του ακινήτου.</div>
-          <button type="button" onClick={openAdd} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '0 28px', height: 42, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Πρόσθεσε την πρώτη επαφή</button>
-        </div>
+        <EmptyState
+          title="Δεν υπάρχουν επαφές"
+          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
+          action={<Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>}
+        />
       ) : processed.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-secondary)', fontSize: 14 }}>Δεν βρέθηκαν αποτελέσματα.</div>
+        <EmptyState title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
       ) : viewMode === 'compact' ? (
         <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
