@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, SecHdr, SkeletonKPIs, Skeleton } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { stayTotal } from '@/lib/clients/clients';
+import { downloadCsv } from './exportCsv';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
@@ -188,12 +189,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const exportStatement = () => {
     if (!stmt) return;
     const head = ['Ακίνητο', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό'];
-    const lines = stmt.rows.map(r => [r.name, Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net)]);
+    const lines: (string | number)[][] = stmt.rows.map(r => [r.name, Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net)]);
     lines.push(['ΣΥΝΟΛΟ', Math.round(stmt.revenue), Math.round(stmt.expenses), Math.round(stmt.net)]);
-    const csv = [head, ...lines].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `katastasi_${stmt.name.replace(/\s+/g, '_')}_${year}.csv`; a.click(); URL.revokeObjectURL(url);
+    // Ασφαλής εξαγωγή (csvSafe: εξουδετερώνει =,+,-,@ ώστε να μη γίνει CSV/formula injection στο Excel).
+    downloadCsv(`katastasi_${stmt.name.replace(/\s+/g, '_')}_${year}`, head, lines);
   };
 
   const printStatement = () => {
@@ -215,11 +214,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες'];
-    const lines = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net), r.occupancy ?? '', r.nights, r.pending]);
-    const csv = [head, ...lines].map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `xartofylakio_${year}.csv`; a.click(); URL.revokeObjectURL(url);
+    const lines: (string | number)[][] = sorted.map(r => [r.name, r.typeLabel, MODE_LABEL[r.mode], Math.round(r.revenue), Math.round(r.expenses), Math.round(r.net), r.occupancy ?? '', r.nights, r.pending]);
+    downloadCsv(`xartofylakio_${year}`, head, lines);
   };
 
   if (loading) return (

@@ -239,6 +239,7 @@ export default function TabDocuments({
   const [dragOver, setDragOver] = useState(false);
   const [queue, setQueue] = useState<UploadTask[]>([]);  // per-file πρόοδος bulk upload
   const fileRef = useRef<HTMLInputElement>(null);
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);   // χρονόμετρο καθαρισμού ουράς (ακυρώνεται σε νέα παρτίδα)
 
   const fetchAll = useCallback(async () => {
     if (!propertyId) return;
@@ -405,6 +406,9 @@ export default function TabDocuments({
   const handleFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
     if (!files.length || !propertyId || uploading) return;
+    // Ακύρωσε τυχόν εκκρεμές χρονόμετρο καθαρισμού προηγούμενης παρτίδας, ώστε να μη
+    // σβήσει την πρόοδο της νέας παρτίδας που μόλις ξεκινά.
+    if (clearTimerRef.current) { clearTimeout(clearTimerRef.current); clearTimerRef.current = null; }
     setMsg(null); setUploading(true);
     const tasks: UploadTask[] = files.map((f, i) => ({ id: `${Date.now()}_${i}_${f.name}`, name: f.name, status: 'pending' }));
     setQueue(tasks);
@@ -443,7 +447,7 @@ export default function TabDocuments({
       ? { text: 'Αποτυχία αρχειοθέτησης, δοκίμασε ξανά', error: true }
       : { text: fail ? `${ok} αρχειοθετήθηκαν · ${fail} απέτυχαν` : ok === 1 ? 'Το αρχείο αρχειοθετήθηκε' : `${ok} αρχεία αρχειοθετήθηκαν`, error: false });
     fetchAll();
-    setTimeout(() => { setQueue([]); setMsg(null); }, 5000);
+    clearTimerRef.current = setTimeout(() => { setQueue([]); setMsg(null); clearTimerRef.current = null; }, 5000);
   };
 
   const del = async (it: Item) => {
