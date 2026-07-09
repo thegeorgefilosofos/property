@@ -1473,9 +1473,9 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     const depositHeld=currentTenants.filter(t=>!t.deposit_returned).reduce((a,t)=>a+(t.deposit_amount||0),0);
     return [
       { label:'Τρέχον Μηνιαίο Ενοίκιο', value:fe(currentRent), tone:'accent' },
-      { label:'Ληξιπρόθεσμα', value:fe(arrears), tone:arrears>0?'negative':'positive', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
+      { label:'Ληξιπρόθεσμη Οφειλή', value:fe(arrears), tone:arrears>0?'negative':'positive', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
       { label:'Εγγύηση σε Κατοχή', value:fe(depositHeld), tone:'info' },
-      { label:'Ιστορικοί Ενοικιαστές', value:fn(pastTenants.length), tone:'neutral' },
+      { label:'Προηγούμενοι Ενοικιαστές', value:fn(pastTenants.length), tone:'neutral' },
     ];
   },[currentTenants,pastTenants,overdueByTenant]);
 
@@ -1650,10 +1650,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative)44', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
       <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
-        right={<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
-          {tenants.length>0&&<ExportButton onClick={exportRoster}/>}
+        right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
+          <ExportButton onClick={exportRoster}/>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
-        </div>}/>
+        </div>:undefined}/>
 
       <KPIGrid items={kpis}/>
 
@@ -1661,7 +1661,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
           style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:42, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
-          {([['current','Τρέχων'],['past','Προηγούμενοι'],['overdue','Ληξιπρόθεσμοι'],['all','Όλοι']] as [typeof segment,string][]).map(([v,l])=>(
+          {([['all','Όλοι'],['current','Τρέχων'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
             <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:20, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
@@ -1703,7 +1703,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       {([
                         { l:'Μην. ενοίκιο', v:fmt(t.monthly_rent), strong:true },
                         { l:'Εγγύηση', v:fmt(t.deposit_amount) },
-                        { l:'Ληξιπρόθεσμα', v:od?fmt(od.amount):'—', neg:!!od },
+                        { l:'Ληξιπρόθεσμη οφειλή', v:od?fmt(od.amount):'—', neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
                         <div key={i} style={{ flex:1, minWidth:0, paddingLeft:i?12:0, borderLeft:i?'1px solid var(--border-subtle)':'none' }}>
                           <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>
