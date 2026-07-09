@@ -984,7 +984,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             </span>
           )}
           {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{item.assigned_contact_name}</span>}
-          {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' εκτ.'}</span>}
+          {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' (εκτίμηση)'}</span>}
           {subtasks.length > 0 && <span style={{ fontSize: 11, color: subDone === subtasks.length ? 'var(--positive)' : 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-εργασίες</span>}
           {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{(item._comments || []).length} σχόλια</span>}
         </div>
@@ -1001,7 +1001,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
             style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
-            Επεξ.
+            Επεξεργασία
           </button>
           <button type="button" onClick={onDelete}
             style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
