@@ -962,6 +962,29 @@ alter table public.maintenance_requests add column if not exists tenant_id   uui
 alter table public.maintenance_requests add column if not exists category    text;
 alter table public.maintenance_requests add column if not exists resolved_at timestamptz;
 
+-- Αρχείο ειδοποιήσεων (χρησιμοποιείται από τις edge functions send-reminders &
+-- market-data-updater — πολυμορφικό, όλες οι στήλες nullable). Idempotent.
+create table if not exists public.notification_log (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid,
+  event_id      uuid,           -- id γεγονότος ημερολογίου ή δόσης ενοικίου (rent_overdue)
+  reminder_type text,           -- 7days | 3days | 1day | today | overdue | rent_overdue
+  type          text,           -- για ειδοποιήσεις αγοράς (market-data-updater)
+  title         text,
+  body          text,
+  data          jsonb,
+  created_at    timestamptz default now()
+);
+alter table public.notification_log add column if not exists user_id       uuid;
+alter table public.notification_log add column if not exists event_id      uuid;
+alter table public.notification_log add column if not exists reminder_type text;
+alter table public.notification_log add column if not exists created_at    timestamptz default now();
+create index if not exists idx_notif_log_dedup on public.notification_log(reminder_type, event_id);
+alter table public.notification_log enable row level security;
+drop policy if exists "own_notif_log" on public.notification_log;
+create policy "own_notif_log" on public.notification_log for select
+  using (user_id = auth.uid());
+
 -- ── RPC: δεδομένα πύλης (v2) — προσθέτει οφειλή ενοικίου + IBAN πληρωμής ──────
 create or replace function public.get_portal_data(p_token text)
 returns json language plpgsql security definer set search_path = public as $$

@@ -10,13 +10,19 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
+interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
+
 interface PortalData {
   property: { name: string; address: string | null; type: string | null };
-  tenant: { name: string | null; rent: number | null; lease_start: string | null; lease_end: string | null; deposit: number | null };
+  tenant: { name: string | null; rent: number | null; lease_start: string | null; lease_end: string | null; deposit: number | null; rent_iban: string | null };
+  due: DueItem[];
+  total_due: number;
 }
 
 const eur = (n: number | null) => (n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`);
 const gdate = (d: string | null) => (d ? new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—');
+const GR_MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+const monthLabel = (month: number, year: number) => `${GR_MONTHS[month - 1] ?? ''} ${year}`.trim();
 
 export default function TenantPortal() {
   const params = useParams();
@@ -33,14 +39,41 @@ export default function TenantPortal() {
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState('');
 
+  const [declareBusyId, setDeclareBusyId] = useState<string | null>(null);
+  const [declareErr, setDeclareErr] = useState('');
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token });
       if (error || !d) { setState('notfound'); return; }
-      setData(d as PortalData); setState('ok');
+      const raw = d as Partial<PortalData>;
+      setData({
+        ...(raw as PortalData),
+        due: Array.isArray(raw.due) ? raw.due : [],
+        total_due: typeof raw.total_due === 'number' ? raw.total_due : 0,
+      });
+      setState('ok');
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const declarePayment = async (id: string) => {
+    setDeclareErr(''); setDeclareBusyId(id);
+    const { data: ok, error } = await supabase.rpc('declare_rent_payment', { p_token: token, p_payment_id: id, p_note: '' });
+    setDeclareBusyId(null);
+    if (error || !ok) { setDeclareErr('Δεν ήταν δυνατή η δήλωση. Δοκίμασε ξανά.'); return; }
+    // Οπτιμιστική ενημέρωση, μαρκάρουμε ΜΟΝΟ ως δηλωμένο (όχι εξοφλημένο).
+    setData(prev => prev ? { ...prev, due: prev.due.map(it => it.id === id ? { ...it, declared: true } : it) } : prev);
+  };
+
+  const copyIban = async (iban: string) => {
+    try {
+      await navigator.clipboard.writeText(iban);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* αγνόησε, ο χρήστης μπορεί να αντιγράψει χειροκίνητα */ }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(''); setSending(true);
@@ -84,6 +117,72 @@ export default function TenantPortal() {
 
         {state === 'ok' && data && (
           <>
+            {(() => {
+              const hasDue = data.total_due > 0 && data.due.length > 0;
+              return (
+                <div style={card}>
+                  <div style={{ ...label, marginBottom: 12 }}>Οφειλή</div>
+                  {!hasDue ? (
+                    <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>
+                      Δεν υπάρχει εκκρεμής οφειλή
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.02em', fontFamily: "'Roboto Mono',monospace", color: 'var(--text-primary)', marginBottom: 4 }}>{eur(data.total_due)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 18 }}>Συνολικό εκκρεμές ποσό προς εξόφληση</div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 4 }}>
+                        {data.due.map(item => (
+                          <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{monthLabel(item.month, item.year)}</span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{eur(item.amount)}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Λήξη προθεσμίας: {gdate(item.due_date)}</div>
+                            <div style={{ marginTop: 12 }}>
+                              {item.declared ? (
+                                <span style={{ display: 'inline-block', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontSize: 12, fontWeight: 600, borderRadius: 100, padding: '6px 12px' }}>
+                                  Δηλώθηκε — σε επιβεβαίωση από τον ιδιοκτήτη
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={declareBusyId === item.id}
+                                  onClick={() => declarePayment(item.id)}
+                                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '9px 14px', cursor: declareBusyId === item.id ? 'not-allowed' : 'pointer', opacity: declareBusyId === item.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                >
+                                  {declareBusyId === item.id ? 'Αποστολή…' : 'Δήλωσα την πληρωμή'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {declareErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)', marginTop: 12 }}>{declareErr}</div>}
+
+                      {data.tenant.rent_iban && (
+                        <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 16, paddingTop: 16 }}>
+                          <div style={label}>Τρόπος πληρωμής</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Πλήρωσε με τραπεζικό έμβασμα στον παρακάτω IBAN και έπειτα δήλωσε την πληρωμή.</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace", wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
+                            <button
+                              type="button"
+                              onClick={() => copyIban(data.tenant.rent_iban as string)}
+                              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                            >
+                              {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             <div style={card}>
               <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 2 }}>{data.property.name}</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>{[data.property.type, data.property.address].filter(Boolean).join(' · ') || 'Ακίνητο'}</div>
@@ -99,7 +198,7 @@ export default function TenantPortal() {
 
               {sent ? (
                 <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>
-                  ✓ Το αίτημα στάλθηκε. Ευχαριστούμε!
+                  Το αίτημα στάλθηκε. Ευχαριστούμε!
                 </div>
               ) : (
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

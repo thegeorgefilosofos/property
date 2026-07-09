@@ -57,13 +57,16 @@ interface Tenant {
   lease_doc_url:string|null; lease_doc_name:string|null; lease_doc_external_url:string|null;
   status:'active'|'past'|null; rent_due_day:number|null;
   deposit_method:string|null; deposit_paid_on:string|null; move_out_date:string|null;
+  furnishing:string|null; rent_iban:string|null;
   created_at:string;
 }
-interface RentPayment { id:string; tenant_id:string; property_id:string; user_id:string; period_month:number; period_year:number; amount:number; paid:boolean; paid_date:string|null; days_late:number|null; notes:string|null; method:string|null; receipt_url:string|null; receipt_doc_id:string|null; due_date:string|null; created_at:string; }
+interface RentPayment { id:string; tenant_id:string; property_id:string; user_id:string; period_month:number; period_year:number; amount:number; base_rent:number|null; services_charge:number|null; paid:boolean; paid_date:string|null; days_late:number|null; notes:string|null; method:string|null; receipt_url:string|null; receipt_doc_id:string|null; due_date:string|null; tenant_declared:boolean|null; tenant_declared_at:string|null; tenant_note:string|null; created_at:string; }
 // Φθορές & επισκευές ανά ενοικιαστή (πίνακας tenant_damages).
 interface TenantDamage { id:string; tenant_id:string; property_id:string; user_id:string; occurred_on:string|null; description:string; cost:number|null; charged_to_tenant:boolean; repaired:boolean; repaired_on:string|null; notes:string|null; created_at:string; }
 // Συγκρίσιμα αγοράς (rent_comparables) — μόνο τα πεδία που χρειάζεται η πρόταση.
 interface RentComp { id:string; property_id:string; title:string; area:string|null; sqm:number|null; rent:number|null; rent_per_sqm:number|null; listing_type:string|null; source:string|null; url:string|null; }
+// Αιτήματα βλάβης (maintenance_requests) — από την πύλη ενοικιαστή προς τον ιδιοκτήτη.
+interface MaintenanceReq { id:string; property_id:string; user_id:string|null; tenant_id:string|null; title:string; description:string|null; contact:string|null; category:string|null; status:string|null; resolved_at:string|null; created_at:string; }
 // Τρόποι καταβολής εγγύησης (ελληνικά, σταθερή σειρά).
 const DEPOSIT_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή'] as const;
 // Παράγωγη κατάσταση: «προηγούμενος» αν σημειώθηκε αποχώρηση ή status='past'.
@@ -90,6 +93,38 @@ const ownerPctFromBy = (pct:number|null|undefined, by:ServiceBy|null|undefined):
   pct != null ? Math.max(0, Math.min(100, Math.round(pct))) : by === 'tenant' ? 0 : by === 'split' ? 50 : 100;
 // Στην αποθήκευση: κρατάμε το enum συγχρονισμένο με το ποσοστό (100→owner, 0→tenant, αλλιώς split).
 const byFromOwnerPct = (pct:number):ServiceBy => { const p = Math.round(pct); return p >= 100 ? 'owner' : p <= 0 ? 'tenant' : 'split'; };
+
+// ─── Τύπος επίπλωσης — καθορίζει ποιες ενότητες υπηρεσιών ισχύουν ────────────────
+type Furnishing = 'empty' | 'furnished' | 'turnkey';
+const FURNISHING_LABELS: Record<Furnishing,string> = {
+  empty:'Κενό', furnished:'Επιπλωμένο', turnkey:'Turn Key (All Inclusive)',
+};
+// Ορατότητα ενοτήτων υπηρεσιών ανά τύπο επίπλωσης: ο «κενός» δεν βλέπει streaming
+// ούτε καθαρισμό· ο «επιπλωμένος» βλέπει καθαρισμό· ο turn-key τα πάντα. Όταν δεν
+// έχει οριστεί τύπος (παλαιά δεδομένα) εμφανίζονται όλα, ώστε να μη χαθεί χρέωση.
+function svcVisible(furnishing:string|null|undefined):{streaming:boolean;cleaning:boolean}{
+  if(furnishing==='empty')     return { streaming:false, cleaning:false };
+  if(furnishing==='furnished') return { streaming:false, cleaning:true  };
+  return { streaming:true, cleaning:true }; // 'turnkey' ή μη ορισμένο
+}
+// ─── Ανάλυση δόσης: βασικό ενοίκιο + χρέωση υπηρεσιών (σέβεται τον τύπο επίπλωσης) ─
+type SvcInput = { furnishing?:string|null; monthly_rent?:number|null; cleaning?:CleaningCfg|null; streaming?:StreamingSvc[]|null; parking_extra?:boolean; parking_extra_price?:number|null };
+const tenantBaseRent = (t:SvcInput):number => Math.max(0, t.monthly_rent||0);
+function tenantServicesCharge(t:SvcInput):number{
+  const vis=svcVisible(t.furnishing);
+  const clean =vis.cleaning ?(t.cleaning?.total_tenant||0):0;
+  const stream=vis.streaming?(t.streaming||[]).filter(sv=>sv.included).reduce((a,sv)=>a+(sv.charged_tenant||0),0):0;
+  const park  =t.parking_extra?(t.parking_extra_price||0):0;
+  return Math.max(0, clean+stream+park);
+}
+// Ανάλυση γραμμών υπηρεσιών (για μηνιαία κατάσταση προς τον μισθωτή).
+function tenantServiceLines(t:SvcInput):{label:string;amount:number}[]{
+  const vis=svcVisible(t.furnishing); const out:{label:string;amount:number}[]=[];
+  if(vis.streaming) (t.streaming||[]).filter(sv=>sv.included).forEach(sv=>out.push({label:sv.name,amount:sv.charged_tenant||0}));
+  if(vis.cleaning && (t.cleaning?.total_tenant||0)>0) out.push({label:'Καθαρισμός',amount:t.cleaning!.total_tenant});
+  if(t.parking_extra && (t.parking_extra_price||0)>0) out.push({label:'Χώρος στάθμευσης',amount:t.parking_extra_price||0});
+  return out.filter(l=>l.amount>0);
+}
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -344,17 +379,17 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
   const alerts=useMemo(()=>predictAlerts(payments,tenant),[payments,tenant]);
   const d=daysLeft(tenant.lease_end); const st=leaseSt(d);
   const streaming=tenant.streaming||[];
-  const totalTenant=(tenant.monthly_rent||0)+(tenant.cleaning?.total_tenant||0)
-    +streaming.filter(sv=>sv.included).reduce((a,sv)=>a+sv.charged_tenant,0)
-    +(tenant.parking_extra?(tenant.parking_extra_price||0):0);
-  const ownerCosts=(tenant.cleaning?.total_owner||0)+streaming.filter(sv=>sv.included).reduce((a,sv)=>a+sv.cost_owner,0);
+  const vis=svcVisible(tenant.furnishing);
+  const servicesCharge=tenantServicesCharge(tenant);
+  const totalTenant=tenantBaseRent(tenant)+servicesCharge;
+  const ownerCosts=(vis.cleaning?(tenant.cleaning?.total_owner||0):0)+(vis.streaming?streaming.filter(sv=>sv.included).reduce((a,sv)=>a+sv.cost_owner,0):0);
   const paidPay=payments.filter(p=>p.paid);
   const unpaidAmt=payments.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0);
   const late=paidPay.filter(p=>(p.days_late||0)>0);
   const avgLate=late.length?late.reduce((a,p)=>a+(p.days_late||0),0)/late.length:0;
   const annualRent=(tenant.monthly_rent||0)*12;
-  const streamOwnerCost=streaming.filter(sv=>sv.included).reduce((a,sv)=>a+sv.cost_owner,0)*12;
-  const cleanOwnerCost=(tenant.cleaning?.total_owner||0)*12;
+  const streamOwnerCost=(vis.streaming?streaming.filter(sv=>sv.included).reduce((a,sv)=>a+sv.cost_owner,0):0)*12;
+  const cleanOwnerCost=(vis.cleaning?(tenant.cleaning?.total_owner||0):0)*12;
   const totalCosts=streamOwnerCost+cleanOwnerCost;
   const netIncome=annualRent-totalCosts;
   const totalReceived=paidPay.reduce((a,p)=>a+p.amount,0);
@@ -848,6 +883,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const [addOpen,setAddOpen]=useState(false);
   const [payF,setPayF]=useState({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση' as PayMethod,paid:true,paid_date:todayISO(),notes:''});
   const [mark,setMark]=useState<{p:RentPayment;method:PayMethod;receipt:string}|null>(null);
+  const [req,setReq]=useState<RentPayment|null>(null); // αίτημα πληρωμής (IBAN/QR/κοινοποίηση)
+  const [copied,setCopied]=useState(false);
   const [prop,setProp]=useState<Record<string,any>|null>(null);
   const [scan,setScan]=useState<{stage:'scanning'|'match'|'error';msg?:string;doc?:ScannedDoc;periodId?:string;method?:PayMethod;docId?:string|null}|null>(null);
   const fileRef=React.useRef<HTMLInputElement>(null);
@@ -860,7 +897,12 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
 
   const genForRows=useCallback(async(rows:{year:number;month:number;due_date:string}[])=>{
     if(!rows.length) return;
-    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:tenant.monthly_rent,paid:false,due_date:r.due_date}));
+    // Ανάλυση δόσης: βασικό ενοίκιο + χρέωση υπηρεσιών (streaming/καθαρισμός/στάθμευση,
+    // σύμφωνα με τον τύπο επίπλωσης). Το «amount» είναι το συνολικό μηνιαίο ποσό.
+    const base=tenantBaseRent(tenant);
+    const services=tenantServicesCharge(tenant);
+    const amt=base+services;
+    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:amt,base_rent:base,services_charge:services,paid:false,due_date:r.due_date}));
     // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
     const{error}=await supabase.from('rent_payments').upsert(payload,{onConflict:'tenant_id,period_year,period_month',ignoreDuplicates:true});
     if(error && !/duplicate|unique/i.test(error.message)) { /* swallow */ }
@@ -881,6 +923,18 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const overdue=useMemo(()=>payments.filter(p=>payStatus(p)==='overdue'),[payments]);
   const arrearsTotal=overdue.reduce((a,p)=>a+p.amount,0);
   const received=payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0);
+
+  // Τρέχουσα ανάλυση δόσης βάσει προφίλ μισθωτή (ενοίκιο + υπηρεσίες).
+  const baseRent=tenantBaseRent(tenant);
+  const svcCharge=tenantServicesCharge(tenant);
+  const targetAmt=baseRent+svcCharge;
+  // Εκκρεμείς δόσεις με ποσό διαφορετικό από το τρέχον (π.χ. άλλαξε ενοίκιο ή υπηρεσίες).
+  const staleUnpaid=useMemo(()=>open.filter(p=>Math.round((p.amount||0)*100)!==Math.round(targetAmt*100)),[open,targetAmt]);
+  const syncUnpaidToTarget=async()=>{
+    setBusy(true);
+    await supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).eq('tenant_id',tenant.id).eq('paid',false);
+    setBusy(false); onRefresh(); notify('Οι εκκρεμείς δόσεις ενημερώθηκαν');
+  };
 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
     const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
@@ -945,6 +999,69 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
 
   const reminderText=(p:RentPayment)=>`Υπενθύμιση ενοικίου, ${propLabel()||'ακίνητο'}: μίσθωμα ${p.amount.toLocaleString('el-GR')} € για ${monthLabel(p)}${p.due_date?`, λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}`:''}. Ευχαριστώ.`;
   const receiptText=(p:RentPayment)=>`Εξοφλήθη το ενοίκιο ${monthLabel(p)} (${p.amount.toLocaleString('el-GR')} €)${p.method?`, ${p.method}`:''}. Ευχαριστώ.`;
+
+  // ── Αίτημα πληρωμής (IBAN / QR / κοινοποίηση) ──
+  const landlordName=branding?.companyName?brandName(branding):'Ιδιοκτήτης';
+  // Πρότυπο EPC (SEPA Credit Transfer / GiroCode) — αναγνωρίζεται από τραπεζικές
+  // εφαρμογές. Δεν είναι είσπραξη — απλώς προσυμπληρώνει τη μεταφορά για τον μισθωτή.
+  const epcPayload=(iban:string,name:string,amount:number,ref:string)=>
+    `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
+  const qrSrc=(data:string)=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(data)}`;
+  const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` — ${tenant.full_name}`:''}`;
+  const paymentRequestText=(p:RentPayment)=>{
+    const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';
+    const ibanPart=tenant.rent_iban?` Πληρωμή σε IBAN ${tenant.rent_iban} (${landlordName}).`:'';
+    return `Αίτημα πληρωμής, ${propLabel()||'ακίνητο'}: ${p.amount.toLocaleString('el-GR')} € για ${monthLabel(p)}${br}.${ibanPart}${p.due_date?` Λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}.`:''}`;
+  };
+
+  // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
+  const printStatement=(p:RentPayment)=>{
+    const accent=reportAccent(branding);
+    const w=window.open('','_blank','width=820,height=760'); if(!w){alert('Επίτρεψε τα popups');return;}
+    const landlord=branding?.companyName?brandName(branding):'Property OS';
+    const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
+    const base=p.base_rent!=null?p.base_rent:tenantBaseRent(tenant);
+    const lines=tenantServiceLines(tenant);
+    const svcTotal=lines.reduce((a,l)=>a+l.amount,0);
+    const total=p.amount!=null?p.amount:base+svcTotal;
+    const money=(n:number)=>`${(n||0).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+    const svcRows=lines.length?lines.map(l=>`<tr><td>${esc(l.label)}</td><td class="r">${esc(money(l.amount))}</td></tr>`).join(''):`<tr><td colspan="2" style="color:#9aa0a6">Καμία επιπλέον υπηρεσία</td></tr>`;
+    w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Μηνιαία Κατάσταση ${esc(num)}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:40px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.7}
+      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+      h1{font-size:20px;font-weight:600;color:${accent}}
+      .sub{font-size:11px;color:#5f6368;margin-top:4px}
+      .num{font-size:11px;color:#5f6368;text-align:right}
+      h2{font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#5f6368;margin:22px 0 8px;font-weight:600}
+      table{width:100%;border-collapse:collapse;margin:6px 0}
+      td{padding:10px 14px;border:1px solid #e8eaed;font-size:13px}
+      td.r{text-align:right;font-variant-numeric:tabular-nums;width:38%}
+      tr.base td{background:#f8f9fa}
+      tr.total td{background:#e6f4ea;font-weight:700;color:#137333;font-size:15px}
+      .meta td:first-child{font-weight:600;width:42%;background:#f8f9fa}
+      .footer{margin-top:36px;font-size:10px;color:#9aa0a6;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
+      @media print{body{margin:20px;padding:24px}}
+    </style></head><body>
+    <div class="header"><div><h1>Μηνιαία Κατάσταση Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div><div class="num">Περίοδος ${esc(monthLabel(p))}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
+    <table class="meta">
+      <tr><td>Μισθωτής</td><td>${esc(tenant.full_name||'—')}${tenant.afm?' &nbsp;·&nbsp; ΑΦΜ '+esc(tenant.afm):''}</td></tr>
+      ${propLabel()?`<tr><td>Ακίνητο</td><td>${esc(propLabel())}</td></tr>`:''}
+      ${p.due_date?`<tr><td>Ημερομηνία λήξης</td><td>${esc(new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR'))}</td></tr>`:''}
+    </table>
+    <h2>Τι περιλαμβάνει / τι χρεώνεται</h2>
+    <table>
+      <tr class="base"><td>Βασικό ενοίκιο</td><td class="r">${esc(money(base))}</td></tr>
+      ${svcRows}
+      <tr class="total"><td>Σύνολο μηνός</td><td class="r">${esc(money(total))}</td></tr>
+    </table>
+    ${tenant.rent_iban?`<p style="font-size:12px;color:#5f6368;margin-top:16px">Πληρωμή σε IBAN <strong>${esc(tenant.rent_iban)}</strong> (${esc(landlordName)}).</p>`:''}
+    <p style="font-size:11px;color:#9aa0a6;margin-top:8px">Η παρούσα κατάσταση είναι ενημερωτική και αναλύει το μηνιαίο ποσό της δόσης σε βασικό ενοίκιο και υπηρεσίες.</p>
+    <div class="footer">Έγγραφο μέσω ${esc(landlord)}${brandContactLine(branding)?' · '+esc(brandContactLine(branding)):''}</div>
+    </body></html>`);
+    w.document.close();setTimeout(()=>w.print(),700);
+  };
 
   // ── Scan → payment matching ──
   const runScan=async(file:File)=>{
@@ -1032,6 +1149,15 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
 
         {missing.length>0&&<InfoBanner tone="info">Λείπουν {fn(missing.length)} μηνιαίες δόσεις βάσει της μίσθωσης. Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση.</InfoBanner>}
 
+        {staleUnpaid.length>0&&(
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, background:'var(--warning-soft)', border:'1px solid var(--warning-border)', borderRadius:T.radius.inner, padding:'11px 16px', margin:'4px 0' }}>
+            <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.5 }}>
+              {fn(staleUnpaid.length)} εκκρεμείς δόσεις δεν αντιστοιχούν στο τρέχον ποσό ({fmt(targetAmt)}{svcCharge>0?` — ενοίκιο ${fmt(baseRent)} + υπηρεσίες ${fmt(svcCharge)}`:''}).
+            </span>
+            <button style={s.btnSm} onClick={syncUnpaidToTarget} disabled={busy}>{busy?'…':'Ενημέρωση εκκρεμών'}</button>
+          </div>
+        )}
+
         {addOpen&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, margin:'12px 0 4px' }}>
             <div style={{ ...s.g4, marginBottom:14 }}>
@@ -1064,8 +1190,10 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
               {sorted.map(p=>(
                 <tr key={p.id}>
                   <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_S[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
-                  <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}</td>
-                  <td style={s.td}><StatusPill p={p}/></td>
+                  <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}
+                    {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize:10, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
+                  </td>
+                  <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize:9.5, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
                   <td style={s.tdM}>{p.method||'—'}</td>
                   <td style={s.tdM}>{fmtD(p.paid_date)}</td>
                   <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize:10, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
@@ -1074,6 +1202,8 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
                       {!p.paid
                         ?<button style={s.btnSm} onClick={()=>setMark({p,method:'Τραπεζική κατάθεση',receipt:''})}>Πληρωμένο</button>
                         :<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>doUnpay(p)}>Αναίρεση</button>}
+                      {!p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>{setCopied(false);setReq(p);}}>Αίτημα πληρωμής</button>}
+                      <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printStatement(p)}>Κατάσταση</button>
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
                       {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
@@ -1103,6 +1233,45 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
               <button style={s.btnGhost} onClick={()=>setMark(null)}>Ακύρωση</button>
               <button style={s.btnGold} onClick={async()=>{const mm=mark;setMark(null);await doMarkPaid(mm.p,mm.method,mm.receipt,todayISO());}}>Καταχώρηση</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Αίτημα πληρωμής modal (IBAN / QR / κοινοποίηση) */}
+      {req&&(
+        <div onClick={()=>setReq(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)', maxHeight:'90vh', overflowY:'auto' }}>
+            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Αίτημα πληρωμής</div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(req)} · {fmt(req.amount)}{req.services_charge&&req.services_charge>0?<span style={{ color:'var(--text-tertiary)' }}> (ενοίκιο {fmt(req.base_rent)} + υπηρεσίες {fmt(req.services_charge)})</span>:null}</div>
+
+            {tenant.rent_iban?(
+              <>
+                <div style={{ display:'flex', flexDirection:'column' as const, alignItems:'center', marginBottom:16 }}>
+                  <img src={qrSrc(epcPayload(tenant.rent_iban,landlordName,req.amount,reqRef(req)))} alt="QR πληρωμής" width={200} height={200} style={{ borderRadius:12, border:'1px solid var(--border-subtle)', background:'#fff', padding:8 }}/>
+                  <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:8, textAlign:'center' as const }}>Σάρωση από την τραπεζική εφαρμογή (SEPA/IRIS) για προσυμπλήρωση της μεταφοράς.</div>
+                </div>
+                <div style={{ ...labelStyle, marginBottom:6 }}>IBAN πληρωμής</div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+                  <div style={{ flex:1, fontFamily:T.font.mono, fontSize:13, color:'var(--text-primary)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, padding:'10px 12px', wordBreak:'break-all' as const }}>{tenant.rent_iban}</div>
+                  <button style={s.btnSm} onClick={()=>{ try{ navigator.clipboard.writeText(tenant.rent_iban||''); setCopied(true); }catch{} }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+                </div>
+              </>
+            ):(
+              <InfoBanner tone="info">Πρόσθεσε IBAN πληρωμής στα στοιχεία του μισθωτή για δημιουργία QR και προσυμπλήρωση της μεταφοράς.</InfoBanner>
+            )}
+
+            <div style={{ ...labelStyle, marginBottom:8, marginTop:4 }}>Κοινοποίηση αιτήματος</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:18 }}>
+              {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
+              {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
+              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Email</a>}
+              <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notify('Το κείμενο αντιγράφηκε'); }catch{} }}>Αντιγραφή κειμένου</button>
+            </div>
+
+            <div style={{ display:'flex', gap:8, justifyContent:'space-between', alignItems:'center', flexWrap:'wrap' as const }}>
+              <button style={{ ...s.btnGhost, fontSize:11 }} onClick={()=>{const rp=req;setReq(null);setMark({p:rp,method:'Τραπεζική κατάθεση',receipt:''});}}>Σήμανση εξόφλησης</button>
+              <button style={s.btnGold} onClick={()=>setReq(null)}>Κλείσιμο</button>
             </div>
           </div>
         </div>
@@ -1252,7 +1421,8 @@ const blank=()=>({
   full_name:'',email:'',phone:'',phone_work:'',nationality:'',profession:'',employer:'',afm:'',
   id_doc_type:'' as IdDocType|'',id_doc_number:'',iban:'',notes:'',
   lease_type:'annual' as LeaseType,lease_category:'' as LeaseCategory|'',lease_start:'',lease_end:'',custom_lease_days:365,
-  monthly_rent:'',payment_frequency:'monthly' as PaymentFreq,rent_due_day:'1',
+  monthly_rent:'',payment_frequency:'monthly' as PaymentFreq,rent_due_day:'1',rent_iban:'',
+  furnishing:'' as Furnishing|'',
   deposit_amount:'',deposit_method:'',deposit_paid_on:'',deposit_invested:false,deposit_returned:false,deposit_return_date:'',
   deposit_invest_rate:'',deposit_invest_type:'',deposit_invest_term:'',
   all_inclusive:false,kwh_limit:'',kwh_price:'',electricity_provider:'',electricity_tariff:'',electricity_monthly_limit:'',
@@ -1456,6 +1626,72 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
   );
 }
 
+// ─── Αιτήματα Βλάβης (Maintenance View) ─────────────────────────────────────────
+// Αιτήματα από την πύλη ενοικιαστή → ιδιοκτήτης → επίλυση, δεμένα με φθορές/απογραφή.
+const MAINT_STATUS:Record<string,{label:string;c:string;bg:string}>={
+  new:{label:'Νέο',c:'var(--accent)',bg:'var(--accent-dim)'},
+  in_progress:{label:'Σε εξέλιξη',c:'var(--warning)',bg:'var(--warning-soft)'},
+  done:{label:'Ολοκληρώθηκε',c:'var(--positive)',bg:'var(--positive-dim)'},
+};
+function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
+  const supabase=createClient();
+  const [busy,setBusy]=useState(false);
+  const list=[...requests].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  const setStatus=async(m:MaintenanceReq,status:string)=>{
+    setBusy(true);
+    await supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id);
+    setBusy(false); onRefresh(); notify('Το αίτημα ενημερώθηκε');
+  };
+  const toDamage=async(m:MaintenanceReq)=>{
+    setBusy(true);
+    await supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(' — ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' });
+    setBusy(false); onRefresh(); notify('Καταγράφηκε στις φθορές');
+  };
+  const del=async(m:MaintenanceReq)=>{ if(!confirm('Διαγραφή αιτήματος;')) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
+  const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+
+  return (
+    <div>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+        <SectionTitle>Αιτήματα Βλάβης</SectionTitle>
+        <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, margin:'6px 0 18px' }}>
+          Αιτήματα που στέλνει ο ενοικιαστής μέσω της πύλης. Διαχειρίσου την κατάστασή τους και, αν πρόκειται για φθορά, κατέγραψέ τα στο ιστορικό φθορών.
+        </div>
+        {list.length===0?(
+          <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>
+            Δεν υπάρχουν αιτήματα βλάβης. Όταν ο ενοικιαστής στείλει αίτημα από την πύλη, θα εμφανιστεί εδώ.
+          </div>
+        ):(
+          <div style={{ display:'flex', flexDirection:'column' as const, gap:12 }}>
+            {list.map(m=>{
+              const st=MAINT_STATUS[m.status||'new']||MAINT_STATUS.new;
+              return (
+                <div key={m.id} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'16px 18px' }}>
+                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, marginBottom:8 }}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{m.title}</div>
+                      <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{gdt(m.created_at)}{m.contact?` · ${m.contact}`:''}{m.resolved_at?` · επιλύθηκε ${gdt(m.resolved_at)}`:''}</div>
+                    </div>
+                    <span style={{ ...s.badge(st.c,st.bg), border:`1px solid ${st.c}33`, fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{st.label}</span>
+                  </div>
+                  {m.description&&<div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:12, whiteSpace:'pre-wrap' as const }}>{m.description}</div>}
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
+                    {m.status!=='new'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'new')}>Νέο</button>}
+                    {m.status!=='in_progress'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'in_progress')}>Σε εξέλιξη</button>}
+                    {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>setStatus(m,'done')}>Ολοκληρώθηκε</button>}
+                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>toDamage(m)}>Καταγραφή ως φθορά</button>
+                    <button style={s.btnDng} disabled={busy} onClick={()=>del(m)}>Διαγραφή</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Ανανέωση & Αναπροσαρμογή (Renewal View) ────────────────────────────────────
 // Νόμος (ΔΤΚ) μέσω RentAdjustView + πρόταση βάσει αγοράς/περιοχής από rent_comparables.
 function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; comps:RentComp[] }) {
@@ -1519,7 +1755,7 @@ function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; c
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
-type DossierTab='overview'|'lease'|'deposit'|'damages'|'renewal'|'legal'|'comm'|'docs';
+type DossierTab='overview'|'lease'|'deposit'|'damages'|'maintenance'|'renewal'|'legal'|'comm'|'docs';
 
 export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const supabase=createClient();
@@ -1527,6 +1763,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const [payments,setPayments]=useState<RentPayment[]>([]);
   const [damages,setDamages]=useState<TenantDamage[]>([]);
   const [comps,setComps]=useState<RentComp[]>([]);
+  const [maint,setMaint]=useState<MaintenanceReq[]>([]);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(false);
@@ -1562,12 +1799,13 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     setLoading(true);
     const{data:td}=await supabase.from('tenants').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false});
     const list=(td||[]) as Tenant[];
-    const[{data:pd},{data:dd},{data:cd}]=await Promise.all([
+    const[{data:pd},{data:dd},{data:cd},{data:md}]=await Promise.all([
       supabase.from('rent_payments').select('*').eq('property_id',propertyId).eq('user_id',userId).order('period_year',{ascending:false}).order('period_month',{ascending:false}),
       supabase.from('tenant_damages').select('*').eq('property_id',propertyId).eq('user_id',userId).order('occurred_on',{ascending:false}),
       supabase.from('rent_comparables').select('id,property_id,title,area,sqm,rent,rent_per_sqm,listing_type,source,url').eq('property_id',propertyId),
+      supabase.from('maintenance_requests').select('*').eq('user_id',userId).eq('property_id',propertyId).order('created_at',{ascending:false}),
     ]);
-    setTenants(list); setPayments((pd||[]) as RentPayment[]); setDamages((dd||[]) as TenantDamage[]); setComps((cd||[]) as RentComp[]);
+    setTenants(list); setPayments((pd||[]) as RentPayment[]); setDamages((dd||[]) as TenantDamage[]); setComps((cd||[]) as RentComp[]); setMaint((md||[]) as MaintenanceReq[]);
     setLoading(false);
   },[propertyId,userId]);
 
@@ -1635,7 +1873,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       nationality:t.nationality||'',profession:t.profession||'',employer:t.employer||'',afm:t.afm||'',
       id_doc_type:(t.id_doc_type as IdDocType)||'',id_doc_number:t.id_doc_number||'',iban:t.iban||'',notes:t.notes||'',
       lease_type:t.lease_type||'annual',lease_category:t.lease_category||'',lease_start:t.lease_start?.split('T')[0]||'',lease_end:t.lease_end?.split('T')[0]||'',custom_lease_days:t.custom_lease_days||365,
-      monthly_rent:n(t.monthly_rent),payment_frequency:t.payment_frequency||'monthly',rent_due_day:String(Math.min(Math.max(1,t.rent_due_day||1),28)),
+      monthly_rent:n(t.monthly_rent),payment_frequency:t.payment_frequency||'monthly',rent_due_day:String(Math.min(Math.max(1,t.rent_due_day||1),28)),rent_iban:t.rent_iban||'',
+      furnishing:(t.furnishing as Furnishing)||'',
       deposit_amount:n(t.deposit_amount),deposit_method:t.deposit_method||'',deposit_paid_on:t.deposit_paid_on?.split('T')[0]||'',deposit_invested:t.deposit_invested||false,deposit_returned:t.deposit_returned||false,deposit_return_date:t.deposit_return_date?.split('T')[0]||'',
       deposit_invest_rate:n(t.deposit_invest_rate),deposit_invest_type:t.deposit_invest_type||'',deposit_invest_term:t.deposit_invest_term||'',
       all_inclusive:t.all_inclusive||false,kwh_limit:n(t.kwh_limit),kwh_price:n(t.kwh_price),
@@ -1693,7 +1932,8 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       nationality:form.nationality||null,profession:form.profession||null,employer:form.employer||null,afm:form.afm||null,
       id_doc_type:form.id_doc_type||null,id_doc_number:form.id_doc_number||null,iban:form.iban||null,notes:form.notes||null,
       lease_type:form.lease_type||null,lease_category:form.lease_category||null,lease_start:form.lease_start||null,lease_end:form.lease_end||null,custom_lease_days:form.custom_lease_days||null,
-      monthly_rent:n(form.monthly_rent),payment_frequency:form.payment_frequency||null,rent_due_day:dueDay,
+      monthly_rent:n(form.monthly_rent),payment_frequency:form.payment_frequency||null,rent_due_day:dueDay,rent_iban:form.rent_iban?.trim()||null,
+      furnishing:form.furnishing||null,
       deposit_amount:n(form.deposit_amount),deposit_method:form.deposit_method||null,deposit_paid_on:form.deposit_paid_on||null,deposit_invested:form.deposit_invested,deposit_returned:form.deposit_returned,deposit_return_date:form.deposit_return_date||null,
       deposit_invest_rate:n(form.deposit_invest_rate),deposit_invest_type:form.deposit_invest_type||null,deposit_invest_term:form.deposit_invest_term||null,
       all_inclusive:form.all_inclusive,kwh_limit:n(form.kwh_limit),kwh_price:n(form.kwh_price),
@@ -1778,6 +2018,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const dc=openId?tenants.find(t=>t.id===openId)||null:null;
   const dcPayments=dc?payments.filter(p=>p.tenant_id===dc.id):[];
   const dcDamages=dc?damages.filter(d=>d.tenant_id===dc.id):[];
+  const dcMaint=dc?maint.filter(m=>m.tenant_id===dc.id):[];
   const dcOverdue=dc?(overdueByTenant.get(dc.id)||{count:0,amount:0}):{count:0,amount:0};
 
   // Ιστορικό ενοικιαστών: πορεία ενοικίου στον χρόνο (χρονολογικά).
@@ -1797,6 +2038,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     {id:'lease',label:'Μίσθωση & Ενοίκιο',badge:dcOverdue.count||undefined},
     {id:'deposit',label:'Εγγύηση'},
     {id:'damages',label:'Φθορές & Επισκευές',badge:dcDamages.filter(d=>!d.repaired).length||undefined},
+    {id:'maintenance',label:'Αιτήματα Βλάβης',badge:dcMaint.filter(m=>m.status!=='done').length||undefined},
     {id:'renewal',label:'Ανανέωση & Αναπροσαρμογή'},
     {id:'legal',label:'Νομικά & Φόρος'},
     {id:'comm',label:'Επικοινωνία'},
@@ -1957,6 +2199,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               )}
               {dossierTab==='deposit'&&<DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/>}
               {dossierTab==='damages'&&<DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>}
+              {dossierTab==='maintenance'&&<MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} onRefresh={fetch_} notify={notify}/>}
               {dossierTab==='renewal'&&<RenewalView tenant={dc} userId={userId} comps={comps}/>}
               {dossierTab==='legal'&&<LegalTaxView tenant={dc}/>}
               {dossierTab==='comm'&&<CommView tenant={dc} propertyId={propertyId} userId={userId}/>}
@@ -2108,6 +2351,21 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <SelectField label="Συχνότητα Εξόφλησης" value={form.payment_frequency} onChange={v=>sf('payment_frequency',v)} options={[{value:'monthly',label:'Μηνιαία'},{value:'bimonthly',label:'Διμηνιαία'},{value:'quarterly',label:'Τριμηνιαία'}]}/>
                   <div><div style={{ ...labelStyle, marginBottom:8 }}>Ηλεκτρονική Πληρωμή</div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} label="Ενεργή" labelOff="Ανενεργή"/></div>
                 </div>
+                <div style={{ ...s.g2, marginBottom:16 }}>
+                  <TextInput label="IBAN Πληρωμής Ενοικίου" value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR.. — για αίτημα πληρωμής και QR"/>
+                </div>
+
+                <div style={s.divider}/>
+                {/* Κατάσταση επίπλωσης — καθορίζει ποιες υπηρεσίες εμφανίζονται */}
+                <SectionTitle><span title="Καθορίζει ποιες ενότητες υπηρεσιών εμφανίζονται. Το «Κενό» δεν εμφανίζει streaming ή καθαρισμό.">Κατάσταση Επίπλωσης</span></SectionTitle>
+                <div style={{ display:'flex', gap:6, marginBottom:8, flexWrap:'wrap' as const }}>
+                  {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
+                    <button key={fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)} style={{ padding:'8px 16px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.furnishing===fv?'var(--accent)':'var(--border-default)'}`, background:form.furnishing===fv?'var(--accent-dim)':'transparent', color:form.furnishing===fv?'var(--accent)':'var(--text-secondary)', fontWeight:form.furnishing===fv?700:400 }}>{FURNISHING_LABELS[fv]}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize:'11px', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginBottom:18, lineHeight:1.5 }}>
+                  Καθορίζει ποιες υπηρεσίες προσφέρονται στον μισθωτή. Στο «Κενό» δεν εμφανίζονται ψηφιακές συνδρομές ούτε καθαρισμός· στο «Επιπλωμένο» προστίθεται ο καθαρισμός· στο «Turn Key» τα πάντα.
+                </div>
 
                 <div style={s.divider}/>
                 {/* Turn Key */}
@@ -2194,13 +2452,23 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   Ενεργοποίησε μόνο τις υπηρεσίες που ισχύουν για αυτόν τον μισθωτή. Κάθε ενότητα ανοίγει με τις λεπτομέρειες: τι περιλαμβάνεται και ποιος επιβαρύνεται — είτε πρόκειται για Turn Key είτε για χωριστές χρεώσεις.
                 </div>
 
+                {form.furnishing==='empty'&&(
+                  <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.5, marginBottom:16, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'11px 14px' }}>
+                    Επιλέχθηκε «Κενό»: οι ψηφιακές συνδρομές και ο καθαρισμός δεν εμφανίζονται, καθώς δεν παρέχονται σε κενή κατοικία. Άλλαξε την «Κατάσταση Επίπλωσης» στα Στοιχεία για να τις προσθέσεις.
+                  </div>
+                )}
+
+                {svcVisible(form.furnishing).streaming&&(
                 <SvcSection title="Ψηφιακές Συνδρομές" hint="Streaming και συνδρομές που παρέχεις ή χρεώνεις στον μισθωτή." open={svcUI.stream} onToggle={()=>setSvcUI(u=>({...u,stream:!u.stream}))}>
                   <StreamingConfig value={form.streaming} onChange={v=>sf('streaming',v)}/>
                 </SvcSection>
+                )}
 
+                {svcVisible(form.furnishing).cleaning&&(
                 <SvcSection title="Καθαρισμός" hint="Τακτικός καθαρισμός: συχνότητα, κόστος και χρέωση." open={svcUI.clean} onToggle={()=>setSvcUI(u=>({...u,clean:!u.clean}))}>
                   <CleaningConfig value={form.cleaning} onChange={v=>sf('cleaning',v)}/>
                 </SvcSection>
+                )}
 
                 <SvcSection title="Ετήσιες Συντηρήσεις" hint="Πώς μοιράζεται το κόστος κάθε συντήρησης ανάμεσα σε ιδιοκτήτη και ενοικιαστή, και πόσο συχνά επαναλαμβάνεται." open={svcUI.maint} onToggle={()=>setSvcUI(u=>({...u,maint:!u.maint}))}>
                   <div style={{ display:'flex', flexDirection:'column', gap:12 }}>

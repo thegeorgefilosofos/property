@@ -22,6 +22,24 @@ alter table public.maintenance_requests add column if not exists tenant_id   uui
 alter table public.maintenance_requests add column if not exists category    text;
 alter table public.maintenance_requests add column if not exists resolved_at timestamptz;
 
+-- Αρχείο ειδοποιήσεων (edge functions send-reminders & market-data-updater).
+create table if not exists public.notification_log (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid,
+  event_id      uuid,
+  reminder_type text,
+  type          text,
+  title         text,
+  body          text,
+  data          jsonb,
+  created_at    timestamptz default now()
+);
+create index if not exists idx_notif_log_dedup on public.notification_log(reminder_type, event_id);
+alter table public.notification_log enable row level security;
+drop policy if exists "own_notif_log" on public.notification_log;
+create policy "own_notif_log" on public.notification_log for select
+  using (user_id = auth.uid());
+
 -- ── RPC: δεδομένα πύλης (v2) — προσθέτει οφειλή ενοικίου + IBAN πληρωμής ──────
 create or replace function public.get_portal_data(p_token text)
 returns json language plpgsql security definer set search_path = public as $$
