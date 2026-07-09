@@ -347,8 +347,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const amtOk = (a: number) => amount == null || (a > 0 && Math.abs(a - amount) / a <= 0.01);
     const bills = openBillsRef.current;
     const rents = openRentRef.current;
-    // Υποψήφια: λογαριασμοί (όνομα/κατηγορία περιέχει το κείμενο) + δόσεις ενοικίου
-    const billHits = bills.filter(b => (norm(b.name).includes(q) || norm(b.category).includes(q) || q.includes(norm(b.category))) && amtOk(b.amount));
+    // Υποψήφια: λογαριασμοί (όνομα/κατηγορία ταιριάζει με το κείμενο) + δόσεις ενοικίου.
+    // Προσοχή: ΠΟΤΕ να μη ταιριάζει με κενή κατηγορία (q.includes('') === true) — θα
+    // σημείωνε λάθος λογαριασμό ως πληρωμένο.
+    const textHit = (field: string) => { const f = norm(field).trim(); return !!f && f.length >= 2 && (f.includes(q) || q.includes(f)); };
+    const billHits = bills.filter(b => (textHit(b.name) || textHit(b.category)) && amtOk(b.amount));
     const rentHits = /ενοικ|μισθωμ|δοση|δόση/.test(q) || rents.some(r => norm(r.label).includes(q))
       ? rents.filter(r => amtOk(r.amount) && (norm(r.label).includes(q) || /ενοικ|μισθωμ|δοση|δόση/.test(q)))
       : [];
