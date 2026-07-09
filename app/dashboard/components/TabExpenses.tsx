@@ -983,7 +983,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
   const [ok, setOk] = useState<string|null>(null);
-  const [budgets, setBudgets] = useState<Record<string,number>>({});
   const [showInsights, setShowInsights] = useState(true);
   const [hoveredNote, setHoveredNote] = useState<string|null>(null);
   const [notePos, setNotePos] = useState({ x:0, y:0 });
@@ -1064,14 +1063,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
     fetchCrossData();
   }, [propertyId]);
 
-  // Load budgets from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`budgets_${propertyId}`);
-      if (saved) setBudgets(JSON.parse(saved));
-    } catch {}
-  }, [propertyId]);
-
   useEffect(() => { load(); }, [load]);
   const notify = (msg:string) => { setOk(msg); setTimeout(()=>setOk(null),3000); };
 
@@ -1142,12 +1133,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       return { ...e, daysLeft, expiryDate };
     });
   }, [expenses]);
-
-  const setBudget = (group:string, amount:number) => {
-    const next = { ...budgets, [group]:amount };
-    setBudgets(next);
-    try { localStorage.setItem(`budgets_${propertyId}`, JSON.stringify(next)); } catch {}
-  };
 
   const buildPayload = (f: typeof form) => {
     const n = (v:string) => v ? parseFloat(v) : null;
@@ -1822,9 +1807,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
             const groupExp = processed.filter(e => e.expense_group === groupKey);
             if (groupExp.length === 0) return null;
             const groupTotal = groupExp.reduce((s,e) => s+e.amount, 0);
-            const budget = budgets[groupKey]||0;
-            const pct = budget > 0 ? Math.min((groupTotal/budget)*100,100) : 0;
-            const over = budget > 0 && groupTotal > budget;
             return (
               <div key={groupKey} style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, marginBottom:12, overflow:'hidden' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 18px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
@@ -1837,14 +1819,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    {budget > 0 && (
-                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <div style={{ width:80, height:4, background:'var(--border-subtle)', borderRadius:2, overflow:'hidden' }}>
-                          <div style={{ height:'100%', width:`${pct}%`, background:over?'var(--negative)':pct>80?'var(--warning)':'var(--positive)', borderRadius:2 }} />
-                        </div>
-                        <span style={{ fontSize:10, color:over?'var(--warning)':'var(--text-tertiary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>{pct.toFixed(0)}%</span>
-                      </div>
-                    )}
                     <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' }}>{fmtEur(groupTotal)}</span>
                   </div>
                 </div>
