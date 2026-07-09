@@ -7,6 +7,7 @@ import {
   StreamingConfig, CleaningConfig, InvestmentCalc, PrepayCalc,
   LEASE_LABELS, SERVICE_BY_LABELS, ID_DOCS,
   MONTHS_FULL, MONTHS_S, FREQ_OPTIONS, EXTRA_CATS,
+  syncTenantSchedule, type TenantScheduleInput,
 } from './TabTenantHelpers';
 import {
   Toggle, NumberInput, TextInput, Textarea,
@@ -15,9 +16,14 @@ import {
   ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
-import { T, PageTitle, KPIGrid, InfoBanner, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Badge, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { reportAccent, brandName, brandContactLine, useReportBranding } from '@/lib/reportBranding';
+import { rentalIncomeTax, effectiveRentalRate, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';
+import { whatsappLink, viberLink } from '@/lib/clients/messages';
+import { normalizePhone } from '@/lib/clients/clients';
+import { SYSTEM_PROMPT } from './DocumentScan';
+import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:600, marginBottom:7 };
@@ -52,7 +58,12 @@ interface Tenant {
   lease_doc_url:string|null; lease_doc_name:string|null; lease_doc_external_url:string|null;
   created_at:string;
 }
-interface RentPayment { id:string; tenant_id:string; property_id:string; user_id:string; period_month:number; period_year:number; amount:number; paid:boolean; paid_date:string|null; days_late:number|null; notes:string|null; created_at:string; }
+interface RentPayment { id:string; tenant_id:string; property_id:string; user_id:string; period_month:number; period_year:number; amount:number; paid:boolean; paid_date:string|null; days_late:number|null; notes:string|null; method:string|null; receipt_url:string|null; receipt_doc_id:string|null; due_date:string|null; created_at:string; }
+
+// Τρόποι πληρωμής ενοικίου (ελληνικά, σταθερή σειρά).
+const PAY_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή','Κάρτα'] as const;
+type PayMethod = typeof PAY_METHODS[number];
+const todayISO = () => new Date().toISOString().slice(0,10);
 interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meeting'|'note'; summary:string; date:string; outcome:string|null; }
 interface TabTenantProps { propertyId:string; userId:string; }
 
@@ -237,9 +248,9 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
 
       {/* Score + Profile */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16, marginBottom:16 }}>
-        {/* Tenant Score */}
+        {/* Βαθμολογία Αξιοπιστίας */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle><span title="Βαθμολογία αξιοπιστίας ενοικιαστή, βάσει ιστορικού πληρωμών, καθυστερήσεων και πληρότητας προφίλ">Tenant Score</span></SectionTitle>
+          <SectionTitle><span title="Βαθμολογία αξιοπιστίας ενοικιαστή, βάσει ιστορικού πληρωμών, καθυστερήσεων και πληρότητας προφίλ">Βαθμολογία Αξιοπιστίας</span></SectionTitle>
           <div style={{ display:'flex', alignItems:'center', gap:24 }}>
             <div style={{ position:'relative', width:96, height:96, flexShrink:0 }}>
               <svg width="96" height="96" viewBox="0 0 96 96">
@@ -282,7 +293,7 @@ function DashboardView({ tenant, payments }:{ tenant:Tenant; payments:RentPaymen
             {[['Ονοματεπώνυμο',!!tenant.full_name],['Email',!!tenant.email],['Τηλέφωνο',!!tenant.phone],['ΑΦΜ',!!tenant.afm],['IBAN',!!tenant.iban],['Εγγύηση',!!tenant.deposit_amount],['Έναρξη Μίσθωσης',!!tenant.lease_start],['Ενοίκιο',!!tenant.monthly_rent]].map(([lbl,ok],i)=>(
               <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{lbl as string}</span>
-                <span style={{ fontSize:12, color:ok?'var(--positive)':'var(--text-tertiary)', fontWeight:ok?700:400 }}>{ok?'✓':'—'}</span>
+                <span style={{ fontSize:12, color:ok?'var(--positive)':'var(--text-tertiary)', display:'flex', alignItems:'center' }}>{ok?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>:'—'}</span>
               </div>
             ))}
           </div>
@@ -754,6 +765,452 @@ function MarketView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:s
   );
 }
 
+// ─── Rent Ledger helpers ──────────────────────────────────────────────────────
+// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(lease_end, τρέχων μήνας).
+function expectedPeriods(tenant:Tenant, rentDueDay:number):{year:number;month:number;due_date:string}[] {
+  if(!tenant.lease_start||!tenant.monthly_rent||tenant.monthly_rent<=0) return [];
+  const start=new Date(tenant.lease_start+'T00:00:00');
+  if(isNaN(start.getTime())) return [];
+  const now=new Date(); now.setHours(0,0,0,0);
+  const endCap=tenant.lease_end?new Date(tenant.lease_end+'T00:00:00'):now;
+  const last=endCap<now?endCap:now;
+  const out:{year:number;month:number;due_date:string}[]=[];
+  let y=start.getFullYear(), m=start.getMonth();
+  const lastKey=last.getFullYear()*12+last.getMonth();
+  const dueDay=Math.min(Math.max(1,rentDueDay||1),28);
+  let guard=0;
+  while(y*12+m<=lastKey && guard++<600){
+    out.push({year:y,month:m+1,due_date:`${y}-${String(m+1).padStart(2,'0')}-${String(dueDay).padStart(2,'0')}`});
+    m++; if(m>11){m=0;y++;}
+  }
+  return out;
+}
+
+type PayStatus='paid'|'overdue'|'pending';
+function payStatus(p:RentPayment):PayStatus {
+  if(p.paid) return 'paid';
+  if(p.due_date && p.due_date<todayISO()) return 'overdue';
+  return 'pending';
+}
+
+// Ανθεκτική μετατροπή αριθμού από OCR (χειρίζεται «1.200,50», «€», κενά).
+const numify=(v:unknown):number|undefined=>{
+  if(typeof v==='number') return isFinite(v)?v:undefined;
+  if(typeof v!=='string') return undefined;
+  const raw=v.replace(/[€\s]/g,'');
+  if(!/\d/.test(raw)) return undefined;
+  const clean=/,\d{1,2}$/.test(raw)?raw.replace(/\./g,'').replace(',','.'):raw.replace(/,/g,'');
+  const n=parseFloat(clean.replace(/[^0-9.\-]/g,''));
+  return isFinite(n)?n:undefined;
+};
+
+// Διεθνής μορφή αριθμού για wa.me/viber (προσθέτει 30 σε 10ψήφιο ελληνικό κινητό).
+const msgDigits=(p?:string|null)=>{const d=normalizePhone(p);return d.length===10?'30'+d:d;};
+
+// ─── Payments View (Rent Ledger) ───────────────────────────────────────────────
+function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify }:{
+  tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void; notify:(m:string)=>void;
+}) {
+  const supabase=createClient();
+  const branding=useReportBranding(userId);
+  const [rentDueDay,setRentDueDay]=useState(1);
+  const [busy,setBusy]=useState(false);
+  const [addOpen,setAddOpen]=useState(false);
+  const [payF,setPayF]=useState({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση' as PayMethod,paid:true,paid_date:todayISO(),notes:''});
+  const [mark,setMark]=useState<{p:RentPayment;method:PayMethod;receipt:string}|null>(null);
+  const [prop,setProp]=useState<Record<string,any>|null>(null);
+  const [scan,setScan]=useState<{stage:'scanning'|'match'|'error';msg?:string;doc?:ScannedDoc;periodId?:string;method?:PayMethod;docId?:string|null}|null>(null);
+  const fileRef=React.useRef<HTMLInputElement>(null);
+
+  useEffect(()=>{ supabase.from('properties').select('*').eq('id',propertyId).maybeSingle().then(({data})=>setProp(data||null)); },[propertyId]);
+
+  const expected=useMemo(()=>expectedPeriods(tenant,rentDueDay),[tenant,rentDueDay]);
+  const existingKeys=useMemo(()=>new Set(payments.map(p=>`${p.period_year}-${p.period_month}`)),[payments]);
+  const missing=useMemo(()=>expected.filter(e=>!existingKeys.has(`${e.year}-${e.month}`)),[expected,existingKeys]);
+
+  const genForRows=useCallback(async(rows:{year:number;month:number;due_date:string}[])=>{
+    if(!rows.length) return;
+    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:tenant.monthly_rent,paid:false,due_date:r.due_date}));
+    // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
+    const{error}=await supabase.from('rent_payments').upsert(payload,{onConflict:'tenant_id,period_year,period_month',ignoreDuplicates:true});
+    if(error && !/duplicate|unique/i.test(error.message)) { /* swallow */ }
+  },[tenant,propertyId,userId]);
+
+  // Lazy: όταν ανοίγει η προβολή και λείπουν δόσεις, δημιούργησέ τες μία φορά.
+  const didLazy=React.useRef(false);
+  useEffect(()=>{
+    if(didLazy.current) return;
+    if(missing.length>0){ didLazy.current=true; (async()=>{ await genForRows(missing); onRefresh(); })(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[missing.length]);
+
+  const generateNow=async()=>{ setBusy(true); await genForRows(missing); setBusy(false); onRefresh(); notify(missing.length?`Δημιουργήθηκαν ${missing.length} δόσεις`:'Οι δόσεις είναι ενημερωμένες'); };
+
+  const sorted=useMemo(()=>[...payments].sort((a,b)=>b.period_year-a.period_year||b.period_month-a.period_month),[payments]);
+  const open=useMemo(()=>payments.filter(p=>!p.paid),[payments]);
+  const overdue=useMemo(()=>payments.filter(p=>payStatus(p)==='overdue'),[payments]);
+  const arrearsTotal=overdue.reduce((a,p)=>a+p.amount,0);
+  const received=payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0);
+
+  const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
+    const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
+    await supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id);
+    onRefresh(); notify('Καταχωρήθηκε ως πληρωμένο');
+  };
+  const doUnpay=async(p:RentPayment)=>{ await supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id); onRefresh(); };
+
+  const savePay=async()=>{
+    if(!payF.amount){notify('Συμπλήρωσε ποσό');return;}
+    setBusy(true);
+    const paidDate=payF.paid?payF.paid_date:null;
+    const due=`${payF.period_year}-${String(payF.period_month).padStart(2,'0')}-${String(Math.min(Math.max(1,rentDueDay),28)).padStart(2,'0')}`;
+    const daysLate=payF.paid&&paidDate&&paidDate>due?Math.ceil((new Date(paidDate).getTime()-new Date(due).getTime())/86400000):0;
+    await supabase.from('rent_payments').upsert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:paidDate,method:payF.paid?payF.method:null,days_late:daysLate,due_date:due,notes:payF.notes||null},{onConflict:'tenant_id,period_year,period_month'});
+    setBusy(false);setAddOpen(false);setPayF({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση',paid:true,paid_date:todayISO(),notes:''});
+    onRefresh();notify('Πληρωμή καταχωρήθηκε');
+  };
+
+  const propLabel=()=> (prop?.address||prop?.title||prop?.name||prop?.label||'') as string;
+  const monthLabel=(p:RentPayment)=>`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`;
+
+  const printReceipt=(p:RentPayment)=>{
+    const accent=reportAccent(branding);
+    const w=window.open('','_blank','width=820,height=760'); if(!w){alert('Επίτρεψε τα popups');return;}
+    const paidDate=p.paid_date?new Date(p.paid_date+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+    const landlord=branding?.companyName?brandName(branding):'Property OS';
+    const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
+    w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Απόδειξη Ενοικίου ${esc(num)}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:40px auto;padding:40px;color:#1c1c1e;font-size:13px;line-height:1.7}
+      .header{border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+      h1{font-size:20px;font-weight:600;color:${accent}}
+      .sub{font-size:11px;color:#5f6368;margin-top:4px}
+      .num{font-size:11px;color:#5f6368;text-align:right}
+      table{width:100%;border-collapse:collapse;margin:18px 0}
+      th,td{padding:11px 14px;border:1px solid #e8eaed;font-size:13px;text-align:left}
+      th{background:#f8f9fa;font-weight:600;width:42%}
+      .amount{background:#e6f4ea;font-weight:700;color:#137333;font-size:15px}
+      .sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:64px}
+      .sig{border-top:1px solid #dadce0;padding-top:10px;font-size:11px;color:#5f6368}
+      .footer{margin-top:36px;font-size:10px;color:#9aa0a6;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px}
+      @media print{body{margin:20px;padding:24px}}
+    </style></head><body>
+    <div class="header"><div><h1>Απόδειξη Είσπραξης Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div><div class="num">Αρ. ${esc(num)}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
+    <table>
+      <tr><th>Εκμισθωτής</th><td>${esc(landlord)}</td></tr>
+      <tr><th>Μισθωτής</th><td>${esc(p.tenant_id?tenant.full_name:'')}${tenant.afm?' &nbsp;·&nbsp; ΑΦΜ '+esc(tenant.afm):''}</td></tr>
+      ${propLabel()?`<tr><th>Ακίνητο</th><td>${esc(propLabel())}</td></tr>`:''}
+      <tr><th>Περίοδος</th><td>${esc(monthLabel(p))}</td></tr>
+      <tr><th>Τρόπος πληρωμής</th><td>${esc(p.method||'—')}</td></tr>
+      <tr><th>Ημερομηνία πληρωμής</th><td>${esc(paidDate)}</td></tr>
+      <tr class="amount"><th>Ποσό</th><td>${esc(p.amount.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2}))} €</td></tr>
+    </table>
+    <p style="font-size:12px;color:#5f6368;margin-top:12px">Η παρούσα βεβαιώνει την είσπραξη του ανωτέρω ποσού για το μηνιαίο μίσθωμα της αναφερόμενης περιόδου.</p>
+    <div class="sign"><div class="sig"><p style="font-weight:600;margin-bottom:4px">Ο Εκμισθωτής</p><p style="height:36px"></p><p>Υπογραφή</p></div><div class="sig"><p style="font-weight:600;margin-bottom:4px">Ο Μισθωτής</p><p style="margin-bottom:2px">${esc(tenant.full_name)}</p></div></div>
+    <div class="footer">Έγγραφο μέσω ${esc(landlord)}${brandContactLine(branding)?' · '+esc(brandContactLine(branding)):''}</div>
+    </body></html>`);
+    w.document.close();setTimeout(()=>w.print(),700);
+  };
+
+  const reminderText=(p:RentPayment)=>`Υπενθύμιση ενοικίου, ${propLabel()||'ακίνητο'}: μίσθωμα ${p.amount.toLocaleString('el-GR')} € για ${monthLabel(p)}${p.due_date?`, λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}`:''}. Ευχαριστώ.`;
+  const receiptText=(p:RentPayment)=>`Εξοφλήθη το ενοίκιο ${monthLabel(p)} (${p.amount.toLocaleString('el-GR')} €)${p.method?`, ${p.method}`:''}. Ευχαριστώ.`;
+
+  // ── Scan → payment matching ──
+  const runScan=async(file:File)=>{
+    setScan({stage:'scanning'});
+    try{
+      const dataUrl:string=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result as string);r.onerror=rej;r.readAsDataURL(file);});
+      const base64=dataUrl.split(',')[1]; const mime=file.type||'image/jpeg'; const isPdf=mime==='application/pdf';
+      const contentPart=isPdf?{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}:{type:'image',source:{type:'base64',media_type:mime,data:base64}};
+      const res=await fetch('/api/anthropic',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:1500,system:SYSTEM_PROMPT,messages:[{role:'user',content:[contentPart,{type:'text',text:'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.'}]}]})});
+      const data=await res.json();
+      if(!res.ok||data?.error){ setScan({stage:'error',msg:'Η υπηρεσία σάρωσης δεν είναι διαθέσιμη αυτή τη στιγμή.'}); return; }
+      const text=(data.content||[]).find((c:{type:string})=>c.type==='text')?.text||'{}';
+      let doc:ScannedDoc; try{ doc=JSON.parse(text.replace(/```json?|```/g,'').trim()); }catch{ setScan({stage:'error',msg:'Δεν ήταν δυνατή η ανάγνωση του εγγράφου.'}); return; }
+      if(doc.amount!=null) doc.amount=numify(doc.amount as unknown);
+      doc.doc_type=classifyDocType(doc);
+      // Best-effort αρχειοθέτηση του πρωτότυπου (property_documents) για τεκμηρίωση.
+      let docId:string|null=null;
+      try{
+        const safe=file.name.replace(/[^\w.\-]+/g,'_'); const path=`${userId}/${propertyId}/document/${Date.now()}_${safe}`;
+        const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
+        if(!upErr){ const{data:ins}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',title:(doc.title||file.name).slice(0,200),doc_date:doc.issue_date||todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id').single(); docId=ins?.id||null; }
+      }catch{ /* archive optional */ }
+      const amount=typeof doc.amount==='number'?doc.amount:0;
+      const dateISO=doc.issue_date||doc.due_date||todayISO();
+      const method:PayMethod=doc.doc_type==='payment'?'Τραπεζική κατάθεση':'Τραπεζική κατάθεση';
+      if(doc.doc_type!=='payment'){
+        setScan({stage:'match',doc,method,docId,periodId: open[0]?.id});
+        return;
+      }
+      // Match στην πλησιέστερη ανοιχτή δόση κατά μήνα + ποσό (±10%).
+      const [y,m]=[Number(dateISO.slice(0,4)),Number(dateISO.slice(5,7))];
+      const scored=open.map(p=>({p,amtOk:amount>0&&p.amount>0?Math.abs(p.amount-amount)/p.amount<=0.10:false,dist:Math.abs((p.period_year*12+p.period_month)-(y*12+m))}));
+      const amt=scored.filter(x=>x.amtOk).sort((a,b)=>a.dist-b.dist);
+      const best=amt[0]||[...scored].sort((a,b)=>a.dist-b.dist)[0];
+      setScan({stage:'match',doc,method,docId,periodId:best?.p.id});
+    }catch{ setScan({stage:'error',msg:'Παρουσιάστηκε σφάλμα κατά τη σάρωση.'}); }
+  };
+  const confirmScan=async()=>{
+    if(!scan?.periodId||!scan.doc){ setScan(null); return; }
+    const p=payments.find(x=>x.id===scan.periodId); if(!p){ setScan(null); return; }
+    const dateISO=scan.doc.issue_date||scan.doc.due_date||todayISO();
+    await doMarkPaid(p,scan.method||'Τραπεζική κατάθεση','',dateISO,scan.docId);
+    setScan(null);
+  };
+
+  const inputStyle:React.CSSProperties={width:'100%',height:42,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.inner,padding:'0 14px',color:'var(--text-primary)',fontSize:14,fontFamily:T.font.sans,outline:'none',boxSizing:'border-box'};
+
+  const StatusPill=({p}:{p:RentPayment})=>{
+    const st=payStatus(p);
+    const cfg=st==='paid'?{c:'var(--positive)',bg:'var(--positive-dim)',l:'Πληρώθηκε'}:st==='overdue'?{c:'var(--negative)',bg:'var(--negative-dim)',l:'Ληξιπρόθεσμο'}:{c:'var(--text-secondary)',bg:'var(--bg-overlay)',l:'Εκκρεμεί'};
+    return <span style={{ ...s.badge(cfg.c,cfg.bg), border:`1px solid ${cfg.c}33`, fontFamily:T.font.sans }}>{cfg.l}</span>;
+  };
+
+  return (
+    <div>
+      {/* KPI strip */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:10, marginBottom:16 }}>
+        <KpiCard label="Εισπραχθέντα" value={fmt(received)} color="var(--text-primary)"/>
+        <KpiCard label="Ληξιπρόθεσμα" value={fmt(arrearsTotal)} sub={`${overdue.length} δόσεις`} color={arrearsTotal>0?'var(--negative)':'var(--positive)'}/>
+        <KpiCard label="Εκκρεμείς" value={String(open.length)} color={open.length>0?'var(--warning)':'var(--positive)'}/>
+        <KpiCard label="Δόσεις" value={`${payments.filter(p=>p.paid).length}/${payments.length}`} color="var(--text-primary)"/>
+      </div>
+
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap:'wrap' as const }}>
+          <SectionTitle>Καρτέλα Ενοικίου</SectionTitle>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' as const }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ημέρα λήξης</span>
+              <select value={rentDueDay} onChange={e=>setRentDueDay(+e.target.value)} style={{ height:32, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:T.radius.inner, color:'var(--text-primary)', fontSize:12, fontFamily:T.font.mono, padding:'0 8px', cursor:'pointer' }}>
+                {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σκάναρε απόδειξη</button>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
+            <button style={s.btnSm} onClick={generateNow} disabled={busy}>{busy?'…':'Δημιουργία δόσεων'}</button>
+            <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(
+              `enoikio_${todayISO()}`,
+              ['Περίοδος','Ποσό (€)','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Καθυστέρηση (ημέρες)','Σημειώσεις'],
+              sorted.map(p=>[`${MONTHS_FULL[p.period_month-1]} ${p.period_year}`,csvEur(p.amount),payStatus(p)==='paid'?'Πληρώθηκε':payStatus(p)==='overdue'?'Ληξιπρόθεσμο':'Εκκρεμεί',p.method||'',csvDate(p.paid_date),csvDate(p.due_date),p.days_late||0,(p.notes||'').replace(/\n/g,' ')])
+            )}/>
+            <button style={s.btnSm} onClick={()=>setAddOpen(v=>!v)}>{addOpen?'Κλείσιμο':'+ Καταχώρηση'}</button>
+          </div>
+        </div>
+
+        {missing.length>0&&<InfoBanner tone="info">Λείπουν {fn(missing.length)} μηνιαίες δόσεις βάσει της μίσθωσης. Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση.</InfoBanner>}
+
+        {addOpen&&(
+          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, margin:'12px 0 4px' }}>
+            <div style={{ ...s.g4, marginBottom:14 }}>
+              <SelectField label="Μήνας" value={String(payF.period_month)} onChange={v=>setPayF(f=>({...f,period_month:+v}))} options={MONTHS_FULL.map((m,i)=>({value:String(i+1),label:m}))}/>
+              <NumberInput label="Έτος" value={String(payF.period_year)} onChange={v=>setPayF(f=>({...f,period_year:+v}))} min={2000}/>
+              <NumberInput label="Ποσό" value={payF.amount} onChange={v=>setPayF(f=>({...f,amount:v}))} suffix="€" placeholder={tenant.monthly_rent?.toString()}/>
+              <SelectField label="Τρόπος Πληρωμής" value={payF.method} onChange={v=>setPayF(f=>({...f,method:v as PayMethod}))} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+            </div>
+            <div style={{ ...s.g3, marginBottom:14 }}>
+              <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} label="Ναι" labelOff="Όχι"/></div>
+              {payF.paid&&<DateField label="Ημερομηνία Πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
+              <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="προαιρετικό"/>
+            </div>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button style={s.btnGhost} onClick={()=>setAddOpen(false)}>Ακύρωση</button>
+              <button style={s.btnGold} onClick={savePay} disabled={busy}>{busy?'Αποθήκευση...':'Καταχώρηση'}</button>
+            </div>
+          </div>
+        )}
+
+        {payments.length===0?(
+          <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>
+            Δεν υπάρχουν δόσεις. {tenant.lease_start&&tenant.monthly_rent?'Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση από τη μίσθωση.':'Όρισε έναρξη μίσθωσης και ενοίκιο για αυτόματη δημιουργία.'}
+          </div>
+        ):(
+          <div className="table-wrap" style={{ marginTop:14 }}>
+          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Τρόπος','Ημ. Πληρωμής','Λήξη','Ενέργειες'].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
+            <tbody>
+              {sorted.map(p=>(
+                <tr key={p.id}>
+                  <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_S[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
+                  <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}</td>
+                  <td style={s.td}><StatusPill p={p}/></td>
+                  <td style={s.tdM}>{p.method||'—'}</td>
+                  <td style={s.tdM}>{fmtD(p.paid_date)}</td>
+                  <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize:10, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
+                  <td style={s.td}>
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
+                      {!p.paid
+                        ?<button style={s.btnSm} onClick={()=>setMark({p,method:'Τραπεζική κατάθεση',receipt:''})}>Πληρωμένο</button>
+                        :<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>doUnpay(p)}>Αναίρεση</button>}
+                      {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
+                      {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
+                      {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
+                      <button style={s.btnDng} onClick={async()=>{if(!confirm('Διαγραφή;'))return;await supabase.from('rent_payments').delete().eq('id',p.id);onRefresh();}}>Διαγραφή</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        )}
+      </div>
+
+      {/* Mark-as-paid modal */}
+      {mark&&(
+        <div onClick={()=>setMark(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 420px)' }}>
+            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>Σήμανση ως πληρωμένο</div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:16 }}>{monthLabel(mark.p)} · {fmt(mark.p.amount)}</div>
+            <div style={{ marginBottom:14 }}>
+              <SelectField label="Τρόπος Πληρωμής" value={mark.method} onChange={v=>setMark(m=>m?{...m,method:v as PayMethod}:m)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+            </div>
+            <div style={{ marginBottom:18 }}>
+              <TextInput label="Σύνδεσμος Απόδειξης (προαιρετικό)" value={mark.receipt} onChange={v=>setMark(m=>m?{...m,receipt:v}:m)} placeholder="https://..."/>
+            </div>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button style={s.btnGhost} onClick={()=>setMark(null)}>Ακύρωση</button>
+              <button style={s.btnGold} onClick={async()=>{const mm=mark;setMark(null);await doMarkPaid(mm.p,mm.method,mm.receipt,todayISO());}}>Καταχώρηση</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scan → match modal */}
+      {scan&&(
+        <div onClick={()=>scan.stage!=='scanning'&&setScan(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:T.radius.card, padding:24, width:'min(100%, 460px)' }}>
+            <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:12 }}>Σάρωση απόδειξης</div>
+            {scan.stage==='scanning'&&<div style={{ padding:'20px 0' }}><Spinner label="Ανάλυση εγγράφου…"/></div>}
+            {scan.stage==='error'&&<><InfoBanner tone="warning">{scan.msg}</InfoBanner><div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}><button style={s.btnGhost} onClick={()=>setScan(null)}>Κλείσιμο</button></div></>}
+            {scan.stage==='match'&&scan.doc&&(
+              <>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:12 }}>
+                  <Badge tone={scan.doc.doc_type==='payment'?'positive':'warning'}>{scan.doc.doc_type==='payment'?'Απόδειξη πληρωμής':'Τύπος: '+scan.doc.doc_type}</Badge>
+                  {typeof scan.doc.amount==='number'&&<Badge tone="accent">{fmt(scan.doc.amount)}</Badge>}
+                  {(scan.doc.issue_date||scan.doc.due_date)&&<Badge tone="neutral">{scan.doc.issue_date||scan.doc.due_date}</Badge>}
+                </div>
+                {scan.doc.doc_type!=='payment'&&<InfoBanner tone="warning">Το έγγραφο δεν αναγνωρίστηκε ως απόδειξη πληρωμής. Επίλεξε δόση χειροκίνητα πριν τη σήμανση.</InfoBanner>}
+                {open.length===0?(
+                  <InfoBanner tone="info">Δεν υπάρχουν ανοιχτές δόσεις για αντιστοίχιση.</InfoBanner>
+                ):(
+                  <div style={{ marginBottom:16 }}>
+                    <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
+                    <select value={scan.periodId||''} onChange={e=>setScan(sc=>sc?{...sc,periodId:e.target.value}:sc)} style={inputStyle}>
+                      {open.map(p=><option key={p.id} value={p.id}>{monthLabel(p)} — {fmt(p.amount)}</option>)}
+                    </select>
+                    <div style={{ marginTop:12 }}>
+                      <SelectField label="Τρόπος Πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                  <button style={s.btnGhost} onClick={()=>setScan(null)}>Ακύρωση</button>
+                  <button style={s.btnGold} onClick={confirmScan} disabled={open.length===0||!scan.periodId}>Σήμανση ως πληρωμένο</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Legal & Tax View (Νομικά & Φόρος) ──────────────────────────────────────────
+function LegalTaxView({ tenant }:{ tenant:Tenant }) {
+  const annualRent=Math.max(0,(tenant.monthly_rent||0)*12);
+  const tax=annualRent>0?rentalIncomeTax(annualRent):0;
+  const effRate=annualRent>0?effectiveRentalRate(annualRent):0;
+  const net=annualRent-tax;
+  const isCommercial=false; // Η καρτέλα παρακολουθεί μίσθωση κατοικίας· βλ. σημείωση χαρτοσήμου.
+
+  const kpis:KPIItem[]=[
+    { label:'Ετήσιο Ακαθάριστο Ενοίκιο', value:fe(annualRent), tone:'accent' },
+    { label:'Εκτιμώμενος Φόρος Εισοδήματος', value:fe(tax), tone:'warning', sub:annualRent>0?`πραγματικός συντελεστής ${(effRate*100).toFixed(1)}%`:undefined },
+    { label:'Καθαρό μετά τον Φόρο', value:fe(net), tone:'positive' },
+  ];
+
+  const linkCard=(label:string,desc:string,url:string,urgent=false)=>(
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', marginBottom:8, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderLeft:`3px solid ${urgent?'var(--warning)':'var(--border-default)'}`, borderRadius:T.radius.inner, textDecoration:'none' }}>
+      <div style={{ flex:1 }}>
+        <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:2 }}>{label}</div>
+        <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{desc}</div>
+      </div>
+      <span style={{ fontSize:14, color:'var(--accent)' }}>→</span>
+    </a>
+  );
+
+  const InfoBlock=({title,children,tone}:{title:string;children:React.ReactNode;tone?:string})=>(
+    <div style={{ padding:'14px 0', borderBottom:'1px solid var(--border-subtle)' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <div style={{ width:5, height:5, borderRadius:'50%', background:tone||'var(--accent)' }}/>
+        <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</span>
+      </div>
+      <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.7, paddingLeft:13 }}>{children}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <KPIGrid items={kpis}/>
+      <InfoBanner tone="warning">Όλα τα ποσά είναι ΕΝΔΕΙΚΤΙΚΑ, βάσει της κλίμακας φόρου εισοδήματος από ακίνητα (2026). Για την τελική δήλωση (Ε1/Ε2), τις εκπτώσεις και τις ειδικές περιπτώσεις, συμβουλέψου λογιστή ή την ΑΑΔΕ.</InfoBanner>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16, marginTop:16 }}>
+        {/* Φόρος εισοδήματος από ενοίκια */}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+          <SectionTitle>Φόρος Εισοδήματος από Ενοίκια (2026)</SectionTitle>
+          <div className="table-wrap">
+          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <thead><tr>{['Κλιμάκιο Εισοδήματος','Συντελεστής'].map((h,i)=><th key={i} style={{ ...s.th, textAlign:i?'right' as const:'left' as const }}>{h}</th>)}</tr></thead>
+            <tbody>
+              {RENTAL_TAX_ROWS_2026.map((r,i)=>{
+                const active=annualRent>r.from&&(r.to===Infinity||annualRent<=r.to);
+                return (
+                  <tr key={i} style={{ background:active?'var(--accent-soft)':'transparent' }}>
+                    <td style={{ ...s.td, display:'flex', alignItems:'center', gap:8 }}>{r.range}{active&&<Badge tone="accent">εδώ</Badge>}</td>
+                    <td style={{ ...s.td, textAlign:'right' as const, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:active?700:400 }}>{r.rate}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          </div>
+          <div style={{ marginTop:12, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>Ο φόρος υπολογίζεται προοδευτικά ανά κλιμάκιο επί του ετήσιου ακαθάριστου ενοικίου ({fe(annualRent)}). ΕΝΔΕΙΚΤΙΚΟ, συμβουλέψου λογιστή ή την ΑΑΔΕ.</div>
+        </div>
+
+        {/* Νομικές υποχρεώσεις */}
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
+          <SectionTitle>Υποχρεώσεις & Πλαίσιο</SectionTitle>
+          <InfoBlock title="ΑΑΔΕ, Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης" tone="var(--warning)">
+            Κάθε νέα μίσθωση (και κάθε τροποποίηση/λύση) δηλώνεται ηλεκτρονικά στην ΑΑΔΕ, εντός της προθεσμίας που ορίζει η υπηρεσία (συνήθως έως το τέλος του επόμενου μήνα από την έναρξη). Χωρίς δήλωση δεν αναγνωρίζεται φορολογικά η μίσθωση. ΕΝΔΕΙΚΤΙΚΟ.
+          </InfoBlock>
+          <InfoBlock title="Ηλεκτρονική πληρωμή ενοικίου" tone={tenant.e_payment?'var(--positive)':'var(--negative)'}>
+            {tenant.e_payment
+              ?'Το ενοίκιο εισπράττεται ηλεκτρονικά, προϋπόθεση για τη φορολογική αναγνώριση της δαπάνης/εσόδου κατά τις ισχύουσες διατάξεις.'
+              :'Προσοχή: το ενοίκιο δηλώνεται ως μη ηλεκτρονική πληρωμή. Η ηλεκτρονική εξόφληση αποτελεί προϋπόθεση φορολογικής αναγνώρισης, ενημέρωσε τα στοιχεία μίσθωσης.'}
+          </InfoBlock>
+          <InfoBlock title="Αναπροσαρμογή ΔΤΚ">
+            Η αναπροσαρμογή μισθώματος γίνεται μία φορά τον χρόνο, βάσει Δείκτη Τιμών Καταναλωτή (ΕΛΣΤΑΤ), εφόσον προβλέπεται στη σύμβαση. Χρησιμοποίησε την καρτέλα «Αναπροσαρμογή Ενοικίου».
+          </InfoBlock>
+          <InfoBlock title="Ελάχιστη διάρκεια & εγγύηση">
+            Για μίσθωση κατοικίας ισχύει η τριετής ελάχιστη προστασία διάρκειας, ακόμη κι αν συμφωνηθεί μικρότερος χρόνος. Η εγγύηση{tenant.deposit_amount?` (${fe(tenant.deposit_amount)})`:''} επιστρέφεται στη λήξη, μετά από έλεγχο για φθορές. ΕΝΔΕΙΚΤΙΚΟ.
+          </InfoBlock>
+          <InfoBlock title="Χαρτόσημο επαγγελματικής μίσθωσης" tone="var(--text-tertiary)">
+            Στην επαγγελματική μίσθωση επιβάλλεται τέλος χαρτοσήμου 3,6% επί του μισθώματος (δεν ισχύει στην κατοικία). {isCommercial?'Ισχύει για την τρέχουσα μίσθωση.':'Η παρούσα καρτέλα αφορά μίσθωση κατοικίας, δεν υπολογίζεται χαρτόσημο. Αν πρόκειται για επαγγελματική μίσθωση, συμβουλέψου λογιστή.'}
+          </InfoBlock>
+          <div style={{ marginTop:16 }}>
+            {linkCard('ΑΑΔΕ, Δηλώσεις Μίσθωσης Ακινήτων','Ηλεκτρονική υποβολή & πληροφορίες','https://www.aade.gr/polites/misthoseis-akiniton-dilosi-plirophoriakon-stoicheion',true)}
+            {linkCard('ΑΑΔΕ, Φορολογία Εισοδήματος Ακινήτων','Ε2 & κλίμακα φόρου ενοικίων','https://www.aade.gr')}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Blank form ────────────────────────────────────────────────────────────────
 const blank=()=>({
   full_name:'',email:'',phone:'',phone_work:'',nationality:'',profession:'',employer:'',afm:'',
@@ -789,13 +1246,11 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const [isForm,setIsForm]=useState(false);
   const [editMode,setEditMode]=useState(false);
   const [formTab,setFormTab]=useState<'profile'|'lease'|'services'|'parking'|'docs'>('profile');
-  const [viewTab,setViewTab]=useState<'dashboard'|'profile'|'lease'|'services'|'rentadjust'|'payments'|'extras'|'comm'|'market'|'docs'>('dashboard');
-  const [addPay,setAddPay]=useState(false);
+  const [viewTab,setViewTab]=useState<'dashboard'|'profile'|'lease'|'services'|'rentadjust'|'payments'|'legal'|'extras'|'comm'|'market'|'docs'>('dashboard');
   const [addExtra,setAddExtra]=useState(false);
   const [error,setError]=useState<string|null>(null);
   const [ok,setOk]=useState<string|null>(null);
   const [form,setForm]=useState(blank());
-  const [payF,setPayF]=useState({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',paid:true,paid_date:new Date().toISOString().split('T')[0],days_late:'',notes:''});
   const [exF,setExF]=useState({description:'',amount:'',category:'Άλλο',date:new Date().toISOString().split('T')[0],paid:false,notes:''});
   const sf=(k:string,v:any)=>setForm(f=>({...f,[k]:v}));
 
@@ -819,6 +1274,12 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   },[propertyId,userId]);
 
   useEffect(()=>{fetch_();},[fetch_]);
+  // Όταν ανοίγει το tab με φορτωμένο ενοικιαστή, συγχρόνισε ημερολόγιο/εργασίες
+  // (idempotent, δεν δημιουργεί διπλότυπα, best-effort).
+  useEffect(()=>{
+    if(tenant?.id) syncTenantSchedule(supabase,tenant as unknown as TenantScheduleInput,propertyId,userId,'open');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tenant?.id]);
   const notify=(msg:string)=>{setOk(msg);setTimeout(()=>setOk(null),3000);};
 
   const openAdd=()=>{setForm(blank());setEditMode(false);setIsForm(true);setFormTab('profile');};
@@ -881,9 +1342,14 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       prepay_invested:form.prepay_invested,prepay_invest_rate:n(form.prepay_invest_rate),prepay_invest_type:form.prepay_invest_type||null,prepay_invest_term:form.prepay_invest_term||null,
       lease_doc_external_url:form.lease_doc_external_url||null,
     };
-    const q=editMode&&tenant?supabase.from('tenants').update(payload).eq('id',tenant.id):supabase.from('tenants').insert(payload);
-    const{error:err}=await q;
+    const q=editMode&&tenant
+      ?supabase.from('tenants').update(payload).eq('id',tenant.id).select('*').single()
+      :supabase.from('tenants').insert(payload).select('*').single();
+    const{data:savedRow,error:err}=await q;
     if(err){setError(err.message);setSaving(false);return;}
+    // Cross-app sync: Ημερολόγιο + Εργασίες (idempotent, best-effort).
+    const savedTenant=(savedRow||tenant) as TenantScheduleInput|null;
+    if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save');
     setSaving(false);setIsForm(false);setEditMode(false);
     notify(editMode?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');fetch_();
   };
@@ -899,13 +1365,6 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     setUploading(false);notify('PDF ανέβηκε');fetch_();
   };
 
-  const savePay=async()=>{
-    if(!tenant||!payF.amount){setError('Συμπλήρωσε ποσό');return;}setSaving(true);
-    await supabase.from('rent_payments').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:payF.paid?payF.paid_date:null,days_late:payF.days_late?parseInt(payF.days_late):null,notes:payF.notes||null});
-    setSaving(false);setAddPay(false);setPayF({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',paid:true,paid_date:new Date().toISOString().split('T')[0],days_late:'',notes:''});
-    notify('Πληρωμή καταχωρήθηκε');fetch_();
-  };
-
   const saveExtra=async()=>{
     if(!tenant||!exF.description||!exF.amount){setError('Συμπλήρωσε περιγραφή και ποσό');return;}setSaving(true);
     await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:exF.description,amount:Math.max(0,parseFloat(exF.amount)),category:'tenant_extra',date:exF.date,paid:exF.paid,notes:exF.notes||null});
@@ -919,14 +1378,16 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     </div>
   );
 
-  const FTABS:[string,typeof formTab][]=[['Στοιχεία','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],['Parking','parking'],['Έγγραφα','docs']];
+  const FTABS:[string,typeof formTab][]=[['Στοιχεία','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],['Στάθμευση','parking'],['Έγγραφα','docs']];
+  const overdueCount = payments.filter(p=>!p.paid && p.due_date && p.due_date < todayISO()).length;
   const VTABS:{id:typeof viewTab;label:string;badge?:number}[]=[
-    {id:'dashboard',label:'Dashboard'},
+    {id:'dashboard',label:'Επισκόπηση'},
     {id:'profile',label:'Προφίλ'},
     {id:'lease',label:'Μίσθωση'},
     {id:'services',label:'Υπηρεσίες'},
     {id:'rentadjust',label:'Αναπροσαρμογή Ενοικίου'},
-    {id:'payments',label:'Πληρωμές',badge:payments.filter(p=>!p.paid).length||undefined},
+    {id:'payments',label:'Πληρωμές',badge:overdueCount||payments.filter(p=>!p.paid).length||undefined},
+    {id:'legal',label:'Νομικά & Φόρος'},
     {id:'extras',label:'Έκτακτες Χρεώσεις',badge:extras.filter((e:any)=>!e.paid).length||undefined},
     {id:'comm',label:'Επικοινωνία'},
     {id:'market',label:'Αγορά'},
@@ -1025,7 +1486,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {form.deposit_invested&&(
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
-                  <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Fixed Term','Flexible','ETF','P2P Lending','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
+                  <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
                   <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="για παράδειγμα Scramble, VWCE..."/>
                 </div>
               )}
@@ -1063,7 +1524,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               {form.prepay_option&&<PrepayCalc monthlyRent={form.monthly_rent?Math.max(0,parseFloat(form.monthly_rent)):null}/>}
               <div style={s.divider}/>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.all_inclusive?16:0 }}>
-                <SectionTitle>All-Inclusive, Κοινόχρηστα Στον Ενοικιαστή</SectionTitle>
+                <SectionTitle>Όλα Συμπεριλαμβανόμενα, Κοινόχρηστα Στον Ενοικιαστή</SectionTitle>
                 <Toggle on={form.all_inclusive} onChange={v=>sf('all_inclusive',v)} label="Ναι" labelOff="Όχι"/>
               </div>
               {form.all_inclusive&&(
@@ -1234,7 +1695,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   ['Μηνιαίο Ενοίκιο',<span style={{ color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700, fontSize:15 }}>{fmt(tenant.monthly_rent)}</span>],
                   ['Συχνότητα Εξόφλησης',{monthly:'Μηνιαία',bimonthly:'Διμηνιαία',quarterly:'Τριμηνιαία'}[tenant.payment_frequency||'monthly']||'—'],
                   ['Τρόπος Πληρωμής',tenant.e_payment?<StatusBadge label="Ηλεκτρονική" color="var(--accent)" bg="var(--accent-dim)"/>:<StatusBadge label="Μετρητά" color="var(--text-secondary)" bg="var(--bg-overlay)"/>],
-                  ['All-Inclusive',tenant.all_inclusive?<StatusBadge label="Ναι" color="var(--accent)" bg="var(--accent-dim)"/>:<StatusBadge label="Όχι" color="var(--text-secondary)" bg="var(--bg-overlay)"/>],
+                  ['Όλα Συμπεριλαμβανόμενα',tenant.all_inclusive?<StatusBadge label="Ναι" color="var(--accent)" bg="var(--accent-dim)"/>:<StatusBadge label="Όχι" color="var(--text-secondary)" bg="var(--bg-overlay)"/>],
                 ] as [string,React.ReactNode|Function][]).map(([k,v],i)=>(
                   <DataRow key={i} label={k as string} value={typeof v==='function'?v():v as React.ReactNode}/>
                 ))}
@@ -1298,76 +1759,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
           {viewTab==='rentadjust'&&<RentAdjustView tenant={tenant} userId={userId}/>}
 
           {viewTab==='payments'&&(
-            <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-                <SectionTitle>Ιστορικό Πληρωμών Ενοικίου</SectionTitle>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(
-                    `enoikiastis_${new Date().toISOString().slice(0,10)}`,
-                    ['Περίοδος','Ποσό (€)','Κατάσταση','Ημ. Πληρωμής','Καθυστέρηση (ημέρες)','Σημειώσεις'],
-                    payments.map(p=>[
-                      `${MONTHS_FULL[p.period_month-1]} ${p.period_year}`, csvEur(p.amount),
-                      p.paid?'Εξοφλήθη':'Εκκρεμεί', csvDate(p.paid_date), p.days_late||0, (p.notes||'').replace(/\n/g,' '),
-                    ])
-                  )}/>
-                  <button style={s.btnSm} onClick={()=>setAddPay(v=>!v)}>{addPay?'Κλείσιμο':'+ Νέα Πληρωμή'}</button>
-                </div>
-              </div>
-              {addPay&&(
-                <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
-                  <div style={{ ...s.g4, marginBottom:14 }}>
-                    <SelectField label="Μήνας" value={String(payF.period_month)} onChange={v=>setPayF(f=>({...f,period_month:+v}))} options={MONTHS_FULL.map((m,i)=>({value:String(i+1),label:m}))}/>
-                    <NumberInput label="Έτος" value={String(payF.period_year)} onChange={v=>setPayF(f=>({...f,period_year:+v}))} min={2000}/>
-                    <NumberInput label="Ποσό" value={payF.amount} onChange={v=>setPayF(f=>({...f,amount:v}))} suffix="€" placeholder={tenant.monthly_rent?.toString()}/>
-                    <NumberInput label="Ημέρες Καθυστέρησης" value={payF.days_late} onChange={v=>setPayF(f=>({...f,days_late:v}))} suffix="ημ." placeholder="0"/>
-                  </div>
-                  <div style={{ ...s.g3, marginBottom:14 }}>
-                    <div><div style={{ ...labelStyle, marginBottom:8 }}>Εξοφλήθη</div><Toggle on={payF.paid} onChange={v=>setPayF(f=>({...f,paid:v}))} label="Ναι" labelOff="Όχι"/></div>
-                    {payF.paid&&<DateField label="Ημερομηνία Πληρωμής" value={payF.paid_date} onChange={v=>setPayF(f=>({...f,paid_date:v}))}/>}
-                    <TextInput label="Σημείωση" value={payF.notes} onChange={v=>setPayF(f=>({...f,notes:v}))} placeholder="για παράδειγμα Μερική πληρωμή"/>
-                  </div>
-                  <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-                    <button style={s.btnGhost} onClick={()=>setAddPay(false)}>Ακύρωση</button>
-                    <button style={s.btnGold} onClick={savePay} disabled={saving}>{saving?'Αποθήκευση...':'Καταχώρηση'}</button>
-                  </div>
-                </div>
-              )}
-              {payments.length===0?(
-                <div style={{ textAlign:'center', padding:'48px 0', color:'var(--text-tertiary)', fontSize:13, fontFamily:T.font.sans }}>Δεν υπάρχουν καταχωρημένες πληρωμές</div>
-              ):(
-                <>
-                  <div className="table-wrap">
-                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                    <thead><tr>{['Περίοδος','Ποσό','Κατάσταση','Ημερομηνία Πληρωμής','Καθυστέρηση','Σημείωση',''].map((h,i)=><th key={i} style={s.th}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {payments.map(p=>(
-                        <tr key={p.id}>
-                          <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_S[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
-                          <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}</td>
-                          <td style={s.td}>
-                            <button onClick={async()=>{await supabase.from('rent_payments').update({paid:!p.paid,paid_date:!p.paid?new Date().toISOString().split('T')[0]:null}).eq('id',p.id);fetch_();}}
-                              style={{ ...s.badge(p.paid?'var(--positive)':'var(--negative)',p.paid?'var(--positive-dim)':'var(--negative-dim)'), cursor:'pointer', border:`1px solid ${p.paid?'var(--positive)':'var(--negative)'}33`, fontFamily:T.font.sans }}>
-                              {p.paid?'Εξοφλήθη':'Εκκρεμεί'}
-                            </button>
-                          </td>
-                          <td style={s.tdM}>{fmtD(p.paid_date)}</td>
-                          <td style={s.td}>{p.days_late&&p.days_late>0?<StatusBadge label={`${p.days_late} ημέρες`} color={p.days_late>14?'var(--negative)':'var(--warning)'} bg={p.days_late>14?'var(--negative-dim)':'var(--warning-dim)'}/>:<span style={{ color:'var(--text-tertiary)' }}>—</span>}</td>
-                          <td style={s.tdM}>{p.notes||'—'}</td>
-                          <td style={s.td}><button style={s.btnDng} onClick={async()=>{if(!confirm('Διαγραφή;'))return;await supabase.from('rent_payments').delete().eq('id',p.id);fetch_();}}>Διαγραφή</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:14, paddingTop:14, display:'flex', gap:20, flexWrap:'wrap' as const }}>
-                    <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Εισπραχθέντα: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>
-                    {payments.some(p=>!p.paid)&&<span style={{ fontSize:12, color:'var(--negative)', fontFamily:T.font.sans }}>Εκκρεμή: <strong style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(payments.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0))}</strong></span>}
-                    <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{payments.filter(p=>p.paid).length} / {payments.length} πληρωμές εξοφλημένες</span>
-                  </div>
-                </>
-              )}
-            </div>
+            <PaymentsView tenant={tenant} propertyId={propertyId} userId={userId} payments={payments} onRefresh={fetch_} notify={notify}/>
           )}
+
+          {viewTab==='legal'&&<LegalTaxView tenant={tenant}/>}
 
           {viewTab==='extras'&&(
             <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
