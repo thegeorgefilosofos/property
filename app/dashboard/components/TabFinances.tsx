@@ -1,0 +1,49 @@
+'use client';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Δαπάνες — ενοποιημένη είσοδος για Λογαριασμούς και λοιπές δαπάνες.
+// Ενοποιεί σε ΕΝΑ σημείο (καρτέλα «Δαπάνες») αλλά κρατά διακριτή, ξεκάθαρη δομή:
+//   • Λογαριασμοί   → πάγιοι/επαναλαμβανόμενοι (ρεύμα, νερό, πάροχοι, ασφάλειες…)
+//   • Λοιπές δαπάνες → όλες οι υπόλοιπες δαπάνες + προϋπολογισμός
+// Καμία διπλή λογική: κάθε ενότητα αποδίδει το υπάρχον, δοκιμασμένο εργαλείο της.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { useState } from 'react';
+import { T } from '@/components/Theme';
+import TabBills from './TabBills';
+import TabExpenses from './TabExpenses';
+
+interface Props {
+  propertyId: string; userId: string;
+  propertyName?: string; propertyAddress?: string;
+  profileType?: 'individual' | 'professional';
+}
+
+type View = 'bills' | 'expenses';
+
+export default function TabFinances({ propertyId, userId, propertyName = '', propertyAddress = '' }: Props) {
+  const [view, setView] = useState<View>('bills');
+  const segs: { k: View; label: string }[] = [
+    { k: 'bills', label: 'Λογαριασμοί' },
+    { k: 'expenses', label: 'Λοιπές δαπάνες' },
+  ];
+  return (
+    <div>
+      {/* Ενιαία, ήσυχη εναλλαγή ενοτήτων (ίδιο idiom με τα view toggles της εφαρμογής) */}
+      <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, overflow: 'hidden', marginBottom: 18 }}>
+        {segs.map(s => {
+          const on = view === s.k;
+          return (
+            <button key={s.k} onClick={() => setView(s.k)}
+              style={{ appearance: 'none', border: 'none', cursor: 'pointer', padding: '9px 18px', fontFamily: T.font.sans, fontSize: 13, fontWeight: on ? 700 : 500, background: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'background .15s, color .15s' }}>
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+      {view === 'bills'
+        ? <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />
+        : <TabExpenses propertyId={propertyId} userId={userId} />}
+    </div>
+  );
+}

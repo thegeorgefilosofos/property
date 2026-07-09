@@ -1539,7 +1539,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
 
       {!embedded && <PageTitle
-        title="Απογραφή"
+        title="Έπιπλα / Εξοπλισμός"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
           <div title="kWh = κιλοβατώρα, μονάδα κατανάλωσης ρεύματος· τιμή σε € ανά kWh" style={{display:'flex',alignItems:'center',height:36,background:'transparent',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>

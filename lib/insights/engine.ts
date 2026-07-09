@@ -73,8 +73,8 @@ export function computeInsights(input: InsightInput): Insight[] {
   // ── 1. Ασφάλεια ακινήτου ──────────────────────────────────────────────────
   const insD = daysUntil(p.insurance_expiry, now);
   if (insD !== null) {
-    if (insD < 0) out.push({ id: 'insurance-expired', kind: 'urgent', title: 'Η ασφάλεια του ακινήτου έχει λήξει', detail: `Έληξε πριν ${Math.abs(insD)} ${Math.abs(insD) === 1 ? 'ημέρα' : 'ημέρες'}. Ένα ασφάλιστρο σε καλύπτει από πυρκαγιά, σεισμό και ζημιές. Ανανέωσέ το άμεσα.`, action: { label: 'Ασφάλεια', tab: 'bills' } });
-    else if (insD <= 45) out.push({ id: 'insurance-soon', kind: 'attention', title: 'Λήγει σύντομα η ασφάλεια', detail: `Σε ${insD} ${insD === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσέ την έγκαιρα για να μη μείνει το ακίνητο ακάλυπτο.`, action: { label: 'Ασφάλεια', tab: 'bills' } });
+    if (insD < 0) out.push({ id: 'insurance-expired', kind: 'urgent', title: 'Η ασφάλεια του ακινήτου έχει λήξει', detail: `Έληξε πριν ${Math.abs(insD)} ${Math.abs(insD) === 1 ? 'ημέρα' : 'ημέρες'}. Ένα ασφάλιστρο σε καλύπτει από πυρκαγιά, σεισμό και ζημιές. Ανανέωσέ το άμεσα.`, action: { label: 'Ασφάλεια', tab: 'finances' } });
+    else if (insD <= 45) out.push({ id: 'insurance-soon', kind: 'attention', title: 'Λήγει σύντομα η ασφάλεια', detail: `Σε ${insD} ${insD === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσέ την έγκαιρα για να μη μείνει το ακίνητο ακάλυπτο.`, action: { label: 'Ασφάλεια', tab: 'finances' } });
   }
 
   // ── 2. Λήξη μίσθωσης ───────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ export function computeInsights(input: InsightInput): Insight[] {
   const unpaid = bills.filter(b => !b.paid);
   const overdue = unpaid.filter(b => { const x = daysUntil(b.due_date, now); return x !== null && x < 0; });
   const overdueTotal = overdue.reduce((s, b) => s + (b.amount || 0), 0);
-  if (overdue.length) out.push({ id: 'bills-overdue', kind: 'urgent', title: `${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'}`, detail: 'Έχει περάσει η ημερομηνία πληρωμής. Εξόφλησέ τους για να αποφύγεις προσαυξήσεις ή διακοπή παροχής.', metric: overdueTotal > 0 ? eur(overdueTotal) : undefined, action: { label: 'Λογαριασμοί', tab: 'bills' } });
-  else if (unpaid.length) out.push({ id: 'bills-unpaid', kind: 'attention', title: `${unpaid.length} ${unpaid.length === 1 ? 'εκκρεμής λογαριασμός' : 'εκκρεμείς λογαριασμοί'}`, detail: 'Αναμένουν πληρωμή. Τακτοποίησέ τους όσο υπάρχει χρόνος.', action: { label: 'Λογαριασμοί', tab: 'bills' } });
+  if (overdue.length) out.push({ id: 'bills-overdue', kind: 'urgent', title: `${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'}`, detail: 'Έχει περάσει η ημερομηνία πληρωμής. Εξόφλησέ τους για να αποφύγεις προσαυξήσεις ή διακοπή παροχής.', metric: overdueTotal > 0 ? eur(overdueTotal) : undefined, action: { label: 'Λογαριασμοί', tab: 'finances' } });
+  else if (unpaid.length) out.push({ id: 'bills-unpaid', kind: 'attention', title: `${unpaid.length} ${unpaid.length === 1 ? 'εκκρεμής λογαριασμός' : 'εκκρεμείς λογαριασμοί'}`, detail: 'Αναμένουν πληρωμή. Τακτοποίησέ τους όσο υπάρχει χρόνος.', action: { label: 'Λογαριασμοί', tab: 'finances' } });
 
   // ── 4. Συντήρηση & Checklist εκπρόθεσμα ──────────────────────────────────
   const tasksOverdue = tasks.filter(t => { const x = daysUntil(t.due_date, now); return x !== null && x < 0; });
@@ -120,7 +120,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     const cashTotal = withMethod.filter(e => e.payment_method && CASH.has(e.payment_method)).reduce((s, e) => s + e.amount, 0);
     const cashShare = expensesYTD > 0 ? cashTotal / expensesYTD : 0;
     if (withMethod.length >= 3 && cashShare > 0.35) {
-      out.push({ id: 'tax-electronic', kind: 'opportunity', title: 'Πλήρωνε ηλεκτρονικά και γλίτωσε φόρο', detail: `Το ${Math.round(cashShare * 100)}% των δαπανών σου είναι με μετρητά. Οι ηλεκτρονικές πληρωμές (κάρτα, e-banking) μετρούν για την έκπτωση φόρου και χτίζουν το «καλάθι» αποδείξεων που ζητά η εφορία.`, action: { label: 'Δαπάνες', tab: 'expenses' } });
+      out.push({ id: 'tax-electronic', kind: 'opportunity', title: 'Πλήρωνε ηλεκτρονικά και γλίτωσε φόρο', detail: `Το ${Math.round(cashShare * 100)}% των δαπανών σου είναι με μετρητά. Οι ηλεκτρονικές πληρωμές (κάρτα, e-banking) μετρούν για την έκπτωση φόρου και χτίζουν το «καλάθι» αποδείξεων που ζητά η εφορία.`, action: { label: 'Δαπάνες', tab: 'finances' } });
     }
   }
 
@@ -128,7 +128,7 @@ export function computeInsights(input: InsightInput): Insight[] {
   const energyBills = bills.filter(b => (b.type || '').toLowerCase().includes('electric') || b.type === 'electricity' || b.type === 'ρεύμα');
   const energyTotal = energyBills.reduce((s, b) => s + (b.amount || 0), 0);
   if (energyTotal > 0 && expensesYTD > 0 && energyTotal / Math.max(expensesYTD, energyTotal) > 0.25) {
-    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές στα τιμολόγια ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων μπορεί να σου γλιτώσει αρκετά τον χρόνο, ειδικά αν το ακίνητο μένει άδειο κάποιους μήνες.', metric: eur(energyTotal), action: { label: 'Λογαριασμοί', tab: 'bills' } });
+    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές στα τιμολόγια ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων μπορεί να σου γλιτώσει αρκετά τον χρόνο, ειδικά αν το ακίνητο μένει άδειο κάποιους μήνες.', metric: eur(energyTotal), action: { label: 'Λογαριασμοί', tab: 'finances' } });
   }
 
   // ── 9. Πλαίσιο απόδοσης (δώσε αξία/σύγκριση) ──────────────────────────────
