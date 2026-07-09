@@ -644,7 +644,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   GROUPS.forEach(g => {
     const grpContacts = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id)
     if (grpContacts.length === 0) return
-    detailRows.push([`▶ ${g.label}`, `${grpContacts.length} επαφές`, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+    detailRows.push([g.label, `${grpContacts.length} επαφές`, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     grpContacts.sort((a, b) => a.full_name.localeCompare(b.full_name, 'el')).forEach(c => {
       const ex = c._extra || {}
       const status = STATUS_OPTIONS.find(s => s.value === (ex.status || 'active'))?.label || ''
@@ -703,7 +703,7 @@ async function exportContactsExcel(contacts: Contact[]) {
         c.phone || '—',
         c.email || '—',
         STATUS_OPTIONS.find(s => s.value === (ex.status || 'active'))?.label || '',
-        '★'.repeat(ex.rating || 0) || '—',
+        (ex.rating ? ex.rating + '/5' : '—'),
         ex.whatsapp ? 'WA' : '',
         ex.iris ? 'IRIS' : '',
       ])
@@ -759,7 +759,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
               ${esc(statusMeta.label)}
             </span>
           </td>
-          <td style="text-align:center">${'★'.repeat(ex.rating || 0) || '—'}</td>
+          <td style="text-align:center">${(ex.rating ? ex.rating + '/5' : '—')}</td>
           <td style="font-family:'Roboto Mono',monospace;font-size:10px">
             ${ex.iban ? `···${esc(ex.iban.slice(-4))}${ex.iris ? ' <span style="color:#b45309">IRIS</span>' : ''}` : '—'}
           </td>
@@ -1406,14 +1406,14 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                         <Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} colorOn="#25d366" />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: '#25d366' }}>WhatsApp</div>
-                          {form.extra.whatsapp && form.phone && <a href={'https://wa.me/' + form.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#25d366', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat →</a>}
+                          {form.extra.whatsapp && form.phone && <a href={'https://wa.me/' + form.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#25d366', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat</a>}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} colorOn="#7360f2" />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: '#7360f2' }}>Viber</div>
-                          {form.extra.viber && form.phone && <a href={'viber://chat?number=' + form.phone.replace(/\D/g, '')} style={{ fontSize: 11, color: '#7360f2', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat →</a>}
+                          {form.extra.viber && form.phone && <a href={'viber://chat?number=' + form.phone.replace(/\D/g, '')} style={{ fontSize: 11, color: '#7360f2', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat</a>}
                         </div>
                       </div>
                     </div>
