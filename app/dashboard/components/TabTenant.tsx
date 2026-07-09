@@ -929,10 +929,15 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const svcCharge=tenantServicesCharge(tenant);
   const targetAmt=baseRent+svcCharge;
   // Εκκρεμείς δόσεις με ποσό διαφορετικό από το τρέχον (π.χ. άλλαξε ενοίκιο ή υπηρεσίες).
-  const staleUnpaid=useMemo(()=>open.filter(p=>Math.round((p.amount||0)*100)!==Math.round(targetAmt*100)),[open,targetAmt]);
+  // Εξαιρούνται όσες δήλωσε ο μισθωτής — έχει δεσμευτεί σε εκείνο το ποσό.
+  const staleUnpaid=useMemo(()=>open.filter(p=>!p.tenant_declared && Math.round((p.amount||0)*100)!==Math.round(targetAmt*100)),[open,targetAmt]);
+  // Δόσεις που ο μισθωτής δήλωσε ως πληρωμένες μέσω πύλης — αναμένουν επιβεβαίωση είσπραξης.
+  const declaredPending=useMemo(()=>open.filter(p=>p.tenant_declared),[open]);
   const syncUnpaidToTarget=async()=>{
+    const ids=staleUnpaid.map(p=>p.id); if(!ids.length) return;
     setBusy(true);
-    await supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).eq('tenant_id',tenant.id).eq('paid',false);
+    // Ενημερώνει μόνο τις συγκεκριμένες εκκρεμείς δόσεις (όχι δηλωμένες/χειροκίνητες εκτός λίστας).
+    await supabase.from('rent_payments').update({amount:targetAmt,base_rent:baseRent,services_charge:svcCharge}).in('id',ids);
     setBusy(false); onRefresh(); notify('Οι εκκρεμείς δόσεις ενημερώθηκαν');
   };
 
@@ -1148,6 +1153,28 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
         </div>
 
         {missing.length>0&&<InfoBanner tone="info">Λείπουν {fn(missing.length)} μηνιαίες δόσεις βάσει της μίσθωσης. Πάτησε «Δημιουργία δόσεων» για αυτόματη συμπλήρωση.</InfoBanner>}
+
+        {declaredPending.length>0&&(
+          <div style={{ background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:T.radius.inner, padding:'14px 16px', margin:'4px 0 8px' }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:2 }}>
+              {fn(declaredPending.length)} {declaredPending.length===1?'πληρωμή δηλώθηκε':'πληρωμές δηλώθηκαν'} από τον μισθωτή
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:12, lineHeight:1.5 }}>
+              Ο μισθωτής δήλωσε πληρωμή μέσω της πύλης. Επιβεβαίωσε την είσπραξη για να καταχωρηθεί ως πληρωμένη.
+            </div>
+            <div style={{ display:'flex', flexDirection:'column' as const, gap:8 }}>
+              {declaredPending.map(p=>(
+                <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'10px 14px' }}>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{monthLabel(p)} · <span style={{ fontFamily:T.font.mono }}>{fmt(p.amount)}</span></div>
+                    {p.tenant_note&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, whiteSpace:'pre-wrap' as const }}>{p.tenant_note}</div>}
+                  </div>
+                  <button style={s.btnSm} onClick={()=>setMark({p,method:'Τραπεζική κατάθεση',receipt:''})}>Επιβεβαίωση είσπραξης</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {staleUnpaid.length>0&&(
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, background:'var(--warning-soft)', border:'1px solid var(--warning-border)', borderRadius:T.radius.inner, padding:'11px 16px', margin:'4px 0' }}>
@@ -1833,6 +1860,12 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     });
     return m;
   },[payments,todayS]);
+  // Δηλωμένες-από-μισθωτή πληρωμές ανά ενοικιαστή (αναμένουν επιβεβαίωση είσπραξης).
+  const declaredByTenant=useMemo(()=>{
+    const m=new Map<string,number>();
+    payments.filter(p=>!p.paid&&p.tenant_declared).forEach(p=>m.set(p.tenant_id,(m.get(p.tenant_id)||0)+1));
+    return m;
+  },[payments]);
 
   const currentTenants=useMemo(()=>tenants.filter(t=>!isPastTenant(t)),[tenants]);
   const pastTenants=useMemo(()=>tenants.filter(isPastTenant),[tenants]);
@@ -2035,7 +2068,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   const FTABS:[string,typeof formTab][]=[['Στοιχεία Μισθωτή','profile'],['Παρεχόμενες Υπηρεσίες σε Μισθωτή','services']];
   const DTABS:{id:DossierTab;label:string;badge?:number}[]=dc?[
     {id:'overview',label:'Επισκόπηση'},
-    {id:'lease',label:'Μίσθωση & Ενοίκιο',badge:dcOverdue.count||undefined},
+    {id:'lease',label:'Μίσθωση & Ενοίκιο',badge:(dcOverdue.count+(declaredByTenant.get(dc.id)||0))||undefined},
     {id:'deposit',label:'Εγγύηση'},
     {id:'damages',label:'Φθορές & Επισκευές',badge:dcDamages.filter(d=>!d.repaired).length||undefined},
     {id:'maintenance',label:'Αιτήματα Βλάβης',badge:dcMaint.filter(m=>m.status!=='done').length||undefined},
@@ -2096,6 +2129,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       </div>
                       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
                         {statusBadge(t)}
+                        {(declaredByTenant.get(t.id)||0)>0&&<Badge tone="accent">Δηλωμένη πληρωμή</Badge>}
                         <button title="Διαγραφή" onClick={e=>{e.stopPropagation();delTenant(t);}}
                           style={{ background:'none', border:'none', borderRadius:8, width:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'var(--text-tertiary)', padding:0 }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
