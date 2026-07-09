@@ -863,3 +863,39 @@ create table if not exists public.onboarding_progress (
 alter table public.onboarding_progress enable row level security;
 drop policy if exists own_onboarding_progress on public.onboarding_progress;
 create policy own_onboarding_progress on public.onboarding_progress for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ── Οριστική διαγραφή λογαριασμού (self-service) ──────────────────────────
+-- Βλ. migration 20260709140000_delete_my_account.sql
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  t   record;
+begin
+  if uid is null then
+    raise exception 'Δεν υπάρχει συνδεδεμένος χρήστης';
+  end if;
+  for t in
+    select c.table_name
+    from information_schema.columns c
+    join information_schema.tables tb
+      on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+    where c.table_schema = 'public'
+      and c.column_name = 'user_id'
+      and tb.table_type = 'BASE TABLE'
+  loop
+    execute format('delete from public.%I where user_id = $1', t.table_name) using uid;
+  end loop;
+  begin
+    delete from storage.objects where owner = uid;
+  exception when others then null;
+  end;
+  delete from auth.users where id = uid;
+end;
+$$;
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;
