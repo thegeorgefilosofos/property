@@ -1533,7 +1533,10 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     // Ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή, ώστε στο Ημερολόγιο να
     // φαίνεται αμέσως ποιος συνεργάτης αναλαμβάνει (π.χ. «Service κλιματιστικών — Γ. Ψυκτικός»).
     const title = item.assigned_contact_name ? `${item.description} — ${item.assigned_contact_name}` : item.description
-    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: item.priority === 'critical' ? 'high' : item.priority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
+    // Το Ημερολόγιο δέχεται low|medium|high|critical — το checklist έχει και «normal».
+    // Χαρτογράφηση normal → medium, αλλιώς το Ημερολόγιο κρασάρει σε άγνωστη προτεραιότητα.
+    const calPriority = item.priority === 'normal' ? 'medium' : item.priority
+    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
     showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο — ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
