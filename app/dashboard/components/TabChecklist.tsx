@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
-import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Badge, Btn, EmptyState, type KPIItem, type Tone } from '@/components/Theme'
+import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
 const supabase = createSupabaseClient()
@@ -196,7 +196,6 @@ function getStatusMeta(v: string) { return STATUSES.find(s => s.value === v) || 
 // ── Ήρεμες οπτικές ενδείξεις (χαμηλός κορεσμός, όχι «σουπερμάρκετ») ──────────
 // Μόνο η κρίσιμη/υψηλή προτεραιότητα παίρνει χρώμα· οι υπόλοιπες μένουν ουδέτερες.
 function priDotColor(v: string) { return v === 'critical' ? 'var(--negative)' : v === 'high' ? 'var(--warning)' : 'var(--text-tertiary)' }
-function statusTone(v: string): Tone { return v === 'done' ? 'positive' : v === 'in_progress' ? 'info' : 'neutral' }
 // Μικρή, διακριτική ένδειξη προτεραιότητας: τελεία + ήσυχη ετικέτα.
 function PriorityCue({ priority }: { priority: string }) {
   const label = getPri(priority).label
@@ -909,10 +908,10 @@ ${sectionHtml(12, 'Δηλώσεις & Υπογραφές', `
 
 
 // ─── ItemRow ──────────────────────────────────────────────────────────────────
-function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onAddToExpenses, onDuplicate, onSelect, selected, selectionActive }: {
+function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, onAddToExpenses, onDuplicate, onSelect, selected, selectMode }: {
   item: ChecklistItem; allItems: ChecklistItem[]; onToggle: () => void; onEdit: () => void; onDelete: () => void
   onAddToCalendar: () => void; onAddToExpenses: () => void; onDuplicate: () => void
-  onSelect?: () => void; selected?: boolean; selectionActive?: boolean
+  onSelect?: () => void; selected?: boolean; selectMode?: boolean
 }) {
   const [hov, setHov] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -920,11 +919,8 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
 
-  const cat = getCat(item.category); const sm = getStatusMeta(item.status)
   const overdue = isOverdue(item.due_date, item.status); const due = daysUntil(item.due_date)
   const done = item.status === 'done'
-  const subtasks = item._subtasks || []; const subDone = subtasks.filter(s => s.done).length
-  const tags = item._tags || []
   const dependsOn = item.depends_on ? allItems.find(i => i.id === item.depends_on) : null
   const blocked = !!(dependsOn && dependsOn.status !== 'done')
 
@@ -943,64 +939,55 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
 
   const cbColor = done ? 'var(--positive)' : overdue ? 'var(--negative)' : 'var(--border-default)'
   const cbBg = done ? 'var(--positive)' : 'transparent'
-  const selectVisible = hov || selectionActive || !!selected
+  // Ένα και μόνο control ανά σειρά: όταν είναι ενεργή η «Επιλογή» (ή η σειρά είναι
+  // επιλεγμένη) εμφανίζεται το τετράγωνο checkbox επιλογής· αλλιώς το στρογγυλό toggle
+  // ολοκλήρωσης. Ποτέ και τα δύο μαζί — τέλος στο «διπλό checkbox».
+  const selecting = !!selectMode || !!selected
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked && !selected ? 0.6 : 1, position: 'relative' }}>
+      onClick={selecting ? () => onSelect?.() : undefined}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s', opacity: blocked && !selected ? 0.6 : 1, position: 'relative', cursor: selecting ? 'pointer' : 'default' }}>
 
-      {/* Επιλογή για μαζικές ενέργειες — εμφανίζεται στο hover ή όταν υπάρχει ενεργή επιλογή, χωρίς μετατόπιση διάταξης */}
-      <div style={{ flexShrink: 0, marginTop: 2, width: 18, opacity: selectVisible ? 1 : 0, pointerEvents: selectVisible ? 'auto' : 'none', transition: 'opacity 0.15s' }}>
-        <button type="button" aria-label="Επιλογή εργασίας" onClick={e => { e.stopPropagation(); onSelect?.() }}
-          style={{ width: 18, height: 18, borderRadius: 5, border: '2px solid ' + (selected ? 'var(--accent)' : 'var(--border-default)'), background: selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+      {selecting ? (
+        // Τετράγωνο checkbox επιλογής (μαζικές ενέργειες)
+        <button type="button" aria-label={selected ? 'Αποεπιλογή εργασίας' : 'Επιλογή εργασίας'} onClick={e => { e.stopPropagation(); onSelect?.() }}
+          style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, border: '2px solid ' + (selected ? 'var(--accent)' : 'var(--border-default)'), background: selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
           {selected && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </button>
-      </div>
+      ) : (
+        // Στρογγυλό toggle ολοκλήρωσης (Gmail/Linear pattern)
+        <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
+          style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+          onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
+          onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
+          {done && (
+            <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          )}
+        </button>
+      )}
 
-      <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
-        style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-        onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
-        onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
-        {done && (
-          <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        )}
-      </button>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.55 : 1, fontFamily: T.font.sans }}>
-            {item.description}
+      {/* Ήρεμη, σαρώσιμη σειρά: τελεία προτεραιότητας + τίτλος + προθεσμία + μία ένδειξη (ανάθεση).
+          Δευτερεύοντα (ετικέτες, κόστος, υπο-εργασίες, σχόλια, επανάληψη) ζουν στην προβολή λεπτομερειών. */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span title={'Προτεραιότητα: ' + getPri(item.priority).label} style={{ width: 7, height: 7, borderRadius: '50%', background: priDotColor(item.priority), flexShrink: 0 }} />
+        <span style={{ fontSize: 14, fontWeight: 500, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.description}
+        </span>
+        {item.due_date && (
+          <span style={{ flexShrink: 0, fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
+            {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · ${Math.abs(due)}μ πριν` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · σε ${due}μ` : ''}
           </span>
-          <PriorityCue priority={item.priority} />
-          {item.status !== 'pending' && <Badge tone={statusTone(item.status)}>{sm.label}</Badge>}
-          {item.recurring !== 'none' && <Badge tone="neutral">{RECURRING_OPTIONS.find(r => r.value === item.recurring)?.label}</Badge>}
-          {tags.map(t => <span key={t} style={{ fontSize: 9, padding: '2px 6px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>{t}</span>)}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500, fontFamily: T.font.sans }}>{cat.label}</span>
-          {item.due_date && (
-            <span style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-secondary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
-              {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` (${Math.abs(due)}μ πριν)` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` (σε ${due}μ)` : ''}
-            </span>
-          )}
-          {item.assigned_contact_name && (
-            <span title={'Ανατέθηκε σε ' + item.assigned_contact_name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              {item.assigned_contact_name}
-            </span>
-          )}
-          {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' (εκτίμηση)'}</span>}
-          {subtasks.length > 0 && <span style={{ fontSize: 11, color: subDone === subtasks.length ? 'var(--positive)' : 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-εργασίες</span>}
-          {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{(item._comments || []).length} σχόλια</span>}
-        </div>
-        {subtasks.length > 0 && (
-          <div style={{ marginTop: 6, height: 3, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden', maxWidth: 120 }}>
-            <div style={{ height: '100%', width: (subDone / subtasks.length * 100) + '%', background: 'var(--positive)', borderRadius: 2, transition: 'width 0.3s' }} />
-          </div>
+        )}
+        {item.assigned_contact_name && (
+          <span title={'Ανατέθηκε σε ' + item.assigned_contact_name} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 150, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.assigned_contact_name}</span>
+          </span>
         )}
       </div>
 
-      {hov && (
+      {hov && !selecting && (
         <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
           {/* Ήσυχη ghost ενέργεια: προγραμματίζει την εργασία στο Ημερολόγιο με ένα κλικ
               (ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή). */}
@@ -1408,6 +1395,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const [toast, setToast] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
@@ -1480,10 +1468,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selected.size > 0) setSelected(new Set())
+      if (e.key === 'Escape' && (selected.size > 0 || selectMode)) { setSelected(new Set()); setSelectMode(false) }
     }
     document.addEventListener('keydown', handler); return () => document.removeEventListener('keydown', handler)
-  }, [selected])
+  }, [selected, selectMode])
+
+  // Έξοδος από τη λειτουργία επιλογής: καθαρίζει και την τρέχουσα επιλογή.
+  const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
 
   const saveItem = async (form: ReturnType<typeof mkEmpty>) => {
     const noteJson = serializeNote({ note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags })
@@ -1753,9 +1744,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
           {hideCompleted ? 'Εμφάνιση ολοκληρωμένων' : 'Απόκρυψη ολοκληρωμένων'}
         </button>
+        {viewMode === 'list' && (
+          <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
+            title="Επιλογή εργασιών για μαζικές ενέργειες"
+            style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'transparent', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
+          </button>
+        )}
         <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
           {(['list', 'board', 'timeline'] as ViewMode[]).map(v => (
-            <button key={v} type="button" title={v === 'board' ? 'Πίνακας καρτών (kanban)' : v === 'timeline' ? 'Χρονολόγιο κατά προθεσμία' : 'Λίστα ανά κατηγορία'} onClick={() => setViewMode(v)} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+            <button key={v} type="button" title={v === 'board' ? 'Πίνακας καρτών (kanban)' : v === 'timeline' ? 'Χρονολόγιο κατά προθεσμία' : 'Λίστα ανά κατηγορία'} onClick={() => { setViewMode(v); if (v !== 'list') exitSelectMode() }} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
               {v === 'list' ? 'Λίστα' : v === 'board' ? 'Πίνακας' : 'Χρονολόγιο'}
             </button>
           ))}
@@ -1851,7 +1849,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                       onDuplicate={() => duplicateItem(item)}
                       onSelect={() => toggleSelect(item.id)}
                       selected={selected.has(item.id)}
-                      selectionActive={selected.size > 0}
+                      selectMode={selectMode}
                     />
                   ))}
                 </div>
@@ -1882,7 +1880,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
               </button>
             ))}
           </div>
-          <button type="button" aria-label="Ακύρωση επιλογής" onClick={() => setSelected(new Set())}
+          <button type="button" aria-label="Ακύρωση επιλογής" onClick={exitSelectMode}
             style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-surface)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
