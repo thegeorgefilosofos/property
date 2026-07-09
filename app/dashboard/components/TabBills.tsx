@@ -87,7 +87,6 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Εργαλεία',
     tabs: [
       { id: 'notifications', label: 'Ειδοποιήσεις',        icon: 'bell',      desc: 'Έξυπνες ειδοποιήσεις βάσει δεδομένων: ΕΝΦΙΑ, λήξεις, προϋπολογισμός' },
-      { id: 'budget',        label: 'Προϋπολογισμός',       icon: 'chart',     desc: 'Στόχοι vs πραγματικό κόστος, ανά κατηγορία με live ενημέρωση' },
       { id: 'bank_import',   label: 'Εισαγωγή',             icon: 'bank',      desc: 'Αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ από τραπεζικό αρχείο' },
       { id: 'ai_scan',       label: 'Σάρωση Λογαριασμού',  icon: 'camera',    desc: 'Φωτογράφισε λογαριασμό, αυτόματη εξαγωγή δεδομένων με AI' },
       { id: 'multi_property',label: 'Σύγκριση Ακινήτων',   icon: 'buildings', desc: 'Συγκριτικό κόστος πολλαπλών ακινήτων' },

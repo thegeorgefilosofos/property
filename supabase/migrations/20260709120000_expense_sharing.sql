@@ -11,3 +11,11 @@
 
 alter table public.expenses add column if not exists share_percent numeric;
 alter table public.expenses add column if not exists share_note    text;
+
+-- Το ίδιο μοντέλο διαμοιρασμού και στους Λογαριασμούς (bills). Οι λογαριασμοί
+-- δεν είχαν «paid_by»· το προσθέτουμε ώστε ο διαμοιρασμός να είναι ΕΝΑ μοντέλο
+-- σε δαπάνες και λογαριασμούς. Όταν ένας λογαριασμός σημειωθεί πληρωμένος,
+-- το ποσοστό/σημείωση περνούν στο συνδεδεμένο έξοδο (mirror) μέσω bill_id.
+alter table public.bills add column if not exists paid_by       text default 'owner';
+alter table public.bills add column if not exists share_percent numeric;
+alter table public.bills add column if not exists share_note    text;

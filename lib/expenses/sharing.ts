@@ -7,6 +7,23 @@
 // παραμένει το πλήρες ποσό· εδώ υπολογίζουμε ΜΟΝΟ το μερίδιο του ιδιοκτήτη.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Επιλογές «Πληρώνει / Διαμοιρασμός» — κοινές για δαπάνες ΚΑΙ λογαριασμούς,
+// ώστε το μοντέλο διαμοιρασμού να είναι ΕΝΑ σε όλη την εφαρμογή.
+export const PAID_BY_OPTIONS = [
+  { value: 'owner',    label: 'Μόνο εγώ'          },
+  { value: 'co_owner', label: 'Με συνιδιοκτήτη'   },
+  { value: 'tenant',   label: 'Ενοικιαστής'       },
+  { value: 'family',   label: 'Με οικογένεια'     },
+  { value: 'parents',  label: 'Με γονείς'         },
+  { value: 'split',    label: 'Μοιρασμένο 50/50'  },
+  { value: 'company',  label: 'Εταιρεία'          },
+];
+
+// Ετικέτα από τιμή paid_by.
+export function paidByLabel(v: string | null | undefined): string {
+  return PAID_BY_OPTIONS.find(p => p.value === v)?.label || v || '';
+}
+
 // Τιμές του `paid_by` που σημαίνουν διαμοιρασμό (εμφανίζουν ποσοστό + σημείωση).
 export const SHARED_SCOPES = new Set(['co_owner', 'family', 'parents', 'split']);
 

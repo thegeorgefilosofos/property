@@ -3,8 +3,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Δαπάνες — ενοποιημένη είσοδος για Λογαριασμούς και λοιπές δαπάνες.
 // Ενοποιεί σε ΕΝΑ σημείο (καρτέλα «Δαπάνες») αλλά κρατά διακριτή, ξεκάθαρη δομή:
-//   • Λογαριασμοί   → πάγιοι/επαναλαμβανόμενοι (ρεύμα, νερό, πάροχοι, ασφάλειες…)
-//   • Λοιπές δαπάνες → όλες οι υπόλοιπες δαπάνες + προϋπολογισμός
+//   • Λογαριασμοί    → πάγιοι/επαναλαμβανόμενοι (ρεύμα, νερό, πάροχοι, ασφάλειες…)
+//   • Λοιπές δαπάνες → όλες οι υπόλοιπες δαπάνες
+//   • Προϋπολογισμός → ΕΝΑΣ στόχος για όλα τα έξοδα (λογαριασμοί + λοιπές δαπάνες)
 // Καμία διπλή λογική: κάθε ενότητα αποδίδει το υπάρχον, δοκιμασμένο εργαλείο της.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import { T } from '@/components/Theme';
 import TabBills from './TabBills';
 import TabExpenses from './TabExpenses';
+import BillsBudget from './BillsBudget';
 
 interface Props {
   propertyId: string; userId: string;
@@ -19,13 +21,14 @@ interface Props {
   profileType?: 'individual' | 'professional';
 }
 
-type View = 'bills' | 'expenses';
+type View = 'bills' | 'expenses' | 'budget';
 
 export default function TabFinances({ propertyId, userId, propertyName = '', propertyAddress = '' }: Props) {
   const [view, setView] = useState<View>('bills');
   const segs: { k: View; label: string }[] = [
     { k: 'bills', label: 'Λογαριασμοί' },
     { k: 'expenses', label: 'Λοιπές δαπάνες' },
+    { k: 'budget', label: 'Προϋπολογισμός' },
   ];
   return (
     <div>
@@ -41,9 +44,9 @@ export default function TabFinances({ propertyId, userId, propertyName = '', pro
           );
         })}
       </div>
-      {view === 'bills'
-        ? <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />
-        : <TabExpenses propertyId={propertyId} userId={userId} />}
+      {view === 'bills' && <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />}
+      {view === 'expenses' && <TabExpenses propertyId={propertyId} userId={userId} />}
+      {view === 'budget' && <BillsBudget propertyId={propertyId} userId={userId} />}
     </div>
   );
 }

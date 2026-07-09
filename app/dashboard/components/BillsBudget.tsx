@@ -15,6 +15,7 @@ const CATS = [
   { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
   { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
   { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
+  { key: 'other',        label: 'Λοιπές δαπάνες',      default: 50  },
 ] as const;
 
 type CatKey = typeof CATS[number]['key'];
@@ -46,7 +47,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const initBudgets = (): Record<string, string> => {
-    const b: Record<string, string> = { total: '340' };
+    const b: Record<string, string> = { total: '390' };
     CATS.forEach(c => { b[c.key] = String(c.default); });
     return b;
   };
@@ -86,10 +87,13 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const start = `${y}-${m}-01`;
       const end   = `${y}-${m}-${new Date(y, now.getMonth() + 1, 0).getDate()}T23:59:59`;
 
-      const [budgetRes, billsRes, settRes] = await Promise.all([
+      const [budgetRes, billsRes, settRes, expRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
         supabase.from('bills').select('category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
+        // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
+        // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
+        supabase.from('expenses').select('amount,date,bill_id').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', `${y}-${m}-31`),
       ]);
 
       if (budgetRes.data?.data) {
@@ -121,6 +125,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const ins = getSett('insurance');
       if (ins && !billActuals.insurance) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
 
+      // Λοιπές δαπάνες (έξοδα εκτός λογαριασμών) του τρέχοντος μήνα
+      billActuals.other = (expRes.data ?? []).reduce((s, e: any) => s + (e.amount || 0), 0);
+
       setActuals(billActuals);
     } catch (_) {}
     finally { setLoading(false); }
@@ -134,6 +141,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       .channel(`budget_${propertyId}`)
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills_settings', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
+      .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'expenses', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
       .subscribe(s => { if (mounted) setRtOk(s === 'SUBSCRIBED'); });
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId, loadData]);
@@ -403,7 +411,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
         {editMode && (
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '340'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="340"/>
+            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
               <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
