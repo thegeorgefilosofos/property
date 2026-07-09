@@ -912,3 +912,6 @@ begin
   end if;
 exception when others then null;
 end $$;
+
+-- ── Ενοικιαστές: τύπος μίσθωσης κατοικία/επαγγελματική (βλ. 20260709180000) ──
+alter table public.tenants add column if not exists lease_category text;  -- 'residential' | 'commercial'
