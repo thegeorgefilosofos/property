@@ -72,7 +72,7 @@ function buildEmail(events: any[], reminderType: string) {
 // Dunning email προς τον ιδιοκτήτη για ληξιπρόθεσμες δόσεις ενοικίου.
 // Ίδιο στυλ με buildEmail (header, κάρτα, Google-blue accent, CTA) αλλά πάντα
 // «urgent» (#d93025) και ΧΩΡΙΣ emoji — καθαρό, επαγγελματικό κείμενο.
-function buildDunningEmail(rows: any[], tenantMap: Record<string, any>, propMap: Record<string, any>, today: Date) {
+function buildDunningEmail(rows: any[], tenantMap: Record<string, any>, propMap: Record<string, any>, today: Date, noticeLabel: string, noticeNumber: number) {
   const total = rows.reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0)
 
   const rowsHtml = rows.map((r: any) => {
@@ -101,7 +101,7 @@ function buildDunningEmail(rows: any[], tenantMap: Record<string, any>, propMap:
   }).join('')
 
   const n = rows.length
-  const subject = `Property OS — Ληξιπρόθεσμο ενοίκιο: ${n} ${n === 1 ? 'δόση' : 'δόσεις'}`
+  const subject = `Property OS — ${noticeLabel}: ληξιπρόθεσμο ενοίκιο (${n} ${n === 1 ? 'δόση' : 'δόσεις'})`
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
@@ -115,6 +115,7 @@ function buildDunningEmail(rows: any[], tenantMap: Record<string, any>, propMap:
       <div style="background:rgba(217,48,37,0.08);border:1px solid rgba(217,48,37,0.25);border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="margin:0 0 4px;font-size:11px;color:#d93025;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Ληξιπρόθεσμο Ενοίκιο</p>
         <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${n} ${n === 1 ? 'δόση ενοικίου είναι ληξιπρόθεσμη' : 'δόσεις ενοικίου είναι ληξιπρόθεσμες'}</p>
+        <p style="margin:6px 0 0;font-size:12px;color:#80868b;font-family:monospace;font-weight:600;">${noticeLabel} (ειδοποίηση Νο ${noticeNumber})</p>
         ${total > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#d93025;font-family:monospace;font-weight:600;">Σύνολο ληξιπρόθεσμων: ${total.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</p>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;">${rowsHtml}</table>
@@ -201,15 +202,22 @@ Deno.serve(async (_req) => {
     // χωρίς calendar_events — που κόβονται από το `if (!events?.length) continue` —
     // να λαμβάνουν παρ' όλα αυτά dunning για το ενοίκιο.
     //
-    // DEDUP GUARANTEE: ο ιδιοκτήτης ειδοποιείται το πολύ ΜΙΑ φορά ανά δόση ανά
-    // ημερολογιακή ημέρα. Το notification_log ΔΕΝ ορίζεται στο SETUP_ALL.sql/migrations
-    // και χρησιμοποιείται πολυμορφικά (π.χ. ο market-data-updater γράφει rows χωρίς
-    // event_id), άρα το event_id είναι απλό nullable uuid ΧΩΡΙΣ foreign key προς
-    // calendar_events. Επομένως αποθηκεύουμε το rent_payment id στο event_id με
-    // reminder_type='rent_overdue' και κάνουμε dedup με created_at >= todayStr.
+    // CADENCE + CAP GUARANTEE: at most `dunning_max` notices per instalment, spaced
+    // ≥ `dunning_every_days` days, escalating tone; disabled when dunning_enabled=false.
+    // Το notification_log ΔΕΝ ορίζεται στο SETUP_ALL.sql/migrations και χρησιμοποιείται
+    // πολυμορφικά (π.χ. ο market-data-updater γράφει rows χωρίς event_id), άρα το event_id
+    // είναι απλό nullable uuid ΧΩΡΙΣ foreign key προς calendar_events. Επομένως αποθηκεύουμε
+    // το rent_payment id στο event_id με reminder_type='rent_overdue' και κάνουμε escalation
+    // βάσει του πλήθους/χρόνου των προηγούμενων ειδοποιήσεων ανά δόση.
     let dunningSent = 0
     for (const pref of prefs) {
       if (!pref.reminder_email) continue
+
+      // Per-owner dunning settings, ασφαλή defaults (columns may be null on old rows).
+      const dunningEnabled = pref.dunning_enabled !== false
+      const everyDays = Number.isFinite(pref.dunning_every_days) && pref.dunning_every_days > 0 ? pref.dunning_every_days : 7
+      const maxNotices = Number.isFinite(pref.dunning_max) && pref.dunning_max > 0 ? pref.dunning_max : 3
+      if (!dunningEnabled) continue
 
       const { data: overdueRent } = await supabase.from('rent_payments')
         .select('*').eq('user_id', pref.user_id).eq('paid', false).lt('due_date', todayStr)
@@ -219,12 +227,38 @@ Deno.serve(async (_req) => {
       if (!overdue.length) continue
 
       const overdueIds = overdue.map((r: any) => r.id)
-      const { data: already } = await supabase.from('notification_log')
-        .select('event_id').eq('reminder_type', 'rent_overdue')
-        .in('event_id', overdueIds).gte('created_at', todayStr)
-      const alreadyIds = new Set((already || []).map((l: any) => l.event_id))
-      const toNotify = overdue.filter((r: any) => !alreadyIds.has(r.id))
+      if (!overdueIds.length) continue
+      // ΟΛΑ τα προηγούμενα dunning logs για αυτές τις δόσεις με μία query.
+      const { data: priorLogs } = await supabase.from('notification_log')
+        .select('event_id, created_at').eq('reminder_type', 'rent_overdue')
+        .in('event_id', overdueIds)
+
+      // Per-instalment: COUNT προηγούμενων ειδοποιήσεων + MAX(created_at) (πιο πρόσφατη).
+      const priorCount: Record<string, number> = {}
+      const lastNotice: Record<string, number> = {}
+      for (const l of priorLogs || []) {
+        const id = l.event_id
+        priorCount[id] = (priorCount[id] || 0) + 1
+        const t = l.created_at ? new Date(l.created_at).getTime() : NaN
+        if (Number.isFinite(t) && (lastNotice[id] === undefined || t > lastNotice[id])) lastNotice[id] = t
+      }
+
+      // Eligible τώρα ⇔ (count < maxNotices) ΚΑΙ (καμία προηγούμενη ή η πιο πρόσφατη
+      // είναι παλαιότερη από everyDays μέρες: now - lastNoticeTime >= everyDays*86400000).
+      const now = new Date().getTime()
+      const spacingMs = everyDays * 86400000
+      const toNotify = overdue.filter((r: any) => {
+        const count = priorCount[r.id] || 0
+        if (count >= maxNotices) return false
+        const last = lastNotice[r.id]
+        return last === undefined || (now - last) >= spacingMs
+      })
       if (!toNotify.length) continue
+
+      // Escalation: notice number αυτού του send = priorCount + 1 ανά δόση· χρησιμοποιούμε
+      // το MAX μεταξύ των eligible δόσεων για τον τόνο του subject.
+      const noticeNumber = Math.max(...toNotify.map((r: any) => (priorCount[r.id] || 0) + 1))
+      const noticeLabel = noticeNumber >= 3 ? 'Τελική υπόμνηση' : noticeNumber === 2 ? 'Δεύτερη υπενθύμιση' : 'Υπενθύμιση'
 
       // Batched name lookups (κανένα N+1)· skip τα .in() όταν η λίστα ids είναι κενή.
       const tenantIds = [...new Set(toNotify.map((r: any) => r.tenant_id).filter((v: any) => v != null))]
@@ -240,7 +274,7 @@ Deno.serve(async (_req) => {
         for (const p of pRows || []) propMap[p.id] = p
       }
 
-      const { subject, html } = buildDunningEmail(toNotify, tenantMap, propMap, today)
+      const { subject, html } = buildDunningEmail(toNotify, tenantMap, propMap, today, noticeLabel, noticeNumber)
       const ok = await sendEmail(pref.reminder_email, subject, html)
       if (ok) {
         await supabase.from('notification_log').insert(toNotify.map((r: any) => ({
