@@ -23,6 +23,7 @@ import {
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
 import { classifyExpense } from '@/lib/expenses/classify';
+import { inferRole, roleLabel } from '@/lib/contacts/roles';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
@@ -57,6 +58,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [marketStr, setMarketStr] = useState('');
   const [clientsStr, setClientsStr] = useState('');
   const [pricingStr, setPricingStr] = useState('');
+  const [techStr, setTechStr] = useState('');   // επαφές τεχνικών/παρόχων (καρτέλα Επαφές)
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
@@ -88,7 +90,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr('');
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
@@ -119,7 +121,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const now = new Date();
     const year = now.getFullYear();
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }] = await Promise.all([
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }] = await Promise.all([
       supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -130,6 +132,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
+      supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -261,6 +264,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα Πελατολόγιο)` : '';
       setClientsStr(`Σύνολο πελατών: ${clientRoster.length}\n${cLines.join('\n')}${extra}`);
     } else setClientsStr('');
+
+    // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ο βοηθός ΠΟΙΟΝ
+    // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
+    const techRoster = (contactRows || []).filter((c: any) => c.full_name);
+    if (techRoster.length) {
+      const tLines = techRoster.slice(0, 60).map((c: any) => {
+        const bits = [c.full_name, roleLabel(c.role || 'other')];
+        if (c.phone) bits.push(`τηλ ${c.phone}`);
+        return `• ${bits.filter(Boolean).join(' · ')}`;
+      });
+      setTechStr(`Σύνολο επαφών: ${techRoster.length}\n${tLines.join('\n')}`);
+    } else setTechStr('');
   }, [propertyId, userId, propContext, supabase]);
 
   useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
@@ -274,6 +289,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'expense') { registerExpense(a.description, a.amount); return; }
     else if (a.type === 'vip') { toggleVip(a.who); return; }
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
+    else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
+    else if (a.type === 'task') { addTask(a.description); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -339,6 +356,40 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       } else throw new Error('no token');
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να φτιάξω τον σύνδεσμο τώρα. Δοκίμασε από την καρτέλα του πελάτη στο πελατολόγιο.', action: { type: 'go', tab: 'clients' } }]);
+    }
+  };
+
+  // Προσθήκη επαφής (τεχνικός/πάροχος) στην καρτέλα Επαφές, με αυτόματο ρόλο.
+  const registerContact = async (name: string, phone?: string, role?: string) => {
+    const roleValue = inferRole(role || name);
+    try {
+      await supabase.from('contacts').insert({
+        property_id: propertyId, user_id: userId,
+        full_name: name.slice(0, 120), role: roleValue,
+        phone: phone || null, email: null, notes: null,
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Την κράτησα. Πρόσθεσα τον/την «${name}»${phone ? ` (${phone})` : ''} στις Επαφές του ακινήτου. Θέλεις να ανοίξω τις Επαφές για να προσθέσεις κι άλλα;`, action: { type: 'go', tab: 'contacts' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω την επαφή τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Επαφές.' }]);
+    }
+  };
+
+  // Προσθήκη νέας εκκρεμότητας με αυτόματη κατηγορία.
+  const addTask = async (description: string) => {
+    const d = description.slice(0, 200);
+    const category = /φόρο|ενφια|ε2|ε1|δήλωσ|ααδε|μισθωτήρι|ασφαλιστ/i.test(d) ? 'legal'
+      : /υδραυλικ|ηλεκτρολ|επισκευ|συντήρησ|βλάβη|βαφ|καθαρι|μάστορ/i.test(d) ? 'maintenance'
+      : /πληρωμ|λογαριασμ|δόση|κόστος/i.test(d) ? 'financial' : 'other';
+    try {
+      await supabase.from('checklist_items').insert({
+        property_id: propertyId, user_id: userId, description: d,
+        category, priority: 'normal', recurring: 'none',
+        status: 'pending', completed: false, note: null,
+        estimated_cost: 0, actual_cost: 0, sort_order: 0,
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}». Θέλεις να το δεις ή να βάλω προθεσμία;`, action: { type: 'go', tab: 'checklist' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να προσθέσω την εκκρεμότητα τώρα. Δοκίμασε από την καρτέλα Εκκρεμότητες.' }]);
     }
   };
 
@@ -460,6 +511,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
+        contactsPro: techStr || undefined,
         pricing: pricingStr || undefined,
         memories: identity.memory ? memories.map(m => m.text) : undefined,
         today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
@@ -596,6 +648,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
                           : m.action.type === 'vip' ? `Σήμανε VIP: ${m.action.who}`
                           : m.action.type === 'checkin' ? `Σύνδεσμος check-in: ${m.action.who}`
+                          : m.action.type === 'contact' ? `Πρόσθεσε επαφή: ${m.action.name}`
+                          : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>

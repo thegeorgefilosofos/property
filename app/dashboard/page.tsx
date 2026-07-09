@@ -131,6 +131,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',            ids: ['overview'] },
   { label: 'Οικονομικά',  ids: ['bills','expenses','roi','pricing','loan'] },
   { label: 'Μίσθωση',     ids: ['tenant','clients','calendar'] },
+  { label: 'Εργαλεία',    ids: ['contacts','documents','checklist','inventory'] },
   { label: '',            ids: ['comparison'] },
   { label: '',            ids: ['settings'] },
 ];
@@ -859,6 +860,11 @@ export default function Dashboard() {
   const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
   const [profileType, setProfileType] = useState<'individual'|'professional'>('individual'); // τύπος προφίλ → οδηγεί το interface
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
+  const [kbdHint, setKbdHint] = useState('Ctrl K');       // ένδειξη συντόμευσης ανά πλατφόρμα (Mac → ⌘K)
+  useEffect(() => {
+    const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+    setKbdHint(mac ? '⌘K' : 'Ctrl K');
+  }, []);
 
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
   useEffect(() => {
@@ -1150,9 +1156,9 @@ export default function Dashboard() {
               {nav==='inventory'&&properties.length>1&&(
                 <button onClick={()=>setShowCopyInventory(true)} style={{height:36,padding:'0 16px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,cursor:'pointer',marginRight:8}} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-secondary)'}}>Αντιγραφή Απογραφής</button>
               )}
-              <button onClick={()=>setCmdkOpen(true)} title="Αναζήτηση (⌘K)" aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση & γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:36,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                <span className="desktop-only" style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:5,padding:'1px 5px'}}>⌘K</span>
+                <span className="desktop-only" style={{fontSize:11,fontFamily:"'Roboto Mono',monospace",color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:5,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
               <ThemeToggle />
             </>
@@ -1197,11 +1203,11 @@ export default function Dashboard() {
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
-              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id}/>}
-              {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id}/>}
-              {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id}/>}
+              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
-              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id}/>}
+              {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={profileType} onProfileChange={setProfileType}/>}
             </div>
           </>

@@ -149,6 +149,32 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('expense+go clean', !/\[\[/.test(r.clean));
 }
 
+// ── parseAction: [[contact: ...]] & [[task: ...]] ────────────────────────────
+{
+  const r = parseAction('Την κράτησα. [[contact: Νίκος Υδραυλικός | 6941234567 | υδραυλικός]]');
+  ok('contact type', r.action?.type === 'contact');
+  ok('contact name', (r.action as any)?.name === 'Νίκος Υδραυλικός');
+  ok('contact phone', (r.action as any)?.phone === '6941234567');
+  ok('contact role', (r.action as any)?.role === 'υδραυλικός');
+  ok('contact stripped', !/\[\[/.test(r.clean));
+}
+{
+  const r = parseAction('[[contact: ΔΕΗ]]');
+  ok('contact name-only', r.action?.type === 'contact' && (r.action as any).name === 'ΔΕΗ' && !(r.action as any).phone);
+  ok('contact empty → no action', parseAction('[[contact: ]]').action?.type !== 'contact');
+}
+{
+  const r = parseAction('Έγινε. [[task: Πληρωμή ΕΝΦΙΑ]]');
+  ok('task type', r.action?.type === 'task');
+  ok('task description', (r.action as any)?.description === 'Πληρωμή ΕΝΦΙΑ');
+  ok('task empty → no action', parseAction('[[task:]]').action?.type !== 'task');
+}
+{
+  // contact & client είναι διακριτά (διαφορετικές καρτέλες)
+  ok('contact ≠ client', parseAction('[[contact: Νίκος]]').action?.type === 'contact');
+  ok('client stays client', parseAction('[[client: Μαρία]]').action?.type === 'client');
+}
+
 // ── cleanForSpeech: markdown/bullets/arrows/newlines ─────────────────────────
 const speechCases: [string, (s: string) => boolean][] = [
   ['**Έντονο** κείμενο', s => s === 'Έντονο κείμενο'],
@@ -205,6 +231,24 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('knows long-term', /ΜΑΚΡΟΧΡΟΝΙΑ/.test(p));
   ok('knows broker', /ΜΕΣΙΤΗΣ/.test(p));
   ok('knows accountant', /ΛΟΓΙΣΤΗΣ/.test(p));
+}
+// GDPR & ενσωματώσεις: ο advisor ξέρει το απόρρητο και είναι ειλικρινής για τι δουλεύει
+{
+  const p = buildSystemPrompt(id(), 'x');
+  ok('knows GDPR', /GDPR/.test(p) && /\/privacy/.test(p));
+  ok('knows data rights', /φορητότητα|διαγραφή/.test(p));
+  ok('knows checkin consent', /συγκατάθεση/.test(p));
+  ok('knows integrations live vs soon', /ΕΝΕΡΓΑ ΤΩΡΑ/.test(p) && /ΕΡΧΟΝΤΑΙ/.test(p));
+  ok('honest about channel manager/open banking', /channel manager/i.test(p) && /open banking/i.test(p));
+  ok('knows maintenance scheduling', /ΣΥΝΤΗΡΗΣΗ|προγραμματ/i.test(p) && /κλιματιστ/i.test(p));
+  ok('refers to Douleutaras when contact missing', /douleutaras/i.test(p));
+  ok('proactive with saved technicians', /ΕΠΑΦΕΣ ΤΟΥ ΧΡΗΣΤΗ|τεχνικ/i.test(p));
+}
+// contactsPro context section appears only when provided (marker unique to the injection)
+{
+  const marker = 'τεχνικοί, μάστορες, πάροχοι, συνεργάτες';
+  ok('no contactsPro by default', !buildSystemPrompt(id(), 'x').includes(marker));
+  ok('contactsPro when provided', buildSystemPrompt(id(), 'x', undefined, { contactsPro: '• Νίκος · Υδραυλικός · τηλ 6900000000' }).includes(marker));
 }
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));
