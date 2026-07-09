@@ -63,6 +63,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
   const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (VIP, check-in)
+  // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
+  const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
+  const openRentRef = useRef<{ id: string; label: string; amount: number }[]>([]);
 
   // Ταυτότητα από localStorage (μία φορά)
   useEffect(() => {
@@ -123,7 +126,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }] = await Promise.all([
       supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
-      supabase.from('bills').select('name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
+      supabase.from('bills').select('id,name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
       supabase.from('property_settings').select('insurance_company,insurance_expiry,insurance_amount').eq('property_id', propertyId).maybeSingle(),
       supabase.from('calendar_events').select('title,event_date,amount,status').eq('property_id', propertyId).eq('user_id', userId).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date').limit(10),
@@ -141,6 +144,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     expenses.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + (e.amount || 0); });
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const unpaid = (bil || []).filter(b => !b.paid);
+    openBillsRef.current = unpaid.map((b: any) => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
+    // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τον βοηθό)
+    const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+    const { data: rentDue } = await supabase.from('rent_payments').select('id,period_month,period_year,amount,paid').eq('property_id', propertyId).eq('user_id', userId).eq('paid', false).order('period_year').order('period_month');
+    openRentRef.current = (rentDue || []).map((r: any) => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0 }));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -191,6 +199,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(total - paid)})`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${(b as any).name || 'λογαριασμός'} ${eur(b.amount)}${(b as any).due_date ? ` λήξη ${(b as any).due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
+      openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',
       t ? `Ενοικιαστής: ${t.full_name || 'καταχωρημένος'}${t.deposit_amount ? `, εγγύηση ${eur(t.deposit_amount)}` : ''}` : 'Δεν έχει καταχωρηθεί ενοικιαστής.',
       leaseEnd ? `Λήξη μίσθωσης: ${leaseEnd}${daysLease != null ? ` (σε ${daysLease} ημέρες)` : ''}` : '',
       st?.insurance_company || st?.insurance_expiry ? `Ασφάλεια: ${st?.insurance_company || 'εταιρεία άγνωστη'}${st?.insurance_expiry ? `, λήξη ${st.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
@@ -291,6 +300,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
     else if (a.type === 'task') { addTask(a.description); return; }
+    else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -326,6 +336,48 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Θέλεις να την ανοίξω για να προσθέσεις απόδειξη ή ΦΠΑ;`, action: { type: 'go', tab: 'expenses' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τη δαπάνη τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Δαπάνες.' }]);
+    }
+  };
+
+  // Σήμανση ΥΠΑΡΧΟΝΤΟΣ ανοιχτού στοιχείου (λογαριασμός ή δόση ενοικίου) ως πληρωμένου.
+  // Ασφαλές: αν δεν υπάρχει ΜΟΝΑΔΙΚΗ σαφής αντιστοίχιση, ΔΕΝ μαντεύει — ζητά διευκρίνιση.
+  const markPaid = async (description: string, amount?: number) => {
+    const q = (description || '').trim().toLowerCase();
+    const norm = (s: string) => s.toLowerCase();
+    const amtOk = (a: number) => amount == null || (a > 0 && Math.abs(a - amount) / a <= 0.10);
+    const bills = openBillsRef.current;
+    const rents = openRentRef.current;
+    // Υποψήφια: λογαριασμοί (όνομα/κατηγορία περιέχει το κείμενο) + δόσεις ενοικίου
+    const billHits = bills.filter(b => (norm(b.name).includes(q) || norm(b.category).includes(q) || q.includes(norm(b.category))) && amtOk(b.amount));
+    const rentHits = /ενοικ|μισθωμ|δοση|δόση/.test(q) || rents.some(r => norm(r.label).includes(q))
+      ? rents.filter(r => amtOk(r.amount) && (norm(r.label).includes(q) || /ενοικ|μισθωμ|δοση|δόση/.test(q)))
+      : [];
+    const totalHits = billHits.length + rentHits.length;
+    if (totalHits === 0) {
+      const opts = [...bills.map(b => `${b.name} ${eur(b.amount)}`), ...rents.map(r => `${r.label} ${eur(r.amount)}`)];
+      setMsgs(m => [...m, { role: 'assistant', text: opts.length ? `Δεν βρήκα ανοιχτό στοιχείο που να ταιριάζει καθαρά με «${description}». Ποιο εννοείς; Ανοιχτά: ${opts.slice(0, 12).join('· ')}.` : `Δεν βλέπω ανοιχτούς λογαριασμούς ή δόσεις ενοικίου για αυτό το ακίνητο.` }]);
+      return;
+    }
+    if (totalHits > 1) {
+      const opts = [...billHits.map(b => `${b.name} ${eur(b.amount)}`), ...rentHits.map(r => `${r.label} ${eur(r.amount)}`)];
+      setMsgs(m => [...m, { role: 'assistant', text: `Ταιριάζουν περισσότερα από ένα. Σε ποιο να το αντιστοιχίσω; ${opts.join('· ')}.` }]);
+      return;
+    }
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      if (billHits.length === 1) {
+        const b = billHits[0];
+        await supabase.from('bills').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', b.id);
+        await supabase.from('expenses').update({ paid: true }).eq('bill_id', b.id);
+        setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τον λογαριασμό «${b.name}» ${eur(b.amount)} ως πληρωμένο.`, action: { type: 'go', tab: 'finances' } }]);
+      } else {
+        const r = rentHits[0];
+        await supabase.from('rent_payments').update({ paid: true, paid_date: today }).eq('id', r.id);
+        setMsgs(m => [...m, { role: 'assistant', text: `Έγινε. Σημείωσα τη δόση «${r.label}» ${eur(r.amount)} ως πληρωμένη.`, action: { type: 'go', tab: 'tenant' } }]);
+      }
+      setCtxStr(''); loadContext();
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το σημειώσω πληρωμένο τώρα. Δοκίμασε ξανά ή κάν’ το από την αντίστοιχη καρτέλα.' }]);
     }
   };
 
@@ -649,6 +701,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'vip' ? `Σήμανε VIP: ${m.action.who}`
                           : m.action.type === 'checkin' ? `Σύνδεσμος check-in: ${m.action.who}`
                           : m.action.type === 'contact' ? `Πρόσθεσε επαφή: ${m.action.name}`
+                          : m.action.type === 'paid' ? `Σήμανση πληρωμένο: ${m.action.description}`
                           : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>

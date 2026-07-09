@@ -7,6 +7,7 @@ import {
   SegmentControl, FREQ_OPTIONS,
 } from './UIComponents';
 import { T } from '@/components/Theme';
+import { createClient } from '@/lib/supabase/client';
 
 // ─── Re-exports for TabTenant ─────────────────────────────────────────────────
 export { Toggle, NumberInput, TextInput, Textarea, FREQ_OPTIONS };
@@ -36,7 +37,7 @@ export interface CleaningCfg { package: CleaningPkg; times: number; hours: numbe
 // ─── Constants ────────────────────────────────────────────────────────────────
 export const LEASE_LABELS: Record<LeaseType, string> = {
   monthly:'Μηνιαίο', biannual:'Εξάμηνο', annual:'Ετήσιο',
-  '18months':'18 Μήνες', '24months':'24 Μήνες', '36months':'36 Μήνες', custom:'Custom',
+  '18months':'18 Μήνες', '24months':'24 Μήνες', '36months':'36 Μήνες', custom:'Προσαρμοσμένο',
 };
 export const LEASE_MONTHS: Record<LeaseType, number | null> = {
   monthly:1, biannual:6, annual:12, '18months':18, '24months':24, '36months':36, custom:null,
@@ -183,7 +184,7 @@ export function CleaningConfig({ value, onChange }: { value: CleaningCfg | null;
   return (
     <div>
       <div style={{ display:'flex', gap:'6px', marginBottom:'14px', flexWrap:'wrap' }}>
-        {[['none','Χωρίς'],['2x2h','2 × 2ώρ/μήνα'],['2x3h','2 × 3ώρ/μήνα'],['custom','Custom']].map(([v,l]) => (
+        {[['none','Χωρίς'],['2x2h','2 × 2ώρ/μήνα'],['2x3h','2 × 3ώρ/μήνα'],['custom','Προσαρμοσμένο']].map(([v,l]) => (
           <button
             key={v}
             onClick={() => sel(v)}
@@ -303,3 +304,216 @@ export function PrepayCalc({ monthlyRent }: { monthlyRent: number | null }) {
 
 // ─── CustomSelect re-export (named for TabTenant compatibility) ───────────────
 export { CustomSelect };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΧΡΟΝΟΔΙΑΓΡΑΜΜΑ ΜΙΣΘΩΣΗΣ, συγχρονισμός με Ημερολόγιο + Λίστα Εργασιών
+// ---------------------------------------------------------------------------
+// Idempotent upsert σε calendar_events + checklist_items με ΣΤΑΘΕΡΟ κλειδί
+// ανά εγγραφή, ώστε κανένα διπλότυπο σε επαναλαμβανόμενα ανοίγματα του tab.
+//   • calendar_events → κλειδί στη στήλη `source`  (π.χ. tenant:<id>:rent_due)
+//   • checklist_items → κλειδί στη στήλη `template_id` (ίδια σύμβαση)
+// Το σχήμα insert ταιριάζει ακριβώς με BillsGas/BillsInsurance/TabChecklist.
+// ═══════════════════════════════════════════════════════════════════════════
+type SupaClient = ReturnType<typeof createClient>;
+
+export interface TenantScheduleInput {
+  id: string;
+  full_name?: string | null;
+  lease_start?: string | null;
+  lease_end?: string | null;
+  monthly_rent?: number | null;
+  deposit_amount?: number | null;
+  ac_service_frequency?: string | null;
+  solar_service_frequency?: string | null;
+  heat_pump_service_frequency?: string | null;
+  solar_panels_service_frequency?: string | null;
+  pest_control_frequency?: string | null;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const isoOf = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+/** Μετατόπιση ISO ημερομηνίας κατά n ημέρες (θετικό/αρνητικό). */
+export const shiftISO = (iso: string, days: number): string => {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return isoOf(d);
+};
+
+/** Επόμενη ετήσια επέτειος (μήνας/ημέρα) του anchor, από σήμερα και μετά. */
+export const nextAnniversaryISO = (anchor: string): string => {
+  const a = new Date(anchor + 'T00:00:00');
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  let y = now.getFullYear();
+  let cand = new Date(y, a.getMonth(), a.getDate());
+  if (cand < now) { y += 1; cand = new Date(y, a.getMonth(), a.getDate()); }
+  return isoOf(cand);
+};
+
+/** Επόμενη ημέρα-λήξης ενοικίου (dueDay του μήνα) από σήμερα. */
+export const nextRentDueISO = (dueDay: number): string => {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const day = Math.min(Math.max(1, dueDay || 1), 28);
+  let cand = new Date(now.getFullYear(), now.getMonth(), day);
+  if (cand < now) cand = new Date(now.getFullYear(), now.getMonth() + 1, day);
+  return isoOf(cand);
+};
+
+const FREQ_TO_INTERVAL: Record<string, string> = {
+  monthly: 'monthly', quarterly: 'quarterly', biannual: 'biannual', annual: 'yearly',
+};
+
+/**
+ * Παράγει τις επιθυμητές εγγραφές ημερολογίου/εργασιών για τη μίσθωση.
+ * Καθαρή συνάρτηση (χωρίς I/O) ώστε να είναι εύκολα ελέγξιμη.
+ */
+export function tenantScheduleRows(
+  t: TenantScheduleInput, propertyId: string, userId: string,
+  opts: { rentDueDay?: number } = {},
+) {
+  const name = (t.full_name || 'ενοικιαστή').trim();
+  const key = (suffix: string) => `tenant:${t.id}:${suffix}`;
+  const events: Record<string, unknown>[] = [];
+  const tasks: Record<string, unknown>[] = [];
+
+  const evBase = { property_id: propertyId, user_id: userId, status: 'pending' as const };
+  const ckBase = {
+    property_id: propertyId, user_id: userId, status: 'pending' as const, completed: false,
+    note: null as string | null, estimated_cost: 0, actual_cost: 0, sort_order: 0,
+  };
+
+  // 1) Μηνιαία λήξη πληρωμής ενοικίου (επαναλαμβανόμενο, με υπενθύμιση).
+  if (t.monthly_rent && t.monthly_rent > 0) {
+    events.push({
+      ...evBase, source: key('rent_due'), category: 'rent_due',
+      title: `Λήξη πληρωμής ενοικίου, ${name}`,
+      event_date: nextRentDueISO(opts.rentDueDay ?? 1),
+      amount: t.monthly_rent, priority: 'medium', recurring: true, recurring_interval: 'monthly',
+      notes: 'Μηνιαία υπενθύμιση είσπραξης ενοικίου. Κατέγραψε την πληρωμή στην καρτέλα «Ενοικιαστής → Πληρωμές».',
+    });
+  }
+
+  // 2) Λήξη μίσθωσης + ειδοποιήσεις 60/30 ημέρες πριν.
+  if (t.lease_end) {
+    events.push({
+      ...evBase, source: key('lease_end'), category: 'lease_end',
+      title: `Λήξη μίσθωσης, ${name}`, event_date: t.lease_end,
+      amount: null, priority: 'high', recurring: false, recurring_interval: null,
+      notes: 'Λήξη συμβολαίου μίσθωσης. Ανανέωση ή διαδικασία αποχώρησης.',
+    });
+    events.push({
+      ...evBase, source: key('lease_end_60'), category: 'lease_end',
+      title: `Λήξη μίσθωσης σε 60 ημέρες, ${name}`, event_date: shiftISO(t.lease_end, -60),
+      amount: null, priority: 'medium', recurring: false, recurring_interval: null,
+      notes: 'Ξεκίνα διαπραγμάτευση ανανέωσης μίσθωσης εγκαίρως.',
+    });
+    events.push({
+      ...evBase, source: key('lease_end_30'), category: 'lease_end',
+      title: `Λήξη μίσθωσης σε 30 ημέρες, ${name}`, event_date: shiftISO(t.lease_end, -30),
+      amount: null, priority: 'high', recurring: false, recurring_interval: null,
+      notes: 'Κρίσιμο: απόφαση ανανέωσης ή αποχώρησης εντός 30 ημερών.',
+    });
+    // 3) Επιστροφή εγγύησης στη λήξη.
+    if (t.deposit_amount && t.deposit_amount > 0) {
+      events.push({
+        ...evBase, source: key('deposit_return'), category: 'deposit',
+        title: `Επιστροφή εγγύησης, ${name}`, event_date: t.lease_end,
+        amount: t.deposit_amount, priority: 'medium', recurring: false, recurring_interval: null,
+        notes: 'Επιστροφή εγγύησης στη λήξη, μετά από έλεγχο για φθορές.',
+      });
+    }
+  }
+
+  // 4) Επέτειος αναπροσαρμογής ΔΤΚ (ετήσια, από lease_start).
+  if (t.lease_start && t.monthly_rent && t.monthly_rent > 0) {
+    events.push({
+      ...evBase, source: key('rent_adjust'), category: 'rent_adjustment',
+      title: `Αναπροσαρμογή ενοικίου (ΔΤΚ), ${name}`, event_date: nextAnniversaryISO(t.lease_start),
+      amount: null, priority: 'low', recurring: true, recurring_interval: 'yearly',
+      notes: 'Ετήσια αναπροσαρμογή μισθώματος βάσει ΔΤΚ (ΕΛΣΤΑΤ). Δες «Αναπροσαρμογή Ενοικίου».',
+    });
+  }
+
+  // 5) Ετήσιες συντηρήσεις βάσει *_service_frequency.
+  const services: { keySuffix: string; label: string; freq?: string | null }[] = [
+    { keySuffix: 'svc_ac', label: 'κλιματιστικών', freq: t.ac_service_frequency },
+    { keySuffix: 'svc_solar', label: 'ηλιακού θερμοσίφωνα', freq: t.solar_service_frequency },
+    { keySuffix: 'svc_heatpump', label: 'αντλίας θερμότητας', freq: t.heat_pump_service_frequency },
+    { keySuffix: 'svc_pv', label: 'φωτοβολταϊκών', freq: t.solar_panels_service_frequency },
+    { keySuffix: 'svc_pest', label: 'απεντόμωσης/μυοκτονίας', freq: t.pest_control_frequency },
+  ];
+  const anchor = t.lease_start || isoOf(new Date());
+  for (const s of services) {
+    if (!s.freq) continue;
+    const interval = FREQ_TO_INTERVAL[s.freq] || 'yearly';
+    events.push({
+      ...evBase, source: key(s.keySuffix), category: 'maintenance',
+      title: `Συντήρηση ${s.label}`, event_date: nextAnniversaryISO(anchor),
+      amount: null, priority: 'low', recurring: true, recurring_interval: interval,
+      notes: 'Προγραμματισμένη συντήρηση βάσει των όρων μίσθωσης.',
+    });
+  }
+
+  // 6) ΑΑΔΕ «Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης» (μία εκκρεμότητα).
+  if (t.lease_start) {
+    tasks.push({
+      ...ckBase, template_id: key('aade_lease_decl'), category: 'legal', priority: 'high',
+      recurring: 'none', due_date: shiftISO(t.lease_start, 30),
+      description: `ΑΑΔΕ, Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης για ${name}`,
+    });
+  }
+  // 7) Υπενθύμιση ανανέωσης/αποχώρησης ως εργασία (legal).
+  if (t.lease_end) {
+    tasks.push({
+      ...ckBase, template_id: key('lease_renew'), category: 'legal', priority: 'normal',
+      recurring: 'none', due_date: shiftISO(t.lease_end, -45),
+      description: `Απόφαση ανανέωσης ή αποχώρησης μίσθωσης, ${name}`,
+    });
+  }
+
+  return { events, tasks };
+}
+
+/**
+ * Συγχρονισμός μίσθωσης σε Ημερολόγιο + Εργασίες, idempotent.
+ * mode='save' → ενημερώνει και ημερομηνίες/ποσά υπαρχόντων events (π.χ. αν άλλαξε
+ * η λήξη). mode='open' → μόνο εισάγει ό,τι λείπει. Σφάλματα καταπίνονται (best-effort).
+ */
+export async function syncTenantSchedule(
+  supabase: SupaClient, t: TenantScheduleInput, propertyId: string, userId: string,
+  mode: 'save' | 'open' = 'open', opts: { rentDueDay?: number } = {},
+): Promise<void> {
+  if (!t?.id) return;
+  try {
+    const { events, tasks } = tenantScheduleRows(t, propertyId, userId, opts);
+    const prefix = `tenant:${t.id}:`;
+
+    // ── calendar_events ──
+    const { data: exEv } = await supabase
+      .from('calendar_events').select('id,source')
+      .eq('property_id', propertyId).like('source', `${prefix}%`);
+    const evById = new Map<string, string>();
+    (exEv || []).forEach((r: { id: string; source: string | null }) => { if (r.source) evById.set(r.source, r.id); });
+    const evInsert = events.filter(e => !evById.has(e.source as string));
+    if (evInsert.length) await supabase.from('calendar_events').insert(evInsert);
+    if (mode === 'save') {
+      for (const e of events) {
+        const id = evById.get(e.source as string);
+        if (!id) continue;
+        await supabase.from('calendar_events').update({
+          event_date: e.event_date, amount: e.amount, title: e.title, notes: e.notes,
+        }).eq('id', id);
+      }
+    }
+
+    // ── checklist_items (dedup μέσω template_id) ──
+    const { data: exCk } = await supabase
+      .from('checklist_items').select('template_id')
+      .eq('property_id', propertyId).like('template_id', `${prefix}%`);
+    const haveCk = new Set((exCk || []).map((r: { template_id: string | null }) => r.template_id));
+    const ckInsert = tasks.filter(tk => !haveCk.has(tk.template_id as string));
+    if (ckInsert.length) await supabase.from('checklist_items').insert(ckInsert);
+  } catch {
+    /* best-effort: ο συγχρονισμός δεν πρέπει ποτέ να μπλοκάρει την αποθήκευση */
+  }
+}
