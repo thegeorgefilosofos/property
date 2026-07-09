@@ -195,6 +195,59 @@ function ProfileTypeCard({ userId, value, onChange }: { userId: string; value: '
   );
 }
 
+// ── Οριστική διαγραφή λογαριασμού (μη αναστρέψιμη) ──────────────────────────
+function DeleteAccountCard() {
+  const supabase = createClient();
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ready = confirmText.trim().toUpperCase() === 'ΔΙΑΓΡΑΦΗ';
+
+  const del = async () => {
+    if (!ready || busy) return;
+    setBusy(true); setError(null);
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) { setError(error.message || 'Κάτι πήγε στραβά. Δοκίμασε ξανά.'); setBusy(false); return; }
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 20, border: '1px solid var(--negative-border)' }}>
+      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--negative)', marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.55 }}>
+        Διαγράφει οριστικά τον λογαριασμό σου και όλα τα δεδομένα σου — ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις να κρατήσεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
+      </div>
+      {!open ? (
+        <button onClick={() => setOpen(true)}
+          style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600 }}>
+          Διαγραφή του λογαριασμού μου
+        </button>
+      ) : (
+        <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: 16 }}>
+          <div style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>
+            Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
+          </div>
+          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus
+            style={{ width: '100%', maxWidth: 260, height: 40, padding: '0 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none', marginBottom: 12 }} />
+          {error && <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--negative)', marginBottom: 10 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={del} disabled={!ready || busy}
+              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: 'none', background: ready && !busy ? 'var(--negative)' : 'var(--bg-elevated)', color: ready && !busy ? '#fff' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700 }}>
+              {busy ? 'Διαγραφή...' : 'Οριστική διαγραφή'}
+            </button>
+            <button onClick={() => { setOpen(false); setConfirmText(''); setError(null); }} disabled={busy}
+              style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 500 }}>
+              Ακύρωση
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId:string; userId:string; profileType?: 'individual'|'professional'; onProfileChange?: (v: 'individual'|'professional') => void }) {
   const supabase = createClient();
   const [s, setS] = useState<S>(INIT);
@@ -475,6 +528,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <AccountantLink userId={userId} />
           <IntegrationsCard />
           <Referral userId={userId} />
+          <DeleteAccountCard />
         </div>
       )}
 
