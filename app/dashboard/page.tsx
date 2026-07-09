@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
-import TabExpenses  from './components/TabExpenses';
-import TabBills     from './components/TabBills';
+import TabFinances  from './components/TabFinances';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -86,19 +85,18 @@ const HEATING_LABELS: Record<string,string> = {
 const NAV_ITEMS = [
   { id:'portfolio',  label:'Χαρτοφυλάκιο' },
   { id:'overview',   label:'Επισκόπηση' },
-  { id:'comparison', label:'Σύγκριση' },
-  { id:'bills',      label:'Λογαριασμοί' },
-  { id:'expenses',   label:'Δαπάνες' },
   { id:'calendar',   label:'Ημερολόγιο' },
-  { id:'tenant',     label:'Ενοικιαστής' },
-  { id:'roi',        label:'Αποδόσεις' },
-  { id:'pricing',    label:'Τιμολόγηση' },
+  { id:'finances',   label:'Δαπάνες' },
   { id:'loan',       label:'Δάνειο' },
-  { id:'inventory',  label:'Απογραφή' },
+  { id:'tenant',     label:'Ενοικιαστής' },
+  { id:'clients',    label:'Πελατολόγιο' },
+  { id:'pricing',    label:'Τιμολόγηση' },
+  { id:'inventory',  label:'Έπιπλα / Εξοπλισμός' },
+  { id:'documents',  label:'Αρχείο' },
   { id:'checklist',  label:'Εκκρεμότητες' },
   { id:'contacts',   label:'Επαφές' },
-  { id:'documents',  label:'Αρχείο' },
-  { id:'clients',    label:'Πελατολόγιο' },
+  { id:'roi',        label:'Αποδόσεις' },
+  { id:'comparison', label:'Σύγκριση ακινήτων' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
@@ -110,6 +108,7 @@ const NAV_ICON: Record<string,string> = {
   comparison:'M4 20V10|M10 20V4|M16 20v-7|M20 20H2',
   bills:     'M5 3h14v18l-3-2-2 2-2-2-2 2-3-2V3|M9 8h6|M9 12h6',
   expenses:  'M3 12h4l3 8 4-16 3 8h4',
+  finances:  'M3 12h4l3 8 4-16 3 8h4',
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
   tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   roi:       'M3 17l6-6 4 4 8-8|M21 7v6h-6',
@@ -126,14 +125,15 @@ const NAV_ICON: Record<string,string> = {
 // Ομαδοποιημένη πλοήγηση, λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
 // Επαφές/Αρχείο/Εκκρεμότητες/Απογραφή ενσωματώθηκαν στην Επισκόπηση. Η Σύγκριση
 // και οι Ρυθμίσεις μένουν αυτόνομες. Καμία ομάδα «Το ακίνητο»/«Σύστημα».
+// Δομή πλοήγησης (ίδια για ιδιώτη/επαγγελματία· αλλάζει μόνο η κεφαλίδα «Ακίνητά
+// μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
-  { label: '',            ids: ['portfolio'] },
-  { label: '',            ids: ['overview'] },
-  { label: 'Οικονομικά',  ids: ['bills','expenses','roi','pricing','loan'] },
-  { label: 'Μίσθωση',     ids: ['tenant','clients','calendar'] },
-  { label: 'Εργαλεία',    ids: ['contacts','documents','checklist','inventory'] },
-  { label: '',            ids: ['comparison'] },
-  { label: '',            ids: ['settings'] },
+  { label: '',                    ids: ['calendar'] },
+  { label: 'Οικονομικά',          ids: ['finances','loan'] },
+  { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
+  { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
+  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison'] },
+  { label: '',                    ids: ['settings'] },
 ];
 
 // Κάτω μπάρα κινητού, 5 βασικοί προορισμοί (το «more» ανοίγει το πλήρες μενού)
@@ -578,8 +578,8 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         { key:'details', label:'Συμπλήρωσε αξία & ενοίκιο', hint:'Εμπορική ή αντικειμενική αξία και μηνιαίο ενοίκιο, για σωστές αποδόσεις', done: propertyDetailsComplete(prop, !!tenant), nav:'settings' },
         { key:'pricing', label:'Δες την προτεινόμενη τιμή σου', hint:'Δυναμική τιμή ανά νύχτα και φορολογική εικόνα βραχυχρόνιας μίσθωσης', done: hostStays.length>0, nav:'pricing' },
         { key:'tenant',  label:'Πρόσθεσε ενοικιαστή & ενοίκιο', hint:'Ξεκλείδωσε αποδόσεις και υπενθυμίσεις λήξης', done: !!tenant, nav:'tenant' },
-        { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'expenses' },
-        { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'bills' },
+        { key:'expense', label:'Κατέγραψε την πρώτη δαπάνη', hint:'Παρακολούθησε κόστη και έκπτωση φόρου', done: expenses.length>0, nav:'finances' },
+        { key:'bills',   label:'Ρύθμισε ρεύμα & αέριο', hint:'Σύγκρινε παρόχους και βρες φθηνότερο τιμολόγιο', done: bills.length>0, nav:'finances' },
         { key:'inv',     label:'Ξεκίνα την απογραφή', hint:'Εξοπλισμός, εγγυήσεις και αποσβέσεις', done: inv.length>0, nav:'inventory' },
       ] as SetupStep[]}/>
 
@@ -1046,7 +1046,7 @@ export default function Dashboard() {
         <div className="quick-add-hint">Μία φωτογραφία, λογαριασμός, συμβόλαιο, ασφάλεια, οτιδήποτε. Το AI το βάζει στη θέση του.</div>
 
         <div className="sidebar-section">
-          <div className="sidebar-section-label">Ακίνητά μου</div>
+          <div className="sidebar-section-label">{profileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
             <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>{setSelected(p);setNav('overview');setSidebarOpen(false);}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p);setNav('overview');setSidebarOpen(false);}}}>
               <div className="prop-item-dot" style={{background:STATUS_COLORS[p.status_detail||'']||'var(--text-tertiary)'}}/>
@@ -1066,7 +1066,7 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
-          {(profileType==='professional' ? NAV_GROUPS : NAV_GROUPS.filter(g=>!g.ids.includes('comparison') && !g.ids.includes('portfolio'))).map((group,gi) => {
+          {NAV_GROUPS.map((group,gi) => {
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
             const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
@@ -1080,7 +1080,7 @@ export default function Dashboard() {
                   <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               )}
-              {open && group.ids.map(id => { const badge=getBadge(id); return (
+              {open && group.ids.filter(id => id!=='comparison' || properties.length>=2).map(id => { const badge=getBadge(id); return (
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{NAV_LABEL[id]}</span>
@@ -1204,8 +1204,7 @@ export default function Dashboard() {
               {nav==='portfolio' && <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
-              {nav==='expenses'  && <TabExpenses propertyId={selected.id} userId={user.id}/>}
-              {nav==='bills'     && <TabBills propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''}/>}
+              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={profileType}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
