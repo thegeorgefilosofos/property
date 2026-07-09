@@ -936,3 +936,10 @@ alter table public.tenant_damages enable row level security;
 drop policy if exists own_tenant_damages on public.tenant_damages;
 create policy own_tenant_damages on public.tenant_damages for all
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ── Ενοικιαστές: ποσοστό επιβάρυνσης ιδιοκτήτη ανά συντήρηση (βλ. 20260709220000) ──
+alter table public.tenants add column if not exists ac_service_owner_pct           numeric;
+alter table public.tenants add column if not exists solar_service_owner_pct        numeric;
+alter table public.tenants add column if not exists heat_pump_service_owner_pct    numeric;
+alter table public.tenants add column if not exists solar_panels_service_owner_pct numeric;
+alter table public.tenants add column if not exists pest_control_owner_pct         numeric;
