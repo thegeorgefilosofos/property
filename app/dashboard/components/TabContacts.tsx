@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
@@ -882,47 +882,68 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
   const extra = contact._extra || {}; const color = meta.groupColor
   const initials = contact.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
   const [hov, setHov] = useState(false); const [showActions, setShowActions] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  // Κλείσιμο του μενού «···» με κλικ εκτός ή με Escape (χωρίς μετατόπιση διάταξης).
+  useEffect(() => {
+    if (!showActions) return
+    const onDown = (e: MouseEvent) => { if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setShowActions(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowActions(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [showActions])
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
   const dueDays = extra.next_appointment ? daysUntil(extra.next_appointment) : null
   const reminderDue = extra.reminder_set ? (daysUntil(extra.reminder_set) || 0) <= 0 : false
   const GroupIcon = meta.GroupIcon || Users
 
   return (
-    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => { setHov(false); setShowActions(false) }}
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: 'var(--bg-surface)', border: '1px solid ' + (selected ? 'rgba(26,115,232,0.5)' : hov ? color + '50' : overdue ? 'rgba(255,59,48,0.35)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: '18px 18px 16px', position: 'relative', overflow: 'hidden', boxShadow: hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px' }} />
       {bulkMode && <div style={{ position: 'absolute', top: 13, left: 10 }}><input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
-      {hov && !bulkMode && (
-        <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 5 }}>
-          {contact.phone && <QuickAct as="a" href={'tel:' + contact.phone} title="Κλήση"><Phone size={13} /></QuickAct>}
-          {extra.whatsapp && contact.phone && <QuickAct as="a" href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" title="WhatsApp" label="WA" />}
-          {extra.viber && contact.phone && <QuickAct as="a" href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} title="Viber" label="VB" />}
-          {contact.email && <QuickAct as="a" href={'mailto:' + contact.email} title="Email"><Mail size={13} /></QuickAct>}
-          <QuickAct as="button" onClick={() => setShowActions(s => !s)} title="Περισσότερα"><span style={{ fontSize: 17, fontWeight: 700, lineHeight: 0, marginTop: -5 }}>···</span></QuickAct>
-        </div>
-      )}
-      {showActions && (
-        <div style={{ position: 'absolute', top: 48, right: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', zIndex: 10, minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
-          {[
-            { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--negative)' },
-            { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
-            { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
-            { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
-            { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact, branding), color: 'var(--text-secondary)' },
-          ].map((a, i) => (
-            <button key={i} type="button" onClick={() => { a.onClick(); setShowActions(false) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <a.Icon size={14} color={a.color} style={{ flexShrink: 0 }} />{a.label}
-            </button>
-          ))}
+      {(hov || showActions) && !bulkMode && (
+        <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
+          {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
+          <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+            {contact.phone && <QuickAct as="a" href={'tel:' + contact.phone} title="Κλήση"><Phone size={13} /></QuickAct>}
+            {extra.whatsapp && contact.phone && <QuickAct as="a" href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" title="WhatsApp" label="WA" />}
+            {extra.viber && contact.phone && <QuickAct as="a" href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} title="Viber" label="VB" />}
+            {contact.email && <QuickAct as="a" href={'mailto:' + contact.email} title="Email"><Mail size={13} /></QuickAct>}
+            <QuickAct as="button" onClick={() => setShowActions(s => !s)} title="Περισσότερες ενέργειες"><span style={{ fontSize: 17, fontWeight: 700, lineHeight: 0, marginTop: -5 }}>···</span></QuickAct>
+          </div>
+          {showActions && (
+            <div role="menu" style={{ position: 'absolute', top: 38, right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
+              {[
+                { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit, color: 'var(--text-secondary)' },
+                { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--negative)' },
+                { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
+                { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
+                { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
+                { Icon: Printer, label: 'Εκτύπωση Κάρτας', onClick: () => printContactCard(contact, branding), color: 'var(--text-secondary)' },
+              ].map((a, i) => (
+                <button key={i} type="button" role="menuitem" onClick={() => { a.onClick(); setShowActions(false) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <a.Icon size={14} color={a.color} style={{ flexShrink: 0 }} />{a.label}
+                </button>
+              ))}
+              <div style={{ height: 1, background: 'var(--border-subtle)', margin: '5px 8px' }} />
+              <button type="button" role="menuitem" onClick={() => { onDelete(); setShowActions(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--negative)', textAlign: 'left' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,59,48,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <Trash2 size={14} color="var(--negative)" style={{ flexShrink: 0 }} />Διαγραφή
+              </button>
+            </div>
+          )}
         </div>
       )}
       <div style={{ paddingLeft: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: hov ? 100 : 0, transition: 'padding-right 0.15s' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s' }}>
           {extra.avatar_url ? <img src={extra.avatar_url} alt="" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid ' + color + '50', flexShrink: 0 }} />
             : <div style={{ width: 50, height: 50, borderRadius: '50%', background: color + '18', border: '2px solid ' + color + '40', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color, flexShrink: 0 }}>{initials || <GroupIcon size={20} />}</div>}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -970,12 +991,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
           {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.2)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
           {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>{(extra.files || []).length} αρχεία</span>}
         </div>
-        {contact._freeNotes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, padding: '7px 11px', marginBottom: 14, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{contact._freeNotes}</div>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={onEdit} style={{ flex: 1, padding: '8px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = color }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Επεξεργασία</button>
-          <button type="button" onClick={onShowHistory} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer' }}>Ιστορικό</button>
-          <button type="button" onClick={onDelete} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = 'var(--negative)' }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>Διαγραφή</button>
-        </div>
+        {contact._freeNotes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, padding: '7px 11px', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{contact._freeNotes}</div>}
       </div>
     </div>
   )
