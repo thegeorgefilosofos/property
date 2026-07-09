@@ -915,3 +915,24 @@ end $$;
 
 -- ── Ενοικιαστές: τύπος μίσθωσης κατοικία/επαγγελματική (βλ. 20260709180000) ──
 alter table public.tenants add column if not exists lease_category text;  -- 'residential' | 'commercial'
+
+-- ── Ενοικιαστές: μητρώο/ιστορικό + φθορές ανά ενοικιαστή (βλ. 20260709200000) ──
+alter table public.tenants add column if not exists status         text default 'active';
+alter table public.tenants add column if not exists rent_due_day   integer;
+alter table public.tenants add column if not exists deposit_method  text;
+alter table public.tenants add column if not exists deposit_paid_on date;
+alter table public.tenants add column if not exists move_out_date   date;
+create table if not exists public.tenant_damages (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid references public.tenants(id) on delete cascade,
+  property_id uuid, user_id uuid not null,
+  occurred_on date, description text not null, cost numeric,
+  charged_to_tenant boolean default false, repaired boolean default false,
+  repaired_on date, notes text, created_at timestamptz not null default now()
+);
+create index if not exists tenant_damages_tenant_idx   on public.tenant_damages (tenant_id);
+create index if not exists tenant_damages_property_idx on public.tenant_damages (property_id);
+alter table public.tenant_damages enable row level security;
+drop policy if exists own_tenant_damages on public.tenant_damages;
+create policy own_tenant_damages on public.tenant_damages for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
