@@ -6,6 +6,10 @@ import { T, fd, fe, fn, KPIGrid, Spinner, EmptyState, InfoBanner, PageTitle, Sec
 import { CustomSelect, TextInput, DatePicker, Textarea } from './UIComponents';
 import { downloadCsv } from './exportCsv';
 import { useAppPreferences } from './useAppPreferences';
+// Επαναχρησιμοποίηση του ΥΠΑΡΧΟΝΤΟΣ pipeline OCR/ταξινόμησης (DocumentScan + lib/billing)
+// για αυτόματη αναγνώριση & αρχειοθέτηση κατά το bulk upload — καμία νέα λογική OCR.
+import { classifyDocType, planDocSave, type ScannedDoc } from '@/lib/billing/documents';
+import { SYSTEM_PROMPT } from './DocumentScan';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — ένας πλήρως οργανωμένος ψηφιακός φάκελος (Google-Drive class).
@@ -37,6 +41,25 @@ const suggestCategory = (supplier: string): string | null => {
   const s = supplier.trim();
   if (!s) return null;
   return SUPPLIER_CATEGORY_RULES.find(r => r.re.test(s))?.cat ?? null;
+};
+
+// Χαρτογράφηση της κατηγορίας λογαριασμού που εξάγει το OCR (electricity, water…)
+// στην αντίστοιχη κατηγορία-φάκελο του Αρχείου, ώστε π.χ. φωτογραφημένος
+// λογαριασμός ΔΕΗ να αρχειοθετείται μόνος του στο «Λογαριασμός Ρεύματος» → πάροχος.
+// Ό,τι δεν αντιστοιχίζεται εδώ πέφτει σε suggestCategory(πάροχος) → «Άλλο Έγγραφο».
+const SCAN_CAT_TO_DOC_CATEGORY: Record<string, string> = {
+  electricity: 'Λογαριασμός Ρεύματος',
+  water:       'Λογαριασμός Νερού',
+  gas:         'Λογαριασμός Φυσικού Αερίου',
+  internet:    'Τηλέφωνο / Internet',
+  common:      'Κοινόχρηστα',
+  insurance:   'Ασφαλιστήριο Συμβόλαιο',
+  taxes:       'ΕΝΦΙΑ / Φορολογικά',
+  municipal:   'ΕΝΦΙΑ / Φορολογικά',
+  security:    'Εταιρεία Ασφαλείας',
+  elevator:    'Συντήρηση Ανελκυστήρα',
+  pool:        'Συντήρηση Πισίνας',
+  cleaner:     'Τιμολόγιο Καθαρισμού',
 };
 
 interface Props { propertyId: string; userId: string; }
@@ -155,6 +178,12 @@ interface Item {
 }
 const ORIGIN_LABEL: Record<Source, string | null> = { document: null, expense: 'Έξοδα', bill: 'Λογαριασμοί', inventory: 'Απογραφή' };
 
+/* ── Ουρά bulk upload (per-file πρόοδος) ─────────────────────────────────── */
+type UploadStatus = 'pending' | 'ocr' | 'uploading' | 'done' | 'error';
+interface UploadTask { id: string; name: string; status: UploadStatus; label?: string }
+// Πρόταση κατηγορίας-φακέλου από ΤΟ ΙΔΙΟ αποτέλεσμα OCR/ταξινόμησης του DocumentScan.
+interface AutoFile { category: string; supplier: string | null; doc_date: string | null; title: string | null }
+
 const fmtSize = (b: number | null) => {
   if (!b) return '';
   if (b < 1024) return `${b} B`;
@@ -206,6 +235,9 @@ export default function TabDocuments({
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [form, setForm] = useState({ kind: 'document' as 'photo' | 'document', category: DOC_CATEGORIES[0], supplier: '', title: '', doc_date: '', notes: '' });
+  const [autoDetect, setAutoDetect] = useState(true);   // αυτόματη αναγνώριση/αρχειοθέτηση (AI)
+  const [dragOver, setDragOver] = useState(false);
+  const [queue, setQueue] = useState<UploadTask[]>([]);  // per-file πρόοδος bulk upload
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchAll = useCallback(async () => {
@@ -301,28 +333,117 @@ export default function TabDocuments({
   }, [form.kind]);
 
   /* ── Ανέβασμα (γράφει στο property_documents) ─────────────────────────── */
-  const onFile = async (file: File) => {
-    if (!file || !propertyId) return;
-    setUploading(true); setMsg(null);
+  const autoOn = autoDetect && form.kind === 'document';
+
+  // Ένα αρχείο → storage + εγγραφή στο property_documents. Ίδια αμυντική λογική με
+  // τη χειροκίνητη ροή & το DocumentScan (retry χωρίς supplier σε παλιότερη βάση).
+  const insertDoc = async (
+    file: File,
+    meta: { kind: 'photo' | 'document'; category: string; supplier: string | null; title: string; doc_date: string | null; notes: string | null },
+  ): Promise<string | null> => {
     const safe = file.name.replace(/[^\w.\-]+/g, '_');
-    const path = `${userId}/${propertyId}/${form.kind}/${Date.now()}_${safe}`;
+    const path = `${userId}/${propertyId}/${meta.kind}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safe}`;
     const { error: upErr } = await supabase.storage.from('property-files').upload(path, file, { upsert: false, contentType: file.type || undefined });
-    if (upErr) { setMsg({ text: `Σφάλμα ανεβάσματος: ${upErr.message}`, error: true }); setUploading(false); return; }
+    if (upErr) return upErr.message;
     const base = {
-      property_id: propertyId, user_id: userId, kind: form.kind, category: form.category,
-      title: form.title.trim() || file.name, notes: form.notes.trim() || null,
-      doc_date: form.doc_date || null, file_path: path, file_name: file.name,
+      property_id: propertyId, user_id: userId, kind: meta.kind, category: meta.category,
+      title: (meta.title || file.name).slice(0, 200), notes: meta.notes,
+      doc_date: meta.doc_date || null, file_path: path, file_name: file.name,
       mime: file.type || null, size_bytes: file.size,
     };
-    let { error: insErr } = await supabase.from('property_documents').insert({ ...base, supplier: form.supplier.trim() || null });
-    if (insErr && /supplier/i.test(insErr.message)) {
-      ({ error: insErr } = await supabase.from('property_documents').insert(base));
+    let { error: insErr } = await supabase.from('property_documents').insert({ ...base, supplier: meta.supplier });
+    if (insErr && /supplier/i.test(insErr.message)) ({ error: insErr } = await supabase.from('property_documents').insert(base));
+    return insErr ? insErr.message : null;
+  };
+
+  // Auto-OCR: επαναχρησιμοποιεί ΑΚΡΙΒΩΣ το ίδιο pipeline με το DocumentScan —
+  // ίδιο /api/anthropic + SYSTEM_PROMPT, ίδια classifyDocType()/planDocSave().
+  // Επιστρέφει πρόταση κατηγορίας-φακέλου/παρόχου/ημερομηνίας, ή null (→ εφεδρική
+  // κατηγορία). Μόνο για εικόνες/PDF — ποτέ δεν μπλοκάρει το ανέβασμα.
+  const ocrClassify = async (file: File): Promise<AutoFile | null> => {
+    const isPdf = file.type === 'application/pdf';
+    const isImage = file.type.startsWith('image/');
+    if (!isImage && !isPdf) return null;                       // μη-έγγραφα: χωρίς OCR
+    if (file.size > 10 * 1024 * 1024) return null;             // >10MB: χωρίς OCR (κόστος/latency)
+    try {
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string); r.onerror = () => rej(new Error('read'));
+        r.readAsDataURL(file);
+      });
+      const base64 = dataUrl.split(',')[1];
+      if (!base64) return null;
+      const contentPart: Record<string, unknown> = isPdf
+        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+        : { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
+      const res = await fetch('/api/anthropic', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.' }] }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) return null;
+      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
+      const doc = JSON.parse(text.replace(/```json?|```/g, '').trim()) as ScannedDoc;
+      if (!doc || typeof doc !== 'object') return null;
+      doc.doc_type = classifyDocType(doc);                     // ντετερμινιστική επιδιόρθωση τύπου
+      const a = planDocSave(doc, new Date().toISOString().split('T')[0]).archive; // ίδιο σχέδιο αρχειοθέτησης
+      if (!a) return null;
+      // Οι λογαριασμοί μπαίνουν στη συγκεκριμένη κατηγορία-φάκελο (Ρεύμα, Νερό…),
+      // όχι στο γενικό «Άλλο Έγγραφο» που δίνει το DOC_ARCHIVE_CATEGORY.
+      const category = (doc.doc_type === 'bill' || doc.doc_type === 'payment')
+        ? (SCAN_CAT_TO_DOC_CATEGORY[doc.category || ''] || suggestCategory(doc.provider || '') || a.category)
+        : a.category;
+      return { category, supplier: a.supplier || null, doc_date: a.date || null, title: doc.title || doc.provider || null };
+    } catch { return null; }
+  };
+
+  // Bulk: ουρά με per-file πρόοδο. Ακολουθιακή επεξεργασία (concurrency 1) ώστε να
+  // μη φουσκώνει το κόστος/latency των AI κλήσεων ούτε να πιέζεται η βάση.
+  const handleFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    if (!files.length || !propertyId || uploading) return;
+    setMsg(null); setUploading(true);
+    const tasks: UploadTask[] = files.map((f, i) => ({ id: `${Date.now()}_${i}_${f.name}`, name: f.name, status: 'pending' }));
+    setQueue(tasks);
+    const upd = (id: string, patch: Partial<UploadTask>) => setQueue(q => q.map(t => (t.id === id ? { ...t, ...patch } : t)));
+    let ok = 0, fail = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]; const id = tasks[i].id;
+      // Βάση = χειροκίνητα πεδία (λειτουργούν ως εφεδρική κατηγορία/override).
+      let meta = {
+        kind: form.kind, category: form.category, supplier: form.supplier.trim() || null,
+        title: form.title.trim(), doc_date: form.doc_date || null, notes: form.notes.trim() || null,
+      };
+      if (autoOn) {
+        upd(id, { status: 'ocr' });
+        const auto = await ocrClassify(file);
+        if (auto) {
+          meta = {
+            ...meta, kind: 'document', category: auto.category,
+            supplier: auto.supplier ?? meta.supplier,
+            doc_date: auto.doc_date ?? meta.doc_date,
+            title: meta.title || auto.title || '',
+          };
+        }
+        // Αν το OCR απέτυχε/μη-αναγνώσιμο: κρατάμε την εφεδρική χειροκίνητη κατηγορία.
+      }
+      upd(id, { status: 'uploading' });
+      const err = await insertDoc(file, meta);
+      if (err) { fail++; upd(id, { status: 'error' }); }
+      else { ok++; upd(id, { status: 'done', label: [meta.category, meta.supplier].filter(Boolean).join(' · ') }); }
     }
-    if (insErr) { setMsg({ text: `Σφάλμα καταχώρησης: ${insErr.message}`, error: true }); setUploading(false); return; }
+
+    setUploading(false);
     setForm(f => ({ ...f, title: '', notes: '', doc_date: '' }));
-    setUploading(false); setMsg({ text: form.kind === 'photo' ? 'Η φωτογραφία αρχειοθετήθηκε' : 'Το αρχείο αρχειοθετήθηκε' });
-    setTimeout(() => setMsg(null), 3500);
+    setMsg(ok === 0
+      ? { text: 'Αποτυχία αρχειοθέτησης, δοκίμασε ξανά', error: true }
+      : { text: fail ? `${ok} αρχειοθετήθηκαν · ${fail} απέτυχαν` : ok === 1 ? 'Το αρχείο αρχειοθετήθηκε' : `${ok} αρχεία αρχειοθετήθηκαν`, error: false });
     fetchAll();
+    setTimeout(() => { setQueue([]); setMsg(null); }, 5000);
   };
 
   const del = async (it: Item) => {
@@ -448,7 +569,7 @@ export default function TabDocuments({
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
         <div className="card">
-          <SecHdr label="Αρχειοθέτηση νέου εγγράφου" sub="Το αρχείο τοποθετείται αυτόματα στον σωστό φάκελο"
+          <SecHdr label="Αρχειοθέτηση νέου εγγράφου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
             right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>✕</button>}/>
 
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
@@ -458,8 +579,22 @@ export default function TabDocuments({
             ))}
           </div>
 
+          {/* Αυτόματη αναγνώριση (AI) — μόνο για έγγραφα· φωτογραφίες ταξινομούνται χειροκίνητα */}
+          {form.kind === 'document' && (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
+              <span style={{ position: 'relative', width: 34, height: 20, borderRadius: T.radius.pill, background: autoDetect ? 'var(--accent)' : 'var(--border-default)', transition: `background 0.18s ${T.ease.standard}`, flexShrink: 0 }}>
+                <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: `left 0.18s ${T.ease.standard}` }}/>
+              </span>
+              <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}/>
+              <span style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Αυτόματη αναγνώριση (AI)</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>εντοπίζει τύπο, πάροχο & ημερομηνία και αρχειοθετεί μόνο του στον σωστό φάκελο</span>
+              </span>
+            </label>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 14, marginBottom: 14 }}>
-            <CustomSelect label="Κατηγορία (φάκελος)" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
+            <CustomSelect label={autoOn ? 'Κατηγορία (εφεδρική)' : 'Κατηγορία (φάκελος)'} value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
               options={(form.kind === 'photo' ? PHOTO_CATEGORIES : DOC_CATEGORIES).map(c => ({ value: c, label: c }))}/>
             <div>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6, fontFamily: T.font.sans }}>Προμηθευτής / Πάροχος</label>
@@ -478,16 +613,52 @@ export default function TabDocuments({
           <div style={{ marginBottom: 14 }}>
             <Textarea label="Σημειώσεις" value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Προαιρετικές σημειώσεις"/>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={() => fileRef.current?.click()} disabled={uploading}>
-              <svg {...S} width={14} height={14}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              {uploading ? 'Ανέβασμα…' : 'Επιλογή & Ανέβασμα'}
-            </Btn>
-            <input ref={fileRef} type="file" accept={form.kind === 'photo' ? 'image/*' : undefined} style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }}/>
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{form.kind === 'photo' ? 'PNG, JPEG, WebP…' : 'PDF, εικόνα, Word, Excel…'}</span>
-            {msg && <span style={{ fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</span>}
+          {/* Ενιαία επιφάνεια ανεβάσματος: drag-and-drop ή κλικ, πολλαπλά αρχεία μαζί */}
+          <div
+            onClick={() => { if (!uploading) fileRef.current?.click(); }}
+            onDragOver={e => { e.preventDefault(); if (!uploading && !dragOver) setDragOver(true); }}
+            onDragLeave={e => { e.preventDefault(); setDragOver(false); }}
+            onDrop={e => { e.preventDefault(); setDragOver(false); if (!uploading && e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files); }}
+            style={{ border: `1.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border-default)'}`, background: dragOver ? 'var(--accent-soft)' : 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '26px 20px', textAlign: 'center', cursor: uploading ? 'default' : 'pointer', transition: `all 0.18s ${T.ease.standard}`, opacity: uploading ? 0.75 : 1 }}>
+            <div style={{ color: dragOver ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+              <svg {...S} width={26} height={26}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {uploading ? 'Ανέβασμα σε εξέλιξη…' : dragOver ? 'Άφησε τα αρχεία εδώ' : 'Σύρε αρχεία εδώ ή κάνε κλικ για επιλογή'}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {form.kind === 'photo'
+                ? 'Πολλαπλές φωτογραφίες μαζί · PNG, JPEG, WebP…'
+                : autoOn ? 'Αυτόματη αναγνώριση & αρχειοθέτηση · PDF, εικόνα, Word, Excel…' : 'Πολλαπλά αρχεία μαζί · PDF, εικόνα, Word, Excel…'}
+            </div>
           </div>
+          <input ref={fileRef} type="file" multiple accept={form.kind === 'photo' ? 'image/*' : 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt'} style={{ display: 'none' }}
+            onChange={e => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}/>
+
+          {/* Per-file πρόοδος */}
+          {queue.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {queue.map(t => {
+                const pct = t.status === 'done' || t.status === 'error' ? 100 : t.status === 'uploading' ? 70 : t.status === 'ocr' ? 35 : 12;
+                const barColor = t.status === 'error' ? 'var(--negative)' : t.status === 'done' ? 'var(--positive)' : 'var(--accent)';
+                const statusText = t.status === 'ocr' ? 'Αναγνώριση…' : t.status === 'uploading' ? 'Ανέβασμα…' : t.status === 'done' ? (t.label || 'Αρχειοθετήθηκε') : t.status === 'error' ? 'Σφάλμα' : 'Σε αναμονή';
+                return (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '8px 12px' }}>
+                    <svg {...S} width={15} height={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                      <div style={{ height: 3, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden', marginTop: 5 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: `width 0.25s ${T.ease.standard}` }}/>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 9.5, fontWeight: 600, color: t.status === 'error' ? 'var(--negative)' : t.status === 'done' ? 'var(--positive)' : 'var(--text-secondary)', whiteSpace: 'nowrap', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{statusText}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {msg && <div style={{ marginTop: 12, fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</div>}
         </div>
       )}
 

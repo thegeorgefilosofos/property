@@ -28,7 +28,7 @@ interface ChecklistItem {
   depends_on?: string | null
   _subtasks?: SubTask[]; _comments?: Comment[]; _tags?: string[]
 }
-interface Contact { id: string; full_name: string; role: string; phone?: string | null }
+interface Contact { id: string; full_name: string; role: string; phone?: string | null; property_id?: string | null }
 interface SmartSuggestion { title: string; reason: string; templateKey: string }
 type ProfileType = 'individual' | 'professional'
 interface TabChecklistProps { propertyId: string; userId: string }
@@ -983,7 +983,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
               {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` (${Math.abs(due)}μ πριν)` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` (σε ${due}μ)` : ''}
             </span>
           )}
-          {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{item.assigned_contact_name}</span>}
+          {item.assigned_contact_name && (
+            <span title={'Ανατέθηκε σε ' + item.assigned_contact_name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              {item.assigned_contact_name}
+            </span>
+          )}
           {item.estimated_cost > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{item.estimated_cost.toLocaleString('el-GR')}€{item.actual_cost > 0 ? ` / ${item.actual_cost.toLocaleString('el-GR')}€` : ' (εκτίμηση)'}</span>}
           {subtasks.length > 0 && <span style={{ fontSize: 11, color: subDone === subtasks.length ? 'var(--positive)' : 'var(--text-secondary)' }}>{subDone}/{subtasks.length} υπο-εργασίες</span>}
           {(item._comments || []).length > 0 && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{(item._comments || []).length} σχόλια</span>}
@@ -997,6 +1002,15 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
 
       {hov && (
         <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
+          {/* Ήσυχη ghost ενέργεια: προγραμματίζει την εργασία στο Ημερολόγιο με ένα κλικ
+              (ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή). */}
+          <button type="button" onClick={onAddToCalendar} title={item.assigned_contact_name ? 'Προγραμμάτισε στο Ημερολόγιο — ' + item.assigned_contact_name : 'Προγραμμάτισε στο Ημερολόγιο'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid transparent', background: 'transparent', color: 'var(--info)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Ημερολόγιο
+          </button>
           <button type="button" onClick={onEdit}
             style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
@@ -1020,7 +1034,6 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 220, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
           <div style={{ padding: '6px 10px 4px', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Ενέργειες</div>
           {[
-            { label: 'Προσθήκη στο Ημερολόγιο', sub: 'Δημιουργία event', fn: () => { onAddToCalendar(); setShowMenu(false) } },
             { label: 'Καταχώρηση Δαπάνης', sub: 'Άμεση καταχώρηση στα Δαπάνες', fn: () => { onAddToExpenses(); setShowMenu(false) } },
             { label: 'Αντιγραφή εργασίας', sub: 'Δημιουργία αντιγράφου', fn: () => { onDuplicate(); setShowMenu(false) } },
           ].map((a, i) => (
@@ -1411,11 +1424,15 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     setLoading(true)
     const [{ data: itemData }, { data: contactData }, { data: tenantData }] = await Promise.all([
       supabase.from('checklist_items').select('*').eq('property_id', propertyId).order('sort_order').order('created_at'),
-      supabase.from('contacts').select('id,full_name,role,phone').eq('property_id', propertyId),
+      supabase.from('contacts').select('id,full_name,role,phone,property_id').eq('user_id', userId).order('full_name'),
       supabase.from('contacts').select('id,full_name').eq('property_id', propertyId).eq('role', 'tenant').limit(1),
     ])
     setItems((itemData || []).map(parseItem))
-    setContacts(contactData || [])
+    // Χαρτοφυλάκιο-wide λίστα επαφών ώστε να επιλέγεται π.χ. ο ψυκτικός όπου κι αν είναι
+    // αποθηκευμένος· οι επαφές του τρέχοντος ακινήτου προηγούνται (σταθερή ταξινόμηση).
+    setContacts([...(contactData || [])].sort((a: any, b: any) =>
+      (a.property_id === propertyId ? 0 : 1) - (b.property_id === propertyId ? 0 : 1)
+    ))
     const existingTemplates = new Set((itemData || []).map((i: any) => i.template_id).filter(Boolean))
     const suggestions: SmartSuggestion[] = []
     if (tenantData && tenantData.length > 0 && !existingTemplates.has('checkin'))
@@ -1457,7 +1474,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       }
     } catch (_) {}
     setLoading(false)
-  }, [propertyId])
+  }, [propertyId, userId])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -1513,8 +1530,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
 
   const addToCalendar = async (item: ChecklistItem) => {
-    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: item.description, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: item.priority === 'critical' ? 'high' : item.priority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
-    showToast('Προστέθηκε στο Ημερολόγιο')
+    // Ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή, ώστε στο Ημερολόγιο να
+    // φαίνεται αμέσως ποιος συνεργάτης αναλαμβάνει (π.χ. «Service κλιματιστικών — Γ. Ψυκτικός»).
+    const title = item.assigned_contact_name ? `${item.description} — ${item.assigned_contact_name}` : item.description
+    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: item.priority === 'critical' ? 'high' : item.priority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
+    showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο — ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
   const loadAADECalendar = async () => {
