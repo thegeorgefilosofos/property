@@ -242,7 +242,7 @@ function AddPropertyModal({ userId, onClose, onSaved }: { userId: string; onClos
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:24,fontWeight:400,color:'var(--text-primary)',lineHeight:'32px'}}>Νέο Ακίνητο</div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',marginTop:4,letterSpacing:'0.25px'}}>Βήμα {step} από 2, {step===1?'Βασικά Στοιχεία':'Οικονομικά'}</div>
           </div>
-          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✕</button>
+          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div style={{height:4,background:'var(--bg-overlay)',borderRadius:2,marginBottom:24,overflow:'hidden'}}>
           <div style={{height:'100%',width:step===1?'50%':'100%',background:'var(--accent)',borderRadius:2,transition:'width 0.3s'}}/>
@@ -320,7 +320,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
             <p style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:400,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
             <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
-          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✕</button>
+          <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {otherProperties.length === 0 ? (
           <div style={{padding:'32px',textAlign:'center',color:'var(--text-secondary)'}}>
@@ -339,7 +339,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
                       <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:500,color:'var(--text-primary)'}}>{p.name}</p>
                       <p style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>{PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type}{p.address?` · ${p.address}`:''}</p>
                     </div>
-                    {sourceId===p.id&&<span style={{marginLeft:'auto',color:'var(--accent)',fontSize:16}}>✓</span>}
+                    {sourceId===p.id&&<span style={{marginLeft:'auto',display:'inline-flex',color:'var(--accent)'}}><svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>}
                   </div>
                 ))}
               </div>
@@ -589,7 +589,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           { label:'Μεικτή Απόδοση', value:`${grossYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο ως ποσοστό της αξίας του ακινήτου, προ δαπανών' },
           { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, title:'Απόδοση (yield): ετήσιο ενοίκιο μείον δαπάνες, ως ποσοστό της αξίας του ακινήτου' },
           { label:'Δαπάνες Έτους', value:fmtEur(totalExpYTD),
-            sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'▲':expDeltaPct<0?'▼':''} ${Math.abs(expDeltaPct)}% σε σχέση με πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
+            sub: expDeltaPct!=null ? { text:`${expDeltaPct>0?'+':expDeltaPct<0?'−':''}${Math.abs(expDeltaPct)}% σε σχέση με πέρσι`, color: expDeltaPct>0?'var(--negative)':expDeltaPct<0?'var(--positive)':'var(--text-tertiary)' } : undefined },
           { label: daysToExpiry!=null?'Λήξη Σύμβασης':'Αξία Ακινήτου', value: daysToExpiry!=null?(daysToExpiry<0?'Έληξε':`${daysToExpiry} ${daysToExpiry===1?'ημέρα':'ημέρες'}`):fmtEur(propValue),
             color: daysToExpiry!=null&&daysToExpiry<60 ? (daysToExpiry<0?'var(--negative)':'var(--warning)') : undefined },
         ].map((k,i) => (
@@ -1077,7 +1077,7 @@ export default function Dashboard() {
                   onClick={()=>setOpenGroup(cur=>cur===group.label?'':group.label)}>
                   <span>{group.label}</span>
                   {!open && groupBadge>0 && <span className="sidebar-section-badge">{groupBadge>9?'9+':groupBadge}</span>}
-                  <span className="sidebar-section-chevron" aria-hidden>{open?'▾':'▸'}</span>
+                  <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               )}
               {open && group.ids.map(id => { const badge=getBadge(id); return (
