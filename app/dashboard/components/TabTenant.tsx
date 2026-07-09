@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
-  StreamingConfig, CleaningConfig, InvestmentCalc, PrepayCalc,
+  StreamingConfig, CleaningConfig, InvestmentCalc,
   LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, MIN_LEASE_MONTHS, SERVICE_BY_LABELS, ID_DOCS,
   MONTHS_FULL, MONTHS_S, FREQ_OPTIONS, EXTRA_CATS,
   syncTenantSchedule, type TenantScheduleInput,
@@ -13,7 +13,6 @@ import {
   Toggle, NumberInput, TextInput, Textarea,
   CustomSelect as SelectField,
   DatePicker as DateField,
-  ServiceBySelect,
 } from './UIComponents';
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
@@ -84,6 +83,8 @@ interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meet
 interface TabTenantProps { propertyId:string; userId:string; }
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+// Ποιος επιβαρύνεται συντήρηση — συμπαγές select (αντί για τρία κουμπιά).
+const SERVICE_BY_OPTIONS = (Object.keys(SERVICE_BY_LABELS) as ServiceBy[]).map(k => ({ value:k, label:SERVICE_BY_LABELS[k] }));
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
@@ -95,6 +96,22 @@ function SectionTitle({ children, dot='var(--accent)' }: { children: React.React
     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
       <div style={{ width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0 }}/>
       <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
+    </div>
+  );
+}
+
+// Διακριτική ενότητα υπηρεσίας με προοδευτική αποκάλυψη (quiet toggle → λεπτομέρεια).
+function SvcSection({ title, hint, open, onToggle, children }: { title:string; hint?:string; open:boolean; onToggle:()=>void; children:React.ReactNode }) {
+  return (
+    <div style={{ border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, borderRadius:T.radius.inner, marginBottom:10, background:'var(--bg-elevated)', overflow:'hidden', transition:'border-color 0.15s' }}>
+      <div onClick={onToggle} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'13px 16px', cursor:'pointer', userSelect:'none' as const }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</div>
+          {hint&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, lineHeight:1.4 }}>{hint}</div>}
+        </div>
+        <div style={{ pointerEvents:'none' as const, flexShrink:0 }}><Toggle on={open} onChange={()=>{}} size="sm"/></div>
+      </div>
+      {open&&<div style={{ padding:'2px 16px 18px' }}>{children}</div>}
     </div>
   );
 }
@@ -674,14 +691,18 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
 }
 
 // ─── Rent Ledger helpers ──────────────────────────────────────────────────────
-// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(lease_end, τρέχων μήνας).
+// Αναμενόμενες μηνιαίες δόσεις από lease_start έως min(αποχώρηση, λήξη, τρέχων μήνας).
+// Ο ενοικιαστής που έχει αποχωρήσει ΔΕΝ συσσωρεύει νέες δόσεις μετά την αποχώρηση.
 function expectedPeriods(tenant:Tenant, rentDueDay:number):{year:number;month:number;due_date:string}[] {
   if(!tenant.lease_start||!tenant.monthly_rent||tenant.monthly_rent<=0) return [];
   const start=new Date(tenant.lease_start+'T00:00:00');
   if(isNaN(start.getTime())) return [];
   const now=new Date(); now.setHours(0,0,0,0);
-  const endCap=tenant.lease_end?new Date(tenant.lease_end+'T00:00:00'):now;
-  const last=endCap<now?endCap:now;
+  // Όριο δημιουργίας: το νωρίτερο από αποχώρηση, λήξη μίσθωσης, ή τρέχων μήνας.
+  const caps=[now];
+  if(tenant.move_out_date){ const d=new Date(tenant.move_out_date+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
+  if(tenant.lease_end){ const d=new Date(tenant.lease_end+'T00:00:00'); if(!isNaN(d.getTime())) caps.push(d); }
+  const last=caps.reduce((a,b)=>b<a?b:a);
   const out:{year:number;month:number;due_date:string}[]=[];
   let y=start.getFullYear(), m=start.getMonth();
   const lastKey=last.getFullYear()*12+last.getMonth();
@@ -1148,6 +1169,16 @@ const blank=()=>({
   lease_doc_external_url:'',
 });
 
+// Αρχική κατάσταση προοδευτικής αποκάλυψης του βήματος «Υπηρεσίες» βάσει δεδομένων.
+const svcUIFrom = (f:ReturnType<typeof blank>) => ({
+  stream: !!(f.streaming && f.streaming.some(sv=>sv.included)),
+  clean:  !!(f.cleaning && f.cleaning.package && f.cleaning.package!=='none'),
+  maint:  [f.ac_service_frequency,f.solar_service_frequency,f.heat_pump_service_frequency,f.solar_panels_service_frequency,f.pest_control_frequency].some(Boolean),
+  park:   !!(f.parking_included||f.parking_extra||f.parking_type||f.parking_notes||f.parking_has_electricity),
+  extra:  !!f.extra_perks,
+});
+const SVC_UI_CLOSED = { stream:false, clean:false, maint:false, park:false, extra:false };
+
 // ─── Εγγύηση (Deposit View) ─────────────────────────────────────────────────────
 // Δείχνει ποσό, τρόπο/ημ. καταβολής, επένδυση και ΠΟΤΕ + ΥΠΟ ΠΟΙΟΥΣ ΟΡΟΥΣ
 // επιστρέφεται — υπολογισμένο από τα δεδομένα του ενοικιαστή (λήξη/αποχώρηση,
@@ -1407,9 +1438,14 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   // Φόρμα (modal)
   const [isForm,setIsForm]=useState(false);
   const [editId,setEditId]=useState<string|null>(null);
-  const [formTab,setFormTab]=useState<'profile'|'lease'|'services'|'docs'>('profile');
+  const [formTab,setFormTab]=useState<'profile'|'services'>('profile');
   const [form,setForm]=useState(blank());
   const sf=(k:string,v:any)=>setForm(f=>({...f,[k]:v}));
+  // Έγγραφα που ανέβηκαν μέσα από τη φόρμα (property-files + property_documents).
+  const [formDocs,setFormDocs]=useState<{id:string;file_name:string;tag:'id'|'lease'}[]>([]);
+  const [docBusy,setDocBusy]=useState(false);
+  // Προοδευτική αποκάλυψη ενοτήτων υπηρεσιών (μόνο εμφάνιση — δεν αλλάζει δεδομένα).
+  const [svcUI,setSvcUI]=useState<{stream:boolean;clean:boolean;maint:boolean;park:boolean;extra:boolean}>(SVC_UI_CLOSED);
 
   // Ντοσιέ (drawer)
   const [openId,setOpenId]=useState<string|null>(null);
@@ -1469,9 +1505,9 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     const depositHeld=currentTenants.filter(t=>!t.deposit_returned).reduce((a,t)=>a+(t.deposit_amount||0),0);
     return [
       { label:'Τρέχον Μηνιαίο Ενοίκιο', value:fe(currentRent), tone:'accent' },
-      { label:'Ληξιπρόθεσμα', value:fe(arrears), tone:arrears>0?'negative':'positive', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
+      { label:'Ληξιπρόθεσμη Οφειλή', value:fe(arrears), tone:arrears>0?'negative':'positive', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
       { label:'Εγγύηση σε Κατοχή', value:fe(depositHeld), tone:'info' },
-      { label:'Ιστορικοί Ενοικιαστές', value:fn(pastTenants.length), tone:'neutral' },
+      { label:'Προηγούμενοι Ενοικιαστές', value:fn(pastTenants.length), tone:'neutral' },
     ];
   },[currentTenants,pastTenants,overdueByTenant]);
 
@@ -1490,10 +1526,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
   },[tenants,search,segment,overdueByTenant]);
 
   // ── Φόρμα ────────────────────────────────────────────────────────────────────
-  const openAdd=()=>{ setForm(blank()); setEditId(null); setFormTab('profile'); setIsForm(true); };
+  const openAdd=()=>{ setForm(blank()); setEditId(null); setFormDocs([]); setSvcUI(SVC_UI_CLOSED); setFormTab('profile'); setIsForm(true); };
   const openEditForm=(t:Tenant)=>{
     const n=(v:number|null)=>v?.toString()||'';
-    setForm({
+    const f:ReturnType<typeof blank>={
       full_name:t.full_name||'',email:t.email||'',phone:t.phone||'',phone_work:t.phone_work||'',
       nationality:t.nationality||'',profession:t.profession||'',employer:t.employer||'',afm:t.afm||'',
       id_doc_type:(t.id_doc_type as IdDocType)||'',id_doc_number:t.id_doc_number||'',iban:t.iban||'',notes:t.notes||'',
@@ -1516,13 +1552,37 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       prepay_option:t.prepay_option||false,prepay_months:t.prepay_months||3,prepay_discount_pct:n(t.prepay_discount_pct),
       prepay_invested:t.prepay_invested||false,prepay_invest_rate:n(t.prepay_invest_rate),prepay_invest_type:t.prepay_invest_type||'',prepay_invest_term:t.prepay_invest_term||'',
       lease_doc_external_url:t.lease_doc_external_url||'',
-    });
+    };
+    setForm(f); setFormDocs([]); setSvcUI(svcUIFrom(f));
     setEditId(t.id); setFormTab('profile'); setIsForm(true);
+    // Επαναφόρτωση των εγγράφων που έχουν ήδη ανέβει για ΑΥΤΟΝ τον ενοικιαστή
+    // (ταυτότητα, μισθωτήρια — και προηγούμενα με τον ίδιο ενοικιαστή).
+    supabase.from('property_documents').select('id,file_name,title').eq('property_id',propertyId).eq('user_id',userId).eq('supplier','tenant:'+t.id)
+      .then(({data})=>{ setFormDocs((data||[]).map((d:{id:string;file_name:string|null;title:string|null})=>({ id:d.id, file_name:d.file_name||'έγγραφο', tag:(d.title||'').startsWith('Έγγραφο ταυτοποίησης')?'id':'lease' as 'id'|'lease' }))); });
+  };
+
+  // Ανέβασμα εγγράφου φόρμας (ταυτοποίηση ή μισθωτήριο) — ίδιο μοτίβο με το
+  // property-files/property_documents που χρησιμοποιείται στη σάρωση/αρχειοθέτηση.
+  const uploadFormDoc=async(file:File,tag:'id'|'lease')=>{
+    setDocBusy(true); setError(null);
+    try{
+      const safe=file.name.replace(/[^\w.\-]+/g,'_');
+      const path=`${userId}/${propertyId}/document/${Date.now()}_${safe}`;
+      const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
+      if(upErr){ setError(upErr.message); setDocBusy(false); return; }
+      const label=tag==='id'?'Έγγραφο ταυτοποίησης':'Μισθωτήριο / έγγραφο';
+      const title=`${label} — ${form.full_name.trim()||file.name}`.slice(0,200);
+      const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
+      if(insErr){ setError(insErr.message); setDocBusy(false); return; }
+      if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
+      notify('Το έγγραφο ανέβηκε');
+    }catch{ setError('Σφάλμα ανεβάσματος εγγράφου'); }
+    setDocBusy(false);
   };
 
   const save=async()=>{
     if(!form.full_name.trim()){setError('Το ονοματεπώνυμο είναι υποχρεωτικό');setFormTab('profile');return;}
-    if(!form.lease_category){setError('Ο τύπος μίσθωσης (κατοικία ή επαγγελματική) είναι υποχρεωτικός');setFormTab('lease');return;}
+    if(!form.lease_category){setError('Ο τύπος μίσθωσης (κατοικία ή επαγγελματική) είναι υποχρεωτικός');setFormTab('profile');return;}
     setSaving(true);setError(null);
     const n=(v:string)=>v?Math.max(0,parseFloat(v)):null;
     const dueDay=Math.min(Math.max(1,parseInt(form.rent_due_day)||1),28);
@@ -1557,6 +1617,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     const{data:savedRow,error:err}=await q;
     if(err){setError(err.message);setSaving(false);return;}
     const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
+    // Έγγραφα που ανέβηκαν κατά την ΠΡΟΣΘΗΚΗ (πριν υπάρξει id) συνδέονται τώρα με τον ενοικιαστή.
+    if(savedTenant?.id && !editId && formDocs.length){
+      await supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id));
+    }
     if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
     setSaving(false);setIsForm(false);
     notify(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
@@ -1626,7 +1690,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
     return <Badge tone="positive">Τρέχων</Badge>;
   };
 
-  const FTABS:[string,typeof formTab][]=[['Στοιχεία','profile'],['Μίσθωση','lease'],['Υπηρεσίες','services'],['Έγγραφα','docs']];
+  const FTABS:[string,typeof formTab][]=[['Στοιχεία Μισθωτή','profile'],['Παρεχόμενες Υπηρεσίες σε Μισθωτή','services']];
   const DTABS:{id:DossierTab;label:string;badge?:number}[]=dc?[
     {id:'overview',label:'Επισκόπηση'},
     {id:'lease',label:'Μίσθωση & Ενοίκιο',badge:dcOverdue.count||undefined},
@@ -1646,10 +1710,10 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative)44', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
       <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
-        right={<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
-          {tenants.length>0&&<ExportButton onClick={exportRoster}/>}
+        right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
+          <ExportButton onClick={exportRoster}/>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
-        </div>}/>
+        </div>:undefined}/>
 
       <KPIGrid items={kpis}/>
 
@@ -1657,7 +1721,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Αναζήτηση ονόματος, ΑΦΜ, τηλεφώνου…"
           style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:42, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
-          {([['current','Τρέχων'],['past','Προηγούμενοι'],['overdue','Ληξιπρόθεσμοι'],['all','Όλοι']] as [typeof segment,string][]).map(([v,l])=>(
+          {([['all','Όλοι'],['current','Τρέχων'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
             <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius:20, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
@@ -1699,7 +1763,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                       {([
                         { l:'Μην. ενοίκιο', v:fmt(t.monthly_rent), strong:true },
                         { l:'Εγγύηση', v:fmt(t.deposit_amount) },
-                        { l:'Ληξιπρόθεσμα', v:od?fmt(od.amount):'—', neg:!!od },
+                        { l:'Ληξιπρόθεσμη οφειλή', v:od?fmt(od.amount):'—', neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
                         <div key={i} style={{ flex:1, minWidth:0, paddingLeft:i?12:0, borderLeft:i?'1px solid var(--border-subtle)':'none' }}>
                           <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>
@@ -1866,6 +1930,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
 
             {formTab==='profile'&&(
               <>
+                {/* Ταυτότητα μισθωτή */}
                 <SectionTitle>Προσωπικά Στοιχεία</SectionTitle>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v=>sf('full_name',v)}/>
@@ -1886,33 +1951,32 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <SelectField label="Τύπος Εγγράφου Ταυτοποίησης" value={form.id_doc_type} onChange={v=>sf('id_doc_type',v)} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή..."/>
                   <TextInput label="Αριθμός Εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                 </div>
-                <div style={s.divider}/>
-                <SectionTitle dot="var(--accent)">Εγγύηση</SectionTitle>
-                <div style={{ ...s.g3, marginBottom:16 }}>
-                  <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
-                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή..."/>
-                  <DateField label="Ημ. Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>
-                </div>
-                <div style={{ ...s.g3, marginBottom:16 }}>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Επενδύεται</div><Toggle on={form.deposit_invested} onChange={v=>sf('deposit_invested',v)} label="Ναι" labelOff="Όχι"/></div>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} label="Ναι" labelOff="Όχι"/></div>
-                  {form.deposit_returned&&<DateField label="Ημερομηνία Επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
-                </div>
-                {form.deposit_invested&&(
-                  <div style={{ ...s.g3, marginBottom:16 }}>
-                    <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
-                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
-                    <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="για παράδειγμα VWCE..."/>
+                {/* Ανέβασμα σαρωμένου εγγράφου ταυτοποίησης */}
+                <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'14px 16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const }}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)', fontFamily:T.font.sans }}>Έγγραφο Ταυτοποίησης</div>
+                      <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, lineHeight:1.4 }}>Ανέβασε σαρωμένη ταυτότητα, διαβατήριο ή άλλο έγγραφο (PDF ή εικόνα).</div>
+                    </div>
+                    <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
+                      {docBusy?'Ανέβασμα...':'Επιλογή αρχείου'}
+                      <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'id'); e.currentTarget.value='';}}/>
+                    </label>
                   </div>
-                )}
-                <InvestmentCalc title="Αναλυτής Απόδοσης Εγγύησης" amount={form.deposit_amount?Math.max(0,parseFloat(form.deposit_amount)):null}/>
-                <div style={s.divider}/>
-                <Textarea label="Σημειώσεις" value={form.notes} onChange={v=>sf('notes',v)}/>
-              </>
-            )}
+                  {formDocs.filter(d=>d.tag==='id').length>0&&(
+                    <div style={{ marginTop:12, display:'flex', flexDirection:'column' as const, gap:6 }}>
+                      {formDocs.filter(d=>d.tag==='id').map(d=>(
+                        <div key={d.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, minWidth:0 }}>
+                          <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--positive)', flexShrink:0 }}/>
+                          <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{esc(d.file_name)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-            {formTab==='lease'&&(
-              <>
+                <div style={s.divider}/>
+                {/* Τύπος & διάρκεια μίσθωσης */}
                 <SectionTitle>Τύπος Μίσθωσης <span style={{ color:'var(--negative)' }}>*</span></SectionTitle>
                 <div style={{ display:'flex', gap:6, marginBottom:6, flexWrap:'wrap' as const }}>
                   {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
@@ -1933,7 +1997,9 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <DateField label="Λήξη Μίσθωσης" value={form.lease_end} onChange={v=>sf('lease_end',v)}/>
                   {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
                 </div>
+
                 <div style={s.divider}/>
+                {/* Ενοίκιο & πληρωμή */}
                 <SectionTitle>Ενοίκιο και Τρόπος Πληρωμής</SectionTitle>
                 <div style={{ ...s.g4, marginBottom:16 }}>
                   <NumberInput label="Μηνιαίο Ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>
@@ -1941,15 +2007,11 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                   <SelectField label="Συχνότητα Εξόφλησης" value={form.payment_frequency} onChange={v=>sf('payment_frequency',v)} options={[{value:'monthly',label:'Μηνιαία'},{value:'bimonthly',label:'Διμηνιαία'},{value:'quarterly',label:'Τριμηνιαία'}]}/>
                   <div><div style={{ ...labelStyle, marginBottom:8 }}>Ηλεκτρονική Πληρωμή</div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} label="Ενεργή" labelOff="Ανενεργή"/></div>
                 </div>
+
                 <div style={s.divider}/>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.prepay_option?16:0 }}>
-                  <SectionTitle>Προπληρωμή και Έκπτωση</SectionTitle>
-                  <Toggle on={form.prepay_option} onChange={v=>sf('prepay_option',v)} label="Ενεργή" labelOff="Ανενεργή"/>
-                </div>
-                {form.prepay_option&&<PrepayCalc monthlyRent={form.monthly_rent?Math.max(0,parseFloat(form.monthly_rent)):null}/>}
-                <div style={s.divider}/>
+                {/* Turn Key */}
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:form.all_inclusive?16:0 }}>
-                  <SectionTitle>Όλα Συμπεριλαμβανόμενα, Κοινόχρηστα Στον Ενοικιαστή</SectionTitle>
+                  <SectionTitle>Turn Key (All Inclusive)</SectionTitle>
                   <Toggle on={form.all_inclusive} onChange={v=>sf('all_inclusive',v)} label="Ναι" labelOff="Όχι"/>
                 </div>
                 {form.all_inclusive&&(
@@ -1970,49 +2032,104 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                     </div>
                   </>
                 )}
+
+                <div style={s.divider}/>
+                {/* Εγγύηση */}
+                <SectionTitle dot="var(--accent)">Εγγύηση</SectionTitle>
+                <div style={{ ...s.g3, marginBottom:16 }}>
+                  <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
+                  <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή..."/>
+                  <DateField label="Ημ. Καταβολής Εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>
+                </div>
+                <div style={{ ...s.g3, marginBottom:16 }}>
+                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Επενδύεται</div><Toggle on={form.deposit_invested} onChange={v=>sf('deposit_invested',v)} label="Ναι" labelOff="Όχι"/></div>
+                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη</div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} label="Ναι" labelOff="Όχι"/></div>
+                  {form.deposit_returned&&<DateField label="Ημερομηνία Επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
+                </div>
+                {form.deposit_invested&&(
+                  <div style={{ ...s.g3, marginBottom:16 }}>
+                    <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
+                    <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
+                    <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="για παράδειγμα VWCE..."/>
+                  </div>
+                )}
+                <InvestmentCalc title="Αναλυτής Απόδοσης Εγγύησης" amount={form.deposit_amount?Math.max(0,parseFloat(form.deposit_amount)):null}/>
+
+                <div style={s.divider}/>
+                <Textarea label="Σημειώσεις" value={form.notes} onChange={v=>sf('notes',v)}/>
+
+                <div style={s.divider}/>
+                {/* Έγγραφα — στο κάτω μέρος των Στοιχείων */}
+                <SectionTitle>Μισθωτήριο συμβόλαιο και λοιπά έγγραφα</SectionTitle>
+                <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20 }}>
+                  <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:14, lineHeight:1.6 }}>
+                    Πρόσθεσε σύνδεσμο κοινόχρηστου φακέλου (Google Drive, Dropbox) ή ανέβασε τα αρχεία (PDF ή εικόνα) απευθείας. Εδώ μπορούν να συνυπάρχουν και προηγούμενα μισθωτήρια με τον ίδιο μισθωτή.
+                  </div>
+                  <TextInput label="Εξωτερικός Σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
+                    <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
+                      {docBusy?'Ανέβασμα...':'Ανέβασμα αρχείου'}
+                      <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'lease'); e.currentTarget.value='';}}/>
+                    </label>
+                    <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>PDF ή εικόνα, αποθηκεύεται στον χώρο εγγράφων του ακινήτου</span>
+                  </div>
+                  {formDocs.filter(d=>d.tag==='lease').length>0&&(
+                    <div style={{ marginTop:14, display:'flex', flexDirection:'column' as const, gap:6 }}>
+                      {formDocs.filter(d=>d.tag==='lease').map(d=>(
+                        <div key={d.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, minWidth:0 }}>
+                          <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--positive)', flexShrink:0 }}/>
+                          <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{esc(d.file_name)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
             {formTab==='services'&&(
               <>
-                <SectionTitle>Streaming και Ψηφιακές Συνδρομές</SectionTitle>
-                <StreamingConfig value={form.streaming} onChange={v=>sf('streaming',v)}/>
-                <div style={s.divider}/>
-                <SectionTitle>Καθαρισμός</SectionTitle>
-                <CleaningConfig value={form.cleaning} onChange={v=>sf('cleaning',v)}/>
-                <div style={s.divider}/>
-                <SectionTitle>Ετήσιες Συντηρήσεις, Ποιος Επιβαρύνεται</SectionTitle>
-                {[{label:'Κλιματιστικό',byKey:'ac_service_by',freqKey:'ac_service_frequency'},{label:'Ηλιακός Θερμοσίφωνας',byKey:'solar_service_by',freqKey:'solar_service_frequency'},{label:'Αντλία Θερμότητας',byKey:'heat_pump_service_by',freqKey:'heat_pump_service_frequency'},{label:'Φωτοβολταϊκά',byKey:'solar_panels_service_by',freqKey:'solar_panels_service_frequency'},{label:'Απεντόμωση / Μυοκτονία',byKey:'pest_control_by',freqKey:'pest_control_frequency'}].map(({label,byKey,freqKey})=>(
-                  <div key={byKey} style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12, marginBottom:10, padding:14, background:'var(--bg-elevated)', borderRadius:T.radius.inner, border:'1px solid var(--border-subtle)' }}>
-                    <ServiceBySelect label={label} value={(form as any)[byKey] as ServiceBy} onChange={v=>sf(byKey,v)}/>
-                    <SelectField label="Συχνότητα" value={(form as any)[freqKey]} onChange={v=>sf(freqKey,v)} options={FREQ_OPTIONS} placeholder="Χωρίς"/>
-                  </div>
-                ))}
-                <Textarea label="Σημειώσεις Συντηρήσεων" value={form.annual_services_notes} onChange={v=>sf('annual_services_notes',v)}/>
-                <div style={s.divider}/>
-                <SectionTitle>Χώρος Στάθμευσης</SectionTitle>
-                <div style={{ ...s.g3, marginBottom:16 }}>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στην Τιμή</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} label="Ναι" labelOff="Όχι"/></div>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Νοικιάζεται Ξεχωριστά</div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} label="Ναι" labelOff="Όχι"/></div>
-                  {form.parking_extra&&<NumberInput label="Μηνιαία Τιμή Στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
+                <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:16 }}>
+                  Ενεργοποίησε μόνο τις υπηρεσίες που ισχύουν για αυτόν τον μισθωτή. Κάθε ενότητα ανοίγει με τις λεπτομέρειες: τι περιλαμβάνεται και ποιος επιβαρύνεται — είτε πρόκειται για Turn Key είτε για χωριστές χρεώσεις.
                 </div>
-                <div style={{ ...s.g3, marginBottom:16 }}>
-                  <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
-                  <div><div title="Ηλεκτρικό όχημα — υποδομή φόρτισης" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης EV</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
-                </div>
-                <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="για παράδειγμα Θέση Νο. 12, υπόγειο Β..."/>
-                <div style={s.divider}/>
-                <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="για παράδειγμα Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
-              </>
-            )}
 
-            {formTab==='docs'&&(
-              <>
-                <SectionTitle>Μισθωτήριο Συμβόλαιο</SectionTitle>
-                <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:16 }}>
-                  <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:14, lineHeight:1.6 }}>Αποθήκευσε το συμβόλαιο ως εξωτερικό σύνδεσμο (Google Drive, Dropbox κ.ά.) ή ανέβασε PDF από το ντοσιέ μετά την αποθήκευση.</div>
-                  <TextInput label="Εξωτερικός Σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
-                </div>
+                <SvcSection title="Ψηφιακές Συνδρομές" hint="Streaming και συνδρομές που παρέχεις ή χρεώνεις στον μισθωτή." open={svcUI.stream} onToggle={()=>setSvcUI(u=>({...u,stream:!u.stream}))}>
+                  <StreamingConfig value={form.streaming} onChange={v=>sf('streaming',v)}/>
+                </SvcSection>
+
+                <SvcSection title="Καθαρισμός" hint="Τακτικός καθαρισμός: συχνότητα, κόστος και χρέωση." open={svcUI.clean} onToggle={()=>setSvcUI(u=>({...u,clean:!u.clean}))}>
+                  <CleaningConfig value={form.cleaning} onChange={v=>sf('cleaning',v)}/>
+                </SvcSection>
+
+                <SvcSection title="Ετήσιες Συντηρήσεις" hint="Ποιος επιβαρύνεται τη συντήρηση κάθε εγκατάστασης και πόσο συχνά." open={svcUI.maint} onToggle={()=>setSvcUI(u=>({...u,maint:!u.maint}))}>
+                  {[{label:'Κλιματιστικό',byKey:'ac_service_by',freqKey:'ac_service_frequency'},{label:'Ηλιακός Θερμοσίφωνας',byKey:'solar_service_by',freqKey:'solar_service_frequency'},{label:'Αντλία Θερμότητας',byKey:'heat_pump_service_by',freqKey:'heat_pump_service_frequency'},{label:'Φωτοβολταϊκά',byKey:'solar_panels_service_by',freqKey:'solar_panels_service_frequency'},{label:'Απεντόμωση / Μυοκτονία',byKey:'pest_control_by',freqKey:'pest_control_frequency'}].map(({label,byKey,freqKey})=>(
+                    <div key={byKey} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,140px),1fr))', gap:12, alignItems:'end', padding:'10px 0', borderBottom:'1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, alignSelf:'center' }}>{label}</div>
+                      <SelectField label="Επιβαρύνεται" value={(form as any)[byKey]} onChange={v=>sf(byKey,v)} options={SERVICE_BY_OPTIONS}/>
+                      <SelectField label="Συχνότητα" value={(form as any)[freqKey]} onChange={v=>sf(freqKey,v)} options={FREQ_OPTIONS} placeholder="Χωρίς"/>
+                    </div>
+                  ))}
+                  <div style={{ marginTop:14 }}>
+                    <Textarea label="Σημειώσεις Συντηρήσεων" value={form.annual_services_notes} onChange={v=>sf('annual_services_notes',v)}/>
+                  </div>
+                </SvcSection>
+
+                <SvcSection title="Χώρος Στάθμευσης" hint="Αν περιλαμβάνεται, χρεώνεται ξεχωριστά ή διαθέτει υποδομή φόρτισης." open={svcUI.park} onToggle={()=>setSvcUI(u=>({...u,park:!u.park}))}>
+                  <div style={{ ...s.g3, marginBottom:16 }}>
+                    <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στην Τιμή</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} label="Ναι" labelOff="Όχι"/></div>
+                    <div><div style={{ ...labelStyle, marginBottom:8 }}>Νοικιάζεται Ξεχωριστά</div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} label="Ναι" labelOff="Όχι"/></div>
+                    {form.parking_extra&&<NumberInput label="Μηνιαία Τιμή Στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
+                  </div>
+                  <div style={{ ...s.g3, marginBottom:16 }}>
+                    <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
+                    <div><div title="Ηλεκτρικό όχημα — υποδομή φόρτισης" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης EV</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
+                  </div>
+                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="για παράδειγμα Θέση Νο. 12, υπόγειο Β..."/>
+                </SvcSection>
+
+                <SvcSection title="Επιπλέον Παροχές" hint="Αποθήκη, κήπος, κοινόχρηστες παροχές και ό,τι άλλο προσφέρεις." open={svcUI.extra} onToggle={()=>setSvcUI(u=>({...u,extra:!u.extra}))}>
+                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="για παράδειγμα Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
+                </SvcSection>
               </>
             )}
 
@@ -2021,7 +2138,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
                 {formTab!=='profile'&&<button style={s.btnGhost} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)-1][1] as typeof formTab)}>‹ Πίσω</button>}
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                {formTab!=='docs'&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)+1][1] as typeof formTab)}>Επόμενο ›</button>}
+                {formTab!=='services'&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)+1][1] as typeof formTab)}>Επόμενο ›</button>}
                 <button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση...':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
               </div>
             </div>

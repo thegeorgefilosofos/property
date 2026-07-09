@@ -262,7 +262,9 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   if (ex) {
     const parts = ex[1].split('|').map(s => s.trim()).filter(Boolean);
     const description = (parts.find(p => !/^[\d.,\s€]+$/.test(p)) || '').slice(0, 120);
-    const numRaw = parts.find(p => /\d/.test(p)) || '';
+    // Το ποσό είναι το ΚΑΘΑΡΑ αριθμητικό μέρος (π.χ. «120», «120€») — όχι μια
+    // περιγραφή που τυχαίνει να έχει ψηφία (π.χ. «ΔΕΗ Q3», «ενοίκιο Μαρτίου 2024»).
+    const numRaw = parts.find(p => /^[\d.,\s€]+$/.test(p)) || [...parts].reverse().find(p => /\d/.test(p)) || '';
     const amount = parseFloat(numRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
     if (description && amount > 0 && isFinite(amount)) expense = { type: 'expense', description, amount: Math.round(amount * 100) / 100 };
   }
@@ -296,7 +298,9 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   if (pd) {
     const parts = pd[1].split('|').map(s => s.trim()).filter(Boolean);
     const description = (parts.find(p => !/^[\d.,\s€]+$/.test(p)) || '').slice(0, 120);
-    const numRaw = parts.find(p => /\d/.test(p)) || '';
+    // Το ποσό είναι το ΚΑΘΑΡΑ αριθμητικό μέρος (π.χ. «120», «120€») — όχι μια
+    // περιγραφή που τυχαίνει να έχει ψηφία (π.χ. «ΔΕΗ Q3», «ενοίκιο Μαρτίου 2024»).
+    const numRaw = parts.find(p => /^[\d.,\s€]+$/.test(p)) || [...parts].reverse().find(p => /\d/.test(p)) || '';
     const amount = numRaw ? parseFloat(numRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.')) : NaN;
     if (description) paid = { type: 'paid', description, amount: isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : undefined };
   }
