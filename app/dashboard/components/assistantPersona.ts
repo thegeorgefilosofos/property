@@ -60,6 +60,7 @@ export const NAV_MAP: { id: string; label: string; what: string }[] = [
   { id: 'documents',  label: 'Αρχείο',      what: 'έγγραφα, συμβόλαια, φωτογραφίες' },
   { id: 'contacts',   label: 'Επαφές',      what: 'μάστορες, τεχνίτες, επαγγελματίες' },
   { id: 'checklist',  label: 'Εκκρεμότητες', what: 'υποχρεώσεις, tasks, προθεσμίες' },
+  { id: 'tax',        label: 'Φορολογική Ανάλυση', what: 'εκτίμηση φόρου εισοδήματος από ενοίκια, εκπιπτόμενες δαπάνες, κλίμακα 2026' },
   { id: 'settings',   label: 'Ρυθμίσεις',   what: 'στοιχεία ακινήτου, ασφάλεια, πάροχοι' },
 ];
 
