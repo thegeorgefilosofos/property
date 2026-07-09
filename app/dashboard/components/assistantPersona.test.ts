@@ -240,6 +240,15 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('knows checkin consent', /συγκατάθεση/.test(p));
   ok('knows integrations live vs soon', /ΕΝΕΡΓΑ ΤΩΡΑ/.test(p) && /ΕΡΧΟΝΤΑΙ/.test(p));
   ok('honest about channel manager/open banking', /channel manager/i.test(p) && /open banking/i.test(p));
+  ok('knows maintenance scheduling', /ΣΥΝΤΗΡΗΣΗ|προγραμματ/i.test(p) && /κλιματιστ/i.test(p));
+  ok('refers to Douleutaras when contact missing', /douleutaras/i.test(p));
+  ok('proactive with saved technicians', /ΕΠΑΦΕΣ ΤΟΥ ΧΡΗΣΤΗ|τεχνικ/i.test(p));
+}
+// contactsPro context section appears only when provided (marker unique to the injection)
+{
+  const marker = 'τεχνικοί, μάστορες, πάροχοι, συνεργάτες';
+  ok('no contactsPro by default', !buildSystemPrompt(id(), 'x').includes(marker));
+  ok('contactsPro when provided', buildSystemPrompt(id(), 'x', undefined, { contactsPro: '• Νίκος · Υδραυλικός · τηλ 6900000000' }).includes(marker));
 }
 // compare context εμφανίζεται μόνο όταν δοθεί
 ok('no compare by default', !buildSystemPrompt(id(), 'x').includes('ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ'));

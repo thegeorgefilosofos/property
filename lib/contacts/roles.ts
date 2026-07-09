@@ -37,3 +37,18 @@ export function inferRole(text: string): string {
   for (const r of RULES) if (r.re.test(t)) return r.role;
   return 'other';
 }
+
+// Ελληνικές ετικέτες ρόλων (value → label) — αντιστοιχούν στην καρτέλα Επαφές.
+// Χρήσιμο για να «διαβάζει» ο βοηθός τις επαφές με ανθρώπινο τρόπο.
+export const ROLE_LABELS: Record<string, string> = {
+  manager: 'Διαχειριστής Πολυκατοικίας', concierge: 'Θυρωρός', plumber: 'Υδραυλικός',
+  electrician: 'Ηλεκτρολόγος', hvac: 'Ψυκτικός / Κλιματισμός', carpenter: 'Μαραγκός',
+  painter: 'Ελαιοχρωματιστής', tiles: 'Πλακάς / Μαρμαράς', aluminum: 'Αλουμινάς',
+  locksmith: 'Κλειδαράς', welder: 'Σιδεράς', elevator: 'Τεχνικός Ανελκυστήρα',
+  solar: 'Ηλιακά / Φωτοβολταϊκά', insulation: 'Μονώσεις', roofing: 'Στέγη',
+  alarm: 'Συναγερμός / CCTV', network: 'Δίκτυα / Τηλεφωνία', general_tech: 'Γενικός Τεχνίτης',
+  gardener: 'Κηπουρός', pool: 'Συντηρητής Πισίνας', pest: 'Απεντόμωση / Μυοκτονία',
+  cleaning: 'Καθαρισμός', cleaning_ext: 'Καθαρισμός Εξωτερικών Χώρων', security: 'Ασφάλεια / Φύλαξη',
+  tenant: 'Ενοικιαστής', prev_tenant: 'Πρώην Ενοικιαστής', neighbor: 'Γείτονας', other: 'Άλλο',
+};
+export const roleLabel = (v: string): string => ROLE_LABELS[v] || v;
