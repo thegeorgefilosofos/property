@@ -206,7 +206,7 @@ export interface SavePlan {
   tenant?:   Record<string, unknown>;        // → tenants (upsert ανά property)
   property?: Record<string, unknown>;        // → user_properties (ΜΟΝΟ ασφαλείς στήλες)
   settings?: Record<string, unknown>;        // → property_settings (π.χ. ασφάλεια — καρτέλα Ρυθμίσεις)
-  archive?:  { category: string; note?: string; date?: string }; // → property_documents (το αρχείο πρωτότυπο)
+  archive?:  { category: string; note?: string; date?: string; supplier?: string }; // → property_documents (το αρχείο πρωτότυπο)
   reconcile?: boolean;                       // payment: προσπάθησε συμφωνία με εκκρεμή λογαριασμό
   commonMonthAmount?: number;                // κοινόχρηστα: ποσό μήνα για ιστορικό
   commonMillesimi?:   number;                // κοινόχρηστα: χιλιοστά
@@ -239,7 +239,8 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   const archiveDate = iso(doc.issue_date) || iso(doc.due_date) || iso(doc.purchase_date)
     || iso(doc.lease_start) || iso(doc.expiry_date) || '';
   // Κάθε σαρωμένο έγγραφο αρχειοθετείται πάντα (το πρωτότυπο) στο σωστό tab.
-  const archive = { category: DOC_ARCHIVE_CATEGORY[t], date: archiveDate || undefined };
+  // Πάροχος/αντισυμβαλλόμενος → ώστε το Αρχείο να ομαδοποιεί το σαρωμένο έγγραφο «ανά πάροχο».
+  const archive = { category: DOC_ARCHIVE_CATEGORY[t], date: archiveDate || undefined, supplier: provider || undefined };
 
   if (t === 'bill' || t === 'payment') {
     const cat = doc.category && EXPENSE_MAP[doc.category] ? doc.category : 'other';

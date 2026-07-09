@@ -246,7 +246,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   };
 
   // Ανέβασμα του πρωτότυπου αρχείου στο Αρχείο (property_documents), πάντα.
-  const archiveFile = async (a: { category: string; note?: string; date?: string }, title?: string) => {
+  const archiveFile = async (a: { category: string; note?: string; date?: string; supplier?: string }, title?: string) => {
     if (!file) return false;
     const safe = file.name.replace(/[^\w.\-]+/g, '_');
     const path = `${userId}/${propertyId}/document/${Date.now()}_${safe}`;
@@ -258,7 +258,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
       doc_date: a.date || null, file_path: path, file_name: file.name,
       mime: file.type || null, size_bytes: file.size,
     };
-    const { error } = await supabase.from('property_documents').insert(base);
+    // Ο πάροχος βοηθά το Αρχείο να ομαδοποιήσει «ανά πάροχο». Σε παλιότερη βάση
+    // χωρίς τη στήλη supplier, ξαναδοκιμάζουμε χωρίς αυτήν (όπως και η χειροκίνητη ροή).
+    let { error } = await supabase.from('property_documents').insert({ ...base, supplier: a.supplier || null });
+    if (error && /supplier/i.test(error.message)) ({ error } = await supabase.from('property_documents').insert(base));
     return !error;
   };
 
