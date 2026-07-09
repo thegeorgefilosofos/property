@@ -23,7 +23,7 @@ import {
   loadMemories, addMemory, removeMemory, clearMemories,
 } from './assistantPersona';
 import { classifyExpense } from '@/lib/expenses/classify';
-import { inferRole } from '@/lib/contacts/roles';
+import { inferRole, roleLabel } from '@/lib/contacts/roles';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
@@ -58,6 +58,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [marketStr, setMarketStr] = useState('');
   const [clientsStr, setClientsStr] = useState('');
   const [pricingStr, setPricingStr] = useState('');
+  const [techStr, setTechStr] = useState('');   // επαφές τεχνικών/παρόχων (καρτέλα Επαφές)
   const [memories, setMemories] = useState<Memory[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
@@ -89,7 +90,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ξεκίνα καθαρά όταν αλλάζει ακίνητο. Διαβάζουμε τη ρύθμιση από το storage
   // (πηγή αλήθειας) για να μη «χτυπάει» με το αρχικό state.
   useEffect(() => {
-    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr('');
+    setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr('');
     const mem = loadIdentity()?.memory !== false;
     setMsgs(mem ? loadHistory(propertyId).map(m => ({ role: m.role, text: m.text })) : []);
   }, [propertyId]);
@@ -120,7 +121,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const now = new Date();
     const year = now.getFullYear();
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }] = await Promise.all([
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }] = await Promise.all([
       supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -131,6 +132,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('loans').select('bank,loan_type,amount,rate,rate_type,years,start_date,status').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
+      supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -262,6 +264,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const extra = clientRoster.length > 50 ? `\n(και ${clientRoster.length - 50} ακόμη, δες την καρτέλα Πελατολόγιο)` : '';
       setClientsStr(`Σύνολο πελατών: ${clientRoster.length}\n${cLines.join('\n')}${extra}`);
     } else setClientsStr('');
+
+    // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ο βοηθός ΠΟΙΟΝ
+    // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
+    const techRoster = (contactRows || []).filter((c: any) => c.full_name);
+    if (techRoster.length) {
+      const tLines = techRoster.slice(0, 60).map((c: any) => {
+        const bits = [c.full_name, roleLabel(c.role || 'other')];
+        if (c.phone) bits.push(`τηλ ${c.phone}`);
+        return `• ${bits.filter(Boolean).join(' · ')}`;
+      });
+      setTechStr(`Σύνολο επαφών: ${techRoster.length}\n${tLines.join('\n')}`);
+    } else setTechStr('');
   }, [propertyId, userId, propContext, supabase]);
 
   useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
@@ -497,6 +511,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         insights: insightsStr || undefined,
         market: marketStr || undefined,
         clients: clientsStr || undefined,
+        contactsPro: techStr || undefined,
         pricing: pricingStr || undefined,
         memories: identity.memory ? memories.map(m => m.text) : undefined,
         today: new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
