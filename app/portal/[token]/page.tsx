@@ -17,6 +17,7 @@ interface PortalData {
   tenant: { name: string | null; rent: number | null; lease_start: string | null; lease_end: string | null; deposit: number | null; rent_iban: string | null };
   due: DueItem[];
   total_due: number;
+  payment_link: string | null;
 }
 
 const eur = (n: number | null) => (n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`);
@@ -30,7 +31,11 @@ export default function TenantPortal() {
   const supabase = createClient();
 
   const [data, setData] = useState<PortalData | null>(null);
-  const [state, setState] = useState<'loading' | 'ok' | 'notfound'>('loading');
+  const [state, setState] = useState<'loading' | 'ok' | 'notfound' | 'locked'>('loading');
+
+  const [pin, setPin] = useState('');
+  const [pinErr, setPinErr] = useState('');
+  const [pinChecking, setPinChecking] = useState(false);
 
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -43,20 +48,47 @@ export default function TenantPortal() {
   const [declareErr, setDeclareErr] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const MAX_PHOTOS = 5;
+  const MAX_BYTES = 8 * 1024 * 1024;
+  const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
+  const [photoNote, setPhotoNote] = useState('');
+
+  // Εφαρμόζει τα δεδομένα με αμυντικά defaults για τυχόν ελλείποντα πεδία.
+  const applyData = (raw: unknown) => {
+    const r = (raw ?? {}) as Partial<PortalData>;
+    setData({
+      ...(r as PortalData),
+      property: r.property ?? { name: '', address: null, type: null },
+      tenant: r.tenant ?? { name: null, rent: null, lease_start: null, lease_end: null, deposit: null, rent_iban: null },
+      due: Array.isArray(r.due) ? r.due : [],
+      total_due: typeof r.total_due === 'number' ? r.total_due : 0,
+      payment_link: typeof r.payment_link === 'string' ? r.payment_link : null,
+    });
+  };
+
   useEffect(() => {
     (async () => {
+      const { data: meta, error: metaErr } = await supabase.rpc('portal_meta', { p_token: token });
+      if (metaErr || !meta || !(meta as { found?: boolean }).found) { setState('notfound'); return; }
+      if ((meta as { pin_required?: boolean }).pin_required) { setState('locked'); return; }
       const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token });
-      if (error || !d) { setState('notfound'); return; }
-      const raw = d as Partial<PortalData>;
-      setData({
-        ...(raw as PortalData),
-        due: Array.isArray(raw.due) ? raw.due : [],
-        total_due: typeof raw.total_due === 'number' ? raw.total_due : 0,
-      });
+      // Αμυντικά: null ή { locked } χωρίς PIN σημαίνει μη έγκυρη κατάσταση.
+      if (error || !d || (d as { locked?: boolean }).locked) { setState('notfound'); return; }
+      applyData(d);
       setState('ok');
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const submitPin = async () => {
+    if (pinChecking || !pin.trim()) return;
+    setPinErr(''); setPinChecking(true);
+    const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token, p_pin: pin });
+    setPinChecking(false);
+    if (error || !d || (d as { locked?: boolean }).locked) { setPinErr('Λάθος κωδικός'); return; }
+    applyData(d);
+    setState('ok');
+  };
 
   const declarePayment = async (id: string) => {
     setDeclareErr(''); setDeclareBusyId(id);
@@ -75,13 +107,52 @@ export default function TenantPortal() {
     } catch { /* αγνόησε, ο χρήστης μπορεί να αντιγράψει χειροκίνητα */ }
   };
 
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    let note = '';
+    setPhotos(prev => {
+      const next = [...prev];
+      for (const f of list) {
+        if (next.length >= MAX_PHOTOS) { note = `Μπορείς να προσθέσεις έως ${MAX_PHOTOS} φωτογραφίες.`; break; }
+        if (!f.type.startsWith('image/')) { note = 'Επιτρέπονται μόνο εικόνες.'; continue; }
+        if (f.size > MAX_BYTES) { note = 'Κάποιες εικόνες ξεπερνούν τα 8 MB και παραλείφθηκαν.'; continue; }
+        next.push({ file: f, url: URL.createObjectURL(f) });
+      }
+      return next;
+    });
+    setPhotoNote(note);
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((_, i) => i !== index);
+    });
+    setPhotoNote('');
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(''); setSending(true);
+    // Ανέβασμα φωτογραφιών, αποτυχία δεν μπλοκάρει την αποστολή του αιτήματος.
+    const urls: string[] = [];
+    for (let i = 0; i < photos.length; i++) {
+      const f = photos[i].file;
+      const safeName = f.name.replace(/[^\w.\-]+/g, '_');
+      const path = `${token}/${Date.now()}_${i}_${safeName}`;
+      const { error: upErr } = await supabase.storage.from('maintenance-photos').upload(path, f, { contentType: f.type });
+      if (upErr) continue;
+      const publicUrl = supabase.storage.from('maintenance-photos').getPublicUrl(path).data.publicUrl;
+      if (publicUrl) urls.push(publicUrl);
+    }
     const { data: ok, error } = await supabase.rpc('submit_maintenance_request', {
-      p_token: token, p_title: title.trim(), p_description: desc.trim(), p_contact: contact.trim(),
+      p_token: token, p_title: title.trim(), p_description: desc.trim(), p_contact: contact.trim(), p_photos: urls,
     });
     setSending(false);
     if (error || !ok) { setErr('Δεν ήταν δυνατή η αποστολή. Δοκίμασε ξανά.'); return; }
+    photos.forEach(p => URL.revokeObjectURL(p.url));
+    setPhotos([]); setPhotoNote('');
     setSent(true); setTitle(''); setDesc(''); setContact('');
   };
 
@@ -112,6 +183,35 @@ export default function TenantPortal() {
           <div style={{ ...card, textAlign: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>Ζήτησε από τον ιδιοκτήτη έναν ενημερωμένο σύνδεσμο πύλης.</div>
+          </div>
+        )}
+
+        {state === 'locked' && (
+          <div style={{ ...card, textAlign: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Απαιτείται κωδικός</div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 18 }}>Ζήτησε τον κωδικό από τον ιδιοκτήτη.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 280, margin: '0 auto' }}>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={12}
+                autoFocus
+                value={pin}
+                onChange={e => { setPin(e.target.value); if (pinErr) setPinErr(''); }}
+                onKeyDown={e => { if (e.key === 'Enter') submitPin(); }}
+                placeholder="Κωδικός"
+                style={{ ...field, textAlign: 'center', letterSpacing: '0.3em' }}
+              />
+              {pinErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{pinErr}</div>}
+              <button
+                type="button"
+                onClick={submitPin}
+                disabled={pinChecking || !pin.trim()}
+                style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+              >
+                {pinChecking ? 'Έλεγχος…' : 'Είσοδος'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -161,22 +261,47 @@ export default function TenantPortal() {
 
                       {declareErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)', marginTop: 12 }}>{declareErr}</div>}
 
-                      {data.tenant.rent_iban && (
-                        <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 16, paddingTop: 16 }}>
-                          <div style={label}>Τρόπος πληρωμής</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Πλήρωσε με τραπεζικό έμβασμα στον παρακάτω IBAN και έπειτα δήλωσε την πληρωμή.</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace", wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyIban(data.tenant.rent_iban as string)}
-                              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                            >
-                              {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
-                            </button>
+                      {(() => {
+                        const link = data.payment_link;
+                        const hasLink = typeof link === 'string' && link.startsWith('https://');
+                        const hasIban = Boolean(data.tenant.rent_iban);
+                        if (!hasLink && !hasIban) return null;
+                        return (
+                          <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 16, paddingTop: 16 }}>
+                            <div style={label}>Τρόπος πληρωμής</div>
+
+                            {hasLink && (
+                              <div style={{ marginBottom: hasIban ? 18 : 0 }}>
+                                <a
+                                  href={link as string}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                                >
+                                  Πληρωμή τώρα
+                                </a>
+                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>Ασφαλής πληρωμή μέσω του παρόχου του ιδιοκτήτη.</div>
+                              </div>
+                            )}
+
+                            {hasIban && (
+                              <>
+                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Πλήρωσε με τραπεζικό έμβασμα στον παρακάτω IBAN και έπειτα δήλωσε την πληρωμή.</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace", wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyIban(data.tenant.rent_iban as string)}
+                                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                                  >
+                                    {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
+                                  </button>
+                                </div>
+                              </>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </>
                   )}
                 </div>
@@ -205,6 +330,34 @@ export default function TenantPortal() {
                   <div><label style={label}>Θέμα</label><input required value={title} onChange={e => setTitle(e.target.value)} placeholder="π.χ. Διαρροή στο μπάνιο" style={field} /></div>
                   <div><label style={label}>Περιγραφή</label><textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Περίγραψε το πρόβλημα…" rows={4} style={{ ...field, resize: 'vertical' }} /></div>
                   <div><label style={label}>Τηλέφωνο επικοινωνίας (προαιρετικό)</label><input value={contact} onChange={e => setContact(e.target.value)} placeholder="69XXXXXXXX" style={field} /></div>
+
+                  <div>
+                    <label style={label}>Φωτογραφίες (προαιρετικό)</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '9px 14px', cursor: photos.length >= MAX_PHOTOS ? 'not-allowed' : 'pointer', opacity: photos.length >= MAX_PHOTOS ? 0.6 : 1, fontFamily: 'inherit' }}>
+                      Προσθήκη φωτογραφιών
+                      <input type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS} onChange={onPickFiles} style={{ display: 'none' }} />
+                    </label>
+                    {photos.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+                        {photos.map((p, i) => (
+                          <div key={p.url} style={{ position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.url} alt="Προεπισκόπηση φωτογραφίας" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <button
+                              type="button"
+                              aria-label="Αφαίρεση φωτογραφίας"
+                              onClick={() => removePhoto(i)}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 100, border: 'none', background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {photoNote && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.5 }}>{photoNote}</div>}
+                  </div>
+
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
                   <button type="submit" disabled={sending || !title.trim()} style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή αιτήματος'}

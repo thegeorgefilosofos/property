@@ -12,6 +12,9 @@ interface NotifPrefs {
   reminder_today: boolean
   reminder_overdue: boolean
   reminder_email: string
+  dunning_enabled: boolean
+  dunning_every_days: number
+  dunning_max: number
 }
 
 const DEFAULT: NotifPrefs = {
@@ -22,6 +25,9 @@ const DEFAULT: NotifPrefs = {
   reminder_today: true,
   reminder_overdue: true,
   reminder_email: '',
+  dunning_enabled: true,
+  dunning_every_days: 7,
+  dunning_max: 3,
 }
 
 interface Suggestion {
@@ -69,10 +75,9 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
   async function testEmail() {
     if (!prefs.reminder_email) { setTestMsg('Βάλε πρώτα email'); return }
-    setTesting(true); setTestMsg('')
-    await new Promise(r => setTimeout(r, 1500))
-    setTestMsg('✓ Test email στάλθηκε!')
-    setTesting(false)
+    // Έντιμο: δεν στέλνουμε δοκιμαστικό email εδώ — απλώς επιβεβαιώνουμε τη μορφή.
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefs.reminder_email)
+    setTestMsg(valid ? 'Το email είναι έγκυρο. Αποθήκευσε για να λαμβάνεις ειδοποιήσεις.' : 'Μη έγκυρη διεύθυνση email')
   }
 
   async function generateSuggestions() {
@@ -247,7 +252,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
         {suggestions.length > 0 && visibleSuggestions.length === 0 && (
           <p style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans, textAlign: 'center', padding: '8px 0' }}>
-            ✓ Όλες οι προτάσεις διεκπεραιώθηκαν!
+            Όλες οι προτάσεις διεκπεραιώθηκαν.
           </p>
         )}
 
@@ -287,7 +292,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
               <Send size={11}/>{testing ? 'Αποστολή…' : 'Δοκιμή'}
             </button>
           </div>
-          {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: testMsg.startsWith('✓') ? 'var(--positive)' : 'var(--negative)' }}>{testMsg}</p>}
+          {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: /έγκυρο|έγκυρη διεύθυνση/.test(testMsg) && !testMsg.startsWith('Μη') ? 'var(--positive)' : 'var(--negative)' }}>{testMsg}</p>}
         </div>
 
         <Toggle val={prefs.email_enabled} onChange={v => setPrefs(p => ({ ...p, email_enabled: v }))}
@@ -305,6 +310,31 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
             <Toggle val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Alert για ληξιπρόθεσμες υποχρεώσεις"/>
           </div>
         )}
+
+        {/* ── Ληξιπρόθεσμο ενοίκιο (dunning) ── */}
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+            Ληξιπρόθεσμο ενοίκιο
+          </p>
+          <Toggle val={prefs.dunning_enabled} onChange={v => setPrefs(p => ({ ...p, dunning_enabled: v }))}
+            label="Αυτόματες οχλήσεις για ληξιπρόθεσμο ενοίκιο" desc="Email όταν μια δόση αργεί, με κλιμάκωση τόνου"/>
+          {prefs.dunning_enabled && (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={lbl}>Ανά πόσες μέρες</label>
+                <input type="number" min={1} max={30} style={inp} value={prefs.dunning_every_days}
+                  onChange={e => setPrefs(p => ({ ...p, dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) }))}/>
+                <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ελάχιστο διάστημα μεταξύ οχλήσεων για την ίδια δόση.</p>
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={lbl}>Μέγιστες οχλήσεις</label>
+                <input type="number" min={1} max={12} style={inp} value={prefs.dunning_max}
+                  onChange={e => setPrefs(p => ({ ...p, dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) }))}/>
+                <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ανώτατος αριθμός email ανά δόση.</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <button onClick={save} disabled={saving} style={{
           width: '100%', marginTop: 16,

@@ -66,7 +66,7 @@ interface TenantDamage { id:string; tenant_id:string; property_id:string; user_i
 // Συγκρίσιμα αγοράς (rent_comparables) — μόνο τα πεδία που χρειάζεται η πρόταση.
 interface RentComp { id:string; property_id:string; title:string; area:string|null; sqm:number|null; rent:number|null; rent_per_sqm:number|null; listing_type:string|null; source:string|null; url:string|null; }
 // Αιτήματα βλάβης (maintenance_requests) — από την πύλη ενοικιαστή προς τον ιδιοκτήτη.
-interface MaintenanceReq { id:string; property_id:string; user_id:string|null; tenant_id:string|null; title:string; description:string|null; contact:string|null; category:string|null; status:string|null; resolved_at:string|null; created_at:string; }
+interface MaintenanceReq { id:string; property_id:string; user_id:string|null; tenant_id:string|null; title:string; description:string|null; contact:string|null; category:string|null; status:string|null; resolved_at:string|null; photos:string[]|null; assignee_name:string|null; assignee_contact:string|null; created_at:string; }
 // Τρόποι καταβολής εγγύησης (ελληνικά, σταθερή σειρά).
 const DEPOSIT_METHODS = ['Μετρητά','Τραπεζική κατάθεση','Ηλεκτρονική πληρωμή'] as const;
 // Παράγωγη κατάσταση: «προηγούμενος» αν σημειώθηκε αποχώρηση ή status='past'.
@@ -1663,6 +1663,8 @@ const MAINT_STATUS:Record<string,{label:string;c:string;bg:string}>={
 function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, notify }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; onRefresh:()=>void; notify:(m:string)=>void }) {
   const supabase=createClient();
   const [busy,setBusy]=useState(false);
+  const [assignFor,setAssignFor]=useState<string|null>(null);   // ποιο αίτημα αναθέτει σε συνεργείο
+  const [af,setAf]=useState({name:'',contact:''});
   const list=[...requests].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
@@ -1676,6 +1678,18 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
   };
   const del=async(m:MaintenanceReq)=>{ if(!confirm('Διαγραφή αιτήματος;')) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
   const gdt=(d:string|null)=>d?new Date(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+  const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
+  const saveAssign=async(m:MaintenanceReq)=>{
+    setBusy(true);
+    await supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id);
+    setBusy(false); setAssignFor(null); onRefresh(); notify('Η ανάθεση αποθηκεύτηκε');
+  };
+  // Μήνυμα προς συνεργείο (τίτλος, περιγραφή, ακίνητο, σύνδεσμοι φωτογραφιών).
+  const contractorText=(m:MaintenanceReq)=>[
+    `Εργασία: ${m.title}`, m.description?`Περιγραφή: ${m.description}`:'',
+    tenant.full_name?`Ενοικιαστής: ${tenant.full_name}`:'', m.contact?`Επικοινωνία ενοικιαστή: ${m.contact}`:'',
+    (Array.isArray(m.photos)&&m.photos.length)?`Φωτογραφίες: ${m.photos.join(' ')}`:'',
+  ].filter(Boolean).join('\n');
 
   return (
     <div>
@@ -1702,10 +1716,39 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
                     <span style={{ ...s.badge(st.c,st.bg), border:`1px solid ${st.c}33`, fontFamily:T.font.sans, whiteSpace:'nowrap' as const }}>{st.label}</span>
                   </div>
                   {m.description&&<div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:12, whiteSpace:'pre-wrap' as const }}>{m.description}</div>}
+                  {Array.isArray(m.photos)&&m.photos.length>0&&(
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const, marginBottom:12 }}>
+                      {m.photos.map((ph,pi)=>(
+                        <a key={pi} href={ph} target="_blank" rel="noopener noreferrer" style={{ display:'block', width:64, height:64, borderRadius:8, overflow:'hidden', border:'1px solid var(--border-subtle)' }}>
+                          <img src={ph} alt="Φωτογραφία βλάβης" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {(m.assignee_name||m.assignee_contact)&&assignFor!==m.id&&(
+                    <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:10 }}>
+                      Ανατέθηκε σε: <strong style={{ color:'var(--text-primary)' }}>{m.assignee_name||'—'}</strong>{m.assignee_contact?` · ${m.assignee_contact}`:''}
+                    </div>
+                  )}
+                  {assignFor===m.id&&(
+                    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:14, marginBottom:10 }}>
+                      <div style={{ ...s.g2, marginBottom:10 }}>
+                        <TextInput label="Συνεργείο / Τεχνικός" value={af.name} onChange={v=>setAf(a=>({...a,name:v}))} placeholder="π.χ. Υδραυλικός Παπαδόπουλος"/>
+                        <TextInput label="Τηλέφωνο / Email" value={af.contact} onChange={v=>setAf(a=>({...a,contact:v}))} placeholder="69XXXXXXXX"/>
+                      </div>
+                      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+                        <button style={s.btnGhost} onClick={()=>setAssignFor(null)}>Ακύρωση</button>
+                        <button style={s.btnGold} disabled={busy} onClick={()=>saveAssign(m)}>Αποθήκευση</button>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
                     {m.status!=='new'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'new')}>Νέο</button>}
                     {m.status!=='in_progress'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'in_progress')}>Σε εξέλιξη</button>}
                     {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>setStatus(m,'done')}>Ολοκληρώθηκε</button>}
+                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>openAssign(m)}>{(m.assignee_name||m.assignee_contact)?'Ανάθεση':'Ανάθεση σε συνεργείο'}</button>
+                    {m.assignee_contact&&normalizePhone(m.assignee_contact).length>=10&&<a href={whatsappLink(msgDigits(m.assignee_contact),contractorText(m))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp συνεργείου</a>}
+                    {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Email συνεργείου</a>}
                     <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>toDamage(m)}>Καταγραφή ως φθορά</button>
                     <button style={s.btnDng} disabled={busy} onClick={()=>del(m)}>Διαγραφή</button>
                   </div>
