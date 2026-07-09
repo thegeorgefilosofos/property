@@ -12,11 +12,6 @@ import BillsCommon       from './BillsCommon';
 import BillsProviders    from './BillsProviders';
 import BillsInsurance    from './BillsInsurance';
 import BillsServices     from './BillsServices';
-import BillsNotifications from './BillsNotification';
-import BillsBudget       from './BillsBudget';
-import BillsBankImport   from './BillsBankImport';
-import BillsAIScan       from './BillsAIScan';
-import BillsMultiProperty from './BillsMultiProperty';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -27,8 +22,7 @@ interface Props {
 }
 
 type TabId =
-  | 'dashboard' | 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services'
-  | 'notifications' | 'budget' | 'bank_import' | 'ai_scan' | 'multi_property';
+  | 'dashboard' | 'electricity' | 'gas' | 'common' | 'providers' | 'insurance' | 'services';
 
 interface TabDef {
   id:    TabId;
@@ -83,15 +77,6 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'services',      label: 'Υπηρεσίες',            icon: 'wrench',    desc: 'ΕΝΦΙΑ, Δημοτικά Τέλη, καθαρισμός, κηπουρός, πισίνα' },
     ],
   },
-  {
-    label: 'Εργαλεία',
-    tabs: [
-      { id: 'notifications', label: 'Ειδοποιήσεις',        icon: 'bell',      desc: 'Έξυπνες ειδοποιήσεις βάσει δεδομένων: ΕΝΦΙΑ, λήξεις, προϋπολογισμός' },
-      { id: 'bank_import',   label: 'Εισαγωγή',             icon: 'bank',      desc: 'Αναγνώριση ΔΕΗ, ΕΥΔΑΠ, COSMOTE, ΑΑΔΕ από τραπεζικό αρχείο' },
-      { id: 'ai_scan',       label: 'Σάρωση Λογαριασμού',  icon: 'camera',    desc: 'Φωτογράφισε λογαριασμό, αυτόματη εξαγωγή δεδομένων με AI' },
-      { id: 'multi_property',label: 'Σύγκριση Ακινήτων',   icon: 'buildings', desc: 'Συγκριτικό κόστος πολλαπλών ακινήτων' },
-    ],
-  },
 ];
 
 const ALL_TABS: TabDef[] = TAB_GROUPS.flatMap(g => g.tabs);
@@ -105,7 +90,6 @@ export default function TabBills({
 
   const [activeTab,  setActiveTab]  = useState<TabId>('dashboard');
   const [strip,      setStrip]      = useState<StripData>({ totalMonthly: 0, overdueCount: 0, tenantName: '', notifCount: 0, lastUpdate: 0 });
-  const [liveNotifCount, setLiveNotifCount] = useState(0);
   const [realtimeOk, setRealtimeOk] = useState(false);
 
   const loadStrip = useCallback(async () => {
@@ -180,12 +164,6 @@ export default function TabBills({
               {strip.overdueCount} ληξιπρόθεσμα
             </button>
           )}
-          {liveNotifCount > 0 && (
-            <button onClick={() => setActiveTab('notifications')}
-              style={{ padding: '4px 12px', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--warning)', cursor: 'pointer', fontFamily: T.font.sans }}>
-              {liveNotifCount} {liveNotifCount === 1 ? 'ειδοποίηση' : 'ειδοποιήσεις'}
-            </button>
-          )}
         </div>
       </div>
 
@@ -199,7 +177,6 @@ export default function TabBills({
             <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               {group.tabs.map((tab: TabDef) => {
                 const isActive = activeTab === tab.id;
-                const hasBadge = tab.id === 'notifications' && liveNotifCount > 0 && !isActive;
                 return (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: T.radius.inner, border: 'none', cursor: 'pointer', position: 'relative', fontSize: 11, fontWeight: isActive ? 700 : 500, fontFamily: T.font.sans, whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)' }}
@@ -207,7 +184,6 @@ export default function TabBills({
                     onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
                     <TabIcon name={tab.icon} size={12}/>
                     {tab.label}
-                    {hasBadge && <span style={{ position: 'absolute', top: 3, right: 3, width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', border: '1.5px solid var(--bg-surface)' }}/>}
                   </button>
                 );
               })}
@@ -224,11 +200,6 @@ export default function TabBills({
       {activeTab === 'providers'      && <BillsProviders    propertyId={propertyId} userId={userId}/>}
       {activeTab === 'insurance'      && <BillsInsurance    propertyId={propertyId} userId={userId}/>}
       {activeTab === 'services'       && <BillsServices     propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'notifications'  && <BillsNotifications propertyId={propertyId} userId={userId} onNavigateTab={navigateTo} onCountChange={setLiveNotifCount}/>}
-      {activeTab === 'budget'         && <BillsBudget       propertyId={propertyId} userId={userId}/>}
-      {activeTab === 'bank_import'    && <BillsBankImport   propertyId={propertyId} userId={userId} onImported={() => setActiveTab('dashboard')}/>}
-      {activeTab === 'ai_scan'        && <BillsAIScan       propertyId={propertyId} userId={userId} onSaved={() => setActiveTab('dashboard')}/>}
-      {activeTab === 'multi_property' && <BillsMultiProperty userId={userId} currentPropertyId={propertyId} onNavigate={(_id: string) => {}}/>}
     </div>
   );
 }

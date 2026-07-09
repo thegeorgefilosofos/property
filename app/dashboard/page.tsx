@@ -90,7 +90,7 @@ const NAV_ITEMS = [
   { id:'finances',   label:'Δαπάνες' },
   { id:'loan',       label:'Δάνειο' },
   { id:'tenant',     label:'Ενοικιαστής' },
-  { id:'clients',    label:'Πελατολόγιο' },
+  { id:'clients',    label:'Πελάτης' },
   { id:'pricing',    label:'Τιμολόγηση' },
   { id:'inventory',  label:'Έπιπλα / Εξοπλισμός' },
   { id:'documents',  label:'Αρχείο' },
@@ -769,7 +769,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
         {hostStays.length > 0 && (
           <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:14,paddingTop:14,borderTop:'1px solid var(--border-subtle)',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από το Πελατολόγιο" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
+              <span title="Πραγματικά έσοδα από διαμονές επισκεπτών, από την καρτέλα Πελάτης" style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:'var(--text-secondary)'}}>Έσοδα φιλοξενίας {year}</span>
               <span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:13,fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(Math.round(hostingYTD))}</span>
             </div>
             {hostingNights > 0 && (
