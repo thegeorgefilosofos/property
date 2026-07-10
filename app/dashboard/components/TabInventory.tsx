@@ -1620,7 +1620,9 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     if(!form.task.trim()){alert('Η εργασία είναι υποχρεωτική.');return}
     setSaving(true)
     const base=form.last_done||today(); const nextDue=addMonths(base,form.interval_months); const est=form.est_cost||0
-    const {data:sched}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
+    const {data:sched,error:schedErr}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
+    // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
+    if(schedErr){alert('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
     // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
     if(form.last_done&&est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
     // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
