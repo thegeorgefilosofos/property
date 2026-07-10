@@ -1145,7 +1145,7 @@ export default function Dashboard() {
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
-              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)}/>}
+              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}

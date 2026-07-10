@@ -53,6 +53,22 @@ interface TabInventoryProps { propertyId: string; userId: string; profileType?: 
 const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
 const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
 const ROOM_PRESETS = ['Σαλόνι','Κουζίνα','Κύριο Υπνοδωμάτιο','Υπνοδωμάτιο 2','Υπνοδωμάτιο 3','Μπάνιο','WC','Χολ / Διάδρομος','Μπαλκόνι','Αποθήκη','Γκαράζ']
+// Πρότυπο επιπλωμένου διαμερίσματος — γρήγορο ξεκίνημα, μετά προσαρμόζεις.
+const STARTER_PACK:{name:string;category:string;room:string}[] = [
+  {name:'Κρεβάτι διπλό',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Στρώμα',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Ντουλάπα',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Καναπές',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Τραπέζι τραπεζαρίας',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Καρέκλες (σετ)',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Τηλεόραση',category:'Ηλεκτρονικά',room:'Σαλόνι'},
+  {name:'Ψυγείο',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Κουζίνα (εστίες & φούρνος)',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Απορροφητήρας',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Πλυντήριο ρούχων',category:'Ηλεκτρικές Συσκευές',room:'Μπάνιο'},
+  {name:'Κλιματιστικό',category:'Θέρμανση & Ψύξη',room:'Σαλόνι'},
+  {name:'Θερμοσίφωνας',category:'Θέρμανση & Ψύξη',room:'Μπάνιο'},
+]
 const CONDITIONS = ['Άριστη','Καλή','Μέτρια','Κακή','Εκτός Λειτουργίας']
 const ENERGY_CLASSES = ['A+++','A++','A+','A','B','C','D','E','F','G']
 const PROVENANCE_OPTIONS = [
@@ -1759,7 +1775,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void}) {
+export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:any[]}) {
   const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
   const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
   // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.
@@ -1826,6 +1842,26 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
   const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
+  const [cloning,setCloning] = useState(false)
+  const otherProps = properties.filter(p=>p.id!==propertyId).map(p=>({id:p.id,label:p.address||p.nickname||p.name||'Ακίνητο'}))
+  const insertStarterPack = async() => {
+    setCloning(true)
+    const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],tags:[],purchase_value:0,provenance:'new'}))
+    const {error}=await supabase.from('inventory_items').insert(rows)
+    setCloning(false)
+    if(error){alert('Σφάλμα: '+error.message);return}
+    fetchData()
+  }
+  const cloneFromProperty = async(sourceId:string) => {
+    setCloning(true)
+    const {data}=await supabase.from('inventory_items').select('*').eq('property_id',sourceId)
+    if(!data||data.length===0){setCloning(false);alert('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
+    const rows=data.map((i:any)=>{const {id,created_at,updated_at,property_id,...rest}=i;return {...rest,property_id:propertyId,user_id:String(userId)}})
+    const {error}=await supabase.from('inventory_items').insert(rows)
+    setCloning(false)
+    if(error){alert('Σφάλμα: '+error.message);return}
+    fetchData()
+  }
   const handleWarrantyReminder=async(item:InventoryItem)=>{
     if(!item.warranty_expiry){alert('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
@@ -1898,9 +1934,16 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             </div>
             <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την Απογραφή'}</p>
             <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό — αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
-            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:28}}>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
               <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
               <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
+            </div>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',alignItems:'center',marginBottom:28}}>
+              <button onClick={insertStarterPack} disabled={cloning} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,cursor:cloning?'wait':'pointer'}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                {cloning?'Δημιουργία…':`Πρότυπο επιπλωμένου (${STARTER_PACK.length})`}
+              </button>
+              {otherProps.length>0&&<BulkPicker label="Αντιγραφή από ακίνητο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} options={otherProps.map(p=>p.label)} onPick={label=>{const p=otherProps.find(x=>x.label===label);if(p)cloneFromProperty(p.id)}}/>}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12,maxWidth:640,margin:'0 auto',textAlign:'left'}}>
               {[
