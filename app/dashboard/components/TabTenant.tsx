@@ -1825,7 +1825,7 @@ function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; c
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
-type DossierTab='overview'|'lease'|'deposit'|'damages'|'maintenance'|'renewal'|'legal'|'comm'|'docs';
+type DossierTab='overview'|'lease'|'condition'|'legal'|'comm'|'docs';
 
 export default function TabTenant({ propertyId, userId, onStartHandover }:TabTenantProps) {
   const supabase=createClient();
@@ -2111,11 +2111,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   const FTABS:[string,typeof formTab][]=[['Στοιχεία Μισθωτή','profile'],['Παρεχόμενες Υπηρεσίες σε Μισθωτή','services']];
   const DTABS:{id:DossierTab;label:string;badge?:number}[]=dc?[
     {id:'overview',label:'Επισκόπηση'},
-    {id:'lease',label:'Μίσθωση & Ενοίκιο',badge:(dcOverdue.count+(declaredByTenant.get(dc.id)||0))||undefined},
-    {id:'deposit',label:'Εγγύηση'},
-    {id:'damages',label:'Φθορές & Επισκευές',badge:dcDamages.filter(d=>!d.repaired).length||undefined},
-    {id:'maintenance',label:'Αιτήματα Βλάβης',badge:dcMaint.filter(m=>m.status!=='done').length||undefined},
-    {id:'renewal',label:'Ανανέωση & Αναπροσαρμογή'},
+    {id:'lease',label:'Μίσθωση & Εγγύηση',badge:(dcOverdue.count+(declaredByTenant.get(dc.id)||0))||undefined},
+    {id:'condition',label:'Φθορές & Βλάβες',badge:(dcDamages.filter(d=>!d.repaired).length+dcMaint.filter(m=>m.status!=='done').length)||undefined},
     {id:'legal',label:'Νομικά & Φόρος'},
     {id:'comm',label:'Επικοινωνία'},
     {id:'docs',label:'Έγγραφα'},
@@ -2270,15 +2267,21 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 </>
               )}
               {dossierTab==='lease'&&(
-                <>
-                  <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
-                  <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_} notify={notify}/>
-                </>
+                <div style={{ display:'flex', flexDirection:'column' }}>
+                  <div>
+                    <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
+                    <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_} notify={notify}/>
+                  </div>
+                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/></div>
+                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><RenewalView tenant={dc} userId={userId} comps={comps}/></div>
+                </div>
               )}
-              {dossierTab==='deposit'&&<DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/>}
-              {dossierTab==='damages'&&<DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>}
-              {dossierTab==='maintenance'&&<MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} onRefresh={fetch_} notify={notify}/>}
-              {dossierTab==='renewal'&&<RenewalView tenant={dc} userId={userId} comps={comps}/>}
+              {dossierTab==='condition'&&(
+                <div style={{ display:'flex', flexDirection:'column' }}>
+                  <DamagesView tenant={dc} propertyId={propertyId} userId={userId} damages={dcDamages} onRefresh={fetch_}/>
+                  <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><MaintenanceView tenant={dc} propertyId={propertyId} userId={userId} requests={dcMaint} onRefresh={fetch_} notify={notify}/></div>
+                </div>
+              )}
               {dossierTab==='legal'&&<LegalTaxView tenant={dc}/>}
               {dossierTab==='comm'&&<CommView tenant={dc} propertyId={propertyId} userId={userId}/>}
               {dossierTab==='docs'&&(
