@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload, Check, Minus } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
@@ -844,6 +844,39 @@ ${preferred.length > 0 ? `
   setTimeout(() => { w.print() }, 900)
 }
 
+// ─── Select Box ───────────────────────────────────────────────────────────────
+// Premium custom checkbox (αντικαθιστά το browser default). Υποστηρίζει
+// indeterminate για το «κύριο» κουτί επιλογής όλων.
+function SelectBox({ checked, indeterminate, onToggle, size = 19 }: { checked: boolean; indeterminate?: boolean; onToggle?: () => void; size?: number }) {
+  const on = checked || indeterminate
+  return (
+    <span role="checkbox" aria-checked={indeterminate ? 'mixed' : checked} tabIndex={0}
+      onClick={e => { e.stopPropagation(); onToggle?.() }}
+      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle?.() } }}
+      style={{ width: size, height: size, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--accent)' : 'var(--bg-elevated)', border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), color: 'var(--accent-text)', cursor: 'pointer', transition: 'background .15s, border-color .15s, box-shadow .15s', boxShadow: on ? '0 1px 5px color-mix(in srgb, var(--accent) 40%, transparent)' : 'none' }}>
+      {indeterminate ? <Minus size={size - 7} strokeWidth={3.2} /> : checked ? <Check size={size - 7} strokeWidth={3.2} /> : null}
+    </span>
+  )
+}
+
+// ─── Bulk Action Button ───────────────────────────────────────────────────────
+// Ουδέτερο κουμπί (Google-clean) που αποκαλύπτει accent —ή κόκκινο για διαγραφή—
+// μόνο στο hover. Γίνεται ανενεργό/ξεθωριασμένο όταν δεν υπάρχει επιλογή.
+function BulkBtn({ icon: Icon, label, onClick, disabled, danger }: { icon: ElementType; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+  const [hov, setHov] = useState(false)
+  const active = hov && !disabled
+  return (
+    <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+        border: '1px solid ' + (active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'),
+        background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
+        color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
+        transition: 'background .15s, border-color .15s, color .15s' }}>
+      <Icon size={14} />{label}
+    </button>
+  )
+}
+
 // ─── Contact Card ─────────────────────────────────────────────────────────────
 function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding, scopeLabel, scopePortfolio }: {
   contact: Contact; onOpen?: () => void; onEdit: () => void; onDelete: () => void
@@ -872,9 +905,10 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
 
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ background: 'var(--bg-surface)', border: '1px solid ' + (selected ? 'var(--accent-border)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: '18px 18px 16px', position: 'relative', boxShadow: hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px' }} />
-      {bulkMode && <div style={{ position: 'absolute', top: 13, left: 10 }}><input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }} /></div>}
+      onClick={bulkMode ? onSelect : undefined}
+      style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
+      {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {reminderDue && !overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--warning)', color: '#000', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΥΠΕΝΘΥΜΙΣΗ</div>}
       {(hov || showActions) && !bulkMode && (
@@ -915,7 +949,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
           )}
         </div>
       )}
-      <div style={{ paddingLeft: 10 }}>
+      <div style={{ paddingLeft: 10, pointerEvents: bulkMode ? 'none' : undefined }}>
         <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s', cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
           {extra.avatar_url ? <img src={extra.avatar_url} alt="" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-border)', flexShrink: 0 }} />
             : <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--accent-soft)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={20} />}</div>}
@@ -1180,8 +1214,9 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
   const statusMeta = STATUS_OPTIONS.find(s => s.value === (extra.status || 'active')) || STATUS_OPTIONS[0]
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: hov ? 'var(--bg-elevated)' : selected ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)' }}>
-      {bulkMode && <input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)', flexShrink: 0 }} />}
+      onClick={bulkMode ? onSelect : undefined}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)', cursor: bulkMode ? 'pointer' : 'default' }}>
+      {bulkMode && <SelectBox checked={!!selected} onToggle={onSelect} size={18} />}
       <div style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : statusMeta.dot, flexShrink: 0 }} />
       <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ width: 200, minWidth: 0, cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
@@ -1191,7 +1226,7 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || '—'}</div>
       <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
       <StatusBadge status={extra.status || 'active'} />
-      <div style={{ display: 'flex', gap: 6, opacity: hov ? 1 : 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
         {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'rgba(37,211,102,0.1)', borderRadius: 4 }}>WA</a>}
         {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: '#7360f2', background: 'rgba(115,96,242,0.1)', borderRadius: 4 }}>VB</a>}
@@ -1432,8 +1467,17 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
   const handleDelete = async (id: string) => { await supabase.from('contacts').delete().eq('id', id); try { await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`) } catch { /* best-effort */ } setDeleteId(null); fetchContacts(); showToast('Επαφή διαγράφηκε') }
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const bulkDelete = async () => { if (!selected.size || !confirm(`Διαγραφή ${selected.size} επαφών;`)) return; await Promise.all([...selected].map(id => supabase.from('contacts').delete().eq('id', id))); setSelected(new Set()); setBulkMode(false); fetchContacts(); showToast(`${selected.size} επαφές διαγράφηκαν`) }
-  const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails) }
+  const bulkDelete = async () => {
+    const n = selected.size
+    if (!n || !confirm(`Διαγραφή ${n} ${n === 1 ? 'επαφής' : 'επαφών'};`)) return
+    const ids = [...selected]
+    await Promise.all(ids.map(id => supabase.from('contacts').delete().eq('id', id)))
+    // Καθαρισμός των υπενθυμίσεων ημερολογίου (παριτότητα με τη μεμονωμένη διαγραφή).
+    try { await Promise.all(ids.map(id => supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`))) } catch { /* best-effort */ }
+    setSelected(new Set()); setBulkMode(false); fetchContacts(); showToast(`${n} ${n === 1 ? 'επαφή διαγράφηκε' : 'επαφές διαγράφηκαν'}`)
+  }
+  const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails); else showToast('Καμία από τις επιλεγμένες δεν έχει email') }
+  const bulkVcard = () => { const sel = contacts.filter(c => selected.has(c.id)); if (sel.length) downloadVcf(sel, 'epafes-epilogi.vcf') }
 
   // ─── Enhanced CSV Export ───────────────────────────────────────────────────
 
@@ -1510,15 +1554,30 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </InfoBanner>
       )}
 
-      {bulkMode && selected.size > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 18, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{selected.size} επιλεγμένες</span>
-          <button type="button" onClick={bulkEmail} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>Email σε όλες</button>
-          <button type="button" onClick={bulkDelete} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: '1px solid rgba(255,59,48,0.35)', background: 'rgba(255,59,48,0.07)', fontSize: 12, color: 'var(--negative)', cursor: 'pointer' }}>Διαγραφή επιλεγμένων</button>
-          <button type="button" onClick={() => setSelected(new Set(processed.map(c => c.id)))} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>Επιλογή όλων</button>
-          <button type="button" onClick={() => setSelected(new Set())} style={{ padding: '5px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>Αποεπιλογή</button>
-        </div>
-      )}
+      {bulkMode && (() => {
+        const allOn = processed.length > 0 && processed.every(c => selected.has(c.id))
+        const someOn = selected.size > 0 && !allOn
+        const masterToggle = () => setSelected(allOn ? new Set() : new Set(processed.map(c => c.id)))
+        const hasEmail = contacts.some(c => selected.has(c.id) && c.email)
+        const none = selected.size === 0
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 18, flexWrap: 'wrap', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+              <SelectBox checked={allOn} indeterminate={someOn} onToggle={masterToggle} />
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: none ? 'var(--text-secondary)' : 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                {none ? `Επιλογή όλων (${processed.length})` : `${selected.size} ${selected.size === 1 ? 'επιλεγμένη' : 'επιλεγμένες'}`}
+              </span>
+            </div>
+            <div style={{ width: 1, height: 22, background: 'var(--border-subtle)', flexShrink: 0 }} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <BulkBtn icon={Mail} label="Email" onClick={bulkEmail} disabled={!hasEmail} />
+              <BulkBtn icon={FileText} label="Εξαγωγή vCard" onClick={bulkVcard} disabled={none} />
+              <BulkBtn icon={Trash2} label="Διαγραφή" onClick={bulkDelete} disabled={none} danger />
+            </div>
+            <button type="button" onClick={() => { setBulkMode(false); setSelected(new Set()) }} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><X size={14} />Τέλος</button>
+          </div>
+        )
+      })()}
 
       {preferred.length > 0 && (
         <div style={{ marginBottom: 22, padding: '16px 20px', background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)' }}>
@@ -1634,7 +1693,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       ) : viewMode === 'compact' ? (
         <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-            {bulkMode && <div style={{ width: 20 }} />}
+            {bulkMode && <div style={{ width: 18 }} />}
             <div style={{ width: 8 }} />
             <div style={{ width: 200, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Όνομα</div>
             <div style={{ width: 140, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Τηλέφωνο</div>
