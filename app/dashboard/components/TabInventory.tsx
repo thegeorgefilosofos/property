@@ -12,6 +12,16 @@ const supabase = createSupabaseClient()
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string))
 
+const DOCS_BUCKET = 'inventory-docs'
+// Ανοίγει απόδειξη/εγγύηση με προσωρινό signed URL (1 ώρα). Legacy fallback αν αποθηκεύτηκε public URL.
+async function openInventoryDoc(pathOrUrl?: string | null) {
+  if (!pathOrUrl) return
+  if (/^https?:\/\//.test(pathOrUrl)) { window.open(pathOrUrl, '_blank'); return }
+  const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(pathOrUrl, 3600)
+  if (error || !data) { alert('Δεν ήταν δυνατό το άνοιγμα του αρχείου.'); return }
+  window.open(data.signedUrl, '_blank')
+}
+
 interface InventoryItem {
   id: string; property_id: string; user_id: string
   name: string; category: string; room: string; brand: string; model: string
@@ -576,13 +586,13 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
     set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
   }
   const [docUp,setDocUp] = useState(false)
+  // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket· αποθηκεύουμε το PATH (όχι public URL) και ανοίγουμε με signed URL.
   const uploadReceiptDoc = async(file:File) => {
     setDocUp(true)
     const path=`receipts/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
-    const {error}=await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
+    const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true})
     if(error){alert('Σφάλμα upload: '+error.message);setDocUp(false);return}
-    const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
-    setForm(f=>({...f,receipt_doc_url:data.publicUrl,receipt_doc_name:file.name}))
+    setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
     setDocUp(false)
   }
   // AI σάρωση φωτογραφίας (συσκευασία/ετικέτα/booklet/απόδειξη) → προσυμπλήρωση πεδίων.
@@ -734,7 +744,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                     <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
-                    <a href={form.receipt_doc_url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,textDecoration:'none',whiteSpace:'nowrap'}}>Άνοιγμα</a>
+                    <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
                     <button onClick={()=>setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}))} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
                 :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
@@ -1328,7 +1338,7 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
               <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand}{item.model?` ${item.model}`:''} · {item.category}</p>
             </div>
             {item.receipt_doc_url
-              ?<a href={item.receipt_doc_url} target="_blank" rel="noopener noreferrer" title="Άνοιγμα απόδειξης/εγγύησης" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10.5,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,textDecoration:'none',whiteSpace:'nowrap'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Απόδειξη</a>
+              ?<button onClick={()=>openInventoryDoc(item.receipt_doc_url)} title="Άνοιγμα απόδειξης/εγγύησης" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10.5,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Απόδειξη</button>
               :item.serial_number?<p title="SN = Σειριακός αριθμός (Serial Number)" style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>:<span/>}
             <Badge label={ws.label} color={ws.color}/>
             {daysUntil(item.warranty_expiry)>=0&&daysUntil(item.warranty_expiry)<=90&&(
