@@ -1557,15 +1557,41 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       />}
 
       {!loading&&(items.length===0
-        ? <InfoBanner tone="info">Δεν υπάρχουν ακόμη αντικείμενα στην απογραφή. Πρόσθεσε το πρώτο αντικείμενο ή χρησιμοποίησε τη Μαζική Εισαγωγή για να ξεκινήσεις.</InfoBanner>
+        ? <div className="card" style={{textAlign:'center',padding:'clamp(40px,7vw,68px) 24px',marginTop:8}}>
+            <div style={{width:64,height:64,borderRadius:20,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>
+              <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
+            </div>
+            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Ξεκίνησε την Απογραφή</p>
+            <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό — αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:28}}>
+              <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
+              <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12,maxWidth:640,margin:'0 auto',textAlign:'left'}}>
+              {[
+                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>,t:'Φωτογράφισε ή σάρωσε',d:'Το AI διαβάζει μάρκα, μοντέλο, αξία και εγγύηση'},
+                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>,t:'Παρακολούθησε εγγυήσεις',d:'Υπενθύμιση πριν λήξουν, χωρίς να το ξεχνάς'},
+                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>,t:'Υπολόγισε κατανάλωση',d:'Κόστος ρεύματος ανά συσκευή & εξοικονόμηση'},
+              ].map((s,i)=>(
+                <div key={i} style={{display:'flex',gap:11,padding:'13px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
+                  <div style={{color:'var(--accent)',flexShrink:0,marginTop:1}}>{s.icon}</div>
+                  <div>
+                    <p style={{fontSize:12.5,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,marginBottom:2}}>{s.t}</p>
+                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>{s.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         : <>
-            <KPIGrid items={[
-              {label:'Σύνολο Αντικειμένων',value:fn(items.length)},
-              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'Τρέχουσα αξία μετά απόσβεση'},
-              {label:'Προς Αντικατάσταση',value:fn(replacementCount),tone:replacementCount>0?'warning':'neutral',sub:profileType==='professional'&&invSummary.replacementBudget>0?`~${fe(invSummary.replacementBudget,0)} προϋπ.`:'Απόσβεση, κατάσταση ή εγγύηση'},
-              {label:'Εγγυήσεις που Λήγουν',value:fn(warrantyExpiringCount),tone:warrantyExpiringCount>0?'warning':'neutral',sub:'Εντός 90 ημερών'},
-              {label:'Αντικείμενα σε Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
-              {label:'Επόμενη Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστέρηση`:undefined},
+            {/* columns={7} → μικρότερο min-width ώστε και τα 6 KPI σε ΜΙΑ ζυγισμένη σειρά (responsive σε κινητό) */}
+            <KPIGrid columns={7} items={[
+              {label:'Αντικείμενα',value:fn(items.length)},
+              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)}`:'μετά απόσβεση'},
+              {label:'Προς Αντικατάσταση',value:fn(replacementCount),tone:replacementCount>0?'warning':'neutral',sub:profileType==='professional'&&invSummary.replacementBudget>0?`~${fe(invSummary.replacementBudget,0)}`:undefined},
+              {label:'Εγγυήσεις',value:fn(warrantyExpiringCount),tone:warrantyExpiringCount>0?'warning':'neutral',sub:'σε 90 ημέρες'},
+              {label:'Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
+              {label:'Επόμ. Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστ.`:undefined},
             ]}/>
             {(()=>{
               const parts:string[]=[]
@@ -1583,6 +1609,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           </>
       )}
 
+      {(loading || items.length > 0) && (<>
       <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
         {TABS.map(tab=>(
           <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
@@ -1608,6 +1635,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           </>
         )
       }
+      </>)}
     </div>
   )
 }
