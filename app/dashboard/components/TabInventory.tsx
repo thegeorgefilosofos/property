@@ -23,6 +23,7 @@ interface InventoryItem {
   smart_device: boolean; smart_notes: string; tags: string[]
   provenance: string; original_price: number; discount_pct: number
   store_vendor: string; receipt_number: string
+  receipt_doc_url?: string; receipt_doc_name?: string
   created_at: string; updated_at: string
 }
 interface InventoryRepair {
@@ -558,6 +559,16 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
     const tags=form.tags||[]
     set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
   }
+  const [docUp,setDocUp] = useState(false)
+  const uploadReceiptDoc = async(file:File) => {
+    setDocUp(true)
+    const path=`receipts/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const {error}=await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
+    if(error){alert('Σφάλμα upload: '+error.message);setDocUp(false);return}
+    const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
+    setForm(f=>({...f,receipt_doc_url:data.publicUrl,receipt_doc_name:file.name}))
+    setDocUp(false)
+  }
   // AI σάρωση φωτογραφίας (συσκευασία/ετικέτα/booklet/απόδειξη) → προσυμπλήρωση πεδίων.
   const runScan = async(file:File) => {
     if(!file.type.startsWith('image/')||file.size>10*1024*1024) return
@@ -700,6 +711,21 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 {replRange&&!form.replacement_cost&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>Εκτίμηση: {fmtEur(replRange.min)}–{fmtEur(replRange.max)}</p>}
               </div>
               <div><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
+            </div>
+            <div>
+              <label style={labelStyle}>Απόδειξη / Εγγύηση (αρχείο)</label>
+              {form.receipt_doc_url
+                ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                    <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
+                    <a href={form.receipt_doc_url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,textDecoration:'none',whiteSpace:'nowrap'}}>Άνοιγμα</a>
+                    <button onClick={()=>setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}))} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                  </div>
+                :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    {docUp?'Ανέβασμα…':'Επισύναψη PDF ή φωτογραφίας'}
+                    <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadReceiptDoc(f)}}/>
+                  </label>}
             </div>
             {isElectric&&(<>
               <SectionLabel label="Ενέργεια"/>
@@ -1283,7 +1309,9 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
               <p style={{fontSize:12,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
               <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand}{item.model?` ${item.model}`:''} · {item.category}</p>
             </div>
-            {item.serial_number&&<p title="SN = Σειριακός αριθμός (Serial Number)" style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>}
+            {item.receipt_doc_url
+              ?<a href={item.receipt_doc_url} target="_blank" rel="noopener noreferrer" title="Άνοιγμα απόδειξης/εγγύησης" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10.5,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,textDecoration:'none',whiteSpace:'nowrap'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Απόδειξη</a>
+              :item.serial_number?<p title="SN = Σειριακός αριθμός (Serial Number)" style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>:<span/>}
             <Badge label={ws.label} color={ws.color}/>
             {daysUntil(item.warranty_expiry)>=0&&daysUntil(item.warranty_expiry)<=90&&(
               <button onClick={()=>pushCal(item)} disabled={pushing===item.id||pushed.has(item.id)} style={{padding:'5px 10px',borderRadius:T.radius.pill,border:`1px solid ${pushed.has(item.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(item.id)?'var(--positive-dim)':'none',color:pushed.has(item.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap'}}>
@@ -1787,7 +1815,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   }
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
     if(data.original_price&&data.discount_pct&&!data.purchase_value){data.purchase_value=Math.round((data.original_price)*(1-data.discount_pct/100))}
-    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',updated_at:new Date().toISOString()}
+    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
     if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)}
     else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)alert('Σφάλμα: '+error.message)}
     setShowItemForm(false);setEditingItem(null);fetchData()
