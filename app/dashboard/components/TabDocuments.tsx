@@ -220,6 +220,50 @@ const SubfolderGlyph = ({ mode, size = 20 }: { mode: 'provider' | 'date'; size?:
 const IconX = ({ size = 13 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
 );
+const IconCheck = ({ size = 12 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+);
+const IconPencil = ({ size = 14 }: { size?: number }) => (
+  <svg {...S} width={size} height={size}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+);
+const IconMoveFolder = ({ size = 14 }: { size?: number }) => (
+  <svg {...S} width={size} height={size}><path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v3"/><path d="M14 17h7M18 14l3 3-3 3"/></svg>
+);
+const IconTrash = ({ size = 14 }: { size?: number }) => (
+  <svg {...S} width={size} height={size}><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+);
+const IconDownload = ({ size = 14 }: { size?: number }) => (
+  <svg {...S} width={size} height={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+);
+
+// Premium custom checkbox (ίδια γλώσσα με τις Επαφές): στρογγυλό τετράγωνο,
+// accent γέμισμα, tick, προσβάσιμο με πληκτρολόγιο.
+function SelectBox({ checked, onToggle, size = 18 }: { checked: boolean; onToggle: () => void; size?: number }) {
+  return (
+    <span role="checkbox" aria-checked={checked} tabIndex={0}
+      onClick={e => { e.stopPropagation(); onToggle(); }}
+      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle(); } }}
+      style={{ width: size, height: size, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: checked ? 'var(--accent)' : 'var(--bg-elevated)', border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--border-default)'}`, color: 'var(--accent-text)', cursor: 'pointer', boxShadow: checked ? '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' : 'none', transition: `background 0.14s ${T.ease.standard}, border-color 0.14s ${T.ease.standard}` }}>
+      {checked ? <IconCheck/> : null}
+    </span>
+  );
+}
+
+// Ουδέτερο κουμπί μαζικής ενέργειας που αποκαλύπτει accent —ή κόκκινο για διαγραφή— στο hover.
+function BulkBtn({ icon, label, onClick, disabled, danger }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+  const [hov, setHov] = useState(false);
+  const active = hov && !disabled;
+  return (
+    <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+        border: `1px solid ${active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'}`,
+        background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
+        color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
+        transition: `background 0.14s ${T.ease.standard}, border-color 0.14s ${T.ease.standard}, color 0.14s ${T.ease.standard}` }}>
+      {icon}{label}
+    </button>
+  );
+}
 
 export default function TabDocuments({
   propertyId, userId, embedded, profileType = 'individual',
@@ -239,6 +283,11 @@ export default function TabDocuments({
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [lightbox, setLightbox] = useState<Item | null>(null);
+
+  // Διαχείριση αρχείων (μόνο για ανεβασμένα property_documents)
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveItems, setMoveItems] = useState<Item[] | null>(null);   // ανοιχτό modal μετακίνησης
+  const [renameItem, setRenameItem] = useState<Item | null>(null);   // ανοιχτό modal μετονομασίας
 
   // Ανέβασμα
   const [showUpload, setShowUpload] = useState(false);
@@ -342,6 +391,14 @@ export default function TabDocuments({
   useEffect(() => {
     setForm(f => ({ ...f, category: (f.kind === 'photo' ? PHOTO_CATEGORIES : DOC_CATEGORIES)[0] }));
   }, [form.kind]);
+  // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος/υποφάκελος/αναζήτηση).
+  useEffect(() => { setSelected(new Set()); }, [folderKey, subKey, query]);
+  // Esc: κλείσιμο lightbox.
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightbox(null); };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox]);
 
   /* ── Ανέβασμα (γράφει στο property_documents) ─────────────────────────── */
   const autoOn = autoDetect && form.kind === 'document';
@@ -469,6 +526,31 @@ export default function TabDocuments({
     fetchAll();
   };
 
+  // ── Διαχείριση (μετονομασία / μετακίνηση / μαζικές ενέργειες) ────────────
+  // Ενημερώνει μόνο ανεβασμένα αρχεία (property_documents)· τα κατοπτρικά
+  // στοιχεία (Έξοδα/Λογαριασμοί/Απογραφή) διαχειρίζονται στην πηγή τους.
+  const updateDocs = async (its: Item[], patch: { category?: string; title?: string }) => {
+    const rawIds = its.filter(i => i.raw).map(i => i.raw!.id);
+    if (!rawIds.length) return;
+    await supabase.from('property_documents').update(patch).in('id', rawIds);
+    fetchAll();
+  };
+  const applyRename = async (title: string) => { if (renameItem && title.trim()) await updateDocs([renameItem], { title: title.trim().slice(0, 200) }); setRenameItem(null); };
+  const applyMove = async (category: string) => { if (moveItems?.length) await updateDocs(moveItems, { category }); setMoveItems(null); setSelected(new Set()); };
+
+  const toggleSel = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const selItems = useMemo(() => items.filter(i => selected.has(i.id)), [items, selected]);
+  const selDocs = useMemo(() => selItems.filter(i => i.raw && i.raw.kind === 'document'), [selItems]);
+  const selRaw = useMemo(() => selItems.filter(i => i.raw), [selItems]);
+  const bulkDelete = async () => {
+    if (!selRaw.length) return;
+    if (prefs.confirmBeforeDelete && !window.confirm(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`)) return;
+    await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
+    await supabase.from('property_documents').delete().in('id', selRaw.map(i => i.raw!.id));
+    setSelected(new Set()); fetchAll();
+  };
+  const bulkDownload = () => { selItems.filter(i => i.url).forEach(i => window.open(i.url!, '_blank', 'noopener')); };
+
   /* ── Παράγωγα δεδομένα ─────────────────────────────────────────────────── */
   const counts = useMemo(() => {
     const c: Record<string, number> = {}; const v: Record<string, number> = {};
@@ -560,6 +642,11 @@ export default function TabDocuments({
       {uploadBtn}
     </div>
   );
+  const fileActions = (showFolder: boolean): FileActions => ({
+    view, showFolder, selected,
+    onToggleSel: toggleSel, onOpenLightbox: setLightbox,
+    onDelete: del, onRename: setRenameItem, onMove: it => setMoveItems([it]),
+  });
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -705,10 +792,24 @@ export default function TabDocuments({
         {embedded && headerActions}
       </div>
 
+      {/* ── Μπάρα μαζικών ενεργειών (όταν υπάρχει επιλογή) ───────────────── */}
+      {selected.size > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '10px 14px', marginBottom: 16, flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{selected.size} {selected.size === 1 ? 'επιλεγμένο' : 'επιλεγμένα'}</span>
+          <div style={{ width: 1, height: 20, background: 'var(--border-subtle)', flexShrink: 0 }}/>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <BulkBtn icon={<IconDownload/>} label="Λήψη" onClick={bulkDownload} disabled={!selItems.some(i => i.url)}/>
+            <BulkBtn icon={<IconMoveFolder/>} label="Μετακίνηση" onClick={() => selDocs.length && setMoveItems(selDocs)} disabled={!selDocs.length}/>
+            <BulkBtn icon={<IconTrash/>} label="Διαγραφή" onClick={bulkDelete} disabled={!selRaw.length} danger/>
+          </div>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Άκυρο</button>
+        </div>
+      )}
+
       {/* ── Περιεχόμενο ─────────────────────────────────────────────────── */}
       {loading ? <Spinner label="Φόρτωση αρχείου…"/> :
         q ? (
-          <FileList items={searchResults ?? []} view={view} showFolder onOpenLightbox={setLightbox} onDelete={del}
+          <FileList items={searchResults ?? []} a={fileActions(true)}
             empty={<EmptyState title="Κανένα αποτέλεσμα" hint={`Δεν βρέθηκε αρχείο για «${query}».`}/>}/>
         ) : !folderKey ? (
           /* Επίπεδο 0: φάκελοι κατηγοριών */
@@ -750,21 +851,30 @@ export default function TabDocuments({
           </>
         ) : (
           /* Επίπεδο 2: αρχεία */
-          <FileList items={subItems.sort(byDateDesc)} view={view} groupByMonth={subMode === 'date'} onOpenLightbox={setLightbox} onDelete={del}
+          <FileList items={subItems.sort(byDateDesc)} groupByMonth={subMode === 'date'} a={fileActions(false)}
             empty={<EmptyState title="Κανένα αρχείο εδώ"/>}/>
         )}
 
-      {/* ── Lightbox ────────────────────────────────────────────────────── */}
+      {/* ── Lightbox (εικόνα ή προεπισκόπηση PDF) ───────────────────────── */}
       {lightbox && lightbox.url && (
         <div onClick={() => setLightbox(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flexDirection: 'column', gap: 12 }}>
-          <img src={lightbox.url} alt={lightbox.title} style={{ maxWidth: '92%', maxHeight: '82%', objectFit: 'contain', borderRadius: T.radius.inner }}/>
+          <button onClick={() => setLightbox(null)} title="Κλείσιμο" style={{ position: 'absolute', top: 18, right: 18, width: 38, height: 38, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
+          {isPdfItem(lightbox)
+            ? <iframe title={lightbox.title} src={lightbox.url} onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 900px)', height: '82%', border: 'none', borderRadius: T.radius.inner, background: '#fff' }}/>
+            : <img src={lightbox.url} alt={lightbox.title} onClick={e => e.stopPropagation()} style={{ maxWidth: '92%', maxHeight: '82%', objectFit: 'contain', borderRadius: T.radius.inner }}/>}
           <div style={{ color: '#fff', fontSize: 12, fontFamily: T.font.sans, textAlign: 'center' }}>
             <div style={{ fontWeight: 700 }}>{lightbox.title}</div>
             <div style={{ opacity: 0.7, marginTop: 2 }}>{[lightbox.category, lightbox.provider, lightbox.date ? fd(lightbox.date) : null].filter(Boolean).join(' · ')}</div>
           </div>
         </div>
       )}
+
+      {/* ── Μετονομασία ──────────────────────────────────────────────────── */}
+      {renameItem && <RenameModal initial={renameItem.title} onCancel={() => setRenameItem(null)} onSave={applyRename}/>}
+
+      {/* ── Μετακίνηση σε φάκελο (αλλαγή κατηγορίας) ─────────────────────── */}
+      {moveItems && moveItems.length > 0 && <MoveModal count={moveItems.length} onCancel={() => setMoveItems(null)} onMove={applyMove}/>}
     </div>
   );
 }
@@ -844,12 +954,16 @@ function SubfolderRow({ name, mode, count, onClick }: { name: string; mode: 'pro
 }
 
 /* ── Λίστα αρχείων ───────────────────────────────────────────────────────── */
-function FileList({ items, view, groupByMonth, showFolder, onOpenLightbox, onDelete, empty }: {
-  items: Item[]; view: 'grid' | 'list'; groupByMonth?: boolean; showFolder?: boolean;
-  onOpenLightbox: (i: Item) => void; onDelete: (i: Item) => void; empty: React.ReactNode;
-}) {
-  if (items.length === 0) return <div className="card">{empty}</div>;
+interface FileActions {
+  view: 'grid' | 'list'; showFolder?: boolean; selected: Set<string>;
+  onToggleSel: (id: string) => void; onOpenLightbox: (i: Item) => void;
+  onDelete: (i: Item) => void; onRename: (i: Item) => void; onMove: (i: Item) => void;
+}
+const isPdfItem = (i: Item) => /pdf/i.test(i.raw?.mime || '') || /\.pdf($|\?)/i.test(i.url || '');
+const canPreview = (i: Item) => !!i.url && (i.isImage || isPdfItem(i));
 
+function FileList({ items, groupByMonth, empty, a }: { items: Item[]; groupByMonth?: boolean; empty: React.ReactNode; a: FileActions }) {
+  if (items.length === 0) return <div className="card">{empty}</div>;
   if (groupByMonth) {
     const groups = new Map<string, Item[]>();
     items.forEach(i => { const key = i.date ? monthLabel(i.date) : 'Χωρίς ημερομηνία'; (groups.get(key) ?? groups.set(key, []).get(key)!).push(i); });
@@ -862,71 +976,109 @@ function FileList({ items, view, groupByMonth, showFolder, onOpenLightbox, onDel
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'capitalize' as const }}>{m}</span>
               <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
             </div>
-            <FileInner items={its} view={view} showFolder={showFolder} onOpenLightbox={onOpenLightbox} onDelete={onDelete}/>
+            <FileInner items={its} a={a}/>
           </div>
         ))}
       </>
     );
   }
-  return <div className="card"><FileInner items={items} view={view} showFolder={showFolder} onOpenLightbox={onOpenLightbox} onDelete={onDelete}/></div>;
+  return <div className="card"><FileInner items={items} a={a}/></div>;
 }
 
-function FileInner({ items, view, showFolder, onOpenLightbox, onDelete }: {
-  items: Item[]; view: 'grid' | 'list'; showFolder?: boolean; onOpenLightbox: (i: Item) => void; onDelete: (i: Item) => void;
-}) {
-  if (view === 'grid') {
+function FileInner({ items, a }: { items: Item[]; a: FileActions }) {
+  if (a.view === 'grid') {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-        {items.map(i => (
-          <div key={i.id} style={{ borderRadius: T.radius.inner, overflow: 'hidden', border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-            <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: i.isImage && i.url ? 'pointer' : 'default' }}
-              onClick={() => { if (i.isImage && i.url) onOpenLightbox(i); }}>
-              {i.isImage && i.url
-                ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-              {i.raw && <button onClick={e => { e.stopPropagation(); onDelete(i); }} title="Διαγραφή"
-                style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
-            </div>
-            <div style={{ padding: '9px 11px' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.title}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-                <OriginTag i={i}/>
-                {i.value != null && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : '—'}</span>
-              </div>
-              {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα →</a>}
-            </div>
-          </div>
-        ))}
+        {items.map(i => <FileCard key={i.id} i={i} a={a}/>)}
       </div>
     );
   }
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{items.map(i => <FileRow key={i.id} i={i} a={a}/>)}</div>;
+}
+
+// Στρογγυλό κουμπί ενέργειας πάνω από thumbnail (grid) — σκουρόχρωμο για αντίθεση.
+const OverlayBtn = ({ title, onClick, children }: { title: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode }) => (
+  <button onClick={onClick} title={title}
+    style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
+);
+
+function FileCard({ i, a }: { i: Item; a: FileActions }) {
+  const [hov, setHov] = useState(false);
+  const sel = a.selected.has(i.id);
+  const preview = canPreview(i);
+  const canMove = !!i.raw && i.raw.kind === 'document';
+  const selectable = !!i.raw || !!i.url;   // τα «εικονικά» στοιχεία (π.χ. λογαριασμοί χωρίς αρχείο) δεν επιλέγονται
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {items.map(i => (
-        <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px' }}>
-          {i.isImage && i.url
-            ? <img src={i.url} alt="" onClick={() => onOpenLightbox(i)} style={{ width: 40, height: 40, borderRadius: T.radius.badge, objectFit: 'cover', flexShrink: 0, cursor: 'pointer', border: '1px solid var(--border-subtle)' }}/>
-            : <div style={{ width: 40, height: 40, borderRadius: T.radius.badge, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
-                <svg {...S} width={17} height={17}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              </div>}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{i.title}</span>
-              <OriginTag i={i}/>
-              {showFolder && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-              {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtSize(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
-            </div>
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ borderRadius: T.radius.inner, overflow: 'hidden', border: `1.5px solid ${sel ? 'var(--accent)' : 'var(--border-subtle)'}`, background: 'var(--bg-elevated)', boxShadow: sel ? '0 0 0 3px var(--accent-soft)' : 'none', transition: `border-color 0.14s ${T.ease.standard}, box-shadow 0.14s ${T.ease.standard}` }}>
+      <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: preview ? 'pointer' : 'default' }}
+        onClick={() => { if (preview) a.onOpenLightbox(i); }}>
+        {i.isImage && i.url
+          ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 8, fontWeight: 800, letterSpacing: '0.05em', color: '#fff', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: 5 }}>PDF</span>}
+        {selectable && (hov || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
+        {hov && i.raw && (
+          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
+            <OverlayBtn title="Μετονομασία" onClick={e => { e.stopPropagation(); a.onRename(i); }}><IconPencil size={13}/></OverlayBtn>
+            {canMove && <OverlayBtn title="Μετακίνηση σε φάκελο" onClick={e => { e.stopPropagation(); a.onMove(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
+            <OverlayBtn title="Διαγραφή" onClick={e => { e.stopPropagation(); a.onDelete(i); }}><IconX/></OverlayBtn>
           </div>
-          {i.value != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(i.value)}</span>}
-          {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
-          {i.raw && <button onClick={() => onDelete(i)} title="Διαγραφή"
-            style={{ width: 28, height: 28, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}><IconX/></button>}
+        )}
+      </div>
+      <div style={{ padding: '9px 11px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+          <OriginTag i={i}/>
+          {i.value != null && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
+          <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : '—'}</span>
         </div>
-      ))}
+        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα →</a>}
+      </div>
+    </div>
+  );
+}
+
+// Μικρό κουμπί ενέργειας σε γραμμή λίστας (εμφανίζεται στο hover).
+const RowBtn = ({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) => (
+  <button onClick={onClick} title={title}
+    style={{ width: 28, height: 28, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{children}</button>
+);
+
+function FileRow({ i, a }: { i: Item; a: FileActions }) {
+  const [hov, setHov] = useState(false);
+  const sel = a.selected.has(i.id);
+  const canMove = !!i.raw && i.raw.kind === 'document';
+  const selectable = !!i.raw || !!i.url;
+  return (
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, background: sel ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1px solid ${sel ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '10px 14px', transition: `background 0.14s ${T.ease.standard}` }}>
+      <div style={{ width: 18, display: 'flex', flexShrink: 0 }}>{selectable && (hov || sel) && <SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/>}</div>
+      {i.isImage && i.url
+        ? <img src={i.url} alt="" onClick={() => a.onOpenLightbox(i)} style={{ width: 40, height: 40, borderRadius: T.radius.badge, objectFit: 'cover', flexShrink: 0, cursor: 'pointer', border: '1px solid var(--border-subtle)' }}/>
+        : <div onClick={() => { if (canPreview(i)) a.onOpenLightbox(i); }} style={{ width: 40, height: 40, borderRadius: T.radius.badge, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)', cursor: canPreview(i) ? 'pointer' : 'default' }}>
+            <svg {...S} width={17} height={17}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{i.title}</span>
+          <OriginTag i={i}/>
+          {a.showFolder && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtSize(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      {i.value != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(i.value)}</span>}
+      {hov && i.raw && (
+        <>
+          <RowBtn title="Μετονομασία" onClick={() => a.onRename(i)}><IconPencil size={14}/></RowBtn>
+          {canMove && <RowBtn title="Μετακίνηση σε φάκελο" onClick={() => a.onMove(i)}><IconMoveFolder size={14}/></RowBtn>}
+        </>
+      )}
+      {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
+        style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
+      {i.raw && <RowBtn title="Διαγραφή" onClick={() => a.onDelete(i)}><IconX/></RowBtn>}
     </div>
   );
 }
@@ -941,5 +1093,43 @@ function OriginTag({ i }: { i: Item }) {
       {i.provider && <Badge tone="neutral">{i.provider}</Badge>}
       {label && <Badge tone="neutral">από {label}</Badge>}
     </>
+  );
+}
+
+/* ── Modals (μετονομασία / μετακίνηση) ───────────────────────────────────── */
+function ModalShell({ title, sub, children, onCancel, onConfirm, confirmLabel, confirmDisabled }: {
+  title: string; sub?: string; children: React.ReactNode; onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
+}) {
+  return (
+    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 440, margin: 0 }}>
+        <SecHdr label={title} sub={sub}/>
+        <div style={{ marginBottom: 18 }}>{children}</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" onClick={onCancel}>Άκυρο</Btn>
+          <Btn variant="primary" onClick={onConfirm} disabled={confirmDisabled}>{confirmLabel}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RenameModal({ initial, onCancel, onSave }: { initial: string; onCancel: () => void; onSave: (v: string) => void }) {
+  const [val, setVal] = useState(initial);
+  return (
+    <ModalShell title="Μετονομασία" onCancel={onCancel} onConfirm={() => val.trim() && onSave(val)} confirmLabel="Αποθήκευση" confirmDisabled={!val.trim()}>
+      <TextInput label="Νέο όνομα" value={val} onChange={setVal} placeholder="Όνομα αρχείου"/>
+    </ModalShell>
+  );
+}
+
+function MoveModal({ count, onCancel, onMove }: { count: number; onCancel: () => void; onMove: (category: string) => void }) {
+  const [cat, setCat] = useState(DOC_CATEGORIES[0]);
+  return (
+    <ModalShell title={count > 1 ? `Μετακίνηση ${count} αρχείων` : 'Μετακίνηση σε φάκελο'}
+      sub="Διάλεξε κατηγορία — ο φάκελος ενημερώνεται αυτόματα." onCancel={onCancel} onConfirm={() => onMove(cat)} confirmLabel="Μετακίνηση">
+      <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
+        options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
+    </ModalShell>
   );
 }
