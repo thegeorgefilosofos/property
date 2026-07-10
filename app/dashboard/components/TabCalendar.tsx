@@ -591,7 +591,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div>
             <label style={lbl}>Τίτλος *</label>
-            <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="για παράδειγμα Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
+            <ContactPickerInput value={form.title} onChange={v=>setForm(f=>({...f,title:v}))} propertyId={propertyId} inputStyle={inp} placeholder="π.χ. Πληρωμή ΔΕΗ Ιουνίου" prefix="Ραντεβού με "/>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:16 }}>
             <div>

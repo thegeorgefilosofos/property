@@ -76,7 +76,7 @@ const LOAN_TYPES = [
 const COMPANY_HQ = [
   { value: 'none', label: 'Φυσικό Πρόσωπο' },
   { value: 'greece', label: 'Εταιρεία, Ελλάδα' },
-  { value: 'eu', label: 'Εταιρεία, Ευρωπαϊκή Ένωση (για παράδειγμα Κύπρος, Βουλγαρία)' },
+  { value: 'eu', label: 'Εταιρεία, Ευρωπαϊκή Ένωση (π.χ. Κύπρος, Βουλγαρία)' },
   { value: 'uk', label: 'Εταιρεία, Ηνωμένο Βασίλειο' },
   { value: 'uae', label: 'Εταιρεία, Ηνωμένα Αραβικά Εμιράτα' },
   { value: 'usa', label: 'Εταιρεία, Ηνωμένες Πολιτείες Αμερικής' },
@@ -882,7 +882,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
             <NumberInput label="EURIBOR 3 Μηνών %" value={bench.euribor} onChange={v => { euriborTouched.current = true; sb('euribor', v); }} suffix="%" step={0.1} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <NumberInput label="Σύγκριση ETF (για παράδειγμα VUAA, απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
+            <NumberInput label="Σύγκριση ETF (π.χ. VUAA, απόδοση %/έτος)" value={bench.etf_return} onChange={v => sb('etf_return', v)} suffix="%" step={0.5} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
             {[

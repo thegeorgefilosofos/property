@@ -440,7 +440,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
   (otherSubs || []).forEach(s => { if (s.renewalDate) checkRenewal(s.name, s.renewalDate, 7); });
 
   // ── Auto-detect insurance property type από property settings ──────────────
-  // prop_type στη βάση είναι ελληνικό label (για παράδειγμα 'Κατοικία', 'Επαγγελματικό Ακίνητο')
+  // prop_type στη βάση είναι ελληνικό label (π.χ. 'Κατοικία', 'Επαγγελματικό Ακίνητο')
   // status_detail === 'rented' σημαίνει ενοικιαζόμενο, αυτό υπερισχύει του prop_type
   const detectedPropertyType = crossProperty.isRented
     ? 'Ενοικιαζόμενη'

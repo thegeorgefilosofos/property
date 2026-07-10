@@ -232,7 +232,7 @@ function ContactPicker({ value, onChange, propertyId }: { value:string; onChange
   return (
     <div ref={ref} style={{ position:'relative' }}>
       <div style={{ display:'flex', gap:6 }}>
-        <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="για παράδειγμα Αντικατάσταση ψυγείου Bosch" /></div>
+        <div style={{ flex:1 }}><TextInput value={value} onChange={onChange} placeholder="π.χ. Αντικατάσταση ψυγείου Bosch" /></div>
         {contacts.length > 0 && (
           <button type="button" onClick={() => setShow(s=>!s)}
             style={{ padding:'0 12px', borderRadius:4, border:'1px solid var(--border-default)', background:show?'var(--accent-dim)':'var(--bg-surface)', color:show?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, flexShrink:0, height:40, fontFamily:"'Inter', sans-serif" }}>
@@ -444,7 +444,7 @@ function ExpenseForm({
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--accent)', borderRadius:8, padding:'12px 14px', marginBottom:12 }}>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:12, alignItems:'end' }}>
             <NumberInput label="Το μερίδιό μου" value={form.share_percent} onChange={v => sf('share_percent',v)} placeholder="50" suffix="%" step={1} max={100} />
-            <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note',v)} placeholder="για παράδειγμα αδερφός, γονείς, συνιδιοκτήτης" />
+            <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note',v)} placeholder="π.χ. αδερφός, γονείς, συνιδιοκτήτης" />
           </div>
           {form.amount && parseFloat(form.amount) > 0 && (
             <div style={{ marginTop:10, fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
@@ -460,7 +460,7 @@ function ExpenseForm({
           <label style={labelStyle}>Περιγραφή</label>
           <ContactPicker value={form.description} onChange={v => sf('description',v)} propertyId={propertyId} />
         </div>
-        <TextInput label="Κατάστημα / Πάροχος" value={form.store_vendor} onChange={v => sf('store_vendor',v)} placeholder="για παράδειγμα Κωτσόβολος, ΔΕΗ" />
+        <TextInput label="Κατάστημα / Πάροχος" value={form.store_vendor} onChange={v => sf('store_vendor',v)} placeholder="π.χ. Κωτσόβολος, ΔΕΗ" />
       </div>
 
       {/* Τιμή */}
@@ -532,7 +532,7 @@ function ExpenseForm({
           <Toggle on={form.paid} onChange={v => sf('paid',v)} label="Ναι" labelOff="Όχι" />
         </div>
       </div>
-      <Textarea label="Σημειώσεις" value={form.notes} onChange={v => sf('notes',v)} placeholder="για παράδειγμα Αγοράστηκε στα Black Friday, εγγύηση έως 05/2028..." />
+      <Textarea label="Σημειώσεις" value={form.notes} onChange={v => sf('notes',v)} placeholder="π.χ. Αγοράστηκε στα Black Friday, εγγύηση έως 05/2028..." />
 
       {/* Attachment URL */}
       <div style={{ marginTop:12 }}>
@@ -1424,7 +1424,7 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
         <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif", fontWeight:500, flexShrink:0 }}>Γρήγορη καταχώρηση:</span>
         <input
           value={quickDesc} onChange={e=>setQuickDesc(e.target.value)}
-          placeholder="Τί αγόρασες; (για παράδειγμα Λογαριασμός ΔΕΗ)"
+          placeholder="Τί αγόρασες; (π.χ. Λογαριασμός ΔΕΗ)"
           onKeyDown={e=>{ if(e.key==='Enter'&&quickAmt) quickSave(); }}
           style={{ flex:3, minWidth:160, height:32, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 10px', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter', sans-serif", outline:'none' }}
         />

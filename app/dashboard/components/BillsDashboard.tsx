@@ -642,7 +642,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 18, fontFamily: T.font.sans }}>Νέος Λογαριασμός / Πάγιο</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr 1fr 1.4fr', gap: 10, marginBottom: 12 }}>
             <CustomSelect label="Κατηγορία Λογαριασμού" value={form.category} onChange={v => sf('category', v)} options={CAT_OPTIONS}/>
-            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="για παράδειγμα ΔΕΗ Πράσινο Ιουνίου"/>
+            <TextInput label="Ονομασία / Πάροχος" value={form.name} onChange={v => sf('name', v)} placeholder="π.χ. ΔΕΗ Πράσινο Ιουνίου"/>
             <NumberInput label="Ποσό (€)" value={form.amount} onChange={v => sf('amount', v)} suffix="€" step={1}/>
             <CustomSelect label="Συντελεστής ΦΠΑ" value={form.vat_rate} onChange={v => sf('vat_rate', v)} options={VAT_OPTIONS}/>
           </div>
@@ -660,7 +660,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
               <DatePicker label="Ημερομηνία Λήξης" value={form.due_date} onChange={v => sf('due_date', v)}/>
             )}
             <div style={{ paddingTop: 22 }}><Toggle on={form.recurring} onChange={v => sf('recurring', v)} label="Πάγιο" labelOff="Εφάπαξ"/></div>
-            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="για παράδειγμα δόση..."/>
+            <TextInput label="Σημειώσεις" value={form.notes} onChange={v => sf('notes', v)} placeholder="π.χ. δόση..."/>
           </div>
           {form.category === 'electricity' && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12 }}>
@@ -680,7 +680,7 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
             <CustomSelect label="Πληρώνει / Διαμοιρασμός" value={form.paid_by} onChange={v => sf('paid_by', v)} options={PAID_BY_OPTIONS}/>
             {SHARED_SCOPES.has(form.paid_by) && <>
               <NumberInput label="Το μερίδιό μου" value={form.share_percent} onChange={v => sf('share_percent', v)} placeholder="50" suffix="%" step={1} max={100}/>
-              <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note', v)} placeholder="για παράδειγμα συνιδιοκτήτης, ενοικιαστής"/>
+              <TextInput label="Μοιρασμένο με" value={form.share_note} onChange={v => sf('share_note', v)} placeholder="π.χ. συνιδιοκτήτης, ενοικιαστής"/>
             </>}
           </div>
           {SHARED_SCOPES.has(form.paid_by) && form.amount && parseFloat(form.amount) > 0 && (
