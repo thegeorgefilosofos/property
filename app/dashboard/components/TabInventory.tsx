@@ -38,6 +38,7 @@ interface InventoryHandover {
 interface HandoverItemSnapshot {
   item_id: string; name: string; category: string
   condition_at_handover: string; condition_notes: string; photo_url: string
+  condition_photo?: string; captured_at?: string
 }
 interface MaintenanceSchedule {
   id: string; property_id: string; user_id: string; item_id: string
@@ -1317,12 +1318,22 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const [type,setType] = useState<'check_in'|'check_out'>('check_in')
   const [tenantName,setTenantName] = useState(''); const [tenantPhone,setTenantPhone] = useState('')
   const [handoverDate,setHandoverDate] = useState(''); const [notes,setNotes] = useState('')
-  const [itemConds,setItemConds] = useState<Record<string,{condition:string;notes:string}>>({})
+  const [itemConds,setItemConds] = useState<Record<string,{condition:string;notes:string;photo?:string}>>({})
   const [saving,setSaving] = useState(false)
+  const [uploadingId,setUploadingId] = useState<string|null>(null)
   const [cmpA,setCmpA] = useState(''); const [cmpB,setCmpB] = useState('')
   const [fromTenant,setFromTenant] = useState('')
+  const uploadCondPhoto = async(itemId:string,file:File) => {
+    setUploadingId(itemId)
+    const path=`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const {error}=await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
+    if(error){alert('Σφάλμα upload: '+error.message);setUploadingId(null);return}
+    const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
+    setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
+    setUploadingId(null)
+  }
   useEffect(()=>{
-    if(mode==='new'){const init:Record<string,{condition:string;notes:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
+    if(mode==='new'){const init:Record<string,{condition:string;notes:string;photo?:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
     if(mode==='list')setFromTenant('')
   },[mode,items])
   // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το όνομα/τηλέφωνο/τύπο έτοιμα.
@@ -1338,7 +1349,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const handleSave = async() => {
     if(!tenantName.trim()){alert('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
     setSaving(true)
-    const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||''}))
+    const nowIso=new Date().toISOString()
+    const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))
     const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||new Date().toISOString().split('T')[0],notes,items_snapshot:snap})
     if(error){alert('Σφάλμα: '+error.message);setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
@@ -1349,8 +1361,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     w.document.write(`<html><head><title>Πρωτόκολλο</title><style>body{font-family:'Inter',Arial;font-size:12px;margin:30px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#f4f4f4;padding:8px;text-align:left;font-size:10px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee}.sig{margin-top:48px;display:flex;gap:60px}.sig-box{flex:1;border-top:1px solid #999;padding-top:8px;font-size:11px;color:#666}@media print{button{display:none}}</style></head><body>
     <h1>Πρωτόκολλο ${h.handover_type==='check_in'?'Παράδοσης':'Παραλαβής'}</h1>
     <p><strong>${esc(h.tenant_name)}</strong>${h.tenant_phone?` · ${esc(h.tenant_phone)}`:''} · ${esc(fmtDate(h.handover_date))}</p>
-    <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th></tr></thead><tbody>
-    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||'—')}</td></tr>`).join('')}
+    <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th><th>Φωτό κατάστασης</th></tr></thead><tbody>
+    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||'—')}</td><td>${s.condition_photo?`<img src="${esc(s.condition_photo)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #ddd"/>${s.captured_at?`<br><span style="font-size:8px;color:#999">${esc(fmtDate(s.captured_at))}</span>`:''}`:'—'}</td></tr>`).join('')}
     </tbody></table>
     <div class="sig"><div class="sig-box">Υπογραφή Ιδιοκτήτη</div><div class="sig-box">Υπογραφή Ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
     <button onclick="window.print()" style="margin-top:24px;padding:8px 16px;cursor:pointer">Εκτύπωση</button></body></html>`)
@@ -1398,6 +1410,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   }
   if(mode==='new') return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <style>{`@keyframes invSpin{to{transform:rotate(360deg)}}`}</style>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
         <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Πίσω</button>
@@ -1423,12 +1436,23 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
       </div>
       <div>
         <SectionLabel label="Κατάσταση Αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
+        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong> — χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {items.map(item=>(
-            <div key={item.id} style={{display:'grid',gridTemplateColumns:'40px minmax(0,1.4fr) 150px minmax(0,1.6fr)',gap:14,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-              {item.photo_url
-                ?<img src={item.photo_url} style={{width:40,height:40,borderRadius:10,objectFit:'cover',flexShrink:0}} alt=""/>
-                :<div style={{width:40,height:40,borderRadius:10,background:'var(--accent-soft)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>}
+            <div key={item.id} style={{display:'grid',gridTemplateColumns:'44px minmax(0,1.4fr) 150px minmax(0,1.6fr)',gap:14,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+              {(()=>{const cp=itemConds[item.id]?.photo;const busy=uploadingId===item.id;return (
+                <label title={cp?'Φωτογραφία κατάστασης (πάτησε για αλλαγή)':'Τράβα φωτογραφία της τρέχουσας κατάστασης'} style={{position:'relative',width:44,height:44,borderRadius:10,overflow:'hidden',flexShrink:0,cursor:'pointer',display:'block',border:cp?'2px solid var(--accent)':'1px solid var(--border-subtle)'}}>
+                  {cp
+                    ?<img src={cp} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
+                    :item.photo_url
+                      ?<img src={item.photo_url} style={{width:'100%',height:'100%',objectFit:'cover',opacity:0.5}} alt=""/>
+                      :<div style={{width:'100%',height:'100%',background:'var(--accent-soft)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>}
+                  <span style={{position:'absolute',right:2,bottom:2,width:16,height:16,borderRadius:5,background:cp?'var(--accent)':'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {busy?<span style={{width:9,height:9,border:'1.5px solid #fff',borderTopColor:'transparent',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>}
+                  </span>
+                  <input type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadCondPhoto(item.id,f)}}/>
+                </label>
+              )})()}
               <div style={{minWidth:0}}>
                 <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
                 <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
@@ -1479,7 +1503,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
                       <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
                       <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{h.tenant_name}</p>
                     </div>
-                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)}{h.tenant_phone?` · ${h.tenant_phone}`:''} · {snap.length} αντικείμενα</p>
+                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)}{h.tenant_phone?` · ${h.tenant_phone}`:''} · {snap.length} αντικείμενα{(()=>{const ph=snap.filter(s=>s.condition_photo).length;return ph>0?` · ${ph} φωτό`:''})()}</p>
                   </div>
                   <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {bad>0&&<Badge label={`${bad} προβλήματα`} color="var(--negative)"/>}
