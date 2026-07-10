@@ -314,6 +314,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'reach') { reachContact(a); return; }
     else if (a.type === 'task') { addTask(a.description); return; }
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
+    else if (a.type === 'inventory') { registerInventory(a); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -504,6 +505,21 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       setMsgs(m => [...m, { role: 'assistant', text: `Την κράτησα. Πρόσθεσα τον/την «${name}»${phone ? ` (${phone})` : ''} στις Επαφές του ακινήτου. Θέλεις να ανοίξω τις Επαφές για να προσθέσεις κι άλλα;`, action: { type: 'go', tab: 'contacts' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω την επαφή τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Επαφές.' }]);
+    }
+  };
+
+  // Καταχώρηση αντικειμένου στην Απογραφή (από τον βοηθό, με φωνή/κείμενο ή φωτο).
+  const registerInventory = async (a: { name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }) => {
+    try {
+      await supabase.from('inventory_items').insert({
+        property_id: propertyId, user_id: userId,
+        name: a.name.slice(0, 120), category: a.category || 'Λοιπά',
+        brand: a.brand || null, model: a.model || null, room: a.room || null,
+        purchase_value: a.value || 0, condition: 'Καλή',
+      });
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στην Απογραφή: «${a.name}»${a.value ? ` (αξία ${a.value}€)` : ''}. Θέλεις να ανοίξω την Απογραφή για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα Απογραφή.' }]);
     }
   };
 
@@ -802,6 +818,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'contact' ? `Πρόσθεσε επαφή: ${m.action.name}`
                           : m.action.type === 'paid' ? `Σήμανση πληρωμένο: ${m.action.description}`
                           : m.action.type === 'task' ? `Νέα εκκρεμότητα`
+                          : m.action.type === 'inventory' ? `Κατέγραψε: ${m.action.name}`
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
