@@ -1826,3 +1826,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Landing FAQ: κρύψε τον προεπιλεγμένο δείκτη του <summary> */
 summary::-webkit-details-marker { display: none; }
 summary::marker { content: ""; }
+
+/* Εκκρεμότητες: διακριτικό animation ολοκλήρωσης εργασίας (Google Tasks-like) */
+@keyframes taskCheckPop {
+  0%   { transform: scale(0.6); }
+  55%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes taskCheckDraw {
+  from { stroke-dashoffset: 16; }
+  to   { stroke-dashoffset: 0; }
+}
