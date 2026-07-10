@@ -342,6 +342,7 @@ export default function TabDocuments({
 
   // Ανέβασμα
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα ανεβάσματος
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [form, setForm] = useState({ kind: 'document' as 'photo' | 'document', category: DOC_CATEGORIES[0], supplier: '', title: '', doc_date: '', notes: '' });
@@ -732,9 +733,15 @@ export default function TabDocuments({
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
-            right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}><IconX/></button>}/>
+          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
+            right={<div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
+                <svg {...S} width={16} height={16}><path d={uploadMin ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'}/></svg>
+              </button>
+              <button onClick={() => { setShowUpload(false); setUploadMin(false); }} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}><IconX/></button>
+            </div>}/>
 
+          {!uploadMin && (<>
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
             {([['document', 'Έγγραφο'], ['photo', 'Φωτογραφία']] as const).map(([k, l]) => (
               <button key={k} onClick={() => setForm(f => ({ ...f, kind: k }))}
@@ -823,6 +830,7 @@ export default function TabDocuments({
           )}
 
           {msg && <div style={{ marginTop: 12, fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</div>}
+          </>)}
         </div>
       )}
 
