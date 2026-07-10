@@ -30,6 +30,10 @@ interface PropSummary { name: string; propType?: string; value?: number; targetR
 interface Props { propertyId: string; userId: string; propContext: PropContext; allProperties?: PropSummary[]; onNavigate: (tab: string) => void; onScan: () => void; }
 type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
+// Σύστημα αναγνώρισης αντικειμένου από φωτο (συσκευασία/ετικέτα/booklet/απόδειξη).
+const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οικιακού εξοπλισμού από φωτογραφία. Επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON:
+{"name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"","power_watts":""}
+Το name περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Άφησε κενά όσα δεν διακρίνονται. Χωρίς κείμενο εκτός JSON.`
 // Ελαφρύ ευρετήριο πελατών για να «βρίσκει» ο βοηθός από όνομα/τηλέφωνο/ΑΦΜ.
 type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
 // Ελαφρύ ευρετήριο επαφών (τεχνικοί/πάροχοι) για επικοινωνία (WhatsApp/Viber/email/κλήση).
@@ -62,6 +66,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const imgRef = useRef<HTMLInputElement>(null);   // λήψη/επιλογή φωτο αντικειμένου για αναγνώριση
   const [err, setErr] = useState('');
   const [ctxStr, setCtxStr] = useState('');
   const [insightsStr, setInsightsStr] = useState('');
@@ -693,6 +698,43 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     finally { setBusy(false); }
   };
 
+  // Αναγνώριση αντικειμένου από ΦΩΤΟΓΡΑΦΙΑ (συσκευασία/ετικέτα/booklet/απόδειξη) →
+  // προτείνει καταχώρηση στην Απογραφή με ένα άγγιγμα. Vision, με χρονικό όριο.
+  const askImage = async (file: File) => {
+    if (!file.type.startsWith('image/') || busy) return;
+    if (file.size > 10 * 1024 * 1024) { setMsgs(m => [...m, { role: 'assistant', text: 'Η φωτογραφία είναι πολύ μεγάλη (>10MB). Δοκίμασε μικρότερη.' }]); return; }
+    setErr('');
+    setMsgs(m => [...m, { role: 'user', text: 'Φωτογραφία αντικειμένου' }]);
+    setBusy(true);
+    try {
+      const b64: string | null = await new Promise(res => { const r = new FileReader(); r.onload = () => res((r.result as string).split(',')[1] || null); r.onerror = () => res(null); r.readAsDataURL(file); });
+      if (!b64) { setBusy(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 30000);
+      const res = await fetch('/api/anthropic', {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 500, system: IMG_ITEM_SCAN_SYSTEM,
+          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: b64 } }, { type: 'text', text: 'Διάβασε το αντικείμενο/συσκευή από τη φωτογραφία.' }] }] }),
+      });
+      clearTimeout(timer);
+      const data = await res.json();
+      if (!res.ok || data?.error) { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να διαβάσω τη φωτογραφία τώρα. Δοκίμασε ξανά ή πες μου τα στοιχεία.' }]); setBusy(false); return; }
+      const txt: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || '{}';
+      let d: Record<string, string> = {};
+      try { d = JSON.parse(txt.replace(/```json?|```/g, '').trim()); } catch { /* ignore */ }
+      const CATS = ['Έπιπλα', 'Ηλεκτρικές Συσκευές', 'Ηλεκτρονικά', 'Υδραυλικά', 'Θέρμανση & Ψύξη', 'Φωτιστικά', 'Διακόσμηση', 'Λοιπά'];
+      const name = (d.name || [d.brand, d.model].filter(Boolean).join(' ') || '').slice(0, 120);
+      if (!name) { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν κατάλαβα καθαρά το αντικείμενο. Δοκίμασε πιο κοντινή/καθαρή λήψη ή πες μου τι είναι.' }]); setBusy(false); return; }
+      const val = d.price ? Math.round(parseFloat(String(d.price).replace(/[^\d.]/g, '')) || 0) : 0;
+      const category = d.category && CATS.includes(d.category) ? d.category : undefined;
+      const action = { type: 'inventory' as const, name, category, value: val > 0 ? val : undefined, brand: d.brand || undefined, model: d.model || undefined };
+      const bits = [d.brand, d.model && `μοντ. ${d.model}`, val > 0 && `~${val}€`, category].filter(Boolean).join(' · ');
+      setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα: ${name}${bits ? ` (${bits})` : ''}. Να το καταγράψω στην Απογραφή;`, action }]);
+    } catch { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να διαβάσω τη φωτογραφία τώρα. Δοκίμασε ξανά.' }]); }
+    finally { setBusy(false); }
+  };
+
   const initial = (identity.name || 'A').trim().charAt(0).toUpperCase();
   const greeting = hasIdentity
     ? (identity.formal
@@ -835,6 +877,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
               {/* Είσοδος */}
               <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)', alignItems: 'center' }}>
+                <input ref={imgRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) askImage(f); e.currentTarget.value = ''; }} />
+                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία αντικειμένου" title="Φωτογράφισε ένα αντικείμενο για καταγραφή στην Απογραφή"
+                  style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.2" /></svg>
+                </button>
                 {supportsSTT && (
                   <button onClick={toggleMic} disabled={busy} aria-label={listening ? 'Σταμάτα' : 'Μίλα'} title={listening ? 'Σταμάτα' : 'Μίλα στα ελληνικά'}
                     style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: listening ? 'var(--negative)' : 'var(--bg-elevated)', color: listening ? '#fff' : 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'pa-pulse 1.1s infinite' : 'none' }}>
