@@ -734,12 +734,9 @@ export default function TabDocuments({
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
           <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
-            right={<div style={{ display: 'flex', gap: 4 }}>
-              <button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
-                <svg {...S} width={16} height={16}><path d={uploadMin ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'}/></svg>
-              </button>
-              <button onClick={() => { setShowUpload(false); setUploadMin(false); }} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}><IconX/></button>
-            </div>}/>
+            right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
+              {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
+            </button>}/>
 
           {!uploadMin && (<>
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
