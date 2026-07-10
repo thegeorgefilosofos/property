@@ -1020,9 +1020,9 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
 }
 
 // ─── Contact Dossier (πλήρες προφίλ επαφής, slide-in) ───────────────────────────
-function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, branding, notify }: {
-  contact: Contact; onClose: () => void; onEdit: () => void; onDelete: () => void
-  onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void
+function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, notify }: {
+  contact: Contact; propertyId: string; onClose: () => void; onEdit: () => void; onDelete: () => void
+  onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void; onVcard: () => void
   branding?: ReportBranding | null; notify: (m: string) => void
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
@@ -1032,8 +1032,22 @@ function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, on
   const digits = (p?: string | null) => { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '30' + d : d }
   const site = extra.website ? (/^https?:\/\//.test(extra.website) ? extra.website : 'https://' + extra.website) : ''
   const maps = extra.office_address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(extra.office_address) : ''
+  const mapEmbed = extra.office_address ? 'https://maps.google.com/maps?q=' + encodeURIComponent(extra.office_address) + '&z=15&output=embed' : ''
   const copy = (t: string, label: string) => { try { navigator.clipboard.writeText(t); notify(label + ' αντιγράφηκε') } catch { /* ignore */ } }
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
+  // Σύνδεση με δαπάνες: σύνολο + πλήθος πληρωμών προς αυτόν τον επαγγελματία.
+  const [exp, setExp] = useState<{ total: number; count: number }>({ total: 0, count: 0 })
+  useEffect(() => {
+    let live = true
+    const nm = (contact.full_name || '').trim()
+    if (nm.length < 3) { setExp({ total: 0, count: 0 }); return }
+    const q = nm.replace(/[%_\\]/g, '\\$&')   // escape χαρακτήρες LIKE
+    supabase.from('expenses').select('amount').eq('property_id', propertyId).ilike('description', `%${q}%`).then(({ data }) => {
+      if (!live || !data) return
+      setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length })
+    })
+    return () => { live = false }
+  }, [contact.id, contact.full_name, propertyId])
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
 
   const Row = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>; children: React.ReactNode; onCopy?: () => void }) => (
@@ -1084,6 +1098,17 @@ function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, on
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {exp.count > 0 && (
+            <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{exp.total.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}</div>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
+            </button>
+          )}
+
           {(contact.phone || extra.phone2 || contact.email || extra.office_address || extra.schedule) && (
             <Section title="Στοιχεία επικοινωνίας">
               {contact.phone && <Row icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></Row>}
@@ -1092,6 +1117,12 @@ function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, on
               {extra.office_address && <Row icon={MapPin}>{extra.office_address}</Row>}
               {extra.schedule && <Row icon={Clock}>{extra.schedule}</Row>}
             </Section>
+          )}
+
+          {mapEmbed && (
+            <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <iframe title="Χάρτης τοποθεσίας" src={mapEmbed} style={{ width: '100%', height: 170, border: 0, display: 'block' }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+            </div>
           )}
 
           {(extra.afm || extra.license_number || extra.iban || extra.iban2) && (
@@ -1149,6 +1180,7 @@ function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, on
             { Icon: CalendarPlus, label: 'Ραντεβού', onClick: onQuickCalendar },
             { Icon: History, label: 'Ιστορικό', onClick: onShowHistory },
             { Icon: QrCode, label: 'QR', onClick: onShowQR },
+            { Icon: FileText, label: 'vCard', onClick: onVcard },
             { Icon: Printer, label: 'Εκτύπωση', onClick: () => printContactCard(contact, branding) },
           ].map((a, i) => (
             <button key={i} type="button" onClick={a.onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
@@ -1231,6 +1263,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [detailContact, setDetailContact] = useState<Contact | null>(null)   // πλήρες προφίλ (dossier)
   const [scanning, setScanning] = useState(false)   // σάρωση κάρτας/τιμολογίου με AI
   const cardRef = useRef<HTMLInputElement>(null)
+  const [dup, setDup] = useState<Contact | null>(null)   // υποψήφιο διπλότυπο (ίδιο τηλέφωνο/ΑΦΜ)
+  const [importing, setImporting] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [quickExpense, setQuickExpense] = useState<Contact | null>(null)
   const [quickCalendar, setQuickCalendar] = useState<Contact | null>(null)
@@ -1290,25 +1325,133 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       showToast(has(d.full_name) ? 'Έλεγξε τα στοιχεία και αποθήκευσε' : 'Συμπλήρωσε τα στοιχεία που λείπουν')
     } catch { setScanning(false); showToast('Παρουσιάστηκε σφάλμα στη σάρωση') }
   }
+  // ── Εισαγωγή από αρχείο (.vcf / .csv) ──
+  const importFromFile = async (file: File) => {
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const rows: { name: string; phone?: string; email?: string; role?: string }[] = []
+      if (/\.vcf$/i.test(file.name) || /BEGIN:VCARD/i.test(text)) {
+        text.split(/END:VCARD/i).forEach(block => {
+          if (!/BEGIN:VCARD/i.test(block)) return
+          const fn = (block.match(/\nFN[^:\n]*:(.+)/i)?.[1] || '').trim()
+          const org = (block.match(/\nORG[^:\n]*:(.+)/i)?.[1] || '').split(';')[0].trim()
+          const tel = (block.match(/\nTEL[^:\n]*:(.+)/i)?.[1] || '').trim()
+          const em = (block.match(/\nEMAIL[^:\n]*:(.+)/i)?.[1] || '').trim()
+          const nm = fn || org
+          if (nm) rows.push({ name: nm, phone: tel, email: em, role: org })
+        })
+      } else {
+        const lines = text.split(/\r?\n/).filter(l => l.trim())
+        const start = /name|όνομα|ονομα/i.test(lines[0] || '') ? 1 : 0
+        for (let i = start; i < lines.length; i++) {
+          const cols = lines[i].split(/[,;]/).map(s => s.trim().replace(/^"|"$/g, ''))
+          if (cols[0]) rows.push({ name: cols[0], phone: cols[1], email: cols[2], role: cols[3] })
+        }
+      }
+      if (!rows.length) { setImporting(false); showToast('Δεν βρέθηκαν επαφές στο αρχείο'); return }
+      const seen = new Set(contacts.map(c => onlyDigits(c.phone)).filter(p => p.length >= 8))
+      let added = 0
+      for (const r of rows) {
+        const ph = onlyDigits(r.phone)
+        if (ph && ph.length >= 8 && seen.has(ph)) continue
+        const role = (r.role && ROLE_META[r.role.toLowerCase()]) ? r.role.toLowerCase() : (inferRole([r.role, r.name].filter(Boolean).join(' ')) || 'other')
+        const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: r.name.slice(0, 120), role, phone: r.phone?.trim() || null, email: r.email?.trim() || null, notes: serializeNotes({} as ContactExtra, '') })
+        if (!e) { added++; if (ph) seen.add(ph) }
+      }
+      setImporting(false); fetchContacts(); showToast(added ? `Εισήχθησαν ${added} επαφές` : 'Καμία νέα επαφή (πιθανά διπλότυπα)')
+    } catch { setImporting(false); showToast('Σφάλμα εισαγωγής αρχείου') }
+  }
+  // ── Επιλογή από τις επαφές του τηλεφώνου (Contacts Picker API, mobile) ──
+  const supportsPicker = typeof navigator !== 'undefined' && !!(navigator as unknown as { contacts?: { select?: unknown } }).contacts?.select
+  const pickFromPhone = async () => {
+    const api = (navigator as unknown as { contacts?: { select?: (p: string[], o: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[]; email?: string[] }>> } }).contacts
+    if (!api?.select) { showToast('Δεν υποστηρίζεται σε αυτή τη συσκευή'); return }
+    try {
+      const picked = await api.select(['name', 'tel', 'email'], { multiple: true })
+      if (!picked?.length) return
+      const seen = new Set(contacts.map(c => onlyDigits(c.phone)).filter(p => p.length >= 8))
+      let added = 0
+      for (const p of picked) {
+        const name = (p.name?.[0] || '').trim(); const phone = (p.tel?.[0] || '').trim(); const email = (p.email?.[0] || '').trim()
+        if (!name) continue
+        const ph = onlyDigits(phone)
+        if (ph && ph.length >= 8 && seen.has(ph)) continue
+        const { error: e } = await supabase.from('contacts').insert({ property_id: propertyId, user_id: userId, full_name: name.slice(0, 120), role: 'other', phone: phone || null, email: email || null, notes: serializeNotes({} as ContactExtra, '') })
+        if (!e) { added++; if (ph) seen.add(ph) }
+      }
+      fetchContacts(); showToast(added ? `Προστέθηκαν ${added} επαφές` : 'Καμία νέα επαφή')
+    } catch { /* ο χρήστης ακύρωσε */ }
+  }
+  // ── Εξαγωγή vCard ──
+  const vcardFor = (c: Contact) => ['BEGIN:VCARD', 'VERSION:3.0', `FN:${c.full_name}`, c._extra?.specialty ? `TITLE:${c._extra.specialty}` : '', c.phone ? `TEL:${c.phone}` : '', c._extra?.phone2 ? `TEL:${c._extra.phone2}` : '', c.email ? `EMAIL:${c.email}` : '', c._extra?.website ? `URL:${c._extra.website}` : '', c._extra?.office_address ? `ADR:;;${c._extra.office_address};;;;` : '', 'END:VCARD'].filter(Boolean).join('\n')
+  const downloadVcf = (list: Contact[], name: string) => {
+    const blob = new Blob([list.map(vcardFor).join('\n')], { type: 'text/vcard' }); const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url)
+  }
+
   const openEdit = (c: Contact) => { setEditContact(c); setForm({ full_name: c.full_name, role: c.role, phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.rating || c._extra?.next_appointment)); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditContact(null); setError(null) }
   const setExtra = (key: keyof ContactExtra, value: unknown) => setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
 
-  const handleSave = async () => {
-    if (!form.full_name.trim()) { setError('Το ονοματεπώνυμο είναι υποχρεωτικό.'); return }
-    setSaving(true); setError(null)
-    const payload = { full_name: form.full_name.trim(), role: form.role, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
-    if (editContact) {
-      const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
-      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
-    } else {
-      const { error: e } = await supabase.from('contacts').insert({ ...payload, property_id: propertyId, user_id: userId })
-      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
-    }
-    setSaving(false); closeModal(); fetchContacts(); showToast(editContact ? 'Επαφή ενημερώθηκε' : 'Επαφή προστέθηκε')
+  // ── Εντοπισμός διπλότυπου (ίδιο τηλέφωνο ≥8 ψηφία ή ίδιο ΑΦΜ) ──
+  const onlyDigits = (s?: string | null) => (s || '').replace(/\D/g, '')
+  const findDuplicate = (): Contact | null => {
+    const ph = onlyDigits(form.phone); const afm = onlyDigits(form.extra.afm)
+    return contacts.find(c => c.id !== editContact?.id && (
+      (ph.length >= 8 && onlyDigits(c.phone) === ph) ||
+      (afm.length >= 9 && onlyDigits(c._extra?.afm) === afm)
+    )) || null
+  }
+  // Για συγχώνευση: κρατάμε μόνο τα «γεμάτα» πεδία του νέου (τα false/0/κενά δεν
+  // σβήνουν υπάρχουσες τιμές, π.χ. προτιμώμενη/αξιολόγηση/WhatsApp της παλιάς επαφής).
+  const cleanExtra = (e: ContactExtra): Partial<ContactExtra> => {
+    const out: Record<string, unknown> = {}
+    Object.entries(e).forEach(([k, v]) => { if (!v) return; if (Array.isArray(v) && v.length === 0) return; out[k] = v })
+    return out as Partial<ContactExtra>
+  }
+  // Συγχρονισμός υπενθύμισης/ραντεβού επαφής στο ημερολόγιο, ώστε να στέλνεται ειδοποίηση.
+  const syncContactReminder = async (contactId: string, name: string) => {
+    try {
+      const src = `contact:${contactId}:reminder`
+      await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src)
+      const date = form.extra.next_appointment || (((form.extra.reminder_days || 0) > 0) ? form.extra.reminder_set : '')
+      if (date) await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Επικοινωνία: ${name}`, category: 'reminder', event_date: date, amount: null, priority: 'medium', status: 'pending', recurring: false, source: src, notes: form.extra.specialty || null })
+    } catch { /* best-effort */ }
   }
 
-  const handleDelete = async (id: string) => { await supabase.from('contacts').delete().eq('id', id); setDeleteId(null); fetchContacts(); showToast('Επαφή διαγράφηκε') }
+  const persist = async (mode: 'update' | 'insert' | 'merge', target?: Contact) => {
+    setSaving(true); setError(null)
+    const name = form.full_name.trim()
+    if (mode === 'merge' && target) {
+      const mergedExtra = { ...(target._extra || {}), ...cleanExtra(form.extra) }
+      const mergedNotes = [target._freeNotes, form.freeNotes].filter(Boolean).join('\n').trim()
+      const mergedRole = (form.role && form.role !== 'other') ? form.role : target.role
+      const { error: e } = await supabase.from('contacts').update({ full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) }).eq('id', target.id)
+      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+      await syncContactReminder(target.id, name || target.full_name)
+      setSaving(false); setDup(null); closeModal(); fetchContacts(); showToast('Οι επαφές συγχωνεύθηκαν'); return
+    }
+    const payload = { full_name: name, role: form.role, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
+    if (mode === 'update' && editContact) {
+      const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
+      if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+      await syncContactReminder(editContact.id, name)
+      setSaving(false); closeModal(); fetchContacts(); showToast('Επαφή ενημερώθηκε'); return
+    }
+    const { data: ins, error: e } = await supabase.from('contacts').insert({ ...payload, property_id: propertyId, user_id: userId }).select('id').single()
+    if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
+    if (ins?.id) await syncContactReminder(ins.id, name)
+    setSaving(false); setDup(null); closeModal(); fetchContacts(); showToast('Επαφή προστέθηκε')
+  }
+
+  const handleSave = async () => {
+    if (!form.full_name.trim()) { setError('Το ονοματεπώνυμο είναι υποχρεωτικό.'); return }
+    if (!editContact) { const d = findDuplicate(); if (d) { setDup(d); return } }
+    await persist(editContact ? 'update' : 'insert')
+  }
+
+  const handleDelete = async (id: string) => { await supabase.from('contacts').delete().eq('id', id); try { await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', `contact:${id}:reminder`) } catch { /* best-effort */ } setDeleteId(null); fetchContacts(); showToast('Επαφή διαγράφηκε') }
   const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   const bulkDelete = async () => { if (!selected.size || !confirm(`Διαγραφή ${selected.size} επαφών;`)) return; await Promise.all([...selected].map(id => supabase.from('contacts').delete().eq('id', id))); setSelected(new Set()); setBulkMode(false); fetchContacts(); showToast(`${selected.size} επαφές διαγράφηκαν`) }
   const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails) }
@@ -1354,6 +1497,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(26,115,232,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
       <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
+      <input ref={importRef} type="file" accept=".vcf,.csv,text/vcard,text/csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) importFromFile(f); e.currentTarget.value = '' }} />
       {scanning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
@@ -1371,6 +1515,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <Btn variant={bulkMode ? 'secondary' : 'ghost'} onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
           <Btn variant="ghost" onClick={() => exportContactsExcel(contacts)}>Εξαγωγή Excel</Btn>
           <Btn variant="ghost" onClick={() => exportContactsPDF(contacts, branding)}>Εξαγωγή PDF</Btn>
+          <Btn variant="ghost" onClick={() => downloadVcf(contacts, 'epafes.vcf')}>Εξαγωγή vCard</Btn>
+          <Btn variant="ghost" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>
+          {supportsPicker && <Btn variant="ghost" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}
           <Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
         </div> : undefined}
@@ -1496,7 +1643,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         <EmptyState
           title="Δεν υπάρχουν επαφές"
           hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου. Ή σκάναρε μια επαγγελματική κάρτα και συμπληρώνονται αυτόματα."
-          action={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}><Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn><Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn></div>}
+          action={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}><Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn><Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn><Btn variant="ghost" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>{supportsPicker && <Btn variant="ghost" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}</div>}
         />
       ) : processed.length === 0 ? (
         <EmptyState title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
@@ -1709,7 +1856,28 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
-      {detailContact && <ContactDossier contact={detailContact} branding={branding} notify={showToast} onClose={() => setDetailContact(null)}
+      {dup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: 20 }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Υπάρχει ήδη παρόμοια επαφή</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.55 }}>Βρέθηκε επαφή με το ίδιο τηλέφωνο ή ΑΦΜ. Θέλεις να τη συγχωνεύσεις (να συμπληρωθούν τα νέα στοιχεία) ή να δημιουργήσεις ξεχωριστή εγγραφή;</p>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{dup.full_name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {dup.phone && <span style={{ fontFamily: T.font.mono }}>{dup.phone}</span>}
+                {dup._extra?.afm && <span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ {dup._extra.afm}</span>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setDup(null)} style={{ flex: 1, minWidth: 90, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }}>Ακύρωση</button>
+              <button type="button" onClick={() => persist('insert')} disabled={saving} style={{ flex: 1, minWidth: 120, padding: '11px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Ξεχωριστή</button>
+              <button type="button" onClick={() => persist('merge', dup)} disabled={saving} style={{ flex: 1.4, minWidth: 130, padding: '11px 0', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Συγχώνευση…' : 'Συγχώνευση'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailContact && <ContactDossier contact={detailContact} propertyId={propertyId} branding={branding} notify={showToast} onVcard={() => downloadVcf([detailContact], (detailContact.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailContact(null)}
         onEdit={() => { const c = detailContact; setDetailContact(null); openEdit(c) }}
         onDelete={() => { const id = detailContact.id; setDetailContact(null); setDeleteId(id) }}
         onQuickExpense={() => { const c = detailContact; setDetailContact(null); setQuickExpense(c) }}
