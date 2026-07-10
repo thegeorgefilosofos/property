@@ -462,7 +462,9 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data } = await supabase.from('expenses').select('id,description,amount,date').eq('property_id', propertyId).ilike('description', `%${contact.full_name}%`).order('date', { ascending: false }).limit(10)
+      const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
+      const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
+      const { data } = await supabase.from('expenses').select('id,description,amount,date').eq('property_id', propertyId).or(filter).order('date', { ascending: false }).limit(20)
       setExpenses(data || []); setLoading(false)
     }
     load()
@@ -543,7 +545,7 @@ function printContactCard(contact: Contact, branding?: ReportBranding | null) {
 // ─── Quick Modals ─────────────────────────────────────────────────────────────
 function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = useState(''); const [description, setDescription] = useState(contact.full_name); const [saving, setSaving] = useState(false)
-  const save = async () => { if (!amount) return; setSaving(true); await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, amount: parseFloat(amount), description, date: new Date().toISOString().split('T')[0], category: 'Αμοιβές Συνεργατών' }); setSaving(false); onSaved(); onClose() }
+  const save = async () => { if (!amount) return; setSaving(true); await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, contact_id: contact.id, amount: parseFloat(amount), description, date: new Date().toISOString().split('T')[0], category: 'Αμοιβές Συνεργατών' }); setSaving(false); onSaved(); onClose() }
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
@@ -1039,10 +1041,10 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   const [exp, setExp] = useState<{ total: number; count: number }>({ total: 0, count: 0 })
   useEffect(() => {
     let live = true
-    const nm = (contact.full_name || '').trim()
-    if (nm.length < 3) { setExp({ total: 0, count: 0 }); return }
-    const q = nm.replace(/[%_\\]/g, '\\$&')   // escape χαρακτήρες LIKE
-    supabase.from('expenses').select('amount').eq('property_id', propertyId).ilike('description', `%${q}%`).then(({ data }) => {
+    // Ταιριάζει με contact_id (νέες δαπάνες) ή με το όνομα στην περιγραφή (παλιές).
+    const nm = (contact.full_name || '').replace(/[,()*%\\]/g, ' ').trim()
+    const filter = nm.length >= 3 ? `contact_id.eq.${contact.id},description.ilike.*${nm}*` : `contact_id.eq.${contact.id}`
+    supabase.from('expenses').select('amount').eq('property_id', propertyId).or(filter).then(({ data }) => {
       if (!live || !data) return
       setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length })
     })
