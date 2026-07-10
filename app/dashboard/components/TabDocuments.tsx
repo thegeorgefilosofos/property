@@ -210,6 +210,16 @@ const FolderGlyph = ({ k, size = 22 }: { k: FolderKey; size?: number }) => {
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">{p[k]}</svg>;
 };
+// Εικονίδιο υποφακέλου (πάροχος ή έτος) — ΕΝΑ σημείο αλήθειας αντί για διπλό inline SVG.
+const SubfolderGlyph = ({ mode, size = 20 }: { mode: 'provider' | 'date'; size?: number }) => (
+  <svg {...S} width={size} height={size}>{mode === 'provider'
+    ? <><path d="M4 20V8a2 2 0 0 1 2-2h3l2-2h4a2 2 0 0 1 2 2v2"/><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></>
+    : <><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></>}</svg>
+);
+// Σταθερό «×» (κλείσιμο/διαγραφή) — αντικαθιστά τα επαναλαμβανόμενα inline SVG.
+const IconX = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+);
 
 export default function TabDocuments({
   propertyId, userId, embedded, profileType = 'individual',
@@ -574,7 +584,7 @@ export default function TabDocuments({
       {showUpload && (
         <div className="card">
           <SecHdr label="Αρχειοθέτηση νέου εγγράφου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
-            right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}/>
+            right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}><IconX/></button>}/>
 
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
             {([['document', 'Έγγραφο'], ['photo', 'Φωτογραφία']] as const).map(([k, l]) => (
@@ -679,7 +689,7 @@ export default function TabDocuments({
           <svg {...S} width={15} height={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Αναζήτηση σε όλο το αρχείο…"
             style={{ width: '100%', height: 38, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
-          {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
+          {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
         </div>
 
         <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, overflow: 'hidden' }}>
@@ -708,11 +718,11 @@ export default function TabDocuments({
               action={<Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
           ) : view === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-              {FOLDERS.map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key] || 0} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
+              {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
             </div>
           ) : (
             <div className="card" style={{ padding: 8 }}>
-              {FOLDERS.map(f => <FolderRow key={f.key} k={f.key} label={f.label} count={counts.count[f.key] || 0} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
+              {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderRow key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
             </div>
           )
         ) : subKey == null ? (
@@ -766,21 +776,22 @@ function byDateDesc(a: Item, b: Item) {
   return bd - ad;
 }
 
-/* ── Κάρτα φακέλου (πλέγμα) ──────────────────────────────────────────────── */
+/* ── Κάρτα φακέλου (πλέγμα) ── εμφανίζονται μόνο φάκελοι με περιεχόμενο ──────── */
 function FolderCardGrid({ k, label, count, value, onClick }: { k: FolderKey; label: string; count: number; value?: number; onClick: () => void }) {
-  const empty = count === 0;
   return (
-    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, opacity: empty ? 0.55 : 1, border: '1px solid var(--border-subtle)' }}>
+    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border-subtle)', transition: `border-color 0.16s ${T.ease.standard}, transform 0.16s ${T.ease.standard}, box-shadow 0.16s ${T.ease.standard}` }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 42, height: 42, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FolderGlyph k={k}/>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: empty ? 'var(--text-tertiary)' : 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 9px' }}>{count}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 9px' }}>{count}</span>
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-          {value != null && value > 0 ? fe(value) : count === 0 ? 'Κενός φάκελος' : `${count} ${count === 1 ? 'αρχείο' : 'αρχεία'}`}
+          {value != null && value > 0 ? fe(value) : `${count} ${count === 1 ? 'αρχείο' : 'αρχεία'}`}
         </div>
       </div>
     </button>
@@ -788,9 +799,8 @@ function FolderCardGrid({ k, label, count, value, onClick }: { k: FolderKey; lab
 }
 
 function FolderRow({ k, label, count, value, onClick }: { k: FolderKey; label: string; count: number; value?: number; onClick: () => void }) {
-  const empty = count === 0;
   return (
-    <button onClick={onClick} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: T.radius.inner, cursor: 'pointer', opacity: empty ? 0.55 : 1 }}
+    <button onClick={onClick} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: T.radius.inner, cursor: 'pointer' }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
       <span style={{ color: 'var(--accent)', display: 'flex' }}><FolderGlyph k={k} size={19}/></span>
       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
@@ -804,12 +814,12 @@ function FolderRow({ k, label, count, value, onClick }: { k: FolderKey; label: s
 /* ── Υποφάκελος (πάροχος ή έτος) ─────────────────────────────────────────── */
 function SubfolderCardGrid({ name, mode, count, value, onClick }: { name: string; mode: 'provider' | 'date'; count: number; value?: number; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border-subtle)' }}>
+    <button onClick={onClick} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, border: '1px solid var(--border-subtle)', transition: `border-color 0.16s ${T.ease.standard}, transform 0.16s ${T.ease.standard}, box-shadow 0.16s ${T.ease.standard}` }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ width: 42, height: 42, borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg {...S} width={20} height={20}>{mode === 'provider'
-            ? <><path d="M4 20V8a2 2 0 0 1 2-2h3l2-2h4a2 2 0 0 1 2 2v2"/><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></>
-            : <><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></>}</svg>
+          <SubfolderGlyph mode={mode}/>
         </div>
         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '2px 9px' }}>{count}</span>
       </div>
@@ -825,11 +835,7 @@ function SubfolderRow({ name, mode, count, onClick }: { name: string; mode: 'pro
   return (
     <button onClick={onClick} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: T.radius.inner, cursor: 'pointer' }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-      <span style={{ color: 'var(--text-secondary)', display: 'flex' }}>
-        <svg {...S} width={18} height={18}>{mode === 'provider'
-          ? <><path d="M4 20V8a2 2 0 0 1 2-2h3l2-2h4a2 2 0 0 1 2 2v2"/><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></>
-          : <><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></>}</svg>
-      </span>
+      <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><SubfolderGlyph mode={mode} size={18}/></span>
       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>
       <span style={{ fontSize: 11, fontWeight: 700, fontFamily: T.font.mono, color: 'var(--text-secondary)' }}>{count}</span>
       <svg {...S} width={15} height={15} style={{ color: 'var(--text-tertiary)' }}><path d="m9 18 6-6-6-6"/></svg>
@@ -879,7 +885,7 @@ function FileInner({ items, view, showFolder, onOpenLightbox, onDelete }: {
                 ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                 : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
               {i.raw && <button onClick={e => { e.stopPropagation(); onDelete(i); }} title="Διαγραφή"
-                style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', fontSize: 13 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
+                style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
             </div>
             <div style={{ padding: '9px 11px' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.title}</div>
@@ -918,7 +924,7 @@ function FileInner({ items, view, showFolder, onOpenLightbox, onDelete }: {
           {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
           {i.raw && <button onClick={() => onDelete(i)} title="Διαγραφή"
-            style={{ width: 28, height: 28, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
+            style={{ width: 28, height: 28, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}><IconX/></button>}
         </div>
       ))}
     </div>
