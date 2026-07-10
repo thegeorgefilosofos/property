@@ -140,7 +140,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const now = new Date();
     const year = now.getFullYear();
     const month = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }] = await Promise.all([
+    const todayStr = now.toISOString().split('T')[0];
+    const [{ data: exp }, { data: bil }, { data: ten }, { data: st }, { data: cal }, { data: rates }, { data: tar }, { data: loans }, { data: clientRows }, { data: stayRows }, { data: contactRows }, { data: chk }] = await Promise.all([
       supabase.from('expenses').select('amount,category,date,paid,payment_method').eq('property_id', propertyId).eq('user_id', userId).gte('date', `${year}-01-01`),
       supabase.from('bills').select('id,name,amount,paid,due_date,category').eq('property_id', propertyId).eq('user_id', userId),
       supabase.from('tenants').select('full_name,monthly_rent,lease_end,deposit_amount').eq('property_id', propertyId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1),
@@ -152,6 +153,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       supabase.from('clients').select('id,type,full_name,afm,phone,email,rating,do_not_rent,vip,tags,budget,needs').eq('user_id', userId).order('created_at', { ascending: false }).limit(80),
       supabase.from('client_stays').select('client_id,property_id,check_in,check_out,nights,nightly_rate,total,rating,damages,damage_cost,channel,notes').eq('user_id', userId),
       supabase.from('contacts').select('full_name,role,phone,email').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('checklist_items').select('description,category,priority,due_date,status,estimated_cost,assigned_contact_name').eq('property_id', propertyId).eq('user_id', userId).neq('status', 'done').neq('status', 'skipped').order('due_date', { ascending: true, nullsFirst: false }).limit(60),
     ]);
     const expenses = exp || [];
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
@@ -185,6 +187,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const hostingLine = propStays.length
       ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
       : '';
+
+    // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε ο βοηθός
+    // να απαντά «τι εκκρεμεί;» με στοιχεία, όχι υποθέσεις, και να ξεχωρίζει τις ληξιπρόθεσμες.
+    const openTasks = chk || [];
+    const overdueTasks = openTasks.filter((i: any) => i.due_date && i.due_date < todayStr);
+    const taskCostSum = openTasks.reduce((s: number, i: any) => s + (Number(i.estimated_cost) || 0), 0);
+    const checklistLine = openTasks.length
+      ? `Ανοιχτές εκκρεμότητες (${openTasks.length}${overdueTasks.length ? `, εκ των οποίων ${overdueTasks.length} ληξιπρόθεσμες` : ''}${taskCostSum > 0 ? `, εκτιμώμενο κόστος ${eur(Math.round(taskCostSum))}` : ''}): ${openTasks.slice(0, 15).map((i: any) => `${i.description}${i.due_date ? ` [προθεσμία ${i.due_date}${i.due_date < todayStr ? ' — ΛΗΞΙΠΡΟΘΕΣΜΗ' : ''}]` : ''}${i.estimated_cost ? ` ~${eur(i.estimated_cost)}` : ''}${i.assigned_contact_name ? ` (ανάθεση: ${i.assigned_contact_name})` : ''}`).join('; ')}${openTasks.length > 15 ? ` (και ${openTasks.length - 15} ακόμη)` : ''}`
+      : 'Δεν υπάρχουν ανοιχτές εκκρεμότητες.';
 
     // ── Δυναμική τιμολόγηση: βάση + ενδεικτικός πίνακας ανά μήνα (για τον βοηθό) ──
     // Προτίμησε τη ΒΑΣΗ που έχει ορίσει ο χρήστης στην καρτέλα Τιμολόγηση (αν υπάρχει).
@@ -222,6 +233,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       loanLine,
       hostingLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
+      checklistLine,
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));
 
@@ -237,7 +249,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       rent, propValue: value, grossYield: grossY, netYield: netY, expensesYTD: total,
       expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, paid: (e as any).paid !== false, payment_method: (e as any).payment_method })),
       bills: (bil || []).map(b => ({ type: (b as any).category, amount: b.amount, paid: b.paid, due_date: (b as any).due_date })),
-      tasks: [], checklist: [], inventory: [],
+      tasks: [], inventory: [],
+      checklist: openTasks.map((i: any) => ({ due_date: i.due_date, status: i.status, priority: i.priority })),
     }).filter(i => i.id !== 'profile-incomplete');
     const KIND_TXT: Record<string, string> = { urgent: 'ΕΠΕΙΓΟΝ', attention: 'ΠΡΟΣΟΧΗ', opportunity: 'ΕΥΚΑΙΡΙΑ', positive: 'ΘΕΤΙΚΟ' };
     setInsightsStr(insights.slice(0, 6).map(i => `• [${KIND_TXT[i.kind]}] ${i.title}${i.metric ? ` (${i.metric})` : ''}: ${i.detail}`).join('\n'));
