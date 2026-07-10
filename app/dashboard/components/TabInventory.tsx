@@ -43,6 +43,7 @@ interface MaintenanceSchedule {
   id: string; property_id: string; user_id: string; item_id: string
   item_name: string; task: string; interval_months: number
   last_done: string; next_due: string; notes: string
+  est_cost?: number; calendar_event_id?: string; expense_id?: string
 }
 export interface HandoverIntent { tenantName?: string; tenantPhone?: string; type?: 'check_in'|'check_out' }
 interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
@@ -1425,31 +1426,61 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
 
 function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void;embedded?:boolean}) {
   const [adding,setAdding] = useState(false)
-  const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''})
+  const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0})
   const [saving,setSaving] = useState(false)
-  const [pushed,setPushed] = useState<Set<string>>(new Set())
   const overdue=schedules.filter(s=>daysUntil(s.next_due)<0)
   const soon=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30})
   const upcoming=schedules.filter(s=>daysUntil(s.next_due)>30)
+  const today=()=>new Date().toISOString().split('T')[0]
+  const taskTitle=(task:string,item_name:string)=>`Συντήρηση: ${task}${item_name?`, ${item_name}`:''}`
+  // Το «κύκλωμα»: μια προγραμματισμένη εργασία → εγγραφή ημερολογίου (υπενθύμιση/εκκρεμότητα)
+  // + προγραμματισμένη (εκκρεμής) δαπάνη → τροφοδοτεί προϋπολογισμό «Συντήρηση» & «Εκκρεμείς πληρωμές».
+  const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
+    const {data}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),description:est>0?`Εκτιμώμενο κόστος ${fmtEur(est)}`:'',category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
+    return (data as {id?:string}|null)?.id
+  }
+  const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
+    if(!(est>0)) return undefined
+    const {data}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(task,item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:due,paid_by:'owner',paid:false,notes:'Προγραμματισμένη δαπάνη συντήρησης (εκκρεμεί)'}).select('id').single()
+    return (data as {id?:string}|null)?.id
+  }
   const markDone=async(s:MaintenanceSchedule)=>{
-    const today=new Date().toISOString().split('T')[0]
-    await supabase.from('inventory_maintenance').update({last_done:today,next_due:addMonths(today,s.interval_months)}).eq('id',s.id)
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:today,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})
+    const t=today(); const newDue=addMonths(t,s.interval_months); const est=s.est_cost||0
+    // Η προγραμματισμένη δαπάνη γίνεται πραγματοποιημένη (πληρωμένη)· αν δεν υπήρχε, καταγράφεται τώρα.
+    if(s.expense_id) await supabase.from('expenses').update({paid:true,date:t}).eq('id',s.expense_id)
+    else if(est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(s.task,s.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:t,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    if(s.calendar_event_id) await supabase.from('calendar_events').update({status:'paid'}).eq('id',s.calendar_event_id)
+    // Ρολάρισμα + νέο κύκλωμα για την επόμενη φορά.
+    const calId=await makeCalEvent(s.task,s.item_name,newDue,est)
+    const expId=await makePlannedExpense(s.task,s.item_name,newDue,est)
+    await supabase.from('inventory_maintenance').update({last_done:t,next_due:newDue,calendar_event_id:calId||null,expense_id:expId||null}).eq('id',s.id)
     onSaved()
   }
-  const deleteSched=async(id:string)=>{await supabase.from('inventory_maintenance').delete().eq('id',id);onSaved()}
-  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,category:'maintenance',event_date:s.next_due,priority:'medium',status:'pending',source:'inventory'});setPushed(p=>new Set(p).add(s.id))}
-  const addSuggested=async(s:{task:string;interval_months:number;category:string})=>{
-    const matching=items.filter(i=>i.category===s.category)
-    const inserts=matching.length>0?matching.map(item=>({property_id:propertyId,user_id:userId,item_id:item.id,item_name:item.name,task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''})):[{property_id:propertyId,user_id:userId,item_id:'',item_name:'',task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''}]
-    await supabase.from('inventory_maintenance').insert(inserts);onSaved()
+  const deleteSched=async(s:MaintenanceSchedule)=>{
+    if(s.calendar_event_id) await supabase.from('calendar_events').delete().eq('id',s.calendar_event_id)
+    if(s.expense_id) await supabase.from('expenses').delete().eq('id',s.expense_id).eq('paid',false)
+    await supabase.from('inventory_maintenance').delete().eq('id',s.id);onSaved()
+  }
+  // «Προτεινόμενη εργασία» → ανοίγει την επεξεργάσιμη φόρμα προ-συμπληρωμένη (διάστημα/αντικείμενο/κόστος),
+  // ώστε ο χρήστης να την προσαρμόσει και μετά να μπει στο κύκλωμα (ημερολόγιο/εκκρεμότητες/δαπάνες).
+  const addSuggested=(s:{task:string;interval_months:number;category:string})=>{
+    const match=items.find(i=>i.category===s.category)
+    setForm({item_id:match?.id||'',item_name:match?.name||'',task:s.task,interval_months:s.interval_months,last_done:'',notes:'',est_cost:0})
+    setAdding(true)
   }
   const handleSave=async()=>{
     if(!form.task.trim()){alert('Η εργασία είναι υποχρεωτική.');return}
     setSaving(true)
-    await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:addMonths(form.last_done,form.interval_months),notes:form.notes})
-    if(form.last_done){await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${form.task}${form.item_name?`, ${form.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})}
-    setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''});setSaving(false);onSaved()
+    const base=form.last_done||today(); const nextDue=addMonths(base,form.interval_months); const est=form.est_cost||0
+    const {data:sched}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
+    // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
+    if(form.last_done&&est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
+    const calId=await makeCalEvent(form.task,form.item_name,nextDue,est)
+    const expId=await makePlannedExpense(form.task,form.item_name,nextDue,est)
+    const sid=(sched as {id?:string}|null)?.id
+    if(sid&&(calId||expId)) await supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid)
+    setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0});setSaving(false);onSaved()
   }
   const SchedRow=({s}:{s:MaintenanceSchedule})=>{
     const days=daysUntil(s.next_due); const c=days<0?'var(--negative)':days<=30?'var(--warning)':'var(--positive)'
@@ -1457,14 +1488,13 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
       <div style={{display:'grid',gridTemplateColumns:'1fr auto auto auto auto',gap:10,alignItems:'center',padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
         <div>
           <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
-          <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
+          <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{(s.est_cost||0)>0?` · ~${fmtEur(s.est_cost||0)}`:''}{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
         </div>
         <Badge label={days<0?`${Math.abs(days)} ημ. καθυστ.`:days===0?'Σήμερα!':`${days} ημ.`} color={c}/>
         <span style={{fontSize:11,color:'var(--text-tertiary)',whiteSpace:'nowrap',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtDate(s.next_due)}</span>
-        <button onClick={()=>markDone(s)} style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
+        <button onClick={()=>markDone(s)} title="Καταγράφει την εκτέλεση, ρολάρει στην επόμενη ημερομηνία και ενημερώνει δαπάνες/ημερολόγιο" style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
         <OverflowMenu actions={[
-          {label:pushed.has(s.id)?'Προστέθηκε στο ημερολόγιο':'Υπενθύμιση στο ημερολόγιο',icon:IconCal,onClick:()=>pushCal(s)},
-          {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm('Διαγραφή;'))deleteSched(s.id)}},
+          {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm('Διαγραφή; Θα αφαιρεθεί και η προγραμματισμένη υπενθύμιση/δαπάνη.'))deleteSched(s)}},
         ]}/>
       </div>
     )
@@ -1473,7 +1503,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <SectionLabel label="Συντήρηση" right={embedded&&schedules.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{schedules.length} {schedules.length===1?'εργασία':'εργασίες'}</span>:undefined}/>
-        <button onClick={()=>setAdding(a=>!a)} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:adding?'var(--bg-elevated)':'var(--accent)',border:adding?'1px solid var(--border-default)':'none',color:adding?'var(--text-secondary)':'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>{adding?'Κλείσιμο':'+ Νέα Εργασία'}</button>
+        {!adding&&<button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέα Εργασία</button>}
       </div>
       {adding&&(
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
@@ -1483,7 +1513,12 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
             <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'— Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
             <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
             <div><label style={labelStyle}>Τελευταία Εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>
+            <div><label style={labelStyle}>Εκτιμώμενο Κόστος (€)</label><NumberInput value={String(form.est_cost)} onChange={v=>setForm(f=>({...f,est_cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
             <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,padding:'9px 12px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Με την αποθήκευση μπαίνει αυτόματα στο <strong style={{color:'var(--text-primary)'}}>ημερολόγιο</strong> (με υπενθύμιση email πριν λήξει){form.est_cost>0?<> και ως <strong style={{color:'var(--text-primary)'}}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό «Συντήρηση»</>:''}.</p>
           </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
             <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
