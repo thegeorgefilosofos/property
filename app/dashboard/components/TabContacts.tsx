@@ -433,7 +433,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
   const notesLog = contact._extra?.notes_log || []
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const timeline = [
-    ...expenses.map(e => ({ date: e.date, title: e.description, sub: e.amount?.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }), color: 'var(--negative)' })),
+    ...expenses.map(e => ({ date: e.date, title: e.description, sub: e.amount?.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }), color: 'var(--text-secondary)' })),
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15)
   return (
@@ -447,7 +447,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
           {loading ? <Spinner label="Φόρτωση…" /> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? totalExpenses.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : '—', color: 'var(--negative)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--accent)' }].map(s => (
+                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? totalExpenses.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : '—', color: 'var(--text-primary)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
@@ -511,7 +511,7 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,59,48,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={18} color="var(--negative)" /></div>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={18} color="var(--accent)" /></div>
           <div><h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Νέα Δαπάνη</h3><p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{contact.full_name}</p></div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -891,7 +891,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div role="menu" style={{ position: 'absolute', top: 38, right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
               {[
                 { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit, color: 'var(--text-secondary)' },
-                { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--negative)' },
+                { Icon: Receipt, label: 'Νέα Δαπάνη', onClick: onQuickExpense, color: 'var(--text-secondary)' },
                 { Icon: CalendarPlus, label: 'Νέο Ραντεβού', onClick: onQuickCalendar, color: 'var(--text-secondary)' },
                 { Icon: History, label: 'Ιστορικό Συνεργασίας', onClick: onShowHistory, color: 'var(--text-secondary)' },
                 { Icon: QrCode, label: 'QR Code', onClick: onShowQR, color: 'var(--accent)' },
@@ -1009,7 +1009,6 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   const GroupIcon = meta.GroupIcon || Users
   const digits = (p?: string | null) => { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '30' + d : d }
   const site = extra.website ? (/^https?:\/\//.test(extra.website) ? extra.website : 'https://' + extra.website) : ''
-  const maps = extra.office_address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(extra.office_address) : ''
   const mapEmbed = extra.office_address ? 'https://maps.google.com/maps?q=' + encodeURIComponent(extra.office_address) + '&z=15&output=embed' : ''
   const copy = (t: string, label: string) => { try { navigator.clipboard.writeText(t); notify(label + ' αντιγράφηκε') } catch { /* ignore */ } }
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
@@ -1043,7 +1042,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   )
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
         <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}}`}</style>
 
@@ -1072,7 +1071,6 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           {contact.phone && <CommButton label="Viber" Icon={Phone} href={'viber://chat?number=' + digits(contact.phone)} />}
           {contact.email && <CommButton label="Email" Icon={Mail} href={'mailto:' + contact.email} />}
           {site && <CommButton label="Ιστοσελίδα" Icon={Globe} href={site} target="_blank" />}
-          {maps && <CommButton label="Χάρτης" Icon={MapPin} href={maps} target="_blank" />}
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1238,7 +1236,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [sortMode, setSortMode] = useState<SortMode>('recent')
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const [showMore, setShowMore] = useState(false)   // πτυσσόμενες προαιρετικές λεπτομέρειες στη φόρμα
-  const [detailContact, setDetailContact] = useState<Contact | null>(null)   // πλήρες προφίλ (dossier)
+  const [detailId, setDetailId] = useState<string | null>(null)   // ανοιχτό προφίλ (dossier), ζωντανό από τη λίστα
   const [scanning, setScanning] = useState(false)   // σάρωση κάρτας/τιμολογίου με AI
   const cardRef = useRef<HTMLInputElement>(null)
   const [dup, setDup] = useState<Contact | null>(null)   // υποψήφιο διπλότυπο (ίδιο τηλέφωνο/ΑΦΜ)
@@ -1471,6 +1469,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   ]
   const initials = form.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
   const formColor = ROLE_META[form.role]?.groupColor || 'var(--text-tertiary)'
+  const detail = detailId ? (contacts.find(c => c.id === detailId) || null) : null   // ζωντανό (ανανεώνεται μετά από edit/refresh)
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1080, margin: '0 auto', fontFamily: T.font.sans }}>
@@ -1644,7 +1643,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
             <div style={{ width: 100, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Κατάσταση</div>
           </div>
-          {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailContact(c)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
+          {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>
@@ -1653,7 +1652,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
-                  <ContactCard key={c.id} contact={c} onOpen={() => setDetailContact(c)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
+                  <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
                 ))}
               </div>
             </div>
@@ -1863,13 +1862,13 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
-      {detailContact && <ContactDossier contact={detailContact} propertyId={propertyId} branding={branding} notify={showToast} onVcard={() => downloadVcf([detailContact], (detailContact.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailContact(null)}
-        onEdit={() => { const c = detailContact; setDetailContact(null); openEdit(c) }}
-        onDelete={() => { const id = detailContact.id; setDetailContact(null); setDeleteId(id) }}
-        onQuickExpense={() => { const c = detailContact; setDetailContact(null); setQuickExpense(c) }}
-        onQuickCalendar={() => { const c = detailContact; setDetailContact(null); setQuickCalendar(c) }}
-        onShowHistory={() => { const c = detailContact; setDetailContact(null); setHistoryContact(c) }}
-        onShowQR={() => { const c = detailContact; setDetailContact(null); setQrContact(c) }} />}
+      {detail && <ContactDossier contact={detail} propertyId={propertyId} branding={branding} notify={showToast} onVcard={() => downloadVcf([detail], (detail.full_name || 'epafi').replace(/[^\w.\-]+/g, '_') + '.vcf')} onClose={() => setDetailId(null)}
+        onEdit={() => openEdit(detail)}
+        onDelete={() => setDeleteId(detail.id)}
+        onQuickExpense={() => setQuickExpense(detail)}
+        onQuickCalendar={() => setQuickCalendar(detail)}
+        onShowHistory={() => setHistoryContact(detail)}
+        onShowQR={() => setQrContact(detail)} />}
       {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => showToast('Δαπάνη αποθηκεύτηκε')} />}
       {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={() => showToast('Ραντεβού προστέθηκε')} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
