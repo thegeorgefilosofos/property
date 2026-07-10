@@ -1378,10 +1378,18 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
     setUploadingId(null)
   }
+  // Reset ΜΟΝΟ όταν μπαίνουμε σε νέο πρωτόκολλο (αλλαγή mode), όχι σε κάθε refetch των items.
   useEffect(()=>{
     if(mode==='new'){const init:Record<string,{condition:string;notes:string;photo?:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
     if(mode==='list')setFromTenant('')
-  },[mode,items])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[mode])
+  // Αν αλλάξουν τα items ενώ συμπληρώνουμε, πρόσθεσε μόνο τα νέα — διατήρησε κατάσταση/σημειώσεις/φωτο σε εξέλιξη.
+  useEffect(()=>{
+    if(mode!=='new') return
+    setItemConds(prev=>{const next={...prev};items.forEach(i=>{if(!next[i.id])next[i.id]={condition:i.condition,notes:''}});return next})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[items])
   // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το όνομα/τηλέφωνο/τύπο έτοιμα.
   useEffect(()=>{
     if(seed){
