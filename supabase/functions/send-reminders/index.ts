@@ -3,6 +3,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+// Μυστικό cron: μόνο ο προγραμματιστής (pg_cron) που στέλνει το σωστό x-cron-secret
+// μπορεί να πυροδοτήσει το sweep. Ίδιο μοτίβο με το ical-sync (least privilege — ΔΕΝ
+// χρειάζεται πια το service-role key στην κλήση). Το function κρατά το δικό του
+// service key εσωτερικά για τα queries.
+const CRON_SECRET    = Deno.env.get('REMINDERS_CRON_SECRET') || ''
 const FROM_EMAIL     = 'Property OS <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
@@ -139,7 +144,14 @@ async function sendEmail(to: string, subject: string, html: string) {
   return res.ok
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  // Πύλη ασφαλείας: απαιτεί το σωστό x-cron-secret (το θέτει το pg_cron). Χωρίς
+  // ρυθμισμένο μυστικό ή με λάθος τιμή → 401, ώστε το endpoint να μην πυροδοτείται δημόσια.
+  const cronHeader = req.headers.get('x-cron-secret') || ''
+  if (!CRON_SECRET || cronHeader !== CRON_SECRET) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+  }
+
   const today = new Date(); today.setHours(0,0,0,0)
   const todayStr = today.toISOString().split('T')[0]
   const in1day  = new Date(today); in1day.setDate(today.getDate()+1)
