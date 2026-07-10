@@ -793,6 +793,15 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
   const badEnergy = electricItems.filter(i=>!['A+++','A++','A+'].includes(i.energy_class||''))
   const potSavings = badEnergy.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice)*12*0.5,0)
   const totalDiscount = items.reduce((s,i)=>s+((i.original_price||0)-(i.purchase_value||0)),0)
+  // Ενοποιημένο «κέντρο ενεργειών»: ό,τι χρειάζεται προσοχή, σε μία λίστα με προτεραιότητα (χωρίς 3 σκόρπιες κάρτες).
+  const attention = (() => {
+    const out: {item:InventoryItem;sev:string;label:string;rank:number;kind:'cond'|'repl'|'warr'}[] = []
+    const seen = new Set<string>()
+    badCondition.forEach(i=>{out.push({item:i,sev:'var(--negative)',label:'Κακή κατάσταση',rank:0,kind:'cond'});seen.add(i.id)})
+    needReplacement.forEach(i=>{if(seen.has(i.id))return;out.push({item:i,sev:'var(--warning)',label:'Προτείνεται αντικατάσταση',rank:1,kind:'repl'});seen.add(i.id)})
+    warrantySoon.forEach(i=>{if(seen.has(i.id))return;out.push({item:i,sev:'var(--accent)',label:'Εγγύηση λήγει σύντομα',rank:2,kind:'warr'});seen.add(i.id)})
+    return out.sort((a,b)=>a.rank-b.rank)
+  })()
 
   if(items.length===0) return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 20px',gap:20,textAlign:'center'}}>
@@ -817,28 +826,66 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <KPIGrid items={[
-        {label:'Αντικείμενα',value:String(items.length),sub:`${byCategory.length} κατηγορίες`},
-        {label:'Τρέχουσα Αξία',value:fmtEur(totalCurrent),sub:'Μετά απόσβεση'},
+        {label:'Αντικείμενα',value:String(items.length),sub:`${byCategory.length} ${byCategory.length===1?'κατηγορία':'κατηγορίες'}`},
+        {label:'Τρέχουσα Αξία',value:fmtEur(totalCurrent),sub:summary.totalOriginal>0?`από ${fmtEur(summary.totalOriginal)}`:'μετά απόσβεση'},
         {label:'Ασφαλιστέα Αξία',value:fmtEur(Math.round(totalCurrent*1.1)),sub:'+10% περιθώριο'},
-        {label:'Επισκευές',value:fmtEur(totalRepairs)},
         electricItems.length>0
-          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh/μήνα`,tone:'accent' as const}
-          :{label:'Ρεύμα',value:'—',sub:'Πρόσθεσε Watt'},
+          ?{label:'Ρεύμα/Μήνα',value:fmtEurC(totalMonthlyCost),sub:`${Math.round(electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0))} kWh`,tone:'accent' as const}
+          :{label:'Ρεύμα/Μήνα',value:'—',sub:'Πρόσθεσε Watt'},
       ]}/>
-      {summary.totalOriginal>0&&(
+
+      {/* Κέντρο ενεργειών — μία σαφής απάντηση στο «τι πρέπει να κάνω». */}
+      {attention.length===0?(
+        <div style={{...cardStyle,display:'flex',alignItems:'center',gap:14,padding:'16px 20px'}}>
+          <div style={{width:40,height:40,borderRadius:T.radius.pill,background:'var(--positive-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div style={{minWidth:0}}>
+            <p style={{fontSize:14,fontWeight:600,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Όλα εντάξει</p>
+            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Κανένα αντικείμενο δεν χρειάζεται προσοχή αυτή τη στιγμή.</p>
+          </div>
+        </div>
+      ):(
+        <div style={cardStyle}>
+          <SectionLabel label="Χρειάζονται Προσοχή" right={<Badge label={String(attention.length)} color={attention.some(a=>a.kind==='cond')?'var(--negative)':'var(--warning)'}/>}/>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {attention.slice(0,6).map(({item,sev,label,kind})=>(
+              <div key={item.id} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+                <span style={{width:7,height:7,borderRadius:'50%',background:sev,flexShrink:0}}/>
+                <div style={{minWidth:0,flex:1}}>
+                  <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
+                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}{item.room?` · ${item.room}`:''}</p>
+                </div>
+                <div style={{flexShrink:0}}>
+                  {kind==='cond'&&<Badge label={item.condition} color={CONDITION_COLOR[item.condition]}/>}
+                  {kind==='repl'&&<span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{item.replacement_cost?fmtEur(item.replacement_cost):'αντικατάσταση'}</span>}
+                  {kind==='warr'&&<Badge label={warrantyStatus(item.warranty_expiry).label} color={warrantyStatus(item.warranty_expiry).color}/>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {attention.length>6&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,marginTop:10,textAlign:'center'}}>και {attention.length-6} ακόμη στην καρτέλα Αντικείμενα</p>}
+        </div>
+      )}
+
+      <div style={{display:'grid',gridTemplateColumns:'3fr 2fr',gap:16}}>
         <div style={cardStyle}>
           <SectionLabel label={profileType==='professional'?'Απόσβεση & Αξία Χαρτοφυλακίου':'Αξία & Απόσβεση'} right={<span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>εκτιμήσεις</span>}/>
-          <div style={{marginBottom:14}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6,gap:8}}>
-              <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Διατηρούμενη αξία</span>
-              <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(summary.totalBookValue)} <span style={{color:'var(--text-tertiary)',fontWeight:400}}>/ {fmtEur(summary.totalOriginal)}</span></span>
+          {summary.totalOriginal>0?(
+            <div style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6,gap:8}}>
+                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Διατηρούμενη αξία</span>
+                <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(summary.totalBookValue)} <span style={{color:'var(--text-tertiary)',fontWeight:400}}>/ {fmtEur(summary.totalOriginal)}</span></span>
+              </div>
+              <div style={{height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${summary.totalOriginal>0?Math.round((summary.totalBookValue/summary.totalOriginal)*100):0}%`,background:'var(--accent)',borderRadius:3,transition:'width 0.5s'}}/>
+              </div>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:T.font.sans}}>Μέση απόσβεση {summary.avgDepreciatedPct}% · εκτιμ. απομείωση −{fmtEur(summary.totalDepreciation)}</p>
             </div>
-            <div style={{height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
-              <div style={{height:'100%',width:`${summary.totalOriginal>0?Math.round((summary.totalBookValue/summary.totalOriginal)*100):0}%`,background:'var(--accent)',borderRadius:3,transition:'width 0.5s'}}/>
-            </div>
-            <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:5,fontFamily:T.font.sans}}>Μέση απόσβεση {summary.avgDepreciatedPct}% · εκτιμ. απομείωση −{fmtEur(summary.totalDepreciation)}</p>
-          </div>
-          {profileType==='professional'&&(
+          ):(
+            <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'6px 0 12px'}}>Πρόσθεσε τιμές αγοράς στα αντικείμενα για ανάλυση αξίας & απόσβεσης.</p>
+          )}
+          {profileType==='professional'&&summary.totalOriginal>0&&(
             <>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8}}>
                 {[
@@ -856,42 +903,16 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
               {summary.replacementBudget>0&&(
                 <div style={{marginTop:12,padding:'10px 14px',background:'var(--warning-soft)',borderRadius:T.radius.inner,border:'1px solid var(--warning-border)'}}>
                   <p style={{fontSize:12,color:'var(--warning)',fontFamily:T.font.sans}}>Εκτιμώμενος προϋπολογισμός αντικατάστασης για {summary.needAttentionCount} {summary.needAttentionCount===1?'αντικείμενο':'αντικείμενα'}: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur(summary.replacementBudget)}</strong></p>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily:T.font.sans}}>Βάσει δηλωμένου κόστους αντικατάστασης ή αξίας αγοράς. Προτείνεται πρόβλεψη στον ετήσιο προϋπολογισμό.</p>
                 </div>
               )}
             </>
           )}
-          {profileType!=='professional'&&summary.needAttentionCount>0&&(
-            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{summary.needAttentionCount} {summary.needAttentionCount===1?'αντικείμενο προτείνεται':'αντικείμενα προτείνονται'} για αντικατάσταση.</p>
+          {(totalDiscount>0||totalRepairs>0)&&(
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',flexDirection:'column',gap:6}}>
+              {totalDiscount>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Εξοικονόμηση από εκπτώσεις</span><span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--positive)',fontWeight:600}}>{fmtEur(totalDiscount)}</span></div>}
+              {totalRepairs>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Επισκευές έως τώρα</span><span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtEur(totalRepairs)}</span></div>}
+            </div>
           )}
-        </div>
-      )}
-      {totalDiscount>0&&(
-        <div style={{padding:'12px 16px',background:'var(--positive-dim)',borderRadius:T.radius.card,border:'1px solid var(--positive-border)',display:'flex',alignItems:'center',gap:12}}>
-          <div>
-            <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--positive)'}}>Εξοικονόμηση από εκπτώσεις & μεταχειρισμένα: <span style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur(totalDiscount)}</span></p>
-            <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>Βάσει αρχικών τιμών vs τιμών αγοράς</p>
-          </div>
-        </div>
-      )}
-      <div style={{display:'grid',gridTemplateColumns:'3fr 2fr',gap:16}}>
-        <div style={cardStyle}>
-          <SectionLabel label="Κατανομή Αξίας ανά Κατηγορία"/>
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {byCategory.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>(
-              <div key={cat}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
-                  <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize:10}}>({count})</span></span>
-                  <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(val)}</span>
-                </div>
-                <div style={{height:4,background:'var(--border-subtle)',borderRadius:2}}><div style={{height:4,borderRadius:2,background:'var(--accent)',width:`${(val/maxVal)*100}%`,transition:'width 0.5s'}}/></div>
-              </div>
-            ))}
-          </div>
-          <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between'}}>
-            <span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>Αξία Αγοράς (σύνολο)</span>
-            <span style={{fontSize:11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtEur(totalPurchase)}</span>
-          </div>
         </div>
         <div style={cardStyle}>
           <SectionLabel label="Κατανάλωση Ρεύματος"/>
@@ -926,26 +947,20 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
           )}
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12}}>
-        {[
-          {title:'Προτείνεται Αντικατάσταση',color:'var(--warning)',items:needReplacement,render:(item:InventoryItem)=><span style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{item.replacement_cost?fmtEur(item.replacement_cost):'—'}</span>},
-          {title:'Εγγυήσεις ≤90 Μέρες',color:'var(--warning)',items:warrantySoon,render:(item:InventoryItem)=><Badge label={warrantyStatus(item.warranty_expiry).label} color={warrantyStatus(item.warranty_expiry).color}/>},
-          {title:'Χρειάζονται Προσοχή',color:'var(--negative)',items:badCondition,render:(item:InventoryItem)=><Badge label={item.condition} color={CONDITION_COLOR[item.condition]}/>},
-        ].map(({title,color,items:list,render})=>(
-          <div key={title} style={{...cardStyle,border:'1px solid var(--border-subtle)'}}>
-            <SectionLabel label={title} right={list.length>0?<Badge label={String(list.length)} color={color}/>:undefined}/>
-            {list.length===0?<p style={{fontSize:11,color:'var(--text-tertiary)',textAlign:'center',padding:'12px 0',fontFamily:T.font.sans}}>Κανένα</p>
-              :<div style={{display:'flex',flexDirection:'column',gap:6}}>
-                {list.slice(0,4).map(item=>(
-                  <div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--bg-elevated)',borderRadius:8}}>
-                    <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',marginRight:8}}>{item.name}</span>
-                    {render(item)}
-                  </div>
-                ))}
+
+      <div style={cardStyle}>
+        <SectionLabel label="Κατανομή Αξίας ανά Κατηγορία" right={<span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>σύνολο αγοράς {fmtEur(totalPurchase)}</span>}/>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {byCategory.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>(
+            <div key={cat}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize:10}}>({count})</span></span>
+                <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(val)}</span>
               </div>
-            }
-          </div>
-        ))}
+              <div style={{height:4,background:'var(--border-subtle)',borderRadius:2}}><div style={{height:4,borderRadius:2,background:'var(--accent)',width:`${(val/maxVal)*100}%`,transition:'width 0.5s'}}/></div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
