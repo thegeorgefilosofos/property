@@ -15,6 +15,8 @@ function buildCsp(nonce: string): string {
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    // Επιτρέπει τον ενσωματωμένο χάρτη Google (keyless embed) στο ντοσιέ επαφής.
+    "frame-src 'self' https://www.google.com https://maps.google.com",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
