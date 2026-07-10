@@ -77,6 +77,15 @@ const PHOTO_CATEGORIES = [
   'Κατάσταση Ακινήτου', 'Πριν την Παράδοση', 'Μετά την Παράδοση',
   'Ζημιά / Φθορά', 'Ανακαίνιση', 'Εξωτερικοί Χώροι', 'Άλλο',
 ];
+// Σύστημα auto-αναγνώρισης φωτογραφίας ακινήτου (vision). Επιστρέφει ΜΟΝΟ JSON.
+const PHOTO_SYSTEM_PROMPT = `Είσαι σύστημα ταξινόμησης φωτογραφιών ακινήτου. Εξέτασε τη φωτογραφία και επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON, χωρίς άλλο κείμενο:
+{"category":"<μία από: Κατάσταση Ακινήτου | Ζημιά / Φθορά | Ανακαίνιση | Εξωτερικοί Χώροι | Άλλο>","title":"<σύντομη ελληνική περιγραφή χώρου/θέματος, π.χ. Σαλόνι, Κουζίνα, Μπάνιο, Υπνοδωμάτιο, Μπαλκόνι>"}
+Κανόνες κατηγορίας:
+- Εμφανής φθορά/ζημιά/υγρασία/ρωγμή/σπασμένο → "Ζημιά / Φθορά".
+- Εργασίες/ανακαίνιση σε εξέλιξη (μπάζα, εργαλεία, γυμνοί τοίχοι) → "Ανακαίνιση".
+- Εξωτερικός χώρος/μπαλκόνι/κήπος/αυλή/πρόσοψη/πυλωτή → "Εξωτερικοί Χώροι".
+- Κανονικός εσωτερικός χώρος σε καλή κατάσταση → "Κατάσταση Ακινήτου".
+- Αν δεν σχετίζεται με ακίνητο → "Άλλο".`;
 
 // Κατηγορίες εγγράφων, αρχείο λογαριασμών, συμβολαίων, τιμολογίων
 const DOC_CATEGORIES = [
@@ -401,7 +410,7 @@ export default function TabDocuments({
   }, [lightbox]);
 
   /* ── Ανέβασμα (γράφει στο property_documents) ─────────────────────────── */
-  const autoOn = autoDetect && form.kind === 'document';
+  const autoOn = autoDetect;   // αυτόματη αναγνώριση για έγγραφα (OCR) & φωτογραφίες (vision)
 
   // Ένα αρχείο → storage + εγγραφή στο property_documents. Ίδια αμυντική λογική με
   // τη χειροκίνητη ροή & το DocumentScan (retry χωρίς supplier σε παλιότερη βάση).
@@ -468,6 +477,35 @@ export default function TabDocuments({
     } catch { return null; }
   };
 
+  // Auto-αναγνώριση ΦΩΤΟΓΡΑΦΙΑΣ ακινήτου (vision): εντοπίζει κατηγορία
+  // (Ζημιά/Ανακαίνιση/Εξωτερικοί Χώροι/Κατάσταση) + σύντομο τίτλο (χώρο/θέμα).
+  // Επιστρέφει null σε μη-εικόνα ή αποτυχία — ποτέ δεν μπλοκάρει το ανέβασμα.
+  const photoClassify = async (file: File): Promise<{ category: string; title: string | null } | null> => {
+    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return null;
+    try {
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string); r.onerror = () => rej(new Error('read'));
+        r.readAsDataURL(file);
+      });
+      const base64 = dataUrl.split(',')[1];
+      if (!base64) return null;
+      const res = await fetch('/api/anthropic', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-5', max_tokens: 200, system: PHOTO_SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } }, { type: 'text', text: 'Κατηγοριοποίησε αυτή τη φωτογραφία ακινήτου.' }] }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) return null;
+      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
+      const parsed = JSON.parse(text.replace(/```json?|```/g, '').trim()) as { category?: string; title?: string };
+      const category = parsed.category && PHOTO_CATEGORIES.includes(parsed.category) ? parsed.category : 'Κατάσταση Ακινήτου';
+      return { category, title: parsed.title?.trim() || null };
+    } catch { return null; }
+  };
+
   // Bulk: ουρά με per-file πρόοδο. Ακολουθιακή επεξεργασία (concurrency 1) ώστε να
   // μη φουσκώνει το κόστος/latency των AI κλήσεων ούτε να πιέζεται η βάση.
   const handleFiles = async (fileList: FileList | File[]) => {
@@ -489,7 +527,7 @@ export default function TabDocuments({
         kind: form.kind, category: form.category, supplier: form.supplier.trim() || null,
         title: form.title.trim(), doc_date: form.doc_date || null, notes: form.notes.trim() || null,
       };
-      if (autoOn) {
+      if (autoOn && form.kind === 'document') {
         upd(id, { status: 'ocr' });
         const auto = await ocrClassify(file);
         if (auto) {
@@ -501,6 +539,11 @@ export default function TabDocuments({
           };
         }
         // Αν το OCR απέτυχε/μη-αναγνώσιμο: κρατάμε την εφεδρική χειροκίνητη κατηγορία.
+      } else if (autoOn && form.kind === 'photo') {
+        upd(id, { status: 'ocr' });
+        const p = await photoClassify(file);
+        if (p) meta = { ...meta, kind: 'photo', category: p.category, title: meta.title || p.title || '' };
+        // Αποτυχία/μη-εικόνα: κρατάμε την εφεδρική χειροκίνητη κατηγορία φωτογραφίας.
       }
       upd(id, { status: 'uploading' });
       const err = await insertDoc(file, meta);
@@ -669,8 +712,8 @@ export default function TabDocuments({
 
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
-        <div className="card">
-          <SecHdr label="Αρχειοθέτηση νέου εγγράφου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
+        <div className="card" style={{ marginBottom: 20 }}>
+          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
             right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}><IconX/></button>}/>
 
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
@@ -680,19 +723,19 @@ export default function TabDocuments({
             ))}
           </div>
 
-          {/* Αυτόματη αναγνώριση (AI) — μόνο για έγγραφα· φωτογραφίες ταξινομούνται χειροκίνητα */}
-          {form.kind === 'document' && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
-              <span style={{ position: 'relative', width: 34, height: 20, borderRadius: T.radius.pill, background: autoDetect ? 'var(--accent)' : 'var(--border-default)', transition: `background 0.18s ${T.ease.standard}`, flexShrink: 0 }}>
-                <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: `left 0.18s ${T.ease.standard}` }}/>
-              </span>
-              <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}/>
-              <span style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Αυτόματη αναγνώριση (AI)</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>εντοπίζει τύπο, πάροχο & ημερομηνία και αρχειοθετεί μόνο του στον σωστό φάκελο</span>
-              </span>
-            </label>
-          )}
+          {/* Αυτόματη αναγνώριση (AI) — έγγραφα (OCR) & φωτογραφίες (vision) */}
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ position: 'relative', width: 34, height: 20, borderRadius: T.radius.pill, background: autoDetect ? 'var(--accent)' : 'var(--border-default)', transition: `background 0.18s ${T.ease.standard}`, flexShrink: 0 }}>
+              <span style={{ position: 'absolute', top: 2, left: autoDetect ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: `left 0.18s ${T.ease.standard}` }}/>
+            </span>
+            <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}/>
+            <span style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Αυτόματη αναγνώριση (AI)</span>
+              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{form.kind === 'photo'
+                ? 'αναγνωρίζει τον χώρο/θέμα και την κατηγορία (ζημιά, ανακαίνιση, εξωτερικός χώρος…) και αρχειοθετεί μόνο του'
+                : 'εντοπίζει τύπο, πάροχο & ημερομηνία και αρχειοθετεί μόνο του στον σωστό φάκελο'}</span>
+            </span>
+          </label>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 14, marginBottom: 14 }}>
             <CustomSelect label={autoOn ? 'Κατηγορία (εφεδρική)' : 'Κατηγορία (φάκελος)'} value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))}
@@ -729,7 +772,7 @@ export default function TabDocuments({
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
               {form.kind === 'photo'
-                ? 'Πολλαπλές φωτογραφίες μαζί · PNG, JPEG, WebP…'
+                ? (autoOn ? 'Αυτόματη αναγνώριση & αρχειοθέτηση φωτογραφιών · PNG, JPEG, WebP…' : 'Πολλαπλές φωτογραφίες μαζί · PNG, JPEG, WebP…')
                 : autoOn ? 'Αυτόματη αναγνώριση & αρχειοθέτηση · PDF, εικόνα, Word, Excel…' : 'Πολλαπλά αρχεία μαζί · PDF, εικόνα, Word, Excel…'}
             </div>
           </div>
@@ -968,9 +1011,9 @@ function FileList({ items, groupByMonth, empty, a }: { items: Item[]; groupByMon
     const groups = new Map<string, Item[]>();
     items.forEach(i => { const key = i.date ? monthLabel(i.date) : 'Χωρίς ημερομηνία'; (groups.get(key) ?? groups.set(key, []).get(key)!).push(i); });
     return (
-      <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {Array.from(groups.entries()).map(([m, its]) => (
-          <div key={m} className="card">
+          <div key={m} className="card" style={{ margin: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'capitalize' as const }}>{m}</span>
@@ -979,7 +1022,7 @@ function FileList({ items, groupByMonth, empty, a }: { items: Item[]; groupByMon
             <FileInner items={its} a={a}/>
           </div>
         ))}
-      </>
+      </div>
     );
   }
   return <div className="card"><FileInner items={items} a={a}/></div>;
