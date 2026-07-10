@@ -1153,6 +1153,8 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
     {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm(`Διαγραφή "${item.name}";`))onDelete(item.id)}},
   ]
   const SORT_LABELS:Record<SortKey,string> = {name:'Όνομα',value:'Αξία',energy:'Ρεύμα/μήνα',age:'Ηλικία',depreciation:'Απόσβεση'}
+  // Οι μαζικές ενέργειες δρουν ΜΟΝΟ σε ό,τι είναι επιλεγμένο ΚΑΙ ορατό στα τρέχοντα φίλτρα.
+  const visIds = filtered.filter(i=>selected.has(i.id)).map(i=>i.id)
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -1180,12 +1182,12 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       </div>
       {selectMode?(
         <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.card}}>
-          <SelectBox checked={filtered.length>0&&filtered.every(i=>selected.has(i.id))} indeterminate={filtered.some(i=>selected.has(i.id))&&!filtered.every(i=>selected.has(i.id))} onChange={()=>{const all=filtered.every(i=>selected.has(i.id));setSelected(all?new Set():new Set(filtered.map(i=>i.id)))}}/>
-          <span style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{selected.size} επιλεγμένα</span>
+          <SelectBox checked={filtered.length>0&&visIds.length===filtered.length} indeterminate={visIds.length>0&&visIds.length<filtered.length} onChange={()=>{const all=visIds.length===filtered.length;setSelected(all?new Set():new Set(filtered.map(i=>i.id)))}}/>
+          <span style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{visIds.length} επιλεγμένα</span>
           <div style={{flex:1}}/>
-          <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(selected.size){onBulkRoom([...selected],r);exitSelect()}}}/>
-          <BulkPicker label="Ετικέτα" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>} options={[...AVAILABLE_TAGS]} onPick={t=>{if(selected.size){onBulkTag([...selected],t);exitSelect()}}}/>
-          <button onClick={()=>{if(selected.size&&confirm(`Διαγραφή ${selected.size} αντικειμένων;`)){onBulkDelete([...selected]);exitSelect()}}} disabled={selected.size===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:selected.size?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:selected.size?'var(--negative-dim)':'var(--bg-elevated)',color:selected.size?'var(--negative)':'var(--text-tertiary)'}}>
+          <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(visIds.length){onBulkRoom(visIds,r);exitSelect()}}}/>
+          <BulkPicker label="Ετικέτα" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>} options={[...AVAILABLE_TAGS]} onPick={t=>{if(visIds.length){onBulkTag(visIds,t);exitSelect()}}}/>
+          <button onClick={()=>{if(visIds.length&&confirm(`Διαγραφή ${visIds.length} αντικειμένων;`)){onBulkDelete(visIds);exitSelect()}}} disabled={visIds.length===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:visIds.length?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:visIds.length?'var(--negative-dim)':'var(--bg-elevated)',color:visIds.length?'var(--negative)':'var(--text-tertiary)'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
             Διαγραφή
           </button>
@@ -1576,6 +1578,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
   const [adding,setAdding] = useState(false)
   const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0})
   const [saving,setSaving] = useState(false)
+  const [doneBusy,setDoneBusy] = useState<string|null>(null)
   const overdue=schedules.filter(s=>daysUntil(s.next_due)<0)
   const soon=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30})
   const upcoming=schedules.filter(s=>daysUntil(s.next_due)>30)
@@ -1593,6 +1596,8 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     return (data as {id?:string}|null)?.id
   }
   const markDone=async(s:MaintenanceSchedule)=>{
+    if(doneBusy) return
+    setDoneBusy(s.id)
     const t=today(); const newDue=addMonths(t,s.interval_months); const est=s.est_cost||0
     // Η προγραμματισμένη δαπάνη γίνεται πραγματοποιημένη (πληρωμένη)· αν δεν υπήρχε, καταγράφεται τώρα.
     if(s.expense_id) await supabase.from('expenses').update({paid:true,date:t}).eq('id',s.expense_id)
@@ -1602,7 +1607,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     const calId=await makeCalEvent(s.task,s.item_name,newDue,est)
     const expId=await makePlannedExpense(s.task,s.item_name,newDue,est)
     await supabase.from('inventory_maintenance').update({last_done:t,next_due:newDue,calendar_event_id:calId||null,expense_id:expId||null}).eq('id',s.id)
-    onSaved()
+    setDoneBusy(null);onSaved()
   }
   const deleteSched=async(s:MaintenanceSchedule)=>{
     if(s.calendar_event_id) await supabase.from('calendar_events').delete().eq('id',s.calendar_event_id)
@@ -1642,7 +1647,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
         </div>
         <Badge label={days<0?`${Math.abs(days)} ημ. καθυστ.`:days===0?'Σήμερα!':`${days} ημ.`} color={c}/>
         <span style={{fontSize:11,color:'var(--text-tertiary)',whiteSpace:'nowrap',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtDate(s.next_due)}</span>
-        <button onClick={()=>markDone(s)} title="Καταγράφει την εκτέλεση, ρολάρει στην επόμενη ημερομηνία και ενημερώνει δαπάνες/ημερολόγιο" style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
+        <button onClick={()=>markDone(s)} disabled={doneBusy===s.id} title="Καταγράφει την εκτέλεση, ρολάρει στην επόμενη ημερομηνία και ενημερώνει δαπάνες/ημερολόγιο" style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:doneBusy===s.id?'var(--text-tertiary)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:doneBusy===s.id?'wait':'pointer',fontWeight:500,whiteSpace:'nowrap'}}>{doneBusy===s.id?'…':'Έγινε'}</button>
         <OverflowMenu actions={[
           {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm('Διαγραφή; Θα αφαιρεθεί και η προγραμματισμένη υπενθύμιση/δαπάνη.'))deleteSched(s)}},
         ]}/>
