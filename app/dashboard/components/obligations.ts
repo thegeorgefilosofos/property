@@ -6,7 +6,7 @@
 // ενδεικτικές (συχνά δίνονται παρατάσεις), γι' αυτό κάθε στοιχείο φέρει note.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type OblCategory = 'financial' | 'contract' | 'tenant' | 'reminder';
+export type OblCategory = 'financial' | 'contract' | 'tenant' | 'reminder' | 'maintenance';
 export type OblTone = 'negative' | 'warning' | 'info' | 'positive';
 
 export interface Obligation {
@@ -31,6 +31,12 @@ export interface OblTenant {
   lease_end?: string | null;
   monthly_rent?: number | null;
 }
+export interface OblMaint {
+  task: string;
+  item_name?: string | null;
+  next_due: string;
+  est_cost?: number | null;
+}
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const daysBetween = (target: Date, from: Date) => Math.ceil((target.getTime() - from.getTime()) / 86400000);
@@ -49,7 +55,7 @@ function tone(days: number): OblTone {
   return 'positive';
 }
 
-export function computeObligations(prop: OblProp, tenant: OblTenant | null, now = new Date()): Obligation[] {
+export function computeObligations(prop: OblProp, tenant: OblTenant | null, maint: OblMaint[] = [], now = new Date()): Obligation[] {
   const out: Obligation[] = [];
   const push = (id: string, title: string, date: Date, category: OblCategory, note: string, priority: Obligation['priority'] = 'medium') => {
     const du = daysBetween(date, now);
@@ -90,9 +96,20 @@ export function computeObligations(prop: OblProp, tenant: OblTenant | null, now 
     }
   }
 
+  // ── CROSS-TAB: Συντήρηση εξοπλισμού (από Απογραφή) ────────────────────
+  // Μόνο ό,τι είναι σε καθυστέρηση ή επίκειται (≤60 ημ.) — για να μη γεμίζει το panel.
+  maint.forEach((m, idx) => {
+    const d = new Date(m.next_due);
+    if (isNaN(d.getTime())) return;
+    if (daysBetween(d, now) > 60) return;
+    push(`maint_${idx}`, `Συντήρηση, ${m.task}${m.item_name ? `, ${m.item_name}` : ''}`, d, 'maintenance',
+      m.est_cost ? `Προγραμματισμένη εργασία συντήρησης εξοπλισμού. Εκτιμώμενο κόστος ${Math.round(m.est_cost)} €.` : 'Προγραμματισμένη εργασία συντήρησης εξοπλισμού.',
+      daysBetween(d, now) < 0 ? 'high' : 'medium');
+  });
+
   return out.filter(o => o.daysUntil >= -45).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // Χαρτογράφηση σε κατηγορία calendar_events (για εγγραφή cross-tab στο Ημερολόγιο)
 export const oblToCalendarCategory = (c: OblCategory): string =>
-  c === 'financial' ? 'financial' : c === 'tenant' ? 'tenant' : c === 'contract' ? 'contract' : 'reminder';
+  c === 'financial' ? 'financial' : c === 'tenant' ? 'tenant' : c === 'contract' ? 'contract' : c === 'maintenance' ? 'maintenance' : 'reminder';
