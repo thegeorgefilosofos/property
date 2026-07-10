@@ -987,49 +987,34 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         )}
       </div>
 
-      {hov && !selecting && (
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
-          {/* Ήσυχη ghost ενέργεια: προγραμματίζει την εργασία στο Ημερολόγιο με ένα κλικ
-              (ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή). */}
-          <button type="button" onClick={onAddToCalendar} title={item.assigned_contact_name ? 'Προγραμμάτισε στο Ημερολόγιο — ' + item.assigned_contact_name : 'Προγραμμάτισε στο Ημερολόγιο'}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid transparent', background: 'transparent', color: 'var(--info)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            Ημερολόγιο
-          </button>
-          <button type="button" onClick={onEdit}
-            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
-            Επεξεργασία
-          </button>
-          <button type="button" onClick={onDelete}
-            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--negative-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--negative-soft)' }}>
-            Διαγραφή
-          </button>
-          <button ref={menuBtnRef} type="button" onClick={openMenu}
-            style={{ padding: '4px 9px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: showMenu ? 'var(--bg-elevated)' : 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 17, lineHeight: 1, transition: 'all 0.1s' }}>
-            ···
-          </button>
-        </div>
+      {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
+      {!selecting && (
+        <button ref={menuBtnRef} type="button" onClick={openMenu} title="Ενέργειες" aria-label="Ενέργειες"
+          style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid ' + (showMenu ? 'var(--border-default)' : 'transparent'), background: showMenu ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', opacity: hov || showMenu ? 1 : 0, transition: 'opacity 0.15s, background 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          onMouseLeave={e => { if (!showMenu) e.currentTarget.style.background = 'transparent' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+        </button>
       )}
 
       {showMenu && (
-        <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 220, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
-          <div style={{ padding: '6px 10px 4px', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Ενέργειες</div>
+        <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 230, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
           {[
-            { label: 'Καταχώρηση Δαπάνης', sub: 'Άμεση καταχώρηση στα Δαπάνες', fn: () => { onAddToExpenses(); setShowMenu(false) } },
-            { label: 'Αντιγραφή εργασίας', sub: 'Δημιουργία αντιγράφου', fn: () => { onDuplicate(); setShowMenu(false) } },
+            { label: 'Επεξεργασία', sub: '', icon: 'M12 20h9 M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z', fn: () => { onEdit(); setShowMenu(false) } },
+            { label: 'Προγραμμάτισε υπενθύμιση', sub: item.due_date ? 'Στο ημερολόγιο + email' : 'Χρειάζεται προθεσμία', icon: 'M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18', fn: () => { onAddToCalendar(); setShowMenu(false) } },
+            { label: 'Καταχώρηση δαπάνης', sub: 'Στα Δαπάνες / προϋπολογισμό', icon: 'M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', fn: () => { onAddToExpenses(); setShowMenu(false) } },
+            { label: 'Αντιγραφή', sub: 'Δημιουργία αντιγράφου', icon: 'M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1', fn: () => { onDuplicate(); setShowMenu(false) } },
+            { label: 'Διαγραφή', sub: '', icon: 'M3 6h18 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6', danger: true, fn: () => { onDelete(); setShowMenu(false) } },
           ].map((a, i) => (
             <button key={i} type="button" onClick={a.fn}
-              style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+              style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = a.danger ? 'var(--negative-dim)' : 'var(--bg-surface)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={a.danger ? 'var(--negative)' : 'var(--text-tertiary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{a.icon.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: a.danger ? 'var(--negative)' : 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
+                {a.sub ? <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div> : null}
+              </div>
             </button>
           ))}
         </div>
@@ -1536,12 +1521,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   // Ήρεμη σειρά KPI: οι αριθμοί μένουν --text-primary (neutral). Χρώμα κρατιέται
   // ΜΟΝΟ για ένα πραγματικά επείγον σήμα — τα εκπρόθεσμα, όταν υπάρχουν.
+  // 3 έξυπνα, συνδυασμένα KPI αντί για 5 — clean & minimal: εκκρεμείς · προσοχή · ολοκλήρωση.
+  const openCount = stats.total - stats.done
+  const attention = stats.overdue + stats.critical
   const kpiItems: KPIItem[] = [
-    { label: 'Σύνολο Εργασιών', value: fn(stats.total) },
-    { label: 'Ολοκληρωμένα', value: fn(stats.done), sub: `${stats.pct}% πρόοδος` },
-    { label: 'Εκπρόθεσμα', value: fn(stats.overdue), tone: stats.overdue > 0 ? 'negative' : 'neutral' },
-    { label: 'Κρίσιμα Εκκρεμή', value: fn(stats.critical) },
-    { label: 'Ποσοστό Ολοκλήρωσης', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral' },
+    { label: 'Εκκρεμείς', value: fn(openCount), sub: stats.inProgress > 0 ? `${stats.inProgress} σε εξέλιξη` : `από ${stats.total} συνολικά` },
+    { label: 'Χρειάζονται Προσοχή', value: fn(attention), tone: stats.overdue > 0 ? 'negative' : attention > 0 ? 'warning' : 'neutral', sub: stats.overdue > 0 ? `${stats.overdue} εκπρόθεσμες` : stats.critical > 0 ? `${stats.critical} κρίσιμες` : 'όλα εντάξει' },
+    { label: 'Ολοκλήρωση', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral', sub: `${stats.done}/${stats.total}` },
   ]
 
   return (
