@@ -83,7 +83,7 @@ const lastDayNextMonth = (iso:string) => {
   return last.toLocaleDateString('el-GR', { day:'2-digit', month:'long', year:'numeric' });
 };
 interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meeting'|'note'; summary:string; date:string; outcome:string|null; }
-interface TabTenantProps { propertyId:string; userId:string; }
+interface TabTenantProps { propertyId:string; userId:string; onStartHandover?:(tenantName:string,tenantPhone:string,type:'check_in'|'check_out')=>void; }
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 // ─── Owner-share helpers (ποσοστό ιδιοκτήτη 0–100 ⇄ enum *_service_by) ──────────
@@ -1827,7 +1827,7 @@ function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; c
 // ─── Main Export ──────────────────────────────────────────────────────────────
 type DossierTab='overview'|'lease'|'deposit'|'damages'|'maintenance'|'renewal'|'legal'|'comm'|'docs';
 
-export default function TabTenant({ propertyId, userId }:TabTenantProps) {
+export default function TabTenant({ propertyId, userId, onStartHandover }:TabTenantProps) {
   const supabase=createClient();
   const [tenants,setTenants]=useState<Tenant[]>([]);
   const [payments,setPayments]=useState<RentPayment[]>([]);
@@ -2246,6 +2246,7 @@ export default function TabTenant({ propertyId, userId }:TabTenantProps) {
               </div>
               <div style={{ display:'flex', gap:8, flexShrink:0, flexWrap:'wrap' as const, justifyContent:'flex-end' }}>
                 <Btn variant="secondary" onClick={()=>openEditForm(dc)}>Επεξεργασία</Btn>
+                {onStartHandover&&<Btn variant="secondary" onClick={()=>onStartHandover(dc.full_name||'', dc.phone||'', isPastTenant(dc)?'check_out':'check_in')}>Πρωτόκολλο παράδοσης</Btn>}
                 {!isPastTenant(dc)&&<Btn variant="secondary" onClick={()=>markMovedOut(dc)}>Αποχώρησε</Btn>}
               </div>
             </div>

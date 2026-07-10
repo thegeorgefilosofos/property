@@ -771,6 +771,8 @@ export default function Dashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selected, setSelected] = useState<Property | null>(null);
   const [nav, setNav] = useState('overview');
+  // Deep-link καρτέλα ενοικιαστή → Απογραφή/Παράδοση με προ-συμπληρωμένα στοιχεία.
+  const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
   // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
   const [openGroup, setOpenGroup] = useState('Οικονομικά');
   useEffect(() => { const g = NAV_GROUPS.find(gr => gr.ids.includes(nav)); if (g?.label) setOpenGroup(g.label); }, [nav]);
@@ -1139,11 +1141,11 @@ export default function Dashboard() {
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={profileType}/>}
               {nav==='tax'       && <TabTaxAnalysis propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
-              {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id}/>}
+              {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
-              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
