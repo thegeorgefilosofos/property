@@ -1448,7 +1448,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
 }
 
 export default function TabInventory({propertyId,userId,profileType='individual',embedded}:TabInventoryProps & {embedded?:boolean}) {
-  const [activeTab,setActiveTab] = useState<'overview'|'items'|'warranties'|'handover'|'maintenance'|'exports'>('overview')
+  const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
   const [items,setItems] = useState<InventoryItem[]>([])
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
   const [handovers,setHandovers] = useState<InventoryHandover[]>([])
@@ -1514,12 +1514,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   )
 
   const TABS=[
-    {key:'overview',label:'Επισκόπηση'},
     {key:'items',label:'Αντικείμενα'},
-    {key:'warranties',label:'Εγγυήσεις'},
+    {key:'care',label:'Εγγυήσεις & Συντήρηση'},
     {key:'handover',label:'Παράδοση'},
-    {key:'maintenance',label:'Συντήρηση'},
-    {key:'exports',label:'Εξαγωγές'},
+    {key:'overview',label:'Επισκόπηση'},
   ] as const
 
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
@@ -1593,7 +1591,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             onMouseLeave={e=>{if(activeTab!==tab.key)(e.currentTarget as HTMLButtonElement).style.color='var(--text-secondary)'}}
           >
             {tab.label}
-            {tab.key==='maintenance'&&(overdueCount>0||warnCount>0)&&<span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:16,height:16,borderRadius:8,background:overdueCount>0?'var(--negative)':'var(--warning)',color:'#fff',fontSize:9,fontWeight:700,padding:'0 4px'}}>{overdueCount+warnCount>9?'9+':overdueCount+warnCount}</span>}
+            {tab.key==='care'&&(overdueCount>0||warnCount>0)&&<span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:16,height:16,borderRadius:8,background:overdueCount>0?'var(--negative)':'var(--warning)',color:'#fff',fontSize:9,fontWeight:700,padding:'0 4px'}}>{overdueCount+warnCount>9?'9+':overdueCount+warnCount}</span>}
             {tab.key==='items'&&actionCount>0&&<span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:16,height:16,borderRadius:8,background:'var(--warning)',color:'#fff',fontSize:9,fontWeight:700,padding:'0 4px'}}>{actionCount>9?'9+':actionCount}</span>}
           </button>
         ))}
@@ -1603,12 +1601,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         ?<Spinner label="Φόρτωση…" />
         :(
           <>
-            {activeTab==='overview'&&<OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType}/>}
             {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder}/>}
-            {activeTab==='warranties'&&<WarrantiesTab items={items} userId={userId} propertyId={propertyId}/>}
+            {activeTab==='care'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><WarrantiesTab items={items} userId={userId} propertyId={propertyId}/><MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/></div>}
             {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
-            {activeTab==='maintenance'&&<MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
-            {activeTab==='exports'&&<ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/>}
+            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
         )
       }
