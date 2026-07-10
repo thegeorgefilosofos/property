@@ -1746,12 +1746,36 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
     <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
     w.document.close()
   }
+  // Εικονογραφημένη έκθεση για ασφαλιστική — μία «κάρτα» ανά αντικείμενο με φωτογραφία & ασφαλιστέα αξία.
+  const insurableOf=(i:InventoryItem)=> i.replacement_cost>0?i.replacement_cost:Math.round(calcCurrentValue(i)*1.1)
+  const totalInsurable=items.reduce((s,i)=>s+insurableOf(i),0)
+  const exportInsurancePDF=()=>{
+    const w=window.open('','_blank');if(!w)return
+    const card=(i:InventoryItem)=>{const ph=i.photo_url||((i.photos||[]).filter(Boolean)[0]||'')
+      return `<div class="c">
+        <div class="ph">${ph?`<img src="${esc(ph)}"/>`:'<div class="noph">χωρίς φωτο</div>'}</div>
+        <div class="cb"><div class="nm">${esc(i.name)}</div>
+        <div class="mt">${esc([i.brand,i.model].filter(Boolean).join(' ')||i.category)}${i.room?` · ${esc(i.room)}`:''}</div>
+        ${i.serial_number?`<div class="sn">SN: ${esc(i.serial_number)}</div>`:''}
+        <div class="row"><span>Κατάσταση</span><span>${esc(i.condition)}</span></div>
+        <div class="row"><span>Αξία αγοράς</span><span>${esc(i.purchase_value?fmtEur(i.purchase_value):'—')}</span></div>
+        <div class="row val"><span>Ασφαλιστέα αξία</span><span>${esc(fmtEur(insurableOf(i)))}</span></div>
+        </div></div>`}
+    w.document.write(`<html><head><title>Έκθεση Ασφάλισης Περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial;font-size:11px;color:#111;padding:30px}h1{font-size:22px;font-weight:400;margin-bottom:2px}.sub{color:#666;margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:#f6f8fc;border:1px solid #e6ebf3;border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;font-family:'Roboto Mono',monospace}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid #e6e6e6;border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:#f2f2f2}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;margin-bottom:2px}.mt{font-size:10px;color:#888;margin-bottom:6px}.sn{font-size:9px;color:#999;font-family:monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-top:1px solid #f2f2f2}.row span:last-child{font-family:'Roboto Mono',monospace;font-weight:600}.row.val span{color:#1a73e8}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #eee;font-size:9.5px;color:#999;line-height:1.6}@media print{button{display:none}}</style></head><body>
+    <h1>Έκθεση Ασφάλισης Περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
+    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalInsurable))}</div><div class="kpi-l">Συνολική ασφαλιστέα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalCurrent))}</div><div class="kpi-l">Τρέχουσα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα</div></div></div>
+    <div class="grid">${items.map(card).join('')}</div>
+    <div class="footer">Η ασφαλιστέα αξία υπολογίζεται από το δηλωμένο κόστος αντικατάστασης ή, ελλείψει αυτού, από την τρέχουσα αξία +10%. Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
+    <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
+    w.document.close()
+  }
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <SectionLabel label="Εξαγωγές Δεδομένων"/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
+          {title:'Έκθεση Ασφάλισης',desc:'Εικονογραφημένη έκθεση με φωτογραφία & ασφαλιστέα αξία ανά αντικείμενο — έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
           {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία, ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
