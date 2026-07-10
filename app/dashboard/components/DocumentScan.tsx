@@ -16,6 +16,7 @@ import {
   classifyDocType, validateDoc, planDocSave, docSummaryLine,
   DOC_TYPES, DOC_FIELD_LABELS, type ScannedDoc, type DocType,
 } from '@/lib/billing/documents';
+import { inferRole } from '@/lib/contacts/roles';
 
 interface Props { propertyId: string; userId?: string; onSaved?: () => void; }
 
@@ -171,6 +172,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   const [error, setError] = useState('');
   const [savedInfo, setSavedInfo] = useState<string[]>([]);
   const [newField, setNewField] = useState({ label: '', value: '' });
+  // Πρόταση αποθήκευσης του εκδότη (προμηθευτή/επαγγελματία) στις Επαφές, μετά τη
+  // σάρωση λογαριασμού/απόδειξης. Ποτέ αυτόματα — μόνο με ρητή επιβεβαίωση χρήστη.
+  const [contactState, setContactState] =
+    useState<'cta' | 'saving' | 'saved' | 'exists' | 'error' | 'dismissed'>('cta');
 
   const setF = (key: keyof ScannedDoc, raw: string) =>
     setEdited(p => p ? { ...p, [key]: NUM_KEYS.has(key) ? (parseFloat(raw) || undefined) : raw } : p);
@@ -408,9 +413,49 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
     }
   };
 
+  // Κράτα μόνο ψηφία (για ΑΦΜ/τηλέφωνο) ώστε η σύγκριση/αποθήκευση να είναι καθαρή.
+  const digits = (s?: string) => (s || '').replace(/\D/g, '');
+
+  // Αποθήκευση του εκδότη στις Επαφές — dedup ΠΡΩΤΑ, μετά insert. Καμία αυτόματη
+  // εγγραφή: καλείται μόνο από το κουμπί «Αποθήκευση στις Επαφές».
+  const saveContact = async () => {
+    if (!edited || !userId) return;
+    const fullName = (edited.provider || '').trim();
+    if (!fullName) return;
+    setContactState('saving');
+    try {
+      const afm = digits(edited.afm);
+      // DEDUP: φέρνουμε τις επαφές του ακινήτου/χρήστη και ελέγχουμε στη JS (το
+      // ΑΦΜ βρίσκεται μέσα στο JSON του notes, δεν κάνει εύκολα query).
+      const { data: existing } = await supabase.from('contacts')
+        .select('id, full_name, phone, notes')
+        .eq('property_id', propertyId).eq('user_id', userId);
+      const dup = (existing || []).some(c => {
+        let storedAfm = '';
+        try { storedAfm = digits((JSON.parse((c.notes as string) || '{}')?.extra?.afm) as string); } catch { /* αγνόησε άκυρο JSON */ }
+        if (afm && storedAfm && afm === storedAfm) return true;
+        if (nrm(fullName) && nrm(c.full_name as string) === nrm(fullName)) return true;
+        return false;
+      });
+      if (dup) { setContactState('exists'); return; }
+      // Σχηματισμός γραμμής επαφής (ίδιο schema με την καρτέλα Επαφές).
+      const extra: Record<string, string> = {};
+      if (afm) extra.afm = afm;
+      const role = inferRole(`${fullName} ${CATEGORY_LABELS[edited.category || ''] || ''}`) || 'other';
+      const { error: insErr } = await supabase.from('contacts').insert({
+        property_id: propertyId, user_id: userId, role,
+        full_name: fullName, phone: null, email: null,
+        notes: JSON.stringify({ __v: 2, extra, notes: '' }),
+      });
+      if (insErr) { setContactState('error'); return; }
+      setContactState('saved');
+    } catch { setContactState('error'); }
+  };
+
   const reset = () => {
     setStep('upload'); setFile(null); setImage(''); setEdited(null);
     setSaving(false); setError(''); setSavedInfo([]); setNewField({ label: '', value: '' });
+    setContactState('cta');
   };
 
   // ── Οθόνη επιτυχίας ─────────────────────────────────────────────────────────
@@ -424,10 +469,70 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 18 }}>{docSummaryLine(edited)}</div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {savedInfo.map(s => (
-            <span key={s} style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.25)', borderRadius: T.radius.pill, padding: '4px 12px', fontFamily: T.font.sans }}>✓ {s}</span>
+            <span key={s} style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '4px 12px', fontFamily: T.font.sans }}>{s}</span>
           ))}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 26 }}>Ενημερώθηκαν αυτόματα οι σχετικές καρτέλες.</div>
+
+        {/* Πρόταση αποθήκευσης εκδότη στις Επαφές (μόνο για λογαριασμό/απόδειξη με όνομα
+            προμηθευτή, και εφόσον ξέρουμε ποιος χρήστης — αλλιώς σιωπηλά παραλείπεται). */}
+        {(() => {
+          const supplierName = (edited.provider || '').trim();
+          const isInvoiceLike = edited.doc_type === 'bill' || edited.doc_type === 'payment';
+          if (!userId || !isInvoiceLike || !supplierName) return null;
+          const afm = digits(edited.afm);
+
+          if (contactState === 'saved' || contactState === 'exists') {
+            const okSaved = contactState === 'saved';
+            return (
+              <div style={{ maxWidth: 420, margin: '0 auto 22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 16px' }}>
+                {okSaved && <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>}
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: okSaved ? 'var(--positive)' : 'var(--text-secondary)' }}>
+                  {okSaved ? 'Αποθηκεύτηκε στις Επαφές' : 'Υπάρχει ήδη στις Επαφές'}
+                </span>
+              </div>
+            );
+          }
+          if (contactState === 'dismissed') return null;
+
+          const saving = contactState === 'saving';
+          return (
+            <div style={{ maxWidth: 420, margin: '0 auto 22px', textAlign: 'left', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, letterSpacing: '-0.01em' }}>
+                Να αποθηκεύσω τον προμηθευτή «{supplierName}» στις Επαφές;
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
+                Θα τον βρίσκεις εύκολα την επόμενη φορά.
+              </div>
+              <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Όνομα</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{supplierName}</span>
+                </div>
+                {afm && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ΑΦΜ</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{afm}</span>
+                  </div>
+                )}
+              </div>
+              {contactState === 'error' && (
+                <div style={{ fontSize: 11.5, color: 'var(--warning)', marginBottom: 10 }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</div>
+              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}>
+                <button onClick={saveContact} disabled={saving}
+                  style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '10px 20px', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: T.font.sans }}>
+                  {saving ? 'Αποθήκευση…' : 'Αποθήκευση στις Επαφές'}
+                </button>
+                <button onClick={() => setContactState('dismissed')} disabled={saving}
+                  style={{ background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '10px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
+                  Όχι τώρα
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <button onClick={reset} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, padding: '11px 30px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: T.font.sans }}>Σάρωσε νέο έγγραφο</button>
       </div>
     );
