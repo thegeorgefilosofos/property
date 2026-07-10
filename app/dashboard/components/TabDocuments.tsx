@@ -99,12 +99,27 @@ const DOC_CATEGORIES = [
 
 // Συνήθεις πάροχοι, προτάσεις (ελεύθερη πληκτρολόγηση για οποιονδήποτε άλλο)
 const COMMON_SUPPLIERS = [
-  'ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elin', 'Volton', 'enerwave', 'Zenith',
-  'Φυσικό Αέριο Ελλάδος', 'ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ',
-  'COSMOTE', 'Vodafone', 'Nova', 'Wind',
-  'Hellas Direct', 'Interamerican', 'Anytime', 'Magenta Insurance', 'Ergo', 'Allianz',
-  'Διαχείριση Πολυκατοικίας', 'Συνεργείο Καθαρισμού', 'Συντήρηση Ανελκυστήρα', 'Εταιρεία Ασφαλείας',
+  'ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elpedison', 'Elin', 'Volton', 'Volterra', 'Zenith',
+  'Φυσικό Αέριο Ελλάδος', 'ΔΕΠΑ', 'ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ',
+  'COSMOTE', 'Vodafone', 'Nova', 'Inalan',
+  'Εθνική Ασφαλιστική', 'Interamerican', 'Eurolife', 'Allianz', 'Generali', 'ERGO', 'NN Hellas', 'Hellas Direct',
+  'Διαχείριση Πολυκατοικίας', 'Συνεργείο Καθαρισμού',
 ];
+
+// Προτεινόμενοι ΕΝΕΡΓΟΙ πάροχοι ΑΝΑ κατηγορία-φάκελο — ώστε μόλις επιλεγεί η
+// κατηγορία, το πεδίο «Προμηθευτής/Πάροχος» να προτείνει τους σωστούς παρόχους.
+const CATEGORY_SUPPLIERS: Record<string, string[]> = {
+  'Λογαριασμός Ρεύματος': ['ΔΕΗ', 'Protergia', 'ΗΡΩΝ', 'NRG', 'Elpedison', 'Elin', 'Volton', 'Volterra', 'Zenith', 'We Energy', 'Φυσικό Αέριο Ελλάδος'],
+  'Λογαριασμός Φυσικού Αερίου': ['Φυσικό Αέριο Ελλάδος', 'ΔΕΠΑ', 'ΗΡΩΝ', 'Zenith', 'Protergia', 'Elpedison', 'Αέριο Αττικής'],
+  'Λογαριασμός Νερού': ['ΕΥΔΑΠ', 'ΕΥΑΘ', 'ΔΕΥΑ'],
+  'Τηλέφωνο / Internet': ['COSMOTE', 'Vodafone', 'Nova', 'Inalan', 'ΟΤΕ'],
+  'Ασφαλιστήριο Συμβόλαιο': ['Εθνική Ασφαλιστική', 'Interamerican', 'Eurolife', 'Allianz', 'Generali', 'ERGO', 'Groupama', 'NN Hellas', 'Υδρόγειος', 'Interlife', 'Hellas Direct'],
+  'ΕΝΦΙΑ / Φορολογικά': ['ΑΑΔΕ', 'Δήμος'],
+  'Κοινόχρηστα': ['Διαχείριση Πολυκατοικίας'],
+  'Τιμολόγιο Καθαρισμού': ['Συνεργείο Καθαρισμού'],
+  'Συντήρηση Ανελκυστήρα': ['Kleemann', 'Otis', 'Schindler', 'TK Elevator'],
+  'Εταιρεία Ασφαλείας': ['G4S', 'Securitas', 'ADT'],
+};
 
 /* ── Ταξινόμηση φακέλων ─────────────────────────────────────────────────── */
 type FolderKey =
@@ -201,6 +216,33 @@ const fmtSize = (b: number | null) => {
 };
 const yearOf = (d: string | null) => (d ? String(new Date(d).getFullYear()) : null);
 const monthLabel = (d: string) => new Date(d).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+
+/* ── AI helpers (κοινά για OCR εγγράφου & vision φωτογραφίας) ─────────────── */
+// Ανάγνωση αρχείου σε base64 (χωρίς το data: prefix). null σε αποτυχία.
+const fileToBase64 = (file: File): Promise<string | null> => new Promise(resolve => {
+  const r = new FileReader();
+  r.onload = () => resolve((r.result as string).split(',')[1] || null);
+  r.onerror = () => resolve(null);
+  r.readAsDataURL(file);
+});
+// Κλήση /api/anthropic με ΧΡΟΝΙΚΟ ΟΡΙΟ (AbortController) ώστε μια αργή/κολλημένη
+// απόκριση να ΜΗΝ παγώνει την ουρά ανεβάσματος. Επιστρέφει το JSON ή null.
+const anthropicJson = async (body: unknown, timeoutMs = 30000): Promise<{ content?: { type: string; text?: string }[] } | null> => {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch('/api/anthropic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal });
+    const data = await res.json();
+    if (!res.ok || (data as { error?: unknown })?.error) return null;
+    return data;
+  } catch { return null; } finally { clearTimeout(timer); }
+};
+// Εξαγωγή πρώτου text από απόκριση Anthropic + parse JSON (καθαρίζει code fences).
+function parseAnthropicJson<T>(data: { content?: { type: string; text?: string }[] } | null): T | null {
+  const text = (data?.content || []).find(c => c.type === 'text')?.text || '';
+  if (!text) return null;
+  try { return JSON.parse(text.replace(/```json?|```/g, '').trim()) as T; } catch { return null; }
+}
 
 /* ── Εικονίδια (inline SVG, stroke=currentColor) ─────────────────────────── */
 const S = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -300,6 +342,7 @@ export default function TabDocuments({
 
   // Ανέβασμα
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα ανεβάσματος
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [form, setForm] = useState({ kind: 'document' as 'photo' | 'document', category: DOC_CATEGORIES[0], supplier: '', title: '', doc_date: '', notes: '' });
@@ -442,29 +485,18 @@ export default function TabDocuments({
     const isImage = file.type.startsWith('image/');
     if (!isImage && !isPdf) return null;                       // μη-έγγραφα: χωρίς OCR
     if (file.size > 10 * 1024 * 1024) return null;             // >10MB: χωρίς OCR (κόστος/latency)
+    const base64 = await fileToBase64(file);
+    if (!base64) return null;
+    const contentPart: Record<string, unknown> = isPdf
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
+    const data = await anthropicJson({
+      model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.' }] }],
+    });
+    const doc = parseAnthropicJson<ScannedDoc>(data);
+    if (!doc || typeof doc !== 'object') return null;
     try {
-      const dataUrl: string = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result as string); r.onerror = () => rej(new Error('read'));
-        r.readAsDataURL(file);
-      });
-      const base64 = dataUrl.split(',')[1];
-      if (!base64) return null;
-      const contentPart: Record<string, unknown> = isPdf
-        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-        : { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
-      const res = await fetch('/api/anthropic', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.' }] }],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data?.error) return null;
-      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
-      const doc = JSON.parse(text.replace(/```json?|```/g, '').trim()) as ScannedDoc;
-      if (!doc || typeof doc !== 'object') return null;
       doc.doc_type = classifyDocType(doc);                     // ντετερμινιστική επιδιόρθωση τύπου
       const a = planDocSave(doc, new Date().toISOString().split('T')[0]).archive; // ίδιο σχέδιο αρχειοθέτησης
       if (!a) return null;
@@ -482,28 +514,16 @@ export default function TabDocuments({
   // Επιστρέφει null σε μη-εικόνα ή αποτυχία — ποτέ δεν μπλοκάρει το ανέβασμα.
   const photoClassify = async (file: File): Promise<{ category: string; title: string | null } | null> => {
     if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return null;
-    try {
-      const dataUrl: string = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result as string); r.onerror = () => rej(new Error('read'));
-        r.readAsDataURL(file);
-      });
-      const base64 = dataUrl.split(',')[1];
-      if (!base64) return null;
-      const res = await fetch('/api/anthropic', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-5', max_tokens: 200, system: PHOTO_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } }, { type: 'text', text: 'Κατηγοριοποίησε αυτή τη φωτογραφία ακινήτου.' }] }],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data?.error) return null;
-      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}';
-      const parsed = JSON.parse(text.replace(/```json?|```/g, '').trim()) as { category?: string; title?: string };
-      const category = parsed.category && PHOTO_CATEGORIES.includes(parsed.category) ? parsed.category : 'Κατάσταση Ακινήτου';
-      return { category, title: parsed.title?.trim() || null };
-    } catch { return null; }
+    const base64 = await fileToBase64(file);
+    if (!base64) return null;
+    const data = await anthropicJson({
+      model: 'claude-sonnet-5', max_tokens: 200, system: PHOTO_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } }, { type: 'text', text: 'Κατηγοριοποίησε αυτή τη φωτογραφία ακινήτου.' }] }],
+    });
+    const parsed = parseAnthropicJson<{ category?: string; title?: string }>(data);
+    if (!parsed) return null;
+    const category = parsed.category && PHOTO_CATEGORIES.includes(parsed.category) ? parsed.category : 'Κατάσταση Ακινήτου';
+    return { category, title: parsed.title?.trim() || null };
   };
 
   // Bulk: ουρά με per-file πρόοδο. Ακολουθιακή επεξεργασία (concurrency 1) ώστε να
@@ -652,12 +672,10 @@ export default function TabDocuments({
 
   /* ── UI helpers ────────────────────────────────────────────────────────── */
   const crumb = (label: string, onClick?: () => void, last = false) => (
-    <>
-      <button onClick={onClick} disabled={!onClick || last}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: onClick && !last ? 'pointer' : 'default',
-          fontSize: 13, fontWeight: last ? 700 : 500, fontFamily: T.font.sans,
-          color: last ? 'var(--text-primary)' : 'var(--accent)' }}>{label}</button>
-    </>
+    <button onClick={onClick} disabled={!onClick || last}
+      style={{ background: 'none', border: 'none', padding: 0, cursor: onClick && !last ? 'pointer' : 'default',
+        fontSize: 13, fontWeight: last ? 700 : 500, fontFamily: T.font.sans,
+        color: last ? 'var(--text-primary)' : 'var(--accent)' }}>{label}</button>
   );
   const sep = <svg {...S} width={14} height={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>;
 
@@ -679,10 +697,12 @@ export default function TabDocuments({
       <svg {...S} width={15} height={15}><path d="M12 5v14M5 12h14"/></svg>Νέο αρχείο
     </Btn>
   );
+  // Όταν το αρχείο είναι κενό, το κουμπί «Νέο αρχείο» ζει ΜΟΝΟ στην κενή κατάσταση
+  // (κεντρικό CTA) — αποφεύγουμε διπλότυπο κουμπί στην κεφαλίδα.
   const headerActions = (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {items.length > 0 && <ExportButton onClick={exportCsv} />}
-      {uploadBtn}
+      {items.length > 0 && uploadBtn}
     </div>
   );
   const fileActions = (showFolder: boolean): FileActions => ({
@@ -713,9 +733,12 @@ export default function TabDocuments({
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub="Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο"
-            right={<button onClick={() => setShowUpload(false)} title="Κλείσιμο" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}><IconX/></button>}/>
+          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
+            right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
+              {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
+            </button>}/>
 
+          {!uploadMin && (<>
           <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: 4, marginBottom: 14, width: 'fit-content' }}>
             {([['document', 'Έγγραφο'], ['photo', 'Φωτογραφία']] as const).map(([k, l]) => (
               <button key={k} onClick={() => setForm(f => ({ ...f, kind: k }))}
@@ -746,7 +769,8 @@ export default function TabDocuments({
                 onChange={e => { const v = e.target.value; setForm(f => { const next = { ...f, supplier: v }; if (prefs.autoSuggestCategory && f.kind === 'document') { const c = suggestCategory(v); if (c && DOC_CATEGORIES.includes(c)) next.category = c; } return next; }); }}
                 placeholder="π.χ. ΔΕΗ, ΕΥΔΑΠ, COSMOTE…"
                 style={{ width: '100%', height: 40, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '0 14px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
-              <datalist id="supplier-suggestions">{COMMON_SUPPLIERS.map(s => <option key={s} value={s}/>)}</datalist>
+              {/* Προτάσεις ΑΝΑ κατηγορία (σωστοί πάροχοι για το είδος), με εφεδρεία τους συνήθεις */}
+              <datalist id="supplier-suggestions">{(form.kind === 'document' ? (CATEGORY_SUPPLIERS[form.category] ?? COMMON_SUPPLIERS) : COMMON_SUPPLIERS).map(s => <option key={s} value={s}/>)}</datalist>
             </div>
             <DatePicker label="Ημερομηνία" value={form.doc_date} onChange={v => setForm(f => ({ ...f, doc_date: v }))}/>
           </div>
@@ -803,6 +827,7 @@ export default function TabDocuments({
           )}
 
           {msg && <div style={{ marginTop: 12, fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</div>}
+          </>)}
         </div>
       )}
 
@@ -859,7 +884,7 @@ export default function TabDocuments({
           items.length === 0 ? (
             <div className="card"><EmptyState title="Το αρχείο είναι κενό"
               hint="Ανέβασε το πρώτο συμβόλαιο, λογαριασμό ή τιμολόγιο. Ό,τι καταχωρείς στα Έξοδα, τους Λογαριασμούς ή την Απογραφή αρχειοθετείται κι εδώ αυτόματα."
-              action={<Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
+              action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Νέο αρχείο</Btn>}/></div>
           ) : view === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
               {FOLDERS.filter(f => counts.count[f.key]).map(f => <FolderCardGrid key={f.key} k={f.key} label={f.label} count={counts.count[f.key]} value={isPro ? counts.value[f.key] : undefined} onClick={() => openFolder(f.key)}/>)}
@@ -906,9 +931,10 @@ export default function TabDocuments({
           {isPdfItem(lightbox)
             ? <iframe title={lightbox.title} src={lightbox.url} onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 900px)', height: '82%', border: 'none', borderRadius: T.radius.inner, background: '#fff' }}/>
             : <img src={lightbox.url} alt={lightbox.title} onClick={e => e.stopPropagation()} style={{ maxWidth: '92%', maxHeight: '82%', objectFit: 'contain', borderRadius: T.radius.inner }}/>}
-          <div style={{ color: '#fff', fontSize: 12, fontFamily: T.font.sans, textAlign: 'center' }}>
+          <div style={{ color: '#fff', fontSize: 12, fontFamily: T.font.sans, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontWeight: 700 }}>{lightbox.title}</div>
             <div style={{ opacity: 0.7, marginTop: 2 }}>{[lightbox.category, lightbox.provider, lightbox.date ? fd(lightbox.date) : null].filter(Boolean).join(' · ')}</div>
+            <a href={lightbox.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, fontWeight: 600, color: '#fff', textDecoration: 'none', padding: '7px 14px', borderRadius: T.radius.pill, background: 'rgba(255,255,255,0.14)' }}><IconDownload size={13}/>Άνοιγμα σε νέα καρτέλα</a>
           </div>
         </div>
       )}

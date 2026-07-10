@@ -421,12 +421,20 @@ const EMPTY_ITEM: Partial<InventoryItem> = {
   provenance:'new',original_price:0,discount_pct:0,store_vendor:'',receipt_number:'',
 }
 
+// Σύστημα αναγνώρισης εξοπλισμού από φωτογραφία (συσκευασία/ετικέτα/booklet/απόδειξη).
+const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οικιακού εξοπλισμού από φωτογραφία (συσκευασία, ετικέτα ενέργειας, booklet ή απόδειξη αγοράς). Επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON, χωρίς άλλο κείμενο:
+{"name":"","brand":"","model":"","serial_number":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"π.χ. A+++ ή κενό","power_watts":"αριθμός W ή κενό","store":"","purchase_date":"YYYY-MM-DD ή κενό"}
+Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
+
 function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void}) {
   const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[],tags:item.tags||[]}:{...EMPTY_ITEM})
   const [saving,setSaving] = useState(false)
-  const [tab,setTab] = useState<'basic'|'finance'|'energy'|'smart'>('basic')
+  const [scanning,setScanning] = useState(false)
+  const scanRef = useRef<HTMLInputElement>(null)
   const set = (k:keyof InventoryItem,v:any) => setForm(f=>({...f,[k]:v}))
   const isElectric = ['Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Θέρμανση & Ψύξη','Φωτιστικά'].includes(form.category||'')
+  // «Περισσότερα»: ανοιχτό εξ αρχής όταν επεξεργαζόμαστε αντικείμενο με προχωρημένα στοιχεία.
+  const [showMore,setShowMore] = useState<boolean>(!!(item&&(item.provenance&&item.provenance!=='new'||item.original_price||item.replacement_cost||item.energy_class||item.power_watts||item.smart_device||item.receipt_number)))
   const liveKwh = (form.power_watts||0)>0&&(form.daily_hours_use||0)>0
     ? (((form.power_watts||0)/1000)*(form.daily_hours_use||0)*30+(((form.standby_watts||0)/1000)*(24-(form.daily_hours_use||0))*30)) : 0
   const replRange = REPLACEMENT_RANGES[form.category||'']
@@ -443,11 +451,42 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
     const tags=form.tags||[]
     set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
   }
-  const TABS = [
-    {key:'basic',label:'Βασικά'},
-    {key:'finance',label:'Οικονομικά'},
-    ...(isElectric?[{key:'energy',label:'Ενέργεια'},{key:'smart',label:'Έξυπνη'}]:[]),
-  ] as {key:string;label:string}[]
+  // AI σάρωση φωτογραφίας (συσκευασία/ετικέτα/booklet/απόδειξη) → προσυμπλήρωση πεδίων.
+  const runScan = async(file:File) => {
+    if(!file.type.startsWith('image/')||file.size>10*1024*1024) return
+    setScanning(true)
+    try {
+      const b64:string|null = await new Promise(res=>{const r=new FileReader();r.onload=()=>res((r.result as string).split(',')[1]||null);r.onerror=()=>res(null);r.readAsDataURL(file)})
+      if(!b64){setScanning(false);return}
+      const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),30000)
+      const res=await fetch('/api/anthropic',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,body:JSON.stringify({
+        model:'claude-sonnet-5',max_tokens:600,system:ITEM_SCAN_SYSTEM,
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},{type:'text',text:'Διάβασε τα στοιχεία του αντικειμένου/συσκευής από τη φωτογραφία.'}]}],
+      })})
+      clearTimeout(timer)
+      const data=await res.json()
+      if(res.ok&&!data?.error){
+        const txt=(data.content||[]).find((c:{type:string})=>c.type==='text')?.text||'{}'
+        const d=JSON.parse(txt.replace(/```json?|```/g,'').trim()) as Record<string,string>
+        const num=(v:string)=>{const n=parseFloat(String(v||'').replace(/[^\d.]/g,''));return isNaN(n)?0:n}
+        setForm(f=>({...f,
+          name:f.name||d.name||[d.brand,d.model].filter(Boolean).join(' ')||'',
+          brand:f.brand||d.brand||'',
+          model:f.model||d.model||'',
+          serial_number:f.serial_number||d.serial_number||'',
+          category:d.category&&['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].includes(d.category)?d.category:f.category,
+          purchase_value:f.purchase_value||Math.round(num(d.price)),
+          warranty_expiry:f.warranty_expiry||d.warranty_expiry||'',
+          energy_class:f.energy_class||(ENERGY_CLASSES.includes(d.energy_class)?d.energy_class:''),
+          power_watts:f.power_watts||num(d.power_watts),
+          store_vendor:f.store_vendor||d.store||'',
+          purchase_date:f.purchase_date||d.purchase_date||'',
+        }))
+        if(d.energy_class||d.power_watts||d.price) setShowMore(true)
+      }
+    } catch { /* σιωπηλή αποτυχία — μη μπλοκάρει τη ροή */ }
+    setScanning(false)
+  }
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px 16px'}}>
@@ -460,123 +499,103 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
             </div>
             <button onClick={onClose} style={{width:40,height:40,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='none'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
-          <div style={{display:'flex',borderBottom:'1px solid var(--border-subtle)'}}>
-            {TABS.map(t=>(
-              <button key={t.key} onClick={()=>setTab(t.key as any)}
-                style={{padding:'10px 16px',fontSize:13,fontWeight:tab===t.key?500:400,fontFamily:T.font.sans,color:tab===t.key?'var(--accent)':'var(--text-secondary)',borderTop:'none',borderLeft:'none',borderRight:'none',borderBottom:`2px solid ${tab===t.key?'var(--accent)':'transparent'}`,background:'none',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s',marginBottom:-1}}>
-                {t.label}
-              </button>
-            ))}
-          </div>
         </div>
         <div style={{padding:'20px 28px',display:'flex',flexDirection:'column',gap:18,flex:1,overflowY:'auto'}}>
-          {tab==='basic'&&(
-            <>
-              <MultiPhotoUpload photos={form.photos||[]} primary={form.photo_url||''} onAdd={u=>set('photos',[...(form.photos||[]),u])} onRemove={u=>{const p=(form.photos||[]).filter(x=>x!==u);set('photos',p);if(form.photo_url===u)set('photo_url',p[0]||'')}} onSetPrimary={u=>set('photo_url',u)}/>
-              <div>
-                <label style={labelStyle}>Ονομασία *</label>
-                <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-                <div><label style={labelStyle}>Κατηγορία</label><CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/></div>
-                <div><label style={labelStyle}>Κατάσταση</label><CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/></div>
-                <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
-                <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="Παράδειγμα: WAU28PI0GR"/></div>
-                <div><label style={labelStyle}>Σειριακός Αριθμός</label><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></div>
-                <div><label style={labelStyle}>Λήξη Εγγύησης</label><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></div>
-              </div>
-              <div>
-                <label style={labelStyle}>Χώρος Τοποθέτησης</label>
-                <RoomInput value={form.room||''} onChange={v=>set('room',v)}/>
-              </div>
-              <div>
-                <label style={labelStyle}>Ετικέτες</label>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                  {AVAILABLE_TAGS.map(tag=>{
-                    const active=(form.tags||[]).includes(tag)
-                    return <button key={tag} onClick={()=>toggleTag(tag)} style={{padding:'4px 12px',borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:active?500:400,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'none',color:active?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>{tag}</button>
-                  })}
+          {/* Σάρωση με AI — φωτο συσκευασίας/ετικέτας/booklet/απόδειξης → προσυμπλήρωση */}
+          <input ref={scanRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.currentTarget.value=''}}/>
+          <button onClick={()=>{if(!scanning)scanRef.current?.click()}} disabled={scanning}
+            style={{display:'flex',alignItems:'center',gap:13,width:'100%',textAlign:'left',padding:'12px 16px',borderRadius:T.radius.card,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',cursor:scanning?'wait':'pointer',fontFamily:T.font.sans}}>
+            <div style={{width:38,height:38,borderRadius:'50%',background:'var(--bg-surface)',border:'1px solid var(--accent-border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--accent)'}}>
+              {scanning?<div style={{width:16,height:16,border:'2px solid var(--accent-border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>
+                :<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--accent)'}}>{scanning?'Ανάγνωση φωτογραφίας…':'Σάρωση με AI'}</div>
+              <div style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4}}>Φωτογραφία συσκευασίας, ετικέτας, booklet ή απόδειξης — συμπληρώνει μόνο του μάρκα, μοντέλο, αξία, εγγύηση, ενέργεια…</div>
+            </div>
+          </button>
+          <style>{`@keyframes invSpin{to{transform:rotate(360deg)}}`}</style>
+
+          <MultiPhotoUpload photos={form.photos||[]} primary={form.photo_url||''} onAdd={u=>set('photos',[...(form.photos||[]),u])} onRemove={u=>{const p=(form.photos||[]).filter(x=>x!==u);set('photos',p);if(form.photo_url===u)set('photo_url',p[0]||'')}} onSetPrimary={u=>set('photo_url',u)}/>
+
+          {/* Ταυτότητα αντικειμένου */}
+          <div>
+            <label style={labelStyle}>Ονομασία *</label>
+            <TextInput value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+            <div><label style={labelStyle}>Κατηγορία</label><CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(c=>({value:c,label:c}))}/></div>
+            <div><label style={labelStyle}>Κατάσταση</label><CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/></div>
+            <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
+            <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="Παράδειγμα: WAU28PI0GR"/></div>
+            <div><label style={labelStyle}>Σειριακός Αριθμός</label><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></div>
+            <div><label style={labelStyle}>Χώρος Τοποθέτησης</label><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></div>
+          </div>
+
+          {/* Αγορά & Εγγύηση */}
+          <SectionLabel label="Αγορά & Εγγύηση"/>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+            <div><label style={labelStyle}>Ημερομηνία Αγοράς</label><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></div>
+            <div><label style={labelStyle}>Αξία (€)</label><NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></div>
+            <div><label style={labelStyle}>Λήξη Εγγύησης</label><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></div>
+            <div><label style={labelStyle}>Κατάστημα / Πηγή</label><TextInput value={form.store_vendor||''} onChange={v=>set('store_vendor',v)} placeholder="Παράδειγμα: Κωτσόβολος"/></div>
+          </div>
+          {form.purchase_date&&(form.purchase_value||0)>0&&(
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:8,padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+              {[
+                {label:'Τρέχουσα Αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem))},
+                {label:'Απόσβεση',value:`${calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem)}%`},
+                {label:'Υπολ. Ζωή',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρ.`},
+              ].map((k,i)=>(
+                <div key={i} style={{textAlign:'center'}}>
+                  <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
+                  <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
                 </div>
-              </div>
-              <Textarea label="Σημειώσεις" value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά..." rows={2}/>
-            </>
+              ))}
+            </div>
           )}
-          {tab==='finance'&&(
-            <>
-              <div>
-                <label style={labelStyle}>Προέλευση Αντικειμένου</label>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {PROVENANCE_OPTIONS.map(opt=>{
-                    const active=form.provenance===opt.value
-                    return (
-                      <div key={opt.value} onClick={()=>set('provenance',opt.value)} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderRadius:T.radius.inner,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'var(--bg-elevated)',cursor:'pointer',transition:'all 0.15s'}}>
-                        <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${active?'var(--accent)':'var(--border-default)'}`,background:active?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          {active&&<div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent-text)'}}/>}
-                        </div>
-                        <span style={{fontSize:13,fontFamily:T.font.sans,color:active?'var(--accent)':'var(--text-primary)',fontWeight:active?500:400}}>{opt.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-              {(form.provenance==='new'||form.provenance==='discount')&&(
-                <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:T.radius.card,border:'1px solid var(--border-accent)',display:'flex',flexDirection:'column',gap:12}}>
-                  <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:T.font.sans}}>Στοιχεία Τιμής</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
-                    <div><label style={labelStyle}>Αρχική Τιμή (€)</label><NumberInput value={String(form.original_price||0)} onChange={v=>set('original_price',parseFloat(v)||0)} suffix="€" min={0}/></div>
-                    <div><label style={labelStyle}>Έκπτωση (%)</label><NumberInput value={String(form.discount_pct||0)} onChange={v=>set('discount_pct',parseFloat(v)||0)} suffix="%" min={0} max={100}/></div>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Τελική Τιμή (€)</label>
-                    {discountedPrice>0
-                      ?<div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'10px 14px',fontSize:16,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{fmtEur(discountedPrice)}</div>
-                      :<NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/>
-                    }
-                  </div>
-                  {discountedPrice>0&&(form.original_price||0)>0&&(
-                    <div style={{padding:'8px 12px',background:'var(--positive-dim)',borderRadius:8,border:'1px solid var(--positive-border)'}}>
-                      <span style={{fontSize:12,color:'var(--positive)',fontFamily:T.font.sans}}>Εξοικονόμηση: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur((form.original_price||0)-discountedPrice)}</strong> ({form.discount_pct}% έκπτωση)</span>
+
+          {/* Περισσότερα — προέλευση, κόστος αντικατάστασης, ενέργεια, έξυπνη */}
+          <button onClick={()=>setShowMore(m=>!m)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:T.font.sans}}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{color:'var(--text-tertiary)',transform:showMore?'rotate(90deg)':'none',transition:'transform 0.15s'}}><path d="m9 18 6-6-6-6"/></svg>
+            <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα{isElectric?' — προέλευση, ενέργεια & έξυπνη':' — προέλευση & κόστος'}</span>
+          </button>
+          {showMore&&(<>
+            <div>
+              <label style={labelStyle}>Προέλευση</label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:6}}>
+                {PROVENANCE_OPTIONS.map(opt=>{
+                  const active=form.provenance===opt.value
+                  return (
+                    <div key={opt.value} onClick={()=>set('provenance',opt.value)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:T.radius.inner,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'var(--bg-elevated)',cursor:'pointer',transition:'all 0.15s'}}>
+                      <div style={{width:15,height:15,borderRadius:'50%',border:`2px solid ${active?'var(--accent)':'var(--border-default)'}`,background:active?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{active&&<div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent-text)'}}/>}</div>
+                      <span style={{fontSize:12.5,fontFamily:T.font.sans,color:active?'var(--accent)':'var(--text-primary)',fontWeight:active?500:400}}>{opt.label.split('—')[0].trim()}</span>
                     </div>
-                  )}
-                </div>
-              )}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-                {!(form.provenance==='new'||form.provenance==='discount')&&(
-                  <div><label style={labelStyle}>Αξία Αγοράς / Εκτίμηση (€)</label><NumberInput value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></div>
-                )}
-                <div>
-                  <label style={labelStyle}>Κόστος Αντικατάστασης (€)</label>
-                  <NumberInput value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
-                  {replRange&&!form.replacement_cost&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>Εκτίμηση: {fmtEur(replRange.min)}–{fmtEur(replRange.max)}</p>}
-                </div>
-                <div><label style={labelStyle}>Ημερομηνία Αγοράς</label><DatePicker value={form.purchase_date||''} onChange={v=>{set('purchase_date',v);if(discountedPrice>0)set('purchase_value',discountedPrice)}}/></div>
-                <div><label style={labelStyle}>Κατάστημα / Πηγή</label><TextInput value={form.store_vendor||''} onChange={v=>set('store_vendor',v)} placeholder="Παράδειγμα: Κωτσόβολος, Amazon"/></div>
-                <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
+                  )
+                })}
               </div>
-              {form.purchase_date&&form.purchase_value&&(
-                <div style={{padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)'}}>
-                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans,marginBottom:12}}>Απόσβεση</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
-                    {[
-                      {label:'Τρέχουσα Αξία',value:fmtEur(calcCurrentValue({...form,id:'',user_id:''} as InventoryItem)),color:'var(--text-primary)'},
-                      {label:'Απόσβεση',value:`${calcDepreciationPct({...form,id:'',user_id:''} as InventoryItem)}%`,color:'var(--text-primary)'},
-                      {label:'Υπολ. Ζωή',value:`~${calcYearsLeft({...form,id:'',user_id:''} as InventoryItem)} χρόνια`,color:'var(--text-primary)'},
-                    ].map((k,i)=>(
-                      <div key={i} style={{textAlign:'center',padding:10,background:'var(--bg-surface)',borderRadius:8}}>
-                        <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:k.color,marginBottom:3}}>{k.value}</p>
-                        <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
-                      </div>
-                    ))}
+            </div>
+            {(form.provenance==='new'||form.provenance==='discount')&&(
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10}}>
+                <div><label style={labelStyle}>Αρχική Τιμή (€)</label><NumberInput value={String(form.original_price||0)} onChange={v=>{const orig=parseFloat(v)||0;const disc=form.discount_pct||0;setForm(f=>({...f,original_price:orig,purchase_value:disc>0?Math.round(orig*(1-disc/100)):orig}))}} suffix="€" min={0}/></div>
+                <div><label style={labelStyle}>Έκπτωση (%)</label><NumberInput value={String(form.discount_pct||0)} onChange={v=>{const disc=parseFloat(v)||0;const orig=form.original_price||0;setForm(f=>({...f,discount_pct:disc,purchase_value:orig>0?Math.round(orig*(1-disc/100)):f.purchase_value}))}} suffix="%" min={0} max={100}/></div>
+                {discountedPrice>0&&(form.original_price||0)>0&&(
+                  <div style={{gridColumn:'1/-1',padding:'8px 12px',background:'var(--positive-dim)',borderRadius:8,border:'1px solid var(--positive-border)'}}>
+                    <span style={{fontSize:12,color:'var(--positive)',fontFamily:T.font.sans}}>Εξοικονόμηση: <strong style={{fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtEur((form.original_price||0)-discountedPrice)}</strong> ({form.discount_pct}%)</span>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-          {tab==='energy'&&(
-            <>
-              <div style={{padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-                <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Βρείτε τα στοιχεία στην ετικέτα ενέργειας ή στο εγχειρίδιο.</p>
+                )}
               </div>
+            )}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+              <div>
+                <label style={labelStyle}>Κόστος Αντικατάστασης (€)</label>
+                <NumberInput value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
+                {replRange&&!form.replacement_cost&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>Εκτίμηση: {fmtEur(replRange.min)}–{fmtEur(replRange.max)}</p>}
+              </div>
+              <div><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
+            </div>
+            {isElectric&&(<>
+              <SectionLabel label="Ενέργεια"/>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 <div><label style={labelStyle}>Ενεργειακή Κλάση</label><CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/></div>
                 <div><label style={labelStyle} title="W = Watt — μονάδα ισχύος/κατανάλωσης ρεύματος">Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
@@ -584,28 +603,16 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                 <div><label style={labelStyle}>Κατανάλωση Αναμονής (W)</label><NumberInput value={String(form.standby_watts||0)} onChange={v=>set('standby_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
               </div>
               {liveKwh>0&&(
-                <div style={{background:'var(--bg-elevated)',borderRadius:T.radius.card,padding:'14px 16px',border:'1px solid var(--border-subtle)'}}>
-                  <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:12,fontWeight:500,fontFamily:T.font.sans}}>Εκτιμώμενη Κατανάλωση</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
-                    {[{label:'kWh/μήνα',value:`${liveKwh.toFixed(1)}`},{label:'kWh/έτος',value:`${(liveKwh*12).toFixed(0)}`},{label:'Κόστος/μήνα',value:fmtEurC(liveKwh*0.22)},{label:'Κόστος/έτος',value:fmtEurC(liveKwh*0.22*12)}].map((k,i)=>(
-                      <div key={i} style={{textAlign:'center',padding:'10px 6px',background:'var(--bg-surface)',borderRadius:8}}>
-                        <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:3}}>{k.value}</p>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {form.energy_class&&!['A+++','A++','A+'].includes(form.energy_class)&&(
-                    <div style={{marginTop:12,padding:'8px 12px',background:'var(--positive-dim)',borderRadius:8,border:'1px solid var(--positive-border)'}}>
-                      <p style={{fontSize:12,color:'var(--positive)',fontFamily:T.font.sans}}>Αναβάθμιση σε Α+++ → εκτιμ. εξοικονόμηση <strong>{fmtEurC(liveKwh*0.22*12*0.5)}–{fmtEurC(liveKwh*0.22*12*0.6)}/χρόνο</strong></p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:8,padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+                  {[{label:'kWh/μήνα',value:`${liveKwh.toFixed(1)}`},{label:'kWh/έτος',value:`${(liveKwh*12).toFixed(0)}`},{label:'Κόστος/μήνα',value:fmtEurC(liveKwh*0.22)},{label:'Κόστος/έτος',value:fmtEurC(liveKwh*0.22*12)}].map((k,i)=>(
+                    <div key={i} style={{textAlign:'center'}}>
+                      <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
+                      <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
-            </>
-          )}
-          {tab==='smart'&&(
-            <>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'var(--bg-elevated)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
                 <div>
                   <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Έξυπνη Συσκευή</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:T.font.sans}}>Συνδέεται με εφαρμογή, έξυπνη πρίζα ή αυτοματισμό</p>
@@ -615,26 +622,20 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               {form.smart_device&&(
                 <div><label style={labelStyle}>App / Σύστημα Ελέγχου</label><TextInput value={form.smart_notes||''} onChange={v=>set('smart_notes',v)} placeholder="Παράδειγμα: Shelly 1PM + Home Assistant"/></div>
               )}
-              <div style={{padding:'14px 16px',background:'var(--accent-dim)',borderRadius:T.radius.card,border:'1px solid var(--border-accent)'}}>
-                <p style={{fontSize:12,color:'var(--accent)',fontWeight:500,fontFamily:T.font.sans,marginBottom:12}}>Προτεινόμενες έξυπνες συσκευές</p>
-                {[
-                  {label:'Smart Plug με μέτρηση',desc:'Shelly Plug S, Tapo P115, μέτρηση κατανάλωσης ανά συσκευή',saving:'έως 15% εξοικονόμηση'},
-                  {label:'Smart Θερμοστάτης',desc:'Tado, Nest, Heatmiser, για κλιματισμό & θέρμανση',saving:'15-25% εξοικονόμηση'},
-                  {label:'Home Assistant',desc:'Δωρεάν ενοποίηση, αυτοματισμοί και πίνακας ελέγχου για όλες τις συσκευές',saving:'Κεντρικός έλεγχος'},
-                  {label:'Smart LED Φωτισμός',desc:'Philips Hue, IKEA TRÅDFRI, χρονοπρογράμματα & παρουσία',saving:'έως 80% λιγότερο'},
-                ].map((tip,i)=>(
-                  <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderBottom:i<3?'1px solid var(--border-subtle)':'none'}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',marginTop:5,flexShrink:0}}/>
-                    <div>
-                      <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{tip.label}</p>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:2,fontFamily:T.font.sans}}>{tip.desc}</p>
-                      <p style={{fontSize:11,color:'var(--positive)',fontWeight:500,fontFamily:T.font.sans}}>{tip.saving}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+            </>)}
+          </>)}
+
+          {/* Ετικέτες & σημειώσεις */}
+          <div>
+            <label style={labelStyle}>Ετικέτες</label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+              {AVAILABLE_TAGS.map(tag=>{
+                const active=(form.tags||[]).includes(tag)
+                return <button key={tag} onClick={()=>toggleTag(tag)} style={{padding:'4px 12px',borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:active?500:400,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'none',color:active?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>{tag}</button>
+              })}
+            </div>
+          </div>
+          <Textarea label="Σημειώσεις" value={form.notes||''} onChange={v=>set('notes',v)} placeholder="Παρατηρήσεις, ιστορικό, χαρακτηριστικά..." rows={2}/>
         </div>
         <div style={{padding:'16px 28px 24px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:10,justifyContent:'flex-end',flexShrink:0,background:'var(--bg-surface)'}}>
           <button onClick={onClose} style={{padding:'0 20px',height:40,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>

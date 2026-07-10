@@ -1620,7 +1620,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div> : undefined}
       />}
 
-      {contacts.length > 0 && <KPIGrid items={kpiItems} />}
+      {/* columns={7} → μικρότερο min-width ώστε και τα 5 KPI να μπαίνουν σε ΜΙΑ ζυγισμένη σειρά (και να «σπάνε» ομαλά σε κινητό) */}
+      {contacts.length > 0 && <KPIGrid items={kpiItems} columns={7} />}
 
       {overdueContacts.length > 0 && (
         <InfoBanner tone="warning">
