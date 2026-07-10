@@ -943,3 +943,219 @@ alter table public.tenants add column if not exists solar_service_owner_pct     
 alter table public.tenants add column if not exists heat_pump_service_owner_pct    numeric;
 alter table public.tenants add column if not exists solar_panels_service_owner_pct numeric;
 alter table public.tenants add column if not exists pest_control_owner_pct         numeric;
+
+-- ── Ενοικιαστές: υπηρεσίες→καθολικό, επίπλωση, πύλη πληρωμής/βλάβης (20260709240000) ──
+alter table public.tenants add column if not exists furnishing text;      -- 'empty' | 'furnished' | 'turnkey'
+-- IBAN όπου πληρώνεται το ενοίκιο (για αίτημα πληρωμής / QR).
+alter table public.tenants add column if not exists rent_iban  text;
+
+-- Ανάλυση δόσης: βασικό ενοίκιο + χρέωση υπηρεσιών (= amount).
+alter table public.rent_payments add column if not exists base_rent          numeric;
+alter table public.rent_payments add column if not exists services_charge    numeric;
+-- Δήλωση πληρωμής από τον ενοικιαστή μέσω πύλης (ο ιδιοκτήτης επιβεβαιώνει).
+alter table public.rent_payments add column if not exists tenant_declared    boolean default false;
+alter table public.rent_payments add column if not exists tenant_declared_at timestamptz;
+alter table public.rent_payments add column if not exists tenant_note        text;
+
+-- Αιτήματα βλάβης: σύνδεση με ενοικιαστή, κατηγορία, επίλυση.
+alter table public.maintenance_requests add column if not exists tenant_id   uuid;
+alter table public.maintenance_requests add column if not exists category    text;
+alter table public.maintenance_requests add column if not exists resolved_at timestamptz;
+
+-- Αρχείο ειδοποιήσεων (χρησιμοποιείται από τις edge functions send-reminders &
+-- market-data-updater — πολυμορφικό, όλες οι στήλες nullable). Idempotent.
+create table if not exists public.notification_log (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid,
+  event_id      uuid,           -- id γεγονότος ημερολογίου ή δόσης ενοικίου (rent_overdue)
+  reminder_type text,           -- 7days | 3days | 1day | today | overdue | rent_overdue
+  type          text,           -- για ειδοποιήσεις αγοράς (market-data-updater)
+  title         text,
+  body          text,
+  data          jsonb,
+  created_at    timestamptz default now()
+);
+alter table public.notification_log add column if not exists user_id       uuid;
+alter table public.notification_log add column if not exists event_id      uuid;
+alter table public.notification_log add column if not exists reminder_type text;
+alter table public.notification_log add column if not exists created_at    timestamptz default now();
+create index if not exists idx_notif_log_dedup on public.notification_log(reminder_type, event_id);
+alter table public.notification_log enable row level security;
+drop policy if exists "own_notif_log" on public.notification_log;
+create policy "own_notif_log" on public.notification_log for select
+  using (user_id = auth.uid());
+
+-- ── RPC: δεδομένα πύλης (v2) — προσθέτει οφειλή ενοικίου + IBAN πληρωμής ──────
+create or replace function public.get_portal_data(p_token text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_link record; v_prop record; v_ten record; v_due json; v_total numeric;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return null; end if;
+  select name, address, prop_type into v_prop from user_properties where id::text = v_link.property_id::text;
+  select id, monthly_rent, lease_start, lease_end, deposit_amount, full_name, rent_iban into v_ten
+    from tenants where property_id = v_link.property_id order by created_at desc limit 1;
+
+  select coalesce(json_agg(json_build_object(
+           'id', rp.id, 'year', rp.period_year, 'month', rp.period_month,
+           'amount', rp.amount, 'due_date', rp.due_date, 'declared', rp.tenant_declared
+         ) order by rp.period_year, rp.period_month), '[]'::json),
+         coalesce(sum(rp.amount), 0)
+    into v_due, v_total
+    from rent_payments rp
+    where rp.tenant_id = v_ten.id and rp.paid = false;
+
+  return json_build_object(
+    'property', json_build_object('name', v_prop.name, 'address', v_prop.address, 'type', v_prop.prop_type),
+    'tenant',   json_build_object('name', v_ten.full_name, 'rent', v_ten.monthly_rent,
+      'lease_start', v_ten.lease_start, 'lease_end', v_ten.lease_end, 'deposit', v_ten.deposit_amount,
+      'rent_iban', v_ten.rent_iban),
+    'due',      v_due,
+    'total_due', v_total
+  );
+end; $$;
+grant execute on function public.get_portal_data(text) to anon, authenticated;
+
+-- ── RPC: δήλωση πληρωμής δόσης από τον ενοικιαστή (ο ιδιοκτήτης επιβεβαιώνει) ──
+create or replace function public.declare_rent_payment(p_token text, p_payment_id uuid, p_note text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_link record; v_ok int;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return false; end if;
+  -- Μόνο δόσεις που ανήκουν στο ακίνητο της πύλης, και ΔΕΝ σημειώνεται «πληρωμένο»
+  -- (αυτό το κάνει ο ιδιοκτήτης) — μόνο «δηλώθηκε από τον ενοικιαστή».
+  update rent_payments
+    set tenant_declared = true, tenant_declared_at = now(), tenant_note = left(coalesce(p_note,''), 500)
+    where id = p_payment_id and property_id::text = v_link.property_id::text and paid = false;
+  get diagnostics v_ok = row_count;
+  return v_ok > 0;
+end; $$;
+grant execute on function public.declare_rent_payment(text, uuid, text) to anon, authenticated;
+
+-- ── RPC: αίτημα βλάβης — ίδια υπογραφή (4 ορίσματα), εμπλουτισμένο σώμα ώστε
+--    να συνδέει αυτόματα το αίτημα με τον τρέχοντα ενοικιαστή (tenant_id). ──────
+create or replace function public.submit_maintenance_request(p_token text, p_title text, p_description text, p_contact text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_link record; v_ten_id uuid;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return false; end if;
+  if coalesce(trim(p_title), '') = '' then return false; end if;
+  select id into v_ten_id from tenants where property_id = v_link.property_id order by created_at desc limit 1;
+  insert into maintenance_requests(property_id, user_id, token, tenant_id, title, description, contact)
+    values (v_link.property_id, v_link.user_id, p_token, v_ten_id, left(p_title, 200), left(p_description, 2000), left(p_contact, 200));
+  return true;
+end; $$;
+grant execute on function public.submit_maintenance_request(text, text, text, text) to anon, authenticated;
+
+-- ═══ Πύλη: PIN, σύνδεσμος πληρωμής, φωτογραφίες/ανάθεση βλαβών, dunning ρυθμίσεις ══
+create extension if not exists pgcrypto;
+
+alter table public.portal_links add column if not exists pin_hash     text;
+alter table public.portal_links add column if not exists payment_link text;
+
+alter table public.maintenance_requests add column if not exists photos           jsonb default '[]'::jsonb;
+alter table public.maintenance_requests add column if not exists assignee_name    text;
+alter table public.maintenance_requests add column if not exists assignee_contact text;
+
+create table if not exists public.notification_preferences (
+  user_id          uuid primary key,
+  email_enabled    boolean default false,
+  reminder_7days   boolean default true,
+  reminder_3days   boolean default true,
+  reminder_1day    boolean default true,
+  reminder_today   boolean default true,
+  reminder_overdue boolean default true,
+  reminder_email   text,
+  updated_at       timestamptz default now()
+);
+alter table public.notification_preferences enable row level security;
+drop policy if exists "own_notif_prefs" on public.notification_preferences;
+create policy "own_notif_prefs" on public.notification_preferences for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter table public.notification_preferences add column if not exists dunning_enabled    boolean default true;
+alter table public.notification_preferences add column if not exists dunning_every_days integer default 7;
+alter table public.notification_preferences add column if not exists dunning_max        integer default 3;
+
+insert into storage.buckets (id, name, public) values ('maintenance-photos', 'maintenance-photos', true)
+  on conflict (id) do nothing;
+drop policy if exists "maint_photos_insert" on storage.objects;
+create policy "maint_photos_insert" on storage.objects for insert to anon, authenticated
+  with check (bucket_id = 'maintenance-photos');
+drop policy if exists "maint_photos_read" on storage.objects;
+create policy "maint_photos_read" on storage.objects for select to anon, authenticated
+  using (bucket_id = 'maintenance-photos');
+
+create or replace function public.portal_meta(p_token text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_link record;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return json_build_object('found', false, 'pin_required', false); end if;
+  return json_build_object('found', true, 'pin_required', v_link.pin_hash is not null);
+end; $$;
+grant execute on function public.portal_meta(text) to anon, authenticated;
+
+create or replace function public.set_portal_pin(p_token text, p_pin text)
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
+declare v_ok int;
+begin
+  update portal_links
+    set pin_hash = case when coalesce(trim(p_pin), '') = '' then null else crypt(p_pin, gen_salt('bf')) end
+    where token = p_token and user_id = auth.uid();
+  get diagnostics v_ok = row_count;
+  return v_ok > 0;
+end; $$;
+grant execute on function public.set_portal_pin(text, text) to authenticated;
+
+drop function if exists public.get_portal_data(text);
+create or replace function public.get_portal_data(p_token text, p_pin text default null)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare v_link record; v_prop record; v_ten record; v_due json; v_total numeric;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return null; end if;
+  if v_link.pin_hash is not null then
+    if p_pin is null or crypt(p_pin, v_link.pin_hash) <> v_link.pin_hash then
+      return json_build_object('locked', true);
+    end if;
+  end if;
+  select name, address, prop_type into v_prop from user_properties where id::text = v_link.property_id::text;
+  select id, monthly_rent, lease_start, lease_end, deposit_amount, full_name, rent_iban into v_ten
+    from tenants where property_id = v_link.property_id order by created_at desc limit 1;
+  select coalesce(json_agg(json_build_object(
+           'id', rp.id, 'year', rp.period_year, 'month', rp.period_month,
+           'amount', rp.amount, 'due_date', rp.due_date, 'declared', rp.tenant_declared
+         ) order by rp.period_year, rp.period_month), '[]'::json),
+         coalesce(sum(rp.amount), 0)
+    into v_due, v_total
+    from rent_payments rp
+    where rp.tenant_id = v_ten.id and rp.paid = false;
+  return json_build_object(
+    'property', json_build_object('name', v_prop.name, 'address', v_prop.address, 'type', v_prop.prop_type),
+    'tenant',   json_build_object('name', v_ten.full_name, 'rent', v_ten.monthly_rent,
+      'lease_start', v_ten.lease_start, 'lease_end', v_ten.lease_end, 'deposit', v_ten.deposit_amount,
+      'rent_iban', v_ten.rent_iban),
+    'payment_link', v_link.payment_link,
+    'due',      v_due,
+    'total_due', v_total
+  );
+end; $$;
+grant execute on function public.get_portal_data(text, text) to anon, authenticated;
+
+drop function if exists public.submit_maintenance_request(text, text, text, text);
+create or replace function public.submit_maintenance_request(p_token text, p_title text, p_description text, p_contact text, p_photos jsonb default '[]'::jsonb)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_link record; v_ten_id uuid;
+begin
+  select * into v_link from portal_links where token = p_token and active = true;
+  if not found then return false; end if;
+  if coalesce(trim(p_title), '') = '' then return false; end if;
+  select id into v_ten_id from tenants where property_id = v_link.property_id order by created_at desc limit 1;
+  insert into maintenance_requests(property_id, user_id, token, tenant_id, title, description, contact, photos)
+    values (v_link.property_id, v_link.user_id, p_token, v_ten_id, left(p_title, 200), left(p_description, 2000), left(p_contact, 200),
+            coalesce(p_photos, '[]'::jsonb));
+  return true;
+end; $$;
+grant execute on function public.submit_maintenance_request(text, text, text, text, jsonb) to anon, authenticated;

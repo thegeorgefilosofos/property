@@ -290,7 +290,7 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
 }
 
 // Overview Tab
-function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void }) {
+function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onCleanDemo, profileType }: { prop: Property; userId: string; ownerName?: string; onSaveOwnerName?: (n: string) => void | Promise<void>; onNavigate: (tab: string) => void; onCleanDemo?: () => void; profileType: 'individual'|'professional' }) {
   const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
@@ -731,14 +731,17 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       <PaymentLinks />
 
       {/* Εργαλεία ακινήτου: ελαφριά πλακίδια-σύνοψη που ανοίγουν την εστιασμένη
-          προβολή (πρώην «Το ακίνητο»). Δεν φορτώνουν βαριά περιεχόμενα στην
-          Επισκόπηση, μόνο ζωντανό αριθμό + ένα κλικ για την πλήρη καρτέλα. */}
+          προβολή. Στο προφίλ «Ιδιώτης» ζουν ΕΔΩ (κάτω από Είσπραξη & Πληρωμές)·
+          στο «Επαγγελματίας» ζουν στην πλαϊνή μπάρα (ομάδα «Εργαλεία»). Έτσι δεν
+          υπάρχουν διπλότυπα — σε κάθε προφίλ εμφανίζονται σε ένα μόνο σημείο. */}
+      {profileType==='individual' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <ToolTile title="Εκκρεμότητες" metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
         <ToolTile title="Επαφές" metric={contactCount ? `${contactCount} ${contactCount === 1 ? 'επαφή' : 'επαφές'}` : 'Πρόσθεσε επαφές'} sub="Πάροχοι, τράπεζες, τεχνικοί" onOpen={() => onNavigate('contacts')} />
         <ToolTile title="Αρχείο" metric={docCount ? `${docCount} ${docCount === 1 ? 'έγγραφο' : 'έγγραφα'}` : 'Ανέβασε έγγραφα'} sub="Συμβόλαια, λογαριασμοί, φωτογραφίες" onOpen={() => onNavigate('documents')} />
         <ToolTile title="Απογραφή" metric={inv.length ? `${inv.length} ${inv.length === 1 ? 'αντικείμενο' : 'αντικείμενα'}` : 'Κατέγραψε εξοπλισμό'} sub="Εξοπλισμός, εγγυήσεις, αποσβέσεις" badge={warrantySoon.length} onOpen={() => onNavigate('inventory')} />
       </div>
+      )}
     </div>
   );
 }
@@ -992,6 +995,10 @@ export default function Dashboard() {
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
           {NAV_GROUPS.map((group,gi) => {
+            // Χωρίς διπλότυπα: η ομάδα «Εργαλεία» εμφανίζεται στην μπάρα ΜΟΝΟ στον
+            // Επαγγελματία. Στον Ιδιώτη τα ίδια εργαλεία ζουν στην Επισκόπηση,
+            // κάτω από «Είσπραξη & Πληρωμές».
+            if (group.label==='Εργαλεία' && profileType!=='professional') return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
             const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
@@ -1127,7 +1134,7 @@ export default function Dashboard() {
                 </button>
               )}
               {nav==='portfolio' && <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
-              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo}/>}
+              {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={profileType}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={profileType}/>}
               {nav==='tax'       && <TabTaxAnalysis propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)}/>}

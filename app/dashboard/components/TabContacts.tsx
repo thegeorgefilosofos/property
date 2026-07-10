@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { inferRole } from '@/lib/contacts/roles'
+import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
@@ -248,6 +249,15 @@ function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChan
 }
 function FL({ children }: { children: React.ReactNode }) {
   return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
+}
+// Επικεφαλίδα ενότητας φόρμας — διακριτική, premium, με λεπτή γραμμή.
+function SecHead({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 2px' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{children}</span>
+      <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+    </div>
+  )
 }
 function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; onChange: (v: boolean) => void; colorOn?: string }) {
   return (
@@ -872,8 +882,8 @@ ${preferred.length > 0 ? `
 }
 
 // ─── Contact Card ─────────────────────────────────────────────────────────────
-function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding, scopeLabel, scopePortfolio }: {
-  contact: Contact; onEdit: () => void; onDelete: () => void
+function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, selected, onSelect, bulkMode, branding, scopeLabel, scopePortfolio }: {
+  contact: Contact; onOpen?: () => void; onEdit: () => void; onDelete: () => void
   onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void
   selected?: boolean; onSelect?: () => void; bulkMode?: boolean; branding?: ReportBranding | null
   scopeLabel?: string | null; scopePortfolio?: boolean
@@ -943,7 +953,7 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
         </div>
       )}
       <div style={{ paddingLeft: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s' }}>
+        <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12, paddingRight: (hov || showActions) ? 100 : 0, transition: 'padding-right 0.15s', cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
           {extra.avatar_url ? <img src={extra.avatar_url} alt="" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid ' + color + '50', flexShrink: 0 }} />
             : <div style={{ width: 50, height: 50, borderRadius: '50%', background: color + '18', border: '2px solid ' + color + '40', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color, flexShrink: 0 }}>{initials || <GroupIcon size={20} />}</div>}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -997,8 +1007,165 @@ function ContactCard({ contact, onEdit, onDelete, onQuickExpense, onQuickCalenda
   )
 }
 
+// ─── Κουμπί επικοινωνίας (ανάγλυφο, με hover-lift) ──────────────────────────────
+function CommButton({ label, Icon, href, target, accent }: { label: string; Icon: React.ComponentType<{ size?: number }>; href: string; target?: string; accent?: boolean }) {
+  const [h, setH] = useState(false)
+  return (
+    <a href={href} target={target} rel={target ? 'noopener noreferrer' : undefined}
+      onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px 6px', borderRadius: 16, cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, background: accent ? 'var(--accent)' : 'var(--bg-surface)', color: accent ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (accent ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 10px 26px rgba(0,0,0,0.26)' : '0 2px 8px rgba(0,0,0,0.12)', transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s' }}>
+      <Icon size={19} /><span style={{ fontSize: 11, fontWeight: 600 }}>{label}</span>
+    </a>
+  )
+}
+
+// ─── Contact Dossier (πλήρες προφίλ επαφής, slide-in) ───────────────────────────
+function ContactDossier({ contact, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, branding, notify }: {
+  contact: Contact; onClose: () => void; onEdit: () => void; onDelete: () => void
+  onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void
+  branding?: ReportBranding | null; notify: (m: string) => void
+}) {
+  const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
+  const extra = contact._extra || {}; const color = meta.groupColor
+  const initials = contact.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
+  const GroupIcon = meta.GroupIcon || Users
+  const digits = (p?: string | null) => { const d = (p || '').replace(/\D/g, ''); return d.length === 10 ? '30' + d : d }
+  const site = extra.website ? (/^https?:\/\//.test(extra.website) ? extra.website : 'https://' + extra.website) : ''
+  const maps = extra.office_address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(extra.office_address) : ''
+  const copy = (t: string, label: string) => { try { navigator.clipboard.writeText(t); notify(label + ' αντιγράφηκε') } catch { /* ignore */ } }
+  const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
+  useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
+
+  const Row = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>; children: React.ReactNode; onCopy?: () => void }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <Ic size={14} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)', minWidth: 0, wordBreak: 'break-word' }}>{children}</span>
+      {onCopy && <button type="button" onClick={onCopy} title="Αντιγραφή" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 4, flexShrink: 0 }}><Copy size={13} /></button>}
+    </div>
+  )
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+    </div>
+  )
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
+        <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}}`}</style>
+
+        <div style={{ position: 'relative', padding: '22px 22px 20px', background: 'linear-gradient(155deg, ' + color + '1f, transparent 66%)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={16} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+            {extra.avatar_url
+              ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid ' + color + '55', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', flexShrink: 0 }} />
+              : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'linear-gradient(145deg,' + color + '2a,' + color + '10)', border: '3px solid ' + color + '45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color, boxShadow: '0 6px 18px rgba(0,0,0,0.22)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>{contact.full_name}</div>
+              <div style={{ fontSize: 12.5, color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <StatusBadge status={extra.status || 'active'} />
+                {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
+                {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent-text)', fontWeight: 700 }}>Προτιμώμενη</span>}
+              </div>
+            </div>
+          </div>
+          {extra.specialty && <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.5 }}>{extra.specialty}</div>}
+        </div>
+
+        <div style={{ padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(78px,1fr))', gap: 9, borderBottom: '1px solid var(--border-subtle)' }}>
+          {contact.phone && <CommButton label="Κλήση" Icon={Phone} href={'tel:' + contact.phone} accent />}
+          {contact.phone && <CommButton label="WhatsApp" Icon={MessageSquare} href={'https://wa.me/' + digits(contact.phone)} target="_blank" />}
+          {contact.phone && <CommButton label="Viber" Icon={Phone} href={'viber://chat?number=' + digits(contact.phone)} />}
+          {contact.email && <CommButton label="Email" Icon={Mail} href={'mailto:' + contact.email} />}
+          {site && <CommButton label="Ιστοσελίδα" Icon={Globe} href={site} target="_blank" />}
+          {maps && <CommButton label="Χάρτης" Icon={MapPin} href={maps} target="_blank" />}
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {(contact.phone || extra.phone2 || contact.email || extra.office_address || extra.schedule) && (
+            <Section title="Στοιχεία επικοινωνίας">
+              {contact.phone && <Row icon={Phone} onCopy={() => copy(contact.phone!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{contact.phone}</span></Row>}
+              {extra.phone2 && <Row icon={Phone} onCopy={() => copy(extra.phone2!, 'Το τηλέφωνο')}><span style={{ fontFamily: T.font.mono }}>{extra.phone2}</span> <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>δεύτερο</span></Row>}
+              {contact.email && <Row icon={Mail} onCopy={() => copy(contact.email!, 'Το email')}>{contact.email}</Row>}
+              {extra.office_address && <Row icon={MapPin}>{extra.office_address}</Row>}
+              {extra.schedule && <Row icon={Clock}>{extra.schedule}</Row>}
+            </Section>
+          )}
+
+          {(extra.afm || extra.license_number || extra.iban || extra.iban2) && (
+            <Section title="Επαγγελματικά και πληρωμές">
+              {extra.afm && <Row icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></Row>}
+              {extra.license_number && <Row icon={Shield}>{extra.license_number}</Row>}
+              {extra.iban && <Row icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</Row>}
+              {extra.iban2 && <Row icon={Landmark} onCopy={() => copy(extra.iban2!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban2}</span></Row>}
+            </Section>
+          )}
+
+          {(extra.last_contact || extra.next_appointment || ((extra.reminder_days || 0) > 0 && extra.reminder_set)) && (
+            <Section title="Παρακολούθηση">
+              {extra.next_appointment && <Row icon={CalendarPlus}><span style={{ color: overdue ? 'var(--negative)' : 'var(--text-secondary)' }}>Επόμενο ραντεβού: {fmtDate(extra.next_appointment)}{overdue ? ' (ληξιπρόθεσμο)' : ''}</span></Row>}
+              {extra.last_contact && <Row icon={History}>Τελευταία επαφή: {fmtDate(extra.last_contact)}</Row>}
+              {(extra.reminder_days || 0) > 0 && extra.reminder_set && <Row icon={Clock}>Υπενθύμιση: {fmtDate(extra.reminder_set)}</Row>}
+            </Section>
+          )}
+
+          {(extra.tags || []).length > 0 && (
+            <Section title="Ετικέτες">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent-text)' }}>{t}</span>)}
+              </div>
+            </Section>
+          )}
+
+          {(contact._freeNotes || (extra.notes_log || []).length > 0) && (
+            <Section title="Σημειώσεις">
+              {contact._freeNotes && <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{contact._freeNotes}</div>}
+              {(extra.notes_log || []).map(n => (
+                <div key={n.id} style={{ borderLeft: '2px solid var(--border-default)', paddingLeft: 12 }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{n.text}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {(extra.files || []).length > 0 && (
+            <Section title="Αρχεία">
+              {(extra.files || []).map((f, i) => (
+                <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 13 }}>
+                  <FileText size={14} color="var(--text-tertiary)" />{f.name}
+                </a>
+              ))}
+            </Section>
+          )}
+        </div>
+
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 8, flexWrap: 'wrap', background: 'var(--bg-surface)' }}>
+          {[
+            { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit },
+            { Icon: Receipt, label: 'Δαπάνη', onClick: onQuickExpense },
+            { Icon: CalendarPlus, label: 'Ραντεβού', onClick: onQuickCalendar },
+            { Icon: History, label: 'Ιστορικό', onClick: onShowHistory },
+            { Icon: QrCode, label: 'QR', onClick: onShowQR },
+            { Icon: Printer, label: 'Εκτύπωση', onClick: () => printContactCard(contact, branding) },
+          ].map((a, i) => (
+            <button key={i} type="button" onClick={a.onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
+              <a.Icon size={13} />{a.label}
+            </button>
+          ))}
+          <button type="button" onClick={onDelete} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--negative)', background: 'transparent', color: 'var(--negative)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, marginLeft: 'auto' }}>
+            <Trash2 size={13} />Διαγραφή
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Compact Row ──────────────────────────────────────────────────────────────
-function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode, scopePortfolio }: { contact: Contact; onEdit: () => void; onDelete: () => void; selected?: boolean; onSelect?: () => void; bulkMode?: boolean; scopePortfolio?: boolean }) {
+function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bulkMode, scopePortfolio }: { contact: Contact; onOpen?: () => void; onEdit: () => void; onDelete: () => void; selected?: boolean; onSelect?: () => void; bulkMode?: boolean; scopePortfolio?: boolean }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)' }
   const extra = contact._extra || {}; const [hov, setHov] = useState(false)
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
@@ -1008,7 +1175,7 @@ function CompactRow({ contact, onEdit, onDelete, selected, onSelect, bulkMode, s
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: hov ? 'var(--bg-elevated)' : selected ? 'rgba(26,115,232,0.04)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)' }}>
       {bulkMode && <input type="checkbox" checked={!!selected} onChange={onSelect} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)', flexShrink: 0 }} />}
       <div style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : statusMeta.dot, flexShrink: 0 }} />
-      <div style={{ width: 200, minWidth: 0 }}>
+      <div onClick={() => onOpen && !bulkMode && onOpen()} style={{ width: 200, minWidth: 0, cursor: onOpen && !bulkMode ? 'pointer' : 'default' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.full_name}</div>
         <div style={{ fontSize: 11, color: meta.groupColor, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{meta.label}{scopePortfolio && <span title="Όλο το χαρτοφυλάκιο" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-text)' }}><Globe size={10} /></span>}</div>
       </div>
@@ -1060,7 +1227,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [filterTag, setFilterTag] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('recent')
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
-  const [modalTab, setModalTab] = useState<'basic' | 'contact' | 'professional' | 'tags' | 'notes' | 'files'>('basic')
+  const [showMore, setShowMore] = useState(false)   // πτυσσόμενες προαιρετικές λεπτομέρειες στη φόρμα
+  const [detailContact, setDetailContact] = useState<Contact | null>(null)   // πλήρες προφίλ (dossier)
+  const [scanning, setScanning] = useState(false)   // σάρωση κάρτας/τιμολογίου με AI
+  const cardRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [quickExpense, setQuickExpense] = useState<Contact | null>(null)
   const [quickCalendar, setQuickCalendar] = useState<Contact | null>(null)
@@ -1091,13 +1261,41 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }, [propertyId, userId])
   useEffect(() => { fetchContacts() }, [fetchContacts])
 
-  const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setError(null); setModalTab('basic'); setShowModal(true) }
-  const openEdit = (c: Contact) => { setEditContact(c); setForm({ full_name: c.full_name, role: c.role, phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setModalTab('basic'); setShowModal(true) }
+  const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setError(null); setShowMore(false); setShowModal(true) }
+
+  // Σάρωση επαγγελματικής κάρτας ή τιμολογίου με AI: εξάγει στοιχεία, προσυμπληρώνει
+  // τη φόρμα και την ανοίγει για έλεγχο πριν την αποθήκευση (ο χρήστης επιβεβαιώνει).
+  const runCardScan = async (file: File) => {
+    setScanning(true)
+    try {
+      const dataUrl: string = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file) })
+      const base64 = dataUrl.split(',')[1]; const mime = file.type || 'image/jpeg'; const isPdf = mime === 'application/pdf'
+      const contentPart = isPdf ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } } : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } }
+      const sys = 'Είσαι βοηθός καταχώρησης επαφών για διαχείριση ακινήτων. Από επαγγελματική κάρτα ή τιμολόγιο, εξάγεις τα στοιχεία του επαγγελματία/εταιρείας. Σε τιμολόγιο, κράτα τον ΕΚΔΟΤΗ/προμηθευτή (όχι τον πελάτη). Απάντησε ΜΟΝΟ με έγκυρο JSON χωρίς επεξήγηση, με κλειδιά: full_name (string), role (μία λέξη στα αγγλικά που περιγράφει την ειδικότητα, π.χ. plumber, electrician, accountant, lawyer, notary, hvac· αλλιώς κενό), phone, phone2, email, website, address, afm (μόνο ψηφία), iban, specialty. Ό,τι δεν υπάρχει, κενή συμβολοσειρά.'
+      const res = await fetch('/api/anthropic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 900, system: sys, messages: [{ role: 'user', content: [contentPart, { type: 'text', text: 'Εξάγαγε τα στοιχεία επαφής από αυτό το έγγραφο.' }] }] }) })
+      const data = await res.json()
+      if (!res.ok || data?.error) { setScanning(false); showToast('Η σάρωση δεν είναι διαθέσιμη τώρα'); return }
+      const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}'
+      let d: Record<string, string> = {}
+      try { d = JSON.parse(text.replace(/```json?|```/g, '').trim()) } catch { setScanning(false); showToast('Δεν διάβασα καθαρά την κάρτα, δοκίμασε πάλι'); return }
+      const roleVal = (d.role && ROLE_META[d.role.trim().toLowerCase()]) ? d.role.trim().toLowerCase() : inferRole([d.role, d.specialty, d.full_name].filter(Boolean).join(' ')) || 'other'
+      const has = (v?: string) => (v || '').trim()
+      setEditContact(null)
+      setForm({
+        full_name: has(d.full_name), role: roleVal, phone: has(d.phone), email: has(d.email), freeNotes: '',
+        extra: { ...EMPTY_EXTRA, phone2: has(d.phone2), website: has(d.website), office_address: has(d.address), afm: has(d.afm).replace(/\D/g, ''), iban: has(d.iban).replace(/\s/g, '').toUpperCase(), specialty: has(d.specialty) },
+      })
+      setShowMore(!!(has(d.afm) || has(d.iban) || has(d.website) || has(d.address) || has(d.specialty)))
+      setError(null); setScanning(false); setShowModal(true)
+      showToast(has(d.full_name) ? 'Έλεγξε τα στοιχεία και αποθήκευσε' : 'Συμπλήρωσε τα στοιχεία που λείπουν')
+    } catch { setScanning(false); showToast('Παρουσιάστηκε σφάλμα στη σάρωση') }
+  }
+  const openEdit = (c: Contact) => { setEditContact(c); setForm({ full_name: c.full_name, role: c.role, phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.rating || c._extra?.next_appointment)); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditContact(null); setError(null) }
   const setExtra = (key: keyof ContactExtra, value: unknown) => setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
 
   const handleSave = async () => {
-    if (!form.full_name.trim()) { setError('Το ονοματεπώνυμο είναι υποχρεωτικό.'); setModalTab('basic'); return }
+    if (!form.full_name.trim()) { setError('Το ονοματεπώνυμο είναι υποχρεωτικό.'); return }
     setSaving(true); setError(null)
     const payload = { full_name: form.full_name.trim(), role: form.role, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
     if (editContact) {
@@ -1149,22 +1347,33 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   ]
   const initials = form.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
   const formColor = ROLE_META[form.role]?.groupColor || 'var(--text-tertiary)'
-  const modalTabs = [{ id: 'basic' as const, label: 'Βασικά' }, { id: 'contact' as const, label: 'Επικοινωνία' }, { id: 'professional' as const, label: 'Επαγγελματικά' }, { id: 'tags' as const, label: 'Ετικέτες' }, { id: 'notes' as const, label: 'Σημειώσεις' }, { id: 'files' as const, label: 'Αρχεία' }]
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 1080, margin: '0 auto', fontFamily: T.font.sans }}>
 
       {toast && <div style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--bg-elevated)', border: '1px solid rgba(26,115,232,0.45)', borderRadius: 12, padding: '13px 22px', fontSize: 13, fontWeight: 600, color: 'var(--accent)', zIndex: 2000, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />{toast}</div>}
 
+      <input ref={cardRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) runCardScan(f); e.currentTarget.value = '' }} />
+      {scanning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 18, padding: '26px 32px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ width: 22, height: 22, border: '2.5px solid var(--border-default)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'contactsSpin 0.7s linear infinite' }} />
+            <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Ανάλυση κάρτας…</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εξάγω τα στοιχεία επαφής</div></div>
+          </div>
+          <style>{`@keyframes contactsSpin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      )}
+
       {!embedded && <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
-        right={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        right={contacts.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Btn variant={bulkMode ? 'secondary' : 'ghost'} onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
           <Btn variant="ghost" onClick={() => exportContactsExcel(contacts)}>Εξαγωγή Excel</Btn>
           <Btn variant="ghost" onClick={() => exportContactsPDF(contacts, branding)}>Εξαγωγή PDF</Btn>
+          <Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
-        </div>}
+        </div> : undefined}
       />}
 
       {contacts.length > 0 && <KPIGrid items={kpiItems} />}
@@ -1286,8 +1495,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       ) : contacts.length === 0 ? (
         <EmptyState
           title="Δεν υπάρχουν επαφές"
-          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
-          action={<Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>}
+          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου. Ή σκάναρε μια επαγγελματική κάρτα και συμπληρώνονται αυτόματα."
+          action={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}><Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn><Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn></div>}
         />
       ) : processed.length === 0 ? (
         <EmptyState title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
@@ -1302,7 +1511,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             <div style={{ width: 120, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
             <div style={{ width: 100, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Κατάσταση</div>
           </div>
-          {processed.map(c => <CompactRow key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
+          {processed.map(c => <CompactRow key={c.id} contact={c} onOpen={() => setDetailContact(c)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} scopePortfolio={isPro && scopeIsPortfolio(c)} />)}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>
@@ -1311,7 +1520,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
-                  <ContactCard key={c.id} contact={c} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
+                  <ContactCard key={c.id} contact={c} onOpen={() => setDetailContact(c)} onEdit={() => openEdit(c)} onDelete={() => setDeleteId(c.id)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
                 ))}
               </div>
             </div>
@@ -1323,36 +1532,37 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 600, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '24px 28px 0', flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <div style={{ padding: '22px 28px 18px', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   {ROLE_META[form.role] && (() => { const meta = ROLE_META[form.role]; const Icon = meta.GroupIcon || Users; return <div style={{ width: 36, height: 36, borderRadius: 10, background: meta.groupColor + '18', border: '1px solid ' + meta.groupColor + '30', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={17} color={meta.groupColor} /></div> })()}
                   <div>
-                    <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editContact ? 'Επεξεργασία Επαφής' : 'Νέα Επαφή'}</h3>
+                    <h3 style={{ fontFamily: T.font.sans, fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{editContact ? 'Επεξεργασία επαφής' : 'Νέα επαφή'}</h3>
                     {editContact && <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>{editContact.full_name}</p>}
                   </div>
                 </div>
                 <button type="button" onClick={closeModal} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
               </div>
-              <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', overflowX: 'auto' }}>
-                {modalTabs.map(t => <button key={t.id} type="button" onClick={() => setModalTab(t.id)} style={{ padding: '9px 16px', border: 'none', background: 'none', fontSize: 13, fontWeight: modalTab === t.id ? 700 : 500, color: modalTab === t.id ? 'var(--accent)' : 'var(--text-secondary)', borderBottom: modalTab === t.id ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1, whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{t.label}</button>)}
-              </div>
             </div>
 
             <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
-              {modalTab === 'basic' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <AvatarUpload avatarUrl={form.extra.avatar_url || ''} initials={initials} color={formColor} onChange={v => setExtra('avatar_url', v)} />
-                  <div><FL>Ονοματεπώνυμο / Επωνυμία *</FL><Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργης Παπαδόπουλος ή ΔΕΗ ΑΕ" /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+                {/* ── Στοιχεία ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 2 }}>
+                    <AvatarUpload avatarUrl={form.extra.avatar_url || ''} initials={initials} color={formColor} onChange={v => setExtra('avatar_url', v)} />
+                  </div>
+                  <div><FL>Ονοματεπώνυμο ή επωνυμία *</FL><Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." /></div>
                   <div>
-                    <FL>Κατηγορία / Ρόλος</FL>
+                    <FL>Κατηγορία ή ειδικότητα</FL>
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
                       {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                   </div>
                   {isPro && (
                     <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                      <FL>Εμβέλεια Επαφής</FL>
+                      <FL>Εμβέλεια επαφής</FL>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
                           const active = (form.extra.scope || 'property') === o.v; const Ico = o.Icon; return (
@@ -1370,126 +1580,106 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                         </div>
                       )}
                       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
-                        {(form.extra.scope || 'property') === 'portfolio' ? 'Κοινή επαφή, εμφανίζεται ως διαθέσιμη για όλο το χαρτοφυλάκιο.' : 'Η επαφή αφορά το επιλεγμένο ακίνητο.'}
+                        {(form.extra.scope || 'property') === 'portfolio' ? 'Κοινή επαφή, διαθέσιμη σε όλο το χαρτοφυλάκιο.' : 'Η επαφή αφορά το επιλεγμένο ακίνητο.'}
                       </div>
                     </div>
                   )}
-                  <div><FL>Υπο-ειδικότητα (προαιρετικό)</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: Ειδικός σε κεντρική θέρμανση" /></div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                    <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη Επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εμφάνιση στη γρήγορη πρόσβαση</div></div>
-                    <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
-                  </div>
-                  <div><FL>Αξιολόγηση</FL><StarRating value={form.extra.rating || 0} onChange={v => setExtra('rating', v)} /></div>
-                  <div>
-                    <FL>Κατάσταση Σχέσης</FL>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {STATUS_OPTIONS.map(s => { const active = (form.extra.status || 'active') === s.value; return (
-                        <button key={s.value} type="button" onClick={() => setExtra('status', s.value)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? s.color : 'var(--border-subtle)'), background: active ? s.bg : 'transparent', color: active ? s.color : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 400, transition: 'all 0.15s' }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />{s.label}
-                        </button>
-                      )})}
-                    </div>
-                  </div>
                 </div>
-              )}
 
-              {modalTab === 'contact' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><FL>Κύριο Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="Παράδειγμα: 2101234567" /></div>
-                  <div><FL>Δεύτερο Τηλέφωνο / Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="Παράδειγμα: 6941234567" /></div>
-
-                  {/* WhatsApp & Viber, λειτουργικά */}
-                  <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                    <FL>Μέσα Επικοινωνίας</FL>
-                    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} colorOn="#25d366" />
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#25d366' }}>WhatsApp</div>
-                          {form.extra.whatsapp && form.phone && <a href={'https://wa.me/' + form.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#25d366', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat</a>}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} colorOn="#7360f2" />
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#7360f2' }}>Viber</div>
-                          {form.extra.viber && form.phone && <a href={'viber://chat?number=' + form.phone.replace(/\D/g, '')} style={{ fontSize: 11, color: '#7360f2', textDecoration: 'none', opacity: 0.8 }}>Άνοιγμα chat</a>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div><FL>Email</FL><Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" /></div>
-                  <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
-                  <div><FL>Διεύθυνση Γραφείου</FL><Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Παράδειγμα: Σταδίου 15, Αθήνα" /></div>
-                  <div><FL>Ωράριο Εργασίας</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Παράδειγμα: Δευτέρα-Παρασκευή 09:00-17:00" /></div>
-                </div>
-              )}
-
-              {modalTab === 'professional' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><FL><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span></FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="Παράδειγμα: 123456789" /></div>
-                  <div><FL>Αριθμός Μητρώου / Άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="Παράδειγμα: Αριθμός Αδείας Μεσίτη 123" /></div>
-
-                  {/* IBAN Section */}
-                  <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '16px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: -4 }}>Τραπεζικά Στοιχεία</div>
-                    <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span> (κύριος)</FL><Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR1601101250000000012300695" /></div>
-                    <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span> (δεύτερος)</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Δεύτερος IBAN αν υπάρχει" /></div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)' }}>
-                      <div>
-                        <div title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>IRIS</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>Άμεσες πληρωμές μέσω IRIS</div>
-                      </div>
-                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} colorOn="var(--accent)" />
-                    </div>
-                  </div>
-
+                {/* ── Επικοινωνία ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <SecHead>Επικοινωνία</SecHead>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                    <div><FL>Τελευταία Επαφή</FL><DatePicker value={form.extra.last_contact || ''} onChange={v => setExtra('last_contact', v)} /></div>
-                    <div><FL>Επόμενο Ραντεβού</FL><DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} /></div>
+                    <div><FL>Τηλέφωνο</FL><Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" /></div>
+                    <div><FL>Κινητό</FL><Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" /></div>
                   </div>
-                  <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: 16, border: '1px solid var(--border-subtle)' }}>
-                    <FL>Υπενθύμιση Επικοινωνίας</FL>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                      {([0, 7, 14, 30, 60, 90] as const).map(d => { const active = (form.extra.reminder_days || 0) === d; return (
-                        <button key={d} type="button" onClick={() => { setExtra('reminder_days', d); setExtra('reminder_set', d > 0 ? new Date(Date.now() + d * 86400000).toISOString().split('T')[0] : '') }} style={{ padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'rgba(26,115,232,0.12)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: active ? 700 : 400 }}>
-                          {REMINDER_LABELS[d]}
-                        </button>
-                      )})}
-                    </div>
-                    {(form.extra.reminder_days || 0) > 0 && form.extra.reminder_set && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Υπενθύμιση: <strong style={{ color: 'var(--accent)' }}>{fmtDate(form.extra.reminder_set)}</strong></div>}
+                  <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
                   </div>
+                  <div><FL>Email</FL><Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" /></div>
                 </div>
-              )}
 
-              {modalTab === 'tags' && (
-                <div>
-                  <FL>Ετικέτες Επαφής</FL>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Χρησιμοποίησε ετικέτες για γρήγορη αναζήτηση και κατηγοριοποίηση.</p>
-                  <TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} />
-                </div>
-              )}
-              {modalTab === 'notes' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-                  <div>
-                    <FL>Ημερολόγιο Σημειώσεων</FL>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 13, lineHeight: 1.5 }}>Κάθε σημείωση αποθηκεύεται με χρονική σφραγίδα, ιδανικό για ιστορικό συνεργασίας.</p>
-                    <NotesLog log={form.extra.notes_log || []} onChange={v => setExtra('notes_log', v)} />
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
-                    <FL>Ελεύθερες Σημειώσεις</FL>
-                    <Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ελεύθερες σημειώσεις, ιστορικό, τιμές, συμφωνίες..." rows={6} />
-                  </div>
-                </div>
-              )}
-              {modalTab === 'files' && (
-                <div>
-                  <FL>Αρχεία Επαφής</FL>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Συμβόλαια, τιμολόγια, άδειες, όλα συνδεδεμένα με αυτήν την επαφή.</p>
-                  <FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} />
-                </div>
-              )}
+                {/* ── Πτυσσόμενες λεπτομέρειες ── */}
+                <button type="button" onClick={() => setShowMore(m => !m)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
+                  {showMore ? 'Λιγότερες λεπτομέρειες' : 'Περισσότερες λεπτομέρειες'}
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+                </button>
+
+                {showMore && (
+                  <>
+                    {/* ── Επαγγελματικά & πληρωμές ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <SecHead>Επαγγελματικά και πληρωμές</SecHead>
+                      <div><FL>Υπο-ειδικότητα</FL><Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                        <div><FL><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span></FL><Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v)} placeholder="123456789" /></div>
+                        <div><FL>Αριθμός μητρώου ή άδειας</FL><Inp value={form.extra.license_number || ''} onChange={v => setExtra('license_number', v)} placeholder="Παράδειγμα: άδεια μεσίτη 123" /></div>
+                      </div>
+                      <div><FL><span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)">IBAN</span></FL><Inp value={form.extra.iban || ''} onChange={v => setExtra('iban', v)} placeholder="GR16 0110 1250 0000 0001 2300 695" /></div>
+                      <div><FL>Δεύτερος IBAN</FL><Inp value={form.extra.iban2 || ''} onChange={v => setExtra('iban2', v)} placeholder="Αν υπάρχει" /></div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                        <div><div title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>IRIS</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>Δέχεται άμεσες πληρωμές μέσω IRIS</div></div>
+                        <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                        <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
+                        <div><FL>Ωράριο</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Δευτέρα–Παρασκευή 09:00–17:00" /></div>
+                      </div>
+                      <div><FL>Διεύθυνση γραφείου</FL><Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Παράδειγμα: Σταδίου 15, Αθήνα" /></div>
+                    </div>
+
+                    {/* ── Σχέση & αξιολόγηση ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <SecHead>Σχέση και αξιολόγηση</SecHead>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+                        <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Εμφάνιση στη γρήγορη πρόσβαση</div></div>
+                        <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
+                      </div>
+                      <div><FL>Αξιολόγηση</FL><StarRating value={form.extra.rating || 0} onChange={v => setExtra('rating', v)} /></div>
+                      <div>
+                        <FL>Κατάσταση σχέσης</FL>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {STATUS_OPTIONS.map(s => { const active = (form.extra.status || 'active') === s.value; return (
+                            <button key={s.value} type="button" onClick={() => setExtra('status', s.value)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 15px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? s.color : 'var(--border-subtle)'), background: active ? s.bg : 'transparent', color: active ? s.color : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 400, transition: 'all 0.15s' }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />{s.label}
+                            </button>
+                          )})}
+                        </div>
+                      </div>
+                      <div><FL>Ετικέτες</FL><TagEditor tags={form.extra.tags || []} onChange={v => setExtra('tags', v)} /></div>
+                    </div>
+
+                    {/* ── Παρακολούθηση ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <SecHead>Παρακολούθηση</SecHead>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                        <div><FL>Τελευταία επαφή</FL><DatePicker value={form.extra.last_contact || ''} onChange={v => setExtra('last_contact', v)} /></div>
+                        <div><FL>Επόμενο ραντεβού</FL><DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} /></div>
+                      </div>
+                      <div>
+                        <FL>Υπενθύμιση επικοινωνίας</FL>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {([0, 7, 14, 30, 60, 90] as const).map(d => { const active = (form.extra.reminder_days || 0) === d; return (
+                            <button key={d} type="button" onClick={() => { setExtra('reminder_days', d); setExtra('reminder_set', d > 0 ? new Date(Date.now() + d * 86400000).toISOString().split('T')[0] : '') }} style={{ padding: '6px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: active ? 700 : 400 }}>
+                              {REMINDER_LABELS[d]}
+                            </button>
+                          )})}
+                        </div>
+                        {(form.extra.reminder_days || 0) > 0 && form.extra.reminder_set && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Υπενθύμιση: <strong style={{ color: 'var(--accent)' }}>{fmtDate(form.extra.reminder_set)}</strong></div>}
+                      </div>
+                    </div>
+
+                    {/* ── Σημειώσεις & αρχεία ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <SecHead>Σημειώσεις και αρχεία</SecHead>
+                      <div><FL>Ελεύθερες σημειώσεις</FL><Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} /></div>
+                      <div><FL>Ημερολόγιο σημειώσεων</FL><NotesLog log={form.extra.notes_log || []} onChange={v => setExtra('notes_log', v)} /></div>
+                      <div><FL>Αρχεία</FL><FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} /></div>
+                    </div>
+                  </>
+                )}
+              </div>
               {error && <div style={{ marginTop: 14, background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: T.radius.inner, padding: '11px 16px', color: 'var(--negative)', fontSize: 13 }}>{error}</div>}
             </div>
 
@@ -1519,6 +1709,13 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         </div>
       )}
 
+      {detailContact && <ContactDossier contact={detailContact} branding={branding} notify={showToast} onClose={() => setDetailContact(null)}
+        onEdit={() => { const c = detailContact; setDetailContact(null); openEdit(c) }}
+        onDelete={() => { const id = detailContact.id; setDetailContact(null); setDeleteId(id) }}
+        onQuickExpense={() => { const c = detailContact; setDetailContact(null); setQuickExpense(c) }}
+        onQuickCalendar={() => { const c = detailContact; setDetailContact(null); setQuickCalendar(c) }}
+        onShowHistory={() => { const c = detailContact; setDetailContact(null); setHistoryContact(c) }}
+        onShowQR={() => { const c = detailContact; setDetailContact(null); setQrContact(c) }} />}
       {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => showToast('Δαπάνη αποθηκεύτηκε')} />}
       {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={() => showToast('Ραντεβού προστέθηκε')} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
