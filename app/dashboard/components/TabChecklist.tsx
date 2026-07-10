@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
@@ -49,6 +50,58 @@ function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; o
 }
 function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+}
+// Σαφής, μη-διφορούμενη ένδειξη χρόνου: «ημ.» για ημέρες (ποτέ «μ» που μπερδεύεται με μήνες).
+function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σήμερα' : `${a} ημ.` }
+
+// Premium, καθαρό φίλτρο-dropdown: portal (δεν κόβεται από overflow), σαφής επιλεγμένη
+// κατάσταση, ήρεμα χρώματα. Αντικαθιστά τα «φθηνά» native selects.
+function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; minWidth?: number }) {
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: minWidth })
+  const current = options.find(o => o.value === value) || options[0]
+  const active = value !== 'all'
+  const reposition = () => {
+    if (!btnRef.current) return
+    const r = btnRef.current.getBoundingClientRect()
+    const menuH = Math.min(options.length * 40 + 12, 320)
+    const openUp = r.bottom + menuH + 8 > window.innerHeight && r.top - menuH - 8 > 0
+    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width })
+  }
+  useEffect(() => {
+    if (!open) return
+    reposition()
+    const h = (e: MouseEvent) => { const t = e.target as Node; if (btnRef.current && !btnRef.current.contains(t) && menuRef.current && !menuRef.current.contains(t)) setOpen(false) }
+    const s = () => reposition()
+    document.addEventListener('mousedown', h); window.addEventListener('scroll', s, true); window.addEventListener('resize', s)
+    return () => { document.removeEventListener('mousedown', h); window.removeEventListener('scroll', s, true); window.removeEventListener('resize', s) }
+  }, [open])
+  return (
+    <>
+      <button ref={btnRef} type="button" onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px 9px 14px', minWidth, borderRadius: T.radius.pill, border: '1px solid ' + (open || active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'var(--bg-surface)', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: active ? 600 : 500, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{current.label}</span>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0, opacity: 0.7 }}><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && createPortal(
+        <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, boxShadow: '0 12px 40px rgba(0,0,0,0.35)', padding: 6, zIndex: 2000 }}>
+          {options.map(o => {
+            const sel = o.value === value
+            return (
+              <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: sel ? 'var(--accent-soft)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-primary)', fontSize: 13, fontWeight: sel ? 600 : 400, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, transition: 'background 0.12s', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent' }}>
+                <span style={{ flex: 1 }}>{o.label}</span>
+                {sel && <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M20 6 9 17l-5-5"/></svg>}
+              </button>
+            )
+          })}
+        </div>, document.body)}
+    </>
+  )
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -982,7 +1035,7 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         </span>
         {item.due_date && (
           <span style={{ flexShrink: 0, fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
-            {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · ${Math.abs(due)}μ πριν` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · σε ${due}μ` : ''}
+            {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · πριν ${relDays(due)}` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · ${due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}` : ''}
           </span>
         )}
         {item.assigned_contact_name && (
@@ -1090,7 +1143,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</div>
-                    {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>{Math.abs(due || 0)}μ πριν</div>}
+                    {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>πριν {relDays(due || 0)}</div>}
                     {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>σε {due} ημ.</div>}
                   </div>
                 </div>
@@ -1120,7 +1173,9 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
 
 // ─── TemplateModal ────────────────────────────────────────────────────────────
 function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual', smart = [] }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType; smart?: SmartSuggestion[] }) {
-  const entries = Object.entries(TEMPLATES).filter(([key]) => profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key))
+  // Ό,τι εμφανίζεται στα «Προτεινόμενα για εσένα» δεν επαναλαμβάνεται στη γενική λίστα.
+  const smartKeys = new Set(smart.map(s => s.templateKey))
+  const entries = Object.entries(TEMPLATES).filter(([key]) => (profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key)) && !smartKeys.has(key))
   const year = new Date().getFullYear()
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
@@ -1648,6 +1703,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const grouped = useMemo(() => { const g: Record<string, ChecklistItem[]> = {}; filtered.forEach(item => { if (!g[item.category]) g[item.category] = []; g[item.category].push(item) }); return g }, [filtered])
   const boardCols = useMemo(() => ({ pending: filtered.filter(i => i.status === 'pending'), in_progress: filtered.filter(i => i.status === 'in_progress'), done: filtered.filter(i => i.status === 'done'), skipped: filtered.filter(i => i.status === 'skipped') }), [filtered])
   const usedCats = CATEGORIES.filter(c => items.some(i => i.category === c.id))
+  const completedCount = items.filter(i => i.status === 'done').length
   const hasFilters = filterStatus !== 'all' || filterCat !== 'all' || filterPri !== 'all' || !!search
   const clearFilters = () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all'); setSearch('') }
 
@@ -1721,23 +1777,24 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση task, ετικέτας, επαφής..." style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
         </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as FilterStatus)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι καταστάσεις</option>
-          {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          <option value="overdue">Ληγμένα</option>
-        </select>
-        <select value={filterPri} onChange={e => setFilterPri(e.target.value)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι προτεραιότητες</option>
-          {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-        <button type="button" onClick={() => setHideCompleted(h => !h)}
-          style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
-          {hideCompleted ? 'Εμφάνιση ολοκληρωμένων' : 'Απόκρυψη ολοκληρωμένων'}
-        </button>
-        {viewMode === 'list' && (
+        <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172}
+          options={[{ value: 'all', label: 'Όλες οι καταστάσεις' }, ...STATUSES.map(s => ({ value: s.value, label: s.label })), { value: 'overdue', label: 'Ληξιπρόθεσμα' }]} />
+        <FilterSelect value={filterPri} onChange={setFilterPri} minWidth={178}
+          options={[{ value: 'all', label: 'Όλες οι προτεραιότητες' }, ...PRIORITIES.map(p => ({ value: p.value, label: p.label }))]} />
+        {completedCount > 0 && (
+          <button type="button" onClick={() => setHideCompleted(h => !h)}
+            title={hideCompleted ? 'Εμφάνιση ολοκληρωμένων εργασιών' : 'Απόκρυψη ολοκληρωμένων εργασιών'}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'var(--bg-surface)', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            {hideCompleted
+              ? <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+              : <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+            Ολοκληρωμένα ({completedCount})
+          </button>
+        )}
+        {viewMode === 'list' && items.length > 3 && (
           <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
             title="Επιλογή εργασιών για μαζικές ενέργειες"
-            style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'transparent', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            style={{ padding: '9px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
             {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
           </button>
         )}
