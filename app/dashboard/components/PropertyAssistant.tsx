@@ -317,7 +317,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
     else if (a.type === 'reach') { reachContact(a); return; }
-    else if (a.type === 'task') { addTask(a.description); return; }
+    else if (a.type === 'task') { addTask(a); return; }
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     else if (a.type === 'inventory') { registerInventory(a); return; }
     if (!keepOpen) setOpen(false);
@@ -528,20 +528,33 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   };
 
-  // Προσθήκη νέας εκκρεμότητας με αυτόματη κατηγορία.
-  const addTask = async (description: string) => {
-    const d = description.slice(0, 200);
-    const category = /φόρο|ενφια|ε2|ε1|δήλωσ|ααδε|μισθωτήρι|ασφαλιστ/i.test(d) ? 'legal'
+  // Προσθήκη νέας εκκρεμότητας — με προθεσμία/κόστος/προτεραιότητα & αυτόματο κύκλωμα.
+  const addTask = async (a: { description: string; category?: string; due_date?: string; est_cost?: number; priority?: string }) => {
+    const d = a.description.slice(0, 200);
+    const category = a.category || (/φόρο|ενφια|ε2|ε1|δήλωσ|ααδε|μισθωτήρι|ασφαλιστ/i.test(d) ? 'legal'
       : /υδραυλικ|ηλεκτρολ|επισκευ|συντήρησ|βλάβη|βαφ|καθαρι|μάστορ/i.test(d) ? 'maintenance'
-      : /πληρωμ|λογαριασμ|δόση|κόστος/i.test(d) ? 'financial' : 'other';
+      : /πληρωμ|λογαριασμ|δόση|κόστος/i.test(d) ? 'financial' : 'other');
+    const priority = a.priority || 'normal';
+    const due = a.due_date || null;
+    const est = a.est_cost || 0;
+    const today = new Date().toISOString().split('T')[0];
     try {
-      await supabase.from('checklist_items').insert({
+      const { data: ins } = await supabase.from('checklist_items').insert({
         property_id: propertyId, user_id: userId, description: d,
-        category, priority: 'normal', recurring: 'none',
+        category, priority, recurring: 'none', due_date: due,
         status: 'pending', completed: false, note: null,
-        estimated_cost: 0, actual_cost: 0, sort_order: 0,
-      });
-      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}». Θέλεις να το δεις ή να βάλω προθεσμία;`, action: { type: 'go', tab: 'checklist' } }]);
+        estimated_cost: est, actual_cost: 0, sort_order: 0,
+      }).select('id').single();
+      const newId = (ins as { id?: string } | null)?.id;
+      // Κύκλωμα: ημερολόγιο (email υπενθύμιση) + εκκρεμής δαπάνη.
+      let calId: string | null = null, expId: string | null = null;
+      if (newId && due) { const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: d, event_date: due, category: 'maintenance', amount: est, priority: priority === 'normal' ? 'medium' : priority, status: 'pending', recurring: false, source: 'checklist' }).select('id').single(); calId = (data as { id?: string } | null)?.id || null; }
+      if (newId && est > 0) { const { data } = await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: d, amount: est, category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance', date: due || today, paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single(); expId = (data as { id?: string } | null)?.id || null; }
+      if (newId && (calId || expId)) await supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId);
+      const bits: string[] = [];
+      if (due) bits.push('προθεσμία + υπενθύμιση email');
+      if (est > 0) bits.push(`~${est}€ στον προϋπολογισμό`);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}»${bits.length ? ` — ${bits.join(', ')}` : ''}. Θέλεις να το δεις;`, action: { type: 'go', tab: 'checklist' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να προσθέσω την εκκρεμότητα τώρα. Δοκίμασε από την καρτέλα Εκκρεμότητες.' }]);
     }
