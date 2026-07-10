@@ -16,8 +16,9 @@ function buildCsp(nonce: string): string {
     "img-src 'self' data: blob: https:",
     // Nominatim (OpenStreetMap): πρόταση διευθύνσεων χωρίς κλειδί στη φόρμα επαφής.
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org",
-    // Επιτρέπει τον ενσωματωμένο χάρτη Google (keyless embed) στο ντοσιέ επαφής.
-    "frame-src 'self' https://www.google.com https://maps.google.com",
+    // Επιτρέπει τον ενσωματωμένο χάρτη Google (keyless embed) στο ντοσιέ επαφής
+    // και την προεπισκόπηση PDF (Supabase storage) στο Αρχείο.
+    "frame-src 'self' https://www.google.com https://maps.google.com https://*.supabase.co",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
