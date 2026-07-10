@@ -1032,10 +1032,10 @@ function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React
 }
 
 // ─── Contact Dossier (πλήρες προφίλ επαφής, slide-in) ───────────────────────────
-function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, notify }: {
+function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, notify, refreshKey }: {
   contact: Contact; propertyId: string; onClose: () => void; onEdit: () => void; onDelete: () => void
   onQuickExpense: () => void; onQuickCalendar: () => void; onShowHistory: () => void; onShowQR: () => void; onVcard: () => void
-  branding?: ReportBranding | null; notify: (m: string) => void
+  branding?: ReportBranding | null; notify: (m: string) => void; refreshKey?: number
 }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)', GroupIcon: Users, groupLabel: '' }
   const extra = contact._extra || {}
@@ -1058,7 +1058,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
       setExp({ total: data.reduce((s: number, e: { amount: number }) => s + (e.amount || 0), 0), count: data.length })
     })
     return () => { live = false }
-  }, [contact.id, contact.full_name, propertyId])
+  }, [contact.id, contact.full_name, propertyId, refreshKey])
   useEffect(() => { const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey) }, [onClose])
 
   const Row = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>; children: React.ReactNode; onCopy?: () => void }) => (
@@ -1078,7 +1078,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(2px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(100%, 460px)', height: '100%', background: 'var(--bg-base)', borderLeft: '1px solid var(--border-subtle)', boxShadow: '-24px 0 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dossierIn .28s cubic-bezier(.2,0,0,1)' }}>
-        <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .pa-fab-wrap{display:none!important} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
+        <style>{`@keyframes dossierIn{from{transform:translateX(44px);opacity:.5}to{transform:none;opacity:1}} .pa-fab-wrap{display:none!important} .dsr-act:hover{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)} .dsr-del{border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-secondary)} .dsr-del:hover{border-color:var(--negative);color:var(--negative);background:var(--negative-soft)}`}</style>
 
         <div style={{ position: 'relative', padding: '22px 22px 20px', background: 'linear-gradient(155deg, var(--accent-soft), transparent 66%)', borderBottom: '1px solid var(--border-subtle)' }}>
           <button type="button" onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={16} /></button>
@@ -1182,7 +1182,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
             </Section>
           )}
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 14, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 16, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
             {[
               { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit },
               { Icon: Receipt, label: 'Δαπάνη', onClick: onQuickExpense },
@@ -1192,12 +1192,12 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
               { Icon: FileText, label: 'vCard', onClick: onVcard },
               { Icon: Printer, label: 'Εκτύπωση', onClick: () => printContactCard(contact, branding) },
             ].map((a, i) => (
-              <button key={i} type="button" onClick={a.onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
-                <a.Icon size={13} />{a.label}
+              <button key={i} type="button" onClick={a.onClick} className="dsr-act" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
+                <a.Icon size={17} /><span style={{ whiteSpace: 'nowrap' }}>{a.label}</span>
               </button>
             ))}
-            <button type="button" onClick={onDelete} className="dsr-del" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, marginLeft: 'auto' }}>
-              <Trash2 size={13} />Διαγραφή
+            <button type="button" onClick={onDelete} className="dsr-del" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 62, padding: '10px 4px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background .15s, border-color .15s, color .15s' }}>
+              <Trash2 size={17} /><span style={{ whiteSpace: 'nowrap' }}>Διαγραφή</span>
             </button>
           </div>
         </div>
@@ -1286,6 +1286,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [toast, setToast] = useState<string | null>(null)
   const [bulkMode, setBulkMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [dossierRefresh, setDossierRefresh] = useState(0)   // ανανεώνει τις πληρωμές στο dossier μετά από νέα δαπάνη
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200) }
   // ─── Εμβέλεια επαφής (μόνο επαγγελματικό προφίλ) ──────────────────────────────
@@ -1926,8 +1927,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         onQuickExpense={() => setQuickExpense(detail)}
         onQuickCalendar={() => setQuickCalendar(detail)}
         onShowHistory={() => setHistoryContact(detail)}
-        onShowQR={() => setQrContact(detail)} />}
-      {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => showToast('Δαπάνη αποθηκεύτηκε')} />}
+        onShowQR={() => setQrContact(detail)} refreshKey={dossierRefresh} />}
+      {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { showToast('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
       {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={() => showToast('Ραντεβού προστέθηκε')} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
       {qrContact && <QRCodeModal contact={qrContact} onClose={() => setQrContact(null)} />}
