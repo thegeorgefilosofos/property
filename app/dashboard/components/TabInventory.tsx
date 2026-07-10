@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fe, fn, fd, Spinner, ExportButton } from '@/components/Theme'
@@ -199,19 +200,37 @@ function ReplacementHint({item,compact}:{item:InventoryItem;compact?:boolean}) {
 
 function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:string,c:string)=>void}) {
   const [open,setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(()=>{
-    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false)}
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)
+  const [rect,setRect] = useState<{top:number;left:number;width:number}|null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  // Το μενού ζει σε portal (fixed) ώστε να μην το «κόβει» κανένα overflow:hidden γονικό (κάρτα/φωτο).
+  const place = useCallback(()=>{
+    const b=btnRef.current?.getBoundingClientRect()
+    if(b) setRect({top:b.bottom+4,left:b.left,width:b.width})
   },[])
+  useEffect(()=>{
+    if(!open) return
+    place()
+    const close=(e:Event)=>{
+      const t=e.target as Node
+      if(btnRef.current?.contains(t)||menuRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    const onScroll=()=>place()
+    document.addEventListener('mousedown',close)
+    window.addEventListener('scroll',onScroll,true)
+    window.addEventListener('resize',onScroll)
+    return()=>{document.removeEventListener('mousedown',close);window.removeEventListener('scroll',onScroll,true);window.removeEventListener('resize',onScroll)}
+  },[open,place])
   return (
-    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
-      <button onClick={()=>setOpen(v=>!v)} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
+    <div style={{display:'inline-block'}}>
+      <button ref={btnRef} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
         {item.condition}
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="M2 4l3 3 3-3"/></svg>
       </button>
-      {open&&(
-        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-accent)',borderRadius:T.radius.card,padding:6,zIndex:600,minWidth:160,boxShadow:'var(--shadow-lg)'}}>
+      {open&&rect&&typeof document!=='undefined'&&createPortal(
+        <div ref={menuRef} onClick={e=>e.stopPropagation()}
+          style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:6,zIndex:9000,minWidth:Math.max(160,rect.width),boxShadow:'var(--shadow-xl)'}}>
           {CONDITIONS.map(c=>(
             <div key={c} onClick={()=>{onUpdate(item.id,c);setOpen(false)}}
               style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12,fontFamily:T.font.sans,color:CONDITION_COLOR[c],background:item.condition===c?CONDITION_COLOR[c]+'15':'transparent',fontWeight:item.condition===c?600:400,transition:'background 0.1s'}}
@@ -219,7 +238,8 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
               onMouseLeave={e=>(e.currentTarget.style.background=item.condition===c?CONDITION_COLOR[c]+'15':'transparent')}
             >{c}</div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -229,22 +249,39 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
 interface OverflowAction { label:string; onClick:()=>void; icon?:React.ReactNode; danger?:boolean }
 function OverflowMenu({actions,align='right',dark}:{actions:OverflowAction[];align?:'left'|'right';dark?:boolean}) {
   const [open,setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(()=>{
-    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false)}
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)
+  const [rect,setRect] = useState<{top:number;right:number;left:number}|null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const place = useCallback(()=>{
+    const b=btnRef.current?.getBoundingClientRect()
+    if(b) setRect({top:b.bottom+6,right:window.innerWidth-b.right,left:b.left})
   },[])
+  useEffect(()=>{
+    if(!open) return
+    place()
+    const close=(e:Event)=>{
+      const t=e.target as Node
+      if(btnRef.current?.contains(t)||menuRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    const onScroll=()=>place()
+    document.addEventListener('mousedown',close)
+    window.addEventListener('scroll',onScroll,true)
+    window.addEventListener('resize',onScroll)
+    return()=>{document.removeEventListener('mousedown',close);window.removeEventListener('scroll',onScroll,true);window.removeEventListener('resize',onScroll)}
+  },[open,place])
   return (
-    <div ref={ref} style={{position:'relative',display:'inline-block'}} onClick={e=>e.stopPropagation()}>
-      <button title="Ενέργειες" aria-label="Ενέργειες" onClick={()=>setOpen(v=>!v)}
+    <div style={{display:'inline-block'}} onClick={e=>e.stopPropagation()}>
+      <button ref={btnRef} title="Ενέργειες" aria-label="Ενέργειες" onClick={()=>setOpen(v=>!v)}
         style={{width:28,height:28,borderRadius:T.radius.pill,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s',
           border:`1px solid ${dark?'rgba(255,255,255,0.25)':'var(--border-subtle)'}`,
           background:dark?'rgba(0,0,0,0.45)':(open?'var(--bg-hover)':'var(--bg-surface)'),
           color:dark?'#fff':'var(--text-secondary)',backdropFilter:dark?'blur(4px)':undefined}}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
       </button>
-      {open&&(
-        <div style={{position:'absolute',top:'calc(100% + 6px)',...(align==='right'?{right:0}:{left:0}),background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:800,minWidth:180,boxShadow:'var(--shadow-lg)'}}>
+      {open&&rect&&typeof document!=='undefined'&&createPortal(
+        <div ref={menuRef} onClick={e=>e.stopPropagation()}
+          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
           {actions.map((a,i)=>(
             <button key={i} onClick={()=>{a.onClick();setOpen(false)}}
               style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
@@ -254,7 +291,8 @@ function OverflowMenu({actions,align='right',dark}:{actions:OverflowAction[];ali
               {a.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
