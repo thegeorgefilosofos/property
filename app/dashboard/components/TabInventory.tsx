@@ -171,6 +171,55 @@ const chipHover = (e:React.MouseEvent<HTMLButtonElement>,active:boolean,on:boole
   e.currentTarget.style.color = on?'var(--text-primary)':'var(--text-secondary)'
 }
 
+// Custom checkbox για μαζική επιλογή.
+function SelectBox({checked,indeterminate,onChange,size=18}:{checked:boolean;indeterminate?:boolean;onChange:()=>void;size?:number}) {
+  const on = checked||indeterminate
+  return (
+    <button onClick={e=>{e.stopPropagation();onChange()}} aria-pressed={checked} title={checked?'Αποεπιλογή':'Επιλογή'}
+      style={{width:size,height:size,borderRadius:6,border:`1.5px solid ${on?'var(--accent)':'var(--border-default)'}`,background:on?'var(--accent)':'var(--bg-surface)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'all 0.12s',padding:0}}>
+      {checked&&<svg width={size-6} height={size-6} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+      {!checked&&indeterminate&&<div style={{width:size-8,height:2,background:'var(--accent-text)',borderRadius:1}}/>}
+    </button>
+  )
+}
+
+// Μικρό labeled dropdown (portal) για μαζικές ενέργειες — δεν το κόβει κανένα overflow.
+function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.ReactNode;options:string[];onPick:(v:string)=>void;accent?:boolean}) {
+  const [open,setOpen] = useState(false)
+  const [rect,setRect] = useState<{top:number;left:number}|null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const place = useCallback(()=>{const b=btnRef.current?.getBoundingClientRect();if(b)setRect({top:b.bottom+4,left:b.left})},[])
+  useEffect(()=>{
+    if(!open) return
+    place()
+    const close=(e:Event)=>{const t=e.target as Node;if(btnRef.current?.contains(t)||menuRef.current?.contains(t))return;setOpen(false)}
+    const s=()=>place()
+    document.addEventListener('mousedown',close);window.addEventListener('scroll',s,true);window.addEventListener('resize',s)
+    return()=>{document.removeEventListener('mousedown',close);window.removeEventListener('scroll',s,true);window.removeEventListener('resize',s)}
+  },[open,place])
+  return (
+    <div style={{display:'inline-block'}}>
+      <button ref={btnRef} onClick={()=>setOpen(v=>!v)}
+        style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',border:`1px solid ${accent?'var(--accent-border)':'var(--border-subtle)'}`,background:accent?'var(--accent-soft)':'var(--bg-surface)',color:accent?'var(--accent)':'var(--text-secondary)'}}>
+        <span style={{display:'flex'}}>{icon}</span>{label}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
+      </button>
+      {open&&rect&&typeof document!=='undefined'&&createPortal(
+        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
+          {options.length===0
+            ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
+            :options.map(o=>(
+              <div key={o} onClick={()=>{onPick(o);setOpen(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,color:'var(--text-primary)'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{o}</div>
+            ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
 const Badge = ({label,color}:{label:string;color:string}) => (
   <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
 )
@@ -1011,13 +1060,18 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
 
 type SortKey = 'name'|'value'|'energy'|'age'|'depreciation'
 
-function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder}:{
+function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom,onBulkTag}:{
   items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number
   onAdd:()=>void;onEdit:(i:InventoryItem)=>void;onDelete:(id:string)=>void
   onRepair:(i:InventoryItem)=>void;onQR:(i:InventoryItem)=>void
   onUpdateCondition:(id:string,c:string)=>void
   onWarrantyReminder:(i:InventoryItem)=>void
+  onBulkDelete:(ids:string[])=>void;onBulkRoom:(ids:string[],room:string)=>void;onBulkTag:(ids:string[],tag:string)=>void
 }) {
+  const [selectMode,setSelectMode] = useState(false)
+  const [selected,setSelected] = useState<Set<string>>(new Set())
+  const toggleSel = (id:string) => setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n})
+  const exitSelect = () => {setSelectMode(false);setSelected(new Set())}
   const [filterCat,setFilterCat] = useState('Όλες')
   const [filterRoom,setFilterRoom] = useState('Όλα')
   const [filterTag,setFilterTag] = useState('Όλα')
@@ -1071,15 +1125,33 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
         {actionCount>0&&<button onClick={()=>setShowNeedsAction(v=>!v)} title="Προβολή μόνο όσων χρειάζονται προσοχή" style={{padding:'0 12px',height:36,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${showNeedsAction?'var(--warning-border)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--warning-soft)':'var(--bg-elevated)',color:showNeedsAction?'var(--warning)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
           Προσοχή <span style={{background:showNeedsAction?'var(--warning)':'var(--text-tertiary)',color:'#fff',borderRadius:T.radius.inner,padding:'0 6px',fontSize:10,fontWeight:700}}>{actionCount}</span>
         </button>}
+        <button onClick={()=>selectMode?exitSelect():setSelectMode(true)} title="Επιλογή πολλών αντικειμένων" style={{padding:'0 12px',height:36,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${selectMode?'var(--accent-border)':'var(--border-subtle)'}`,background:selectMode?'var(--accent-soft)':'var(--bg-elevated)',color:selectMode?'var(--accent)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          {selectMode?'Άκυρο':'Επιλογή'}
+        </button>
         <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:T.radius.pill,overflow:'hidden',padding:2,background:'var(--bg-elevated)'}}>
           {(['grid','list'] as const).map(m=>(
             <button key={m} onClick={()=>setViewMode(m)} style={{padding:'6px 14px',fontSize:12,fontFamily:T.font.sans,cursor:'pointer',border:'none',borderRadius:T.radius.pill,background:viewMode===m?'var(--accent)':'transparent',color:viewMode===m?'var(--accent-text)':'var(--text-secondary)',fontWeight:viewMode===m?500:400,transition:'all 0.15s'}}>{m==='grid'?'Κάρτες':'Λίστα'}</button>
           ))}
         </div>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
-        <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
-      </div>
+      {selectMode?(
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.card}}>
+          <SelectBox checked={filtered.length>0&&filtered.every(i=>selected.has(i.id))} indeterminate={filtered.some(i=>selected.has(i.id))&&!filtered.every(i=>selected.has(i.id))} onChange={()=>{const all=filtered.every(i=>selected.has(i.id));setSelected(all?new Set():new Set(filtered.map(i=>i.id)))}}/>
+          <span style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{selected.size} επιλεγμένα</span>
+          <div style={{flex:1}}/>
+          <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(selected.size){onBulkRoom([...selected],r);exitSelect()}}}/>
+          <BulkPicker label="Ετικέτα" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>} options={[...AVAILABLE_TAGS]} onPick={t=>{if(selected.size){onBulkTag([...selected],t);exitSelect()}}}/>
+          <button onClick={()=>{if(selected.size&&confirm(`Διαγραφή ${selected.size} αντικειμένων;`)){onBulkDelete([...selected]);exitSelect()}}} disabled={selected.size===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:selected.size?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:selected.size?'var(--negative-dim)':'var(--bg-elevated)',color:selected.size?'var(--negative)':'var(--text-tertiary)'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            Διαγραφή
+          </button>
+        </div>
+      ):(
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
+          <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
+        </div>
+      )}
       {filtered.length===0?(
         <EmptyState
           title={items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}
@@ -1094,10 +1166,11 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
             const photos=(item.photos||[]).filter(Boolean); const displayPhoto=item.photo_url||(photos[0]||'')
             const ws=item.warranty_expiry?warrantyStatus(item.warranty_expiry):null
             const repl=replacementSuggestion(item)
+            const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>onEdit(item)} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
-                onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
-                onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
+              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{background:'var(--bg-surface)',border:`1px solid ${sel?'var(--accent)':'var(--border-subtle)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'none',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
+                onMouseEnter={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
+                onMouseLeave={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
               >
                 <div style={{height:118,background:'var(--bg-elevated)',position:'relative',overflow:'hidden',flexShrink:0}}>
                   {displayPhoto
@@ -1106,12 +1179,16 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
                     </div>
                   }
-                  <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
-                    <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
-                  </div>
-                  <div style={{position:'absolute',top:8,right:8}}>
-                    <OverflowMenu dark actions={itemActions(item)}/>
-                  </div>
+                  {selectMode
+                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding:3,backdropFilter:'blur(4px)'}} onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} size={20}/></div>
+                    :<>
+                      <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
+                        <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
+                      </div>
+                      <div style={{position:'absolute',top:8,right:8}}>
+                        <OverflowMenu dark actions={itemActions(item)}/>
+                      </div>
+                    </>}
                   {(item.energy_class||photos.length>1)&&<div style={{position:'absolute',bottom:8,left:8,display:'flex',gap:4,alignItems:'center'}}>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
                     {photos.length>1&&<span style={{padding:'2px 6px',borderRadius:5,background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:9,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>+{photos.length-1}</span>}
@@ -1145,16 +1222,19 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       ):(
         <div style={{overflowX:'auto',margin:'0 -4px',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:560}}>
-          <div style={{display:'grid',gridTemplateColumns:'minmax(0,2fr) 130px 96px 90px 44px',gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
+          <div style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
+            {selectMode&&<div/>}
             {['Αντικείμενο','Κατάσταση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
+            const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>onEdit(item)} style={{display:'grid',gridTemplateColumns:'minmax(0,2fr) 130px 96px 90px 44px',gap:10,padding:'11px 16px',background:'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
-                onMouseEnter={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}
-                onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-surface)'}
+              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'11px 16px',background:sel?'var(--accent-soft)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
+                onMouseEnter={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}}
+                onMouseLeave={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-surface)'}}
               >
+                {selectMode&&<div onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)}/></div>}
                 <div style={{minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
@@ -1691,6 +1771,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleDelete=async(id:string)=>{const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};fetchData()}
   const handleAddRepair=async(data:Partial<InventoryRepair>)=>{if(!repairItem)return;await supabase.from('inventory_repairs').insert({...data,item_id:repairItem.id,user_id:userId});fetchData()}
   const handleUpdateCondition=async(id:string,condition:string)=>{await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id);setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}fetchData()}
+  const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
+  const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
   const handleWarrantyReminder=async(item:InventoryItem)=>{
     if(!item.warranty_expiry){alert('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
@@ -1832,7 +1915,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         ?<Spinner label="Φόρτωση…" />
         :(
           <>
-            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder}/>}
+            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom} onBulkTag={handleBulkTag}/>}
             {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
             {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
