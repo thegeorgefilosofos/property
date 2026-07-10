@@ -1186,121 +1186,57 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
     subtasks: item._subtasks || [], tags: item._tags || [],
     comments: item._comments || [], depends_on: item.depends_on || '',
   } : mkEmpty())
-  const [activeTab, setActiveTab] = useState<'basic' | 'subtasks' | 'comments' | 'tags' | 'advanced'>('basic')
-  const subDone = form.subtasks.filter(s => s.done).length
-  const budgetN = parseFloat(form.budget) || 0; const actualN = parseFloat(form.actual_cost) || 0
-  const overBudget = budgetN > 0 && actualN > budgetN * 1.1
-
+  // Ένα καθαρό form — χωρίς tabs, χωρίς επαναλήψεις (Google λογική).
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 580, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px 28px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εργασίας' : 'Νέα εργασία'}</h3>
-            <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-          </div>
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {[
-              { id: 'basic' as const, label: 'Βασικά' },
-              { id: 'subtasks' as const, label: `Υπο-εργασίες${form.subtasks.length > 0 ? ` (${subDone}/${form.subtasks.length})` : ''}` },
-              { id: 'comments' as const, label: `Σχόλια${form.comments.length > 0 ? ` (${form.comments.length})` : ''}` },
-              { id: 'tags' as const, label: 'Ετικέτες' },
-              { id: 'advanced' as const, label: 'Εξαρτήσεις' },
-            ].map(t => (
-              <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
-                style={{ padding: '9px 16px', border: 'none', background: 'none', fontSize: 13, fontWeight: activeTab === t.id ? 700 : 500, color: activeTab === t.id ? 'var(--accent)' : 'var(--text-secondary)', borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1, whiteSpace: 'nowrap', transition: 'color 0.15s', fontFamily: T.font.sans }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 style={{ fontFamily: T.font.sans, fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
+          <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
-        <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
-          {activeTab === 'basic' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
-                <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(s => ({ value: s.value, label: s.label }))} /></div>
-                <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Ημ. Έναρξης</FL><DatePicker value={form.start_date} onChange={v => setForm(f => ({ ...f, start_date: v }))} /></div>
-                <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
-              </div>
-              <div><FL>Ανάθεση σε Επαφή</FL>
-                <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
-                  <option value="">— Χωρίς ανάθεση —</option>
-                  {contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
-                <div><FL>Προϋπολογισμός (€)</FL><Inp value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="Ανώτατο" type="number" /></div>
-                <div><FL>Εκτιμώμενο (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="150" type="number" /></div>
-                <div><FL>Πραγματικό (€)</FL><Inp value={form.actual_cost} onChange={v => setForm(f => ({ ...f, actual_cost: v }))} placeholder="180" type="number" /></div>
-              </div>
-              {overBudget && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 12, color: 'var(--negative)' }}>Υπέρβαση budget κατά {Math.round((actualN / budgetN - 1) * 100)}%</div>}
-              <div><FL>Σημείωση</FL>
-                <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
-              </div>
-            </div>
-          )}
-          {activeTab === 'subtasks' && (
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Χώρισε την εργασία σε μικρότερα βήματα.</p>
-              {form.subtasks.length > 0 && (
-                <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                    <span>Πρόοδος</span><span style={{ fontWeight: 700, color: subDone === form.subtasks.length ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{subDone}/{form.subtasks.length}</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: (form.subtasks.length > 0 ? subDone / form.subtasks.length * 100 : 0) + '%', background: 'var(--positive)', borderRadius: 2, transition: 'width 0.3s' }} />
-                  </div>
-                </div>
-              )}
-              <SubTaskEditor subtasks={form.subtasks} onChange={v => setForm(f => ({ ...f, subtasks: v }))} />
-            </div>
-          )}
-          {activeTab === 'comments' && (
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Ιστορικό ενεργειών και σημειώσεις συνεργασίας.</p>
-              <CommentsEditor comments={form.comments} onChange={v => setForm(f => ({ ...f, comments: v }))} />
-            </div>
-          )}
-          {activeTab === 'tags' && (
-            <div>
-              <FL>Ετικέτες</FL>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Γρήγορη κατηγοριοποίηση και αναζήτηση.</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {ITEM_TAGS.map(t => (
-                  <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
-                    style={{ padding: '6px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-                    {''}{t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {activeTab === 'advanced' && (
-            <div>
-              <FL>Εξάρτηση από άλλη εργασία</FL>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>Η εργασία εμφανίζεται ως κλειδωμένη μέχρι να ολοκληρωθεί η επιλεγμένη.</p>
-              <select value={form.depends_on} onChange={e => setForm(f => ({ ...f, depends_on: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
-                <option value="">— Χωρίς εξάρτηση —</option>
-                {allItems.filter(i => i.id !== item?.id).map(i => (
-                  <option key={i.id} value={i.id}>{getCat(i.category).label}: {i.description.slice(0, 50)}</option>
-                ))}
+        <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
+            <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
+            <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Εκτιμώμενο κόστος (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="π.χ. 150" type="number" /></div>
+            <div><FL>Ανάθεση σε επαφή</FL>
+              <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
+                <option value="">— Χωρίς ανάθεση —</option>
+                {contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
               </select>
             </div>
-          )}
+          </div>
+          <div>
+            <FL>Ετικέτες</FL>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {ITEM_TAGS.map(t => (
+                <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
+                  style={{ padding: '7px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 600 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div><FL>Σημείωση</FL>
+            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> (υπενθύμιση email){parseFloat(form.estimated_cost) > 0 ? <> και ως <strong style={{ color: 'var(--text-primary)' }}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό</> : ''}.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
+          </div>
         </div>
         <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
           <button type="button" onClick={() => form.description.trim() && onSave(form)}
             style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: form.description.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: form.description.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: form.description.trim() ? 'pointer' : 'not-allowed', fontSize: 14, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-            {item ? 'Αποθήκευση' : 'Προσθήκη εργασίας'}
+            {item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}
           </button>
         </div>
       </div>
