@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
-import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
@@ -67,37 +67,29 @@ const GROUPS = [
     id: 'electricity', label: 'Πάροχοι Ρεύματος', color: '#1a73e8', Icon: Zap,
     roles: [
       { value: 'elec_dei', label: 'ΔΕΗ' },
-      { value: 'elec_heron', label: 'Heron Energy' },
-      { value: 'elec_protergia', label: 'Protergia' },
+      { value: 'elec_protergia', label: 'Protergia (Metlen)' },
+      { value: 'elec_heron', label: 'Ήρων (Heron)' },
+      { value: 'elec_elpedison', label: 'Elpedison' },
       { value: 'elec_nrg', label: 'NRG' },
-      { value: 'elec_zenith', label: 'Zenith Energy' },
+      { value: 'elec_zenith', label: 'Zenith' },
       { value: 'elec_fysiko', label: 'Φυσικό Αέριο Ελλάδος' },
-      { value: 'elec_enerwave', label: 'Enerwave' },
-      { value: 'elec_spp', label: 'SPP (Smart Power Plan)' },
+      { value: 'elec_volterra', label: 'Volterra' },
+      { value: 'elec_volton', label: 'Volton' },
+      { value: 'elec_elin', label: 'Elin' },
+      { value: 'elec_we', label: 'We Energy' },
       { value: 'elec_watt_volt', label: 'Watt+Volt' },
-      { value: 'elec_engie', label: 'ENGIE' },
-      { value: 'elec_mytilineos', label: 'Mytilineos Energy' },
-      { value: 'elec_green', label: 'Green Energy' },
       { value: 'elec_eydap', label: 'ΕΥΔΑΠ (νερό)' },
-      { value: 'elec_deddie', label: 'ΔΕΔΔΗΕ' },
+      { value: 'elec_deddie', label: 'ΔΕΔΔΗΕ (δίκτυο)' },
       { value: 'elec_other', label: 'Άλλος Πάροχος Ρεύματος' },
     ],
   },
   {
     id: 'telecom', label: 'Τηλεφωνία & Internet', color: '#1a73e8', Icon: Wifi,
     roles: [
-      { value: 'tel_ote', label: 'OTE / Cosmote' },
+      { value: 'tel_ote', label: 'Cosmote (OTE)' },
       { value: 'tel_vodafone', label: 'Vodafone' },
-      { value: 'tel_wind', label: 'Wind / Nova' },
-      { value: 'tel_nova', label: 'Nova Broadband' },
+      { value: 'tel_nova', label: 'Nova' },
       { value: 'tel_inalan', label: 'Inalan' },
-      { value: 'tel_forthnet', label: 'Forthnet' },
-      { value: 'tel_cyta', label: 'Cyta Hellas' },
-      { value: 'tel_hol', label: 'HOL (Hellas OnLine)' },
-      { value: 'tel_panafonet', label: 'Panafonet' },
-      { value: 'tel_alterego', label: 'AlterEgo Networks' },
-      { value: 'tel_speednet', label: 'SpeedNet' },
-      { value: 'tel_on', label: 'On Telecoms' },
       { value: 'tel_other', label: 'Άλλος Πάροχος Internet / Τηλεφωνίας' },
     ],
   },
@@ -110,35 +102,27 @@ const GROUPS = [
       { value: 'bank_nbg', label: 'Εθνική Τράπεζα (ΕΤΕ)' },
       { value: 'bank_attica', label: 'Attica Bank' },
       { value: 'bank_optima', label: 'Optima Bank' },
-      { value: 'bank_credia', label: 'Credia (Παγκρήτια)' },
-      { value: 'bank_pancreta', label: 'Τράπεζα Κρήτης' },
+      { value: 'bank_credia', label: 'Credia Bank (πρώην Παγκρήτια)' },
       { value: 'bank_aegean', label: 'Aegean Baltic Bank' },
-      { value: 'bank_hsbc', label: 'HSBC Ελλάδα' },
-      { value: 'bank_ing', label: 'ING Ελλάδα' },
-      { value: 'bank_bnp', label: 'BNP Paribas' },
-      { value: 'bank_astrobank', label: 'Astrobank' },
-      { value: 'bank_vivaltia', label: 'Vivaltia Finance' },
+      { value: 'bank_revolut', label: 'Revolut' },
+      { value: 'bank_ing', label: 'ING' },
       { value: 'bank_other', label: 'Άλλη Τράπεζα / Χρηματοδότης' },
     ],
   },
   {
     id: 'insurance', label: 'Ασφαλιστικές Εταιρείες', color: '#1a73e8', Icon: Shield,
     roles: [
-      { value: 'ins_interamerican', label: 'Interamerican' },
-      { value: 'ins_allianz', label: 'Allianz Ελλάδα' },
-      { value: 'ins_eurolife', label: 'Eurolife FFH' },
-      { value: 'ins_ergo', label: 'ERGO Ασφαλιστική' },
-      { value: 'ins_axa', label: 'AXA Ελλάδα' },
-      { value: 'ins_groupama', label: 'Groupama Φοίνιξ' },
       { value: 'ins_ethiniki', label: 'Εθνική Ασφαλιστική' },
+      { value: 'ins_interamerican', label: 'Interamerican' },
+      { value: 'ins_eurolife', label: 'Eurolife FFH' },
+      { value: 'ins_allianz', label: 'Allianz Ελλάδα' },
       { value: 'ins_generali', label: 'Generali Ελλάδα' },
-      { value: 'ins_alpha', label: 'Alpha Insurance' },
-      { value: 'ins_aig', label: 'AIG Ελλάδα' },
-      { value: 'ins_hdi', label: 'HDI Global' },
-      { value: 'ins_metlife', label: 'MetLife' },
-      { value: 'ins_mnlife', label: 'ΜΝ Life' },
-      { value: 'ins_ika', label: 'ΙΚΑ / ΕΦΚΑ (κρατική)' },
-      { value: 'ins_agent', label: 'Ασφαλιστικός Σύμβουλος' },
+      { value: 'ins_ergo', label: 'ERGO Ασφαλιστική' },
+      { value: 'ins_groupama', label: 'Groupama Ασφαλιστική' },
+      { value: 'ins_nn', label: 'NN Hellas' },
+      { value: 'ins_ydrogios', label: 'Υδρόγειος Ασφαλιστική' },
+      { value: 'ins_interlife', label: 'Interlife' },
+      { value: 'ins_agent', label: 'Ασφαλιστικός Σύμβουλος / Πράκτορας' },
       { value: 'ins_other', label: 'Άλλη Ασφαλιστική Εταιρεία' },
     ],
   },
@@ -342,29 +326,6 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
 }
 
 // ─── Notes Log ────────────────────────────────────────────────────────────────
-function NotesLog({ log, onChange }: { log: { id: string; text: string; ts: string }[]; onChange: (l: { id: string; text: string; ts: string }[]) => void }) {
-  const [input, setInput] = useState('')
-  const add = () => { if (!input.trim()) return; onChange([{ id: Date.now().toString(), text: input.trim(), ts: new Date().toISOString() }, ...log]); setInput('') }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέα σημείωση..." style={{ ...iStyle, flex: 1 }} />
-        <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
-        {log.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Δεν υπάρχουν σημειώσεις ακόμα</div>}
-        {log.map(e => (
-          <div key={e.id} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono }}>{new Date(e.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-            <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6, paddingRight: 24 }}>{e.text}</div>
-            <button type="button" onClick={() => onChange(log.filter(x => x.id !== e.id))} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' }}><X size={14} /></button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── Avatar Upload ────────────────────────────────────────────────────────────
 function AvatarUpload({ avatarUrl, initials, color, onChange }: { avatarUrl: string; initials: string; color: string; onChange: (url: string) => void }) {
   const [uploading, setUploading] = useState(false)
@@ -1021,6 +982,21 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
   )
 }
 
+// ─── Premium action tile (κενή κατάσταση) — Apple/Google αισθητική ─────────────
+function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React.ComponentType<{ size?: number }>; label: string; sub?: string; onClick: () => void; primary?: boolean }) {
+  const [h, setH] = useState(false)
+  return (
+    <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 16px 36px rgba(0,0,0,0.22)' : '0 2px 10px rgba(0,0,0,0.10)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
+      <div style={{ width: 48, height: 48, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', background: primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={23} /></div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.72, marginTop: 3 }}>{sub}</div>}
+      </div>
+    </button>
+  )
+}
+
 // ─── Contact Dossier (πλήρες προφίλ επαφής, slide-in) ───────────────────────────
 function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuickExpense, onQuickCalendar, onShowHistory, onShowQR, onVcard, branding, notify }: {
   contact: Contact; propertyId: string; onClose: () => void; onEdit: () => void; onDelete: () => void
@@ -1266,6 +1242,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const [scanning, setScanning] = useState(false)   // σάρωση κάρτας/τιμολογίου με AI
   const cardRef = useRef<HTMLInputElement>(null)
   const [dup, setDup] = useState<Contact | null>(null)   // υποψήφιο διπλότυπο (ίδιο τηλέφωνο/ΑΦΜ)
+  const [roleOther, setRoleOther] = useState('')   // ελεύθερο κείμενο όταν επιλεγεί «Άλλο»
   const [importing, setImporting] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -1298,7 +1275,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }, [propertyId, userId])
   useEffect(() => { fetchContacts() }, [fetchContacts])
 
-  const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setError(null); setShowMore(false); setShowModal(true) }
+  const isOtherRole = (r: string) => r === 'other' || r.endsWith('_other')
+  const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setRoleOther(''); setError(null); setShowMore(false); setShowModal(true) }
 
   // Σάρωση επαγγελματικής κάρτας ή τιμολογίου με AI: εξάγει στοιχεία, προσυμπληρώνει
   // τη φόρμα και την ανοίγει για έλεγχο πριν την αποθήκευση (ο χρήστης επιβεβαιώνει).
@@ -1317,7 +1295,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       try { d = JSON.parse(text.replace(/```json?|```/g, '').trim()) } catch { setScanning(false); showToast('Δεν διάβασα καθαρά την κάρτα, δοκίμασε πάλι'); return }
       const roleVal = (d.role && ROLE_META[d.role.trim().toLowerCase()]) ? d.role.trim().toLowerCase() : inferRole([d.role, d.specialty, d.full_name].filter(Boolean).join(' ')) || 'other'
       const has = (v?: string) => (v || '').trim()
-      setEditContact(null)
+      setEditContact(null); setRoleOther('')
       setForm({
         full_name: has(d.full_name), role: roleVal, phone: has(d.phone), email: has(d.email), freeNotes: '',
         extra: { ...EMPTY_EXTRA, phone2: has(d.phone2), website: has(d.website), office_address: has(d.address), afm: has(d.afm).replace(/\D/g, ''), iban: has(d.iban).replace(/\s/g, '').toUpperCase(), specialty: has(d.specialty) },
@@ -1392,7 +1370,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url)
   }
 
-  const openEdit = (c: Contact) => { setEditContact(c); setForm({ full_name: c.full_name, role: c.role, phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.rating || c._extra?.next_appointment)); setShowModal(true) }
+  const openEdit = (c: Contact) => { const known = !!ROLE_META[c.role]; setRoleOther(known ? '' : (c.role || '')); setEditContact(c); setForm({ full_name: c.full_name, role: known ? c.role : 'other', phone: c.phone || '', email: c.email || '', freeNotes: c._freeNotes || '', extra: { ...EMPTY_EXTRA, ...(c._extra || {}), tags: c._extra?.tags || [], notes_log: c._extra?.notes_log || [], files: c._extra?.files || [] } }); setError(null); setShowMore(!!(c._extra?.tags?.length || c._extra?.notes_log?.length || c._extra?.files?.length || c._extra?.rating || c._extra?.next_appointment)); setShowModal(true) }
   const closeModal = () => { setShowModal(false); setEditContact(null); setError(null) }
   const setExtra = (key: keyof ContactExtra, value: unknown) => setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
 
@@ -1425,16 +1403,17 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const persist = async (mode: 'update' | 'insert' | 'merge', target?: Contact) => {
     setSaving(true); setError(null)
     const name = form.full_name.trim()
+    const finalRole = isOtherRole(form.role) && roleOther.trim() ? roleOther.trim() : form.role
     if (mode === 'merge' && target) {
       const mergedExtra = { ...(target._extra || {}), ...cleanExtra(form.extra) }
       const mergedNotes = [target._freeNotes, form.freeNotes].filter(Boolean).join('\n').trim()
-      const mergedRole = (form.role && form.role !== 'other') ? form.role : target.role
+      const mergedRole = (finalRole && finalRole !== 'other') ? finalRole : target.role
       const { error: e } = await supabase.from('contacts').update({ full_name: name || target.full_name, role: mergedRole, phone: form.phone.trim() || target.phone, email: form.email.trim() || target.email, notes: serializeNotes(mergedExtra, mergedNotes) }).eq('id', target.id)
       if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
       await syncContactReminder(target.id, name || target.full_name)
       setSaving(false); setDup(null); closeModal(); fetchContacts(); showToast('Οι επαφές συγχωνεύθηκαν'); return
     }
-    const payload = { full_name: name, role: form.role, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
+    const payload = { full_name: name, role: finalRole, phone: form.phone.trim() || null, email: form.email.trim() || null, notes: serializeNotes(form.extra, form.freeNotes) }
     if (mode === 'update' && editContact) {
       const { error: e } = await supabase.from('contacts').update(payload).eq('id', editContact.id)
       if (e) { setError('Σφάλμα: ' + e.message); setSaving(false); return }
@@ -1644,8 +1623,13 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       ) : contacts.length === 0 ? (
         <EmptyState
           title="Δεν υπάρχουν επαφές"
-          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου. Ή σκάναρε μια επαγγελματική κάρτα και συμπληρώνονται αυτόματα."
-          action={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}><Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn><Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σκάναρε κάρτα'}</Btn><Btn variant="ghost" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>{supportsPicker && <Btn variant="ghost" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}</div>}
+          hint="Πρόσθεσε παρόχους ρεύματος, τράπεζες, τεχνικούς και όλες τις επαφές του ακινήτου."
+          action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
+            <ContactActionTile Icon={UserPlus} label="Νέα επαφή" sub="Χειροκίνητα" onClick={openAdd} primary />
+            <ContactActionTile Icon={Camera} label="Σκάναρε κάρτα" sub={scanning ? 'Ανάλυση…' : 'Με τεχνητή νοημοσύνη'} onClick={() => cardRef.current?.click()} />
+            <ContactActionTile Icon={Upload} label="Εισαγωγή" sub={importing ? 'Εισαγωγή…' : 'vCard ή CSV'} onClick={() => importRef.current?.click()} />
+            {supportsPicker && <ContactActionTile Icon={Users} label="Από τηλέφωνο" sub="Επιλογή επαφών" onClick={pickFromPhone} />}
+          </div>}
         />
       ) : processed.length === 0 ? (
         <EmptyState title="Δεν βρέθηκαν αποτελέσματα" hint="Δοκίμασε διαφορετική αναζήτηση ή κατηγορία." />
@@ -1708,6 +1692,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
                       {ROLE_SELECT_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
+                    {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
                   </div>
                   {isPro && (
                     <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
@@ -1822,8 +1807,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                     {/* ── Σημειώσεις & αρχεία ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <SecHead>Σημειώσεις και αρχεία</SecHead>
-                      <div><FL>Ελεύθερες σημειώσεις</FL><Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} /></div>
-                      <div><FL>Ημερολόγιο σημειώσεων</FL><NotesLog log={form.extra.notes_log || []} onChange={v => setExtra('notes_log', v)} /></div>
+                      <div><FL>Σημειώσεις</FL><Txt value={form.freeNotes} onChange={v => setForm(f => ({ ...f, freeNotes: v }))} placeholder="Ιστορικό, τιμές, συμφωνίες…" rows={4} /></div>
                       <div><FL>Αρχεία</FL><FileUploader files={form.extra.files || []} onChange={v => setExtra('files', v)} contactId={editContact?.id} /></div>
                     </div>
                   </>
