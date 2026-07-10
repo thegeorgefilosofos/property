@@ -21,7 +21,9 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
 
   const load = useCallback(async () => {
     const { data: ten } = await supabase.from('tenants').select('lease_start,lease_end,monthly_rent').eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1);
-    setObls(computeObligations(prop, ten?.[0] || null));
+    // Συντήρηση εξοπλισμού από την Απογραφή (graceful αν λείπει η στήλη est_cost πριν το migration).
+    const { data: maint } = await supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id', propertyId);
+    setObls(computeObligations(prop, ten?.[0] || null, (maint || []) as any));
     // Δες αν οι υποχρεώσεις είναι ήδη περασμένες στο Ημερολόγιο
     const { count } = await supabase.from('calendar_events').select('id', { count: 'exact', head: true }).eq('property_id', propertyId).eq('source', 'obligations');
     setAdded((count || 0) > 0);
@@ -64,7 +66,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Υποχρεώσεις & Προθεσμίες</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Φορολογικές & θεσμικές προθεσμίες + λήξεις ασφάλισης/μίσθωσης</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Φορολογικές & θεσμικές προθεσμίες + λήξεις ασφάλισης/μίσθωσης + συντήρηση</div>
           </div>
         </div>
         <button onClick={toggleCalendar} disabled={syncing} title={added ? 'Αφαίρεση από το Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
@@ -79,7 +81,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
           const dabs = Math.abs(o.daysUntil);
           const badge = overdue ? `${dabs} ${dabs === 1 ? 'ημέρα' : 'ημέρες'} πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ${o.daysUntil === 1 ? 'ημέρα' : 'ημέρες'}`;
           return (
-            <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : 'calendar')}
+            <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : o.category === 'maintenance' ? 'inventory' : 'calendar')}
               style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-subtle)', marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>

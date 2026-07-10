@@ -12,6 +12,16 @@ const supabase = createSupabaseClient()
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string))
 
+const DOCS_BUCKET = 'inventory-docs'
+// Ανοίγει απόδειξη/εγγύηση με προσωρινό signed URL (1 ώρα). Legacy fallback αν αποθηκεύτηκε public URL.
+async function openInventoryDoc(pathOrUrl?: string | null) {
+  if (!pathOrUrl) return
+  if (/^https?:\/\//.test(pathOrUrl)) { window.open(pathOrUrl, '_blank'); return }
+  const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(pathOrUrl, 3600)
+  if (error || !data) { alert('Δεν ήταν δυνατό το άνοιγμα του αρχείου.'); return }
+  window.open(data.signedUrl, '_blank')
+}
+
 interface InventoryItem {
   id: string; property_id: string; user_id: string
   name: string; category: string; room: string; brand: string; model: string
@@ -23,6 +33,7 @@ interface InventoryItem {
   smart_device: boolean; smart_notes: string; tags: string[]
   provenance: string; original_price: number; discount_pct: number
   store_vendor: string; receipt_number: string
+  receipt_doc_url?: string; receipt_doc_name?: string
   created_at: string; updated_at: string
 }
 interface InventoryRepair {
@@ -38,11 +49,13 @@ interface InventoryHandover {
 interface HandoverItemSnapshot {
   item_id: string; name: string; category: string
   condition_at_handover: string; condition_notes: string; photo_url: string
+  condition_photo?: string; captured_at?: string
 }
 interface MaintenanceSchedule {
   id: string; property_id: string; user_id: string; item_id: string
   item_name: string; task: string; interval_months: number
   last_done: string; next_due: string; notes: string
+  est_cost?: number; calendar_event_id?: string; expense_id?: string
 }
 export interface HandoverIntent { tenantName?: string; tenantPhone?: string; type?: 'check_in'|'check_out' }
 interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
@@ -50,6 +63,22 @@ interface TabInventoryProps { propertyId: string; userId: string; profileType?: 
 const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
 const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
 const ROOM_PRESETS = ['Σαλόνι','Κουζίνα','Κύριο Υπνοδωμάτιο','Υπνοδωμάτιο 2','Υπνοδωμάτιο 3','Μπάνιο','WC','Χολ / Διάδρομος','Μπαλκόνι','Αποθήκη','Γκαράζ']
+// Πρότυπο επιπλωμένου διαμερίσματος — γρήγορο ξεκίνημα, μετά προσαρμόζεις.
+const STARTER_PACK:{name:string;category:string;room:string}[] = [
+  {name:'Κρεβάτι διπλό',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Στρώμα',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Ντουλάπα',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
+  {name:'Καναπές',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Τραπέζι τραπεζαρίας',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Καρέκλες (σετ)',category:'Έπιπλα',room:'Σαλόνι'},
+  {name:'Τηλεόραση',category:'Ηλεκτρονικά',room:'Σαλόνι'},
+  {name:'Ψυγείο',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Κουζίνα (εστίες & φούρνος)',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Απορροφητήρας',category:'Ηλεκτρικές Συσκευές',room:'Κουζίνα'},
+  {name:'Πλυντήριο ρούχων',category:'Ηλεκτρικές Συσκευές',room:'Μπάνιο'},
+  {name:'Κλιματιστικό',category:'Θέρμανση & Ψύξη',room:'Σαλόνι'},
+  {name:'Θερμοσίφωνας',category:'Θέρμανση & Ψύξη',room:'Μπάνιο'},
+]
 const CONDITIONS = ['Άριστη','Καλή','Μέτρια','Κακή','Εκτός Λειτουργίας']
 const ENERGY_CLASSES = ['A+++','A++','A+','A','B','C','D','E','F','G']
 const PROVENANCE_OPTIONS = [
@@ -154,6 +183,70 @@ const labelStyle: React.CSSProperties = {
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <SecHdr label={label} right={right}/>
 )
+
+// Ενιαίο, minimal chip (χώρος, ετικέτες): σταθερό ύψος, καθαρό active state.
+const chipStyle = (active:boolean):React.CSSProperties => ({
+  display:'inline-flex',alignItems:'center',height:34,padding:'0 14px',borderRadius:T.radius.pill,
+  fontSize:12.5,fontWeight:active?500:400,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap',
+  border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,
+  background:active?'var(--accent-soft)':'transparent',
+  color:active?'var(--accent)':'var(--text-secondary)',
+  transition:'all 0.15s',boxSizing:'border-box',
+})
+const chipHover = (e:React.MouseEvent<HTMLButtonElement>,active:boolean,on:boolean)=>{
+  if(active) return
+  e.currentTarget.style.borderColor = on?'var(--border-default)':'var(--border-subtle)'
+  e.currentTarget.style.color = on?'var(--text-primary)':'var(--text-secondary)'
+}
+
+// Custom checkbox για μαζική επιλογή.
+function SelectBox({checked,indeterminate,onChange,size=18}:{checked:boolean;indeterminate?:boolean;onChange:()=>void;size?:number}) {
+  const on = checked||indeterminate
+  return (
+    <button onClick={e=>{e.stopPropagation();onChange()}} aria-pressed={checked} title={checked?'Αποεπιλογή':'Επιλογή'}
+      style={{width:size,height:size,borderRadius:6,border:`1.5px solid ${on?'var(--accent)':'var(--border-default)'}`,background:on?'var(--accent)':'var(--bg-surface)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'all 0.12s',padding:0}}>
+      {checked&&<svg width={size-6} height={size-6} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+      {!checked&&indeterminate&&<div style={{width:size-8,height:2,background:'var(--accent-text)',borderRadius:1}}/>}
+    </button>
+  )
+}
+
+// Μικρό labeled dropdown (portal) για μαζικές ενέργειες — δεν το κόβει κανένα overflow.
+function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.ReactNode;options:string[];onPick:(v:string)=>void;accent?:boolean}) {
+  const [open,setOpen] = useState(false)
+  const [rect,setRect] = useState<{top:number;left:number}|null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const place = useCallback(()=>{const b=btnRef.current?.getBoundingClientRect();if(b)setRect({top:b.bottom+4,left:b.left})},[])
+  useEffect(()=>{
+    if(!open) return
+    place()
+    const close=(e:Event)=>{const t=e.target as Node;if(btnRef.current?.contains(t)||menuRef.current?.contains(t))return;setOpen(false)}
+    const s=()=>place()
+    document.addEventListener('mousedown',close);window.addEventListener('scroll',s,true);window.addEventListener('resize',s)
+    return()=>{document.removeEventListener('mousedown',close);window.removeEventListener('scroll',s,true);window.removeEventListener('resize',s)}
+  },[open,place])
+  return (
+    <div style={{display:'inline-block'}}>
+      <button ref={btnRef} onClick={()=>setOpen(v=>!v)}
+        style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',border:`1px solid ${accent?'var(--accent-border)':'var(--border-subtle)'}`,background:accent?'var(--accent-soft)':'var(--bg-surface)',color:accent?'var(--accent)':'var(--text-secondary)'}}>
+        <span style={{display:'flex'}}>{icon}</span>{label}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
+      </button>
+      {open&&rect&&typeof document!=='undefined'&&createPortal(
+        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
+          {options.length===0
+            ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
+            :options.map(o=>(
+              <div key={o} onClick={()=>{onPick(o);setOpen(false)}} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,color:'var(--text-primary)'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{o}</div>
+            ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
 
 const Badge = ({label,color}:{label:string;color:string}) => (
   <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color,background:color+'18',border:`1px solid ${color}30`,whiteSpace:'nowrap'}}>{label}</span>
@@ -308,15 +401,17 @@ function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
   const [showCustom,setShowCustom] = useState(!ROOM_PRESETS.includes(value)&&value!=='')
   const [focused,setFocused] = useState(false)
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:6}}>
-      <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
         {ROOM_PRESETS.map(r=>(
-          <button key={r} onClick={()=>{onChange(r);setShowCustom(false)}} style={{padding:'4px 10px',borderRadius:T.radius.pill,fontSize:11,cursor:'pointer',fontFamily:T.font.sans,border:`1px solid ${value===r?'var(--accent)':'var(--border-subtle)'}`,background:value===r?'var(--accent-dim)':'transparent',color:value===r?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
+          <button key={r} onClick={()=>{onChange(r);setShowCustom(false)}} style={chipStyle(value===r)}
+            onMouseEnter={e=>chipHover(e,value===r,true)} onMouseLeave={e=>chipHover(e,value===r,false)}>
             {r}
           </button>
         ))}
-        <button onClick={()=>{setShowCustom(true);onChange('')}} style={{padding:'4px 10px',borderRadius:T.radius.pill,fontSize:11,cursor:'pointer',fontFamily:T.font.sans,border:`1px solid ${showCustom?'var(--accent)':'var(--border-subtle)'}`,background:showCustom?'var(--accent-dim)':'transparent',color:showCustom?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>
-          Άλλο...
+        <button onClick={()=>{setShowCustom(true);onChange('')}} style={chipStyle(showCustom)}
+          onMouseEnter={e=>chipHover(e,showCustom,true)} onMouseLeave={e=>chipHover(e,showCustom,false)}>
+          Άλλο…
         </button>
       </div>
       {showCustom&&(
@@ -465,7 +560,7 @@ const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οι�
 {"name":"","brand":"","model":"","serial_number":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"π.χ. A+++ ή κενό","power_watts":"αριθμός W ή κενό","store":"","purchase_date":"YYYY-MM-DD ή κενό"}
 Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
 
-function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void}) {
+function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string}) {
   const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[],tags:item.tags||[]}:{...EMPTY_ITEM})
   const [saving,setSaving] = useState(false)
   const [scanning,setScanning] = useState(false)
@@ -489,6 +584,19 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
   const toggleTag = (tag:string) => {
     const tags=form.tags||[]
     set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
+  }
+  const [docUp,setDocUp] = useState(false)
+  // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket, με path ανά ακίνητο· αποθηκεύουμε το PATH και ανοίγουμε με signed URL.
+  const uploadReceiptDoc = async(file:File) => {
+    setDocUp(true)
+    const path=`receipts/${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true})
+    if(error){alert('Σφάλμα upload: '+error.message);setDocUp(false);return}
+    const prev=form.receipt_doc_url
+    setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
+    // Καθάρισε τυχόν προηγούμενο ΑΝΕΒΑΣΜΑ αυτής της συνεδρίας (όχι το αρχικά αποθηκευμένο).
+    if(prev&&prev!==item?.receipt_doc_url&&!/^https?:\/\//.test(prev)) await supabase.storage.from(DOCS_BUCKET).remove([prev])
+    setDocUp(false)
   }
   // AI σάρωση φωτογραφίας (συσκευασία/ετικέτα/booklet/απόδειξη) → προσυμπλήρωση πεδίων.
   const runScan = async(file:File) => {
@@ -568,8 +676,8 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
             <div><label style={labelStyle}>Μάρκα</label><TextInput value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Παράδειγμα: Bosch"/></div>
             <div><label style={labelStyle}>Μοντέλο</label><TextInput value={form.model||''} onChange={v=>set('model',v)} placeholder="Παράδειγμα: WAU28PI0GR"/></div>
             <div><label style={labelStyle}>Σειριακός Αριθμός</label><TextInput value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></div>
-            <div><label style={labelStyle}>Χώρος Τοποθέτησης</label><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></div>
           </div>
+          <div><label style={labelStyle}>Χώρος Τοποθέτησης</label><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></div>
 
           {/* Αγορά & Εγγύηση */}
           <SectionLabel label="Αγορά & Εγγύηση"/>
@@ -633,6 +741,21 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
               </div>
               <div><label style={labelStyle}>Αριθμός Απόδειξης / Τιμολόγιο</label><TextInput value={form.receipt_number||''} onChange={v=>set('receipt_number',v)} placeholder="Παράδειγμα: ΑΠΥ-2024-001"/></div>
             </div>
+            <div>
+              <label style={labelStyle}>Απόδειξη / Εγγύηση (αρχείο)</label>
+              {form.receipt_doc_url
+                ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                    <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
+                    <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
+                    <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                  </div>
+                :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    {docUp?'Ανέβασμα…':'Επισύναψη PDF ή φωτογραφίας'}
+                    <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadReceiptDoc(f)}}/>
+                  </label>}
+            </div>
             {isElectric&&(<>
               <SectionLabel label="Ενέργεια"/>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
@@ -667,10 +790,11 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
           {/* Ετικέτες & σημειώσεις */}
           <div>
             <label style={labelStyle}>Ετικέτες</label>
-            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
               {AVAILABLE_TAGS.map(tag=>{
                 const active=(form.tags||[]).includes(tag)
-                return <button key={tag} onClick={()=>toggleTag(tag)} style={{padding:'4px 12px',borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:active?500:400,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'none',color:active?'var(--accent)':'var(--text-secondary)',transition:'all 0.15s'}}>{tag}</button>
+                return <button key={tag} onClick={()=>toggleTag(tag)} style={chipStyle(active)}
+                  onMouseEnter={e=>chipHover(e,active,true)} onMouseLeave={e=>chipHover(e,active,false)}>{tag}</button>
               })}
             </div>
           </div>
@@ -778,7 +902,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   )
 }
 
-function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional'}) {
+function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl,handovers=[],onOpenHandover}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional';kwhControl?:React.ReactNode;handovers?:InventoryHandover[];onOpenHandover?:()=>void}) {
   const summary = portfolioSummary(items)
   const needReplacement = items.filter(i=>replacementSuggestion(i).suggested)
   const totalPurchase = items.reduce((s,i)=>s+(i.purchase_value||0),0)
@@ -916,7 +1040,7 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
           )}
         </div>
         <div style={cardStyle}>
-          <SectionLabel label="Κατανάλωση Ρεύματος"/>
+          <SectionLabel label="Κατανάλωση Ρεύματος" right={kwhControl}/>
           {electricItems.length===0?(
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text-tertiary)'}}>
               <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-secondary)',marginBottom:4}}>Δεν υπάρχουν δεδομένα</p>
@@ -963,19 +1087,47 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual'}:{items:In
           ))}
         </div>
       </div>
+
+      <div style={cardStyle}>
+        <SectionLabel label="Ιστορικό Παραδόσεων" right={onOpenHandover?<button onClick={onOpenHandover} style={{padding:'0 12px',height:30,borderRadius:T.radius.pill,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',color:'var(--accent)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'+ Νέο πρωτόκολλο'}</button>:undefined}/>
+        {handovers.length===0
+          ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή κατάστασης εξοπλισμού στην είσοδο & έξοδο του ενοικιαστή — απόδειξη για την εγγύηση. Δημιούργησε ένα πρωτόκολλο ή ξεκίνησέ το από την καρτέλα του ενοικιαστή.</p>
+          :<div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
+              const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
+              return (
+                <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:onOpenHandover?'pointer':'default'}}>
+                  <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
+                  <div style={{minWidth:0,flex:1}}>
+                    <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
+                    <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
+                  </div>
+                  {bad>0&&<Badge label={`${bad} προβλήματα`} color="var(--negative)"/>}
+                </div>
+              )
+            })}
+            {handovers.length>4&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,textAlign:'center',marginTop:4}}>και {handovers.length-4} ακόμη</p>}
+          </div>
+        }
+      </div>
     </div>
   )
 }
 
 type SortKey = 'name'|'value'|'energy'|'age'|'depreciation'
 
-function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder}:{
+function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCondition,onWarrantyReminder,onBulkDelete,onBulkRoom,onBulkTag}:{
   items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number
   onAdd:()=>void;onEdit:(i:InventoryItem)=>void;onDelete:(id:string)=>void
   onRepair:(i:InventoryItem)=>void;onQR:(i:InventoryItem)=>void
   onUpdateCondition:(id:string,c:string)=>void
   onWarrantyReminder:(i:InventoryItem)=>void
+  onBulkDelete:(ids:string[])=>void;onBulkRoom:(ids:string[],room:string)=>void;onBulkTag:(ids:string[],tag:string)=>void
 }) {
+  const [selectMode,setSelectMode] = useState(false)
+  const [selected,setSelected] = useState<Set<string>>(new Set())
+  const toggleSel = (id:string) => setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n})
+  const exitSelect = () => {setSelectMode(false);setSelected(new Set())}
   const [filterCat,setFilterCat] = useState('Όλες')
   const [filterRoom,setFilterRoom] = useState('Όλα')
   const [filterTag,setFilterTag] = useState('Όλα')
@@ -1014,6 +1166,8 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
     {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm(`Διαγραφή "${item.name}";`))onDelete(item.id)}},
   ]
   const SORT_LABELS:Record<SortKey,string> = {name:'Όνομα',value:'Αξία',energy:'Ρεύμα/μήνα',age:'Ηλικία',depreciation:'Απόσβεση'}
+  // Οι μαζικές ενέργειες δρουν ΜΟΝΟ σε ό,τι είναι επιλεγμένο ΚΑΙ ορατό στα τρέχοντα φίλτρα.
+  const visIds = filtered.filter(i=>selected.has(i.id)).map(i=>i.id)
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -1029,15 +1183,33 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
         {actionCount>0&&<button onClick={()=>setShowNeedsAction(v=>!v)} title="Προβολή μόνο όσων χρειάζονται προσοχή" style={{padding:'0 12px',height:36,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${showNeedsAction?'var(--warning-border)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--warning-soft)':'var(--bg-elevated)',color:showNeedsAction?'var(--warning)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
           Προσοχή <span style={{background:showNeedsAction?'var(--warning)':'var(--text-tertiary)',color:'#fff',borderRadius:T.radius.inner,padding:'0 6px',fontSize:10,fontWeight:700}}>{actionCount}</span>
         </button>}
+        <button onClick={()=>selectMode?exitSelect():setSelectMode(true)} title="Επιλογή πολλών αντικειμένων" style={{padding:'0 12px',height:36,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${selectMode?'var(--accent-border)':'var(--border-subtle)'}`,background:selectMode?'var(--accent-soft)':'var(--bg-elevated)',color:selectMode?'var(--accent)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          {selectMode?'Άκυρο':'Επιλογή'}
+        </button>
         <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:T.radius.pill,overflow:'hidden',padding:2,background:'var(--bg-elevated)'}}>
           {(['grid','list'] as const).map(m=>(
             <button key={m} onClick={()=>setViewMode(m)} style={{padding:'6px 14px',fontSize:12,fontFamily:T.font.sans,cursor:'pointer',border:'none',borderRadius:T.radius.pill,background:viewMode===m?'var(--accent)':'transparent',color:viewMode===m?'var(--accent-text)':'var(--text-secondary)',fontWeight:viewMode===m?500:400,transition:'all 0.15s'}}>{m==='grid'?'Κάρτες':'Λίστα'}</button>
           ))}
         </div>
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
-        <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
-      </div>
+      {selectMode?(
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.card}}>
+          <SelectBox checked={filtered.length>0&&visIds.length===filtered.length} indeterminate={visIds.length>0&&visIds.length<filtered.length} onChange={()=>{const all=visIds.length===filtered.length;setSelected(all?new Set():new Set(filtered.map(i=>i.id)))}}/>
+          <span style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{visIds.length} επιλεγμένα</span>
+          <div style={{flex:1}}/>
+          <BulkPicker label="Δωμάτιο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M4 21V7l8-4v18M20 21V11l-8-4"/></svg>} options={ROOM_PRESETS} onPick={r=>{if(visIds.length){onBulkRoom(visIds,r);exitSelect()}}}/>
+          <BulkPicker label="Ετικέτα" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>} options={[...AVAILABLE_TAGS]} onPick={t=>{if(visIds.length){onBulkTag(visIds,t);exitSelect()}}}/>
+          <button onClick={()=>{if(visIds.length&&confirm(`Διαγραφή ${visIds.length} αντικειμένων;`)){onBulkDelete(visIds);exitSelect()}}} disabled={visIds.length===0} style={{display:'inline-flex',alignItems:'center',gap:6,height:34,padding:'0 12px',borderRadius:T.radius.pill,fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,cursor:visIds.length?'pointer':'not-allowed',border:'1px solid var(--negative-border)',background:visIds.length?'var(--negative-dim)':'var(--bg-elevated)',color:visIds.length?'var(--negative)':'var(--text-tertiary)'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+            Διαγραφή
+          </button>
+        </div>
+      ):(
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
+          <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
+        </div>
+      )}
       {filtered.length===0?(
         <EmptyState
           title={items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}
@@ -1052,10 +1224,11 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
             const photos=(item.photos||[]).filter(Boolean); const displayPhoto=item.photo_url||(photos[0]||'')
             const ws=item.warranty_expiry?warrantyStatus(item.warranty_expiry):null
             const repl=replacementSuggestion(item)
+            const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>onEdit(item)} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
-                onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
-                onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
+              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{background:'var(--bg-surface)',border:`1px solid ${sel?'var(--accent)':'var(--border-subtle)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'none',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition:'all 0.2s',cursor:'pointer'}}
+                onMouseEnter={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
+                onMouseLeave={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
               >
                 <div style={{height:118,background:'var(--bg-elevated)',position:'relative',overflow:'hidden',flexShrink:0}}>
                   {displayPhoto
@@ -1064,12 +1237,16 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
                       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
                     </div>
                   }
-                  <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
-                    <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
-                  </div>
-                  <div style={{position:'absolute',top:8,right:8}}>
-                    <OverflowMenu dark actions={itemActions(item)}/>
-                  </div>
+                  {selectMode
+                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding:3,backdropFilter:'blur(4px)'}} onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} size={20}/></div>
+                    :<>
+                      <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
+                        <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>
+                      </div>
+                      <div style={{position:'absolute',top:8,right:8}}>
+                        <OverflowMenu dark actions={itemActions(item)}/>
+                      </div>
+                    </>}
                   {(item.energy_class||photos.length>1)&&<div style={{position:'absolute',bottom:8,left:8,display:'flex',gap:4,alignItems:'center'}}>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
                     {photos.length>1&&<span style={{padding:'2px 6px',borderRadius:5,background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:9,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>+{photos.length-1}</span>}
@@ -1103,16 +1280,19 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
       ):(
         <div style={{overflowX:'auto',margin:'0 -4px',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:560}}>
-          <div style={{display:'grid',gridTemplateColumns:'minmax(0,2fr) 130px 96px 90px 44px',gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
+          <div style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
+            {selectMode&&<div/>}
             {['Αντικείμενο','Κατάσταση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
+            const sel=selected.has(item.id)
             return (
-              <div key={item.id} onClick={()=>onEdit(item)} style={{display:'grid',gridTemplateColumns:'minmax(0,2fr) 130px 96px 90px 44px',gap:10,padding:'11px 16px',background:'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
-                onMouseEnter={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}
-                onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background='var(--bg-surface)'}
+              <div key={item.id} onClick={()=>selectMode?toggleSel(item.id):onEdit(item)} style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'11px 16px',background:sel?'var(--accent-soft)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
+                onMouseEnter={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-elevated)'}}
+                onMouseLeave={e=>{if(!sel)(e.currentTarget as HTMLDivElement).style.background='var(--bg-surface)'}}
               >
+                {selectMode&&<div onClick={e=>{e.stopPropagation();toggleSel(item.id)}}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)}/></div>}
                 <div style={{minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
@@ -1160,7 +1340,9 @@ function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[]
               <p style={{fontSize:12,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
               <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand}{item.model?` ${item.model}`:''} · {item.category}</p>
             </div>
-            {item.serial_number&&<p title="SN = Σειριακός αριθμός (Serial Number)" style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>}
+            {item.receipt_doc_url
+              ?<button onClick={()=>openInventoryDoc(item.receipt_doc_url)} title="Άνοιγμα απόδειξης/εγγύησης" style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:10.5,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Απόδειξη</button>
+              :item.serial_number?<p title="SN = Σειριακός αριθμός (Serial Number)" style={{fontSize:10,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>SN: {item.serial_number}</p>:<span/>}
             <Badge label={ws.label} color={ws.color}/>
             {daysUntil(item.warranty_expiry)>=0&&daysUntil(item.warranty_expiry)<=90&&(
               <button onClick={()=>pushCal(item)} disabled={pushing===item.id||pushed.has(item.id)} style={{padding:'5px 10px',borderRadius:T.radius.pill,border:`1px solid ${pushed.has(item.id)?'var(--positive)':'var(--border-subtle)'}`,background:pushed.has(item.id)?'var(--positive-dim)':'none',color:pushed.has(item.id)?'var(--positive)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',whiteSpace:'nowrap'}}>
@@ -1195,14 +1377,32 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const [type,setType] = useState<'check_in'|'check_out'>('check_in')
   const [tenantName,setTenantName] = useState(''); const [tenantPhone,setTenantPhone] = useState('')
   const [handoverDate,setHandoverDate] = useState(''); const [notes,setNotes] = useState('')
-  const [itemConds,setItemConds] = useState<Record<string,{condition:string;notes:string}>>({})
+  const [itemConds,setItemConds] = useState<Record<string,{condition:string;notes:string;photo?:string}>>({})
   const [saving,setSaving] = useState(false)
+  const [uploadingId,setUploadingId] = useState<string|null>(null)
   const [cmpA,setCmpA] = useState(''); const [cmpB,setCmpB] = useState('')
   const [fromTenant,setFromTenant] = useState('')
+  const uploadCondPhoto = async(itemId:string,file:File) => {
+    setUploadingId(itemId)
+    const path=`handover/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const {error}=await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
+    if(error){alert('Σφάλμα upload: '+error.message);setUploadingId(null);return}
+    const {data}=supabase.storage.from('inventory-photos').getPublicUrl(path)
+    setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
+    setUploadingId(null)
+  }
+  // Reset ΜΟΝΟ όταν μπαίνουμε σε νέο πρωτόκολλο (αλλαγή mode), όχι σε κάθε refetch των items.
   useEffect(()=>{
-    if(mode==='new'){const init:Record<string,{condition:string;notes:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
+    if(mode==='new'){const init:Record<string,{condition:string;notes:string;photo?:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
     if(mode==='list')setFromTenant('')
-  },[mode,items])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[mode])
+  // Αν αλλάξουν τα items ενώ συμπληρώνουμε, πρόσθεσε μόνο τα νέα — διατήρησε κατάσταση/σημειώσεις/φωτο σε εξέλιξη.
+  useEffect(()=>{
+    if(mode!=='new') return
+    setItemConds(prev=>{const next={...prev};items.forEach(i=>{if(!next[i.id])next[i.id]={condition:i.condition,notes:''}});return next})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[items])
   // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το όνομα/τηλέφωνο/τύπο έτοιμα.
   useEffect(()=>{
     if(seed){
@@ -1216,7 +1416,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   const handleSave = async() => {
     if(!tenantName.trim()){alert('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
     setSaving(true)
-    const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||''}))
+    const nowIso=new Date().toISOString()
+    const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))
     const {error} = await supabase.from('inventory_handovers').insert({property_id:propertyId,user_id:userId,handover_type:type,tenant_name:tenantName,tenant_phone:tenantPhone,handover_date:handoverDate||new Date().toISOString().split('T')[0],notes,items_snapshot:snap})
     if(error){alert('Σφάλμα: '+error.message);setSaving(false);return}
     setMode('list');onSaved();setSaving(false)
@@ -1227,8 +1428,8 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
     w.document.write(`<html><head><title>Πρωτόκολλο</title><style>body{font-family:'Inter',Arial;font-size:12px;margin:30px}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#f4f4f4;padding:8px;text-align:left;font-size:10px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee}.sig{margin-top:48px;display:flex;gap:60px}.sig-box{flex:1;border-top:1px solid #999;padding-top:8px;font-size:11px;color:#666}@media print{button{display:none}}</style></head><body>
     <h1>Πρωτόκολλο ${h.handover_type==='check_in'?'Παράδοσης':'Παραλαβής'}</h1>
     <p><strong>${esc(h.tenant_name)}</strong>${h.tenant_phone?` · ${esc(h.tenant_phone)}`:''} · ${esc(fmtDate(h.handover_date))}</p>
-    <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th></tr></thead><tbody>
-    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||'—')}</td></tr>`).join('')}
+    <table><thead><tr><th>Αντικείμενο</th><th>Κατηγορία</th><th>Κατάσταση</th><th>Παρατηρήσεις</th><th>Φωτό κατάστασης</th></tr></thead><tbody>
+    ${snap.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.category)}</td><td>${esc(s.condition_at_handover)}</td><td>${esc(s.condition_notes||'—')}</td><td>${s.condition_photo?`<img src="${esc(s.condition_photo)}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #ddd"/>${s.captured_at?`<br><span style="font-size:8px;color:#999">${esc(fmtDate(s.captured_at))}</span>`:''}`:'—'}</td></tr>`).join('')}
     </tbody></table>
     <div class="sig"><div class="sig-box">Υπογραφή Ιδιοκτήτη</div><div class="sig-box">Υπογραφή Ενοικιαστή</div><div class="sig-box">Ημερομηνία</div></div>
     <button onclick="window.print()" style="margin-top:24px;padding:8px 16px;cursor:pointer">Εκτύπωση</button></body></html>`)
@@ -1276,6 +1477,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   }
   if(mode==='new') return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
+      <style>{`@keyframes invSpin{to{transform:rotate(360deg)}}`}</style>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
         <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Πίσω</button>
@@ -1301,18 +1503,29 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
       </div>
       <div>
         <SectionLabel label="Κατάσταση Αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
+        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong> — χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {items.map(item=>(
-            <div key={item.id} style={{display:'grid',gridTemplateColumns:'auto 1fr 160px 1fr',gap:12,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
-              <div style={{width:44,height:44,background:'var(--bg-surface)',borderRadius:8,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                {item.photo_url?<img src={item.photo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>}
-              </div>
-              <div>
-                <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{item.name}</p>
-                <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.category}{item.room?` · ${item.room}`:''}</p>
+            <div key={item.id} style={{display:'grid',gridTemplateColumns:'44px minmax(0,1.4fr) 150px minmax(0,1.6fr)',gap:14,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
+              {(()=>{const cp=itemConds[item.id]?.photo;const busy=uploadingId===item.id;return (
+                <label title={cp?'Φωτογραφία κατάστασης (πάτησε για αλλαγή)':'Τράβα φωτογραφία της τρέχουσας κατάστασης'} style={{position:'relative',width:44,height:44,borderRadius:10,overflow:'hidden',flexShrink:0,cursor:'pointer',display:'block',border:cp?'2px solid var(--accent)':'1px solid var(--border-subtle)'}}>
+                  {cp
+                    ?<img src={cp} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
+                    :item.photo_url
+                      ?<img src={item.photo_url} style={{width:'100%',height:'100%',objectFit:'cover',opacity:0.5}} alt=""/>
+                      :<div style={{width:'100%',height:'100%',background:'var(--accent-soft)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>}
+                  <span style={{position:'absolute',right:2,bottom:2,width:16,height:16,borderRadius:5,background:cp?'var(--accent)':'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {busy?<span style={{width:9,height:9,border:'1.5px solid #fff',borderTopColor:'transparent',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>:<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>}
+                  </span>
+                  <input type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)uploadCondPhoto(item.id,f)}}/>
+                </label>
+              )})()}
+              <div style={{minWidth:0}}>
+                <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
+                <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
               </div>
               <CustomSelect value={itemConds[item.id]?.condition||item.condition} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],condition:v}}))} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
-              <TextInput value={itemConds[item.id]?.notes||''} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],notes:v}}))} placeholder="Παρατηρήσεις..."/>
+              <TextInput value={itemConds[item.id]?.notes||''} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],notes:v}}))} placeholder="π.χ. μικρή γρατζουνιά στην πόρτα"/>
             </div>
           ))}
         </div>
@@ -1327,15 +1540,25 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
   )
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <SectionLabel label="Πρωτόκολλα Παράδοσης"/>
-        <div style={{display:'flex',gap:8}}>
-          {handovers.length>=2&&<button onClick={()=>setMode('compare')} style={{padding:'0 14px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>Σύγκριση</button>}
-          <button onClick={()=>setMode('new')} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέο Πρωτόκολλο</button>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+        <div style={{minWidth:0}}>
+          <p style={{fontSize:16,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Πρωτόκολλα Παράδοσης</p>
+          <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,marginTop:2,maxWidth:560,lineHeight:1.5}}>Καταγράφει την κατάσταση κάθε αντικειμένου κατά την είσοδο & έξοδο του ενοικιαστή — απόδειξη για την επιστροφή της εγγύησης σε περίπτωση φθορών.</p>
+        </div>
+        <div style={{display:'flex',gap:8,flexShrink:0}}>
+          {handovers.length>=2&&<button onClick={()=>setMode('compare')} style={{padding:'0 14px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>Σύγκριση εισόδου/εξόδου</button>}
+          <button onClick={()=>setMode('new')} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέο πρωτόκολλο</button>
         </div>
       </div>
       {handovers.length===0
-        ?<div style={{textAlign:'center',padding:'60px 0'}}><p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Δεν υπάρχουν πρωτόκολλα</p></div>
+        ?<div style={{textAlign:'center',padding:'48px 24px',background:'var(--bg-elevated)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)'}}>
+          <div style={{width:56,height:56,borderRadius:16,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <p style={{fontSize:15,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:6}}>Κανένα πρωτόκολλο ακόμη</p>
+          <p style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:420,margin:'0 auto 20px',lineHeight:1.6}}>Στην είσοδο ενός ενοικιαστή κατέγραψε την κατάσταση του εξοπλισμού. Στην έξοδο, σύγκρινε — ό,τι υποβαθμίστηκε φαίνεται αυτόματα.</p>
+          <button onClick={()=>setMode('new')} style={{padding:'0 20px',height:40,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέο πρωτόκολλο</button>
+        </div>
         :<div style={{display:'flex',flexDirection:'column',gap:10}}>
           {handovers.sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).map(h=>{
             const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
@@ -1347,7 +1570,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
                       <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
                       <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{h.tenant_name}</p>
                     </div>
-                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)}{h.tenant_phone?` · ${h.tenant_phone}`:''} · {snap.length} αντικείμενα</p>
+                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)}{h.tenant_phone?` · ${h.tenant_phone}`:''} · {snap.length} αντικείμενα{(()=>{const ph=snap.filter(s=>s.condition_photo).length;return ph>0?` · ${ph} φωτό`:''})()}</p>
                   </div>
                   <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {bad>0&&<Badge label={`${bad} προβλήματα`} color="var(--negative)"/>}
@@ -1374,31 +1597,66 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
 
 function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void;embedded?:boolean}) {
   const [adding,setAdding] = useState(false)
-  const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''})
+  const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0})
   const [saving,setSaving] = useState(false)
-  const [pushed,setPushed] = useState<Set<string>>(new Set())
+  const [doneBusy,setDoneBusy] = useState<string|null>(null)
   const overdue=schedules.filter(s=>daysUntil(s.next_due)<0)
   const soon=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30})
   const upcoming=schedules.filter(s=>daysUntil(s.next_due)>30)
-  const markDone=async(s:MaintenanceSchedule)=>{
-    const today=new Date().toISOString().split('T')[0]
-    await supabase.from('inventory_maintenance').update({last_done:today,next_due:addMonths(today,s.interval_months)}).eq('id',s.id)
-    await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:today,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})
-    onSaved()
+  const today=()=>new Date().toISOString().split('T')[0]
+  const taskTitle=(task:string,item_name:string)=>`Συντήρηση: ${task}${item_name?`, ${item_name}`:''}`
+  // Το «κύκλωμα»: μια προγραμματισμένη εργασία → εγγραφή ημερολογίου (υπενθύμιση/εκκρεμότητα)
+  // + προγραμματισμένη (εκκρεμής) δαπάνη → τροφοδοτεί προϋπολογισμό «Συντήρηση» & «Εκκρεμείς πληρωμές».
+  const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
+    const {data}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:taskTitle(task,item_name),description:est>0?`Εκτιμώμενο κόστος ${fmtEur(est)}`:'',category:'maintenance',event_date:due,amount:est||0,priority:'medium',status:'pending',source:'inventory-maint',notes:'Αυτόματο από Συντήρηση Απογραφής'}).select('id').single()
+    return (data as {id?:string}|null)?.id
   }
-  const deleteSched=async(id:string)=>{await supabase.from('inventory_maintenance').delete().eq('id',id);onSaved()}
-  const pushCal=async(s:MaintenanceSchedule)=>{await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Συντήρηση: ${s.task}${s.item_name?`, ${s.item_name}`:''}`,category:'maintenance',event_date:s.next_due,priority:'medium',status:'pending',source:'inventory'});setPushed(p=>new Set(p).add(s.id))}
-  const addSuggested=async(s:{task:string;interval_months:number;category:string})=>{
-    const matching=items.filter(i=>i.category===s.category)
-    const inserts=matching.length>0?matching.map(item=>({property_id:propertyId,user_id:userId,item_id:item.id,item_name:item.name,task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''})):[{property_id:propertyId,user_id:userId,item_id:'',item_name:'',task:s.task,interval_months:s.interval_months,last_done:'',next_due:addMonths('',s.interval_months),notes:''}]
-    await supabase.from('inventory_maintenance').insert(inserts);onSaved()
+  const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
+    if(!(est>0)) return undefined
+    const {data}=await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(task,item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:due,paid_by:'owner',paid:false,notes:'Προγραμματισμένη δαπάνη συντήρησης (εκκρεμεί)'}).select('id').single()
+    return (data as {id?:string}|null)?.id
+  }
+  const markDone=async(s:MaintenanceSchedule)=>{
+    if(doneBusy) return
+    setDoneBusy(s.id)
+    const t=today(); const newDue=addMonths(t,s.interval_months); const est=s.est_cost||0
+    // Η προγραμματισμένη δαπάνη γίνεται πραγματοποιημένη (πληρωμένη)· αν δεν υπήρχε, καταγράφεται τώρα.
+    if(s.expense_id) await supabase.from('expenses').update({paid:true,date:t}).eq('id',s.expense_id)
+    else if(est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(s.task,s.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:t,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    if(s.calendar_event_id) await supabase.from('calendar_events').update({status:'paid'}).eq('id',s.calendar_event_id)
+    // Ρολάρισμα + νέο κύκλωμα για την επόμενη φορά.
+    const calId=await makeCalEvent(s.task,s.item_name,newDue,est)
+    const expId=await makePlannedExpense(s.task,s.item_name,newDue,est)
+    await supabase.from('inventory_maintenance').update({last_done:t,next_due:newDue,calendar_event_id:calId||null,expense_id:expId||null}).eq('id',s.id)
+    setDoneBusy(null);onSaved()
+  }
+  const deleteSched=async(s:MaintenanceSchedule)=>{
+    if(s.calendar_event_id) await supabase.from('calendar_events').delete().eq('id',s.calendar_event_id)
+    if(s.expense_id) await supabase.from('expenses').delete().eq('id',s.expense_id).eq('paid',false)
+    await supabase.from('inventory_maintenance').delete().eq('id',s.id);onSaved()
+  }
+  // «Προτεινόμενη εργασία» → ανοίγει την επεξεργάσιμη φόρμα προ-συμπληρωμένη (διάστημα/αντικείμενο/κόστος),
+  // ώστε ο χρήστης να την προσαρμόσει και μετά να μπει στο κύκλωμα (ημερολόγιο/εκκρεμότητες/δαπάνες).
+  const addSuggested=(s:{task:string;interval_months:number;category:string})=>{
+    const match=items.find(i=>i.category===s.category)
+    setForm({item_id:match?.id||'',item_name:match?.name||'',task:s.task,interval_months:s.interval_months,last_done:'',notes:'',est_cost:0})
+    setAdding(true)
   }
   const handleSave=async()=>{
     if(!form.task.trim()){alert('Η εργασία είναι υποχρεωτική.');return}
     setSaving(true)
-    await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:addMonths(form.last_done,form.interval_months),notes:form.notes})
-    if(form.last_done){await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Συντήρηση: ${form.task}${form.item_name?`, ${form.item_name}`:''}`,amount:0,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Αυτόματη εισαγωγή από Συντήρηση'})}
-    setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''});setSaving(false);onSaved()
+    const base=form.last_done||today(); const nextDue=addMonths(base,form.interval_months); const est=form.est_cost||0
+    const {data:sched,error:schedErr}=await supabase.from('inventory_maintenance').insert({property_id:propertyId,user_id:userId,item_id:form.item_id||'',item_name:form.item_name,task:form.task,interval_months:form.interval_months,last_done:form.last_done,next_due:nextDue,notes:form.notes,est_cost:est}).select('id').single()
+    // Αν αποτύχει η εγγραφή (π.χ. δεν έχει τρέξει η migration), μην δημιουργήσεις ορφανές εγγραφές στο κύκλωμα.
+    if(schedErr){alert('Σφάλμα αποθήκευσης: '+schedErr.message);setSaving(false);return}
+    // Αν έχει ήδη γίνει (δηλωμένη τελευταία εκτέλεση) κατέγραψε πληρωμένη δαπάνη για το ιστορικό.
+    if(form.last_done&&est>0) await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:taskTitle(form.task,form.item_name),amount:est,category:'Συντήρηση & Επισκευές',expense_group:'maintenance',date:form.last_done,paid_by:'owner',paid:true,notes:'Πραγματοποιημένη συντήρηση'})
+    // Κύκλωμα για την επόμενη προγραμματισμένη εκτέλεση.
+    const calId=await makeCalEvent(form.task,form.item_name,nextDue,est)
+    const expId=await makePlannedExpense(form.task,form.item_name,nextDue,est)
+    const sid=(sched as {id?:string}|null)?.id
+    if(sid&&(calId||expId)) await supabase.from('inventory_maintenance').update({calendar_event_id:calId||null,expense_id:expId||null}).eq('id',sid)
+    setAdding(false);setForm({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:'',est_cost:0});setSaving(false);onSaved()
   }
   const SchedRow=({s}:{s:MaintenanceSchedule})=>{
     const days=daysUntil(s.next_due); const c=days<0?'var(--negative)':days<=30?'var(--warning)':'var(--positive)'
@@ -1406,14 +1664,13 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
       <div style={{display:'grid',gridTemplateColumns:'1fr auto auto auto auto',gap:10,alignItems:'center',padding:'12px 16px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
         <div>
           <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
-          <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
+          <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{(s.est_cost||0)>0?` · ~${fmtEur(s.est_cost||0)}`:''}{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
         </div>
         <Badge label={days<0?`${Math.abs(days)} ημ. καθυστ.`:days===0?'Σήμερα!':`${days} ημ.`} color={c}/>
         <span style={{fontSize:11,color:'var(--text-tertiary)',whiteSpace:'nowrap',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtDate(s.next_due)}</span>
-        <button onClick={()=>markDone(s)} style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}}>Έγινε</button>
+        <button onClick={()=>markDone(s)} disabled={doneBusy===s.id} title="Καταγράφει την εκτέλεση, ρολάρει στην επόμενη ημερομηνία και ενημερώνει δαπάνες/ημερολόγιο" style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:doneBusy===s.id?'var(--text-tertiary)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:doneBusy===s.id?'wait':'pointer',fontWeight:500,whiteSpace:'nowrap'}}>{doneBusy===s.id?'…':'Έγινε'}</button>
         <OverflowMenu actions={[
-          {label:pushed.has(s.id)?'Προστέθηκε στο ημερολόγιο':'Υπενθύμιση στο ημερολόγιο',icon:IconCal,onClick:()=>pushCal(s)},
-          {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm('Διαγραφή;'))deleteSched(s.id)}},
+          {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:()=>{if(confirm('Διαγραφή; Θα αφαιρεθεί και η προγραμματισμένη υπενθύμιση/δαπάνη.'))deleteSched(s)}},
         ]}/>
       </div>
     )
@@ -1422,8 +1679,29 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <SectionLabel label="Συντήρηση" right={embedded&&schedules.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{schedules.length} {schedules.length===1?'εργασία':'εργασίες'}</span>:undefined}/>
-        <button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέα Εργασία</button>
+        {!adding&&<button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέα Εργασία</button>}
       </div>
+      {adding&&(
+        <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
+          <SectionLabel label="Νέα Εργασία Συντήρησης"/>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Εργασία *</label><TextInput value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
+            <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'— Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
+            <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
+            <div><label style={labelStyle}>Τελευταία Εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>
+            <div><label style={labelStyle}>Εκτιμώμενο Κόστος (€)</label><NumberInput value={String(form.est_cost)} onChange={v=>setForm(f=>({...f,est_cost:parseFloat(v)||0}))} suffix="€" min={0}/></div>
+            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,padding:'9px 12px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Με την αποθήκευση μπαίνει αυτόματα στο <strong style={{color:'var(--text-primary)'}}>ημερολόγιο</strong> (με υπενθύμιση email πριν λήξει){form.est_cost>0?<> και ως <strong style={{color:'var(--text-primary)'}}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό «Συντήρηση»</>:''}.</p>
+          </div>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
+            <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
+            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
+          </div>
+        </div>
+      )}
       {!embedded&&<KPIGrid items={[
         {label:'Σε Καθυστέρηση',value:String(overdue.length),tone:overdue.length>0?'negative':'neutral'},
         {label:'Επόμενες 30 Μέρες',value:String(soon.length),tone:soon.length>0?'warning':'neutral'},
@@ -1448,22 +1726,6 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
       {overdue.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Σε Καθυστέρηση" right={<Badge label={String(overdue.length)} color="var(--negative)"/>}/>{overdue.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
       {soon.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Επόμενες 30 Μέρες" right={<Badge label={String(soon.length)} color="var(--warning)"/>}/>{soon.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
       {upcoming.length>0&&<div style={{display:'flex',flexDirection:'column',gap:6}}><SectionLabel label="Επερχόμενες"/>{upcoming.map(s=><SchedRow key={s.id} s={s}/>)}</div>}
-      {adding&&(
-        <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
-          <SectionLabel label="Νέα Εργασία Συντήρησης"/>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
-            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Εργασία *</label><TextInput value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
-            <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'— Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
-            <div><label style={labelStyle}>Κάθε (μήνες)</label><NumberInput value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
-            <div><label style={labelStyle}>Τελευταία Εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>
-            <div style={{gridColumn:'1/-1'}}><label style={labelStyle}>Σημειώσεις</label><TextInput value={form.notes} onChange={v=>setForm(f=>({...f,notes:v}))} placeholder="Τεχνικός, παρατηρήσεις..."/></div>
-          </div>
-          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:12}}>
-            <button onClick={()=>setAdding(false)} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,cursor:'pointer'}}>Ακύρωση</button>
-            <button onClick={handleSave} disabled={saving} style={{padding:'0 20px',height:36,borderRadius:T.radius.pill,background:saving?'var(--bg-elevated)':'var(--accent)',border:'none',color:saving?'var(--text-tertiary)':'var(--accent-text)',fontSize:12,fontWeight:500,fontFamily:T.font.sans,cursor:saving?'wait':'pointer'}}>{saving?'Αποθήκευση...':'Αποθήκευση'}</button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -1512,12 +1774,36 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
     <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
     w.document.close()
   }
+  // Εικονογραφημένη έκθεση για ασφαλιστική — μία «κάρτα» ανά αντικείμενο με φωτογραφία & ασφαλιστέα αξία.
+  const insurableOf=(i:InventoryItem)=> i.replacement_cost>0?i.replacement_cost:Math.round(calcCurrentValue(i)*1.1)
+  const totalInsurable=items.reduce((s,i)=>s+insurableOf(i),0)
+  const exportInsurancePDF=()=>{
+    const w=window.open('','_blank');if(!w)return
+    const card=(i:InventoryItem)=>{const ph=i.photo_url||((i.photos||[]).filter(Boolean)[0]||'')
+      return `<div class="c">
+        <div class="ph">${ph?`<img src="${esc(ph)}"/>`:'<div class="noph">χωρίς φωτο</div>'}</div>
+        <div class="cb"><div class="nm">${esc(i.name)}</div>
+        <div class="mt">${esc([i.brand,i.model].filter(Boolean).join(' ')||i.category)}${i.room?` · ${esc(i.room)}`:''}</div>
+        ${i.serial_number?`<div class="sn">SN: ${esc(i.serial_number)}</div>`:''}
+        <div class="row"><span>Κατάσταση</span><span>${esc(i.condition)}</span></div>
+        <div class="row"><span>Αξία αγοράς</span><span>${esc(i.purchase_value?fmtEur(i.purchase_value):'—')}</span></div>
+        <div class="row val"><span>Ασφαλιστέα αξία</span><span>${esc(fmtEur(insurableOf(i)))}</span></div>
+        </div></div>`}
+    w.document.write(`<html><head><title>Έκθεση Ασφάλισης Περιεχομένου</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial;font-size:11px;color:#111;padding:30px}h1{font-size:22px;font-weight:400;margin-bottom:2px}.sub{color:#666;margin-bottom:20px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:24px}.kpi{flex:1;background:#f6f8fc;border:1px solid #e6ebf3;border-radius:10px;padding:14px}.kpi-v{font-size:19px;font-weight:700;font-family:'Roboto Mono',monospace}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-top:2px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.c{border:1px solid #e6e6e6;border-radius:10px;overflow:hidden;display:flex;page-break-inside:avoid}.ph{width:120px;flex-shrink:0;background:#f2f2f2}.ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}.noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:10px}.cb{padding:10px 12px;flex:1;min-width:0}.nm{font-size:13px;font-weight:600;margin-bottom:2px}.mt{font-size:10px;color:#888;margin-bottom:6px}.sn{font-size:9px;color:#999;font-family:monospace;margin-bottom:6px}.row{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-top:1px solid #f2f2f2}.row span:last-child{font-family:'Roboto Mono',monospace;font-weight:600}.row.val span{color:#1a73e8}.footer{margin-top:26px;padding-top:12px;border-top:1px solid #eee;font-size:9.5px;color:#999;line-height:1.6}@media print{button{display:none}}</style></head><body>
+    <h1>Έκθεση Ασφάλισης Περιεχομένου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα · φωτογραφική τεκμηρίωση</div>
+    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalInsurable))}</div><div class="kpi-l">Συνολική ασφαλιστέα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(fmtEur(totalCurrent))}</div><div class="kpi-l">Τρέχουσα αξία</div></div><div class="kpi"><div class="kpi-v">${esc(items.length)}</div><div class="kpi-l">Αντικείμενα</div></div></div>
+    <div class="grid">${items.map(card).join('')}</div>
+    <div class="footer">Η ασφαλιστέα αξία υπολογίζεται από το δηλωμένο κόστος αντικατάστασης ή, ελλείψει αυτού, από την τρέχουσα αξία +10%. Οι φωτογραφίες αποτελούν τεκμηρίωση του ιδιοκτήτη κατά την ημερομηνία έκδοσης. Property OS.</div>
+    <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
+    w.document.close()
+  }
   return (
     <div style={{display:'flex',flexDirection:'column',gap:20}}>
       <SectionLabel label="Εξαγωγές Δεδομένων"/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
+          {title:'Έκθεση Ασφάλισης',desc:'Εικονογραφημένη έκθεση με φωτογραφία & ασφαλιστέα αξία ανά αντικείμενο — έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
           {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία, ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
@@ -1541,7 +1827,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void}) {
+export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:any[]}) {
   const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
   const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
   // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.
@@ -1597,14 +1883,41 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   }
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
     if(data.original_price&&data.discount_pct&&!data.purchase_value){data.purchase_value=Math.round((data.original_price)*(1-data.discount_pct/100))}
-    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',updated_at:new Date().toISOString()}
-    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)}
+    const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
+    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)
+      // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
+      else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
     else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)alert('Σφάλμα: '+error.message)}
     setShowItemForm(false);setEditingItem(null);fetchData()
   }
-  const handleDelete=async(id:string)=>{const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};fetchData()}
+  // Καθαρισμός συνημμένων αποδείξεων (private bucket) ώστε να μη μένουν orphan αρχεία.
+  const cleanupDocs=async(its:InventoryItem[])=>{const paths=its.map(i=>i.receipt_doc_url).filter((p):p is string=>!!p&&!/^https?:\/\//.test(p));if(paths.length)await supabase.storage.from(DOCS_BUCKET).remove(paths)}
+  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};if(it)await cleanupDocs([it]);fetchData()}
   const handleAddRepair=async(data:Partial<InventoryRepair>)=>{if(!repairItem)return;await supabase.from('inventory_repairs').insert({...data,item_id:repairItem.id,user_id:userId});fetchData()}
   const handleUpdateCondition=async(id:string,condition:string)=>{await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id);setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
+  const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
+  const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
+  const [cloning,setCloning] = useState(false)
+  const otherProps = properties.filter(p=>p.id!==propertyId).map(p=>({id:p.id,label:p.address||p.nickname||p.name||'Ακίνητο'}))
+  const insertStarterPack = async() => {
+    setCloning(true)
+    const rows=STARTER_PACK.map(s=>({property_id:propertyId,user_id:String(userId),name:s.name,category:s.category,room:s.room,condition:'Καλή',brand:'',model:'',serial_number:'',notes:'',photo_url:'',photos:[],tags:[],purchase_value:0,provenance:'new'}))
+    const {error}=await supabase.from('inventory_items').insert(rows)
+    setCloning(false)
+    if(error){alert('Σφάλμα: '+error.message);return}
+    fetchData()
+  }
+  const cloneFromProperty = async(sourceId:string) => {
+    setCloning(true)
+    const {data}=await supabase.from('inventory_items').select('*').eq('property_id',sourceId)
+    if(!data||data.length===0){setCloning(false);alert('Το ακίνητο δεν έχει αντικείμενα προς αντιγραφή.');return}
+    const rows=data.map((i:any)=>{const {id,created_at,updated_at,property_id,...rest}=i;return {...rest,property_id:propertyId,user_id:String(userId)}})
+    const {error}=await supabase.from('inventory_items').insert(rows)
+    setCloning(false)
+    if(error){alert('Σφάλμα: '+error.message);return}
+    fetchData()
+  }
   const handleWarrantyReminder=async(item:InventoryItem)=>{
     if(!item.warranty_expiry){alert('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return}
     const {error}=await supabase.from('calendar_events').insert({property_id:propertyId,user_id:userId,title:`Εγγύηση: ${item.name}`,description:`Λήγει ${fmtDate(item.warranty_expiry)}`,event_date:item.warranty_expiry,category:'maintenance',status:'pending',priority:daysUntil(item.warranty_expiry)<=30?'high':'medium',source:'inventory'})
@@ -1617,10 +1930,11 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     items.map(item=>[item.name,item.category,item.room||'',item.brand||'',item.condition,csvDate(item.purchase_date),csvEur(item.purchase_value),csvEur(calcCurrentValue(item)),csvDate(item.warranty_expiry)])
   )
 
+  // «Παράδοση» δεν είναι πια tab — είναι υπο-σελίδα, προσβάσιμη από την καρτέλα ενοικιαστή (deep-link)
+  // και από το «Ιστορικό Παραδόσεων» στην Επισκόπηση.
   const TABS=[
     {key:'items',label:'Αντικείμενα'},
     {key:'care',label:'Εγγυήσεις & Φροντίδα'},
-    {key:'handover',label:'Παράδοση'},
     {key:'overview',label:'Επισκόπηση'},
   ] as const
 
@@ -1633,9 +1947,22 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const warrantyExpiringCount=items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}).length
   const badConditionCount=items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας').length
 
+  // Ο έλεγχος τιμής kWh ζει εκεί που έχει νόημα — στην ενότητα κατανάλωσης ρεύματος, όχι στο header.
+  const kwhControl=(
+    <div title="kWh = κιλοβατώρα· τιμή ρεύματος σε € ανά kWh, για τον υπολογισμό κόστους" style={{display:'inline-flex',alignItems:'center',height:30,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>
+      <span style={{padding:'0 8px',fontSize:9,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>€/kWh</span>
+      <input type="text" inputMode="decimal" value={kwInput}
+        onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
+        onFocus={e=>{if(kwInput==='0')setKwInput('');e.target.select()}}
+        onBlur={()=>{const n=parseFloat(kwInput);if(isNaN(n)||kwInput===''){setKwInput('0.22');setKwhPrice(0.22);saveKwh(0.22)}else{setKwInput(String(n));setKwhPrice(n);saveKwh(n)}}}
+        style={{width:52,background:'transparent',border:'none',outline:'none',padding:'0 8px',fontSize:12,color:'var(--text-primary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',textAlign:'right'}}
+      />
+    </div>
+  )
+
   return (
     <div style={{minWidth:0,width:'100%'}}>
-      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}}/>}
+      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}} propertyId={propertyId}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
@@ -1644,15 +1971,6 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         title="Έπιπλα / Εξοπλισμός"
         sub="Διαχείριση εξοπλισμού, αξίας, ρεύματος, εγγυήσεων και παράδοσης"
         right={<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <div title="kWh = κιλοβατώρα, μονάδα κατανάλωσης ρεύματος· τιμή σε € ανά kWh" style={{display:'flex',alignItems:'center',height:36,background:'transparent',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>
-            <span style={{padding:'0 10px',fontSize:10,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>kWh €</span>
-            <input type="text" inputMode="decimal" value={kwInput}
-              onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
-              onFocus={e=>{if(kwInput==='0')setKwInput('');e.target.select()}}
-              onBlur={()=>{const n=parseFloat(kwInput);if(isNaN(n)||kwInput===''){setKwInput('0.22');setKwhPrice(0.22);saveKwh(0.22)}else{setKwInput(String(n));setKwhPrice(n);saveKwh(n)}}}
-              style={{width:56,background:'transparent',border:'none',outline:'none',padding:'0 10px',fontSize:12,color:'var(--text-primary)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',textAlign:'right'}}
-            />
-          </div>
           <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
           <ExportButton onClick={exportInventoryCsv} disabled={items.length===0}/>
           <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
@@ -1661,14 +1979,27 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
       {!loading&&(items.length===0
         ? <div className="card" style={{textAlign:'center',padding:'clamp(40px,7vw,68px) 24px',marginTop:8}}>
+            {handoverSeed&&(
+              <div style={{display:'flex',alignItems:'center',gap:10,textAlign:'left',maxWidth:520,margin:'0 auto 24px',padding:'12px 16px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <p style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Για το πρωτόκολλο παράδοσης{handoverSeed.tenantName?<> του <strong style={{color:'var(--text-primary)'}}>{handoverSeed.tenantName}</strong></>:''} πρόσθεσε πρώτα τον εξοπλισμό του ακινήτου — μετά θα καταγράφεις την κατάστασή του σε κάθε παράδοση/παραλαβή.</p>
+              </div>
+            )}
             <div style={{width:64,height:64,borderRadius:20,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>
               <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
             </div>
-            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Ξεκίνησε την Απογραφή</p>
+            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την Απογραφή'}</p>
             <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό — αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
-            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:28}}>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
               <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>
               <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
+            </div>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',alignItems:'center',marginBottom:28}}>
+              <button onClick={insertStarterPack} disabled={cloning} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,cursor:cloning?'wait':'pointer'}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                {cloning?'Δημιουργία…':`Πρότυπο επιπλωμένου (${STARTER_PACK.length})`}
+              </button>
+              {otherProps.length>0&&<BulkPicker label="Αντιγραφή από ακίνητο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} options={otherProps.map(p=>p.label)} onPick={label=>{const p=otherProps.find(x=>x.label===label);if(p)cloneFromProperty(p.id)}}/>}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12,maxWidth:640,margin:'0 auto',textAlign:'left'}}>
               {[
@@ -1686,7 +2017,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               ))}
             </div>
           </div>
-        : (()=>{
+        : activeTab==='handover' ? null : (()=>{
             // 3 έξυπνα, συνδυασμένα KPI αντί για 6 — clean & minimal (Google λογική):
             // πλήθος · αξία · ό,τι χρειάζεται προσοχή (εγγυήσεις/κατάσταση/απόσβεση/συντήρηση).
             const attention = actionCount + overdueCount
@@ -1706,7 +2037,17 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           })()
       )}
 
-      {(loading || items.length > 0) && (<>
+      {!loading && items.length>0 && activeTab==='handover' && (
+        <div style={{marginTop:8}}>
+          <button onClick={()=>setActiveTab('overview')} style={{display:'inline-flex',alignItems:'center',gap:6,height:32,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,cursor:'pointer'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Πίσω στην Απογραφή
+          </button>
+          <HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>
+        </div>
+      )}
+
+      {(loading || items.length > 0) && activeTab!=='handover' && (<>
       <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
         {TABS.map(tab=>(
           <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
@@ -1725,10 +2066,9 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         ?<Spinner label="Φόρτωση…" />
         :(
           <>
-            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder}/>}
+            {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder} onBulkDelete={handleBulkDelete} onBulkRoom={handleBulkRoom} onBulkTag={handleBulkTag}/>}
             {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
-            {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>}
-            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
+            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
         )
       }
