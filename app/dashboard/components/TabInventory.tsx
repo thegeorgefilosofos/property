@@ -1528,7 +1528,6 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const totalValue=items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const warrantyExpiringCount=items.filter(i=>{const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}).length
   const badConditionCount=items.filter(i=>i.condition==='Κακή'||i.condition==='Εκτός Λειτουργίας').length
-  const nextMaintenanceDate=schedules.map(s=>s.next_due).filter(Boolean).sort()[0]||''
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
@@ -1583,30 +1582,24 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               ))}
             </div>
           </div>
-        : <>
-            {/* columns={7} → μικρότερο min-width ώστε και τα 6 KPI σε ΜΙΑ ζυγισμένη σειρά (responsive σε κινητό) */}
-            <KPIGrid columns={7} items={[
-              {label:'Αντικείμενα',value:fn(items.length)},
-              {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)}`:'μετά απόσβεση'},
-              {label:'Προς Αντικατάσταση',value:fn(replacementCount),tone:replacementCount>0?'warning':'neutral',sub:profileType==='professional'&&invSummary.replacementBudget>0?`~${fe(invSummary.replacementBudget,0)}`:undefined},
-              {label:'Εγγυήσεις',value:fn(warrantyExpiringCount),tone:warrantyExpiringCount>0?'warning':'neutral',sub:'σε 90 ημέρες'},
-              {label:'Κακή Κατάσταση',value:fn(badConditionCount),tone:badConditionCount>0?'negative':'neutral'},
-              {label:'Επόμ. Συντήρηση',value:nextMaintenanceDate?fd(nextMaintenanceDate):'—',tone:overdueCount>0?'negative':'neutral',sub:overdueCount>0?`${overdueCount} σε καθυστ.`:undefined},
-            ]}/>
-            {(()=>{
-              const parts:string[]=[]
-              if(actionCount>0) parts.push(`${fn(actionCount)} ${actionCount===1?'αντικείμενο χρειάζεται προσοχή':'αντικείμενα χρειάζονται προσοχή'}`)
-              if(warrantyExpiringCount>0) parts.push(`${fn(warrantyExpiringCount)} ${warrantyExpiringCount===1?'εγγύηση λήγει':'εγγυήσεις λήγουν'} σε 90 ημέρες`)
-              if(overdueCount>0) parts.push(`${fn(overdueCount)} ${overdueCount===1?'εργασία συντήρησης σε καθυστέρηση':'εργασίες συντήρησης σε καθυστέρηση'}`)
-              const tone = overdueCount>0||badConditionCount>0 ? 'warning' : 'info'
-              return (
-                <InfoBanner tone={tone}>
-                  {parts.length>0 && <><strong>{parts.join(' · ')}.</strong> </>}
-                  Οι αξίες, η απόσβεση και οι προτάσεις αντικατάστασης είναι <strong>εκτιμήσεις</strong> για την καθοδήγησή σου, όχι λογιστικά μεγέθη.
-                </InfoBanner>
-              )
-            })()}
-          </>
+        : (()=>{
+            // 3 έξυπνα, συνδυασμένα KPI αντί για 6 — clean & minimal (Google λογική):
+            // πλήθος · αξία · ό,τι χρειάζεται προσοχή (εγγυήσεις/κατάσταση/απόσβεση/συντήρηση).
+            const attention = actionCount + overdueCount
+            const bits:string[]=[]
+            if(warrantyExpiringCount>0) bits.push(`${warrantyExpiringCount} εγγυήσεις`)
+            if(badConditionCount>0) bits.push(`${badConditionCount} κακή κατάσταση`)
+            if(replacementCount>0) bits.push(`${replacementCount} αντικατάσταση`)
+            if(overdueCount>0) bits.push(`${overdueCount} συντήρηση`)
+            const cats = new Set(items.map(i=>i.category)).size
+            return (
+              <KPIGrid items={[
+                {label:'Αντικείμενα',value:fn(items.length),sub:`${cats} ${cats===1?'κατηγορία':'κατηγορίες'}`},
+                {label:'Συνολική Αξία',value:fe(totalValue,0),sub:invSummary.totalOriginal>0?`από ${fe(invSummary.totalOriginal,0)} αξία αγοράς`:'τρέχουσα μετά απόσβεση'},
+                {label:'Χρειάζονται Προσοχή',value:fn(attention),tone:overdueCount>0||badConditionCount>0?'negative':attention>0?'warning':'neutral',sub:attention>0?bits.slice(0,3).join(' · '):'όλα εντάξει'},
+              ]}/>
+            )
+          })()
       )}
 
       {(loading || items.length > 0) && (<>
