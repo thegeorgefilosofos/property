@@ -300,8 +300,8 @@ export default function RentComparables({
             {mode === 'rent' ? 'Νέο Συγκριτικό Ενοικίασης' : 'Νέο Συγκριτικό Πώλησης'}
           </div>
           <div style={g4}>
-            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="για παράδειγμα 2άρι Παγκράτι" />
-            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="για παράδειγμα Παγκράτι" />
+            <TextInput label="Τίτλος / Περιγραφή" value={form.title || ''} onChange={v => sf('title', v)} placeholder="π.χ. 2άρι Παγκράτι" />
+            <TextInput label="Περιοχή" value={form.area || ''} onChange={v => sf('area', v)} placeholder="π.χ. Παγκράτι" />
             <NumberInput label="Τετραγωνικά (τετραγωνικά μέτρα)" value={String(form.sqm || '')} onChange={v => sf('sqm', v)} suffix="τετραγωνικά μέτρα" step={5} />
             {mode === 'rent'
               ? <NumberInput label="Ενοίκιο €/μήνα" value={String(form.rent || '')} onChange={v => sf('rent', v)} suffix="€" step={50} />
@@ -311,7 +311,7 @@ export default function RentComparables({
             <CustomSelect label="Πηγή" value={form.source || 'spitogatos'} onChange={v => sf('source', v)} options={SOURCES} />
             <CustomSelect label="Κατάσταση Ακινήτου" value={form.condition || 'good'} onChange={v => sf('condition', v)} options={CONDITIONS} />
             {mode === 'rent'
-              ? <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="για παράδειγμα < 500μ" />
+              ? <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ" />
               : <NumberInput label="Ημέρες στην Αγορά" value={String(form.days_on_market || '')} onChange={v => sf('days_on_market', v)} suffix="ημέρες" step={5} />}
             <div>
               <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", display: 'block', marginBottom: 6 }}>{mode === 'rent' ? '€ ανά τετραγωνικό (αυτόματο)' : '€/τ.μ. (αυτόματο)'}</span>
@@ -324,7 +324,7 @@ export default function RentComparables({
           </div>
           {mode === 'sale' && (
             <div style={g4}>
-              <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="για παράδειγμα < 500μ" />
+              <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ" />
               <NumberInput label="Τιμή Πώλησης (προαιρετικό)" value={String(form.sold_price || '')} onChange={v => sf('sold_price', v)} suffix="€" step={5000} />
             </div>
           )}

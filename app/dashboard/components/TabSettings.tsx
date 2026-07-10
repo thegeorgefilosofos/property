@@ -701,9 +701,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   {sectionTitle('Στοιχεία Ακινήτου')}
                   <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
                     <div><label style={lbl}>Συμβολαιογραφική Αξία (€)</label>
-                      <input type="number" style={inp} value={contractVal} onChange={e=>setContractVal(e.target.value)} placeholder="για παράδειγμα 150000"/></div>
+                      <input type="number" style={inp} value={contractVal} onChange={e=>setContractVal(e.target.value)} placeholder="π.χ. 150000"/></div>
                     <div><label style={lbl}>Αντικειμενική Αξία (€)</label>
-                      <input type="number" style={inp} value={objVal} onChange={e=>setObjVal(e.target.value)} placeholder="για παράδειγμα 120000"/></div>
+                      <input type="number" style={inp} value={objVal} onChange={e=>setObjVal(e.target.value)} placeholder="π.χ. 120000"/></div>
                     {buyCalc && buyCalc.taxBase>=(parseFloat(objVal)||0) && parseFloat(objVal)>parseFloat(contractVal) && (
                       <div style={{ fontSize:11,color:'var(--warning)',background:'var(--warning-soft)',
                         border:'1px solid var(--warning-border)',borderRadius:8,padding:'8px 12px' }}>
@@ -799,7 +799,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                     <div><label style={lbl}>Τιμή Αγοράς (€)</label>
                       <input type="number" style={inp} value={origPrice} onChange={e=>setOrigPrice(e.target.value)}/></div>
                     <div><label style={lbl}>Έτος Αγοράς</label>
-                      <input type="number" style={inp} value={origYear} onChange={e=>setOrigYear(e.target.value)} placeholder="για παράδειγμα 2018"/></div>
+                      <input type="number" style={inp} value={origYear} onChange={e=>setOrigYear(e.target.value)} placeholder="π.χ. 2018"/></div>
                   </div>
                 </div>
                 <div style={cardGap}>
@@ -894,7 +894,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               <div>
                 <label style={lbl}>Ετήσια Μισθώματα {e2Year} (€)</label>
                 <input type="number" style={inp} value={e2Rent} onChange={e=>setE2Rent(e.target.value)}
-                  placeholder="για παράδειγμα 8400 (700€/μήνα × 12)"/>
+                  placeholder="π.χ. 8400 (700€/μήνα × 12)"/>
               </div>
               <div>
                 <label style={lbl}>Εκπιπτόμενες Δαπάνες (€)</label>

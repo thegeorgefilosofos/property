@@ -370,7 +370,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
       <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#94a3b8;margin-bottom:8px">Σημειώσεις &amp; Μεθοδολογία</div>
       <ul style="font-size:9.5px;color:#64748b;line-height:1.7;padding-left:16px">
         <li>Το «Μηνιαίο Κόστος» αθροίζει μόνο τους επαναλαμβανόμενους (πάγιους) λογαριασμούς· τα εφάπαξ ποσά εμφανίζονται στους αναλυτικούς πίνακες.</li>
-        <li>Η «Ετήσια Προβολή» είναι εκτίμηση (μηνιαίο × 12) και δεν συνυπολογίζει εποχικότητα (για παράδειγμα θέρμανση χειμώνα).</li>
+        <li>Η «Ετήσια Προβολή» είναι εκτίμηση (μηνιαίο × 12) και δεν συνυπολογίζει εποχικότητα (π.χ. θέρμανση χειμώνα).</li>
         <li>Τα ποσά καταχωρούνται από τον χρήστη και ενδέχεται να διαφέρουν από τα επίσημα παραστατικά των παρόχων.</li>
       </ul>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e8eaed">
