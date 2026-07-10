@@ -796,7 +796,7 @@ function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item:Invent
   )
 }
 
-function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional';kwhControl?:React.ReactNode}) {
+function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl,handovers=[],onOpenHandover}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;profileType?:'individual'|'professional';kwhControl?:React.ReactNode;handovers?:InventoryHandover[];onOpenHandover?:()=>void}) {
   const summary = portfolioSummary(items)
   const needReplacement = items.filter(i=>replacementSuggestion(i).suggested)
   const totalPurchase = items.reduce((s,i)=>s+(i.purchase_value||0),0)
@@ -980,6 +980,29 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={cardStyle}>
+        <SectionLabel label="Ιστορικό Παραδόσεων" right={onOpenHandover?<button onClick={onOpenHandover} style={{padding:'0 12px',height:30,borderRadius:T.radius.pill,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',color:'var(--accent)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'+ Νέο πρωτόκολλο'}</button>:undefined}/>
+        {handovers.length===0
+          ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή κατάστασης εξοπλισμού στην είσοδο & έξοδο του ενοικιαστή — απόδειξη για την εγγύηση. Δημιούργησε ένα πρωτόκολλο ή ξεκίνησέ το από την καρτέλα του ενοικιαστή.</p>
+          :<div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
+              const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
+              return (
+                <div key={h.id} onClick={onOpenHandover} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:onOpenHandover?'pointer':'default'}}>
+                  <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
+                  <div style={{minWidth:0,flex:1}}>
+                    <p style={{fontSize:12.5,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
+                    <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
+                  </div>
+                  {bad>0&&<Badge label={`${bad} προβλήματα`} color="var(--negative)"/>}
+                </div>
+              )
+            })}
+            {handovers.length>4&&<p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,textAlign:'center',marginTop:4}}>και {handovers.length-4} ακόμη</p>}
+          </div>
+        }
       </div>
     </div>
   )
@@ -1645,10 +1668,11 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     items.map(item=>[item.name,item.category,item.room||'',item.brand||'',item.condition,csvDate(item.purchase_date),csvEur(item.purchase_value),csvEur(calcCurrentValue(item)),csvDate(item.warranty_expiry)])
   )
 
+  // «Παράδοση» δεν είναι πια tab — είναι υπο-σελίδα, προσβάσιμη από την καρτέλα ενοικιαστή (deep-link)
+  // και από το «Ιστορικό Παραδόσεων» στην Επισκόπηση.
   const TABS=[
     {key:'items',label:'Αντικείμενα'},
     {key:'care',label:'Εγγυήσεις & Φροντίδα'},
-    {key:'handover',label:'Παράδοση'},
     {key:'overview',label:'Επισκόπηση'},
   ] as const
 
@@ -1724,7 +1748,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
               ))}
             </div>
           </div>
-        : (()=>{
+        : activeTab==='handover' ? null : (()=>{
             // 3 έξυπνα, συνδυασμένα KPI αντί για 6 — clean & minimal (Google λογική):
             // πλήθος · αξία · ό,τι χρειάζεται προσοχή (εγγυήσεις/κατάσταση/απόσβεση/συντήρηση).
             const attention = actionCount + overdueCount
@@ -1744,7 +1768,17 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           })()
       )}
 
-      {(loading || items.length > 0) && (<>
+      {!loading && items.length>0 && activeTab==='handover' && (
+        <div style={{marginTop:8}}>
+          <button onClick={()=>setActiveTab('overview')} style={{display:'inline-flex',alignItems:'center',gap:6,height:32,padding:'0 12px',marginBottom:16,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans,cursor:'pointer'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Πίσω στην Απογραφή
+          </button>
+          <HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>
+        </div>
+      )}
+
+      {(loading || items.length > 0) && activeTab!=='handover' && (<>
       <div style={{display:'flex',gap:2,borderBottom:'1px solid var(--border-subtle)',marginLeft:-24,marginRight:-24,paddingLeft:24,overflowX:'auto',marginTop:24,marginBottom:24}}>
         {TABS.map(tab=>(
           <button key={tab.key} onClick={()=>setActiveTab(tab.key)}
@@ -1765,8 +1799,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           <>
             {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder}/>}
             {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
-            {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>}
-            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType} kwhControl={kwhControl}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
+            {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType} kwhControl={kwhControl} handovers={handovers} onOpenHandover={()=>setActiveTab('handover')}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
         )
       }
