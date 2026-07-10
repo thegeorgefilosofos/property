@@ -25,7 +25,7 @@ interface ChecklistItem {
   assigned_contact_id: string | null; assigned_contact_name: string | null
   estimated_cost: number; actual_cost: number; status: Status
   template_id: string | null; sort_order: number; budget?: number
-  depends_on?: string | null
+  depends_on?: string | null; calendar_event_id?: string | null; expense_id?: string | null
   _subtasks?: SubTask[]; _comments?: Comment[]; _tags?: string[]
 }
 interface Contact { id: string; full_name: string; role: string; phone?: string | null; property_id?: string | null }
@@ -1397,6 +1397,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // Έξοδος από τη λειτουργία επιλογής: καθαρίζει και την τρέχουσα επιλογή.
   const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
 
+  // ── Κύκλωμα: εργασία με προθεσμία → event ημερολογίου (email υπενθύμιση)· με κόστος → εκκρεμής δαπάνη. ──
+  const calPriorityOf = (p: Priority) => (p === 'normal' ? 'medium' : p)
+  const taskTitleOf = (it: { description: string; assigned_contact_name?: string | null }) => (it.assigned_contact_name ? `${it.description} — ${it.assigned_contact_name}` : it.description)
+  const makeTaskCal = async (it: { description: string; assigned_contact_name?: string | null; due_date: string | null; priority: Priority; recurring: Recurring; estimated_cost: number }): Promise<string | null> => {
+    if (!it.due_date) return null
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: taskTitleOf(it), description: it.estimated_cost > 0 ? `Εκτιμώμενο κόστος ${it.estimated_cost} €` : '', category: 'maintenance', event_date: it.due_date, amount: it.estimated_cost || 0, priority: calPriorityOf(it.priority), status: 'pending', recurring: it.recurring !== 'none', source: 'checklist' }).select('id').single()
+    return (data as { id?: string } | null)?.id || null
+  }
+  const makeTaskExpense = async (it: { description: string; due_date: string | null; estimated_cost: number }): Promise<string | null> => {
+    if (!(it.estimated_cost > 0)) return null
+    const { data } = await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: it.description, amount: it.estimated_cost, category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance', date: it.due_date || new Date().toISOString().split('T')[0], paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single()
+    return (data as { id?: string } | null)?.id || null
+  }
+
   const saveItem = async (form: ReturnType<typeof mkEmpty>) => {
     const noteJson = serializeNote({ note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags })
     const payload = {
@@ -1408,24 +1422,45 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       estimated_cost: parseFloat(form.estimated_cost) || 0, actual_cost: parseFloat(form.actual_cost) || 0,
       budget: parseFloat(form.budget) || 0, status: form.status, depends_on: form.depends_on || null,
     }
-    if (editItem) { await supabase.from('checklist_items').update(payload).eq('id', editItem.id) }
-    else { await supabase.from('checklist_items').insert({ ...payload, completed: false }) }
+    if (editItem) {
+      await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
+      // Reconcile συνδεδεμένο event/δαπάνη.
+      if (editItem.calendar_event_id && payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost }).eq('id', editItem.calendar_event_id)
+      else if (!editItem.calendar_event_id && payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
+      if (editItem.expense_id) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
+      else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
+    } else {
+      const { data: ins } = await supabase.from('checklist_items').insert({ ...payload, completed: false }).select('id').single()
+      const newId = (ins as { id?: string } | null)?.id
+      if (newId) {
+        const calId = await makeTaskCal(payload)
+        const expId = await makeTaskExpense(payload)
+        if (calId || expId) await supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId)
+      }
+    }
     setShowAddModal(false); setEditItem(null); fetchAll()
-    showToast(editItem ? 'Η εργασία ενημερώθηκε' : 'Η εργασία προστέθηκε')
+    showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε — μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
   const toggleItem = async (item: ChecklistItem) => {
     const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
     await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
+    if (newStatus === 'done') {
+      // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται.
+      if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
+      if (item.calendar_event_id && item.recurring === 'none') await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
+    }
     if (newStatus === 'done' && item.recurring !== 'none' && item.due_date) {
       const newDue = nextDueDate(item.due_date, item.recurring)
-      await supabase.from('checklist_items').insert({
+      const { data: rec } = await supabase.from('checklist_items').insert({
         property_id: item.property_id, user_id: item.user_id,
         description: item.description, category: item.category, priority: item.priority,
         recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
         note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
         estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-      })
+      }).select('id').single()
+      const recId = (rec as { id?: string } | null)?.id
+      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
       showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
     }
     await fetchAll()
@@ -1437,8 +1472,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
 
   const deleteItem = async (id: string) => {
+    const it = items.find(i => i.id === id)
+    if (it?.calendar_event_id) await supabase.from('calendar_events').delete().eq('id', it.calendar_event_id)
+    if (it?.expense_id) await supabase.from('expenses').delete().eq('id', it.expense_id).eq('paid', false)
     await supabase.from('checklist_items').delete().eq('id', id)
-    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); showToast('Η εργασία διαγράφηκε')
+    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); showToast('Η εκκρεμότητα διαγράφηκε')
   }
 
   const addToCalendar = async (item: ChecklistItem) => {
@@ -1447,8 +1485,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const title = item.assigned_contact_name ? `${item.description} — ${item.assigned_contact_name}` : item.description
     // Το Ημερολόγιο δέχεται low|medium|high|critical — το checklist έχει και «normal».
     // Χαρτογράφηση normal → medium, αλλιώς το Ημερολόγιο κρασάρει σε άγνωστη προτεραιότητα.
+    // Ιδempotent: αν υπάρχει ήδη συνδεδεμένο event, μην δημιουργείς διπλότυπο.
+    if (item.calendar_event_id) { showToast('Ήδη στο ημερολόγιο'); return }
     const calPriority = item.priority === 'normal' ? 'medium' : item.priority
-    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'checklist' }).select('id').single()
+    const calId = (data as { id?: string } | null)?.id
+    if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id)
+    fetchAll()
     showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο — ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
