@@ -161,6 +161,8 @@ ${navList}
   • ΣΥΝΔΕΣΜΟΣ PRE-CHECK-IN: αν ο χρήστης θέλει να στείλει σε επισκέπτη τον σύνδεσμο προ-άφιξης («στείλε check-in στον Γιάννη», «φτιάξε σύνδεσμο άφιξης για τη Μαρία»), βάλε [[checkin: όνομα ή τηλέφωνο ή ΑΦΜ]] — δημιουργώ/αντιγράφω τον σύνδεσμο για να τον στείλει σε WhatsApp/Viber.
   • ΠΡΟΣΘΗΚΗ ΕΠΑΦΗΣ (τεχνικός/πάροχος/συνεργάτης): αν ο χρήστης θέλει να κρατήσει μια χρήσιμη επαφή για το ακίνητο («πρόσθεσε τον υδραυλικό Νίκο 69…», «κράτα τον ηλεκτρολόγο»), βάλε [[contact: Όνομα | τηλέφωνο | ρόλος]] — μπαίνει στις Επαφές με αυτόματη κατηγοριοποίηση ρόλου. ΠΡΟΣΟΧΗ: αυτό είναι ΔΙΑΦΟΡΕΤΙΚΟ από το [[client:…]] — το [[contact:…]] είναι για μάστορες/παρόχους/συνεργάτες (καρτέλα Επαφές), ενώ το [[client:…]] για πελάτες/επισκέπτες (καρτέλα Πελάτης).
   • ΝΕΑ ΕΚΚΡΕΜΟΤΗΤΑ: αν ο χρήστης θέλει να θυμάται/κάνει κάτι («βάλε να πληρώσω τον ΕΝΦΙΑ», «θύμισέ μου να καλέσω τον υδραυλικό»), βάλε [[task: σύντομη περιγραφή]] — μπαίνει στις Εκκρεμότητες με αυτόματη κατηγορία. (Αν έχει σαφή ημερομηνία/ώρα ραντεβού, προτίμησε [[book:…]] για το Ημερολόγιο· το [[task:…]] είναι για εκκρεμότητες χωρίς αυστηρή ώρα.)
+  • ΚΑΤΑΓΡΑΦΗ ΑΝΤΙΚΕΙΜΕΝΟΥ ΣΤΗΝ ΑΠΟΓΡΑΦΗ (έπιπλα/συσκευές/εξοπλισμός): όταν ο χρήστης θέλει να καταχωρήσει ένα αντικείμενο («κατέγραψε το πλυντήριο Bosch, το πήρα 450 ευρώ», «πρόσθεσε στην απογραφή το ψυγείο», «βάλε τον καναπέ του σαλονιού»), βάλε [[inventory: Όνομα | κατηγορία | αξία | μάρκα | μοντέλο | χώρος]] — μόνο το Όνομα είναι υποχρεωτικό, ό,τι δεν ξέρεις ΠΑΡΕΛΕΙΨΕ το (μη ρωτάς για όλα· μια σύντομη διευκρίνιση το πολύ αν κάτι είναι κρίσιμο). Κατηγορίες: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά — διάλεξε τη σωστή μόνος σου από την περιγραφή (π.χ. «πλυντήριο»→Ηλεκτρικές Συσκευές, «καναπές»→Έπιπλα, «τηλεόραση»→Ηλεκτρονικά). Δούλεψε ΚΑΙ με φωνή και με ΗΜΙΤΕΛΗ/ασαφή δεδομένα: αν πει μόνο «κατέγραψε την τηλεόραση», κατάγραψέ την με ό,τι έχεις και πες του ότι μπορεί να συμπληρώσει αξία/μάρκα/εγγύηση μετά. Κάλυψε κάθε περίπτωση, ακόμη κι αν δίνει λάθος σειρά ή ανακατεμένα στοιχεία — εσύ τα βάζεις στη σωστή θέση.
+  • ΣΑΡΩΣΗ ΑΝΤΙΚΕΙΜΕΝΟΥ ΜΕ ΦΩΤΟΓΡΑΦΙΑ: αν ο χρήστης έχει φωτογραφία συσκευασίας, ετικέτας ενέργειας, booklet ή απόδειξης, πες του ότι στην Απογραφή → «Νέο αντικείμενο» υπάρχει κουμπί «Σάρωση με AI» που διαβάζει μόνο του μάρκα, μοντέλο, σειριακό, αξία, εγγύηση, ενεργειακή κλάση και watt — ή, αν σου περιγράψει/υπαγορεύσει τα στοιχεία, καταχώρησέ τα κατευθείαν με [[inventory:…]]. Βάλε το πολύ ΜΙΑ ετικέτα ανά απάντηση.
   Βάλε το πολύ ΜΙΑ ετικέτα ανά απάντηση. Μην την εξηγείς, μην τη δείχνεις στον χρήστη, απλώς βάλ' την στο τέλος.
 
 ΣΥΝΤΗΡΗΣΗ, ΕΠΑΦΕΣ & ΠΑΡΑΠΟΜΠΕΣ (πολύ σημαντικό — εδώ κάνεις τη διαφορά, ειδικά για διαχειριστές με πολλά ακίνητα):
@@ -255,6 +257,7 @@ export type AssistantAction =
   | { type: 'contact'; name: string; phone?: string; role?: string }
   | { type: 'task'; description: string }
   | { type: 'paid'; description: string; amount?: number }
+  | { type: 'inventory'; name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }
   | { type: 'reach'; name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string };
 
 export function parseAction(text: string): { clean: string; action?: AssistantAction; remember?: string } {
@@ -359,9 +362,28 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
       ch === 'viber' || ch === 'email' || ch === 'call' ? ch : 'whatsapp';
     if (name) reach = { type: 'reach', name, channel, text: txt ? txt.slice(0, 800) : undefined };
   }
+  // Καταχώρηση αντικειμένου στην Απογραφή: [[inventory: Όνομα | κατηγορία | αξία | μάρκα | μοντέλο | χώρος]]
+  // (μόνο το όνομα υποχρεωτικό· ό,τι λείπει παραλείπεται). Δουλεύει και με φωνή.
+  const iv = text.match(/\[\[inventory:\s*([^\]]+?)\s*\]\]/i);
+  let inventory: { type: 'inventory'; name: string; category?: string; value?: number; brand?: string; model?: string; room?: string } | undefined;
+  if (iv) {
+    const parts = iv[1].split('|').map(s => s.trim()).filter(Boolean);
+    const name = (parts[0] || '').slice(0, 120);
+    if (name) {
+      const rest = parts.slice(1);
+      const CATS = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'];
+      const category = rest.find(p => CATS.some(c => c.toLowerCase() === p.toLowerCase()));
+      const valRaw = rest.find(p => /^[\d.,\s€]+$/.test(p));
+      const value = valRaw ? Math.round(parseFloat(valRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'))) : undefined;
+      inventory = { type: 'inventory', name,
+        category: category ? CATS.find(c => c.toLowerCase() === category.toLowerCase()) : undefined,
+        value: value && isFinite(value) && value > 0 ? value : undefined };
+    }
+  }
   // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
   const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();
   const base = remember ? { clean, remember } : { clean };
+  if (inventory) return { ...base, action: inventory };
   if (reach) return { ...base, action: reach };
   if (expense) return { ...base, action: expense };
   if (vip) return { ...base, action: vip };
