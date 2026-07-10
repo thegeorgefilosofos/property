@@ -62,7 +62,20 @@ interface TabInventoryProps { propertyId: string; userId: string; profileType?: 
 
 const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
 const CATEGORIES_DISPLAY = ['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά']
-const ROOM_PRESETS = ['Σαλόνι','Κουζίνα','Κύριο Υπνοδωμάτιο','Υπνοδωμάτιο 2','Υπνοδωμάτιο 3','Μπάνιο','WC','Χολ / Διάδρομος','Μπαλκόνι','Αποθήκη','Γκαράζ']
+const ROOM_PRESETS = [
+  // Κατοικία — χώροι ημέρας
+  'Σαλόνι','Καθιστικό','Κουζίνα','Τραπεζαρία',
+  // Υπνοδωμάτια & γραφείο
+  'Κύριο Υπνοδωμάτιο','Υπνοδωμάτιο 2','Υπνοδωμάτιο 3','Υπνοδωμάτιο 4','Παιδικό Δωμάτιο','Γραφείο',
+  // Υγρά σημεία
+  'Μπάνιο','Μπάνιο 2','WC',
+  // Κυκλοφορία & εξωτερικά
+  'Χολ / Διάδρομος','Μπαλκόνι','Βεράντα','Κήπος',
+  // Βοηθητικοί
+  'Αποθήκη','Πλυσταριό','Γκαράζ','Υπόγειο','Σοφίτα',
+  // Επαγγελματικός / άλλος χώρος
+  'Υποδοχή','Αίθουσα Συσκέψεων','Χώρος Εργασίας','Κατάστημα / Showroom','Κοινόχρηστος Χώρος',
+]
 // Πρότυπο επιπλωμένου διαμερίσματος — γρήγορο ξεκίνημα, μετά προσαρμόζεις.
 const STARTER_PACK:{name:string;category:string;room:string}[] = [
   {name:'Κρεβάτι διπλό',category:'Έπιπλα',room:'Κύριο Υπνοδωμάτιο'},
@@ -199,14 +212,16 @@ const chipHover = (e:React.MouseEvent<HTMLButtonElement>,active:boolean,on:boole
   e.currentTarget.style.color = on?'var(--text-primary)':'var(--text-secondary)'
 }
 
-// Custom checkbox για μαζική επιλογή.
+// Custom checkbox — Material/Google αισθητική: τετράγωνο με 2dp γωνίες, 2px border, καθαρό check.
 function SelectBox({checked,indeterminate,onChange,size=18}:{checked:boolean;indeterminate?:boolean;onChange:()=>void;size?:number}) {
   const on = checked||indeterminate
   return (
     <button onClick={e=>{e.stopPropagation();onChange()}} aria-pressed={checked} title={checked?'Αποεπιλογή':'Επιλογή'}
-      style={{width:size,height:size,borderRadius:6,border:`1.5px solid ${on?'var(--accent)':'var(--border-default)'}`,background:on?'var(--accent)':'var(--bg-surface)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'all 0.12s',padding:0}}>
-      {checked&&<svg width={size-6} height={size-6} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
-      {!checked&&indeterminate&&<div style={{width:size-8,height:2,background:'var(--accent-text)',borderRadius:1}}/>}
+      onMouseEnter={e=>{if(!on)e.currentTarget.style.background='var(--accent-soft)'}}
+      onMouseLeave={e=>{if(!on)e.currentTarget.style.background='transparent'}}
+      style={{width:size,height:size,borderRadius:2,border:`2px solid ${on?'var(--accent)':'var(--text-tertiary)'}`,background:on?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'background 0.12s, border-color 0.12s',padding:0}}>
+      {checked&&<svg width={size-4} height={size-4} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+      {!checked&&indeterminate&&<div style={{width:size-8,height:2.5,background:'var(--accent-text)',borderRadius:1}}/>}
     </button>
   )
 }
@@ -1934,7 +1949,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // και από το «Ιστορικό Παραδόσεων» στην Επισκόπηση.
   const TABS=[
     {key:'items',label:'Αντικείμενα'},
-    {key:'care',label:'Εγγυήσεις & Φροντίδα'},
+    {key:'care',label:'Εγγυήσεις - Συντήρηση'},
     {key:'overview',label:'Επισκόπηση'},
   ] as const
 

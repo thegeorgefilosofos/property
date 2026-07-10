@@ -25,7 +25,7 @@ interface ChecklistItem {
   assigned_contact_id: string | null; assigned_contact_name: string | null
   estimated_cost: number; actual_cost: number; status: Status
   template_id: string | null; sort_order: number; budget?: number
-  depends_on?: string | null
+  depends_on?: string | null; calendar_event_id?: string | null; expense_id?: string | null
   _subtasks?: SubTask[]; _comments?: Comment[]; _tags?: string[]
 }
 interface Contact { id: string; full_name: string; role: string; phone?: string | null; property_id?: string | null }
@@ -987,49 +987,36 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
         )}
       </div>
 
-      {hov && !selecting && (
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
-          {/* Ήσυχη ghost ενέργεια: προγραμματίζει την εργασία στο Ημερολόγιο με ένα κλικ
-              (ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή). */}
-          <button type="button" onClick={onAddToCalendar} title={item.assigned_contact_name ? 'Προγραμμάτισε στο Ημερολόγιο — ' + item.assigned_contact_name : 'Προγραμμάτισε στο Ημερολόγιο'}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid transparent', background: 'transparent', color: 'var(--info)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            Ημερολόγιο
-          </button>
-          <button type="button" onClick={onEdit}
-            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
-            Επεξεργασία
-          </button>
-          <button type="button" onClick={onDelete}
-            style={{ padding: '4px 10px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.1s', fontFamily: T.font.sans }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--negative-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--negative-soft)' }}>
-            Διαγραφή
-          </button>
-          <button ref={menuBtnRef} type="button" onClick={openMenu}
-            style={{ padding: '4px 9px', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: showMenu ? 'var(--bg-elevated)' : 'var(--bg-surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 17, lineHeight: 1, transition: 'all 0.1s' }}>
-            ···
-          </button>
-        </div>
+      {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
+      {!selecting && (
+        <button ref={menuBtnRef} type="button" onClick={openMenu} title="Ενέργειες" aria-label="Ενέργειες"
+          style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid ' + (showMenu ? 'var(--border-default)' : 'transparent'), background: showMenu ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', opacity: hov || showMenu ? 1 : 0, transition: 'opacity 0.15s, background 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          onMouseLeave={e => { if (!showMenu) e.currentTarget.style.background = 'transparent' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+        </button>
       )}
 
       {showMenu && (
-        <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 220, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
-          <div style={{ padding: '6px 10px 4px', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Ενέργειες</div>
+        <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 6, zIndex: 9999, minWidth: 230, boxShadow: '0 16px 48px rgba(0,0,0,0.3)' }}>
           {[
-            { label: 'Καταχώρηση Δαπάνης', sub: 'Άμεση καταχώρηση στα Δαπάνες', fn: () => { onAddToExpenses(); setShowMenu(false) } },
-            { label: 'Αντιγραφή εργασίας', sub: 'Δημιουργία αντιγράφου', fn: () => { onDuplicate(); setShowMenu(false) } },
+            { label: 'Επεξεργασία', sub: '', icon: 'M12 20h9 M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z', fn: () => { onEdit(); setShowMenu(false) } },
+            { label: 'Προγραμμάτισε υπενθύμιση', sub: item.due_date ? 'Στο ημερολόγιο + email' : 'Χρειάζεται προθεσμία', icon: 'M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18', fn: () => { onAddToCalendar(); setShowMenu(false) } },
+            { label: 'Καταχώρηση δαπάνης', sub: 'Στα Δαπάνες / προϋπολογισμό', icon: 'M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', fn: () => { onAddToExpenses(); setShowMenu(false) } },
+            { label: 'Υπενθύμιση σε WhatsApp', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`https://wa.me/?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
+            { label: 'Υπενθύμιση σε Viber', sub: 'Άνοιγμα με έτοιμο μήνυμα', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z', fn: () => { window.open(`viber://forward?text=${encodeURIComponent('Υπενθύμιση: ' + item.description + (item.due_date ? ` έως ${fmtDate(item.due_date)}` : ''))}`, '_blank'); setShowMenu(false) } },
+            { label: 'Αντιγραφή', sub: 'Δημιουργία αντιγράφου', icon: 'M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1', fn: () => { onDuplicate(); setShowMenu(false) } },
+            { label: 'Διαγραφή', sub: '', icon: 'M3 6h18 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6', danger: true, fn: () => { onDelete(); setShowMenu(false) } },
           ].map((a, i) => (
             <button key={i} type="button" onClick={a.fn}
-              style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+              style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = a.danger ? 'var(--negative-dim)' : 'var(--bg-surface)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={a.danger ? 'var(--negative)' : 'var(--text-tertiary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{a.icon.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: a.danger ? 'var(--negative)' : 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
+                {a.sub ? <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div> : null}
+              </div>
             </button>
           ))}
         </div>
@@ -1186,121 +1173,57 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
     subtasks: item._subtasks || [], tags: item._tags || [],
     comments: item._comments || [], depends_on: item.depends_on || '',
   } : mkEmpty())
-  const [activeTab, setActiveTab] = useState<'basic' | 'subtasks' | 'comments' | 'tags' | 'advanced'>('basic')
-  const subDone = form.subtasks.filter(s => s.done).length
-  const budgetN = parseFloat(form.budget) || 0; const actualN = parseFloat(form.actual_cost) || 0
-  const overBudget = budgetN > 0 && actualN > budgetN * 1.1
-
+  // Ένα καθαρό form — χωρίς tabs, χωρίς επαναλήψεις (Google λογική).
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 580, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px 28px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            <h3 style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εργασίας' : 'Νέα εργασία'}</h3>
-            <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-          </div>
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {[
-              { id: 'basic' as const, label: 'Βασικά' },
-              { id: 'subtasks' as const, label: `Υπο-εργασίες${form.subtasks.length > 0 ? ` (${subDone}/${form.subtasks.length})` : ''}` },
-              { id: 'comments' as const, label: `Σχόλια${form.comments.length > 0 ? ` (${form.comments.length})` : ''}` },
-              { id: 'tags' as const, label: 'Ετικέτες' },
-              { id: 'advanced' as const, label: 'Εξαρτήσεις' },
-            ].map(t => (
-              <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
-                style={{ padding: '9px 16px', border: 'none', background: 'none', fontSize: 13, fontWeight: activeTab === t.id ? 700 : 500, color: activeTab === t.id ? 'var(--accent)' : 'var(--text-secondary)', borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1, whiteSpace: 'nowrap', transition: 'color 0.15s', fontFamily: T.font.sans }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '22px 28px 16px', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 style={{ fontFamily: T.font.sans, fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}</h3>
+          <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
-        <div style={{ padding: '22px 28px', overflowY: 'auto', flex: 1 }}>
-          {activeTab === 'basic' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
-                <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(s => ({ value: s.value, label: s.label }))} /></div>
-                <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                <div><FL>Ημ. Έναρξης</FL><DatePicker value={form.start_date} onChange={v => setForm(f => ({ ...f, start_date: v }))} /></div>
-                <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
-              </div>
-              <div><FL>Ανάθεση σε Επαφή</FL>
-                <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
-                  <option value="">— Χωρίς ανάθεση —</option>
-                  {contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
-                <div><FL>Προϋπολογισμός (€)</FL><Inp value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="Ανώτατο" type="number" /></div>
-                <div><FL>Εκτιμώμενο (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="150" type="number" /></div>
-                <div><FL>Πραγματικό (€)</FL><Inp value={form.actual_cost} onChange={v => setForm(f => ({ ...f, actual_cost: v }))} placeholder="180" type="number" /></div>
-              </div>
-              {overBudget && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 12, color: 'var(--negative)' }}>Υπέρβαση budget κατά {Math.round((actualN / budgetN - 1) * 100)}%</div>}
-              <div><FL>Σημείωση</FL>
-                <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
-              </div>
-            </div>
-          )}
-          {activeTab === 'subtasks' && (
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Χώρισε την εργασία σε μικρότερα βήματα.</p>
-              {form.subtasks.length > 0 && (
-                <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                    <span>Πρόοδος</span><span style={{ fontWeight: 700, color: subDone === form.subtasks.length ? 'var(--positive)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{subDone}/{form.subtasks.length}</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: (form.subtasks.length > 0 ? subDone / form.subtasks.length * 100 : 0) + '%', background: 'var(--positive)', borderRadius: 2, transition: 'width 0.3s' }} />
-                  </div>
-                </div>
-              )}
-              <SubTaskEditor subtasks={form.subtasks} onChange={v => setForm(f => ({ ...f, subtasks: v }))} />
-            </div>
-          )}
-          {activeTab === 'comments' && (
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Ιστορικό ενεργειών και σημειώσεις συνεργασίας.</p>
-              <CommentsEditor comments={form.comments} onChange={v => setForm(f => ({ ...f, comments: v }))} />
-            </div>
-          )}
-          {activeTab === 'tags' && (
-            <div>
-              <FL>Ετικέτες</FL>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>Γρήγορη κατηγοριοποίηση και αναζήτηση.</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {ITEM_TAGS.map(t => (
-                  <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
-                    style={{ padding: '6px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 700 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-                    {''}{t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {activeTab === 'advanced' && (
-            <div>
-              <FL>Εξάρτηση από άλλη εργασία</FL>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>Η εργασία εμφανίζεται ως κλειδωμένη μέχρι να ολοκληρωθεί η επιλεγμένη.</p>
-              <select value={form.depends_on} onChange={e => setForm(f => ({ ...f, depends_on: e.target.value }))} style={{ ...iStyle, cursor: 'pointer' }}>
-                <option value="">— Χωρίς εξάρτηση —</option>
-                {allItems.filter(i => i.id !== item?.id).map(i => (
-                  <option key={i.id} value={i.id}>{getCat(i.category).label}: {i.description.slice(0, 50)}</option>
-                ))}
+        <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
+            <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
+            <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            <div><FL>Εκτιμώμενο κόστος (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="π.χ. 150" type="number" /></div>
+            <div><FL>Ανάθεση σε επαφή</FL>
+              <select value={form.assigned_contact_id} onChange={e => { const c = contacts.find(x => x.id === e.target.value); setForm(f => ({ ...f, assigned_contact_id: e.target.value, assigned_contact_name: c?.full_name || '' })) }} style={{ ...iStyle, cursor: 'pointer' }}>
+                <option value="">— Χωρίς ανάθεση —</option>
+                {contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
               </select>
             </div>
-          )}
+          </div>
+          <div>
+            <FL>Ετικέτες</FL>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {ITEM_TAGS.map(t => (
+                <button key={t} type="button" title={t === 'DIY' ? 'Do It Yourself, εργασία που κάνεις μόνος σου' : undefined} onClick={() => setForm(f => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t] }))}
+                  style={{ padding: '7px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (form.tags.includes(t) ? 'var(--accent)' : 'var(--border-subtle)'), background: form.tags.includes(t) ? 'var(--accent-soft)' : 'transparent', color: form.tags.includes(t) ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: form.tags.includes(t) ? 600 : 400, transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div><FL>Σημείωση</FL>
+            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: 0 }}>{form.due_date ? <>Με προθεσμία μπαίνει στο <strong style={{ color: 'var(--text-primary)' }}>ημερολόγιο</strong> (υπενθύμιση email){parseFloat(form.estimated_cost) > 0 ? <> και ως <strong style={{ color: 'var(--text-primary)' }}>εκκρεμής δαπάνη</strong> στον προϋπολογισμό</> : ''}.</> : 'Βάλε προθεσμία για αυτόματη υπενθύμιση στο ημερολόγιο.'}</p>
+          </div>
         </div>
         <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px 0', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
           <button type="button" onClick={() => form.description.trim() && onSave(form)}
             style={{ flex: 2, padding: '12px 0', borderRadius: T.radius.btn, border: 'none', background: form.description.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: form.description.trim() ? 'var(--accent-text)' : 'var(--text-tertiary)', fontWeight: 700, cursor: form.description.trim() ? 'pointer' : 'not-allowed', fontSize: 14, transition: 'all 0.15s', fontFamily: T.font.sans }}>
-            {item ? 'Αποθήκευση' : 'Προσθήκη εργασίας'}
+            {item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}
           </button>
         </div>
       </div>
@@ -1476,6 +1399,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // Έξοδος από τη λειτουργία επιλογής: καθαρίζει και την τρέχουσα επιλογή.
   const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
 
+  // ── Κύκλωμα: εργασία με προθεσμία → event ημερολογίου (email υπενθύμιση)· με κόστος → εκκρεμής δαπάνη. ──
+  const calPriorityOf = (p: Priority) => (p === 'normal' ? 'medium' : p)
+  const taskTitleOf = (it: { description: string; assigned_contact_name?: string | null }) => (it.assigned_contact_name ? `${it.description} — ${it.assigned_contact_name}` : it.description)
+  const makeTaskCal = async (it: { description: string; assigned_contact_name?: string | null; due_date: string | null; priority: Priority; recurring: Recurring; estimated_cost: number }): Promise<string | null> => {
+    if (!it.due_date) return null
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: taskTitleOf(it), description: it.estimated_cost > 0 ? `Εκτιμώμενο κόστος ${it.estimated_cost} €` : '', category: 'maintenance', event_date: it.due_date, amount: it.estimated_cost || 0, priority: calPriorityOf(it.priority), status: 'pending', recurring: it.recurring !== 'none', source: 'checklist' }).select('id').single()
+    return (data as { id?: string } | null)?.id || null
+  }
+  const makeTaskExpense = async (it: { description: string; due_date: string | null; estimated_cost: number }): Promise<string | null> => {
+    if (!(it.estimated_cost > 0)) return null
+    const { data } = await supabase.from('expenses').insert({ property_id: propertyId, user_id: userId, description: it.description, amount: it.estimated_cost, category: 'Συντήρηση & Επισκευές', expense_group: 'maintenance', date: it.due_date || new Date().toISOString().split('T')[0], paid_by: 'owner', paid: false, notes: 'Προγραμματισμένη εκκρεμότητα' }).select('id').single()
+    return (data as { id?: string } | null)?.id || null
+  }
+
   const saveItem = async (form: ReturnType<typeof mkEmpty>) => {
     const noteJson = serializeNote({ note: form.note, subtasks: form.subtasks, comments: form.comments, tags: form.tags })
     const payload = {
@@ -1487,24 +1424,45 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       estimated_cost: parseFloat(form.estimated_cost) || 0, actual_cost: parseFloat(form.actual_cost) || 0,
       budget: parseFloat(form.budget) || 0, status: form.status, depends_on: form.depends_on || null,
     }
-    if (editItem) { await supabase.from('checklist_items').update(payload).eq('id', editItem.id) }
-    else { await supabase.from('checklist_items').insert({ ...payload, completed: false }) }
+    if (editItem) {
+      await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
+      // Reconcile συνδεδεμένο event/δαπάνη.
+      if (editItem.calendar_event_id && payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost }).eq('id', editItem.calendar_event_id)
+      else if (!editItem.calendar_event_id && payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
+      if (editItem.expense_id) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
+      else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
+    } else {
+      const { data: ins } = await supabase.from('checklist_items').insert({ ...payload, completed: false }).select('id').single()
+      const newId = (ins as { id?: string } | null)?.id
+      if (newId) {
+        const calId = await makeTaskCal(payload)
+        const expId = await makeTaskExpense(payload)
+        if (calId || expId) await supabase.from('checklist_items').update({ calendar_event_id: calId, expense_id: expId }).eq('id', newId)
+      }
+    }
     setShowAddModal(false); setEditItem(null); fetchAll()
-    showToast(editItem ? 'Η εργασία ενημερώθηκε' : 'Η εργασία προστέθηκε')
+    showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε — μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
   const toggleItem = async (item: ChecklistItem) => {
     const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
     await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
+    if (newStatus === 'done') {
+      // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται.
+      if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
+      if (item.calendar_event_id && item.recurring === 'none') await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
+    }
     if (newStatus === 'done' && item.recurring !== 'none' && item.due_date) {
       const newDue = nextDueDate(item.due_date, item.recurring)
-      await supabase.from('checklist_items').insert({
+      const { data: rec } = await supabase.from('checklist_items').insert({
         property_id: item.property_id, user_id: item.user_id,
         description: item.description, category: item.category, priority: item.priority,
         recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
         note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
         estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-      })
+      }).select('id').single()
+      const recId = (rec as { id?: string } | null)?.id
+      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
       showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
     }
     await fetchAll()
@@ -1516,8 +1474,11 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   }
 
   const deleteItem = async (id: string) => {
+    const it = items.find(i => i.id === id)
+    if (it?.calendar_event_id) await supabase.from('calendar_events').delete().eq('id', it.calendar_event_id)
+    if (it?.expense_id) await supabase.from('expenses').delete().eq('id', it.expense_id).eq('paid', false)
     await supabase.from('checklist_items').delete().eq('id', id)
-    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); showToast('Η εργασία διαγράφηκε')
+    setDeleteId(null); setSelected(s => { const n = new Set(s); n.delete(id); return n }); fetchAll(); showToast('Η εκκρεμότητα διαγράφηκε')
   }
 
   const addToCalendar = async (item: ChecklistItem) => {
@@ -1526,8 +1487,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const title = item.assigned_contact_name ? `${item.description} — ${item.assigned_contact_name}` : item.description
     // Το Ημερολόγιο δέχεται low|medium|high|critical — το checklist έχει και «normal».
     // Χαρτογράφηση normal → medium, αλλιώς το Ημερολόγιο κρασάρει σε άγνωστη προτεραιότητα.
+    // Ιδempotent: αν υπάρχει ήδη συνδεδεμένο event, μην δημιουργείς διπλότυπο.
+    if (item.calendar_event_id) { showToast('Ήδη στο ημερολόγιο'); return }
     const calPriority = item.priority === 'normal' ? 'medium' : item.priority
-    await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'manual' })
+    const { data } = await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: item.due_date || new Date().toISOString().split('T')[0], category: 'maintenance', priority: calPriority, status: 'pending', recurring: item.recurring !== 'none', source: 'checklist' }).select('id').single()
+    const calId = (data as { id?: string } | null)?.id
+    if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id)
+    fetchAll()
     showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο — ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
@@ -1600,12 +1566,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
 
   // Ήρεμη σειρά KPI: οι αριθμοί μένουν --text-primary (neutral). Χρώμα κρατιέται
   // ΜΟΝΟ για ένα πραγματικά επείγον σήμα — τα εκπρόθεσμα, όταν υπάρχουν.
+  // 3 έξυπνα, συνδυασμένα KPI αντί για 5 — clean & minimal: εκκρεμείς · προσοχή · ολοκλήρωση.
+  const openCount = stats.total - stats.done
+  const attention = stats.overdue + stats.critical
   const kpiItems: KPIItem[] = [
-    { label: 'Σύνολο Εργασιών', value: fn(stats.total) },
-    { label: 'Ολοκληρωμένα', value: fn(stats.done), sub: `${stats.pct}% πρόοδος` },
-    { label: 'Εκπρόθεσμα', value: fn(stats.overdue), tone: stats.overdue > 0 ? 'negative' : 'neutral' },
-    { label: 'Κρίσιμα Εκκρεμή', value: fn(stats.critical) },
-    { label: 'Ποσοστό Ολοκλήρωσης', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral' },
+    { label: 'Εκκρεμείς', value: fn(openCount), sub: stats.inProgress > 0 ? `${stats.inProgress} σε εξέλιξη` : `από ${stats.total} συνολικά` },
+    { label: 'Χρειάζονται Προσοχή', value: fn(attention), tone: stats.overdue > 0 ? 'negative' : attention > 0 ? 'warning' : 'neutral', sub: stats.overdue > 0 ? `${stats.overdue} εκπρόθεσμες` : stats.critical > 0 ? `${stats.critical} κρίσιμες` : 'όλα εντάξει' },
+    { label: 'Ολοκλήρωση', value: `${stats.pct}%`, tone: stats.pct === 100 ? 'positive' : 'neutral', sub: `${stats.done}/${stats.total}` },
   ]
 
   return (
