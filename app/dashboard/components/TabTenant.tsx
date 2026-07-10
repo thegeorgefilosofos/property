@@ -2595,7 +2595,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               </div>
               <div style={{ display:'flex', gap:10 }}>
                 {formTab!=='services'&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)+1][1] as typeof formTab)}>Επόμενο ›</button>}
-                <button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση...':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
+                {/* Νέος ενοικιαστής: αποθήκευση μόνο στην τελευταία καρτέλα (αφού περάσει από όλα τα βήματα). Σε επεξεργασία, διαθέσιμη παντού. */}
+                {(editId||formTab==='services')&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση...':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>}
               </div>
             </div>
           </div>
