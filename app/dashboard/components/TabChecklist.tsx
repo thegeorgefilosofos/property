@@ -51,8 +51,8 @@ function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; o
 function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
 }
-// Σαφής, μη-διφορούμενη ένδειξη χρόνου: «ημ.» για ημέρες (ποτέ «μ» που μπερδεύεται με μήνες).
-function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σήμερα' : `${a} ημ.` }
+// Σαφής, μη-διφορούμενη ένδειξη χρόνου: ολογράφως «ημέρες» (ποτέ «μ» που μπερδεύεται με μήνες).
+function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σήμερα' : `${a} ${a === 1 ? 'ημέρα' : 'ημέρες'}` }
 
 // Premium, καθαρό φίλτρο-dropdown: portal (δεν κόβεται από overflow), σαφής επιλεγμένη
 // κατάσταση, ήρεμα χρώματα. Αντικαθιστά τα «φθηνά» native selects.
@@ -1144,7 +1144,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</div>
                     {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>πριν {relDays(due || 0)}</div>}
-                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>σε {due} ημ.</div>}
+                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>{due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}</div>}
                   </div>
                 </div>
               </div>
@@ -1736,20 +1736,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         title="Εκκρεμότητες"
         titleHint="Λίστα ελέγχου εργασιών ακινήτου"
         sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
-        right={
+        right={loading || items.length === 0 ? undefined : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Btn variant="ghost" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-            {items.length > 0 && <ExportMenu
+            <ExportMenu
               onExcel={() => exportChecklistExcel(items)}
               onPdf={() => exportChecklistPDF(items, branding)}
               onHandover={profileType === 'professional' ? () => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding) : undefined}
-            />}
+            />
             <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
           </div>
-        }
+        )}
       />}
 
-      <KPIGrid items={kpiItems} />
+      {items.length > 0 && <KPIGrid items={kpiItems} />}
 
       {/* Progress */}
       {stats.total > 0 && (
@@ -1772,7 +1772,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση task, ετικέτας, επαφής..." style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
@@ -1806,7 +1806,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           ))}
         </div>
         {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός</button>}
-      </div>
+      </div>}
 
       {/* Category pills */}
       {usedCats.length > 0 && (
@@ -1831,16 +1831,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {loading ? (
         <Spinner label="Φόρτωση…" />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="Δεν υπάρχουν εργασίες ακόμη"
-          hint="Ξεκίνα με ένα έτοιμο πρότυπο (περιλαμβάνεται και το ετήσιο ημερολόγιο ΑΑΔΕ) ή πρόσθεσε εργασία χειροκίνητα."
-          action={
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
-            </div>
-          }
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '56px 24px 40px', maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+            <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Καμία εκκρεμότητα ακόμη</h3>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Ξεκίνα από ένα έτοιμο πρότυπο — περιλαμβάνεται και το ετήσιο φορολογικό ημερολόγιο ΑΑΔΕ — ή πρόσθεσε τη δική σου.</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
+            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Δεν βρέθηκαν αποτελέσματα"
