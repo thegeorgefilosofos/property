@@ -234,6 +234,61 @@ function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChan
 function FL({ children }: { children: React.ReactNode }) {
   return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
 }
+// ─── Address Autocomplete ───────────────────────────────────────────────────
+// Πρόταση διευθύνσεων χωρίς κλειδί (OpenStreetMap Nominatim). Αν αποτύχει η
+// αναζήτηση, λειτουργεί ως απλό πεδίο κειμένου — καμία διακοπή στη ροή.
+function AddressAutocomplete({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const [sugg, setSugg] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  const tRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
+  useEffect(() => () => { if (tRef.current) clearTimeout(tRef.current) }, [])
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown); return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+  const query = (text: string) => {
+    if (tRef.current) clearTimeout(tRef.current)
+    if (text.trim().length < 4) { setSugg([]); setOpen(false); return }
+    tRef.current = setTimeout(async () => {
+      try {
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&accept-language=el&countrycodes=gr&q=' + encodeURIComponent(text), { headers: { 'Accept': 'application/json' } })
+        const data = await r.json()
+        const list = Array.isArray(data) ? data.map((d: { display_name?: string }) => d.display_name || '').filter(Boolean) : []
+        setSugg(list); setActive(-1); setOpen(list.length > 0)
+      } catch { setSugg([]); setOpen(false) }
+    }, 450)
+  }
+  const pick = (s: string) => { onChange(s); setOpen(false); setSugg([]) }
+  return (
+    <div ref={boxRef} style={{ position: 'relative' }}>
+      <input type="text" value={value} placeholder={placeholder}
+        onChange={e => { onChange(e.target.value); query(e.target.value) }}
+        onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; if (sugg.length) setOpen(true) }}
+        onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }}
+        onKeyDown={e => {
+          if (!open) return
+          if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, sugg.length - 1)) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(a - 1, 0)) }
+          else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(sugg[active]) }
+          else if (e.key === 'Escape') setOpen(false)
+        }}
+        style={iStyle} />
+      {open && sugg.length > 0 && (
+        <div role="listbox" style={{ position: 'absolute', top: 46, left: 0, right: 0, zIndex: 30, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, boxShadow: '0 12px 40px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
+          {sugg.map((s, i) => (
+            <button key={i} type="button" role="option" aria-selected={i === active}
+              onMouseDown={e => { e.preventDefault(); pick(s) }} onMouseEnter={() => setActive(i)}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 9, width: '100%', textAlign: 'left', padding: '10px 13px', border: 'none', borderBottom: i < sugg.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: i === active ? 'var(--accent-soft)' : 'transparent', color: 'var(--text-primary)', fontSize: 12.5, lineHeight: 1.45, cursor: 'pointer', fontFamily: T.font.sans }}>
+              <MapPin size={13} color="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }} />{s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 // Επικεφαλίδα ενότητας φόρμας — διακριτική, premium, με λεπτή γραμμή.
 function SecHead({ children }: { children: React.ReactNode }) {
   return (
@@ -526,10 +581,10 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
     </div>
   )
 }
-function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: () => void }) {
+function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: { contact: Contact; propertyId: string; userId: string; onClose: () => void; onSaved: (date: string) => void }) {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
   const [title, setTitle] = useState('Ραντεβού με ' + contact.full_name); const [date, setDate] = useState(tomorrow.toISOString().split('T')[0]); const [saving, setSaving] = useState(false)
-  const save = async () => { if (!title || !date) return; setSaving(true); await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: date, category: 'tenant', priority: 'medium', status: 'pending', recurring: false, source: 'manual' }); setSaving(false); onSaved(); onClose() }
+  const save = async () => { if (!title || !date) return; setSaving(true); await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title, event_date: date, category: 'tenant', priority: 'medium', status: 'pending', recurring: false, source: 'manual' }); setSaving(false); onSaved(date); onClose() }
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 20 }}>
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 32, width: '100%', maxWidth: 440, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
@@ -849,11 +904,14 @@ ${preferred.length > 0 ? `
 // indeterminate για το «κύριο» κουτί επιλογής όλων.
 function SelectBox({ checked, indeterminate, onToggle, size = 19 }: { checked: boolean; indeterminate?: boolean; onToggle?: () => void; size?: number }) {
   const on = checked || indeterminate
+  const [foc, setFoc] = useState(false)
+  const ring = on ? '0 1px 5px color-mix(in srgb, var(--accent) 40%, transparent)' : 'none'
   return (
     <span role="checkbox" aria-checked={indeterminate ? 'mixed' : checked} tabIndex={0}
       onClick={e => { e.stopPropagation(); onToggle?.() }}
       onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle?.() } }}
-      style={{ width: size, height: size, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--accent)' : 'var(--bg-elevated)', border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), color: 'var(--accent-text)', cursor: 'pointer', transition: 'background .15s, border-color .15s, box-shadow .15s', boxShadow: on ? '0 1px 5px color-mix(in srgb, var(--accent) 40%, transparent)' : 'none' }}>
+      onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
+      style={{ width: size, height: size, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--accent)' : 'var(--bg-elevated)', border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), color: 'var(--accent-text)', cursor: 'pointer', outline: 'none', transition: 'background .15s, border-color .15s, box-shadow .15s', boxShadow: foc ? '0 0 0 3px var(--accent-soft)' + (ring !== 'none' ? ', ' + ring : '') : ring }}>
       {indeterminate ? <Minus size={size - 7} strokeWidth={3.2} /> : checked ? <Check size={size - 7} strokeWidth={3.2} /> : null}
     </span>
   )
@@ -1479,6 +1537,21 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }
   const bulkEmail = () => { const emails = contacts.filter(c => selected.has(c.id) && c.email).map(c => c.email).join(','); if (emails) window.open('mailto:' + emails); else showToast('Καμία από τις επιλεγμένες δεν έχει email') }
   const bulkVcard = () => { const sel = contacts.filter(c => selected.has(c.id)); if (sel.length) downloadVcf(sel, 'epafes-epilogi.vcf') }
+  // Το ραντεβού που κλείνεται από το προφίλ γράφεται και στην ΙΔΙΑ την επαφή
+  // (πεδίο «επόμενο ραντεβού»), ώστε να ανάβει το badge/η παρακολούθηση ληξιπρόθεσμων.
+  const linkAppointmentToContact = async (c: Contact | null, date: string) => {
+    if (!c || !date) return
+    const extra = { ...EMPTY_EXTRA, ...(c._extra || {}), next_appointment: date }
+    try {
+      await supabase.from('contacts').update({ notes: serializeNotes(extra, c._freeNotes || '') }).eq('id', c.id)
+      // Υπενθύμιση ημερολογίου 1 ημέρα πριν (idempotent ανά επαφή).
+      const src = `contact:${c.id}:reminder`
+      await supabase.from('calendar_events').delete().eq('property_id', propertyId).eq('source', src)
+      const remind = new Date(date + 'T00:00:00'); remind.setDate(remind.getDate() - 1)
+      await supabase.from('calendar_events').insert({ property_id: propertyId, user_id: userId, title: `Υπενθύμιση ραντεβού: ${c.full_name}`, category: 'reminder', event_date: remind.toISOString().split('T')[0], priority: 'medium', status: 'pending', recurring: false, source: src })
+    } catch { /* best-effort */ }
+    fetchContacts()
+  }
 
   // ─── Enhanced CSV Export ───────────────────────────────────────────────────
 
@@ -1818,7 +1891,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                         <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
                         <div><FL>Ωράριο</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Δευτέρα–Παρασκευή 09:00–17:00" /></div>
                       </div>
-                      <div><FL>Διεύθυνση γραφείου</FL><Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Παράδειγμα: Σταδίου 15, Αθήνα" /></div>
+                      <div><FL>Διεύθυνση γραφείου</FL><AddressAutocomplete value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Πληκτρολόγησε και διάλεξε από τις προτάσεις…" /></div>
                     </div>
 
                     {/* ── Σχέση & αξιολόγηση ── */}
@@ -1929,7 +2002,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         onShowHistory={() => setHistoryContact(detail)}
         onShowQR={() => setQrContact(detail)} refreshKey={dossierRefresh} />}
       {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { showToast('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
-      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={() => showToast('Ραντεβού προστέθηκε')} />}
+      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); showToast('Ραντεβού προστέθηκε — καταχωρήθηκε και στην επαφή') }} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
       {qrContact && <QRCodeModal contact={qrContact} onClose={() => setQrContact(null)} />}
     </div>
