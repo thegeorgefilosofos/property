@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
@@ -50,6 +51,58 @@ function Inp({ value, onChange, placeholder, type = 'text' }: { value: string; o
 function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return <select value={value} onChange={e => onChange(e.target.value)} style={{ ...iStyle, cursor: 'pointer' }}>{options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
 }
+// Σαφής, μη-διφορούμενη ένδειξη χρόνου: ολογράφως «ημέρες» (ποτέ «μ» που μπερδεύεται με μήνες).
+function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σήμερα' : `${a} ${a === 1 ? 'ημέρα' : 'ημέρες'}` }
+
+// Premium, καθαρό φίλτρο-dropdown: portal (δεν κόβεται από overflow), σαφής επιλεγμένη
+// κατάσταση, ήρεμα χρώματα. Αντικαθιστά τα «φθηνά» native selects.
+function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; minWidth?: number }) {
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: minWidth })
+  const current = options.find(o => o.value === value) || options[0]
+  const active = value !== 'all'
+  const reposition = () => {
+    if (!btnRef.current) return
+    const r = btnRef.current.getBoundingClientRect()
+    const menuH = Math.min(options.length * 40 + 12, 320)
+    const openUp = r.bottom + menuH + 8 > window.innerHeight && r.top - menuH - 8 > 0
+    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width })
+  }
+  useEffect(() => {
+    if (!open) return
+    reposition()
+    const h = (e: MouseEvent) => { const t = e.target as Node; if (btnRef.current && !btnRef.current.contains(t) && menuRef.current && !menuRef.current.contains(t)) setOpen(false) }
+    const s = () => reposition()
+    document.addEventListener('mousedown', h); window.addEventListener('scroll', s, true); window.addEventListener('resize', s)
+    return () => { document.removeEventListener('mousedown', h); window.removeEventListener('scroll', s, true); window.removeEventListener('resize', s) }
+  }, [open])
+  return (
+    <>
+      <button ref={btnRef} type="button" onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px 9px 14px', minWidth, borderRadius: T.radius.pill, border: '1px solid ' + (open || active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'var(--bg-surface)', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: active ? 600 : 500, cursor: 'pointer', fontFamily: T.font.sans, transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{current.label}</span>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0, opacity: 0.7 }}><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      {open && createPortal(
+        <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, boxShadow: '0 12px 40px rgba(0,0,0,0.35)', padding: 6, zIndex: 2000 }}>
+          {options.map(o => {
+            const sel = o.value === value
+            return (
+              <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: sel ? 'var(--accent-soft)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-primary)', fontSize: 13, fontWeight: sel ? 600 : 400, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, transition: 'background 0.12s', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent' }}>
+                <span style={{ flex: 1 }}>{o.label}</span>
+                {sel && <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M20 6 9 17l-5-5"/></svg>}
+              </button>
+            )
+          })}
+        </div>, document.body)}
+    </>
+  )
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -81,7 +134,8 @@ const RECURRING_OPTIONS = [
   { value: 'quarterly', label: 'Τριμηνιαία' },
   { value: 'yearly',    label: 'Ετήσια' },
 ]
-const ITEM_TAGS = ['Επείγον','Εγγύηση','Εξωτερικός','DIY','Νόμος','Ασφάλεια','Προτεραιότητα','Αναβλήθηκε']
+// Μόνο χρήσιμες, λειτουργικές ετικέτες — όχι διπλότυπα της προτεραιότητας/κατάστασης.
+const ITEM_TAGS = ['Εγγύηση', 'Ασφάλεια', 'Εξωτερικός συνεργάτης', 'DIY']
 
 const AADE_CALENDAR = [
   { month: 1,  description: 'Υποβολή εντύπου Ε2, Μισθώματα περσινού έτους', category: 'legal', priority: 'critical' as Priority },
@@ -924,6 +978,15 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   const dependsOn = item.depends_on ? allItems.find(i => i.id === item.depends_on) : null
   const blocked = !!(dependsOn && dependsOn.status !== 'done')
 
+  // Διακριτικό «pop» μόνο στη μετάβαση εκκρεμές→ολοκληρωμένο μέσα στη ζωή της σειράς
+  // (όχι στο πρώτο mount ήδη-ολοκληρωμένων), ώστε να μη «χοροπηδάει» όλη η λίστα στο load.
+  const [pop, setPop] = useState(false)
+  const prevDone = useRef(done)
+  useEffect(() => {
+    if (done && !prevDone.current) { setPop(true); const t = setTimeout(() => setPop(false), 440); prevDone.current = done; return () => clearTimeout(t) }
+    prevDone.current = done
+  }, [done])
+
   useEffect(() => {
     if (!showMenu) return
     const h = (e: MouseEvent) => {
@@ -933,7 +996,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   }, [showMenu])
 
   const openMenu = () => {
-    if (menuBtnRef.current) { const r = menuBtnRef.current.getBoundingClientRect(); setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right }) }
+    if (menuBtnRef.current) {
+      const r = menuBtnRef.current.getBoundingClientRect()
+      const menuH = 372 // ύψος μενού· αναποδογύρισε προς τα πάνω αν δεν χωράει κάτω
+      const down = r.bottom + menuH + 8 < window.innerHeight
+      setMenuPos({ top: down ? r.bottom + 6 : Math.max(8, r.top - menuH - 6), right: window.innerWidth - r.right })
+    }
     setShowMenu(s => !s)
   }
 
@@ -958,11 +1026,11 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
       ) : (
         // Στρογγυλό toggle ολοκλήρωσης (Gmail/Linear pattern)
         <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
-          style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+          style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', animation: pop ? 'taskCheckPop 0.44s cubic-bezier(.34,1.56,.64,1)' : undefined }}
           onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.background = 'var(--positive-soft)' } }}
           onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
           {done && (
-            <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={pop ? { strokeDasharray: 16, animation: 'taskCheckDraw 0.32s ease 0.08s both' } : undefined}/></svg>
           )}
         </button>
       )}
@@ -971,12 +1039,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
           Δευτερεύοντα (ετικέτες, κόστος, υπο-εργασίες, σχόλια, επανάληψη) ζουν στην προβολή λεπτομερειών. */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
         <span title={'Προτεραιότητα: ' + getPri(item.priority).label} style={{ width: 7, height: 7, borderRadius: '50%', background: priDotColor(item.priority), flexShrink: 0 }} />
-        <span style={{ fontSize: 14, fontWeight: 500, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'opacity 0.3s ease, color 0.3s ease' }}>
           {item.description}
         </span>
         {item.due_date && (
           <span style={{ flexShrink: 0, fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
-            {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · ${Math.abs(due)}μ πριν` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · σε ${due}μ` : ''}
+            {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · πριν ${relDays(due)}` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · ${due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}` : ''}
           </span>
         )}
         {item.assigned_contact_name && (
@@ -1084,8 +1152,8 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</div>
-                    {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>{Math.abs(due || 0)}μ πριν</div>}
-                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>σε {due} ημ.</div>}
+                    {overdue && <div style={{ fontSize: 10, color: 'var(--negative)' }}>πριν {relDays(due || 0)}</div>}
+                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 10, color: 'var(--warning)' }}>{due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}</div>}
                   </div>
                 </div>
               </div>
@@ -1113,8 +1181,10 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
 }
 
 // ─── TemplateModal ────────────────────────────────────────────────────────────
-function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual' }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType }) {
-  const entries = Object.entries(TEMPLATES).filter(([key]) => profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key))
+function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual', smart = [] }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType; smart?: SmartSuggestion[] }) {
+  // Ό,τι εμφανίζεται στα «Προτεινόμενα για εσένα» δεν επαναλαμβάνεται στη γενική λίστα.
+  const smartKeys = new Set(smart.map(s => s.templateKey))
+  const entries = Object.entries(TEMPLATES).filter(([key]) => (profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key)) && !smartKeys.has(key))
   const year = new Date().getFullYear()
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
@@ -1128,30 +1198,81 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
             <button type="button" onClick={onClose} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
-        <div style={{ padding: '20px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, overflowY: 'auto' }}>
-          <button type="button" onClick={() => { onLoadAADE(); onClose() }}
-            title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων — φορολογικό ημερολόγιο"
-            style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-soft)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-accent)' }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+        <div style={{ padding: '18px 28px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {smart.length > 0 && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ημερολόγιο ΑΑΔΕ {year}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{AADE_CALENDAR.length} φορολογικές υποχρεώσεις · ετήσια</div>
-            </div>
-          </button>
-          {entries.map(([key, t]) => (
-            <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.label}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{t.items.length} tasks · {t.items.filter(i => i.estimated_cost).reduce((s, i) => s + (i.estimated_cost || 0), 0)}€ εκτιμ.</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {smart.map(s => {
+                  const t = (TEMPLATES as any)[s.templateKey]
+                  return (
+                    <button key={s.templateKey} type="button" onClick={() => { onSelect(s.templateKey); onClose() }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 16px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-surface)' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  )
+                })}
               </div>
+            </div>
+          )}
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Φορολογικό ημερολόγιο</div>
+            <button type="button" onClick={() => { onLoadAADE(); onClose() }}
+              title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων — φορολογικό ημερολόγιο"
+              style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ημερολόγιο ΑΑΔΕ {year}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{AADE_CALENDAR.length} φορολογικές υποχρεώσεις · ετήσια</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
             </button>
-          ))}
+          </div>
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
+              {entries.map(([key, t]) => {
+                const cost = t.items.filter(i => i.estimated_cost).reduce((s, i) => s + (i.estimated_cost || 0), 0)
+                const icons: Record<string, string> = {
+                  checkin: 'M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3',
+                  checkout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
+                  maintenance: 'M14.7 6.3a4 4 0 00-5.6 5.6l-6 6L5 20l6-6a4 4 0 005.6-5.6l-2.3 2.3-2-2z',
+                  legal: 'M12 3v18 M5 7h14 M5 7l-2.5 6a4 4 0 008 0z M19 7l2.5 6a4 4 0 01-8 0z',
+                  renovation: 'M3 21h18 M5 21V8l7-5 7 5v13 M10 21v-6h4v6',
+                  airbnb: 'M2 8h16a2 2 0 012 2v9 M2 4v15 M2 16h20 M6 8V6a2 2 0 012-2h3',
+                  purchase: 'M6 6h15l-1.6 9H7.6z M6 6 5 3H2 M9 20h.01 M17 20h.01',
+                }
+                const path = icons[key] || 'M4 6h16 M4 12h16 M4 18h10'
+                return (
+                  <button key={key} type="button" onClick={() => { onSelect(key); onClose() }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{cost > 0 ? ` · ~${cost}€` : ''}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1182,7 +1303,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
           <button type="button" onClick={onClose} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="για παράδειγμα Service καλοριφέρ" /></div>
+          <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="π.χ. Service καλοριφέρ" /></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
             <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
             <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
@@ -1426,11 +1547,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     }
     if (editItem) {
       await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
-      // Reconcile συνδεδεμένο event/δαπάνη.
-      if (editItem.calendar_event_id && payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost }).eq('id', editItem.calendar_event_id)
-      else if (!editItem.calendar_event_id && payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
-      if (editItem.expense_id) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
-      else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
+      // Reconcile συνδεδεμένο event: ενημέρωση / δημιουργία / διαγραφή αν αφαιρέθηκε η προθεσμία.
+      if (editItem.calendar_event_id) {
+        if (payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost, recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id)
+        else { await supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id); await supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id) }
+      } else if (payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
+      // Reconcile δαπάνη: ενημέρωση αν εκκρεμής / δημιουργία / διαγραφή αν μηδενίστηκε το κόστος.
+      if (editItem.expense_id) {
+        if (payload.estimated_cost > 0) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
+        else { await supabase.from('expenses').delete().eq('id', editItem.expense_id).eq('paid', false); await supabase.from('checklist_items').update({ expense_id: null }).eq('id', editItem.id) }
+      } else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
     } else {
       const { data: ins } = await supabase.from('checklist_items').insert({ ...payload, completed: false }).select('id').single()
       const newId = (ins as { id?: string } | null)?.id
@@ -1444,28 +1570,37 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε — μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
+  const togglingRef = useRef<Set<string>>(new Set())
   const toggleItem = async (item: ChecklistItem) => {
-    const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
-    await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
-    if (newStatus === 'done') {
-      // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται.
-      if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
-      if (item.calendar_event_id && item.recurring === 'none') await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
-    }
-    if (newStatus === 'done' && item.recurring !== 'none' && item.due_date) {
-      const newDue = nextDueDate(item.due_date, item.recurring)
-      const { data: rec } = await supabase.from('checklist_items').insert({
-        property_id: item.property_id, user_id: item.user_id,
-        description: item.description, category: item.category, priority: item.priority,
-        recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
-        estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-      }).select('id').single()
-      const recId = (rec as { id?: string } | null)?.id
-      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
-      showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
-    }
-    await fetchAll()
+    if (togglingRef.current.has(item.id)) return // guard: double-click δεν διπλασιάζει επαναλαμβανόμενες/κύκλωμα
+    togglingRef.current.add(item.id)
+    try {
+      const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
+      await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
+      if (newStatus === 'done') {
+        // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται (και για επαναλαμβανόμενες).
+        if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
+        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
+        if (item.recurring !== 'none' && item.due_date) {
+          const newDue = nextDueDate(item.due_date, item.recurring)
+          const { data: rec } = await supabase.from('checklist_items').insert({
+            property_id: item.property_id, user_id: item.user_id,
+            description: item.description, category: item.category, priority: item.priority,
+            recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
+            note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+            estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+          }).select('id').single()
+          const recId = (rec as { id?: string } | null)?.id
+          if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+          showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
+        }
+      } else {
+        // Επαναφορά (done → pending): η δαπάνη ξαναγίνεται εκκρεμής, το event ξανανοίγει.
+        if (item.expense_id) await supabase.from('expenses').update({ paid: false }).eq('id', item.expense_id)
+        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id)
+      }
+      await fetchAll()
+    } finally { togglingRef.current.delete(item.id) }
   }
 
   const duplicateItem = async (item: ChecklistItem) => {
@@ -1519,20 +1654,36 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const bulkComplete = async () => {
     const count = selected.size; if (!count) return
     const ids = [...selected]
+    const chosen = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.status !== 'done')
     await Promise.all(ids.map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id)))
-    // Επαναλαμβανόμενες: δημιούργησε την επόμενη εμφάνιση (ίδια λογική με τη μονή ολοκλήρωση),
-    // ώστε το bulk-complete να μη «χάνει» την επανάληψη.
-    const recurring = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.recurring !== 'none' && !!it.due_date && it.status !== 'done')
-    if (recurring.length) await Promise.all(recurring.map(item => supabase.from('checklist_items').insert({
-      property_id: item.property_id, user_id: item.user_id,
-      description: item.description, category: item.category, priority: item.priority,
-      recurring: item.recurring, due_date: nextDueDate(item.due_date!, item.recurring), status: 'pending', completed: false,
-      note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
-      estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-    })))
+    // Κύκλωμα: πλήρωσε τις εκκρεμείς δαπάνες και κλείσε τα events των ολοκληρωμένων.
+    const today = new Date().toISOString().split('T')[0]
+    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').update({ paid: true, date: today }).eq('id', it.expense_id!)))
+    await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').update({ status: 'paid' }).eq('id', it.calendar_event_id!)))
+    // Επαναλαμβανόμενες: επόμενη εμφάνιση + φρέσκο κύκλωμα (ίδια λογική με τη μονή ολοκλήρωση).
+    const recurring = chosen.filter(it => it.recurring !== 'none' && !!it.due_date)
+    for (const item of recurring) {
+      const newDue = nextDueDate(item.due_date!, item.recurring)
+      const { data: rec } = await supabase.from('checklist_items').insert({
+        property_id: item.property_id, user_id: item.user_id,
+        description: item.description, category: item.category, priority: item.priority,
+        recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
+        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+        estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+      }).select('id').single()
+      const recId = (rec as { id?: string } | null)?.id
+      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+    }
     setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
   }
-  const bulkDelete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id))); setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`) }
+  const bulkDelete = async () => {
+    const count = selected.size; if (!count) return
+    const chosen = [...selected].map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it)
+    await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').delete().eq('id', it.calendar_event_id!)))
+    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').delete().eq('id', it.expense_id!).eq('paid', false)))
+    await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id)))
+    setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`)
+  }
 
   const stats = useMemo(() => {
     const total = items.length; const done = items.filter(i => i.status === 'done').length
@@ -1561,6 +1712,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const grouped = useMemo(() => { const g: Record<string, ChecklistItem[]> = {}; filtered.forEach(item => { if (!g[item.category]) g[item.category] = []; g[item.category].push(item) }); return g }, [filtered])
   const boardCols = useMemo(() => ({ pending: filtered.filter(i => i.status === 'pending'), in_progress: filtered.filter(i => i.status === 'in_progress'), done: filtered.filter(i => i.status === 'done'), skipped: filtered.filter(i => i.status === 'skipped') }), [filtered])
   const usedCats = CATEGORIES.filter(c => items.some(i => i.category === c.id))
+  const completedCount = items.filter(i => i.status === 'done').length
   const hasFilters = filterStatus !== 'all' || filterCat !== 'all' || filterPri !== 'all' || !!search
   const clearFilters = () => { setFilterStatus('all'); setFilterCat('all'); setFilterPri('all'); setSearch('') }
 
@@ -1593,80 +1745,20 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         title="Εκκρεμότητες"
         titleHint="Λίστα ελέγχου εργασιών ακινήτου"
         sub={`${stats.total} εργασίες · ${stats.done} ολοκληρωμένα · ${stats.pct}% πρόοδος`}
-        right={
+        right={loading || items.length === 0 ? undefined : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Btn variant="ghost" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-            {items.length > 0 && <ExportMenu
+            <ExportMenu
               onExcel={() => exportChecklistExcel(items)}
               onPdf={() => exportChecklistPDF(items, branding)}
               onHandover={profileType === 'professional' ? () => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding) : undefined}
-            />}
-            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εργασία</Btn>
+            />
+            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
           </div>
-        }
+        )}
       />}
 
-      <KPIGrid items={kpiItems} />
-
-      {stats.overdue > 0 && (
-        <InfoBanner tone="negative">
-          <span style={{ fontWeight: 600, color: 'var(--negative)' }}>{stats.overdue} εκπρόθεσμες εργασίες</span>
-          {stats.critical > 0 && <span> · {stats.critical} κρίσιμα εκκρεμή</span>}
-          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ marginLeft: 10, padding: '3px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontSize: 11, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Εμφάνιση</button>
-        </InfoBanner>
-      )}
-
-      {stats.overdue === 0 && stats.critical > 0 && (
-        <InfoBanner tone="warning">
-          <span style={{ fontWeight: 600, color: 'var(--warning)' }}>{stats.critical} κρίσιμες εργασίες σε εκκρεμότητα</span> χρειάζονται προσοχή.
-        </InfoBanner>
-      )}
-
-      {smartSuggestions.length > 0 && (
-        <div style={{ marginBottom: 22, padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Έξυπνες Προτάσεις</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {smartSuggestions.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}</div>
-                </div>
-                <button type="button" onClick={() => loadTemplate(s.templateKey)} style={{ padding: '5px 12px', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Φόρτωσε</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Context ribbon, live cross-tab data */}
-      {(tenantInfo || loanPayment > 0 || enfiaPaid) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 20, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0, fontFamily: T.font.sans }}>Ζωντανά</div>
-          {tenantInfo && tenantInfo.full_name && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{tenantInfo.full_name}</span>
-              {tenantInfo.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{tenantInfo.phone}</span>}
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ενοικιαστής</span>
-            </div>
-          )}
-          {loanPayment > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Δόση δανείου:</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{loanPayment.toLocaleString('el-GR')} €/μήνα</span>
-            </div>
-          )}
-          {enfiaPaid && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--positive-soft)', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 12, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans }}>ΕΝΦΙΑ εξοφλημένο</span>
-            </div>
-          )}
-        </div>
-      )}
+      {items.length > 0 && <KPIGrid items={kpiItems} />}
 
       {/* Progress */}
       {stats.total > 0 && (
@@ -1689,32 +1781,29 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση task, ετικέτας, επαφής..." style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
         </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as FilterStatus)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι καταστάσεις</option>
-          {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          <option value="overdue">Ληγμένα</option>
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iStyle, minWidth: 165, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι κατηγορίες</option>
-          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
-        <select value={filterPri} onChange={e => setFilterPri(e.target.value)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι προτεραιότητες</option>
-          {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-        <button type="button" onClick={() => setHideCompleted(h => !h)}
-          style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'transparent', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
-          {hideCompleted ? 'Εμφάνιση ολοκληρωμένων' : 'Απόκρυψη ολοκληρωμένων'}
-        </button>
-        {viewMode === 'list' && (
+        <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172}
+          options={[{ value: 'all', label: 'Όλες οι καταστάσεις' }, ...STATUSES.map(s => ({ value: s.value, label: s.label })), { value: 'overdue', label: 'Ληξιπρόθεσμα' }]} />
+        <FilterSelect value={filterPri} onChange={setFilterPri} minWidth={178}
+          options={[{ value: 'all', label: 'Όλες οι προτεραιότητες' }, ...PRIORITIES.map(p => ({ value: p.value, label: p.label }))]} />
+        {completedCount > 0 && (
+          <button type="button" onClick={() => setHideCompleted(h => !h)}
+            title={hideCompleted ? 'Εμφάνιση ολοκληρωμένων εργασιών' : 'Απόκρυψη ολοκληρωμένων εργασιών'}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (hideCompleted ? 'var(--accent)' : 'var(--border-subtle)'), background: hideCompleted ? 'var(--accent-soft)' : 'var(--bg-surface)', color: hideCompleted ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            {hideCompleted
+              ? <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+              : <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+            Ολοκληρωμένα ({completedCount})
+          </button>
+        )}
+        {viewMode === 'list' && items.length > 3 && (
           <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
             title="Επιλογή εργασιών για μαζικές ενέργειες"
-            style={{ padding: '8px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'transparent', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
+            style={{ padding: '9px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'all 0.15s' }}>
             {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
           </button>
         )}
@@ -1726,7 +1815,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           ))}
         </div>
         {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'var(--negative-soft)', color: 'var(--negative)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός</button>}
-      </div>
+      </div>}
 
       {/* Category pills */}
       {usedCats.length > 0 && (
@@ -1738,7 +1827,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <button key={c.id} type="button" onClick={() => setFilterCat(filterCat === c.id ? 'all' : c.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === c.id ? 'var(--accent-soft)' : 'transparent', color: filterCat === c.id ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'all 0.15s' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
                 {c.label}
                 <span style={{ fontSize: 10, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
@@ -1751,16 +1840,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {loading ? (
         <Spinner label="Φόρτωση…" />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="Δεν υπάρχουν εργασίες ακόμη"
-          hint="Ξεκίνα με ένα έτοιμο πρότυπο (περιλαμβάνεται και το ετήσιο ημερολόγιο ΑΑΔΕ) ή πρόσθεσε εργασία χειροκίνητα."
-          action={
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εργασία</Btn>
-            </div>
-          }
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '56px 24px 40px', maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+            <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <h3 style={{ fontFamily: T.font.sans, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>Καμία εκκρεμότητα ακόμη</h3>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Ξεκίνα από ένα έτοιμο πρότυπο — περιλαμβάνεται και το ετήσιο φορολογικό ημερολόγιο ΑΑΔΕ — ή πρόσθεσε τη δική σου.</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
+            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Δεν βρέθηκαν αποτελέσματα"
@@ -1797,7 +1887,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             return (
               <div key={cat.id}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.dot, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {catPct}%{catEst > 0 ? ` · ${catEst.toLocaleString('el-GR')}€` : ''}</span>
@@ -1854,7 +1944,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} />}
+      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} smart={smartSuggestions} />}
       {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }} />}
       {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => showToast('Δαπάνη καταχωρήθηκε')} />}
 

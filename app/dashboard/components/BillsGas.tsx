@@ -150,7 +150,7 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
     tariffs: [
       { id: 'heron_fix',  name: 'ΗΡΩΝ Gas Σταθερό',     badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'indicative',
         kwh: 0.0460, fixed: 5.00, vat: 6, contract_months: 12,
-        desc: 'Σταθερό 12μηνο. Περιοδικές προσφορές (για παράδειγμα δώρο % μηνιαίας κατανάλωσης), δες τρέχουσα προωθητική ενέργεια.', sourceNote: 'Ενδεικτική, δες heron.gr' },
+        desc: 'Σταθερό 12μηνο. Περιοδικές προσφορές (π.χ. δώρο % μηνιαίας κατανάλωσης), δες τρέχουσα προωθητική ενέργεια.', sourceNote: 'Ενδεικτική, δες heron.gr' },
       { id: 'heron_var',  name: 'ΗΡΩΝ Gas Κυμαινόμενο', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
         kwh: 0.0440, fixed: 4.50, vat: 6,
         desc: 'Κυμαινόμενο χωρίς δέσμευση.', sourceNote: 'Ενδεικτική, δες heron.gr' },

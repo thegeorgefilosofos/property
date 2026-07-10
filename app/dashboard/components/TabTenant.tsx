@@ -623,7 +623,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           {useCustom&&(
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό Αναπροσαρμογής (%)</div>
-              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="για παράδειγμα 3.5" step="0.1"
+              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="π.χ. 3.5" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
             </div>
           )}
@@ -789,7 +789,7 @@ function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:str
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="για παράδειγμα Θετικό, αρνητικό..." style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="π.χ. Θετικό, αρνητικό..." style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
@@ -1600,7 +1600,7 @@ function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{ tenant
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} label="Ναι" labelOff="Όχι"/></div>
             </div>
             <div style={{ marginBottom:14 }}>
-              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="για παράδειγμα Φθορά πάγκου κουζίνας"/>
+              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="π.χ. Φθορά πάγκου κουζίνας"/>
             </div>
             <div style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} label="Ναι" labelOff="Όχι"/></div>
@@ -2364,8 +2364,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 </div>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <TextInput label="Τηλέφωνο Εργασίας" value={form.phone_work} onChange={v=>sf('phone_work',v)}/>
-                  <TextInput label="Εθνικότητα" value={form.nationality} onChange={v=>sf('nationality',v)} placeholder="για παράδειγμα Ελληνική"/>
-                  <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="για παράδειγμα Μηχανικός"/>
+                  <TextInput label="Εθνικότητα" value={form.nationality} onChange={v=>sf('nationality',v)} placeholder="π.χ. Ελληνική"/>
+                  <TextInput label="Επάγγελμα" value={form.profession} onChange={v=>sf('profession',v)} placeholder="π.χ. Μηχανικός"/>
                 </div>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <TextInput label="Εργοδότης" value={form.employer} onChange={v=>sf('employer',v)}/>
@@ -2457,8 +2457,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                 {form.all_inclusive&&(
                   <>
                     <div style={{ ...s.g3, marginBottom:16 }}>
-                      <TextInput label="Πάροχος Ρεύματος" value={form.electricity_provider} onChange={v=>sf('electricity_provider',v)} placeholder="για παράδειγμα ΔΕΗ, Heron"/>
-                      <TextInput label="Είδος Τιμολογίου" value={form.electricity_tariff} onChange={v=>sf('electricity_tariff',v)} placeholder="για παράδειγμα G1, Νυχτερινό"/>
+                      <TextInput label="Πάροχος Ρεύματος" value={form.electricity_provider} onChange={v=>sf('electricity_provider',v)} placeholder="π.χ. ΔΕΗ, Heron"/>
+                      <TextInput label="Είδος Τιμολογίου" value={form.electricity_tariff} onChange={v=>sf('electricity_tariff',v)} placeholder="π.χ. G1, Νυχτερινό"/>
                       <NumberInput label="Τιμή kWh" value={form.kwh_price} onChange={v=>sf('kwh_price',v)} suffix="€" step={0.001}/>
                     </div>
                     <div style={{ ...s.g3, marginBottom:16 }}>
@@ -2467,8 +2467,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <NumberInput label="Κόστος Internet / Μήνα" value={form.internet_cost} onChange={v=>sf('internet_cost',v)} suffix="€"/>
                     </div>
                     <div style={{ ...s.g2, marginBottom:16 }}>
-                      <TextInput label="Πάροχος Internet" value={form.internet_provider} onChange={v=>sf('internet_provider',v)} placeholder="για παράδειγμα Cosmote, Wind"/>
-                      <TextInput label="Πρόγραμμα Internet" value={form.internet_plan} onChange={v=>sf('internet_plan',v)} placeholder="για παράδειγμα 300Mbps Fiber"/>
+                      <TextInput label="Πάροχος Internet" value={form.internet_provider} onChange={v=>sf('internet_provider',v)} placeholder="π.χ. Cosmote, Wind"/>
+                      <TextInput label="Πρόγραμμα Internet" value={form.internet_plan} onChange={v=>sf('internet_plan',v)} placeholder="π.χ. 300Mbps Fiber"/>
                     </div>
                   </>
                 )}
@@ -2490,7 +2490,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <div style={{ ...s.g3, marginBottom:16 }}>
                     <NumberInput label="Απόδοση % / Έτος" value={form.deposit_invest_rate} onChange={v=>sf('deposit_invest_rate',v)} suffix="%" step={0.1} max={100}/>
                     <SelectField label="Τύπος Επένδυσης" value={form.deposit_invest_type} onChange={v=>sf('deposit_invest_type',v)} options={['Σταθερή Διάρκεια','Ελεύθερη','ETF','Δανεισμός P2P','Άλλο'].map(v=>({value:v,label:v}))} placeholder="Επιλογή..."/>
-                    <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="για παράδειγμα VWCE..."/>
+                    <TextInput label="Πού Επενδύεται" value={form.deposit_invest_term} onChange={v=>sf('deposit_invest_term',v)} placeholder="π.χ. VWCE..."/>
                   </div>
                 )}
                 <InvestmentCalc title="Αναλυτής Απόδοσης Εγγύησης" amount={form.deposit_amount?Math.max(0,parseFloat(form.deposit_amount)):null}/>
@@ -2580,11 +2580,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     <SelectField label="Τύπος Χώρου" value={form.parking_type} onChange={v=>sf('parking_type',v)} options={[{value:'outdoor',label:'Υπαίθριος'},{value:'indoor',label:'Κλειστός / Υπόγειος'},{value:'garage',label:'Γκαράζ'},{value:'street',label:'Δρόμος'}]} placeholder="Επιλογή..."/>
                     <div><div title="Υποδομή φόρτισης για ηλεκτρικό όχημα" style={{ ...labelStyle, marginBottom:8 }}>Υποδομή Φόρτισης Ηλεκτρικού Οχήματος</div><Toggle on={form.parking_has_electricity} onChange={v=>sf('parking_has_electricity',v)} label="Ναι" labelOff="Όχι"/></div>
                   </div>
-                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="για παράδειγμα Θέση Νο. 12, υπόγειο Β..."/>
+                  <Textarea label="Σημειώσεις Στάθμευσης" value={form.parking_notes} onChange={v=>sf('parking_notes',v)} placeholder="π.χ. Θέση Νο. 12, υπόγειο Β..."/>
                 </SvcSection>
 
                 <SvcSection title="Επιπλέον Παροχές" hint="Αποθήκη, κήπος, κοινόχρηστες παροχές και ό,τι άλλο προσφέρεις." open={svcUI.extra} onToggle={()=>setSvcUI(u=>({...u,extra:!u.extra}))}>
-                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="για παράδειγμα Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
+                  <Textarea label="Επιπλέον Παροχές" value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="π.χ. Αποθήκη, κήπος, κοινόχρηστο πλυντήριο..."/>
                 </SvcSection>
               </>
             )}

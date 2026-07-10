@@ -408,9 +408,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             <DatePicker label="Ημερομηνία Έναρξης" value={startDate} onChange={setStartDate}/>
             <div>
               <CustomSelect label="Τράπεζα" value={bankId} onChange={setBankId} options={BANK_OPTIONS} placeholder="— Επιλέξτε τράπεζα —"/>
-              {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="για παράδειγμα Παγκρήτια Τράπεζα"/></div>}
+              {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="π.χ. Παγκρήτια Τράπεζα"/></div>}
             </div>
-            <Textarea label="Σημειώσεις" value={notes} onChange={setNotes} placeholder="για παράδειγμα 3ος όροφος, άποψη, ανακαινισμένο..." rows={2}/>
+            <Textarea label="Σημειώσεις" value={notes} onChange={setNotes} placeholder="π.χ. 3ος όροφος, άποψη, ανακαινισμένο..." rows={2}/>
           </div>
         </div>
 
