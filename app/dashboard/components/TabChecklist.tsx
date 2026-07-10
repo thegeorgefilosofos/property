@@ -81,7 +81,8 @@ const RECURRING_OPTIONS = [
   { value: 'quarterly', label: 'Τριμηνιαία' },
   { value: 'yearly',    label: 'Ετήσια' },
 ]
-const ITEM_TAGS = ['Επείγον','Εγγύηση','Εξωτερικός','DIY','Νόμος','Ασφάλεια','Προτεραιότητα','Αναβλήθηκε']
+// Μόνο χρήσιμες, λειτουργικές ετικέτες — όχι διπλότυπα της προτεραιότητας/κατάστασης.
+const ITEM_TAGS = ['Εγγύηση', 'Ασφάλεια', 'Εξωτερικός συνεργάτης', 'DIY']
 
 const AADE_CALENDAR = [
   { month: 1,  description: 'Υποβολή εντύπου Ε2, Μισθώματα περσινού έτους', category: 'legal', priority: 'critical' as Priority },
@@ -933,7 +934,12 @@ function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCalendar, 
   }, [showMenu])
 
   const openMenu = () => {
-    if (menuBtnRef.current) { const r = menuBtnRef.current.getBoundingClientRect(); setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right }) }
+    if (menuBtnRef.current) {
+      const r = menuBtnRef.current.getBoundingClientRect()
+      const menuH = 372 // ύψος μενού· αναποδογύρισε προς τα πάνω αν δεν χωράει κάτω
+      const down = r.bottom + menuH + 8 < window.innerHeight
+      setMenuPos({ top: down ? r.bottom + 6 : Math.max(8, r.top - menuH - 6), right: window.innerWidth - r.right })
+    }
     setShowMenu(s => !s)
   }
 
@@ -1113,7 +1119,7 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
 }
 
 // ─── TemplateModal ────────────────────────────────────────────────────────────
-function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual' }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType }) {
+function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individual', smart = [] }: { onSelect: (key: string) => void; onLoadAADE: () => void; onClose: () => void; profileType?: ProfileType; smart?: SmartSuggestion[] }) {
   const entries = Object.entries(TEMPLATES).filter(([key]) => profileType === 'professional' || !PRO_ONLY_TEMPLATES.includes(key))
   const year = new Date().getFullYear()
   return (
@@ -1129,6 +1135,31 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
           </div>
         </div>
         <div style={{ padding: '18px 28px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {smart.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {smart.map(s => {
+                  const t = (TEMPLATES as any)[s.templateKey]
+                  return (
+                    <button key={s.templateKey} type="button" onClick={() => { onSelect(s.templateKey); onClose() }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 16px', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-surface)' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div>
             <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Φορολογικό ημερολόγιο</div>
             <button type="button" onClick={() => { onLoadAADE(); onClose() }}
@@ -1657,72 +1688,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
               onPdf={() => exportChecklistPDF(items, branding)}
               onHandover={profileType === 'professional' ? () => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding) : undefined}
             />}
-            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εργασία</Btn>
+            <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
           </div>
         }
       />}
 
       <KPIGrid items={kpiItems} />
-
-      {stats.overdue > 0 && (
-        <InfoBanner tone="negative">
-          <span style={{ fontWeight: 600, color: 'var(--negative)' }}>{stats.overdue} εκπρόθεσμες εργασίες</span>
-          {stats.critical > 0 && <span> · {stats.critical} κρίσιμα εκκρεμή</span>}
-          <button type="button" onClick={() => setFilterStatus('overdue')} style={{ marginLeft: 10, padding: '3px 12px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontSize: 11, cursor: 'pointer', fontWeight: 600, fontFamily: T.font.sans }}>Εμφάνιση</button>
-        </InfoBanner>
-      )}
-
-      {stats.overdue === 0 && stats.critical > 0 && (
-        <InfoBanner tone="warning">
-          <span style={{ fontWeight: 600, color: 'var(--warning)' }}>{stats.critical} κρίσιμες εργασίες σε εκκρεμότητα</span> χρειάζονται προσοχή.
-        </InfoBanner>
-      )}
-
-      {smartSuggestions.length > 0 && (
-        <div style={{ marginBottom: 22, padding: '14px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Έξυπνες Προτάσεις</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {smartSuggestions.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}</div>
-                </div>
-                <button type="button" onClick={() => loadTemplate(s.templateKey)} style={{ padding: '5px 12px', borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Φόρτωσε</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Context ribbon, live cross-tab data */}
-      {(tenantInfo || loanPayment > 0 || enfiaPaid) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 20, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0, fontFamily: T.font.sans }}>Ζωντανά</div>
-          {tenantInfo && tenantInfo.full_name && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{tenantInfo.full_name}</span>
-              {tenantInfo.phone && <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{tenantInfo.phone}</span>}
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ενοικιαστής</span>
-            </div>
-          )}
-          {loanPayment > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Δόση δανείου:</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{loanPayment.toLocaleString('el-GR')} €/μήνα</span>
-            </div>
-          )}
-          {enfiaPaid && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--positive-soft)', borderRadius: T.radius.pill, border: '1px solid var(--positive-border)' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 12, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans }}>ΕΝΦΙΑ εξοφλημένο</span>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Progress */}
       {stats.total > 0 && (
@@ -1754,10 +1725,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           <option value="all">Όλες οι καταστάσεις</option>
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           <option value="overdue">Ληγμένα</option>
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...iStyle, minWidth: 165, width: 'auto', cursor: 'pointer' }}>
-          <option value="all">Όλες οι κατηγορίες</option>
-          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <select value={filterPri} onChange={e => setFilterPri(e.target.value)} style={{ ...iStyle, minWidth: 160, width: 'auto', cursor: 'pointer' }}>
           <option value="all">Όλες οι προτεραιότητες</option>
@@ -1813,7 +1780,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           action={
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εργασία</Btn>
+              <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
             </div>
           }
         />
@@ -1910,7 +1877,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} />}
+      {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadAADE={loadAADECalendar} onClose={() => setShowTemplates(false)} profileType={profileType} smart={smartSuggestions} />}
       {showAddModal && <ItemModal item={editItem || undefined} contacts={contacts} allItems={items} onSave={saveItem} onClose={() => { setShowAddModal(false); setEditItem(null) }} />}
       {quickExpenseItem && <QuickExpenseModal item={quickExpenseItem} propertyId={propertyId} userId={userId} onClose={() => setQuickExpenseItem(null)} onSaved={() => showToast('Δαπάνη καταχωρήθηκε')} />}
 

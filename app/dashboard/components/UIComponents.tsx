@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
@@ -322,14 +323,37 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   const [month, setMonth] = useState(() => value ? new Date(value).getMonth() : new Date().getMonth());
   const [year, setYear] = useState(() => value ? new Date(value).getFullYear() : new Date().getFullYear());
   const ref = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  // Το ημερολόγιο ζωγραφίζεται μέσω portal στο body ώστε να μην «κόβεται» από modal
+  // ή scroll container (overflow) — σταθερές συντεταγμένες από το κουμπί ενεργοποίησης.
+  const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  const reposition = () => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const PANEL_H = 348, PANEL_W = 280;
+    const openUp = r.bottom + PANEL_H + 8 > window.innerHeight && r.top - PANEL_H - 8 > 0;
+    const left = Math.min(r.left, window.innerWidth - PANEL_W - 8);
+    setCoords({ top: openUp ? r.top - PANEL_H - 4 : r.bottom + 4, left: Math.max(8, left) });
+  };
 
   useEffect(() => {
+    if (!open) return;
+    reposition();
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current && !ref.current.contains(t) && popupRef.current && !popupRef.current.contains(t)) setOpen(false);
     };
+    const onScroll = () => reposition();
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open]);
 
   const fmtDisplay = (d: string) => {
     if (!d) return '';
@@ -373,15 +397,16 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
         </svg>
       </div>
-      {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          left: 0,
+      {open && createPortal(
+        <div ref={popupRef} style={{
+          position: 'fixed',
+          top: coords.top,
+          left: coords.left,
           background: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 8,
           padding: 16,
-          zIndex: 300,
+          zIndex: 2000,
           width: 280,
           boxShadow: 'var(--shadow-lg)',
         }}>
@@ -452,7 +477,8 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
               Σήμερα
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
