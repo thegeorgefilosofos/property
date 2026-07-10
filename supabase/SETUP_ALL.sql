@@ -487,6 +487,10 @@ create policy "own_rent_comparables" on public.rent_comparables for all
 alter table public.expenses        add column if not exists bill_id uuid references public.bills(id) on delete set null;
 alter table public.calendar_events add column if not exists bill_id uuid references public.bills(id) on delete set null;
 
+-- Σύνδεση δαπάνης με επαφή (επαγγελματία/προμηθευτή) για ακριβές ιστορικό πληρωμών.
+alter table public.expenses        add column if not exists contact_id uuid;
+create index if not exists idx_expenses_contact on public.expenses(contact_id);
+
 -- Διαμοιρασμός δαπανών & λογαριασμών: ποσοστό ιδιοκτήτη + σημείωση προσώπου
 -- (βλ. migration 20260709120000). Ίδιο μοντέλο σε expenses και bills.
 alter table public.expenses        add column if not exists share_percent numeric;
