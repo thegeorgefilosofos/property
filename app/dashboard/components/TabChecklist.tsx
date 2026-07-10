@@ -1452,11 +1452,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     }
     if (editItem) {
       await supabase.from('checklist_items').update(payload).eq('id', editItem.id)
-      // Reconcile συνδεδεμένο event/δαπάνη.
-      if (editItem.calendar_event_id && payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost }).eq('id', editItem.calendar_event_id)
-      else if (!editItem.calendar_event_id && payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
-      if (editItem.expense_id) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
-      else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
+      // Reconcile συνδεδεμένο event: ενημέρωση / δημιουργία / διαγραφή αν αφαιρέθηκε η προθεσμία.
+      if (editItem.calendar_event_id) {
+        if (payload.due_date) await supabase.from('calendar_events').update({ title: taskTitleOf(payload), event_date: payload.due_date, priority: calPriorityOf(payload.priority), amount: payload.estimated_cost, recurring: payload.recurring !== 'none' }).eq('id', editItem.calendar_event_id)
+        else { await supabase.from('calendar_events').delete().eq('id', editItem.calendar_event_id); await supabase.from('checklist_items').update({ calendar_event_id: null }).eq('id', editItem.id) }
+      } else if (payload.due_date) { const c = await makeTaskCal(payload); if (c) await supabase.from('checklist_items').update({ calendar_event_id: c }).eq('id', editItem.id) }
+      // Reconcile δαπάνη: ενημέρωση αν εκκρεμής / δημιουργία / διαγραφή αν μηδενίστηκε το κόστος.
+      if (editItem.expense_id) {
+        if (payload.estimated_cost > 0) await supabase.from('expenses').update({ amount: payload.estimated_cost, description: payload.description }).eq('id', editItem.expense_id).eq('paid', false)
+        else { await supabase.from('expenses').delete().eq('id', editItem.expense_id).eq('paid', false); await supabase.from('checklist_items').update({ expense_id: null }).eq('id', editItem.id) }
+      } else if (payload.estimated_cost > 0) { const e = await makeTaskExpense(payload); if (e) await supabase.from('checklist_items').update({ expense_id: e }).eq('id', editItem.id) }
     } else {
       const { data: ins } = await supabase.from('checklist_items').insert({ ...payload, completed: false }).select('id').single()
       const newId = (ins as { id?: string } | null)?.id
@@ -1470,28 +1475,37 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε — μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
+  const togglingRef = useRef<Set<string>>(new Set())
   const toggleItem = async (item: ChecklistItem) => {
-    const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
-    await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
-    if (newStatus === 'done') {
-      // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται.
-      if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
-      if (item.calendar_event_id && item.recurring === 'none') await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
-    }
-    if (newStatus === 'done' && item.recurring !== 'none' && item.due_date) {
-      const newDue = nextDueDate(item.due_date, item.recurring)
-      const { data: rec } = await supabase.from('checklist_items').insert({
-        property_id: item.property_id, user_id: item.user_id,
-        description: item.description, category: item.category, priority: item.priority,
-        recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
-        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
-        estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-      }).select('id').single()
-      const recId = (rec as { id?: string } | null)?.id
-      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
-      showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
-    }
-    await fetchAll()
+    if (togglingRef.current.has(item.id)) return // guard: double-click δεν διπλασιάζει επαναλαμβανόμενες/κύκλωμα
+    togglingRef.current.add(item.id)
+    try {
+      const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
+      await supabase.from('checklist_items').update({ status: newStatus, completed: newStatus === 'done', completed_at: newStatus === 'done' ? new Date().toISOString() : null }).eq('id', item.id)
+      if (newStatus === 'done') {
+        // Η εκκρεμής δαπάνη γίνεται πραγματοποιημένη· το event ολοκληρώνεται (και για επαναλαμβανόμενες).
+        if (item.expense_id) await supabase.from('expenses').update({ paid: true, date: new Date().toISOString().split('T')[0] }).eq('id', item.expense_id)
+        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'paid' }).eq('id', item.calendar_event_id)
+        if (item.recurring !== 'none' && item.due_date) {
+          const newDue = nextDueDate(item.due_date, item.recurring)
+          const { data: rec } = await supabase.from('checklist_items').insert({
+            property_id: item.property_id, user_id: item.user_id,
+            description: item.description, category: item.category, priority: item.priority,
+            recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
+            note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+            estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+          }).select('id').single()
+          const recId = (rec as { id?: string } | null)?.id
+          if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+          showToast(`Ολοκληρώθηκε, Επόμενο: ${fmtDate(newDue)}`)
+        }
+      } else {
+        // Επαναφορά (done → pending): η δαπάνη ξαναγίνεται εκκρεμής, το event ξανανοίγει.
+        if (item.expense_id) await supabase.from('expenses').update({ paid: false }).eq('id', item.expense_id)
+        if (item.calendar_event_id) await supabase.from('calendar_events').update({ status: 'pending' }).eq('id', item.calendar_event_id)
+      }
+      await fetchAll()
+    } finally { togglingRef.current.delete(item.id) }
   }
 
   const duplicateItem = async (item: ChecklistItem) => {
@@ -1545,20 +1559,36 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const bulkComplete = async () => {
     const count = selected.size; if (!count) return
     const ids = [...selected]
+    const chosen = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.status !== 'done')
     await Promise.all(ids.map(id => supabase.from('checklist_items').update({ status: 'done', completed: true, completed_at: new Date().toISOString() }).eq('id', id)))
-    // Επαναλαμβανόμενες: δημιούργησε την επόμενη εμφάνιση (ίδια λογική με τη μονή ολοκλήρωση),
-    // ώστε το bulk-complete να μη «χάνει» την επανάληψη.
-    const recurring = ids.map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it && it.recurring !== 'none' && !!it.due_date && it.status !== 'done')
-    if (recurring.length) await Promise.all(recurring.map(item => supabase.from('checklist_items').insert({
-      property_id: item.property_id, user_id: item.user_id,
-      description: item.description, category: item.category, priority: item.priority,
-      recurring: item.recurring, due_date: nextDueDate(item.due_date!, item.recurring), status: 'pending', completed: false,
-      note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
-      estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
-    })))
+    // Κύκλωμα: πλήρωσε τις εκκρεμείς δαπάνες και κλείσε τα events των ολοκληρωμένων.
+    const today = new Date().toISOString().split('T')[0]
+    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').update({ paid: true, date: today }).eq('id', it.expense_id!)))
+    await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').update({ status: 'paid' }).eq('id', it.calendar_event_id!)))
+    // Επαναλαμβανόμενες: επόμενη εμφάνιση + φρέσκο κύκλωμα (ίδια λογική με τη μονή ολοκλήρωση).
+    const recurring = chosen.filter(it => it.recurring !== 'none' && !!it.due_date)
+    for (const item of recurring) {
+      const newDue = nextDueDate(item.due_date!, item.recurring)
+      const { data: rec } = await supabase.from('checklist_items').insert({
+        property_id: item.property_id, user_id: item.user_id,
+        description: item.description, category: item.category, priority: item.priority,
+        recurring: item.recurring, due_date: newDue, status: 'pending', completed: false,
+        note: serializeNote({ note: '', subtasks: [], comments: [], tags: item._tags || [] }),
+        estimated_cost: item.estimated_cost, actual_cost: 0, template_id: item.template_id, sort_order: item.sort_order,
+      }).select('id').single()
+      const recId = (rec as { id?: string } | null)?.id
+      if (recId) { const c = await makeTaskCal({ ...item, due_date: newDue }); const e = await makeTaskExpense({ ...item, due_date: newDue }); if (c || e) await supabase.from('checklist_items').update({ calendar_event_id: c, expense_id: e }).eq('id', recId) }
+    }
     setSelected(new Set()); fetchAll(); showToast(`${count} εργασίες ολοκληρώθηκαν${recurring.length ? `, ${recurring.length} επαναπρογραμματίστηκαν` : ''}`)
   }
-  const bulkDelete = async () => { const count = selected.size; if (!count) return; await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id))); setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`) }
+  const bulkDelete = async () => {
+    const count = selected.size; if (!count) return
+    const chosen = [...selected].map(id => items.find(it => it.id === id)).filter((it): it is ChecklistItem => !!it)
+    await Promise.all(chosen.filter(it => it.calendar_event_id).map(it => supabase.from('calendar_events').delete().eq('id', it.calendar_event_id!)))
+    await Promise.all(chosen.filter(it => it.expense_id).map(it => supabase.from('expenses').delete().eq('id', it.expense_id!).eq('paid', false)))
+    await Promise.all([...selected].map(id => supabase.from('checklist_items').delete().eq('id', id)))
+    setSelected(new Set()); setBulkDeleteConfirm(false); fetchAll(); showToast(`${count} εργασίες διαγράφηκαν`)
+  }
 
   const stats = useMemo(() => {
     const total = items.length; const done = items.filter(i => i.status === 'done').length
