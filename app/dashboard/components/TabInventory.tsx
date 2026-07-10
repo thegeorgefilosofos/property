@@ -560,7 +560,7 @@ const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οι�
 {"name":"","brand":"","model":"","serial_number":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"π.χ. A+++ ή κενό","power_watts":"αριθμός W ή κενό","store":"","purchase_date":"YYYY-MM-DD ή κενό"}
 Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
 
-function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void}) {
+function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string}) {
   const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[],tags:item.tags||[]}:{...EMPTY_ITEM})
   const [saving,setSaving] = useState(false)
   const [scanning,setScanning] = useState(false)
@@ -586,13 +586,16 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
     set('tags',tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag])
   }
   const [docUp,setDocUp] = useState(false)
-  // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket· αποθηκεύουμε το PATH (όχι public URL) και ανοίγουμε με signed URL.
+  // Οι αποδείξεις πάνε σε ΙΔΙΩΤΙΚΟ bucket, με path ανά ακίνητο· αποθηκεύουμε το PATH και ανοίγουμε με signed URL.
   const uploadReceiptDoc = async(file:File) => {
     setDocUp(true)
-    const path=`receipts/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const path=`receipts/${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
     const {error}=await supabase.storage.from(DOCS_BUCKET).upload(path,file,{upsert:true})
     if(error){alert('Σφάλμα upload: '+error.message);setDocUp(false);return}
+    const prev=form.receipt_doc_url
     setForm(f=>({...f,receipt_doc_url:path,receipt_doc_name:file.name}))
+    // Καθάρισε τυχόν προηγούμενο ΑΝΕΒΑΣΜΑ αυτής της συνεδρίας (όχι το αρχικά αποθηκευμένο).
+    if(prev&&prev!==item?.receipt_doc_url&&!/^https?:\/\//.test(prev)) await supabase.storage.from(DOCS_BUCKET).remove([prev])
     setDocUp(false)
   }
   // AI σάρωση φωτογραφίας (συσκευασία/ετικέτα/booklet/απόδειξη) → προσυμπλήρωση πεδίων.
@@ -745,7 +748,7 @@ function ItemFormModal({item,onSave,onClose}:{item?:InventoryItem|null;onSave:(d
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                     <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
                     <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
-                    <button onClick={()=>setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}))} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f=>({...f,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>
                 :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:12.5,fontFamily:T.font.sans}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
@@ -1881,14 +1884,18 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const handleSaveItem=async(data:Partial<InventoryItem>)=>{
     if(data.original_price&&data.discount_pct&&!data.purchase_value){data.purchase_value=Math.round((data.original_price)*(1-data.discount_pct/100))}
     const payload={name:data.name||'',category:data.category||'Λοιπά',room:data.room||'',brand:data.brand||'',model:data.model||'',serial_number:data.serial_number||'',condition:data.condition||'Καλή',notes:data.notes||'',photo_url:data.photo_url||'',photos:data.photos||[],tags:data.tags||[],purchase_value:data.purchase_value||0,purchase_date:data.purchase_date||null,warranty_expiry:data.warranty_expiry||null,energy_class:data.energy_class||'',power_watts:data.power_watts||0,daily_hours_use:data.daily_hours_use||0,standby_watts:data.standby_watts||0,replacement_cost:data.replacement_cost||0,smart_device:data.smart_device||false,smart_notes:data.smart_notes||'',provenance:data.provenance||'new',original_price:data.original_price||0,discount_pct:data.discount_pct||0,store_vendor:data.store_vendor||'',receipt_number:data.receipt_number||'',receipt_doc_url:data.receipt_doc_url||null,receipt_doc_name:data.receipt_doc_name||null,updated_at:new Date().toISOString()}
-    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)}
+    if(editingItem){const {error}=await supabase.from('inventory_items').update(payload).eq('id',editingItem.id);if(error)alert('Σφάλμα: '+error.message)
+      // Καθάρισε την ΠΑΛΙΑ απόδειξη αν αντικαταστάθηκε/αφαιρέθηκε (αποφυγή orphan στο storage).
+      else{const oldDoc=editingItem.receipt_doc_url;if(oldDoc&&oldDoc!==payload.receipt_doc_url&&!/^https?:\/\//.test(oldDoc))await supabase.storage.from(DOCS_BUCKET).remove([oldDoc])}}
     else{const {error}=await supabase.from('inventory_items').insert({...payload,property_id:propertyId,user_id:String(userId)});if(error)alert('Σφάλμα: '+error.message)}
     setShowItemForm(false);setEditingItem(null);fetchData()
   }
-  const handleDelete=async(id:string)=>{const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};fetchData()}
+  // Καθαρισμός συνημμένων αποδείξεων (private bucket) ώστε να μη μένουν orphan αρχεία.
+  const cleanupDocs=async(its:InventoryItem[])=>{const paths=its.map(i=>i.receipt_doc_url).filter((p):p is string=>!!p&&!/^https?:\/\//.test(p));if(paths.length)await supabase.storage.from(DOCS_BUCKET).remove(paths)}
+  const handleDelete=async(id:string)=>{const it=items.find(i=>i.id===id);const {error}=await supabase.from('inventory_items').delete().eq('id',id);if(error){alert('Σφάλμα: '+error.message);return};if(it)await cleanupDocs([it]);fetchData()}
   const handleAddRepair=async(data:Partial<InventoryRepair>)=>{if(!repairItem)return;await supabase.from('inventory_repairs').insert({...data,item_id:repairItem.id,user_id:userId});fetchData()}
   const handleUpdateCondition=async(id:string,condition:string)=>{await supabase.from('inventory_items').update({condition,updated_at:new Date().toISOString()}).eq('id',id);setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))}
-  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}fetchData()}
+  const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await supabase.from('inventory_items').delete().in('id',ids);if(error){alert('Σφάλμα: '+error.message);return}await cleanupDocs(its);fetchData()}
   const handleBulkRoom=async(ids:string[],room:string)=>{if(!ids.length)return;await supabase.from('inventory_items').update({room,updated_at:new Date().toISOString()}).in('id',ids);fetchData()}
   const handleBulkTag=async(ids:string[],tag:string)=>{if(!ids.length)return;const sel=items.filter(i=>ids.includes(i.id));await Promise.all(sel.map(i=>{const tags=Array.from(new Set([...(i.tags||[]),tag]));return supabase.from('inventory_items').update({tags,updated_at:new Date().toISOString()}).eq('id',i.id)}));fetchData()}
   const [cloning,setCloning] = useState(false)
@@ -1955,7 +1962,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
-      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}}/>}
+      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}} propertyId={propertyId}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
