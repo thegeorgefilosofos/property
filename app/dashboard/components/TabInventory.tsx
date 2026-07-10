@@ -44,6 +44,7 @@ interface MaintenanceSchedule {
   item_name: string; task: string; interval_months: number
   last_done: string; next_due: string; notes: string
 }
+export interface HandoverIntent { tenantName?: string; tenantPhone?: string; type?: 'check_in'|'check_out' }
 interface TabInventoryProps { propertyId: string; userId: string; profileType?: 'individual'|'professional' }
 
 const CATEGORIES = ['Επιπλα','Ηλεκτρικες Συσκευες','Ηλεκτρονικα','Υδραυλικα','Θερμανση & Ψυξη','Φωτιστικα','Διακοσμηση','Λοιπα']
@@ -1135,7 +1136,7 @@ function ItemsTab({items,repairs,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,on
   )
 }
 
-function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:string;propertyId:string}) {
+function WarrantiesTab({items,userId,propertyId,embedded}:{items:InventoryItem[];userId:string;propertyId:string;embedded?:boolean}) {
   const [pushing,setPushing] = useState<string|null>(null)
   const [pushed,setPushed] = useState<Set<string>>(new Set())
   const withW = items.filter(i=>i.warranty_expiry).sort((a,b)=>new Date(a.warranty_expiry).getTime()-new Date(b.warranty_expiry).getTime())
@@ -1173,21 +1174,23 @@ function WarrantiesTab({items,userId,propertyId}:{items:InventoryItem[];userId:s
   )
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-      <KPIGrid items={[
-        {label:'Ληγμένες',value:String(expired.length),tone:expired.length>0?'negative':'neutral'},
-        {label:'Λήγουν ≤90 Μέρες',value:String(soon.length),tone:soon.length>0?'warning':'neutral'},
-        {label:'Σε Ισχύ',value:String(valid.length)},
-      ]}/>
-      {soon.length>0&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Κλικ "Ημερολόγιο" για υπενθύμιση πριν λήξουν.</p></div>}
+      {embedded?<SectionLabel label="Εγγυήσεις" right={withW.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{withW.length} με ημ/νία λήξης</span>:undefined}/>:(
+        <KPIGrid items={[
+          {label:'Ληγμένες',value:String(expired.length),tone:expired.length>0?'negative':'neutral'},
+          {label:'Λήγουν ≤90 Μέρες',value:String(soon.length),tone:soon.length>0?'warning':'neutral'},
+          {label:'Σε Ισχύ',value:String(valid.length)},
+        ]}/>
+      )}
+      {!embedded&&soon.length>0&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Κλικ "Ημερολόγιο" για υπενθύμιση πριν λήξουν.</p></div>}
       <WSection title="Λήγουν Σύντομα (≤90 Μέρες)" color="var(--warning)" list={soon}/>
       <WSection title="Ληγμένες" color="var(--negative)" list={expired}/>
       <WSection title="Σε Ισχύ" color="var(--positive)" list={valid}/>
-      {withW.length===0&&<div style={{textAlign:'center',padding:'60px 0'}}><p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Δεν έχεις καταχωρίσει ημερομηνίες εγγύησης</p></div>}
+      {withW.length===0&&<div style={{textAlign:'center',padding:embedded?'24px 0':'60px 0',background:embedded?'var(--bg-elevated)':'transparent',borderRadius:embedded?T.radius.card:0,border:embedded?'1px solid var(--border-subtle)':'none'}}><p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Δεν έχεις καταχωρίσει ημερομηνίες εγγύησης</p></div>}
     </div>
   )
 }
 
-function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:InventoryItem[];handovers:InventoryHandover[];propertyId:string;userId:string;onSaved:()=>void}) {
+function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:InventoryItem[];handovers:InventoryHandover[];propertyId:string;userId:string;onSaved:()=>void;seed?:(HandoverIntent&{n:number})|null}) {
   const [mode,setMode] = useState<'list'|'new'|'compare'>('list')
   const [type,setType] = useState<'check_in'|'check_out'>('check_in')
   const [tenantName,setTenantName] = useState(''); const [tenantPhone,setTenantPhone] = useState('')
@@ -1195,9 +1198,21 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
   const [itemConds,setItemConds] = useState<Record<string,{condition:string;notes:string}>>({})
   const [saving,setSaving] = useState(false)
   const [cmpA,setCmpA] = useState(''); const [cmpB,setCmpB] = useState('')
+  const [fromTenant,setFromTenant] = useState('')
   useEffect(()=>{
     if(mode==='new'){const init:Record<string,{condition:string;notes:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
+    if(mode==='list')setFromTenant('')
   },[mode,items])
+  // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το όνομα/τηλέφωνο/τύπο έτοιμα.
+  useEffect(()=>{
+    if(seed){
+      setMode('new')
+      if(seed.tenantName){setTenantName(seed.tenantName);setFromTenant(seed.tenantName)}
+      if(seed.tenantPhone)setTenantPhone(seed.tenantPhone)
+      if(seed.type)setType(seed.type)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[seed?.n])
   const handleSave = async() => {
     if(!tenantName.trim()){alert('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
     setSaving(true)
@@ -1265,6 +1280,12 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
         <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Νέο Πρωτόκολλο Παράδοσης</p>
         <button onClick={()=>setMode('list')} style={{padding:'0 16px',height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,cursor:'pointer'}}>Πίσω</button>
       </div>
+      {fromTenant&&(
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Προσυμπληρώθηκε από την καρτέλα ενοικιαστή για <strong style={{color:'var(--text-primary)'}}>{fromTenant}</strong>. Έλεγξε την κατάσταση κάθε αντικειμένου πριν αποθηκεύσεις.</p>
+        </div>
+      )}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
         {(['check_in','check_out'] as const).map(t=>(
           <button key={t} onClick={()=>setType(t)} style={{padding:'14px',borderRadius:T.radius.card,cursor:'pointer',fontWeight:500,fontFamily:T.font.sans,fontSize:13,border:`1px solid ${type===t?'var(--accent)':'var(--border-subtle)'}`,background:type===t?'var(--accent)':'var(--bg-elevated)',color:type===t?'var(--accent-text)':'var(--text-secondary)',transition:'all 0.2s'}}>
@@ -1351,7 +1372,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved}:{items:Inventor
   )
 }
 
-function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void}) {
+function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void;embedded?:boolean}) {
   const [adding,setAdding] = useState(false)
   const [form,setForm] = useState({item_id:'',item_name:'',task:'',interval_months:12,last_done:'',notes:''})
   const [saving,setSaving] = useState(false)
@@ -1400,14 +1421,14 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
   return (
     <div style={{display:'flex',flexDirection:'column',gap:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <SectionLabel label="Πρόγραμμα Συντήρησης"/>
+        <SectionLabel label="Συντήρηση" right={embedded&&schedules.length>0?<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{schedules.length} {schedules.length===1?'εργασία':'εργασίες'}</span>:undefined}/>
         <button onClick={()=>setAdding(true)} style={{padding:'0 18px',height:36,borderRadius:T.radius.pill,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>+ Νέα Εργασία</button>
       </div>
-      <KPIGrid items={[
+      {!embedded&&<KPIGrid items={[
         {label:'Σε Καθυστέρηση',value:String(overdue.length),tone:overdue.length>0?'negative':'neutral'},
         {label:'Επόμενες 30 Μέρες',value:String(soon.length),tone:soon.length>0?'warning':'neutral'},
         {label:'Προγραμματισμένες',value:String(upcoming.length)},
-      ]}/>
+      ]}/>}
       {schedules.length===0&&(
         <div style={cardStyle}>
           <SectionLabel label="Προτεινόμενες Εργασίες"/>
@@ -1443,6 +1464,26 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// «Φροντίδα»: μία ενοποιημένη σειρά KPI (εγγυήσεις + συντήρηση), μετά οι δύο ενότητες χωρίς διπλά KPI grids.
+function CareTab({items,schedules,propertyId,userId,onSaved}:{items:InventoryItem[];schedules:MaintenanceSchedule[];propertyId:string;userId:string;onSaved:()=>void}) {
+  const wExpired = items.filter(i=>i.warranty_expiry&&daysUntil(i.warranty_expiry)<0).length
+  const wSoon = items.filter(i=>{if(!i.warranty_expiry)return false;const d=daysUntil(i.warranty_expiry);return d>=0&&d<=90}).length
+  const mOverdue = schedules.filter(s=>daysUntil(s.next_due)<0).length
+  const mSoon = schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:28}}>
+      <KPIGrid items={[
+        {label:'Ληγμένες Εγγυήσεις',value:String(wExpired),tone:wExpired>0?'negative':'neutral' as const},
+        {label:'Εγγυήσεις ≤90 Μέρες',value:String(wSoon),tone:wSoon>0?'warning':'neutral' as const},
+        {label:'Συντήρηση σε Καθυστέρηση',value:String(mOverdue),tone:mOverdue>0?'negative':'neutral' as const},
+        {label:'Συντήρηση ≤30 Μέρες',value:String(mSoon),tone:mSoon>0?'warning':'neutral' as const},
+      ]}/>
+      <WarrantiesTab items={items} userId={userId} propertyId={propertyId} embedded/>
+      <MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={onSaved} embedded/>
     </div>
   )
 }
@@ -1500,8 +1541,18 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
   )
 }
 
-export default function TabInventory({propertyId,userId,profileType='individual',embedded}:TabInventoryProps & {embedded?:boolean}) {
+export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void}) {
   const [activeTab,setActiveTab] = useState<'items'|'care'|'handover'|'overview'>('items')
+  const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
+  // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.
+  useEffect(()=>{
+    if(handoverIntent){
+      setActiveTab('handover')
+      setHandoverSeed({...handoverIntent,n:Date.now()})
+      onIntentConsumed?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[handoverIntent])
   const [items,setItems] = useState<InventoryItem[]>([])
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
   const [handovers,setHandovers] = useState<InventoryHandover[]>([])
@@ -1568,7 +1619,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   const TABS=[
     {key:'items',label:'Αντικείμενα'},
-    {key:'care',label:'Εγγυήσεις & Συντήρηση'},
+    {key:'care',label:'Εγγυήσεις & Φροντίδα'},
     {key:'handover',label:'Παράδοση'},
     {key:'overview',label:'Επισκόπηση'},
   ] as const
@@ -1675,8 +1726,8 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         :(
           <>
             {activeTab==='items'&&<ItemsTab items={items} repairs={repairs} kwhPrice={kwhPrice} onAdd={()=>{setEditingItem(null);setShowItemForm(true)}} onEdit={item=>{setEditingItem(item);setShowItemForm(true)}} onDelete={handleDelete} onRepair={item=>setRepairItem(item)} onQR={item=>setQrItem(item)} onUpdateCondition={handleUpdateCondition} onWarrantyReminder={handleWarrantyReminder}/>}
-            {activeTab==='care'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><WarrantiesTab items={items} userId={userId} propertyId={propertyId}/><MaintenanceTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/></div>}
-            {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
+            {activeTab==='care'&&<CareTab items={items} schedules={schedules} propertyId={propertyId} userId={userId} onSaved={fetchData}/>}
+            {activeTab==='handover'&&<HandoverTab items={items} handovers={handovers} propertyId={propertyId} userId={userId} onSaved={fetchData} seed={handoverSeed}/>}
             {activeTab==='overview'&&<div style={{display:'flex',flexDirection:'column',gap:28}}><OverviewTab items={items} repairs={repairs} kwhPrice={kwhPrice} profileType={profileType}/><ExportsTab items={items} repairs={repairs} kwhPrice={kwhPrice}/></div>}
           </>
         )
