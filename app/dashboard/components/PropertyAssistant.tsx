@@ -61,6 +61,8 @@ const SUGGESTED = [
 export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan }: Props) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
+  const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [identity, setIdentity] = useState<AssistantIdentity>(DEFAULT_IDENTITY);
   const [hasIdentity, setHasIdentity] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -791,14 +793,65 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     : identity.gender === 'male' ? 'linear-gradient(135deg,var(--accent),#8ab4f8)'
     : 'linear-gradient(135deg,#8b5cf6,#22d3ee)';
 
+  // ── Μετακίνηση του βοηθού (σύρσιμο) ώστε να μην εμποδίζει το περιεχόμενο ──
+  const FAB = 60;
+  const fabDrag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const justDragged = useRef(false);
+  useEffect(() => {
+    try { const s = localStorage.getItem('pa_fab_pos'); if (s) setFabPos(JSON.parse(s)); } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    if (!fabPos || dragging) return;
+    try { localStorage.setItem('pa_fab_pos', JSON.stringify(fabPos)); } catch { /* ignore */ }
+  }, [fabPos, dragging]);
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const d = fabDrag.current; if (!d) return;
+      const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+      if (!d.moved && Math.hypot(dx, dy) < 5) return;
+      d.moved = true; if (!dragging) setDragging(true);
+      e.preventDefault();
+      const m = 8;
+      const x = Math.max(m, Math.min(d.ox + dx, window.innerWidth - FAB - m));
+      const y = Math.max(m, Math.min(d.oy + dy, window.innerHeight - FAB - m));
+      setFabPos({ x, y });
+    };
+    const up = () => {
+      const d = fabDrag.current; fabDrag.current = null;
+      if (d?.moved) { justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 80); }
+      setDragging(false);
+    };
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+  }, [dragging]);
+  const startFabDrag = (e: React.PointerEvent) => {
+    if (e.button && e.button !== 0) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    fabDrag.current = { sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, moved: false };
+  };
+  const fabToggle = (next: boolean) => () => { if (justDragged.current) return; setOpen(next); };
+  const fabFixed: React.CSSProperties = fabPos ? { left: fabPos.x, top: fabPos.y, right: 'auto', bottom: 'auto' } : {};
+  // Θέση πάνελ: αν ο βοηθός έχει μετακινηθεί, το πάνελ ανοίγει κοντά του (πάνω ή κάτω, με clamp).
+  const panelFixed: React.CSSProperties = (() => {
+    if (!fabPos || typeof window === 'undefined') return {};
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const pw = Math.min(390, vw - 32), ph = Math.min(600, vh - 130);
+    let top = fabPos.y - ph - 10;
+    if (top < 12) top = Math.min(fabPos.y + FAB + 10, vh - ph - 12);
+    let left = fabPos.x + FAB - pw;
+    left = Math.max(12, Math.min(left, vw - pw - 12));
+    return { left, top, right: 'auto', bottom: 'auto' };
+  })();
+
   return (
     <>
       {/* FAB, ορατό σε κάθε καρτέλα */}
       {!open && (
-        <div className="pa-fab-wrap">
-          <span className="pa-fab-label">{askVerb} τον/την {identity.name}</span>
-          <button className="pa-fab" onClick={() => setOpen(true)} aria-label={`Βοηθός: ${identity.name}`}
-            style={{ background: avatarBg }}>
+        <div className="pa-fab-wrap" style={fabFixed}>
+          {!fabPos && <span className="pa-fab-label">{askVerb} τον/την {identity.name}</span>}
+          <button className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)} aria-label={`Βοηθός: ${identity.name} (σύρετε για μετακίνηση)`} title="Σύρετε για μετακίνηση"
+            style={{ background: avatarBg, cursor: dragging ? 'grabbing' : 'pointer' }}>
             <span className="pa-fab-initial">{initial}</span>
             <span className="pa-fab-spark" aria-hidden>
               <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
@@ -808,13 +861,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         </div>
       )}
       {open && (
-        <button className="pa-fab" onClick={() => setOpen(false)} aria-label="Κλείσιμο" style={{ background: avatarBg }}>
+        <button className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(false)} aria-label="Κλείσιμο" title="Σύρετε για μετακίνηση" style={{ background: avatarBg, ...fabFixed, cursor: dragging ? 'grabbing' : 'pointer' }}>
           <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       )}
 
       {open && (
-        <div className="pa-panel">
+        <div className="pa-panel" style={panelFixed}>
           {/* Κεφαλίδα */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ width: 36, height: 36, borderRadius: 11, background: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: T.font.sans, fontWeight: 700, fontSize: 15, flexShrink: 0 }}>{initial}</div>
