@@ -199,11 +199,6 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   const cat     = CATEGORIES[event.category]
   const isAuto  = event.source!=='manual'
   const due     = daysUntil(event.event_date)
-  const tooltipText = [
-    event.notes?`${event.notes}`:'',
-    event.recurring?`Επαναλαμβάνεται: ${RECURRING_OPTIONS.find(o=>o.value===event.recurring_interval)?.label??''}` : '',
-    isAuto?`Δημιουργήθηκε αυτόματα`:'',
-  ].filter(Boolean).join('\n')
   const relLbl = (n:number) => { const a=Math.abs(n); return a===1?'1 ημέρα':`${a} ημέρες` }
   // Χρώμα μόνο όπου μετράει: η αριστερή γραμμή δείχνει κατηγορία (διακριτικά), ή
   // κόκκινο όταν εκπρόθεσμο. Χωρίς πολύχρωμα badges/πηγή — καθαρή, ακριβή αίσθηση.
@@ -232,7 +227,6 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
             {event.title}
           </span>
           {event.recurring&&<Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={11} color="var(--text-tertiary)" style={{ flexShrink:0 }}/></Tooltip>}
-          {tooltipText&&<Tooltip text={tooltipText}><Info size={11} color="var(--text-tertiary)" style={{ cursor:'help', flexShrink:0 }}/></Tooltip>}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:9, flexWrap:'wrap' }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
@@ -253,7 +247,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5, flexShrink:0 }}>
-        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:overdue||due===0?600:400, color:overdue?'var(--negative)':due===0?'var(--text-primary)':'var(--text-secondary)' }}>
+        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:due===0?600:400, color:due===0?'var(--text-primary)':'var(--text-secondary)' }}>
           {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
         {!bulkMode&&(
@@ -467,11 +461,11 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
           {/* Επικεφαλίδες ημερών */}
           <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', position:'sticky', top:0, background:'var(--bg-elevated)', zIndex:1 }}>
             <div/>
-            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const hol=holidayName(ds); return (
-              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:isSel?'color-mix(in srgb, var(--accent) 10%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
-                <p style={{ fontSize:11, fontWeight:600, color:isToday||isSel?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday||isSel?700:500, background:isToday?'var(--accent)':'transparent', boxShadow:isSel?'inset 0 0 0 2px var(--accent)':'none', color:isToday?'var(--accent-text)':isSel?'var(--accent)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
-                {hol&&<p title={hol} style={{ fontSize:9, color:'var(--accent)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
+            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const mark=isToday||isSel; const hol=holidayName(ds); return (
+              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:'transparent' }}>
+                <p style={{ fontSize:11, fontWeight:600, color:mark?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:mark?700:500, background:mark?'var(--accent)':'transparent', color:mark?'var(--accent-text)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
+                {hol&&<p title={hol} style={{ fontSize:9, color:'var(--text-tertiary)', fontWeight:500, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
               </div>
             )})}
           </div>
@@ -501,8 +495,8 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
               <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
                 <NowLine show={weekHasToday} hour={h} gutter={56}/>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'right', padding:'4px 8px', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-                {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
-                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} data-drop-date={ds} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
+                {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
+                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} data-drop-date={ds} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:'transparent' }}>
                     {evs.map(ev=>(
                       <button key={ev.id} onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ touchAction:'none', display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
                         <span style={{ color:'var(--accent)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{ev.event_time}</span> <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</span>
@@ -1533,50 +1527,35 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {/* Εκπρόθεσμα — αναλυτικά, χρονολογικά (παλαιότερο πρώτο) */}
       {showOverdue&&overdue.length>0&&(
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--negative-border)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--negative-dim)' }}>
-            <AlertTriangle size={14} color="var(--negative)"/>
-            <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', margin:0, flex:1, letterSpacing:'0.1px' }}>Εκπρόθεσμα · {overdue.length}</p>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
+            <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--negative)', flexShrink:0 }}/>
+            <p style={{ fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', margin:0, flex:1, letterSpacing:'0.06em', textTransform:'uppercase' }}>Εκπρόθεσμα · {overdue.length}</p>
             <button aria-label="Κλείσιμο" onClick={()=>setShowOverdue(false)} style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.borderColor='var(--border-default)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-subtle)'}}><X size={14}/></button>
           </div>
           <div>
             {[...overdue].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map((e,i,arr)=>{ const late=Math.abs(daysUntil(e.event_date)); const cat=CATEGORIES[e.category]; return (
               <button key={e.id} onClick={()=>openEdit(e)} style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left', padding:'11px 16px', border:'none', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none', background:'transparent', cursor:'pointer', transition:'background 0.12s' }} onMouseEnter={ev=>ev.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                <span style={{ width:8, height:8, borderRadius:2, background:cat.color, flexShrink:0 }}/>
+                <span style={{ width:7, height:7, borderRadius:2, background:cat.color, flexShrink:0 }}/>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>{e.title}</p>
                   <p style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', margin:'2px 0 0' }}>{fmt(e.event_date)}{e.event_time?` · ${e.event_time}`:''}</p>
                 </div>
                 {e.amount!=null&&<span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{e.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
-                <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
+                <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
               </button>
             )})}
           </div>
         </div>
       )}
 
-      {/* Smart Alerts */}
-      {(overdue.length>0||expiring.length>0)&&(
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {overdue.length>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderRadius:8, padding:'10px 16px' }}>
-              <AlertTriangle size={14} color="var(--negative)"/>
-              <p style={{ fontSize:14, color:'var(--negative)', fontFamily:"'Inter',sans-serif", flex:1, letterSpacing:'0.25px' }}>
-                {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'}, χρειάζονται άμεση δράση
-              </p>
-              <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
-                {overdue.reduce((s,e)=>s+(e.amount||0),0)>0&&`${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
-              </span>
-            </div>
-          )}
-          {expiring.length>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:8, padding:'10px 16px' }}>
-              <Shield size={14} color="var(--warning)"/>
-              <p style={{ fontSize:14, color:'var(--warning)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
-                {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών, {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
-              </p>
-            </div>
-          )}
+      {/* Smart Alerts — μόνο η λήξη συμβολαίων· τα εκπρόθεσμα ανοίγουν από το KPI (χωρίς διπλό κόκκινο) */}
+      {expiring.length>0&&(
+        <div style={{ display:'flex', alignItems:'center', gap:11, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:10, padding:'10px 16px' }}>
+          <Shield size={14} color="var(--warning)"/>
+          <p style={{ fontSize:13.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px', margin:0 }}>
+            {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών · <span style={{ color:'var(--text-primary)' }}>{expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}</span>
+          </p>
         </div>
       )}
 
