@@ -1044,8 +1044,11 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
 // Ζωντανή συνδρομή: το εξωτερικό ημερολόγιο διαβάζει το feed και ενημερώνεται μόνο του.
 function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
   const [copied,setCopied]=useState(false)
+  const [copiedBusy,setCopiedBusy]=useState(false)
   const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
   const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
+  const busyUrl=token?`${base}/functions/v1/bookings-feed?token=${token}&property=${propertyId}`:''
+  const copyBusy=async()=>{ try{ await navigator.clipboard.writeText(busyUrl); setCopiedBusy(true); setTimeout(()=>setCopiedBusy(false),1800) }catch{} }
   const webcalUrl=httpsUrl.replace(/^https?:\/\//,'webcal://')
   const googleUrl=`https://calendar.google.com/calendar/r/settings/addbyurl?url=${encodeURIComponent(httpsUrl)}`
   const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
@@ -1078,6 +1081,15 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
             <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:10 }}>
               <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
               <p style={{ fontSize:11.5, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily:"'Inter',sans-serif" }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός — μην τον μοιράζεσαι.</p>
+            </div>
+            {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
+            <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:"'Inter',sans-serif" }}>Μπλοκάρισμα σε Airbnb / Booking</label>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού — κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
+              <div style={{ display:'flex', gap:8 }}>
+                <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:40, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontFamily:"'Inter',sans-serif" }}/>
+                <button onClick={copyBusy} style={{ height:40, padding:'0 16px', borderRadius:10, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
+              </div>
             </div>
           </>)}
         </div>
@@ -1513,7 +1525,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {[
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-primary)', icon:<Clock size={14}/>},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>},
         ].map(kpi=>(
           <div key={kpi.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', transition:'transform 0.16s ease, box-shadow 0.16s ease' }}
@@ -1665,9 +1677,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           <div>
             <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:9 }}>Εύρος ημερομηνιών</p>
             <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} aria-label="Από ημερομηνία" style={{ height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", colorScheme:'dark light' as any }}/>
+              <div style={{ width:170 }}><DatePicker value={dateFrom} onChange={setDateFrom}/></div>
               <span style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>έως</span>
-              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} aria-label="Έως ημερομηνία" style={{ height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", colorScheme:'dark light' as any }}/>
+              <div style={{ width:170 }}><DatePicker value={dateTo} onChange={setDateTo}/></div>
               {(dateFrom||dateTo)&&<button onClick={()=>{setDateFrom('');setDateTo('')}} style={{ height:30, padding:'0 10px', borderRadius:15, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Καθαρισμός</button>}
             </div>
           </div>
