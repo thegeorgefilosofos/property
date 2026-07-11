@@ -14,7 +14,7 @@ import {
   parseAction, cleanForSpeech, buildSystemPrompt, NAV_MAP,
   DEFAULT_IDENTITY, type AssistantIdentity, type Gender,
   loadMemories, addMemory, removeMemory, clearMemories,
-  normalizeBookTime,
+  normalizeBookTime, resolveBookDate,
 } from './assistantPersona';
 
 let passed = 0, failed = 0;
@@ -392,6 +392,16 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 {
   const r = parseAction('[[book: Έλεγχος λέβητα | 2026-08-01 | 17:00]]');
   ok('book: 24ωρη περνά', (r.action as any).time === '17:00');
+}
+
+// ── resolveBookDate: ISO ή ντετερμινιστικό fallback (Τετάρτη/αύριο) ───────────
+{
+  const NOW = new Date(Date.UTC(2026, 6, 10)); // Παρασκευή 2026-07-10
+  ok('ISO παραμένει', resolveBookDate(['Service', '2026-07-15', '6μμ'], NOW) === '2026-07-15');
+  ok('Τετάρτη → επόμενη', resolveBookDate(['Ραντεβού', 'Τετάρτη'], NOW) === '2026-07-15');
+  ok('αύριο → 2026-07-11', resolveBookDate(['Κάτι', 'αύριο'], NOW) === '2026-07-11');
+  ok('25/3 → του χρόνου', resolveBookDate(['Γιορτή', '25/3'], NOW) === '2027-03-25');
+  ok('χωρίς ημερομηνία → κενό', resolveBookDate(['Μόνο τίτλος'], NOW) === '');
 }
 
 // ── Το persona διδάσκει διευκρινιστικές ερωτήσεις για ώρα/ημερομηνία ──────────

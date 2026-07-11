@@ -7,7 +7,7 @@ import {
   StreamingConfig, CleaningConfig, InvestmentCalc,
   LEASE_LABELS, LEASE_CATEGORY_LABELS, COMMERCIAL_STAMP_DUTY, MIN_LEASE_MONTHS, ID_DOCS,
   MONTHS_FULL, MONTHS_S, FREQ_OPTIONS, EXTRA_CATS,
-  syncTenantSchedule, type TenantScheduleInput,
+  syncTenantSchedule, setRentDueOccurrencePaid, type TenantScheduleInput,
 } from './TabTenantHelpers';
 import {
   Toggle, NumberInput, TextInput, Textarea,
@@ -944,9 +944,10 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
     const daysLate=p.due_date && paidDate>p.due_date ? Math.ceil((new Date(paidDate).getTime()-new Date(p.due_date).getTime())/86400000) : 0;
     await supabase.from('rent_payments').update({paid:true,paid_date:paidDate,method,receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null,days_late:daysLate}).eq('id',p.id);
+    await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,true);
     onRefresh(); notify('Καταχωρήθηκε ως πληρωμένο');
   };
-  const doUnpay=async(p:RentPayment)=>{ await supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id); onRefresh(); };
+  const doUnpay=async(p:RentPayment)=>{ await supabase.from('rent_payments').update({paid:false,paid_date:null,days_late:null}).eq('id',p.id); await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,p.period_year,p.period_month,false); onRefresh(); };
 
   const savePay=async()=>{
     if(!payF.amount){notify('Συμπλήρωσε ποσό');return;}
@@ -955,6 +956,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
     const due=`${payF.period_year}-${String(payF.period_month).padStart(2,'0')}-${String(Math.min(Math.max(1,rentDueDay),28)).padStart(2,'0')}`;
     const daysLate=payF.paid&&paidDate&&paidDate>due?Math.ceil((new Date(paidDate).getTime()-new Date(due).getTime())/86400000):0;
     await supabase.from('rent_payments').upsert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_month:payF.period_month,period_year:payF.period_year,amount:Math.max(0,parseFloat(payF.amount)),paid:payF.paid,paid_date:paidDate,method:payF.paid?payF.method:null,days_late:daysLate,due_date:due,notes:payF.notes||null},{onConflict:'tenant_id,period_year,period_month'});
+    await setRentDueOccurrencePaid(supabase,tenant.id,propertyId,payF.period_year,payF.period_month,payF.paid);
     setBusy(false);setAddOpen(false);setPayF({period_month:new Date().getMonth()+1,period_year:new Date().getFullYear(),amount:'',method:'Τραπεζική κατάθεση',paid:true,paid_date:todayISO(),notes:''});
     onRefresh();notify('Πληρωμή καταχωρήθηκε');
   };
