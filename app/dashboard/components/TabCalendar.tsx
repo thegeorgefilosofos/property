@@ -17,7 +17,7 @@ import { DatePicker } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
 import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
 import { expandRecurring } from '@/lib/calendar/recurrence'
-import { findConflicts } from '@/lib/calendar/availability'
+import { findConflicts, findFreeSlots } from '@/lib/calendar/availability'
 import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 
@@ -291,9 +291,46 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   )
 }
 
+// Ενιαίο drag με pointer events — δουλεύει σε ΠΟΝΤΙΚΙ ΚΑΙ ΑΦΗ (κινητό/tablet).
+// Στόχοι drop φέρουν data-drop-date (και προαιρετικά data-drop-time: «HH:00» για ώρα,
+// «» για ολοήμερο, απόν = κράτα ώρα). Η μεταφορά ξεκινά μετά από κατώφλι 6px ώστε το
+// απλό «κλικ» να ανοίγει κανονικά το γεγονός.
+type DragCtl = { onDown:(id:string,label:string)=>(e:React.PointerEvent)=>void; ghost:{label:string;x:number;y:number}|null }
+function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void): DragCtl {
+  const [ghost,setGhost]=useState<{label:string;x:number;y:number}|null>(null)
+  const st=useRef<{id:string;label:string;active:boolean;sx:number;sy:number}|null>(null)
+  const clearHot=()=>document.querySelectorAll('[data-drop-hot]').forEach(n=>{const el=n as HTMLElement; el.style.background=el.dataset.dropBg||''; el.removeAttribute('data-drop-hot'); delete el.dataset.dropBg})
+  useEffect(()=>{
+    const move=(e:PointerEvent)=>{
+      const s=st.current; if(!s)return
+      if(!s.active){ if(Math.hypot(e.clientX-s.sx,e.clientY-s.sy)<6)return; s.active=true }
+      e.preventDefault()
+      setGhost({label:s.label,x:e.clientX,y:e.clientY})
+      clearHot()
+      const el=(document.elementFromPoint(e.clientX,e.clientY) as HTMLElement|null)?.closest('[data-drop-date]') as HTMLElement|null
+      if(el){ el.dataset.dropBg=el.style.background; el.setAttribute('data-drop-hot','1'); el.style.background='var(--accent-dim)' }
+    }
+    const up=(e:PointerEvent)=>{
+      const s=st.current; st.current=null; setGhost(null)
+      if(!s||!s.active){ clearHot(); return }
+      const el=(document.elementFromPoint(e.clientX,e.clientY) as HTMLElement|null)?.closest('[data-drop-date]') as HTMLElement|null
+      clearHot()
+      if(el&&el.dataset.dropDate){ const t=el.dataset.dropTime; onMove(s.id, el.dataset.dropDate, t===undefined?undefined:(t===''?null:t)) }
+      // κατάπιε το επόμενο click ώστε να μην ανοίξει «νέο γεγονός» στο cell
+      const kill=(ev:Event)=>{ ev.stopPropagation(); ev.preventDefault(); window.removeEventListener('click',kill,true) }
+      window.addEventListener('click',kill,true); setTimeout(()=>window.removeEventListener('click',kill,true),350)
+    }
+    window.addEventListener('pointermove',move,{passive:false})
+    window.addEventListener('pointerup',up)
+    return ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
+  },[onMove])
+  const onDown=(id:string,label:string)=>(e:React.PointerEvent)=>{ if(e.button&&e.button!==0)return; st.current={id,label,active:false,sx:e.clientX,sy:e.clientY} }
+  return { onDown, ghost }
+}
+
 // Month View
-function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, onMove }: {
-  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; onMove?:(id:string,date:string)=>void
+function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, drag }: {
+  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -341,10 +378,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
               const wknd=day?isWeekend(dateStr):false
               const cellBg=isToday?'var(--accent-dim)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
-                  onDragOver={day?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined}
-                  onDragLeave={day?e=>{(e.currentTarget as HTMLElement).style.background=cellBg}:undefined}
-                  onDrop={day&&onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background=cellBg;if(id)onMove(id,dateStr)}:undefined}
+                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -358,7 +392,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
                           <Tooltip key={ev.id} text={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev._virtual?'\n(επαναλαμβανόμενο)':''}${ev.notes?`\n${ev.notes}`:''}`}>
-                            <div draggable={!ev._virtual&&!!onMove} onDragStart={e=>{e.dataTransfer.setData('text/plain',ev.id);e.dataTransfer.effectAllowed='move'}} onClick={e=>{e.stopPropagation();onEventClick(ev)}} style={{ fontSize:11, padding:'1px 5px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:ev._virtual?'pointer':'grab', width:'100%', opacity:ev.status==='paid'?0.4:ev._virtual?0.72:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
+                            <div onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} onClick={e=>{e.stopPropagation();onEventClick(ev)}} style={{ touchAction:'none', fontSize:11, padding:'1px 5px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:ev._virtual?'pointer':'grab', width:'100%', opacity:ev.status==='paid'?0.4:ev._virtual?0.72:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
                               {(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.event_time?ev.event_time+' ':''}{ev.title}
                             </div>
                           </Tooltip>
@@ -419,7 +453,7 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
 }
 
 // Week View
-function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, onMove }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; onMove?:(id:string,date:string,time?:string|null)=>void }) {
+function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, drag }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl }) {
   const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
   const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
@@ -448,9 +482,9 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, 
             <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
               <div style={{ fontSize:10, color:'var(--text-tertiary)', textAlign:'right', padding:'6px 8px', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter',sans-serif" }}>Ολοήμερα</div>
               {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const evs=events.filter(e=>e.event_date===ds&&!e.event_time); return (
-                <div key={idx} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background='transparent'}:undefined} onDrop={onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background='transparent';if(id)onMove(id,ds,null)}:undefined} style={{ borderLeft:'1px solid var(--border-subtle)', padding:4, display:'flex', flexDirection:'column', gap:3, minHeight:28 }}>
+                <div key={idx} data-drop-date={ds} data-drop-time="" style={{ borderLeft:'1px solid var(--border-subtle)', padding:4, display:'flex', flexDirection:'column', gap:3, minHeight:28 }}>
                   {evs.map(ev=>(
-                    <button key={ev.id} draggable={!ev._virtual&&!!onMove} onDragStart={e=>e.dataTransfer.setData('text/plain',ev.id)} onClick={()=>onEventClick(ev)} title={ev.title} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'3px 7px', borderRadius:7, border:'none', borderLeft:'3px solid '+(isOverdue(ev)?'var(--negative)':'var(--accent)'), background:isOverdue(ev)?'var(--negative-soft)':'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.title}</button>
+                    <button key={ev.id} onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} onClick={()=>onEventClick(ev)} title={ev.title} style={{ touchAction:'none', display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'3px 7px', borderRadius:7, border:'none', borderLeft:'3px solid '+(isOverdue(ev)?'var(--negative)':'var(--accent)'), background:isOverdue(ev)?'var(--negative-soft)':'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.title}</button>
                   ))}
                 </div>
               )})}
@@ -463,9 +497,9 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, 
                 <NowLine show={weekHasToday} hour={h} gutter={56}/>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'right', padding:'4px 8px', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
                 {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
-                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background=isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent'}:undefined} onDrop={onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background=isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent';if(id)onMove(id,ds,`${hh}:00`)}:undefined} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
+                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} data-drop-date={ds} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
                     {evs.map(ev=>(
-                      <button key={ev.id} draggable={!ev._virtual&&!!onMove} onDragStart={e=>e.dataTransfer.setData('text/plain',ev.id)} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
+                      <button key={ev.id} onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ touchAction:'none', display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
                         <span style={{ color:'var(--accent)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{ev.event_time}</span> <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</span>
                       </button>
                     ))}
@@ -623,11 +657,13 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
 }
 
 // Event Modal
-function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts }: {
+function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts, freeSlots }: {
   form:FormState; setForm:React.Dispatch<React.SetStateAction<FormState>>
-  onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number
+  onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number; freeSlots?:string[]
 }) {
   const [showDetails,setShowDetails]=useState(editing)
+  // Προσβασιμότητα: Escape κλείνει, Cmd/Ctrl+Enter αποθηκεύει.
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose(); if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose,onSave,form.title,form.event_date])
   // Ενιαία, καθαρά πεδία — ίδιο ύψος/καμπύλη/χρώμα παντού (Google λογική).
   const fld: React.CSSProperties = { width:'100%', boxSizing:'border-box', height:44, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'0 14px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", outline:'none', transition:'border-color 0.15s' }
   const focus=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--accent)'
@@ -646,11 +682,11 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const canSave=!!form.title.trim()&&!!form.event_date
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:22, width:'100%', maxWidth:480, maxHeight:'92vh', border:'1px solid var(--border-subtle)', boxShadow:'0 24px 70px rgba(0,0,0,0.45)', display:'flex', flexDirection:'column' }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="cal-modal-title" onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:22, width:'100%', maxWidth:480, maxHeight:'92vh', border:'1px solid var(--border-subtle)', boxShadow:'0 24px 70px rgba(0,0,0,0.45)', display:'flex', flexDirection:'column' }}>
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px 14px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
-          <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:17, fontWeight:700, color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
-          <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><X size={17}/></button>
+          <h3 id="cal-modal-title" style={{ fontFamily:"'Inter',sans-serif", fontSize:17, fontWeight:700, color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
+          <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><X size={17}/></button>
         </div>
 
         {/* Body */}
@@ -696,6 +732,15 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
           {form.event_time&&!!conflicts&&conflicts>0&&(
             <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--warning)', background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:10, padding:'8px 12px', fontFamily:"'Inter',sans-serif" }}>
               <AlertTriangle size={14}/>Έχεις ήδη {conflicts===1?'ένα γεγονός':`${conflicts} γεγονότα`} εκείνη την ώρα.
+            </div>
+          )}
+          {/* Πρότεινε ελεύθερη ώρα */}
+          {!form.event_time&&!!freeSlots&&freeSlots.length>0&&(
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", display:'flex', alignItems:'center', gap:5 }}><Clock size={13}/>Ελεύθερες ώρες:</span>
+              {freeSlots.map(s=>(
+                <button key={s} onClick={()=>setForm(f=>({...f,event_time:s}))} style={{ height:28, padding:'0 12px', borderRadius:14, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--accent)', fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--accent-soft)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.background='var(--bg-surface)'}}>{s}</button>
+              ))}
             </div>
           )}
 
@@ -905,8 +950,8 @@ function NowLine({ show, hour, gutter }: { show:boolean; hour:number; gutter:num
   )
 }
 
-function DayView({ events, currentDate, onSlotClick, onEventClick, onMove }: {
-  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; onMove?:(id:string,date:string,time:string)=>void
+function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
+  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl
 }) {
   const y=currentDate.getFullYear(), m=currentDate.getMonth(), d=currentDate.getDate()
   const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
@@ -915,14 +960,13 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, onMove }: {
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
-  const drop=(hh:string)=>onMove?(e:React.DragEvent)=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background='transparent';if(id)onMove(id,dateStr,`${hh}:00`)}:undefined
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
         <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border-subtle)', display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
           <span style={{ fontSize:11, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600, fontFamily:"'Inter',sans-serif" }}>Ολοήμερα</span>
           {allDay.map(e=>(
-            <button key={e.id} draggable={!e._virtual&&!!onMove} onDragStart={ev=>ev.dataTransfer.setData('text/plain',e.id)} onClick={()=>onEventClick(e)} style={{ display:'flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, fontFamily:"'Inter',sans-serif" }}>
+            <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={()=>onEventClick(e)} style={{ touchAction:'none', display:'flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, fontFamily:"'Inter',sans-serif" }}>
               {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.7 }}/>}{e.title}{e.amount!=null?` · ${e.amount.toLocaleString('el-GR')} €`:''}
             </button>
           ))}
@@ -936,9 +980,9 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, onMove }: {
             <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
               <NowLine show={isToday} hour={h} gutter={60}/>
               <div style={{ width:60, flexShrink:0, padding:'6px 8px', textAlign:'right', fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background='transparent'}:undefined} onDrop={drop(hh)} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'wrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
+              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'wrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
                 {evs.map(e=>(
-                  <button key={e.id} draggable={!e._virtual&&!!onMove} onDragStart={ev=>ev.dataTransfer.setData('text/plain',e.id)} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ flex:evs.length>1?'1 1 42%':'1 1 100%', minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
+                  <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ touchAction:'none', flex:evs.length>1?'1 1 42%':'1 1 100%', minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
                     <span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600, flexShrink:0 }}>{e.event_time}</span>
                     {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.6, flexShrink:0 }}/>}
                     <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
@@ -982,6 +1026,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const menuRef=useRef<HTMLDivElement>(null)
   const importRef=useRef<HTMLInputElement>(null)
   const [importMsg,setImportMsg]=useState<string|null>(null)
+  // Ενιαίο drag (ποντίκι + αφή) — μετακίνηση γεγονότος με σύρσιμο σε μήνα/εβδομάδα/ημέρα.
+  const drag=usePointerDrag((id,date,time)=>moveEvent(id,date,time))
   // Εισαγωγή γεγονότων από αρχείο .ics (Google/Apple/Outlook export).
   async function importIcs(file:File){
     setShowMenu(false)
@@ -1060,6 +1106,12 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const formConflicts=useMemo(()=> (showModal&&form.event_time&&form.event_date)
     ? findConflicts({id:editingEvent?.id,date:form.event_date,time:form.event_time,durationMinutes:form.duration?parseInt(form.duration):60,status:form.status}, events.map(e=>({id:e.id,date:e.event_date,time:e.event_time,durationMinutes:e.duration_minutes,status:e.status}))).length
     : 0, [showModal,form.event_time,form.event_date,form.duration,form.status,editingEvent,events])
+  // Προτεινόμενες ελεύθερες ώρες για την επιλεγμένη ημέρα (όταν δεν έχει οριστεί ώρα).
+  const freeSlots=useMemo(()=>{
+    if(!(showModal&&form.event_date&&!form.event_time))return [] as string[]
+    const busy=events.filter(e=>e.event_date===form.event_date&&e.id!==editingEvent?.id).map(e=>({id:e.id,date:e.event_date,time:e.event_time,durationMinutes:e.duration_minutes,status:e.status}))
+    return findFreeSlots(busy, form.event_date, form.duration?parseInt(form.duration):60).slice(0,6).map(iv=>`${String(Math.floor(iv.start/60)).padStart(2,'0')}:${String(iv.start%60).padStart(2,'0')}`)
+  },[showModal,form.event_date,form.event_time,form.duration,events,editingEvent])
 
   function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
   function openEdit(ev:CalEvent){
@@ -1281,15 +1333,15 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {/* Period nav */}
         {viewMode!=='agenda'&&(
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <button title="Προηγούμενο" onClick={prevPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={18}/></button>
-            <span style={{ fontSize:15, fontWeight:600, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', minWidth:viewMode==='day'?200:150, textAlign:'center', letterSpacing:'0.1px' }}>{periodLabel()}</span>
-            <button title="Επόμενο" onClick={nextPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={18}/></button>
+            <button aria-label="Προηγούμενο" title="Προηγούμενο" onClick={prevPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={18}/></button>
+            <span aria-live="polite" style={{ fontSize:15, fontWeight:600, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', minWidth:viewMode==='day'?200:150, textAlign:'center', letterSpacing:'0.1px' }}>{periodLabel()}</span>
+            <button aria-label="Επόμενο" title="Επόμενο" onClick={nextPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={18}/></button>
             <button onClick={()=>{setCurrentDate(new Date());setTimelineYear(new Date().getFullYear())}} style={{ height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', fontSize:13, fontWeight:500, fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)'}}>Σήμερα</button>
           </div>
         )}
 
         <div style={{ flex:1, minWidth:100, position:'relative' }}>
-          <input placeholder="Αναζήτηση γεγονότος…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+          <input aria-label="Αναζήτηση γεγονότος" placeholder="Αναζήτηση γεγονότος…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
             style={{ width:'100%', height:36, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", outline:'none' }}
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>
@@ -1300,9 +1352,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
         {/* Ένα ήσυχο μενού για όλα τα δευτερεύοντα */}
         <div ref={menuRef} style={{ position:'relative' }}>
-          <button title="Περισσότερα" onClick={()=>setShowMenu(m=>!m)} style={{ width:36, height:36, borderRadius:'50%', border:'1px solid '+(showMenu?'var(--border-default)':'var(--border-subtle)'), background:showMenu?'var(--bg-elevated)':'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }}><MoreHorizontal size={18}/></button>
+          <button aria-label="Περισσότερα" aria-haspopup="menu" aria-expanded={showMenu} title="Περισσότερα" onClick={()=>setShowMenu(m=>!m)} style={{ width:36, height:36, borderRadius:'50%', border:'1px solid '+(showMenu?'var(--border-default)':'var(--border-subtle)'), background:showMenu?'var(--bg-elevated)':'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }}><MoreHorizontal size={18}/></button>
           {showMenu&&(
-            <div style={{ position:'absolute', top:42, right:0, width:236, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, boxShadow:'0 12px 40px rgba(0,0,0,0.35)', padding:6, zIndex:200 }}>
+            <div role="menu" style={{ position:'absolute', top:42, right:0, width:236, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, boxShadow:'0 12px 40px rgba(0,0,0,0.35)', padding:6, zIndex:200 }}>
               {([
                 {label: bulkMode?'Τέλος επιλογής':'Επιλογή για μαζικές ενέργειες', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
                 {label: showFilters?'Απόκρυψη φίλτρων':'Φίλτρα', icon:<Filter size={15}/>, on:()=>{setShowFilters(f=>!f);setShowMenu(false)}},
@@ -1362,7 +1414,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} onMove={moveEvent}/>
+          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} drag={drag}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1373,9 +1425,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} onMove={moveEvent}/>}
+      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} onMove={moveEvent}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
@@ -1392,10 +1444,14 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       <input ref={importRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0]; if(f)importIcs(f); e.currentTarget.value=''}}/>
       {importMsg&&<div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--accent-border)', borderRadius:12, padding:'11px 20px', fontSize:13, color:'var(--text-primary)', zIndex:1200, boxShadow:'0 8px 32px rgba(0,0,0,0.35)', fontFamily:"'Inter',sans-serif" }}>{importMsg}</div>}
-      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts}/>}
+      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts} freeSlots={freeSlots}/>}
       {showSubscribe&&<SubscribeModal token={feedToken} propertyId={propertyId} onClose={()=>setShowSubscribe(false)}/>}
       {scopePrompt&&<ScopeModal title="Επεξεργασία επαναλαμβανόμενου" hint="Σε ποιες εμφανίσεις να εφαρμοστούν οι αλλαγές;" onPick={applyEditScope} onClose={()=>setScopePrompt(false)}/>}
       {deleteScope&&<ScopeModal title="Διαγραφή επαναλαμβανόμενου" hint="Τι θέλεις να διαγράψεις;" danger onPick={applyDeleteScope} onClose={()=>setDeleteScope(null)}/>}
+      {drag.ghost&&createPortal(
+        <div style={{ position:'fixed', left:drag.ghost.x+14, top:drag.ghost.y+14, pointerEvents:'none', zIndex:3000, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, padding:'5px 11px', borderRadius:9, boxShadow:'0 10px 30px rgba(0,0,0,0.32)', maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{drag.ghost.label}</div>,
+        document.body
+      )}
     </div>
   )
 }
