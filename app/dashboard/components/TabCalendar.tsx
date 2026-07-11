@@ -447,11 +447,9 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
   const today=todayStr()
   const weekHasToday=weekDays.some(wd=>dsOf(wd)===today)
-  // Δυναμικό παράθυρο ωρών (default 07–22) ώστε να μη «χάνεται» γεγονός εκτός ωραρίου.
-  const wkTimed=events.filter(e=>!!e.event_time)
-  const wkStartH=Math.max(0,Math.min(7,...wkTimed.map(e=>parseInt((e.event_time||'0:0').split(':')[0]))))
-  const wkEndH=Math.min(24,Math.max(23,...wkTimed.map(e=>{const[h,m]=(e.event_time||'0:0').split(':').map(Number);return Math.ceil((h*60+(m||0)+(e.duration_minutes||60))/60)})))
-  const HOURS=Array.from({length:Math.max(1,wkEndH-wkStartH)},(_,i)=>i+wkStartH)
+  // Πλήρες 24ωρο (00:00–24:00) — με scroll για όλη τη μέρα.
+  const wkStartH=0, wkEndH=24
+  const HOURS=Array.from({length:wkEndH-wkStartH},(_,i)=>i+wkStartH)
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const weekHasStay=weekDays.some(wd=>staysOnDay(stays,dsOf(wd)).length>0)
   const hasAllDay=weekHasStay||weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time&&!(e.source||'').startsWith('booking:')))
@@ -1107,10 +1105,9 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
-  // Το παράθυρο ωρών (default 07–22) επεκτείνεται ώστε να μη «χάνεται» κανένα γεγονός εκτός ωραρίου.
-  const startH=Math.max(0,Math.min(7,...timed.map(e=>Math.floor(toMin(e.event_time)/60))))
-  const endH=Math.min(24,Math.max(23,...timed.map(e=>Math.ceil((toMin(e.event_time)+(e.duration_minutes||60))/60))))
-  const HOURS=Array.from({length:Math.max(1,endH-startH)},(_,i)=>i+startH)
+  // Πλήρες 24ωρο (00:00–24:00) — με scroll για όλη τη μέρα.
+  const startH=0, endH=24
+  const HOURS=Array.from({length:endH-startH},(_,i)=>i+startH)
   const HOUR_H=58, START_MIN=startH*60, END_MIN=endH*60
   const laid=layoutDay(timed,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
   // Resize με σύρσιμο της κάτω λαβής (ns-resize) — ζωντανή προεπισκόπηση ύψους.
