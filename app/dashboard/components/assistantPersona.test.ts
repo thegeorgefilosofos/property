@@ -81,6 +81,29 @@ for (const t of ['Καλημέρα!', 'Πλήρωσες τη ΔΕΗ;', 'Η απ�
   ok('book without date → no action', r.action?.type !== 'book');
   ok('book invalid stripped', !/\[\[/.test(r.clean));
 }
+{
+  // book with time (τρίτο μέρος HH:MM)
+  const r = parseAction('[[book: Ραντεβού με υδραυλικό | 2026-07-12 | 18:00]]');
+  ok('book with time: type', r.action?.type === 'book');
+  ok('book with time: date', (r.action as any)?.date === '2026-07-12');
+  ok('book with time: time', (r.action as any)?.time === '18:00');
+  ok('book with time: title excludes time', !/18:00/.test((r.action as any)?.title || '') && /υδραυλικό/.test((r.action as any)?.title || ''));
+}
+{
+  // single-digit hour normalised to HH:MM
+  const r = parseAction('[[book: Έλεγχος | 2026-09-03 | 9:30]]');
+  ok('book time pads hour', (r.action as any)?.time === '09:30');
+}
+{
+  // no time → time undefined (ολοήμερο)
+  const r = parseAction('[[book: Ραντεβού Alpha | 2026-08-01]]');
+  ok('book no time → undefined', (r.action as any)?.time === undefined);
+}
+{
+  // άκυρη ώρα αγνοείται
+  const r = parseAction('[[book: X | 2026-08-01 | 45:99]]');
+  ok('book invalid time ignored', (r.action as any)?.time === undefined && (r.action as any)?.date === '2026-08-01');
+}
 // client action: name | phone | afm | type
 {
   const r = parseAction('Εντάξει. [[client: Γιάννης Νικολάου | 6941234567 | 090000045 | πελάτης]]');

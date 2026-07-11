@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { DatePicker } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
+import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -326,17 +327,21 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
               const isToday=dateStr===today
               const hasOverdue=dayEvents.some(isOverdue)
               const dayAmt=dayEvents.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
+              const hol=day?holidayName(dateStr):null
+              const wknd=day?isWeekend(dateStr):false
+              const cellBg=isToday?'var(--accent-dim)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:isToday?'var(--accent-dim)':'transparent', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
-                  onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'transparent'}}
+                  onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
                   {day&&(
                     <>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday?700:400, color:isToday?'var(--accent)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
+                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday?700:400, color:isToday?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
+                      {hol&&<div title={hol} style={{ fontSize:9.5, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</div>}
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
                           <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev.notes?`\n${ev.notes}`:''}`}>
@@ -401,38 +406,60 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
 }
 
 // Week View
-function WeekView({ events, currentDate, onDayClick, onEventClick }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void }) {
+function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void }) {
   const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
   const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
+  const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
   const today=todayStr()
+  const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
+  const GRID='56px repeat(7, minmax(116px, 1fr))'
+  const hasAllDay=weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time))
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
-        {weekDays.map((wd,idx)=>{
-          const ds=wd.toISOString().split('T')[0]; const dayEvs=events.filter(e=>e.event_date===ds)
-          const isToday=ds===today; const hasOverdue=dayEvs.some(isOverdue)
-          const dayAmt=dayEvs.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
-          return (
-            <div key={idx} style={{ borderRight:idx<6?'1px solid var(--border-subtle)':'none' }}>
-              <div onClick={()=>onDayClick(ds)} style={{ padding:'12px 8px 8px', borderBottom:'1px solid var(--border-subtle)', cursor:'pointer', background:isToday?'var(--accent-dim)':'var(--bg-elevated)', textAlign:'center' }}>
-                <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
-                <span style={{ fontSize:18, fontFamily:"'Inter',sans-serif", color:isToday?'var(--accent)':'var(--text-primary)', fontWeight:isToday?700:400, width:36, height:36, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto' }}>{wd.getDate()}</span>
-                {hasOverdue&&<div style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)', margin:'4px auto 0' }}/>}
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
+      <div style={{ overflowX:'auto' }}>
+        <div style={{ minWidth:868 }}>
+          {/* Επικεφαλίδες ημερών */}
+          <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', position:'sticky', top:0, background:'var(--bg-elevated)', zIndex:1 }}>
+            <div/>
+            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const hol=holidayName(ds); return (
+              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
+                <p style={{ fontSize:11, fontWeight:600, color:isToday?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday?700:500, background:isToday?'var(--accent)':'transparent', color:isToday?'var(--accent-text)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
+                {hol&&<p title={hol} style={{ fontSize:9, color:'var(--accent)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
               </div>
-              <div style={{ padding:'6px', minHeight:120, display:'flex', flexDirection:'column', gap:4 }}>
-                {dayEvs.map(ev=>(
-                  <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}${ev.notes?`\n${ev.notes}`:''}`}>
-                    <div onClick={()=>onEventClick(ev)} style={{ fontSize:11, padding:'4px 6px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:'pointer', opacity:ev.status==='paid'?0.4:1, borderLeft:`3px solid var(--border-subtle)`, fontFamily:"'Inter',sans-serif" }}>
-                      <p style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</p>
-                      {ev.amount&&<p style={{ fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', opacity:0.8 }}>{ev.amount}€</p>}
-                    </div>
-                  </Tooltip>
-                ))}
-                {dayAmt>0&&<p style={{ fontSize:10, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', textAlign:'center', marginTop:'auto', opacity:0.8 }}>{dayAmt}€</p>}
-              </div>
+            )})}
+          </div>
+          {/* Ολοήμερα */}
+          {hasAllDay&&(
+            <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
+              <div style={{ fontSize:10, color:'var(--text-tertiary)', textAlign:'right', padding:'6px 8px', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter',sans-serif" }}>Ολοήμερα</div>
+              {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const evs=events.filter(e=>e.event_date===ds&&!e.event_time); return (
+                <div key={idx} style={{ borderLeft:'1px solid var(--border-subtle)', padding:4, display:'flex', flexDirection:'column', gap:3, minHeight:28 }}>
+                  {evs.map(ev=>(
+                    <button key={ev.id} onClick={()=>onEventClick(ev)} title={ev.title} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'3px 7px', borderRadius:7, border:'none', borderLeft:'3px solid '+(isOverdue(ev)?'var(--negative)':'var(--accent)'), background:isOverdue(ev)?'var(--negative-soft)':'var(--accent-soft)', color:'var(--text-primary)', cursor:'pointer', opacity:ev.status==='paid'?0.5:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{ev.title}</button>
+                  ))}
+                </div>
+              )})}
             </div>
-          )
-        })}
+          )}
+          {/* Πλέγμα ωρών */}
+          <div style={{ maxHeight:560, overflowY:'auto' }}>
+            {HOURS.map(h=>{ const hh=String(h).padStart(2,'0'); return (
+              <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'right', padding:'4px 8px', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
+                {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
+                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
+                    {evs.map(ev=>(
+                      <button key={ev.id} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:'pointer', opacity:ev.status==='paid'?0.5:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
+                        <span style={{ color:'var(--accent)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{ev.event_time}</span> <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )})}
+              </div>
+            )})}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -671,6 +698,11 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
             <div>
               <label style={lbl}>Ημερομηνία *</label>
               <DatePicker value={form.event_date} onChange={v=>setForm(f=>({...f,event_date:v}))}/>
+              {form.event_date&&(holidayName(form.event_date)||isWeekend(form.event_date))&&(
+                <p style={{ fontSize:11.5, marginTop:6, color:'var(--accent)', display:'flex', alignItems:'center', gap:5, fontFamily:"'Inter',sans-serif" }}>
+                  <Info size={12}/>{holidayName(form.event_date)?`Αργία: ${holidayName(form.event_date)}`:'Σαββατοκύριακο'}
+                </p>
+              )}
             </div>
             <div>
               <label style={lbl}>Ποσό (€)</label>
@@ -1123,7 +1155,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='day'&&<DayView events={filtered} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={filtered} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={filtered} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
