@@ -735,18 +735,23 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
     :'Τραβάω αυτόματα ό,τι αφορά αυτό το ακίνητο.'
   const totalReady=visible.reduce((s,k)=>s+(enabled[k]&&(counts?.[k]||0)>0?(counts?.[k]||0):0),0)
 
+  const canSync=!(syncing||totalReady===0)
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, padding:18, boxShadow:'var(--shadow-sm)' }}>
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 }}>
-        <div style={{ minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <p style={{ fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
-            {mode&&<span style={{ fontSize:10.5, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+    <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'20px 22px', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 44px -22px rgba(0,0,0,0.6)', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:0, left:24, right:24, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)', opacity:0.7 }}/>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16 }}>
+        <div style={{ minWidth:0, display:'flex', gap:12 }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:11, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
+          <div style={{ minWidth:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <p style={{ fontSize:15.5, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
+              {mode&&<span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+            </div>
+            <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
+            {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
           </div>
-          <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
-          {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={syncing||totalReady===0} style={{ display:'flex', alignItems:'center', gap:7, height:38, padding:'0 18px', background:syncing||totalReady===0?'var(--bg-elevated)':'var(--accent)', border:'1px solid '+(syncing||totalReady===0?'var(--border-default)':'var(--accent)'), borderRadius:19, cursor:syncing||totalReady===0?'not-allowed':'pointer', color:syncing||totalReady===0?'var(--text-tertiary)':'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:syncing||totalReady===0?'none':'var(--shadow-sm)' }}>
+        <button onClick={syncAll} disabled={!canSync} style={{ display:'flex', alignItems:'center', gap:8, height:40, padding:'0 20px', background:canSync?'linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, #fff), var(--accent))':'var(--bg-elevated)', border:'1px solid '+(canSync?'var(--accent)':'var(--border-default)'), borderRadius:20, cursor:canSync?'pointer':'not-allowed', color:canSync?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:canSync?'0 8px 20px -8px var(--accent)':'none', transition:'transform 0.14s, box-shadow 0.14s' }} onMouseEnter={e=>{if(canSync){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 12px 26px -8px var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=canSync?'0 8px 20px -8px var(--accent)':'none'}}>
           <RefreshCw size={15} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός…':'Συγχρονισμός τώρα'}
         </button>
       </div>
@@ -754,13 +759,13 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
         {visible.map(k=>{
           const c=counts?.[k]; const has=(c||0)>0; const active=enabled[k]&&has; const meta=META[k]
           return (
-            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'12px 14px', background:active?'var(--accent-soft)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:12, cursor:has?'pointer':'default', opacity:has?1:0.55, textAlign:'left', transition:'all 0.15s' }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:9, flexShrink:0, background:active?'var(--accent)':'var(--bg-surface)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)' }}>{meta.icon}</span>
+            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'13px 15px', background:active?'color-mix(in srgb, var(--accent) 9%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:13, cursor:has?'pointer':'default', opacity:has?1:0.5, textAlign:'left', boxShadow:active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)', transition:'transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s' }} onMouseEnter={e=>{if(has){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=active?'0 12px 26px -12px var(--accent)':'0 8px 20px -12px rgba(0,0,0,0.5)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)'}}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:active?'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000))':'var(--bg-elevated)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)', boxShadow:active?'0 4px 12px -6px var(--accent)':'none' }}>{meta.icon}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:500, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
+                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
                 <p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:1 }}>{counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
               </div>
-              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={20}/>:<ToggleLeft size={20}/>}</span>}
+              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={22}/>:<ToggleLeft size={22}/>}</span>}
             </button>
           )
         })}
@@ -1054,16 +1059,20 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
   const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
   const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:44, borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily:"'Inter',sans-serif", cursor:'pointer' }
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:20, width:'100%', maxWidth:520, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', overflow:'hidden' }}>
-        <div style={{ padding:'22px 26px 16px', borderBottom:'1px solid var(--border-subtle)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
-          <div>
-            <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0 }}>Ζωντανή συνδρομή ημερολογίου</h3>
-            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε το μία φορά και το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook — χωρίς χειροκίνητες εξαγωγές.</p>
+    <div style={{ position:'fixed', inset:0, background:'rgba(8,10,14,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', borderRadius:22, width:'100%', maxWidth:500, border:'1px solid var(--border-subtle)', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 40px 90px -30px rgba(0,0,0,0.7)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:0, left:32, right:32, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)' }}/>
+        <div style={{ padding:'24px 28px 18px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+          <div style={{ display:'flex', gap:13 }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
+            <div>
+              <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Ζωντανή συνδρομή</h3>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε μία φορά — το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background:'none', border:'1px solid var(--border-subtle)', borderRadius:'50%', width:30, height:30, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><X size={15}/></button>
+          <button aria-label="Κλείσιμο" onClick={onClose} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:'50%', width:32, height:32, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={15}/></button>
         </div>
-        <div style={{ padding:'20px 26px 24px', display:'flex', flexDirection:'column', gap:16 }}>
+        <div style={{ padding:'8px 28px 26px', display:'flex', flexDirection:'column', gap:16 }}>
           {!token?(
             <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text-tertiary)', fontSize:13 }}>Δημιουργία συνδέσμου…</div>
           ):(<>
@@ -1651,13 +1660,22 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <span style={{ fontSize:11, fontVariantNumeric:'tabular-nums', color:active?color:'var(--text-tertiary)', background:'var(--bg-elevated)', borderRadius:9, padding:'1px 6px', minWidth:16, boxSizing:'border-box', textAlign:'center' }}>{count}</span>
           </button>
         )
+        const activeCount=(filterCat!=='all'?1:0)+(filterStatus!=='all'?1:0)+(searchQ?1:0)+((dateFrom||dateTo)?1:0)
         return (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'14px 16px', boxShadow:'var(--shadow-sm)', display:'flex', flexDirection:'column', gap:14 }}>
-          <div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:9, minHeight:28 }}>
-              <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>Κατηγορία</p>
-              <button onClick={()=>{setFilterCat('all');setFilterStatus('all');setSearchQ('');setDateFrom('');setDateTo('')}} style={{ visibility:anyActive?'visible':'hidden', display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--negative)';e.currentTarget.style.color='var(--negative)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={12}/>Καθάρισε φίλτρα</button>
+        <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:16, padding:'16px 18px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -18px rgba(0,0,0,0.55)', display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <Filter size={14} style={{ color:'var(--accent)' }}/>
+              <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Φίλτρα</p>
+              {activeCount>0&&<span style={{ fontSize:10.5, fontWeight:700, color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'1px 8px', fontFamily:"'Inter',sans-serif" }}>{activeCount} ενεργά</span>}
             </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <button onClick={()=>{setFilterCat('all');setFilterStatus('all');setSearchQ('');setDateFrom('');setDateTo('')}} disabled={!anyActive} style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid '+(anyActive?'var(--border-default)':'var(--border-subtle)'), background:'var(--bg-surface)', color:anyActive?'var(--text-secondary)':'var(--text-tertiary)', fontSize:12.5, fontWeight:500, cursor:anyActive?'pointer':'not-allowed', opacity:anyActive?1:0.5, fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{if(anyActive){e.currentTarget.style.borderColor='var(--negative)';e.currentTarget.style.color='var(--negative)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=anyActive?'var(--border-default)':'var(--border-subtle)';e.currentTarget.style.color=anyActive?'var(--text-secondary)':'var(--text-tertiary)'}}><RotateCcw size={12}/>Καθάρισε</button>
+              <button aria-label="Κλείσιμο φίλτρων" onClick={()=>setShowFilters(false)} style={{ width:30, height:30, borderRadius:'50%', border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={15}/></button>
+            </div>
+          </div>
+          <div>
+            <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:9 }}>Κατηγορία</p>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               <Chip active={filterCat==='all'} color="var(--accent)" onClick={()=>setFilterCat('all')} label="Όλες" count={catBase.length}/>
               {Object.entries(CATEGORIES).map(([k,v])=>(
