@@ -26,3 +26,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/ical-sync/deno.json"
 entrypoint = "./functions/ical-sync/index.ts"
+
+[functions.calendar-feed]
+enabled = true
+verify_jwt = false
+import_map = "./functions/calendar-feed/deno.json"
+entrypoint = "./functions/calendar-feed/index.ts"
