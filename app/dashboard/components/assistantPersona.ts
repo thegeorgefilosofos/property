@@ -5,6 +5,8 @@
 // πάντα στον σωστό επαγγελματία/φορέα για δεσμευτικά θέματα.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { parseQuickAdd } from '../../../lib/calendar/quickAdd';
+
 export type Gender = 'female' | 'male' | 'nonbinary' | 'neutral';
 
 export interface AssistantIdentity {
@@ -265,6 +267,17 @@ export type AssistantAction =
   | { type: 'inventory'; name: string; category?: string; value?: number; brand?: string; model?: string; room?: string }
   | { type: 'reach'; name: string; channel: 'whatsapp' | 'viber' | 'email' | 'call'; text?: string };
 
+// Ντετερμινιστικό fallback ημερομηνίας για το [[book:]]: αν το μοντέλο δεν έδωσε
+// ISO ημερομηνία αλλά ελληνική έκφραση («Τετάρτη», «αύριο», «25/3»), τη λύνουμε
+// εμείς με τον ήδη δοκιμασμένο parseQuickAdd — δεν κρεμόμαστε 100% στο μοντέλο.
+// ΜΟΝΟ ημερομηνία (όχι ώρα: η ασαφής ώρα πρέπει να ρωτηθεί, όχι να μαντευτεί).
+export function resolveBookDate(parts: string[], now: Date): string {
+  const isoPart = parts.find((p) => /^\d{4}-\d{2}-\d{2}$/.test(p));
+  if (isoPart) return isoPart.slice(0, 10);
+  const qa = parseQuickAdd(parts.join(' '), now);
+  return qa.date || '';
+}
+
 // Κανονικοποίηση ώρας από ετικέτα [[book:]] — δέχεται ΜΟΝΟ σαφείς μορφές: 24ωρη
 // «HH:MM» ή ρητό πμ/μμ («6μμ», «10πμ», «6:30 μ.μ.»). Σκέτη ώρα χωρίς πμ/μμ δεν
 // γίνεται δεκτή (ο βοηθός έχει οδηγία να ρωτήσει «πρωί ή απόγευμα;» πρώτα).
@@ -374,7 +387,8 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   let book: { type: 'book'; title: string; date: string; time?: string } | undefined;
   if (bk) {
     const parts = bk[1].split('|').map(s => s.trim());
-    const date = (parts.find(p => /^\d{4}-\d{2}-\d{2}$/.test(p)) || '').slice(0, 10);
+    // ISO από το μοντέλο· αλλιώς ντετερμινιστικό fallback (Τετάρτη/αύριο/25-3 → date).
+    const date = resolveBookDate(parts, new Date());
     // Ώρα ραντεβού (προαιρετικά): 24ωρη «HH:MM» ή σαφής ελληνική μορφή («6μμ», «10πμ»).
     const isTimeLike = (p: string) => /^\d{1,2}:\d{2}$/.test(p) || /^\d{1,2}(?::\d{2})?\s*(?:π\.?μ\.?|μ\.?μ\.?)$/i.test(p);
     const time = normalizeBookTime(parts.find(isTimeLike) || '');
