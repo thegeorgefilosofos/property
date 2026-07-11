@@ -451,6 +451,12 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const weekHasStay=weekDays.some(wd=>staysOnDay(stays,dsOf(wd)).length>0)
   const hasAllDay=weekHasStay||weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time&&!(e.source||'').startsWith('booking:')))
+  // Πλήρες 24ωρο: scroll στην πρώτη ώρα με γεγονός (ή πρωί/τρέχουσα) με το άνοιγμα.
+  const HOUR_ROW=46
+  const gridRef=useRef<HTMLDivElement>(null)
+  useEffect(()=>{ const el=gridRef.current; if(!el)return; const hrs=events.filter(e=>!!e.event_time).map(e=>parseInt((e.event_time||'0:0').split(':')[0])); const h=hrs.length?Math.min(...hrs):(weekHasToday?athensNow().getHours():8); el.scrollTop=Math.max(0,(h-1)*HOUR_ROW)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[dsOf(weekDays[0])])
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
       <div style={{ overflowX:'auto' }}>
@@ -487,7 +493,7 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
             </div>
           )}
           {/* Πλέγμα ωρών */}
-          <div style={{ maxHeight:560, overflowY:'auto' }}>
+          <div ref={gridRef} style={{ maxHeight:560, overflowY:'auto' }}>
             {HOURS.map(h=>{ const hh=String(h).padStart(2,'0'); return (
               <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
                 <NowLine show={weekHasToday} hour={h} gutter={56}/>
@@ -1119,6 +1125,12 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
     return ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
   },[rzDur,onResize])
   const startResize=(id:string,dur:number)=>(ev:React.PointerEvent)=>{ if(ev.button&&ev.button!==0)return; ev.stopPropagation(); ev.preventDefault(); resized.current=false; rz.current={id,startY:ev.clientY,startDur:dur} }
+  // Πλήρες 24ωρο: με το άνοιγμα κάνε scroll στην πρώτη ώρα με γεγονός (ή πρωί/τρέχουσα ώρα)
+  // ώστε να μη «κρύβεται» η μέρα κάτω από τα μεσάνυχτα.
+  const gridRef=useRef<HTMLDivElement>(null)
+  useEffect(()=>{ const el=gridRef.current; if(!el)return; const h=timed.length?Math.min(...timed.map(e=>Math.floor(toMin(e.event_time)/60))):(isToday?athensNow().getHours():8); el.scrollTop=Math.max(0,(h-1)*HOUR_H)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[dateStr])
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
@@ -1131,7 +1143,7 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
           ))}
         </div>
       )}
-      <div style={{ maxHeight:600, overflowY:'auto' }}>
+      <div ref={gridRef} style={{ maxHeight:600, overflowY:'auto' }}>
         <div style={{ position:'relative', height:HOURS.length*HOUR_H }}>
           {/* Υπόβαθρο: γραμμές ωρών + κλικ για νέο ραντεβού */}
           {HOURS.map((h,i)=>{ const hh=String(h).padStart(2,'0'); return (
