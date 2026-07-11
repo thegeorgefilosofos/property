@@ -675,6 +675,9 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
     if(on('bills')){
       const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
       await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
+      // Καθάρισε και τυχόν σκαναρισμένη υπενθύμιση λογαριασμού (source='scan',
+      // category='bills') ώστε να μη συνυπάρχει με τη συγχρονισμένη — μία εγγραφή.
+      await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','scan').eq('category','bills')
       const today=new Date()
       const rows=(bills||[]).filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
         let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
@@ -935,6 +938,23 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
                 <input type="email" style={fld} placeholder="name@…" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} onFocus={focus} onBlur={blur}/>
               </div>
             </div>
+            {/* Πρόσκληση συμμετέχοντα — στέλνει invite (.ics/mailto/WhatsApp/Viber) στην επαφή */}
+            {(()=>{ if(!form.title.trim()||!form.event_date)return null
+              const inv={title:form.title,date:form.event_date,time:form.event_time||undefined,durationMinutes:form.duration?+form.duration:undefined,details:form.notes||undefined,attendeeEmail:form.email||undefined,attendeePhone:form.phone||undefined}
+              const cap=canInvite(inv); if(!cap.email&&!cap.phone)return null
+              const btn:React.CSSProperties={ display:'inline-flex', alignItems:'center', gap:6, height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", textDecoration:'none' }
+              return (
+                <div>
+                  <label style={lbl}>Πρόσκληση</label>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {cap.email&&<a href={inviteMailto(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><FileText size={13}/>Email</a>}
+                    {cap.phone&&<a href={inviteWhatsApp(inv)} target="_blank" rel="noreferrer" style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>WhatsApp</a>}
+                    {cap.phone&&<a href={inviteViber(inv)} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}>Viber</a>}
+                    <button type="button" onClick={()=>{ const blob=new Blob([buildInviteICS(inv)],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invite.ics'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000) }} style={btn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarPlus size={13}/>.ics</button>
+                  </div>
+                </div>
+              )
+            })()}
             <div>
               <label style={lbl}>Σύνδεσμος (τιμολόγιο, σύμβαση)</label>
               <input style={fld} placeholder="https://…" value={form.attachment_url} onChange={e=>setForm(f=>({...f,attachment_url:e.target.value}))} onFocus={focus} onBlur={blur}/>
@@ -1119,17 +1139,23 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
         {HOURS.map(h=>{
           const hh=String(h).padStart(2,'0')
           const evs=timed.filter(e=>parseInt((e.event_time||'0:0').split(':')[0])===h)
+          // Σωστές στήλες για ταυτόχρονα ραντεβού (interval-graph coloring) αντί για wrap.
+          const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
+          const laid=layoutDay(evs,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
+          const laneOf=new Map(laid.map(l=>[l.event as CalEvent,l]))
+          const cols=Math.max(1,...laid.map(l=>l.lanes))
+          const ordered=[...evs].sort((a,b)=>((laneOf.get(a)?.lane||0)-(laneOf.get(b)?.lane||0)))
           return (
             <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
               <NowLine show={isToday} hour={h} gutter={60}/>
               <div style={{ width:60, flexShrink:0, padding:'6px 8px', textAlign:'right', fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'wrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
-                {evs.map(e=>(
-                  <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ touchAction:'none', flex:evs.length>1?'1 1 42%':'1 1 100%', minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
+              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'nowrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
+                {ordered.map(e=>(
+                  <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ touchAction:'none', flex:`1 1 calc(${100/cols}% - 4px)`, minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
                     <span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600, flexShrink:0 }}>{e.event_time}</span>
                     {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.6, flexShrink:0 }}/>}
                     <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
-                    {e.amount!=null&&evs.length===1&&<span style={{ marginLeft:'auto', color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{e.amount.toLocaleString('el-GR')} €</span>}
+                    {e.amount!=null&&cols===1&&<span style={{ marginLeft:'auto', color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{e.amount.toLocaleString('el-GR')} €</span>}
                   </button>
                 ))}
               </div>
@@ -1642,7 +1668,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
+          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1655,7 +1681,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
