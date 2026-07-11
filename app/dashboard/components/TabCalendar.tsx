@@ -1215,6 +1215,10 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   }
 
   const filtered=useMemo(()=>events.filter(e=>{
+    // Οι κρατήσεις εμφανίζονται ΜΟΝΟ ως ενιαία μπάρα διαμονής (από τα ζωντανά
+    // client_stays) — κρύβουμε παντού τα booking:* events ώστε να μη διπλοφαίνονται
+    // σε λίστες/ατζέντα/ημέρα/αναζήτηση. (Παραμένουν στη βάση για feed/υπενθυμίσεις.)
+    if((e.source||'').startsWith('booking:'))return false
     if(filterCat!=='all'&&e.category!==filterCat)return false
     if(filterStatus!=='all'&&e.status!==filterStatus)return false
     if(searchQ&&!e.title.toLowerCase().includes(searchQ.toLowerCase()))return false

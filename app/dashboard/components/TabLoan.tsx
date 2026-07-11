@@ -109,12 +109,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   async function handleSaveLoan(loan:Partial<SavedLoan>){await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId});await loadSaved()}
   async function handleSaveCal(monthly:number,years:number,startDate:string,bankName:string){
     const d=new Date(startDate),events=[]
-    for(let i=0;i<Math.min(years*12,60);i++){
+    const n=Math.min(years*12,60)
+    // Ξεχωριστή, ιδιότυπη πηγή ανά τράπεζα → idempotent (δεν διπλογράφεται στο
+    // ξαναπάτημα, ούτε μπερδεύεται με χειροκίνητα γεγονότα). Ρητές δόσεις, όχι
+    // recurring, ώστε να μη διπλασιάζονται από την ανάπτυξη επαναλαμβανόμενων.
+    const src='loan_schedule:'+(bankName||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
+    for(let i=0;i<n;i++){
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
-      events.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bankName?`, ${bankName}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:true,recurring_interval:'monthly',notes:`${fmtEur(monthly)}/μήνα`,source:'manual'})
+      events.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bankName?`, ${bankName}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${fmtEur(monthly)}/μήνα`,source:src})
     }
+    await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src)
     for(let i=0;i<events.length;i+=20)await supabase.from('calendar_events').insert(events.slice(i,i+20))
-    showToast(`${Math.min(years*12,60)} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
+    showToast(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
     await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})

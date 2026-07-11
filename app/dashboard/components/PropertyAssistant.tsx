@@ -596,15 +596,27 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Κράτηση ραντεβού: γράφει γεγονός στο Ημερολόγιο. Η υπάρχουσα ροή υπενθυμίσεων
   // (send-reminders) στέλνει email 3 & 1 ημέρα πριν, αν ο χρήστης έχει ενεργές ειδοποιήσεις.
   const bookAppointment = async (title: string, date: string, time?: string) => {
+    // Κατηγορία από τον τίτλο (ώστε π.χ. «check κλιματιστικό» να πάει σε Συντήρηση, όχι Οικονομικά).
+    const t = (title || '').toLowerCase();
+    const category = /service|συντήρησ|καθαρισ|κλιματ|κλίμα|clima|air ?cond|λέβητ|καυστήρ|θερμοσίφ|βλάβ|επισκευ|υδραυλ|ηλεκτρολ|ψυκτ|μάστορ|συνεργ|έλεγχ|check/.test(t) ? 'maintenance'
+      : /τράπεζ|δάνει|χρηματοδ|λογιστ|φορο|ενφια|εφορ|πληρωμ|είσπραξ/.test(t) ? 'financial'
+      : /ενοικιαστ|μισθωτ|tenant|συμβόλαι|μίσθωσ/.test(t) ? 'tenant'
+      : 'reminder';
     try {
+      // Αποφυγή διπλοεγγραφής: ίδιο ακίνητο + τίτλος + ημερομηνία υπάρχει ήδη.
+      const { data: dup } = await supabase.from('calendar_events').select('id').eq('property_id', propertyId).eq('event_date', date).eq('title', title).limit(1);
+      if (dup && dup.length) {
+        setMsgs(m => [...m, { role: 'assistant', text: `Υπάρχει ήδη «${title}» για εκείνη την ημερομηνία στο Ημερολόγιο, δεν το ξαναπρόσθεσα. Θέλεις να το δεις;`, action: { type: 'go', tab: 'calendar' } }]);
+        return;
+      }
       await supabase.from('calendar_events').insert({
-        property_id: propertyId, user_id: userId, title, category: 'financial',
+        property_id: propertyId, user_id: userId, title, category,
         event_date: date, event_time: time || null, duration_minutes: time ? 60 : null,
         priority: 'high', status: 'pending', source: 'assistant',
-        notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Υπενθύμιση 3 και 1 ημέρα πριν (email, εφόσον είναι ενεργές οι ειδοποιήσεις).',
+        notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Θα σταλεί υπενθύμιση πριν λήξει (email, εφόσον είναι ενεργές οι ειδοποιήσεις· με ένα άγγιγμα και σε Viber/WhatsApp).',
       });
       const whenStr = `${new Date(date).toLocaleDateString('el-GR')}${time ? ` στις ${time}` : ''}`;
-      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω 3 και 1 ημέρα πριν. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω πριν λήξει. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω το ραντεβού τώρα. Δοκίμασε ξανά ή πρόσθεσέ το χειροκίνητα στο Ημερολόγιο.' }]);
     }
