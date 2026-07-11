@@ -24,7 +24,7 @@ import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
 import { toStaySpan, staysOnDay, segMeta, channelColor, CHANNEL_COLORS, type StaySpan } from '@/lib/calendar/stayBars'
 import { layoutDay } from '@/lib/calendar/overlap'
-import { buildInviteICS, inviteMailto, inviteWhatsApp, inviteViber, inviteText, canInvite } from '@/lib/calendar/invite'
+import { buildInviteICS, inviteMailto, inviteWhatsApp, inviteViber, canInvite } from '@/lib/calendar/invite'
 import { greekPropertyTaxObligations, taxObligationToEvent, AADE_CALENDAR_URL, TAXHEAVEN_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { syncTenantSchedule } from './TabTenantHelpers'
@@ -340,8 +340,8 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
 }
 
 // Month View
-function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[], onPickMonth }: {
-  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]; onPickMonth?:(monthIndex:number)=>void
+function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
+  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -1712,7 +1712,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
+          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
