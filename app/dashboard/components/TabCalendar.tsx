@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
-import { Spinner, ExportButton } from '@/components/Theme'
+import { Spinner } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDate } from './exportCsv'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -17,7 +17,7 @@ import { DatePicker } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
 import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
 import { expandRecurring } from '@/lib/calendar/recurrence'
-import { findConflicts, findFreeSlots } from '@/lib/calendar/availability'
+import { findConflicts } from '@/lib/calendar/availability'
 import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
@@ -103,7 +103,7 @@ function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split
 // Τρέχουσα στιγμή σε ώρα Ελλάδας (Europe/Athens), ανεξάρτητα από τη ζώνη της
 // συσκευής — ώστε «σήμερα», η γραμμή «τώρα» και οι υπενθυμίσεις να είναι σωστές.
 function athensNow(): Date { return new Date(new Date().toLocaleString('en-US',{ timeZone:'Europe/Athens' })) }
-function daysUntil(dateStr: string) { const t=athensNow(); t.setHours(0,0,0,0); const g=new Date(dateStr); g.setHours(0,0,0,0); return Math.round((g.getTime()-t.getTime())/86400000) }
+function daysUntil(dateStr: string) { const t=athensNow(); t.setHours(0,0,0,0); const [y,m,d]=dateStr.split('-').map(Number); const g=new Date(y,(m||1)-1,d||1); g.setHours(0,0,0,0); return Math.round((g.getTime()-t.getTime())/86400000) }
 function isOverdue(e: CalEvent)  { return e.status==='pending'&&daysUntil(e.event_date)<0 }
 function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.status==='pending'&&d>=0&&d<=7 }
 function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>7&&d<=30 }
@@ -196,7 +196,7 @@ function AddToCalendarMenu({ event }: { event: CalEvent }) {
   const openExt=(href:string)=>window.open(href,'_blank','noopener,noreferrer')
   return (
     <>
-      <button ref={btnRef} type="button" title="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" onClick={e=>{e.stopPropagation();setOpen(o=>!o)}}
+      <button ref={btnRef} type="button" aria-label="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" title="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" onClick={e=>{e.stopPropagation();setOpen(o=>!o)}}
         style={{ display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:'50%',border:'1px solid '+(open?'var(--border-default)':'transparent'),background:open?'var(--bg-elevated)':'transparent',cursor:'pointer',color:'var(--text-secondary)',flexShrink:0,transition:'all 0.15s' }}>
         <CalendarPlus size={15}/>
       </button>
@@ -288,10 +288,10 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           <div style={{ display:'flex', gap:2, alignItems:'center' }}>
             <AddToCalendarMenu event={event}/>
             {!isAuto&&<>
-              <button title="Επεξεργασία" onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
+              <button aria-label="Επεξεργασία" title="Επεξεργασία" onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
                 onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'}
                 onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Edit2 size={13}/></button>
-              <button title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
+              <button aria-label="Διαγραφή" title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
                 onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
                 onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
             </>}
@@ -478,7 +478,11 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
   const today=todayStr()
   const weekHasToday=weekDays.some(wd=>dsOf(wd)===today)
-  const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
+  // Δυναμικό παράθυρο ωρών (default 07–22) ώστε να μη «χάνεται» γεγονός εκτός ωραρίου.
+  const wkTimed=events.filter(e=>!!e.event_time)
+  const wkStartH=Math.max(0,Math.min(7,...wkTimed.map(e=>parseInt((e.event_time||'0:0').split(':')[0]))))
+  const wkEndH=Math.min(24,Math.max(23,...wkTimed.map(e=>{const[h,m]=(e.event_time||'0:0').split(':').map(Number);return Math.ceil((h*60+(m||0)+(e.duration_minutes||60))/60)})))
+  const HOURS=Array.from({length:Math.max(1,wkEndH-wkStartH)},(_,i)=>i+wkStartH)
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const weekHasStay=weekDays.some(wd=>staysOnDay(stays,dsOf(wd)).length>0)
   const hasAllDay=weekHasStay||weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time&&!(e.source||'').startsWith('booking:')))
@@ -543,7 +547,7 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
 
 // Timeline View
 function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void; onPickMonth?:(monthIndex:number)=>void }) {
-  const today=new Date(); const todayMonth=today.getMonth()
+  const today=athensNow(); const todayMonth=today.getMonth()
   const totalAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const paidAmt=events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
   return (
@@ -570,7 +574,7 @@ function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { even
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(12,1fr)', gap:6 }}>
           {MONTH_SHORT_GR.map((mName,mIdx)=>{
-            const monthEvs=events.filter(e=>{const d=new Date(e.event_date);return d.getFullYear()===currentYear&&d.getMonth()===mIdx})
+            const monthEvs=events.filter(e=>+e.event_date.slice(0,4)===currentYear&&+e.event_date.slice(5,7)-1===mIdx)
             const isCurrentMonth=mIdx===todayMonth&&currentYear===today.getFullYear()
             const isPast=currentYear<today.getFullYear()||(currentYear===today.getFullYear()&&mIdx<todayMonth)
             const pending=monthEvs.filter(e=>e.status==='pending')
@@ -821,9 +825,9 @@ function TimeField({ value, onChange }: { value:string; onChange:(v:string)=>voi
 }
 
 // Event Modal
-function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts, freeSlots }: {
+function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts }: {
   form:FormState; setForm:React.Dispatch<React.SetStateAction<FormState>>
-  onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number; freeSlots?:string[]
+  onSave:()=>void; onClose:()=>void; editing:boolean; saving:boolean; conflicts?:number
 }) {
   const [showDetails,setShowDetails]=useState(editing)
   // Προσβασιμότητα: Escape κλείνει, Cmd/Ctrl+Enter αποθηκεύει.
@@ -1029,6 +1033,7 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
 // Επιλογή εμβέλειας για επαναλαμβανόμενο (επεξεργασία ή διαγραφή).
 function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hint?:string; danger?:boolean; onPick:(s:'this'|'following'|'all')=>void; onClose:()=>void }) {
   const opts:[('this'|'following'|'all'),string][]=[['this','Μόνο αυτό το γεγονός'],['following','Αυτό και τα επόμενα'],['all','Όλη τη σειρά']]
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose])
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:20 }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:18, width:'100%', maxWidth:400, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', padding:'22px 24px' }}>
@@ -1051,6 +1056,7 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
 function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
   const [copied,setCopied]=useState(false)
   const [copiedBusy,setCopiedBusy]=useState(false)
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose])
   const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
   const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
   const busyUrl=token?`${base}/functions/v1/bookings-feed?token=${token}&property=${propertyId}`:''
@@ -1132,9 +1138,12 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
   const dayEvents=events.filter(e=>e.event_date===dateStr)
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
-  const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
-  const HOUR_H=58, START_MIN=7*60, END_MIN=23*60
   const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
+  // Το παράθυρο ωρών (default 07–22) επεκτείνεται ώστε να μη «χάνεται» κανένα γεγονός εκτός ωραρίου.
+  const startH=Math.max(0,Math.min(7,...timed.map(e=>Math.floor(toMin(e.event_time)/60))))
+  const endH=Math.min(24,Math.max(23,...timed.map(e=>Math.ceil((toMin(e.event_time)+(e.duration_minutes||60))/60))))
+  const HOURS=Array.from({length:Math.max(1,endH-startH)},(_,i)=>i+startH)
+  const HOUR_H=58, START_MIN=startH*60, END_MIN=endH*60
   const laid=layoutDay(timed,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
   // Resize με σύρσιμο της κάτω λαβής (ns-resize) — ζωντανή προεπισκόπηση ύψους.
   const rz=useRef<{id:string;startY:number;startDur:number}|null>(null)
@@ -1353,12 +1362,6 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const formConflicts=useMemo(()=> (showModal&&form.event_time&&form.event_date)
     ? findConflicts({id:editingEvent?.id,date:form.event_date,time:form.event_time,durationMinutes:form.duration?parseInt(form.duration):60,status:form.status}, events.map(e=>({id:e.id,date:e.event_date,time:e.event_time,durationMinutes:e.duration_minutes,status:e.status}))).length
     : 0, [showModal,form.event_time,form.event_date,form.duration,form.status,editingEvent,events])
-  // Προτεινόμενες ελεύθερες ώρες για την επιλεγμένη ημέρα (όταν δεν έχει οριστεί ώρα).
-  const freeSlots=useMemo(()=>{
-    if(!(showModal&&form.event_date&&!form.event_time))return [] as string[]
-    const busy=events.filter(e=>e.event_date===form.event_date&&e.id!==editingEvent?.id).map(e=>({id:e.id,date:e.event_date,time:e.event_time,durationMinutes:e.duration_minutes,status:e.status}))
-    return findFreeSlots(busy, form.event_date, form.duration?parseInt(form.duration):60).slice(0,6).map(iv=>`${String(Math.floor(iv.start/60)).padStart(2,'0')}:${String(iv.start%60).padStart(2,'0')}`)
-  },[showModal,form.event_date,form.event_time,form.duration,events,editingEvent])
 
   function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
   function openEdit(ev:CalEvent){
@@ -1499,7 +1502,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   function printCalendar(){
     const esc=(s:string)=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c))
     const up=[...filtered].filter(e=>e.status!=='paid').sort((a,b)=>a.event_date.localeCompare(b.event_date))
-    const fmtD=(s:string)=>new Date(s).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})
+    const fmtD=(s:string)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,(m||1)-1,d||1).toLocaleDateString('el-GR',{weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
     const rows=up.length?up.map(e=>{const cat=CATEGORIES[e.category];const d=daysUntil(e.event_date);const tag=d<0?`${Math.abs(d)} ημ. πριν`:d===0?'Σήμερα':`σε ${d} ημ.`;const col=d<0?'#c5221f':d<=7?'#e37400':'#5f6368';return `<tr>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;white-space:nowrap">${esc(fmtD(e.event_date))}</td>
       <td style="padding:11px 8px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${esc(e.title)}${e.amount?` <span style="color:#1a73e8;font-family:monospace">${e.amount.toLocaleString('el-GR')} €</span>`:''}</td>
@@ -1742,7 +1745,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       <input ref={importRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0]; if(f)importIcs(f); e.currentTarget.value=''}}/>
       {importMsg&&<div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--accent-border)', borderRadius:12, padding:'11px 20px', fontSize:13, color:'var(--text-primary)', zIndex:1200, boxShadow:'0 8px 32px rgba(0,0,0,0.35)', fontFamily:"'Inter',sans-serif" }}>{importMsg}</div>}
-      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts} freeSlots={freeSlots}/>}
+      {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} conflicts={formConflicts}/>}
       {showSubscribe&&<SubscribeModal token={feedToken} propertyId={propertyId} onClose={()=>setShowSubscribe(false)}/>}
       {scopePrompt&&<ScopeModal title="Επεξεργασία επαναλαμβανόμενου" hint="Σε ποιες εμφανίσεις να εφαρμοστούν οι αλλαγές;" onPick={applyEditScope} onClose={()=>setScopePrompt(false)}/>}
       {deleteScope&&<ScopeModal title="Διαγραφή επαναλαμβανόμενου" hint="Τι θέλεις να διαγράψεις;" danger onPick={applyDeleteScope} onClose={()=>setDeleteScope(null)}/>}
