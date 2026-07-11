@@ -66,7 +66,7 @@ const PRIORITIES: Record<EventPriority, { label: string; color: string }> = {
 const STATUSES: Record<EventStatus, { label: string; color: string }> = {
   pending:     { label: 'Εκκρεμεί',    color: 'var(--warning)' },
   paid:        { label: 'Πληρώθηκε',   color: 'var(--positive)' },
-  in_progress: { label: 'Σε εξέλιξη', color: 'var(--text-secondary)' },
+  in_progress: { label: 'Σε εξέλιξη', color: 'var(--accent)' },
   cancelled:   { label: 'Ακυρώθηκε',  color: 'var(--text-tertiary)' },
 }
 
@@ -657,6 +657,35 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
   )
 }
 
+// Καθαρός επιλογέας ώρας — αντικαθιστά το άσχημο native <input type="time">.
+// Κουμπί με ώρα → portal λίστα ανά 15΄ (κλιπ-άτρωτη, ίδια αισθητική με το app).
+function TimeField({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
+  const [open,setOpen]=useState(false)
+  const [rect,setRect]=useState<{left:number;top:number;width:number}|null>(null)
+  const ref=useRef<HTMLButtonElement>(null)
+  const listRef=useRef<HTMLDivElement>(null)
+  const times=useMemo(()=>{ const t:string[]=[]; for(let h=0;h<24;h++)for(const m of [0,15,30,45])t.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`); return t },[])
+  const openMenu=()=>{ const r=ref.current?.getBoundingClientRect(); if(r)setRect({left:r.left,top:r.bottom+6,width:Math.max(r.width,132)}); setOpen(o=>!o) }
+  useEffect(()=>{ if(!open)return; const close=(e:MouseEvent)=>{ if(!ref.current?.contains(e.target as Node)&&!listRef.current?.contains(e.target as Node))setOpen(false) }; const esc=(e:KeyboardEvent)=>{ if(e.key==='Escape'){e.stopPropagation();setOpen(false)} }; document.addEventListener('mousedown',close); document.addEventListener('keydown',esc,true); return ()=>{ document.removeEventListener('mousedown',close); document.removeEventListener('keydown',esc,true) } },[open])
+  useEffect(()=>{ if(open&&listRef.current){ let idx=times.indexOf(value); if(idx<0)idx=36; const el=listRef.current.children[idx+1] as HTMLElement; el?.scrollIntoView({block:'center'}) } },[open,value,times])
+  return (
+    <>
+      <button ref={ref} type="button" onClick={openMenu} style={{ width:'100%', boxSizing:'border-box', height:44, background:'var(--bg-surface)', border:'1px solid '+(open?'var(--accent)':'var(--border-subtle)'), borderRadius:12, padding:'0 12px', color:value?'var(--text-primary)':'var(--text-tertiary)', fontSize:14, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', outline:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, transition:'border-color 0.15s' }}>
+        <span>{value||'--:--'}</span><Clock size={15} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>
+      </button>
+      {open&&rect&&createPortal(
+        <div ref={listRef} style={{ position:'fixed', left:rect.left, top:rect.top, width:rect.width, maxHeight:244, overflowY:'auto', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, boxShadow:'0 12px 40px rgba(0,0,0,0.35)', padding:5, zIndex:2000 }}>
+          <button type="button" onClick={()=>{ onChange(''); setOpen(false) }} style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 12px', border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:13, fontFamily:"'Inter',sans-serif", borderRadius:8, cursor:'pointer' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>Καμία ώρα</button>
+          {times.map(t=>{ const active=t===value; return (
+            <button key={t} type="button" onClick={()=>{ onChange(t); setOpen(false) }} style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 12px', border:'none', background:active?'var(--accent-soft)':'transparent', color:active?'var(--accent)':'var(--text-primary)', fontSize:13.5, fontWeight:active?600:400, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', borderRadius:8, cursor:'pointer' }} onMouseEnter={e=>{ if(!active)e.currentTarget.style.background='var(--bg-hover)' }} onMouseLeave={e=>{ if(!active)e.currentTarget.style.background='transparent' }}>{t}</button>
+          )})}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 // Event Modal
 function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts, freeSlots }: {
   form:FormState; setForm:React.Dispatch<React.SetStateAction<FormState>>
@@ -672,13 +701,6 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const chevron="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%239aa0a6'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")"
   const sel: React.CSSProperties = {...fld, appearance:'none' as any, cursor:'pointer', backgroundImage:chevron, backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center', paddingRight:34}
   const lbl: React.CSSProperties = { fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:6 }
-  const templates = [
-    {label:'ΔΕΗ',cat:'bills',pri:'high',title:'Πληρωμή ΔΕΗ'},
-    {label:'Ενοίκιο',cat:'financial',pri:'high',title:'Είσπραξη ενοικίου'},
-    {label:'ΕΝΦΙΑ',cat:'financial',pri:'critical',title:'Πληρωμή ΕΝΦΙΑ'},
-    {label:'Ασφάλεια',cat:'contract',pri:'high',title:'Ανανέωση ασφάλειας'},
-    {label:'Ραντεβού μάστορα',cat:'maintenance',pri:'medium',title:'Ραντεβού με μάστορα'},
-  ]
   const amt=parseFloat(form.amount)
   const canSave=!!form.title.trim()&&!!form.event_date
   return (
@@ -703,13 +725,6 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
                 </button>
               )
             })()}
-            {!editing&&!form.title.trim()&&(
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>
-                {templates.map(t=>(
-                  <button key={t.label} onClick={()=>setForm(f=>({...f,title:t.title,category:t.cat as EventCategory,priority:t.pri as EventPriority}))} style={{ height:30, padding:'0 12px', borderRadius:15, fontSize:12.5, cursor:'pointer', border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", fontWeight:500, transition:'all 0.15s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}>{t.label}</button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Ημερομηνία + Ώρα */}
@@ -720,7 +735,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
             </div>
             <div>
               <label style={lbl}>Ώρα</label>
-              <input type="time" value={form.event_time} onChange={e=>setForm(f=>({...f,event_time:e.target.value}))} onFocus={focus} onBlur={blur} style={fld}/>
+              <TimeField value={form.event_time} onChange={v=>setForm(f=>({...f,event_time:v}))}/>
             </div>
           </div>
 
