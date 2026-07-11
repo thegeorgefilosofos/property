@@ -340,8 +340,8 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
 }
 
 // Month View
-function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, drag, stays=[], onPickMonth }: {
-  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]; onPickMonth?:(monthIndex:number)=>void
+function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[], onPickMonth }: {
+  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]; onPickMonth?:(monthIndex:number)=>void
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -391,20 +391,21 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
               const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
               const dayEvents=day?eventsForDay(day):[]
               const isToday=dateStr===today
+              const isSelected=!!day&&!!selectedDate&&dateStr===selectedDate
               const hasOverdue=dayEvents.some(isOverdue)
               const dayAmt=dayEvents.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
               const hol=day?holidayName(dateStr):null
               const wknd=day?isWeekend(dateStr):false
-              const cellBg=isToday?'var(--accent-dim)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
+              const cellBg=isToday?'var(--accent-dim)':isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
                   {day&&(
                     <>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday?700:400, color:isToday?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
+                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday||isSelected?700:400, color:isToday||isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
                       {hol&&<div title={hol} style={{ fontSize:9.5, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</div>}
@@ -465,26 +466,13 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
           <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_NAMES_GR[currentDate.getMonth()]}</p>
           {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
         </div>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
-          <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Ετήσια δραστηριότητα</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:3 }}>
-            {MONTH_SHORT_GR.map((m,mIdx)=>{ const cnt=upcomingAll.filter(e=>{const d=new Date(e.event_date);return d.getMonth()===mIdx&&d.getFullYear()===currentDate.getFullYear()}).length; const intensity=cnt===0?0:cnt<=2?0.2:cnt<=5?0.5:1; const isCur=mIdx===currentDate.getMonth(); return (
-              <Tooltip key={m} text={`${MONTH_NAMES_GR[mIdx]}: ${cnt} γεγονότα — μετάβαση`}>
-                <button onClick={()=>onPickMonth?.(mIdx)} title={`${MONTH_NAMES_GR[mIdx]}`} style={{ textAlign:'center', border:'none', background:'transparent', padding:0, cursor:onPickMonth?'pointer':'default', width:'100%' }}>
-                  <div style={{ width:'100%', aspectRatio:'1', borderRadius:3, background:`rgba(25,103,210,${intensity})`, border:isCur?'1px solid var(--border-accent)':'1px solid transparent', marginBottom:2, transition:'transform 0.1s' }} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.transform='scale(1.12)'}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.transform='scale(1)'}}/>
-                  <span style={{ fontSize:7, color:isCur?'var(--accent)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontWeight:isCur?700:400 }}>{m.slice(0,1)}</span>
-                </button>
-              </Tooltip>
-            )})}
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
 // Week View
-function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, drag, stays=[] }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; stays?:StaySpan[] }) {
+function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, onEventClick, drag, stays=[] }: { events:CalEvent[]; currentDate:Date; selectedDate?:string; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; stays?:StaySpan[] }) {
   const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
   const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
@@ -501,10 +489,10 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, 
           {/* Επικεφαλίδες ημερών */}
           <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', position:'sticky', top:0, background:'var(--bg-elevated)', zIndex:1 }}>
             <div/>
-            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const hol=holidayName(ds); return (
-              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
-                <p style={{ fontSize:11, fontWeight:600, color:isToday?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday?700:500, background:isToday?'var(--accent)':'transparent', color:isToday?'var(--accent-text)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
+            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const hol=holidayName(ds); return (
+              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:isSel?'color-mix(in srgb, var(--accent) 10%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
+                <p style={{ fontSize:11, fontWeight:600, color:isToday||isSel?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday||isSel?700:500, background:isToday?'var(--accent)':'transparent', boxShadow:isSel?'inset 0 0 0 2px var(--accent)':'none', color:isToday?'var(--accent-text)':isSel?'var(--accent)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
                 {hol&&<p title={hol} style={{ fontSize:9, color:'var(--accent)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
               </div>
             )})}
@@ -623,7 +611,7 @@ function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { even
 // ό,τι έχει νόημα — μακροχρόνια → ενοίκιο & λήξεις μίσθωσης· βραχυχρόνια → κρατήσεις
 // με το όνομα του επισκέπτη. Δείχνει ζωντανά πλήθη ανά πηγή πριν τραβήξει.
 type SyncKey='bills'|'maintenance'|'leases'|'bookings'|'tax'|'loans'
-function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; userId:string; onRefresh:()=>void }) {
+function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:string; userId:string; onRefresh:()=>void; onClose?:()=>void }) {
   const supabase=createClient()
   const [syncing,setSyncing]=useState(false)
   const [mode,setMode]=useState<'long_term'|'short_term'|null>(null)
@@ -747,18 +735,24 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
     :'Τραβάω αυτόματα ό,τι αφορά αυτό το ακίνητο.'
   const totalReady=visible.reduce((s,k)=>s+(enabled[k]&&(counts?.[k]||0)>0?(counts?.[k]||0):0),0)
 
+  const canSync=!(syncing||totalReady===0)
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, padding:18, boxShadow:'var(--shadow-sm)' }}>
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 }}>
-        <div style={{ minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <p style={{ fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
-            {mode&&<span style={{ fontSize:10.5, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+    <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'20px 22px', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 44px -22px rgba(0,0,0,0.6)', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:0, left:24, right:24, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)', opacity:0.7 }}/>
+      {onClose&&<button aria-label="Κλείσιμο" onClick={onClose} style={{ position:'absolute', top:14, right:14, width:32, height:32, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16, paddingRight:38 }}>
+        <div style={{ minWidth:0, display:'flex', gap:12 }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:11, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
+          <div style={{ minWidth:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <p style={{ fontSize:15.5, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
+              {mode&&<span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+            </div>
+            <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
+            {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
           </div>
-          <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
-          {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={syncing||totalReady===0} style={{ display:'flex', alignItems:'center', gap:7, height:38, padding:'0 18px', background:syncing||totalReady===0?'var(--bg-elevated)':'var(--accent)', border:'1px solid '+(syncing||totalReady===0?'var(--border-default)':'var(--accent)'), borderRadius:19, cursor:syncing||totalReady===0?'not-allowed':'pointer', color:syncing||totalReady===0?'var(--text-tertiary)':'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:syncing||totalReady===0?'none':'var(--shadow-sm)' }}>
+        <button onClick={syncAll} disabled={!canSync} style={{ display:'flex', alignItems:'center', gap:8, height:40, padding:'0 20px', background:canSync?'linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, #fff), var(--accent))':'var(--bg-elevated)', border:'1px solid '+(canSync?'var(--accent)':'var(--border-default)'), borderRadius:20, cursor:canSync?'pointer':'not-allowed', color:canSync?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:canSync?'0 8px 20px -8px var(--accent)':'none', transition:'transform 0.14s, box-shadow 0.14s' }} onMouseEnter={e=>{if(canSync){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 12px 26px -8px var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=canSync?'0 8px 20px -8px var(--accent)':'none'}}>
           <RefreshCw size={15} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός…':'Συγχρονισμός τώρα'}
         </button>
       </div>
@@ -766,13 +760,13 @@ function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; u
         {visible.map(k=>{
           const c=counts?.[k]; const has=(c||0)>0; const active=enabled[k]&&has; const meta=META[k]
           return (
-            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'12px 14px', background:active?'var(--accent-soft)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:12, cursor:has?'pointer':'default', opacity:has?1:0.55, textAlign:'left', transition:'all 0.15s' }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:9, flexShrink:0, background:active?'var(--accent)':'var(--bg-surface)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)' }}>{meta.icon}</span>
+            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'13px 15px', background:active?'color-mix(in srgb, var(--accent) 9%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:13, cursor:has?'pointer':'default', opacity:has?1:0.5, textAlign:'left', boxShadow:active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)', transition:'transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s' }} onMouseEnter={e=>{if(has){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=active?'0 12px 26px -12px var(--accent)':'0 8px 20px -12px rgba(0,0,0,0.5)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)'}}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:active?'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000))':'var(--bg-elevated)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)', boxShadow:active?'0 4px 12px -6px var(--accent)':'none' }}>{meta.icon}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:500, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
+                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
                 <p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:1 }}>{counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
               </div>
-              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={20}/>:<ToggleLeft size={20}/>}</span>}
+              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={22}/>:<ToggleLeft size={22}/>}</span>}
             </button>
           )
         })}
@@ -849,7 +843,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px 14px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
           <h3 id="cal-modal-title" style={{ fontFamily:"'Inter',sans-serif", fontSize:17, fontWeight:700, color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
-          <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><X size={17}/></button>
+          <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:32, height:32, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
         </div>
 
         {/* Body */}
@@ -1056,23 +1050,30 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
 // Ζωντανή συνδρομή: το εξωτερικό ημερολόγιο διαβάζει το feed και ενημερώνεται μόνο του.
 function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
   const [copied,setCopied]=useState(false)
+  const [copiedBusy,setCopiedBusy]=useState(false)
   const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
   const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
+  const busyUrl=token?`${base}/functions/v1/bookings-feed?token=${token}&property=${propertyId}`:''
+  const copyBusy=async()=>{ try{ await navigator.clipboard.writeText(busyUrl); setCopiedBusy(true); setTimeout(()=>setCopiedBusy(false),1800) }catch{} }
   const webcalUrl=httpsUrl.replace(/^https?:\/\//,'webcal://')
   const googleUrl=`https://calendar.google.com/calendar/r/settings/addbyurl?url=${encodeURIComponent(httpsUrl)}`
   const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
   const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:44, borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily:"'Inter',sans-serif", cursor:'pointer' }
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:20, width:'100%', maxWidth:520, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', overflow:'hidden' }}>
-        <div style={{ padding:'22px 26px 16px', borderBottom:'1px solid var(--border-subtle)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
-          <div>
-            <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0 }}>Ζωντανή συνδρομή ημερολογίου</h3>
-            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε το μία φορά και το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook — χωρίς χειροκίνητες εξαγωγές.</p>
+    <div style={{ position:'fixed', inset:0, background:'rgba(8,10,14,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', borderRadius:22, width:'100%', maxWidth:500, border:'1px solid var(--border-subtle)', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 40px 90px -30px rgba(0,0,0,0.7)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:0, left:32, right:32, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)' }}/>
+        <div style={{ padding:'24px 28px 18px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+          <div style={{ display:'flex', gap:13 }}>
+            <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
+            <div>
+              <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Ζωντανή συνδρομή</h3>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε μία φορά — το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background:'none', border:'1px solid var(--border-subtle)', borderRadius:'50%', width:30, height:30, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><X size={15}/></button>
+          <button aria-label="Κλείσιμο" onClick={onClose} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, width:32, height:32, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
         </div>
-        <div style={{ padding:'20px 26px 24px', display:'flex', flexDirection:'column', gap:16 }}>
+        <div style={{ padding:'8px 28px 26px', display:'flex', flexDirection:'column', gap:16 }}>
           {!token?(
             <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text-tertiary)', fontSize:13 }}>Δημιουργία συνδέσμου…</div>
           ):(<>
@@ -1090,6 +1091,15 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
             <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:10 }}>
               <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
               <p style={{ fontSize:11.5, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily:"'Inter',sans-serif" }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός — μην τον μοιράζεσαι.</p>
+            </div>
+            {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
+            <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:"'Inter',sans-serif" }}>Μπλοκάρισμα σε Airbnb / Booking</label>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού — κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
+              <div style={{ display:'flex', gap:8 }}>
+                <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:40, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontFamily:"'Inter',sans-serif" }}/>
+                <button onClick={copyBusy} style={{ height:40, padding:'0 16px', borderRadius:10, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
+              </div>
             </div>
           </>)}
         </div>
@@ -1113,8 +1123,8 @@ function NowLine({ show, hour, gutter }: { show:boolean; hour:number; gutter:num
   )
 }
 
-function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
-  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl
+function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResize }: {
+  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; onResize?:(id:string,dur:number)=>void
 }) {
   const y=currentDate.getFullYear(), m=currentDate.getMonth(), d=currentDate.getDate()
   const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
@@ -1123,6 +1133,20 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
+  const HOUR_H=58, START_MIN=7*60, END_MIN=23*60
+  const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
+  const laid=layoutDay(timed,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
+  // Resize με σύρσιμο της κάτω λαβής (ns-resize) — ζωντανή προεπισκόπηση ύψους.
+  const rz=useRef<{id:string;startY:number;startDur:number}|null>(null)
+  const resized=useRef(false)
+  const [rzDur,setRzDur]=useState<{id:string;dur:number}|null>(null)
+  useEffect(()=>{
+    const move=(ev:PointerEvent)=>{ const s=rz.current; if(!s)return; ev.preventDefault(); resized.current=true; const dur=Math.max(15,Math.min(720,Math.round((s.startDur+(ev.clientY-s.startY)/HOUR_H*60)/15)*15)); setRzDur({id:s.id,dur}) }
+    const up=()=>{ const s=rz.current; rz.current=null; if(s&&resized.current&&rzDur&&onResize)onResize(s.id,rzDur.dur); setRzDur(null); setTimeout(()=>{resized.current=false},60) }
+    window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',up)
+    return ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
+  },[rzDur,onResize])
+  const startResize=(id:string,dur:number)=>(ev:React.PointerEvent)=>{ if(ev.button&&ev.button!==0)return; ev.stopPropagation(); ev.preventDefault(); resized.current=false; rz.current={id,startY:ev.clientY,startDur:dur} }
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
@@ -1136,32 +1160,32 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
         </div>
       )}
       <div style={{ maxHeight:600, overflowY:'auto' }}>
-        {HOURS.map(h=>{
-          const hh=String(h).padStart(2,'0')
-          const evs=timed.filter(e=>parseInt((e.event_time||'0:0').split(':')[0])===h)
-          // Σωστές στήλες για ταυτόχρονα ραντεβού (interval-graph coloring) αντί για wrap.
-          const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
-          const laid=layoutDay(evs,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
-          const laneOf=new Map(laid.map(l=>[l.event as CalEvent,l]))
-          const cols=Math.max(1,...laid.map(l=>l.lanes))
-          const ordered=[...evs].sort((a,b)=>((laneOf.get(a)?.lane||0)-(laneOf.get(b)?.lane||0)))
-          return (
-            <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
+        <div style={{ position:'relative', height:HOURS.length*HOUR_H }}>
+          {/* Υπόβαθρο: γραμμές ωρών + κλικ για νέο ραντεβού */}
+          {HOURS.map((h,i)=>{ const hh=String(h).padStart(2,'0'); return (
+            <div key={h} onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ position:'absolute', top:i*HOUR_H, left:0, right:0, height:HOUR_H, borderBottom:'1px solid var(--border-subtle)', cursor:'pointer' }}>
               <NowLine show={isToday} hour={h} gutter={60}/>
-              <div style={{ width:60, flexShrink:0, padding:'6px 8px', textAlign:'right', fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'nowrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
-                {ordered.map(e=>(
-                  <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ touchAction:'none', flex:`1 1 calc(${100/cols}% - 4px)`, minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
-                    <span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600, flexShrink:0 }}>{e.event_time}</span>
-                    {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.6, flexShrink:0 }}/>}
-                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
-                    {e.amount!=null&&cols===1&&<span style={{ marginLeft:'auto', color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{e.amount.toLocaleString('el-GR')} €</span>}
-                  </button>
-                ))}
-              </div>
+              <span style={{ position:'absolute', left:8, top:4, fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</span>
+              <div style={{ position:'absolute', left:60, top:0, bottom:0, width:1, background:'var(--border-subtle)' }}/>
             </div>
-          )
-        })}
+          )})}
+          {/* Γεγονότα: αναλογικό ύψος (διάρκεια) + στήλες για επικαλύψεις + λαβή resize */}
+          {laid.map(l=>{ const e=l.event as CalEvent
+            const liveDur=rzDur&&rzDur.id===e.id?rzDur.dur:(e.duration_minutes||60)
+            const s=Math.max(l.startMin,START_MIN), en=Math.min(s+liveDur,END_MIN)
+            if(en<=s)return null
+            const top=(s-START_MIN)/60*HOUR_H, height=Math.max(24,(en-s)/60*HOUR_H-2)
+            const left=`calc(62px + (100% - 66px) * ${l.lane} / ${l.lanes})`, width=`calc((100% - 66px) / ${l.lanes} - 3px)`
+            return (
+              <button key={e.id} onClick={ev=>{ev.stopPropagation(); if(resized.current)return; onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ position:'absolute', top, height, left, width, boxSizing:'border-box', display:'flex', flexDirection:'column', gap:2, padding:'5px 8px', borderRadius:9, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:12.5, fontWeight:500, cursor:'pointer', opacity:e._virtual?0.78:1, textAlign:'left', overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
+                <span style={{ display:'flex', alignItems:'center', gap:5 }}><span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600 }}>{e.event_time}</span>{(e.recurring||e._virtual)&&<RotateCcw size={9} style={{ opacity:0.6 }}/>}</span>
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
+                {rzDur&&rzDur.id===e.id&&<span style={{ fontSize:10.5, color:'var(--accent)', fontVariantNumeric:'tabular-nums' }}>{Math.floor(liveDur/60)?`${Math.floor(liveDur/60)}ω `:''}{liveDur%60?`${liveDur%60}′`:''}</span>}
+                {!e._virtual&&onResize&&<div onPointerDown={startResize(e.id,e.duration_minutes||60)} title="Σύρε για διάρκεια" style={{ position:'absolute', left:0, right:0, bottom:0, height:9, cursor:'ns-resize', touchAction:'none' }}><div style={{ position:'absolute', left:'50%', bottom:2, transform:'translateX(-50%)', width:24, height:3, borderRadius:2, background:'var(--accent)', opacity:0.5 }}/></div>}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -1174,6 +1198,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [loading,setLoading]=useState(true)
   const [viewMode,setViewMode]=useState<ViewMode>('month')
   const [currentDate,setCurrentDate]=useState(athensNow())
+  const [selectedDate,setSelectedDate]=useState<string>(todayStr())
   const [showModal,setShowModal]=useState(false)
   const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
   const [editOccDate,setEditOccDate]=useState<string|null>(null)   // ημερομηνία της συγκεκριμένης εμφάνισης
@@ -1362,6 +1387,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...patch}:e))
     await supabase.from('calendar_events').update(patch).eq('id',id)
   }
+  // Αλλαγή διάρκειας με σύρσιμο (resize) — ελάχιστη 15', μέγιστη 12 ώρες.
+  async function resizeEvent(id:string, durationMinutes:number){
+    if(id.includes('__'))return
+    const dur=Math.max(15,Math.min(720,Math.round(durationMinutes/15)*15))
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,duration_minutes:dur}:e))
+    await supabase.from('calendar_events').update({duration_minutes:dur}).eq('id',id)
+  }
 
   async function saveEvent(){
     if(!form.title||!form.event_date)return
@@ -1503,15 +1535,18 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {[
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-primary)', icon:<Clock size={14}/>},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>},
         ].map(kpi=>(
-          <div key={kpi.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-              <span style={{ color:kpi.color, opacity:0.8 }}>{kpi.icon}</span>
+          <div key={kpi.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', transition:'transform 0.16s ease, box-shadow 0.16s ease' }}
+            onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
+            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:kpi.color, opacity:0.55 }}/>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{kpi.label}</p>
             </div>
-            <p style={{ fontSize:16, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:400 }}>{kpi.value}</p>
+            <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -1626,13 +1661,22 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <span style={{ fontSize:11, fontVariantNumeric:'tabular-nums', color:active?color:'var(--text-tertiary)', background:'var(--bg-elevated)', borderRadius:9, padding:'1px 6px', minWidth:16, boxSizing:'border-box', textAlign:'center' }}>{count}</span>
           </button>
         )
+        const activeCount=(filterCat!=='all'?1:0)+(filterStatus!=='all'?1:0)+(searchQ?1:0)+((dateFrom||dateTo)?1:0)
         return (
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'14px 16px', boxShadow:'var(--shadow-sm)', display:'flex', flexDirection:'column', gap:14 }}>
-          <div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:9, minHeight:28 }}>
-              <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>Κατηγορία</p>
-              <button onClick={()=>{setFilterCat('all');setFilterStatus('all');setSearchQ('');setDateFrom('');setDateTo('')}} style={{ visibility:anyActive?'visible':'hidden', display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--negative)';e.currentTarget.style.color='var(--negative)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={12}/>Καθάρισε φίλτρα</button>
+        <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:16, padding:'16px 18px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -18px rgba(0,0,0,0.55)', display:'flex', flexDirection:'column', gap:16 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <Filter size={14} style={{ color:'var(--accent)' }}/>
+              <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Φίλτρα</p>
+              {activeCount>0&&<span style={{ fontSize:10.5, fontWeight:700, color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'1px 8px', fontFamily:"'Inter',sans-serif" }}>{activeCount} ενεργά</span>}
             </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <button onClick={()=>{setFilterCat('all');setFilterStatus('all');setSearchQ('');setDateFrom('');setDateTo('')}} disabled={!anyActive} style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid '+(anyActive?'var(--border-default)':'var(--border-subtle)'), background:'var(--bg-surface)', color:anyActive?'var(--text-secondary)':'var(--text-tertiary)', fontSize:12.5, fontWeight:500, cursor:anyActive?'pointer':'not-allowed', opacity:anyActive?1:0.5, fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{if(anyActive){e.currentTarget.style.borderColor='var(--negative)';e.currentTarget.style.color='var(--negative)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=anyActive?'var(--border-default)':'var(--border-subtle)';e.currentTarget.style.color=anyActive?'var(--text-secondary)':'var(--text-tertiary)'}}><RotateCcw size={12}/>Καθάρισε</button>
+              <button aria-label="Κλείσιμο φίλτρων" onClick={()=>setShowFilters(false)} style={{ width:32, height:32, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
+            </div>
+          </div>
+          <div>
+            <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:9 }}>Κατηγορία</p>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               <Chip active={filterCat==='all'} color="var(--accent)" onClick={()=>setFilterCat('all')} label="Όλες" count={catBase.length}/>
               {Object.entries(CATEGORIES).map(([k,v])=>(
@@ -1652,9 +1696,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           <div>
             <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:9 }}>Εύρος ημερομηνιών</p>
             <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} aria-label="Από ημερομηνία" style={{ height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", colorScheme:'dark light' as any }}/>
+              <div style={{ width:170 }}><DatePicker value={dateFrom} onChange={setDateFrom}/></div>
               <span style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>έως</span>
-              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} aria-label="Έως ημερομηνία" style={{ height:34, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", colorScheme:'dark light' as any }}/>
+              <div style={{ width:170 }}><DatePicker value={dateTo} onChange={setDateTo}/></div>
               {(dateFrom||dateTo)&&<button onClick={()=>{setDateFrom('');setDateTo('')}} style={{ height:30, padding:'0 10px', borderRadius:15, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Καθαρισμός</button>}
             </div>
           </div>
@@ -1662,13 +1706,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         )
       })()}
 
-      {showAutoPull&&<AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load}/>}
+      {showAutoPull&&<AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load} onClose={()=>setShowAutoPull(false)}/>}
 
       {loading&&<Spinner label="Φόρτωση…" />}
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
+          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1679,9 +1723,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag}/>}
+      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} onResize={resizeEvent}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setSelectedDate(date);setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
