@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx lib/billing/parse.test.ts && tsx lib/billing/scenarios.test.ts && tsx lib/billing/documents.test.ts && tsx lib/billing/propertyFacts.test.ts && tsx app/dashboard/components/assistantPersona.test.ts && tsx lib/insights/engine.test.ts && tsx lib/billing/plans.test.ts && tsx lib/billing/greekTax.test.ts && tsx lib/billing/e2.test.ts && tsx app/dashboard/components/comparableStats.test.ts && tsx lib/reportBranding.test.ts && tsx lib/clients/clients.test.ts && tsx lib/calendar/externalLinks.test.ts && tsx lib/calendar/greekHolidays.test.ts && tsx lib/calendar/recurrence.test.ts && tsx lib/calendar/quickAdd.test.ts && tsx lib/calendar/availability.test.ts && tsx lib/calendar/icsImport.test.ts && tsx lib/calendar/calendar.integration.test.ts"
+    "test": "tsx lib/billing/parse.test.ts && tsx lib/billing/scenarios.test.ts && tsx lib/billing/documents.test.ts && tsx lib/billing/propertyFacts.test.ts && tsx app/dashboard/components/assistantPersona.test.ts && tsx lib/insights/engine.test.ts && tsx lib/billing/plans.test.ts && tsx lib/billing/greekTax.test.ts && tsx lib/billing/e2.test.ts && tsx app/dashboard/components/comparableStats.test.ts && tsx lib/reportBranding.test.ts && tsx lib/clients/clients.test.ts && tsx lib/calendar/externalLinks.test.ts && tsx lib/calendar/greekHolidays.test.ts && tsx lib/calendar/recurrence.test.ts && tsx lib/calendar/quickAdd.test.ts && tsx lib/calendar/availability.test.ts && tsx lib/calendar/icsImport.test.ts && tsx lib/calendar/notify.test.ts && tsx lib/calendar/calendar.integration.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
