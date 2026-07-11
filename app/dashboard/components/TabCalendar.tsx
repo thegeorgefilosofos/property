@@ -794,6 +794,51 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
   )
 }
 
+// Ζωντανή συνδρομή: το εξωτερικό ημερολόγιο διαβάζει το feed και ενημερώνεται μόνο του.
+function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
+  const [copied,setCopied]=useState(false)
+  const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
+  const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
+  const webcalUrl=httpsUrl.replace(/^https?:\/\//,'webcal://')
+  const googleUrl=`https://calendar.google.com/calendar/r/settings/addbyurl?url=${encodeURIComponent(httpsUrl)}`
+  const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
+  const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:44, borderRadius:12, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily:"'Inter',sans-serif", cursor:'pointer' }
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:20, width:'100%', maxWidth:520, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', overflow:'hidden' }}>
+        <div style={{ padding:'22px 26px 16px', borderBottom:'1px solid var(--border-subtle)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+          <div>
+            <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0 }}>Ζωντανή συνδρομή ημερολογίου</h3>
+            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε το μία φορά και το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook — χωρίς χειροκίνητες εξαγωγές.</p>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'1px solid var(--border-subtle)', borderRadius:'50%', width:30, height:30, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><X size={15}/></button>
+        </div>
+        <div style={{ padding:'20px 26px 24px', display:'flex', flexDirection:'column', gap:16 }}>
+          {!token?(
+            <div style={{ padding:'24px 0', textAlign:'center', color:'var(--text-tertiary)', fontSize:13 }}>Δημιουργία συνδέσμου…</div>
+          ):(<>
+            <div>
+              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:7, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:"'Inter',sans-serif" }}>Σύνδεσμος συνδρομής</label>
+              <div style={{ display:'flex', gap:8 }}>
+                <input readOnly value={httpsUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:40, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontFamily:"'Inter',sans-serif" }}/>
+                <button onClick={copy} style={{ height:40, padding:'0 16px', borderRadius:10, border:'none', background:copied?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <a href={googleUrl} target="_blank" rel="noreferrer" style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><Calendar size={16}/>Google Calendar</a>
+              <a href={webcalUrl} style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarDays size={16}/>Apple / Outlook</a>
+            </div>
+            <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:10 }}>
+              <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
+              <p style={{ fontSize:11.5, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily:"'Inter',sans-serif" }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός — μην τον μοιράζεσαι.</p>
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Προβολή Ημέρας — πλέγμα ωρών με ραντεβού. Κλικ σε ώρα → νέο γεγονός σε εκείνη την ώρα.
 function DayView({ events, currentDate, onSlotClick, onEventClick }: {
   events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void
@@ -860,7 +905,20 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set())
   const [timelineYear,setTimelineYear]=useState(new Date().getFullYear())
   const [showMenu,setShowMenu]=useState(false)
+  const [showSubscribe,setShowSubscribe]=useState(false)
+  const [feedToken,setFeedToken]=useState<string|null>(null)
   const menuRef=useRef<HTMLDivElement>(null)
+  async function openSubscribe(){
+    setShowMenu(false)
+    let token=feedToken
+    if(!token){
+      const{data}=await supabase.from('calendar_feed_tokens').select('token').eq('user_id',userId).maybeSingle()
+      token=data?.token||null
+      if(!token){ const{data:ins}=await supabase.from('calendar_feed_tokens').insert({user_id:userId}).select('token').single(); token=(ins as any)?.token||null }
+      setFeedToken(token)
+    }
+    setShowSubscribe(true)
+  }
   useEffect(()=>{ if(!showMenu)return; const h=(ev:MouseEvent)=>{ if(menuRef.current&&!menuRef.current.contains(ev.target as Node))setShowMenu(false) }; document.addEventListener('mousedown',h); return ()=>document.removeEventListener('mousedown',h) },[showMenu])
 
   useEffect(()=>{
@@ -1089,6 +1147,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                 {label: bulkMode?'Τέλος επιλογής':'Επιλογή για μαζικές ενέργειες', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
                 {label: showFilters?'Απόκρυψη φίλτρων':'Φίλτρα', icon:<Filter size={15}/>, on:()=>{setShowFilters(f=>!f);setShowMenu(false)}},
                 {label:'Συγχρονισμός δεδομένων', icon:<RefreshCw size={15}/>, on:()=>{setShowAutoPull(f=>!f);setShowMenu(false)}},
+                {label:'Συνδρομή σε ζωντανό ημερολόγιο', icon:<CalendarPlus size={15}/>, on:openSubscribe},
                 {label:'Λήψη αρχείου .ics', icon:<Download size={15}/>, on:()=>{exportICal();setShowMenu(false)}},
                 {label:'Εξαγωγή σε Excel/CSV', icon:<FileText size={15}/>, on:()=>{downloadCsv(`imerologio_${new Date().toISOString().slice(0,10)}`,['Ημερομηνία','Τίτλος','Κατηγορία','Ποσό (€)','Κατάσταση'],[...filtered].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map(e=>[csvDate(e.event_date),e.title,CATEGORIES[e.category]?.label||e.category,csvEur(e.amount),STATUSES[e.status]?.label||e.status]));setShowMenu(false)}},
                 {label:'Εκτύπωση', icon:<Printer size={15}/>, on:()=>{printCalendar();setShowMenu(false)}},
@@ -1171,6 +1230,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       {!loading&&viewMode==='year'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear}/>}
 
       {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} propertyId={propertyId}/>}
+      {showSubscribe&&<SubscribeModal token={feedToken} propertyId={propertyId} onClose={()=>setShowSubscribe(false)}/>}
     </div>
   )
 }
