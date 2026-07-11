@@ -153,25 +153,26 @@ function downloadEventIcs(e: CalEvent) {
 // «Πρόσθεσε σε ημερολόγιο» + «Κοινοποίηση» — ένα διακριτικό μενού, portal ώστε να
 // μη κόβεται. Καλύπτει Google / Outlook / Office 365 / Apple(.ics) / Yahoo και
 // κοινοποίηση σε WhatsApp / Viber. Καθαροί σύνδεσμοι, χωρίς backend.
-function AddToCalendarMenu({ event }: { event: CalEvent }) {
+function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: CalEvent; onEdit?:(e:CalEvent)=>void; onDelete?:(id:string)=>void; onOpenChange?:(open:boolean)=>void }) {
   const [open,setOpen]=useState(false)
   const btnRef=useRef<HTMLButtonElement>(null)
   const popRef=useRef<HTMLDivElement>(null)
   const [pos,setPos]=useState({top:0,left:0})
-  const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=356; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
-  useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpen(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
+  const setOpenX=(v:boolean|((o:boolean)=>boolean))=>setOpen(prev=>{ const next=typeof v==='function'?v(prev):v; onOpenChange?.(next); return next })
+  const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=420; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
+  useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpenX(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
   const links=allCalendarLinks(toCalInput(event))
-  const row=(label:string,onClick:()=>void,icon:React.ReactNode)=>(
-    <button key={label} type="button" onClick={()=>{onClick();setOpen(false)}} style={{ display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 12px',border:'none',background:'transparent',cursor:'pointer',textAlign:'left',color:'var(--text-primary)',fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:8,transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-      <span style={{ color:'var(--text-tertiary)',display:'flex',flexShrink:0 }}>{icon}</span>{label}
+  const row=(label:string,onClick:()=>void,icon:React.ReactNode,danger?:boolean)=>(
+    <button key={label} type="button" onClick={()=>{onClick();setOpenX(false)}} style={{ display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 12px',border:'none',background:'transparent',cursor:'pointer',textAlign:'left',color:'var(--text-primary)',fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:8,transition:'background 0.12s, color 0.12s' }} onMouseEnter={e=>{e.currentTarget.style.background=danger?'var(--negative-dim)':'var(--bg-hover)';if(danger)e.currentTarget.style.color='var(--negative)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';if(danger)e.currentTarget.style.color='var(--text-primary)'}}>
+      <span style={{ color:danger?'inherit':'var(--text-tertiary)',display:'flex',flexShrink:0 }}>{icon}</span>{label}
     </button>
   )
   const openExt=(href:string)=>window.open(href,'_blank','noopener,noreferrer')
   return (
     <>
-      <button ref={btnRef} type="button" aria-label="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" title="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" onClick={e=>{e.stopPropagation();setOpen(o=>!o)}}
+      <button ref={btnRef} type="button" aria-label="Ενέργειες" title="Ενέργειες" onClick={e=>{e.stopPropagation();setOpenX(o=>!o)}}
         style={{ display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:'50%',border:'1px solid '+(open?'var(--border-default)':'transparent'),background:open?'var(--bg-elevated)':'transparent',cursor:'pointer',color:'var(--text-secondary)',flexShrink:0,transition:'all 0.15s' }}>
-        <CalendarPlus size={15}/>
+        <MoreHorizontal size={16}/>
       </button>
       {open&&createPortal(
         <div ref={popRef} style={{ position:'fixed',top:pos.top,left:pos.left,width:232,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,0.35)',padding:6,zIndex:2000 }}>
@@ -185,6 +186,9 @@ function AddToCalendarMenu({ event }: { event: CalEvent }) {
           <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'2px 12px 4px',fontFamily:"'Inter',sans-serif" }}>Κοινοποίηση</div>
           {row('WhatsApp',()=>openExt(links.whatsapp),<Share2 size={15}/>)}
           {row('Viber',()=>openExt(links.viber),<Share2 size={15}/>)}
+          {(onEdit||onDelete)&&<div style={{ height:1,background:'var(--border-subtle)',margin:'6px 8px' }}/>}
+          {onEdit&&row('Επεξεργασία',()=>onEdit(event),<Edit2 size={15}/>)}
+          {onDelete&&row('Διαγραφή',()=>onDelete(event.id),<Trash2 size={15}/>,true)}
         </div>, document.body)}
     </>
   )
@@ -199,18 +203,15 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   const cat     = CATEGORIES[event.category]
   const isAuto  = event.source!=='manual'
   const due     = daysUntil(event.event_date)
-  const tooltipText = [
-    event.notes?`${event.notes}`:'',
-    event.recurring?`Επαναλαμβάνεται: ${RECURRING_OPTIONS.find(o=>o.value===event.recurring_interval)?.label??''}` : '',
-    isAuto?`Δημιουργήθηκε αυτόματα`:'',
-  ].filter(Boolean).join('\n')
   const relLbl = (n:number) => { const a=Math.abs(n); return a===1?'1 ημέρα':`${a} ημέρες` }
+  const [hover,setHover]=useState(false)
+  const [menuOpen,setMenuOpen]=useState(false)
   // Χρώμα μόνο όπου μετράει: η αριστερή γραμμή δείχνει κατηγορία (διακριτικά), ή
   // κόκκινο όταν εκπρόθεσμο. Χωρίς πολύχρωμα badges/πηγή — καθαρή, ακριβή αίσθηση.
   const accentBar = overdue?'var(--negative)':`color-mix(in srgb, ${cat.color} 50%, transparent)`
 
   return (
-    <div style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
+    <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
       background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
       border:`1px solid ${selected?'var(--border-accent)':overdue?'var(--negative-border)':'var(--border-subtle)'}`,
       borderLeft:`3px solid ${accentBar}`,
@@ -232,14 +233,13 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
             {event.title}
           </span>
           {event.recurring&&<Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={11} color="var(--text-tertiary)" style={{ flexShrink:0 }}/></Tooltip>}
-          {tooltipText&&<Tooltip text={tooltipText}><Info size={11} color="var(--text-tertiary)" style={{ cursor:'help', flexShrink:0 }}/></Tooltip>}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:9, flexWrap:'wrap' }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
             <span style={{ width:7, height:7, borderRadius:2, background:cat.color, flexShrink:0 }}/>
             <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', letterSpacing:'0.3px' }}>{cat.label}</span>
           </span>
-          <StatusDot status={event.status}/>
+          {event.status!=='pending'&&<StatusDot status={event.status}/>}
           {event.amount!=null&&(
             <span style={{ fontSize:13, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontWeight:500 }}>
               {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
@@ -253,20 +253,12 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5, flexShrink:0 }}>
-        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:overdue||due===0?600:400, color:overdue?'var(--negative)':due===0?'var(--text-primary)':'var(--text-secondary)' }}>
+        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:due===0?600:400, color:due===0?'var(--text-primary)':'var(--text-secondary)' }}>
           {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
         {!bulkMode&&(
-          <div style={{ display:'flex', gap:2, alignItems:'center' }}>
-            <AddToCalendarMenu event={event}/>
-            {!isAuto&&(
-              <button aria-label="Επεξεργασία" title="Επεξεργασία" onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
-                onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'}
-                onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Edit2 size={13}/></button>
-            )}
-            <button aria-label="Διαγραφή" title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
-              onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
-              onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
+          <div style={{ display:'flex', gap:2, alignItems:'center', opacity:(hover||menuOpen)?1:0, pointerEvents:(hover||menuOpen)?'auto':'none', transition:'opacity 0.13s' }}>
+            <AddToCalendarMenu event={event} onEdit={isAuto?undefined:onEdit} onDelete={onDelete} onOpenChange={setMenuOpen}/>
           </div>
         )}
       </div>
@@ -413,6 +405,11 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
         </div>
       </div>
       <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
+          <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_NAMES_GR[currentDate.getMonth()]}</p>
+          {events.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Κανένα γεγονός</p>}
+          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
+        </div>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
           <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
           {upcoming7.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Κανένα εκκρεμές</p>}
@@ -422,7 +419,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               const when=d===0?'Σήμερα':d===1?'Αύριο':`σε ${d} ημέρες`
               const soon=d<=1
               return (
-                <div key={ev.id} title={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''} — ${when}`} style={{ display:'flex', gap:9, alignItems:'flex-start' }}>
+                <div key={ev.id} title={`${ev.title}${ev.event_time?`, ${ev.event_time}`:''} ${when}`} style={{ display:'flex', gap:9, alignItems:'flex-start' }}>
                   <div style={{ width:3, borderRadius:2, background:cat.color, alignSelf:'stretch', flexShrink:0, minHeight:30, opacity:0.85 }}/>
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:12.5, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', lineHeight:1.35, marginBottom:3, letterSpacing:'0.1px' }}>{ev.title}</p>
@@ -436,10 +433,6 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             })}
           </div>
         </div>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
-          <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_NAMES_GR[currentDate.getMonth()]}</p>
-          {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
-        </div>
       </div>
     </div>
   )
@@ -452,11 +445,9 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
   const today=todayStr()
   const weekHasToday=weekDays.some(wd=>dsOf(wd)===today)
-  // Δυναμικό παράθυρο ωρών (default 07–22) ώστε να μη «χάνεται» γεγονός εκτός ωραρίου.
-  const wkTimed=events.filter(e=>!!e.event_time)
-  const wkStartH=Math.max(0,Math.min(7,...wkTimed.map(e=>parseInt((e.event_time||'0:0').split(':')[0]))))
-  const wkEndH=Math.min(24,Math.max(23,...wkTimed.map(e=>{const[h,m]=(e.event_time||'0:0').split(':').map(Number);return Math.ceil((h*60+(m||0)+(e.duration_minutes||60))/60)})))
-  const HOURS=Array.from({length:Math.max(1,wkEndH-wkStartH)},(_,i)=>i+wkStartH)
+  // Πλήρες 24ωρο (00:00–24:00) — με scroll για όλη τη μέρα.
+  const wkStartH=0, wkEndH=24
+  const HOURS=Array.from({length:wkEndH-wkStartH},(_,i)=>i+wkStartH)
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const weekHasStay=weekDays.some(wd=>staysOnDay(stays,dsOf(wd)).length>0)
   const hasAllDay=weekHasStay||weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time&&!(e.source||'').startsWith('booking:')))
@@ -467,11 +458,11 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
           {/* Επικεφαλίδες ημερών */}
           <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', position:'sticky', top:0, background:'var(--bg-elevated)', zIndex:1 }}>
             <div/>
-            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const hol=holidayName(ds); return (
-              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:isSel?'color-mix(in srgb, var(--accent) 10%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
-                <p style={{ fontSize:11, fontWeight:600, color:isToday||isSel?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday||isSel?700:500, background:isToday?'var(--accent)':'transparent', boxShadow:isSel?'inset 0 0 0 2px var(--accent)':'none', color:isToday?'var(--accent-text)':isSel?'var(--accent)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
-                {hol&&<p title={hol} style={{ fontSize:9, color:'var(--accent)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
+            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const mark=isToday||isSel; const hol=holidayName(ds); return (
+              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Επιλογή ημέρας'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:'transparent' }}>
+                <p style={{ fontSize:11, fontWeight:600, color:mark?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:mark?700:500, background:mark?'var(--accent)':'transparent', color:mark?'var(--accent-text)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
+                {hol&&<p title={hol} style={{ fontSize:9, color:'var(--text-tertiary)', fontWeight:500, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
               </div>
             )})}
           </div>
@@ -501,8 +492,8 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
               <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
                 <NowLine show={weekHasToday} hour={h} gutter={56}/>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'right', padding:'4px 8px', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-                {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
-                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} data-drop-date={ds} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
+                {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
+                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} data-drop-date={ds} data-drop-time={`${hh}:00`} title="Επιλογή ώρας · πάτησε «Νέο» για καταχώρηση" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:'transparent' }}>
                     {evs.map(ev=>(
                       <button key={ev.id} onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ touchAction:'none', display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
                         <span style={{ color:'var(--accent)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{ev.event_time}</span> <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</span>
@@ -1112,10 +1103,9 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
-  // Το παράθυρο ωρών (default 07–22) επεκτείνεται ώστε να μη «χάνεται» κανένα γεγονός εκτός ωραρίου.
-  const startH=Math.max(0,Math.min(7,...timed.map(e=>Math.floor(toMin(e.event_time)/60))))
-  const endH=Math.min(24,Math.max(23,...timed.map(e=>Math.ceil((toMin(e.event_time)+(e.duration_minutes||60))/60))))
-  const HOURS=Array.from({length:Math.max(1,endH-startH)},(_,i)=>i+startH)
+  // Πλήρες 24ωρο (00:00–24:00) — με scroll για όλη τη μέρα.
+  const startH=0, endH=24
+  const HOURS=Array.from({length:endH-startH},(_,i)=>i+startH)
   const HOUR_H=58, START_MIN=startH*60, END_MIN=endH*60
   const laid=layoutDay(timed,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
   // Resize με σύρσιμο της κάτω λαβής (ns-resize) — ζωντανή προεπισκόπηση ύψους.
@@ -1145,7 +1135,7 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
         <div style={{ position:'relative', height:HOURS.length*HOUR_H }}>
           {/* Υπόβαθρο: γραμμές ωρών + κλικ για νέο ραντεβού */}
           {HOURS.map((h,i)=>{ const hh=String(h).padStart(2,'0'); return (
-            <div key={h} onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ position:'absolute', top:i*HOUR_H, left:0, right:0, height:HOUR_H, borderBottom:'1px solid var(--border-subtle)', cursor:'pointer' }}>
+            <div key={h} onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Επιλογή ώρας · πάτησε «Νέο» για καταχώρηση" style={{ position:'absolute', top:i*HOUR_H, left:0, right:0, height:HOUR_H, borderBottom:'1px solid var(--border-subtle)', cursor:'pointer' }}>
               <NowLine show={isToday} hour={h} gutter={60}/>
               <span style={{ position:'absolute', left:8, top:4, fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</span>
               <div style={{ position:'absolute', left:60, top:0, bottom:0, width:1, background:'var(--border-subtle)' }}/>
@@ -1181,6 +1171,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [viewMode,setViewMode]=useState<ViewMode>('month')
   const [currentDate,setCurrentDate]=useState(athensNow())
   const [selectedDate,setSelectedDate]=useState<string>(todayStr())
+  const [pendingTime,setPendingTime]=useState<string>('')
   const [showModal,setShowModal]=useState(false)
   const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
   const [editOccDate,setEditOccDate]=useState<string|null>(null)   // ημερομηνία της συγκεκριμένης εμφάνισης
@@ -1337,7 +1328,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     ? findConflicts({id:editingEvent?.id,date:form.event_date,time:form.event_time,durationMinutes:form.duration?parseInt(form.duration):60,status:form.status}, events.map(e=>({id:e.id,date:e.event_date,time:e.event_time,durationMinutes:e.duration_minutes,status:e.status}))).length
     : 0, [showModal,form.event_time,form.event_date,form.duration,form.status,editingEvent,events])
 
-  function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
+  // Το κλικ σε μέρα/ώρα ΜΟΝΟ επιλέγει (δεν ανοίγει φόρμα). Η φόρμα ανοίγει με «Νέο»,
+  // προσυμπληρωμένη με την επιλεγμένη μέρα και (αν υπάρχει) την επιλεγμένη ώρα.
+  function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||selectedDate||todayStr(),event_time:pendingTime||''});setPendingTime('');setShowModal(true)}
   function openEdit(ev:CalEvent){
     // Εικονική εμφάνιση επαναλαμβανόμενου → φόρτωσε τη ΣΕΙΡΑ (base) αλλά κράτα ποια μέρα άνοιξε.
     const e=ev._virtual&&ev._seriesId?(events.find(x=>x.id===ev._seriesId)||ev):ev
@@ -1512,7 +1505,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {([
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', icon:<Clock size={14}/>, onClick:undefined, open:false},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>, onClick:undefined, open:false},
         ] as {label:string;value:string;color:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
           const clickable=!!kpi.onClick
@@ -1524,7 +1517,6 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
               <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', flex:1 }}>{kpi.label}</p>
-              {clickable&&<ChevronDown size={15} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:kpi.open?'rotate(180deg)':'none', transition:'transform 0.18s' }}/>}
             </div>
             <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
           </div>
@@ -1533,50 +1525,35 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {/* Εκπρόθεσμα — αναλυτικά, χρονολογικά (παλαιότερο πρώτο) */}
       {showOverdue&&overdue.length>0&&(
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--negative-border)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--negative-dim)' }}>
-            <AlertTriangle size={14} color="var(--negative)"/>
-            <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', margin:0, flex:1, letterSpacing:'0.1px' }}>Εκπρόθεσμα · {overdue.length}</p>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
+            <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--negative)', flexShrink:0 }}/>
+            <p style={{ fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', margin:0, flex:1, letterSpacing:'0.06em', textTransform:'uppercase' }}>Εκπρόθεσμα · {overdue.length}</p>
             <button aria-label="Κλείσιμο" onClick={()=>setShowOverdue(false)} style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.borderColor='var(--border-default)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-subtle)'}}><X size={14}/></button>
           </div>
           <div>
             {[...overdue].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map((e,i,arr)=>{ const late=Math.abs(daysUntil(e.event_date)); const cat=CATEGORIES[e.category]; return (
               <button key={e.id} onClick={()=>openEdit(e)} style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left', padding:'11px 16px', border:'none', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none', background:'transparent', cursor:'pointer', transition:'background 0.12s' }} onMouseEnter={ev=>ev.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
-                <span style={{ width:8, height:8, borderRadius:2, background:cat.color, flexShrink:0 }}/>
+                <span style={{ width:7, height:7, borderRadius:2, background:cat.color, flexShrink:0 }}/>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>{e.title}</p>
                   <p style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', margin:'2px 0 0' }}>{fmt(e.event_date)}{e.event_time?` · ${e.event_time}`:''}</p>
                 </div>
                 {e.amount!=null&&<span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{e.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
-                <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
+                <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
               </button>
             )})}
           </div>
         </div>
       )}
 
-      {/* Smart Alerts */}
-      {(overdue.length>0||expiring.length>0)&&(
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {overdue.length>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderRadius:8, padding:'10px 16px' }}>
-              <AlertTriangle size={14} color="var(--negative)"/>
-              <p style={{ fontSize:14, color:'var(--negative)', fontFamily:"'Inter',sans-serif", flex:1, letterSpacing:'0.25px' }}>
-                {overdue.length} εκπρόθεσμ{overdue.length===1?'ο γεγονός':'α γεγονότα'}, χρειάζονται άμεση δράση
-              </p>
-              <span style={{ fontSize:13, color:'var(--negative)', fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>
-                {overdue.reduce((s,e)=>s+(e.amount||0),0)>0&&`${overdue.reduce((s,e)=>s+(e.amount||0),0).toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`}
-              </span>
-            </div>
-          )}
-          {expiring.length>0&&(
-            <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--warning-dim)', border:'1px solid var(--warning-border)', borderRadius:8, padding:'10px 16px' }}>
-              <Shield size={14} color="var(--warning)"/>
-              <p style={{ fontSize:14, color:'var(--warning)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
-                {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών, {expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}
-              </p>
-            </div>
-          )}
+      {/* Smart Alerts — μόνο η λήξη συμβολαίων· τα εκπρόθεσμα ανοίγουν από το KPI (χωρίς διπλό κόκκινο) */}
+      {expiring.length>0&&(
+        <div style={{ display:'flex', alignItems:'center', gap:11, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--warning)', borderRadius:10, padding:'10px 16px' }}>
+          <Shield size={14} color="var(--warning)"/>
+          <p style={{ fontSize:13.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.1px', margin:0 }}>
+            {expiring.length} συμβόλαι{expiring.length===1?'ο λήγει':'α λήγουν'} εντός 60 ημερών · <span style={{ color:'var(--text-primary)' }}>{expiring.map(e=>`${e.title} (${fmtShort(e.event_date)})`).join(', ')}</span>
+          </p>
         </div>
       )}
 
@@ -1607,8 +1584,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>
 
-        <button onClick={()=>openNew()} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius:18, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
-          <Plus size={15}/>Νέο
+        <button onClick={()=>openNew()} title={pendingTime?`Νέο γεγονός στις ${pendingTime}`:'Νέο γεγονός'} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius:18, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
+          <Plus size={15}/>Νέο{pendingTime?` · ${pendingTime}`:''}
         </button>
 
         {/* Ένα ήσυχο μενού για όλα τα δευτερεύοντα */}
@@ -1732,7 +1709,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
+          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));setPendingTime('')}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1743,9 +1720,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} onResize={resizeEvent}/>}
+      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setSelectedDate(date);setPendingTime(time)}} onEventClick={openEdit} drag={drag} onResize={resizeEvent}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setSelectedDate(date);setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));setPendingTime('')}} onSlotClick={(date,time)=>{setSelectedDate(date);setCurrentDate(new Date(date+'T00:00:00'));setPendingTime(time)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
