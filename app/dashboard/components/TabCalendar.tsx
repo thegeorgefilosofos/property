@@ -554,7 +554,7 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, 
 }
 
 // Timeline View
-function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void }) {
+function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void; onPickMonth?:(monthIndex:number)=>void }) {
   const today=new Date(); const todayMonth=today.getMonth()
   const totalAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const paidAmt=events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
@@ -589,7 +589,7 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
             const totalM=pending.reduce((s,e)=>s+(e.amount||0),0)
             const overdueCount=monthEvs.filter(isOverdue).length
             return (
-              <div key={mIdx} style={{ background:isCurrentMonth?'var(--accent-dim)':isPast?'var(--bg-elevated)':'var(--bg-elevated)', border:`1px solid ${isCurrentMonth?'var(--border-accent)':overdueCount>0?'var(--negative-border)':'var(--border-subtle)'}`, borderRadius:8, padding:'8px 5px', minHeight:100 }}>
+              <button key={mIdx} onClick={()=>onPickMonth?.(mIdx)} title={`Άνοιγμα ${MONTH_NAMES_GR[mIdx]}`} style={{ textAlign:'left', background:isCurrentMonth?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${isCurrentMonth?'var(--border-accent)':overdueCount>0?'var(--negative-border)':'var(--border-subtle)'}`, borderRadius:8, padding:'8px 5px', minHeight:100, cursor:onPickMonth?'pointer':'default', transition:'border-color 0.13s, transform 0.1s' }} onMouseEnter={e=>{if(onPickMonth){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.transform='translateY(-2px)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=isCurrentMonth?'var(--border-accent)':overdueCount>0?'var(--negative-border)':'var(--border-subtle)';e.currentTarget.style.transform='none'}}>
                 <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:500, color:isCurrentMonth?'var(--accent)':isPast?'var(--text-tertiary)':'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:6, textAlign:'center' }}>{mName}</p>
                 <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                   {monthEvs.slice(0,7).map(ev=>(
@@ -601,7 +601,7 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
                 </div>
                 {totalM>0&&<p style={{ fontSize:10, color:'var(--accent)', textAlign:'center', marginTop:5, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>{Math.round(totalM).toLocaleString('el-GR')} €</p>}
                 {monthEvs.length===0&&<p style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Inter',sans-serif" }}>—</p>}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -1668,7 +1668,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='year'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear}/>}
+      {!loading&&viewMode==='year'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear} onPickMonth={mi=>{setCurrentDate(new Date(timelineYear,mi,1));setViewMode('month')}}/>}
 
       <input ref={importRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0]; if(f)importIcs(f); e.currentTarget.value=''}}/>
       {importMsg&&<div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--accent-border)', borderRadius:12, padding:'11px 20px', fontSize:13, color:'var(--text-primary)', zIndex:1200, boxShadow:'0 8px 32px rgba(0,0,0,0.35)', fontFamily:"'Inter',sans-serif" }}>{importMsg}</div>}
