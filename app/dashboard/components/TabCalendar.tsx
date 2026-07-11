@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner, ExportButton } from '@/components/Theme'
@@ -30,13 +30,15 @@ interface CalEvent {
   priority: EventPriority; status: EventStatus; recurring: boolean
   recurring_interval?: string | null; notes?: string | null
   source: string; attachment_url?: string | null; color?: string | null; created_at: string
+  recurrence_until?: string | null; recurrence_count?: number | null; recurrence_exdates?: string[] | null
   _virtual?: boolean; _seriesId?: string  // εικονική εμφάνιση επαναλαμβανόμενου (μόνο για προβολή)
 }
 
 interface FormState {
   title: string; category: EventCategory; event_date: string; event_time: string; duration: string; amount: string
   priority: EventPriority; status: EventStatus; recurring: boolean
-  recurring_interval: string; notes: string; attachment_url: string
+  recurring_interval: string; recurrence_end_mode: 'none'|'until'|'count'; recurrence_until: string; recurrence_count: string
+  notes: string; attachment_url: string
 }
 
 // Google-aligned category colors
@@ -80,7 +82,8 @@ const DAY_FULL_GR     = ['Κυριακή','Δευτέρα','Τρίτη','Τετ�
 const EMPTY_FORM: FormState = {
   title: '', category: 'reminder', event_date: '', event_time: '', duration: '', amount: '',
   priority: 'medium', status: 'pending', recurring: false,
-  recurring_interval: 'monthly', notes: '', attachment_url: '',
+  recurring_interval: 'monthly', recurrence_end_mode: 'none', recurrence_until: '', recurrence_count: '',
+  notes: '', attachment_url: '',
 }
 
 function fmt(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d}/${m}/${y}` }
@@ -91,6 +94,7 @@ function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.sta
 function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>7&&d<=30 }
 function isExpiring(e: CalEvent) { const d=daysUntil(e.event_date); return e.category==='contract'&&e.status==='pending'&&d>=0&&d<=60 }
 function todayStr() { return new Date().toISOString().split('T')[0] }
+function addDaysStr(date:string, days:number) { const [y,m,d]=date.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+days)); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
 
 // Google-style tooltip
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
@@ -754,9 +758,34 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, propertyI
               </div>
             </div>
             {form.recurring&&(
-              <select style={{...inp,appearance:'none' as any,marginTop:0}} value={form.recurring_interval} onChange={e=>setForm(f=>({...f,recurring_interval:e.target.value}))}>
-                {RECURRING_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap:12 }}>
+                <div>
+                  <label style={lbl}>Συχνότητα</label>
+                  <select style={{...inp,appearance:'none' as any,marginTop:0}} value={form.recurring_interval} onChange={e=>setForm(f=>({...f,recurring_interval:e.target.value}))}>
+                    {RECURRING_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Λήξη επανάληψης</label>
+                  <select style={{...inp,appearance:'none' as any,marginTop:0}} value={form.recurrence_end_mode} onChange={e=>setForm(f=>({...f,recurrence_end_mode:e.target.value as FormState['recurrence_end_mode']}))}>
+                    <option value="none">Χωρίς λήξη</option>
+                    <option value="until">Μέχρι ημερομηνία</option>
+                    <option value="count">Για πλήθος φορών</option>
+                  </select>
+                </div>
+                {form.recurrence_end_mode==='until'&&(
+                  <div style={{ gridColumn:'1 / -1' }}>
+                    <label style={lbl}>Λήγει στις</label>
+                    <DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/>
+                  </div>
+                )}
+                {form.recurrence_end_mode==='count'&&(
+                  <div style={{ gridColumn:'1 / -1' }}>
+                    <label style={lbl}>Πλήθος εμφανίσεων</label>
+                    <input type="number" min="1" style={inp} placeholder="π.χ. 12" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))}/>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <div>
@@ -797,6 +826,27 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// Επιλογή εμβέλειας για επαναλαμβανόμενο (επεξεργασία ή διαγραφή).
+function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hint?:string; danger?:boolean; onPick:(s:'this'|'following'|'all')=>void; onClose:()=>void }) {
+  const opts:[('this'|'following'|'all'),string][]=[['this','Μόνο αυτό το γεγονός'],['following','Αυτό και τα επόμενα'],['all','Όλη τη σειρά']]
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1100, padding:20 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:18, width:'100%', maxWidth:400, border:'1px solid var(--border-subtle)', boxShadow:'0 24px 64px rgba(0,0,0,0.4)', padding:'22px 24px' }}>
+        <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'0 0 4px' }}>{title}</h3>
+        {hint&&<p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'0 0 16px', fontFamily:"'Inter',sans-serif" }}>{hint}</p>}
+        <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:hint?0:14 }}>
+          {opts.map(([v,label])=>(
+            <button key={v} onClick={()=>onPick(v)} style={{ display:'flex', alignItems:'center', gap:10, height:46, padding:'0 16px', borderRadius:12, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', fontSize:14, fontWeight:500, color:danger&&v==='all'?'var(--negative)':'var(--text-primary)', fontFamily:"'Inter',sans-serif", textAlign:'left', transition:'all 0.15s' }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=danger&&v==='all'?'var(--negative)':'var(--accent)';e.currentTarget.style.background='var(--bg-elevated)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.background='var(--bg-surface)'}}>{label}</button>
+          ))}
+        </div>
+        <button onClick={onClose} style={{ marginTop:12, width:'100%', height:40, borderRadius:12, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Άκυρο</button>
+      </div>
     </div>
   )
 }
@@ -919,6 +969,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [currentDate,setCurrentDate]=useState(new Date())
   const [showModal,setShowModal]=useState(false)
   const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
+  const [editOccDate,setEditOccDate]=useState<string|null>(null)   // ημερομηνία της συγκεκριμένης εμφάνισης
+  const [scopePrompt,setScopePrompt]=useState(false)                // επιλογή εμβέλειας επεξεργασίας
+  const [deleteScope,setDeleteScope]=useState<{seriesId:string;occ:string}|null>(null)
   const [form,setForm]=useState<FormState>(EMPTY_FORM)
   const [saving,setSaving]=useState(false)
   const [filterCat,setFilterCat]=useState<EventCategory|'all'>('all')
@@ -968,12 +1021,12 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     setEvents(data||[])
   }
 
-  const filtered=events.filter(e=>{
+  const filtered=useMemo(()=>events.filter(e=>{
     if(filterCat!=='all'&&e.category!==filterCat)return false
     if(filterStatus!=='all'&&e.status!==filterStatus)return false
     if(searchQ&&!e.title.toLowerCase().includes(searchQ.toLowerCase()))return false
     return true
-  })
+  }),[events,filterCat,filterStatus,searchQ])
 
   const overdue=filtered.filter(isOverdue)
   const thisWeek=filtered.filter(isThisWeek)
@@ -984,22 +1037,27 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const totalPending=filtered.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const nextEvent=filtered.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
   // Εύρη προβολής + επέκταση επαναλαμβανόμενων ώστε να φαίνονται σε ΟΛΕΣ τις εμφανίσεις.
-  const p2=(n:number)=>String(n).padStart(2,'0')
-  const _y=currentDate.getFullYear(), _mo=currentDate.getMonth(), _d=currentDate.getDate()
-  const monthStart=`${_y}-${p2(_mo+1)}-01`, monthEnd=`${_y}-${p2(_mo+1)}-${p2(new Date(_y,_mo+1,0).getDate())}`
-  const monthEvents=expandRecurring(filtered, monthStart, monthEnd)
-  const _wk=new Date(currentDate); const _wd=_wk.getDay(); _wk.setDate(_wk.getDate()-_wd+(_wd===0?-6:1))
-  const weekStart=`${_wk.getFullYear()}-${p2(_wk.getMonth()+1)}-${p2(_wk.getDate())}`
-  const _we=new Date(_wk); _we.setDate(_wk.getDate()+6); const weekEnd=`${_we.getFullYear()}-${p2(_we.getMonth()+1)}-${p2(_we.getDate())}`
-  const weekEvents=expandRecurring(filtered, weekStart, weekEnd)
-  const dayStr=`${_y}-${p2(_mo+1)}-${p2(_d)}`
-  const dayEvents=expandRecurring(filtered, dayStr, dayStr)
+  const { monthEvents, weekEvents, dayEvents } = useMemo(()=>{
+    const p2=(n:number)=>String(n).padStart(2,'0')
+    const _y=currentDate.getFullYear(), _mo=currentDate.getMonth(), _d=currentDate.getDate()
+    const monthStart=`${_y}-${p2(_mo+1)}-01`, monthEnd=`${_y}-${p2(_mo+1)}-${p2(new Date(_y,_mo+1,0).getDate())}`
+    const _wk=new Date(currentDate); const _wd=_wk.getDay(); _wk.setDate(_wk.getDate()-_wd+(_wd===0?-6:1))
+    const weekStart=`${_wk.getFullYear()}-${p2(_wk.getMonth()+1)}-${p2(_wk.getDate())}`
+    const _we=new Date(_wk); _we.setDate(_wk.getDate()+6); const weekEnd=`${_we.getFullYear()}-${p2(_we.getMonth()+1)}-${p2(_we.getDate())}`
+    const dayStr=`${_y}-${p2(_mo+1)}-${p2(_d)}`
+    return { monthEvents: expandRecurring(filtered, monthStart, monthEnd), weekEvents: expandRecurring(filtered, weekStart, weekEnd), dayEvents: expandRecurring(filtered, dayStr, dayStr) }
+  },[filtered,currentDate])
 
   function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
   function openEdit(ev:CalEvent){
-    // Εικονική εμφάνιση επαναλαμβανόμενου → επεξεργάσου τη ΣΕΙΡΑ (base).
+    // Εικονική εμφάνιση επαναλαμβανόμενου → φόρτωσε τη ΣΕΙΡΑ (base) αλλά κράτα ποια μέρα άνοιξε.
     const e=ev._virtual&&ev._seriesId?(events.find(x=>x.id===ev._seriesId)||ev):ev
-    setEditingEvent(e);setForm({title:e.title,category:e.category,event_date:e.event_date,event_time:e.event_time||'',duration:e.duration_minutes?String(e.duration_minutes):'',amount:e.amount?.toString()||'',priority:e.priority,status:e.status,recurring:e.recurring,recurring_interval:e.recurring_interval||'monthly',notes:e.notes||'',attachment_url:e.attachment_url||''});setShowModal(true)
+    setEditingEvent(e); setEditOccDate(ev.event_date)
+    const endMode:FormState['recurrence_end_mode']=e.recurrence_until?'until':e.recurrence_count?'count':'none'
+    setForm({title:e.title,category:e.category,event_date:e.event_date,event_time:e.event_time||'',duration:e.duration_minutes?String(e.duration_minutes):'',amount:e.amount?.toString()||'',priority:e.priority,status:e.status,recurring:e.recurring,recurring_interval:e.recurring_interval||'monthly',recurrence_end_mode:endMode,recurrence_until:e.recurrence_until||'',recurrence_count:e.recurrence_count?String(e.recurrence_count):'',notes:e.notes||'',attachment_url:e.attachment_url||''});setShowModal(true)
+  }
+  function buildPayload(){
+    return {property_id:propertyId,user_id:userId,title:form.title,category:form.category,event_date:form.event_date,event_time:form.event_time||null,duration_minutes:form.duration?parseInt(form.duration):null,amount:form.amount?parseFloat(form.amount):null,priority:form.priority,status:form.status,recurring:form.recurring,recurring_interval:form.recurring?form.recurring_interval:null,recurrence_until:form.recurring&&form.recurrence_end_mode==='until'&&form.recurrence_until?form.recurrence_until:null,recurrence_count:form.recurring&&form.recurrence_end_mode==='count'&&form.recurrence_count?parseInt(form.recurrence_count):null,notes:form.notes||null,attachment_url:form.attachment_url||null,source:'manual'}
   }
   // Μετακίνηση με σύρσιμο (drag): αλλάζει ημερομηνία (και ώρα σε προβολή ωρών). Οι
   // εικονικές εμφανίσεις σειράς ΔΕΝ σύρονται (θα άλλαζαν όλη τη σειρά αμφίσημα).
@@ -1012,22 +1070,64 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   }
 
   async function saveEvent(){
-    if(!form.title||!form.event_date)return; setSaving(true)
-    const payload={property_id:propertyId,user_id:userId,title:form.title,category:form.category,event_date:form.event_date,event_time:form.event_time||null,duration_minutes:form.duration?parseInt(form.duration):null,amount:form.amount?parseFloat(form.amount):null,priority:form.priority,status:form.status,recurring:form.recurring,recurring_interval:form.recurring?form.recurring_interval:null,notes:form.notes||null,attachment_url:form.attachment_url||null,source:'manual'}
+    if(!form.title||!form.event_date)return
+    // Επεξεργασία υπάρχουσας ΣΕΙΡΑΣ → ρώτα εμβέλεια (μόνο αυτό / επόμενα / όλα).
+    if(editingEvent&&editingEvent.recurring){ setScopePrompt(true); return }
+    setSaving(true)
+    const payload=buildPayload()
     if(editingEvent){await supabase.from('calendar_events').update(payload).eq('id',editingEvent.id)}
     else{await supabase.from('calendar_events').insert(payload)}
     await load(); setShowModal(false); setSaving(false)
   }
+  // Εφαρμογή εμβέλειας επεξεργασίας σε επαναλαμβανόμενο.
+  async function applyEditScope(scope:'this'|'following'|'all'){
+    if(!editingEvent)return; setSaving(true)
+    const base=editingEvent; const occ=editOccDate||base.event_date; const payload=buildPayload()
+    try{
+      if(scope==='all'){
+        await supabase.from('calendar_events').update(payload).eq('id',base.id)
+      }else if(scope==='this'){
+        // Απόσπαση μόνο αυτής: νέο μεμονωμένο με τις αλλαγές + εξαίρεση της ημέρας από τη σειρά.
+        await supabase.from('calendar_events').insert({...payload,event_date:occ,recurring:false,recurring_interval:null,recurrence_until:null,recurrence_count:null})
+        const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]))
+        await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id)
+      }else{
+        // Αυτό και τα επόμενα: κόψε τη σειρά την προηγούμενη μέρα + νέα σειρά από την occ.
+        await supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',base.id)
+        await supabase.from('calendar_events').insert({...payload,event_date:occ})
+      }
+    }catch{}
+    await load(); setScopePrompt(false); setShowModal(false); setEditOccDate(null); setSaving(false)
+  }
 
   async function toggleStatus(e:CalEvent){
+    // Ολοκλήρωση εικονικής εμφάνισης → απόσπασέ την ως «πληρωμένη» + εξαίρεσέ την από τη σειρά.
+    if(e._virtual&&e._seriesId){
+      const base=events.find(x=>x.id===e._seriesId); if(!base)return
+      await supabase.from('calendar_events').insert({property_id:base.property_id,user_id:base.user_id,title:base.title,category:base.category,event_date:e.event_date,event_time:base.event_time||null,duration_minutes:base.duration_minutes||null,amount:base.amount??null,priority:base.priority,status:'paid',recurring:false,recurring_interval:null,notes:base.notes||null,attachment_url:base.attachment_url||null,source:base.source})
+      const ex=Array.from(new Set([...(base.recurrence_exdates||[]),e.event_date]))
+      await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',base.id)
+      await load(); return
+    }
     const ns:EventStatus=e.status==='paid'?'pending':'paid'
     await supabase.from('calendar_events').update({status:ns}).eq('id',e.id)
     setEvents(prev=>prev.map(ev=>ev.id===e.id?{...ev,status:ns}:ev))
   }
-  async function deleteEvent(id:string){
+  function deleteEvent(id:string){
+    if(id.includes('__')){ const i=id.indexOf('__'); setDeleteScope({seriesId:id.slice(0,i),occ:id.slice(i+2)}); return }
+    const ev=events.find(e=>e.id===id)
+    if(ev?.recurring){ setDeleteScope({seriesId:id,occ:ev.event_date}); return }
     if(!confirm('Διαγραφή γεγονότος;'))return
-    await supabase.from('calendar_events').delete().eq('id',id)
+    supabase.from('calendar_events').delete().eq('id',id).then(()=>{})
     setEvents(prev=>prev.filter(e=>e.id!==id))
+  }
+  async function applyDeleteScope(scope:'this'|'following'|'all'){
+    if(!deleteScope)return; const {seriesId,occ}=deleteScope
+    const base=events.find(e=>e.id===seriesId); if(!base){setDeleteScope(null);return}
+    if(scope==='all'){await supabase.from('calendar_events').delete().eq('id',seriesId)}
+    else if(scope==='this'){const ex=Array.from(new Set([...(base.recurrence_exdates||[]),occ]));await supabase.from('calendar_events').update({recurrence_exdates:ex}).eq('id',seriesId)}
+    else{await supabase.from('calendar_events').update({recurrence_until:addDaysStr(occ,-1),recurrence_count:null}).eq('id',seriesId)}
+    await load(); setDeleteScope(null)
   }
 
   function toggleSelect(id:string){setSelectedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
@@ -1279,6 +1379,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {showModal&&<EventModal form={form} setForm={setForm} onSave={saveEvent} onClose={()=>setShowModal(false)} editing={!!editingEvent} saving={saving} propertyId={propertyId}/>}
       {showSubscribe&&<SubscribeModal token={feedToken} propertyId={propertyId} onClose={()=>setShowSubscribe(false)}/>}
+      {scopePrompt&&<ScopeModal title="Επεξεργασία επαναλαμβανόμενου" hint="Σε ποιες εμφανίσεις να εφαρμοστούν οι αλλαγές;" onPick={applyEditScope} onClose={()=>setScopePrompt(false)}/>}
+      {deleteScope&&<ScopeModal title="Διαγραφή επαναλαμβανόμενου" hint="Τι θέλεις να διαγράψεις;" danger onPick={applyDeleteScope} onClose={()=>setDeleteScope(null)}/>}
     </div>
   )
 }

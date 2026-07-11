@@ -23,24 +23,49 @@ export function nextOccurrence(date: string, interval: string): string | null {
   return `${ny}-${pad(nm + 1)}-${pad(Math.min(d, lastDay))}`
 }
 
-export interface Recurrable { id: string; event_date: string; recurring?: boolean; recurring_interval?: string | null }
+export interface Recurrable {
+  id: string; event_date: string; recurring?: boolean; recurring_interval?: string | null
+  recurrence_until?: string | null           // «YYYY-MM-DD» λήξη σειράς
+  recurrence_count?: number | null           // μέγιστο πλήθος εμφανίσεων (base = 1η)
+  recurrence_exdates?: string[] | null        // ημερομηνίες εξαίρεσης «YYYY-MM-DD»
+}
 
 // Επιστρέφει όλες τις εμφανίσεις (base + εικονικές) που πέφτουν στο [rangeStart, rangeEnd]
-// (συμπεριληπτικά, «YYYY-MM-DD»). Οι εικονικές έχουν event_date = ημερομηνία εμφάνισης,
+// (συμπεριληπτικά, «YYYY-MM-DD»). Τηρεί recurrence_until (λήξη), recurrence_count (πλήθος,
+// συμπεριλαμβανομένης της base) και recurrence_exdates (εξαιρέσεις — μετρούν στο count κατά
+// iCal αλλά ΔΕΝ εμφανίζονται). Οι εικονικές έχουν event_date = ημερομηνία εμφάνισης,
 // συνθετικό id «<id>__<date>», _virtual=true, _seriesId=<αρχικό id>.
 export function expandRecurring<T extends Recurrable>(
   events: T[], rangeStart: string, rangeEnd: string, cap = 400
 ): (T & { _virtual?: boolean; _seriesId?: string })[] {
   const out: (T & { _virtual?: boolean; _seriesId?: string })[] = []
   for (const e of events) {
-    if (e.event_date >= rangeStart && e.event_date <= rangeEnd) out.push(e)
+    const until = e.recurrence_until || null
+    const count = (typeof e.recurrence_count === 'number' && e.recurrence_count > 0) ? e.recurrence_count : null
+    const ex = new Set(e.recurrence_exdates || [])
+    let idx = 0
+    // Θεωρεί μια εμφάνιση: ενημερώνει τον μετρητή, την εμφανίζει αν είναι εντός εύρους
+    // και δεν εξαιρείται. Επιστρέφει false αν η σειρά έχει εξαντληθεί (until/count).
+    const consider = (date: string, isBase: boolean): boolean => {
+      if (until && date > until) return false
+      if (count != null && idx >= count) return false
+      if (date >= rangeStart && date <= rangeEnd && !ex.has(date)) {
+        out.push(isBase ? e : { ...e, event_date: date, id: `${e.id}__${date}`, _virtual: true, _seriesId: e.id })
+      }
+      idx++
+      return true
+    }
+    if (!consider(e.event_date, true)) continue
     if (!e.recurring || !e.recurring_interval) continue
     let cur = e.event_date
     for (let n = 0; n < cap; n++) {
       const nx = nextOccurrence(cur, e.recurring_interval)
-      if (!nx || nx > rangeEnd) break
+      if (!nx) break
       cur = nx
-      if (cur >= rangeStart) out.push({ ...e, event_date: cur, id: `${e.id}__${cur}`, _virtual: true, _seriesId: e.id })
+      if (until && cur > until) break
+      if (count != null && idx >= count) break
+      if (cur > rangeEnd) break
+      consider(cur, false)
     }
   }
   return out

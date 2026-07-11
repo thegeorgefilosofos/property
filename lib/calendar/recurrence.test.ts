@@ -43,6 +43,24 @@ const weekly = [{ id: 'w', event_date: '2026-07-01', recurring: true, recurring_
 const wk = expandRecurring(weekly, '2026-07-01', '2026-07-31')
 ok('weekly July count', wk.map(o => o.event_date).join(',') === '2026-07-01,2026-07-08,2026-07-15,2026-07-22,2026-07-29')
 
+// ── recurrence_until: λήξη σειράς ────────────────────────────────────────────
+const untilCase = [{ id: 'u', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_until: '2026-03-10' }]
+ok('until stops the series', expandRecurring(untilCase, '2026-01-01', '2026-12-31').map(o => o.event_date).join(',') === '2026-01-10,2026-02-10,2026-03-10')
+const untilBefore = [{ id: 'u2', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_until: '2026-02-09' }]
+ok('until before 2nd occ → only base', expandRecurring(untilBefore, '2026-01-01', '2026-12-31').map(o => o.event_date).join(',') === '2026-01-10')
+
+// ── recurrence_count: πλήθος (base μετράει ως 1η) ───────────────────────────
+const countCase = [{ id: 'c', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_count: 3 }]
+ok('count=3 yields 3', expandRecurring(countCase, '2026-01-01', '2026-12-31').map(o => o.event_date).join(',') === '2026-01-10,2026-02-10,2026-03-10')
+ok('count=1 yields only base', expandRecurring([{ id: 'c1', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_count: 1 }], '2026-01-01', '2026-12-31').length === 1)
+
+// ── recurrence_exdates: εξαιρέσεις (μετρούν στο count, δεν εμφανίζονται) ─────
+const exCase = [{ id: 'e', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_exdates: ['2026-02-10'] }]
+ok('exdate skipped', expandRecurring(exCase, '2026-01-01', '2026-04-30').map(o => o.event_date).join(',') === '2026-01-10,2026-03-10,2026-04-10')
+const exCount = [{ id: 'ec', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_count: 3, recurrence_exdates: ['2026-02-10'] }]
+ok('exdate counts toward count (iCal)', expandRecurring(exCount, '2026-01-01', '2026-12-31').map(o => o.event_date).join(',') === '2026-01-10,2026-03-10')
+ok('base exdate removes base too', expandRecurring([{ id: 'b', event_date: '2026-01-10', recurring: true, recurring_interval: 'monthly', recurrence_count: 2, recurrence_exdates: ['2026-01-10'] }], '2026-01-01', '2026-12-31').map(o => o.event_date).join(',') === '2026-02-10')
+
 console.log(`recurrence.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed) { console.log('Απέτυχαν:\n - ' + fails.join('\n - ')); process.exit(1) }
 else console.log('όλα πέρασαν')
