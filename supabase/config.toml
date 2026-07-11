@@ -32,3 +32,8 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/calendar-feed/deno.json"
 entrypoint = "./functions/calendar-feed/index.ts"
+
+[functions.bookings-feed]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/bookings-feed/index.ts"

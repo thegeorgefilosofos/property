@@ -340,8 +340,8 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
 }
 
 // Month View
-function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, drag, stays=[], onPickMonth }: {
-  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]; onPickMonth?:(monthIndex:number)=>void
+function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[], onPickMonth }: {
+  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]; onPickMonth?:(monthIndex:number)=>void
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -391,20 +391,21 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
               const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
               const dayEvents=day?eventsForDay(day):[]
               const isToday=dateStr===today
+              const isSelected=!!day&&!!selectedDate&&dateStr===selectedDate
               const hasOverdue=dayEvents.some(isOverdue)
               const dayAmt=dayEvents.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
               const hol=day?holidayName(dateStr):null
               const wknd=day?isWeekend(dateStr):false
-              const cellBg=isToday?'var(--accent-dim)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
+              const cellBg=isToday?'var(--accent-dim)':isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} onClick={()=>day&&onDayClick(dateStr)} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
                   {day&&(
                     <>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday?700:400, color:isToday?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
+                        <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:isToday||isSelected?700:400, color:isToday||isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
                       {hol&&<div title={hol} style={{ fontSize:9.5, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</div>}
@@ -465,26 +466,13 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
           <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>{MONTH_NAMES_GR[currentDate.getMonth()]}</p>
           {Object.entries(CATEGORIES).map(([k,cat])=>{ const cnt=events.filter(e=>e.category===k).length; if(cnt===0)return null; return (<div key={k} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}><span style={{ color:cat.color, display:'flex' }}>{cat.icon}</span><span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", flex:1 }}>{cat.label}</span><span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", color:'var(--text-secondary)' }}>{cnt}</span></div>) })}
         </div>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12 }}>
-          <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:8 }}>Ετήσια δραστηριότητα</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:3 }}>
-            {MONTH_SHORT_GR.map((m,mIdx)=>{ const cnt=upcomingAll.filter(e=>{const d=new Date(e.event_date);return d.getMonth()===mIdx&&d.getFullYear()===currentDate.getFullYear()}).length; const intensity=cnt===0?0:cnt<=2?0.2:cnt<=5?0.5:1; const isCur=mIdx===currentDate.getMonth(); return (
-              <Tooltip key={m} text={`${MONTH_NAMES_GR[mIdx]}: ${cnt} γεγονότα — μετάβαση`}>
-                <button onClick={()=>onPickMonth?.(mIdx)} title={`${MONTH_NAMES_GR[mIdx]}`} style={{ textAlign:'center', border:'none', background:'transparent', padding:0, cursor:onPickMonth?'pointer':'default', width:'100%' }}>
-                  <div style={{ width:'100%', aspectRatio:'1', borderRadius:3, background:`rgba(25,103,210,${intensity})`, border:isCur?'1px solid var(--border-accent)':'1px solid transparent', marginBottom:2, transition:'transform 0.1s' }} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.transform='scale(1.12)'}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.transform='scale(1)'}}/>
-                  <span style={{ fontSize:7, color:isCur?'var(--accent)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontWeight:isCur?700:400 }}>{m.slice(0,1)}</span>
-                </button>
-              </Tooltip>
-            )})}
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
 // Week View
-function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, drag, stays=[] }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; stays?:StaySpan[] }) {
+function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, onEventClick, drag, stays=[] }: { events:CalEvent[]; currentDate:Date; selectedDate?:string; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; stays?:StaySpan[] }) {
   const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
   const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
@@ -501,10 +489,10 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, 
           {/* Επικεφαλίδες ημερών */}
           <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', position:'sticky', top:0, background:'var(--bg-elevated)', zIndex:1 }}>
             <div/>
-            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const hol=holidayName(ds); return (
-              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
-                <p style={{ fontSize:11, fontWeight:600, color:isToday?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday?700:500, background:isToday?'var(--accent)':'transparent', color:isToday?'var(--accent-text)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
+            {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const isSel=!!selectedDate&&ds===selectedDate&&!isToday; const hol=holidayName(ds); return (
+              <div key={idx} onClick={()=>onDayClick(ds)} title={hol?`Αργία: ${hol}`:'Νέο ολοήμερο γεγονός'} style={{ padding:'10px 6px 8px', textAlign:'center', cursor:'pointer', borderLeft:'1px solid var(--border-subtle)', background:isSel?'color-mix(in srgb, var(--accent) 10%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':isWeekend(ds)?'color-mix(in srgb, var(--text-tertiary) 4%, transparent)':'transparent' }}>
+                <p style={{ fontSize:11, fontWeight:600, color:isToday||isSel?'var(--accent)':'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', fontFamily:"'Inter',sans-serif" }}>{DAY_NAMES_GR[idx===6?0:idx+1]}</p>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:30, height:30, marginTop:3, borderRadius:'50%', fontSize:15, fontWeight:isToday||isSel?700:500, background:isToday?'var(--accent)':'transparent', boxShadow:isSel?'inset 0 0 0 2px var(--accent)':'none', color:isToday?'var(--accent-text)':isSel?'var(--accent)':'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{wd.getDate()}</span>
                 {hol&&<p title={hol} style={{ fontSize:9, color:'var(--accent)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</p>}
               </div>
             )})}
@@ -1188,6 +1176,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [loading,setLoading]=useState(true)
   const [viewMode,setViewMode]=useState<ViewMode>('month')
   const [currentDate,setCurrentDate]=useState(athensNow())
+  const [selectedDate,setSelectedDate]=useState<string>(todayStr())
   const [showModal,setShowModal]=useState(false)
   const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
   const [editOccDate,setEditOccDate]=useState<string|null>(null)   // ημερομηνία της συγκεκριμένης εμφάνισης
@@ -1527,12 +1516,15 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-primary)', icon:<Clock size={14}/>},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>},
         ].map(kpi=>(
-          <div key={kpi.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 16px', boxShadow:'var(--shadow-sm)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-              <span style={{ color:kpi.color, opacity:0.8 }}>{kpi.icon}</span>
+          <div key={kpi.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', transition:'transform 0.16s ease, box-shadow 0.16s ease' }}
+            onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
+            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:kpi.color, opacity:0.55 }}/>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{kpi.label}</p>
             </div>
-            <p style={{ fontSize:16, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:400 }}>{kpi.value}</p>
+            <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -1689,7 +1681,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
+          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays} onPickMonth={mi=>setCurrentDate(new Date(currentDate.getFullYear(),mi,1))}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1702,7 +1694,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} onResize={resizeEvent}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setSelectedDate(date);setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
