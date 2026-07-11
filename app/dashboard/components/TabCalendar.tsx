@@ -21,6 +21,8 @@ import { findConflicts, findFreeSlots } from '@/lib/calendar/availability'
 import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
+import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
+import { syncTenantSchedule } from './TabTenantHelpers'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -581,77 +583,135 @@ function TimelineView({ events, currentYear, onYearChange }: { events:CalEvent[]
 }
 
 // Auto-Pull Panel
+// Έξυπνος συγχρονισμός: αναγνωρίζει τον τύπο μίσθωσης του ακινήτου και τραβά ΜΟΝΟ
+// ό,τι έχει νόημα — μακροχρόνια → ενοίκιο & λήξεις μίσθωσης· βραχυχρόνια → κρατήσεις
+// με το όνομα του επισκέπτη. Δείχνει ζωντανά πλήθη ανά πηγή πριν τραβήξει.
+type SyncKey='bills'|'maintenance'|'leases'|'bookings'
 function AutoPullPanel({ propertyId, userId, onRefresh }: { propertyId:string; userId:string; onRefresh:()=>void }) {
   const supabase=createClient()
   const [syncing,setSyncing]=useState(false)
-  const [sources,setSources]=useState({bills:true,loan:true,rent:true})
+  const [mode,setMode]=useState<'long_term'|'short_term'|null>(null)
+  const [counts,setCounts]=useState<Record<SyncKey,number>|null>(null)
+  const [enabled,setEnabled]=useState<Record<SyncKey,boolean>>({bills:true,maintenance:true,leases:true,bookings:true})
   const [lastSync,setLastSync]=useState<string|null>(null)
-  const [msg,setMsg]=useState('')
+  const [result,setResult]=useState<{label:string;n:number}[]|null>(null)
 
-  async function syncAll() {
-    setSyncing(true); setMsg(''); let count=0
-    if(sources.bills){
-      const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
-      if(bills?.length){
-        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
-        const today=new Date()
-        const billEvents=bills.filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
-          let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
-          if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
-          return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
-        })
-        if(billEvents.length){await supabase.from('calendar_events').insert(billEvents);count+=billEvents.length}
-      }
-    }
-    if(sources.loan){
-      const{data:tasks}=await supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId)
-      if(tasks?.length){
-        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','loan')
-        const taskEvents=tasks.map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title,category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'loan'}))
-        await supabase.from('calendar_events').insert(taskEvents); count+=taskEvents.length
-      }
-    }
-    if(sources.rent){
-      const{data:prop}=await supabase.from('properties').select('monthly_rent,rent_day').eq('id',propertyId).maybeSingle()
-      if(prop?.monthly_rent){
-        await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','rent')
-        const rentDay=prop.rent_day||1; const today2=new Date()
-        const rentEvents=Array.from({length:12},(_,i)=>{const d=new Date(today2.getFullYear(),today2.getMonth()+i,rentDay);return{property_id:propertyId,user_id:userId,title:'Είσπραξη Ενοικίου',category:'financial' as EventCategory,event_date:d.toISOString().split('T')[0],amount:prop.monthly_rent,priority:'high' as EventPriority,status:'pending' as EventStatus,recurring:true,recurring_interval:'monthly',notes:'Auto-pulled από στοιχεία ακινήτου',source:'rent'}})
-        await supabase.from('calendar_events').insert(rentEvents); count+=rentEvents.length
-      }
-    }
-    setLastSync(new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}))
-    setMsg(`Συγχρονίστηκαν ${count} γεγονότα`)
-    setSyncing(false); onRefresh()
+  const cnt=async(table:string,extra?:(q:any)=>any)=>{ let q=supabase.from(table).select('*',{count:'exact',head:true}).eq('property_id',propertyId); if(extra)q=extra(q); const{count}=await q; return count||0 }
+  useEffect(()=>{
+    (async()=>{
+      const[{data:prop},bills,maintenance,leases,bookings]=await Promise.all([
+        supabase.from('user_properties').select('rental_mode').eq('id',propertyId).maybeSingle(),
+        cnt('bills'), cnt('maintenance_tasks'),
+        cnt('tenants',(q:any)=>q.neq('status','past')), cnt('client_stays'),
+      ])
+      const m=(prop as any)?.rental_mode==='short_term'?'short_term':(prop as any)?.rental_mode==='long_term'?'long_term':null
+      setMode(m); setCounts({bills,maintenance,leases,bookings})
+      try{ const ls=localStorage.getItem(`cal_sync_${propertyId}`); if(ls)setLastSync(ls) }catch{}
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[propertyId])
+
+  // Ποιες πηγές δείχνουμε: ανά τύπο μίσθωσης (η «διαφορά» του AI — σωστά φίλτρα).
+  const visible:SyncKey[]=useMemo(()=>{
+    if(mode==='short_term')return['bookings','bills','maintenance']
+    if(mode==='long_term')return['leases','bills','maintenance']
+    return['leases','bookings','bills','maintenance']
+  },[mode])
+
+  const META:Record<SyncKey,{label:string;icon:React.ReactNode;unit:(n:number)=>string}>={
+    leases:     {label:'Ενοίκιο & μισθώσεις', icon:<Euro size={15}/>,     unit:n=>n===1?'1 ενοικιαστής':`${n} ενοικιαστές`},
+    bookings:   {label:'Κρατήσεις',            icon:<User size={15}/>,     unit:n=>n===1?'1 κράτηση':`${n} κρατήσεις`},
+    bills:      {label:'Λογαριασμοί',          icon:<Zap size={15}/>,      unit:n=>n===1?'1 λογαριασμός':`${n} λογαριασμοί`},
+    maintenance:{label:'Συντήρηση',            icon:<Wrench size={15}/>,   unit:n=>n===1?'1 εργασία':`${n} εργασίες`},
   }
 
+  async function syncAll() {
+    setSyncing(true); setResult(null)
+    const res:{label:string;n:number}[]=[]
+    const on=(k:SyncKey)=>visible.includes(k)&&enabled[k]&&(counts?.[k]||0)>0
+    // ── Λογαριασμοί ──
+    if(on('bills')){
+      const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
+      await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
+      const today=new Date()
+      const rows=(bills||[]).filter((b:any)=>b.due_date||b.next_due_date).map((b:any)=>{
+        let dueDate=b.due_date||b.next_due_date; const d=new Date(dueDate)
+        if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
+        return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
+      })
+      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      res.push({label:'Λογαριασμοί',n:rows.length})
+    }
+    // ── Συντήρηση ──
+    if(on('maintenance')){
+      const{data:tasks}=await supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId)
+      await supabase.from('calendar_events').delete().eq('property_id',propertyId).in('source',['loan','maintenance'])
+      const rows=(tasks||[]).filter((t:any)=>t.due_date).map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'maintenance'}))
+      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      res.push({label:'Συντήρηση',n:rows.length})
+    }
+    // ── Ενοίκιο & μισθώσεις (πραγματικά δεδομένα ενοικιαστή, idempotent) ──
+    if(on('leases')){
+      const{data:tenants}=await supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past')
+      let n=0
+      for(const t of (tenants||[])){ await syncTenantSchedule(supabase,t as any,propertyId,userId,'save',{rentDueDay:(t as any).rent_due_day??1}); if((t as any).monthly_rent)n++ }
+      res.push({label:'Ενοίκιο & μισθώσεις',n})
+    }
+    // ── Κρατήσεις (με όνομα επισκέπτη) ──
+    if(on('bookings')){
+      const{data:stays}=await supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId)
+      await supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','booking:%')
+      const rows=buildBookingEvents((stays||[]).map((s:any)=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})),propertyId,userId)
+      if(rows.length)await supabase.from('calendar_events').insert(rows)
+      res.push({label:'Κρατήσεις',n:rows.length})
+    }
+    const stamp=new Date().toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    setLastSync(stamp); try{ localStorage.setItem(`cal_sync_${propertyId}`,stamp) }catch{}
+    setResult(res); setSyncing(false); onRefresh()
+  }
+
+  const modeHint=mode==='short_term'?'Βραχυχρόνια μίσθωση, τραβάω τις κρατήσεις με το όνομα του επισκέπτη.'
+    :mode==='long_term'?'Μακροχρόνια μίσθωση, τραβάω την είσπραξη ενοικίου και τις λήξεις.'
+    :'Τραβάω αυτόματα ό,τι αφορά αυτό το ακίνητο.'
+  const totalReady=visible.reduce((s,k)=>s+(enabled[k]&&(counts?.[k]||0)>0?(counts?.[k]||0):0),0)
+
   return (
-    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:16, boxShadow:'var(--shadow-sm)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-        <div>
-          <p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Αυτόματος συγχρονισμός</p>
-          {lastSync&&<p style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:2 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, padding:18, boxShadow:'var(--shadow-sm)' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <p style={{ fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
+            {mode&&<span style={{ fontSize:10.5, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+          </div>
+          <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
+          {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={syncing} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 16px', background:syncing?'transparent':'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:18, cursor:syncing?'not-allowed':'pointer', color:'var(--accent)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500 }}>
-          <RefreshCw size={14} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός…':'Συγχρονισμός τώρα'}
+        <button onClick={syncAll} disabled={syncing||totalReady===0} style={{ display:'flex', alignItems:'center', gap:7, height:38, padding:'0 18px', background:syncing||totalReady===0?'var(--bg-elevated)':'var(--accent)', border:'1px solid '+(syncing||totalReady===0?'var(--border-default)':'var(--accent)'), borderRadius:19, cursor:syncing||totalReady===0?'not-allowed':'pointer', color:syncing||totalReady===0?'var(--text-tertiary)':'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:syncing||totalReady===0?'none':'var(--shadow-sm)' }}>
+          <RefreshCw size={15} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός…':'Συγχρονισμός τώρα'}
         </button>
       </div>
-      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-        {[{key:'bills',label:'Λογαριασμοί',icon:<Zap size={13}/>,desc:'Από τους λογαριασμούς'},{key:'loan',label:'Συντήρηση',icon:<Wrench size={13}/>,desc:'Εργασίες συντήρησης'},{key:'rent',label:'Ενοίκιο',icon:<Euro size={13}/>,desc:'12 μήνες'}].map(({key,label,icon,desc})=>{
-          const active=sources[key as keyof typeof sources]
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap:10 }}>
+        {visible.map(k=>{
+          const c=counts?.[k]; const has=(c||0)>0; const active=enabled[k]&&has; const meta=META[k]
           return (
-            <button key={key} onClick={()=>setSources(s=>({...s,[key]:!s[key as keyof typeof sources]}))} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-default)'}`, borderRadius:8, cursor:'pointer' }}>
-              <span style={{ color:active?'var(--accent)':'var(--text-tertiary)' }}>{icon}</span>
-              <div style={{ textAlign:'left' }}>
-                <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", color:active?'var(--accent)':'var(--text-secondary)' }}>{label}</p>
-                <p style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{desc}</p>
+            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'12px 14px', background:active?'var(--accent-soft)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:12, cursor:has?'pointer':'default', opacity:has?1:0.55, textAlign:'left', transition:'all 0.15s' }}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:9, flexShrink:0, background:active?'var(--accent)':'var(--bg-surface)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)' }}>{meta.icon}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:500, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
+                <p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:1 }}>{counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
               </div>
-              <span style={{ color:active?'var(--accent)':'var(--text-tertiary)' }}>{active?<ToggleRight size={16}/>:<ToggleLeft size={16}/>}</span>
+              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={20}/>:<ToggleLeft size={20}/>}</span>}
             </button>
           )
         })}
       </div>
-      {msg&&<p style={{ marginTop:8, fontSize:13, fontFamily:"'Inter',sans-serif", color:'var(--text-secondary)' }}>{msg}</p>}
+      {result&&(
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+          <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12.5, color:'var(--positive)', fontFamily:"'Inter',sans-serif", fontWeight:600 }}><Check size={14}/>Ενημερώθηκε</span>
+          {result.filter(r=>r.n>0).map(r=><span key={r.label} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>{r.label}: <strong style={{ color:'var(--text-primary)' }}>{r.n}</strong></span>)}
+          {result.every(r=>r.n===0)&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Όλα ήδη ενημερωμένα.</span>}
+        </div>
+      )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
