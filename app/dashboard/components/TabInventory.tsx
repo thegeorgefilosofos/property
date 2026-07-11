@@ -413,58 +413,24 @@ const IconCal = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stro
 const IconTrash = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
 
 function RoomInput({value,onChange}:{value:string;onChange:(v:string)=>void}) {
-  const [showCustom,setShowCustom] = useState(!ROOM_PRESETS.includes(value)&&value!=='')
+  // Ένα καθαρό dropdown αντί για δεκάδες κουμπάκια — «Άλλος χώρος…» για ελεύθερο κείμενο.
+  const isCustom = value!=='' && !ROOM_PRESETS.includes(value)
+  const [custom,setCustom] = useState(isCustom)
   const [focused,setFocused] = useState(false)
+  const options = [
+    ...ROOM_PRESETS.map(r=>({value:r,label:r})),
+    {value:'__custom__',label:'Άλλος χώρος…'},
+  ]
   return (
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
-      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-        {ROOM_PRESETS.map(r=>(
-          <button key={r} onClick={()=>{onChange(r);setShowCustom(false)}} style={chipStyle(value===r)}
-            onMouseEnter={e=>chipHover(e,value===r,true)} onMouseLeave={e=>chipHover(e,value===r,false)}>
-            {r}
-          </button>
-        ))}
-        <button onClick={()=>{setShowCustom(true);onChange('')}} style={chipStyle(showCustom)}
-          onMouseEnter={e=>chipHover(e,showCustom,true)} onMouseLeave={e=>chipHover(e,showCustom,false)}>
-          Άλλο…
-        </button>
-      </div>
-      {showCustom&&(
-        <input value={value} onChange={e=>onChange(e.target.value)} placeholder="Πληκτρολογήστε δωμάτιο..." onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
+      <CustomSelect value={custom?'__custom__':value} placeholder="Επιλέξτε χώρο"
+        onChange={v=>{ if(v==='__custom__'){setCustom(true);onChange('')} else {setCustom(false);onChange(v)} }}
+        options={options}/>
+      {custom&&(
+        <input value={value} onChange={e=>onChange(e.target.value)} placeholder="Πληκτρολογήστε τον χώρο (π.χ. Ξενώνας)" onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
           style={{background:'var(--bg-surface)',border:`1px solid ${focused?'var(--accent)':'var(--border-default)'}`,boxShadow:focused?'0 0 0 3px var(--accent-dim)':'none',borderRadius:T.radius.inner,padding:'0 14px',height:42,color:'var(--text-primary)',fontSize:14,letterSpacing:0,outline:'none',fontFamily:T.font.sans,width:'100%',boxSizing:'border-box'}}
         />
       )}
-    </div>
-  )
-}
-
-function MultiPhotoUpload({photos,onAdd,onRemove,primary,onSetPrimary}:{photos:string[];onAdd:(u:string)=>void;onRemove:(u:string)=>void;primary:string;onSetPrimary:(u:string)=>void}) {
-  const [uploading,setUploading] = useState(false)
-  const ref = useRef<HTMLInputElement>(null)
-  const handleFile = async(file:File) => {
-    setUploading(true)
-    const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
-    const {error} = await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
-    if(error){alert('Σφάλμα upload: '+error.message);setUploading(false);return}
-    const {data:u} = supabase.storage.from('inventory-photos').getPublicUrl(path)
-    onAdd(u.publicUrl);setUploading(false)
-  }
-  return (
-    <div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(80px,1fr))',gap:8}}>
-        {photos.map((url,i)=>(
-          <div key={i} style={{position:'relative',height:80,borderRadius:8,overflow:'hidden',border:`2px solid ${url===primary?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}} onClick={()=>onSetPrimary(url)}>
-            <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
-            <button onClick={e=>{e.stopPropagation();onRemove(url)}} style={{position:'absolute',top:4,right:4,width:18,height:18,borderRadius:'50%',background:'rgba(197,34,31,0.9)',border:'none',color:'#fff',fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-            {url===primary&&<div style={{position:'absolute',bottom:0,inset:'auto 0 0 0',background:'var(--accent)',fontSize:8,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
-          </div>
-        ))}
-        <div onClick={()=>!uploading&&ref.current?.click()} style={{height:80,borderRadius:8,border:'1.5px dashed var(--border-accent)',background:'var(--accent-dim)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,cursor:uploading?'wait':'pointer'}}>
-          <span style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500}}>{uploading?'...':'+ Φωτο'}</span>
-        </div>
-      </div>
-      <input ref={ref} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
-      {photos.length>1&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily:T.font.sans}}>Κλικ φωτογραφίας για κύρια</p>}
     </div>
   )
 }
@@ -650,6 +616,20 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
     setScanning(false)
   }
 
+  // Ενιαίο πεδίο φωτογραφίας: ανεβάζει τη φωτογραφία ΚΑΙ (προαιρετικά) τη διαβάζει
+  // με AI — μία ενέργεια, όχι δύο ξεχωριστά «πεδία φωτο».
+  const [photoBusy,setPhotoBusy] = useState(false)
+  const addPhotoFile = async(file:File) => {
+    setPhotoBusy(true)
+    const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`
+    const {error}=await supabase.storage.from('inventory-photos').upload(path,file,{upsert:true})
+    if(!error){ const {data:u}=supabase.storage.from('inventory-photos').getPublicUrl(path); setForm(f=>{const photos=[...(f.photos||[]),u.publicUrl]; return {...f,photos,photo_url:f.photo_url||u.publicUrl}}) }
+    else alert('Σφάλμα μεταφόρτωσης: '+error.message)
+    setPhotoBusy(false)
+  }
+  const removePhoto = (url:string) => { const p=(form.photos||[]).filter(x=>x!==url); set('photos',p); if(form.photo_url===url) set('photo_url',p[0]||'') }
+  const pickPhoto = async(file:File) => { await addPhotoFile(file); runScan(file) }
+
   return (
     <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px 16px'}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,width:'100%',maxWidth:680,height:'calc(100vh - 32px)',maxHeight:820,overflow:'hidden',padding:0,display:'flex',flexDirection:'column',boxShadow:'var(--shadow-xl)'}}>
@@ -663,22 +643,39 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
           </div>
         </div>
         <div style={{padding:'20px 28px',display:'flex',flexDirection:'column',gap:18,flex:1,overflowY:'auto'}}>
-          {/* Σάρωση με AI — φωτο συσκευασίας/ετικέτας/booklet/απόδειξης → προσυμπλήρωση */}
-          <input ref={scanRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.currentTarget.value=''}}/>
-          <button onClick={()=>{if(!scanning)scanRef.current?.click()}} disabled={scanning}
-            style={{display:'flex',alignItems:'center',gap:13,width:'100%',textAlign:'left',padding:'12px 16px',borderRadius:T.radius.card,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',cursor:scanning?'wait':'pointer',fontFamily:T.font.sans}}>
-            <div style={{width:38,height:38,borderRadius:'50%',background:'var(--bg-surface)',border:'1px solid var(--accent-border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--accent)'}}>
-              {scanning?<div style={{width:16,height:16,border:'2px solid var(--accent-border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>
-                :<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>}
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,color:'var(--accent)'}}>{scanning?'Ανάγνωση φωτογραφίας…':'Σάρωση με AI'}</div>
-              <div style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4}}>Φωτογραφία συσκευασίας, ετικέτας, booklet ή απόδειξης — συμπληρώνει μόνο του μάρκα, μοντέλο, αξία, εγγύηση, ενέργεια…</div>
-            </div>
-          </button>
+          {/* Ένα πεδίο: φωτογραφία + αυτόματη ανάγνωση με AI (μάρκα, μοντέλο, αξία, εγγύηση, ενέργεια) */}
+          <input ref={scanRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)pickPhoto(f);e.currentTarget.value=''}}/>
           <style>{`@keyframes invSpin{to{transform:rotate(360deg)}}`}</style>
-
-          <MultiPhotoUpload photos={form.photos||[]} primary={form.photo_url||''} onAdd={u=>set('photos',[...(form.photos||[]),u])} onRemove={u=>{const p=(form.photos||[]).filter(x=>x!==u);set('photos',p);if(form.photo_url===u)set('photo_url',p[0]||'')}} onSetPrimary={u=>set('photo_url',u)}/>
+          {(form.photos||[]).length===0 ? (
+            <button onClick={()=>{if(!scanning&&!photoBusy)scanRef.current?.click()}} disabled={scanning||photoBusy}
+              style={{display:'flex',alignItems:'center',gap:14,width:'100%',textAlign:'left',padding:'16px 18px',borderRadius:T.radius.card,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',cursor:(scanning||photoBusy)?'wait':'pointer',fontFamily:T.font.sans}}>
+              <div style={{width:44,height:44,borderRadius:'50%',background:'var(--bg-surface)',border:'1px solid var(--accent-border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--accent)'}}>
+                {(scanning||photoBusy)?<div style={{width:18,height:18,border:'2px solid var(--accent-border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>
+                  :<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--accent)'}}>{scanning?'Ανάγνωση φωτογραφίας…':photoBusy?'Μεταφόρτωση…':'Προσθήκη φωτογραφίας'}</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.45,marginTop:2}}>Ανεβάστε φωτογραφία του αντικειμένου, της ετικέτας ή της απόδειξης και συμπληρώνουμε αυτόματα μάρκα, μοντέλο, αξία, εγγύηση και ενεργειακή κλάση.</div>
+              </div>
+            </button>
+          ) : (
+            <div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(84px,1fr))',gap:8}}>
+                {(form.photos||[]).map((url,i)=>(
+                  <div key={i} onClick={()=>set('photo_url',url)} title={url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια'} style={{position:'relative',height:84,borderRadius:10,overflow:'hidden',border:`2px solid ${url===form.photo_url?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}}>
+                    <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
+                    <button onClick={e=>{e.stopPropagation();removePhoto(url)}} aria-label="Αφαίρεση" style={{position:'absolute',top:5,right:5,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',border:'none',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                    {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize:8.5,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
+                  </div>
+                ))}
+                <button onClick={()=>{if(!scanning&&!photoBusy)scanRef.current?.click()}} disabled={scanning||photoBusy} title="Προσθήκη φωτογραφίας" style={{height:84,borderRadius:10,border:'1.5px dashed var(--border-accent)',background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',cursor:(scanning||photoBusy)?'wait':'pointer',color:'var(--accent)'}}>
+                  {(scanning||photoBusy)?<div style={{width:16,height:16,border:'2px solid var(--accent-border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'invSpin 0.7s linear infinite'}}/>
+                    :<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>}
+                </button>
+              </div>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:7,fontFamily:T.font.sans}}>Κάθε νέα φωτογραφία διαβάζεται αυτόματα με AI. Κλικ σε φωτογραφία για να οριστεί ως κύρια.</p>
+            </div>
+          )}
 
           {/* Ταυτότητα αντικειμένου */}
           <div>
@@ -725,17 +722,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
           {showMore&&(<>
             <div>
               <label style={labelStyle}>Προέλευση</label>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:6}}>
-                {PROVENANCE_OPTIONS.map(opt=>{
-                  const active=form.provenance===opt.value
-                  return (
-                    <div key={opt.value} onClick={()=>set('provenance',opt.value)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:T.radius.inner,border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`,background:active?'var(--accent-dim)':'var(--bg-elevated)',cursor:'pointer',transition:'all 0.15s'}}>
-                      <div style={{width:15,height:15,borderRadius:'50%',border:`2px solid ${active?'var(--accent)':'var(--border-default)'}`,background:active?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{active&&<div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent-text)'}}/>}</div>
-                      <span style={{fontSize:12.5,fontFamily:T.font.sans,color:active?'var(--accent)':'var(--text-primary)',fontWeight:active?500:400}}>{opt.label.split('—')[0].trim()}</span>
-                    </div>
-                  )
-                })}
-              </div>
+              <CustomSelect value={form.provenance||'new'} onChange={v=>set('provenance',v)} options={PROVENANCE_OPTIONS.map(o=>({value:o.value,label:o.label}))}/>
             </div>
             {(form.provenance==='new'||form.provenance==='discount')&&(
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10}}>
@@ -776,7 +763,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 <div><label style={labelStyle}>Ενεργειακή Κλάση</label><CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/></div>
                 <div><label style={labelStyle} title="W = Watt — μονάδα ισχύος/κατανάλωσης ρεύματος">Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
-                <div><label style={labelStyle}>Ώρες Χρήσης / Ημέρα</label><NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρ/ημ" min={0} max={24}/></div>
+                <div><label style={labelStyle}>Ώρες χρήσης ανά ημέρα</label><NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες" min={0} max={24}/></div>
                 <div><label style={labelStyle}>Κατανάλωση Αναμονής (W)</label><NumberInput value={String(form.standby_watts||0)} onChange={v=>set('standby_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
               </div>
               {liveKwh>0&&(
@@ -1681,7 +1668,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved,embedded}:{it
           <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{s.task}</p>
           <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{s.item_name||'Γενική'} · κάθε {s.interval_months} μήνες{(s.est_cost||0)>0?` · ~${fmtEur(s.est_cost||0)}`:''}{s.last_done?` · Τελ: ${fmtDate(s.last_done)}`:''}</p>
         </div>
-        <Badge label={days<0?`${Math.abs(days)} ημ. καθυστ.`:days===0?'Σήμερα!':`${days} ημ.`} color={c}/>
+        <Badge label={days<0?`${Math.abs(days)===1?'1 ημέρα':`${Math.abs(days)} ημέρες`} καθυστέρηση`:days===0?'Σήμερα':days===1?'Αύριο':`σε ${days} ημέρες`} color={c}/>
         <span style={{fontSize:11,color:'var(--text-tertiary)',whiteSpace:'nowrap',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>{fmtDate(s.next_due)}</span>
         <button onClick={()=>markDone(s)} disabled={doneBusy===s.id} title="Καταγράφει την εκτέλεση, ρολάρει στην επόμενη ημερομηνία και ενημερώνει δαπάνες/ημερολόγιο" style={{padding:'0 12px',height:32,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:doneBusy===s.id?'var(--text-tertiary)':'var(--text-secondary)',fontSize:11,fontFamily:T.font.sans,cursor:doneBusy===s.id?'wait':'pointer',fontWeight:500,whiteSpace:'nowrap'}}>{doneBusy===s.id?'…':'Έγινε'}</button>
         <OverflowMenu actions={[
