@@ -153,25 +153,26 @@ function downloadEventIcs(e: CalEvent) {
 // «Πρόσθεσε σε ημερολόγιο» + «Κοινοποίηση» — ένα διακριτικό μενού, portal ώστε να
 // μη κόβεται. Καλύπτει Google / Outlook / Office 365 / Apple(.ics) / Yahoo και
 // κοινοποίηση σε WhatsApp / Viber. Καθαροί σύνδεσμοι, χωρίς backend.
-function AddToCalendarMenu({ event }: { event: CalEvent }) {
+function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: CalEvent; onEdit?:(e:CalEvent)=>void; onDelete?:(id:string)=>void; onOpenChange?:(open:boolean)=>void }) {
   const [open,setOpen]=useState(false)
   const btnRef=useRef<HTMLButtonElement>(null)
   const popRef=useRef<HTMLDivElement>(null)
   const [pos,setPos]=useState({top:0,left:0})
-  const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=356; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
-  useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpen(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
+  const setOpenX=(v:boolean|((o:boolean)=>boolean))=>setOpen(prev=>{ const next=typeof v==='function'?v(prev):v; onOpenChange?.(next); return next })
+  const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=420; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
+  useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpenX(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
   const links=allCalendarLinks(toCalInput(event))
-  const row=(label:string,onClick:()=>void,icon:React.ReactNode)=>(
-    <button key={label} type="button" onClick={()=>{onClick();setOpen(false)}} style={{ display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 12px',border:'none',background:'transparent',cursor:'pointer',textAlign:'left',color:'var(--text-primary)',fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:8,transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-      <span style={{ color:'var(--text-tertiary)',display:'flex',flexShrink:0 }}>{icon}</span>{label}
+  const row=(label:string,onClick:()=>void,icon:React.ReactNode,danger?:boolean)=>(
+    <button key={label} type="button" onClick={()=>{onClick();setOpenX(false)}} style={{ display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 12px',border:'none',background:'transparent',cursor:'pointer',textAlign:'left',color:danger?'var(--negative)':'var(--text-primary)',fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:8,transition:'background 0.12s' }} onMouseEnter={e=>e.currentTarget.style.background=danger?'var(--negative-dim)':'var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+      <span style={{ color:danger?'var(--negative)':'var(--text-tertiary)',display:'flex',flexShrink:0 }}>{icon}</span>{label}
     </button>
   )
   const openExt=(href:string)=>window.open(href,'_blank','noopener,noreferrer')
   return (
     <>
-      <button ref={btnRef} type="button" aria-label="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" title="Πρόσθεσε σε ημερολόγιο ή κοινοποίησε" onClick={e=>{e.stopPropagation();setOpen(o=>!o)}}
+      <button ref={btnRef} type="button" aria-label="Ενέργειες" title="Ενέργειες" onClick={e=>{e.stopPropagation();setOpenX(o=>!o)}}
         style={{ display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:'50%',border:'1px solid '+(open?'var(--border-default)':'transparent'),background:open?'var(--bg-elevated)':'transparent',cursor:'pointer',color:'var(--text-secondary)',flexShrink:0,transition:'all 0.15s' }}>
-        <CalendarPlus size={15}/>
+        <MoreHorizontal size={16}/>
       </button>
       {open&&createPortal(
         <div ref={popRef} style={{ position:'fixed',top:pos.top,left:pos.left,width:232,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,0.35)',padding:6,zIndex:2000 }}>
@@ -185,6 +186,9 @@ function AddToCalendarMenu({ event }: { event: CalEvent }) {
           <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'2px 12px 4px',fontFamily:"'Inter',sans-serif" }}>Κοινοποίηση</div>
           {row('WhatsApp',()=>openExt(links.whatsapp),<Share2 size={15}/>)}
           {row('Viber',()=>openExt(links.viber),<Share2 size={15}/>)}
+          {(onEdit||onDelete)&&<div style={{ height:1,background:'var(--border-subtle)',margin:'6px 8px' }}/>}
+          {onEdit&&row('Επεξεργασία',()=>onEdit(event),<Edit2 size={15}/>)}
+          {onDelete&&row('Διαγραφή',()=>onDelete(event.id),<Trash2 size={15}/>,true)}
         </div>, document.body)}
     </>
   )
@@ -200,12 +204,14 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
   const isAuto  = event.source!=='manual'
   const due     = daysUntil(event.event_date)
   const relLbl = (n:number) => { const a=Math.abs(n); return a===1?'1 ημέρα':`${a} ημέρες` }
+  const [hover,setHover]=useState(false)
+  const [menuOpen,setMenuOpen]=useState(false)
   // Χρώμα μόνο όπου μετράει: η αριστερή γραμμή δείχνει κατηγορία (διακριτικά), ή
   // κόκκινο όταν εκπρόθεσμο. Χωρίς πολύχρωμα badges/πηγή — καθαρή, ακριβή αίσθηση.
   const accentBar = overdue?'var(--negative)':`color-mix(in srgb, ${cat.color} 50%, transparent)`
 
   return (
-    <div style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
+    <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
       background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
       border:`1px solid ${selected?'var(--border-accent)':overdue?'var(--negative-border)':'var(--border-subtle)'}`,
       borderLeft:`3px solid ${accentBar}`,
@@ -233,7 +239,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
             <span style={{ width:7, height:7, borderRadius:2, background:cat.color, flexShrink:0 }}/>
             <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', letterSpacing:'0.3px' }}>{cat.label}</span>
           </span>
-          <StatusDot status={event.status}/>
+          {event.status!=='pending'&&<StatusDot status={event.status}/>}
           {event.amount!=null&&(
             <span style={{ fontSize:13, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontWeight:500 }}>
               {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
@@ -251,16 +257,8 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
         {!bulkMode&&(
-          <div style={{ display:'flex', gap:2, alignItems:'center' }}>
-            <AddToCalendarMenu event={event}/>
-            {!isAuto&&(
-              <button aria-label="Επεξεργασία" title="Επεξεργασία" onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
-                onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'}
-                onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Edit2 size={13}/></button>
-            )}
-            <button aria-label="Διαγραφή" title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
-              onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
-              onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
+          <div style={{ display:'flex', gap:2, alignItems:'center', opacity:(hover||menuOpen)?1:0, pointerEvents:(hover||menuOpen)?'auto':'none', transition:'opacity 0.13s' }}>
+            <AddToCalendarMenu event={event} onEdit={isAuto?undefined:onEdit} onDelete={onDelete} onOpenChange={setMenuOpen}/>
           </div>
         )}
       </div>
@@ -1507,7 +1505,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {([
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', icon:<Clock size={14}/>, onClick:undefined, open:false},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>, onClick:undefined, open:false},
         ] as {label:string;value:string;color:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
           const clickable=!!kpi.onClick
@@ -1519,7 +1517,6 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
               <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', flex:1 }}>{kpi.label}</p>
-              {clickable&&<ChevronDown size={15} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:kpi.open?'rotate(180deg)':'none', transition:'transform 0.18s' }}/>}
             </div>
             <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
           </div>
