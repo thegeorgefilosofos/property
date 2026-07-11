@@ -158,7 +158,9 @@ function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: C
   const btnRef=useRef<HTMLButtonElement>(null)
   const popRef=useRef<HTMLDivElement>(null)
   const [pos,setPos]=useState({top:0,left:0})
-  const setOpenX=(v:boolean|((o:boolean)=>boolean))=>setOpen(prev=>{ const next=typeof v==='function'?v(prev):v; onOpenChange?.(next); return next })
+  const setOpenX=setOpen
+  // Ειδοποίηση γονέα εκτός φάσης render (όχι μέσα στον updater) — αποφυγή warning/StrictMode διπλο-κλήσης.
+  useEffect(()=>{ onOpenChange?.(open) },[open,onOpenChange])
   const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=420; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
   useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpenX(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
   const links=allCalendarLinks(toCalInput(event))
