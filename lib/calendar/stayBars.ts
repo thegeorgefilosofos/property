@@ -60,4 +60,15 @@ export function barLabel(stay: StaySpan): string {
   return stay.guest
 }
 
+// Χρωματική διάκριση ανά κανάλι — επίσημα χρώματα Airbnb/Booking, εναρμονισμένα
+// με το app (λεπτή απόχρωση, λευκό κείμενο). Άγνωστο κανάλι → μπλε accent του app.
+export const CHANNEL_COLORS: Record<string, { solid: string; label: string }> = {
+  airbnb:  { solid: '#FF5A5F', label: 'Airbnb' },
+  booking: { solid: '#0071C2', label: 'Booking.com' },
+  vrbo:    { solid: '#3D5AFE', label: 'Vrbo' },
+}
+export function channelColor(channel?: string | null): { solid: string; label: string } {
+  return CHANNEL_COLORS[(channel || '').toLowerCase()] || { solid: 'var(--accent)', label: 'Κράτηση' }
+}
+
 export { channelLabel }

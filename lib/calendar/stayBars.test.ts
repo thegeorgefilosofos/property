@@ -1,6 +1,6 @@
 // Αυστηρά τεστ για τη γεωμετρία της μπάρας διαμονής (stayBars.ts).
 // Τρέξε: npx tsx lib/calendar/stayBars.test.ts
-import { toStaySpan, staysOnDay, segMeta, type StaySpan } from './stayBars'
+import { toStaySpan, staysOnDay, segMeta, channelColor, type StaySpan } from './stayBars'
 
 let passed = 0, failed = 0
 const fails: string[] = []
@@ -43,6 +43,13 @@ const stay: StaySpan = { id: 'x', guest: 'X', start: '2026-08-03', end: '2026-08
 { const m = segMeta(stay, '2026-08-05', 0); ok('row-start: roundLeft', m.roundLeft); ok('row-start: label', m.showLabel); ok('row-start: !isStart', !m.isStart) }
 // μεσαία μέρα ΑΛΛΑ τέλος γραμμής (Σαβ, col 6): roundRight, χωρίς label
 { const m = segMeta(stay, '2026-08-05', 6); ok('row-end: roundRight', m.roundRight); ok('row-end: !label', !m.showLabel) }
+
+// ── channelColor ─────────────────────────────────────────────────────────────
+ok('airbnb χρώμα', channelColor('airbnb').solid === '#FF5A5F')
+ok('booking χρώμα', channelColor('booking').solid === '#0071C2')
+ok('AIRBNB case', channelColor('AIRBNB').label === 'Airbnb')
+ok('άγνωστο → accent', channelColor('foo').solid === 'var(--accent)')
+ok('null → accent', channelColor(null).solid === 'var(--accent)')
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nstayBars.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
