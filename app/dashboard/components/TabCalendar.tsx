@@ -22,6 +22,7 @@ import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
+import { toStaySpan, staysOnDay, segMeta, type StaySpan } from '@/lib/calendar/stayBars'
 import { syncTenantSchedule } from './TabTenantHelpers'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
@@ -332,8 +333,8 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
 }
 
 // Month View
-function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, drag }: {
-  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl
+function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
+  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -343,7 +344,9 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
   for(let i=0;i<firstDay;i++) cells.push(null)
   for(let i=1;i<=daysInMonth;i++) cells.push(i)
   while(cells.length%7!==0) cells.push(null)
-  const eventsForDay=(day:number)=>{ const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; return events.filter(e=>e.event_date===ds) }
+  // Οι κρατήσεις φαίνονται ως ενιαία μπάρα διαμονής — κρύβουμε τα booking: chips
+  // ώστε να μη διπλογράφονται.
+  const eventsForDay=(day:number)=>{ const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; return events.filter(e=>e.event_date===ds&&!(e.source||'').startsWith('booking:')) }
   const upcoming7=upcomingAll.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date)).slice(0,7)
   const monthPendingAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const monthPaid=events.filter(e=>e.status==='paid')
@@ -392,6 +395,18 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll,
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
                       {hol&&<div title={hol} style={{ fontSize:9.5, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</div>}
+                      {(()=>{ const ds=staysOnDay(stays,dateStr); if(!ds.length)return null; const col=idx%7; return (
+                        <div style={{ margin:'0 -6px 3px', display:'flex', flexDirection:'column', gap:2 }}>
+                          {ds.slice(0,3).map(s=>{ const m=segMeta(s,dateStr,col); const nights=Math.max(1,Math.round((Date.UTC(+s.end.slice(0,4),+s.end.slice(5,7)-1,+s.end.slice(8,10))-Date.UTC(+s.start.slice(0,4),+s.start.slice(5,7)-1,+s.start.slice(8,10)))/86400000)); return (
+                            <Tooltip key={s.id} text={`${s.guest}\n${s.start} → ${s.end}${s.total?`\n${s.total.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`:''}`}>
+                              <div onClick={e=>e.stopPropagation()} style={{ height:17, display:'flex', alignItems:'center', background:'var(--accent)', color:'var(--accent-text)', fontSize:10.5, fontWeight:600, fontFamily:"'Inter',sans-serif", letterSpacing:'0.2px', paddingLeft:m.showLabel?8:0, paddingRight:m.roundRight?6:0, borderTopLeftRadius:m.roundLeft?8:0, borderBottomLeftRadius:m.roundLeft?8:0, borderTopRightRadius:m.roundRight?8:0, borderBottomRightRadius:m.roundRight?8:0, marginLeft:m.roundLeft?4:0, marginRight:m.roundRight?4:0, overflow:'hidden', whiteSpace:'nowrap', cursor:'default' }}>
+                                {m.showLabel&&<span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{m.isStart&&<User size={9} style={{ marginRight:3, verticalAlign:'-1px', opacity:0.85 }}/>}{s.guest}{m.isStart&&nights>1?` · ${nights} ν.`:''}</span>}
+                              </div>
+                            </Tooltip>
+                          )})}
+                          {ds.length>3&&<span style={{ fontSize:9.5, color:'var(--text-tertiary)', paddingLeft:8, fontFamily:"'Inter',sans-serif" }}>+{ds.length-3} κρατήσεις</span>}
+                        </div>
+                      )})()}
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
                           <Tooltip key={ev.id} text={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev._virtual?'\n(επαναλαμβανόμενο)':''}${ev.notes?`\n${ev.notes}`:''}`}>
@@ -1103,6 +1118,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const importRef=useRef<HTMLInputElement>(null)
   const [importMsg,setImportMsg]=useState<string|null>(null)
   const [notifyOn,setNotifyOn]=useState(false)
+  const [stays,setStays]=useState<StaySpan[]>([])
   const notifiedRef=useRef<Set<string>>(new Set())
   // Ενιαίο drag (ποντίκι + αφή) — μετακίνηση γεγονότος με σύρσιμο σε μήνα/εβδομάδα/ημέρα.
   const drag=usePointerDrag((id,date,time)=>moveEvent(id,date,time))
@@ -1177,11 +1193,18 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     setLoading(true)
     const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')
     setEvents(data||[]); setLoading(false)
+    loadStays()
   }
   // Επαναφόρτωση χωρίς spinner (για live ενημερώσεις)
   async function silentReload() {
     const{data}=await supabase.from('calendar_events').select('*').eq('property_id',propertyId).order('event_date')
     setEvents(data||[])
+  }
+  // Κρατήσεις βραχυχρόνιας (client_stays) → μπάρες διαμονής στην προβολή Μήνα.
+  async function loadStays() {
+    const{data}=await supabase.from('client_stays').select('id,check_in,check_out,total,channel,clients(full_name)').eq('property_id',propertyId)
+    const spans=(data||[]).map((s:any)=>toStaySpan({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,channel:s.channel,guest_name:s.clients?.full_name??null})).filter(Boolean) as StaySpan[]
+    setStays(spans)
   }
 
   const filtered=useMemo(()=>events.filter(e=>{
@@ -1523,7 +1546,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} drag={drag}/>
+          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
