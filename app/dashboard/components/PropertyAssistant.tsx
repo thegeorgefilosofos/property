@@ -24,6 +24,7 @@ import {
 } from './assistantPersona';
 import { classifyExpense } from '@/lib/expenses/classify';
 import { inferRole, roleLabel } from '@/lib/contacts/roles';
+import { upcomingHolidays, holidayName, isWeekend } from '@/lib/calendar/greekHolidays';
 
 interface PropContext { name: string; propType?: string; address?: string; value?: number; sqm?: number; status?: string; targetRent?: number; }
 interface PropSummary { name: string; propType?: string; value?: number; targetRent?: number; sqm?: number; status?: string; }
@@ -234,6 +235,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       hostingLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
       checklistLine,
+      `Σήμερα είναι ${new Date(todayStr).toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${isWeekend(todayStr) ? ' (Σαββατοκύριακο)' : ''}${holidayName(todayStr) ? ` — αργία: ${holidayName(todayStr)}` : ''}.`,
+      `Επόμενες επίσημες αργίες Ελλάδας: ${upcomingHolidays(todayStr, 5).map(h => `${h.name} (${new Date(h.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })})`).join(', ')}. Όταν προτείνεις ημερομηνία/ώρα ραντεβού, απόφυγε Σαββατοκύριακα και αργίες εκτός αν το ζητήσει ο χρήστης, και ανάφερέ το αν η ημέρα που διαλέγει πέφτει σε αργία/Σαββατοκύριακο.`,
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));
 
@@ -323,7 +326,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (!a) return;
     if (a.type === 'scan') onScan();
     else if (a.type === 'go') onNavigate(a.tab);
-    else if (a.type === 'book') { bookAppointment(a.title, a.date); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
+    else if (a.type === 'book') { bookAppointment(a.title, a.date, a.time); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
     else if (a.type === 'client') { registerClient(a); return; }
     else if (a.type === 'expense') { registerExpense(a.description, a.amount); return; }
     else if (a.type === 'vip') { toggleVip(a.who); return; }
@@ -592,14 +595,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
   // Κράτηση ραντεβού: γράφει γεγονός στο Ημερολόγιο. Η υπάρχουσα ροή υπενθυμίσεων
   // (send-reminders) στέλνει email 3 & 1 ημέρα πριν, αν ο χρήστης έχει ενεργές ειδοποιήσεις.
-  const bookAppointment = async (title: string, date: string) => {
+  const bookAppointment = async (title: string, date: string, time?: string) => {
     try {
       await supabase.from('calendar_events').insert({
         property_id: propertyId, user_id: userId, title, category: 'financial',
-        event_date: date, priority: 'high', status: 'pending', source: 'assistant',
+        event_date: date, event_time: time || null, duration_minutes: time ? 60 : null,
+        priority: 'high', status: 'pending', source: 'assistant',
         notes: 'Ραντεβού που προγραμμάτισε ο βοηθός. Υπενθύμιση 3 και 1 ημέρα πριν (email, εφόσον είναι ενεργές οι ειδοποιήσεις).',
       });
-      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για τις ${new Date(date).toLocaleDateString('el-GR')} στο Ημερολόγιο και θα σου θυμίσω 3 και 1 ημέρα πριν. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
+      const whenStr = `${new Date(date).toLocaleDateString('el-GR')}${time ? ` στις ${time}` : ''}`;
+      setMsgs(m => [...m, { role: 'assistant', text: `Το έκλεισα. Πρόσθεσα το «${title}» για ${whenStr} στο Ημερολόγιο και θα σου θυμίσω 3 και 1 ημέρα πριν. Θέλεις να ανοίξω το Ημερολόγιο;`, action: { type: 'go', tab: 'calendar' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω το ραντεβού τώρα. Δοκίμασε ξανά ή πρόσθεσέ το χειροκίνητα στο Ημερολόγιο.' }]);
     }
