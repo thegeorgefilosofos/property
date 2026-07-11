@@ -14,6 +14,7 @@ import {
   parseAction, cleanForSpeech, buildSystemPrompt, NAV_MAP,
   DEFAULT_IDENTITY, type AssistantIdentity, type Gender,
   loadMemories, addMemory, removeMemory, clearMemories,
+  normalizeBookTime,
 } from './assistantPersona';
 
 let passed = 0, failed = 0;
@@ -361,6 +362,45 @@ for (const t of ['Καμία μνήμη εδώ.', 'Κείμενο [[remember:]] 
   addMemory('user-B', 'μυστικό Β');
   ok('per-user isolation', loadMemories('user-A').length === 1 && loadMemories('user-B')[0].text === 'μυστικό Β');
   clearMemories('user-A'); clearMemories('user-B');
+}
+
+// ── normalizeBookTime: δέχεται σαφείς μορφές, απορρίπτει διφορούμενες ──────────
+ok('24ωρη 17:30', normalizeBookTime('17:30') === '17:30');
+ok('24ωρη 9:5 → όχι (μονοψήφια λεπτά άκυρα)', normalizeBookTime('9:5') === undefined);
+ok('24ωρη 09:05', normalizeBookTime('09:05') === '09:05');
+ok('6μμ → 18:00', normalizeBookTime('6μμ') === '18:00');
+ok('10πμ → 10:00', normalizeBookTime('10πμ') === '10:00');
+ok('6 μ.μ. → 18:00', normalizeBookTime('6 μ.μ.') === '18:00');
+ok('12μμ → 12:00', normalizeBookTime('12μμ') === '12:00');
+ok('12πμ → 00:00', normalizeBookTime('12πμ') === '00:00');
+ok('6:30μμ → 18:30', normalizeBookTime('6:30μμ') === '18:30');
+ok('σκέτη ώρα «5» → undefined (διφορούμενη)', normalizeBookTime('5') === undefined);
+ok('άκυρη 25:00 → undefined', normalizeBookTime('25:00') === undefined);
+ok('άκυρη 13μμ → undefined', normalizeBookTime('13μμ') === undefined);
+ok('κενό → undefined', normalizeBookTime('') === undefined);
+
+// ── [[book:]] με σαφή ελληνική ώρα περνά· διφορούμενη ώρα δεν περνά ────────────
+{
+  const r = parseAction('Το κλείνω. [[book: Service κλιματιστικού | 2026-07-15 | 6μμ]]');
+  ok('book: greek time date', r.action?.type === 'book' && (r.action as any).date === '2026-07-15');
+  ok('book: greek time → 18:00', (r.action as any).time === '18:00');
+}
+{
+  const r = parseAction('[[book: Ραντεβού υδραυλικού | 2026-07-15 | 5]]');
+  ok('book: διφορούμενη ώρα αγνοείται (χωρίς time)', r.action?.type === 'book' && (r.action as any).time === undefined);
+}
+{
+  const r = parseAction('[[book: Έλεγχος λέβητα | 2026-08-01 | 17:00]]');
+  ok('book: 24ωρη περνά', (r.action as any).time === '17:00');
+}
+
+// ── Το persona διδάσκει διευκρινιστικές ερωτήσεις για ώρα/ημερομηνία ──────────
+{
+  const sp = buildSystemPrompt(id({}), 'Διαμέρισμα');
+  ok('persona: κανόνας πρωί/απόγευμα', /πρωί ή το απόγευμα/i.test(sp));
+  ok('persona: διευκρίνιση ώρας', /ΔΙΕΥΚΡΙΝΙΣΤΙΚΕΣ ΕΡΩΤΗΣΕΙΣ/i.test(sp));
+  ok('persona: γρήγορες εντολές', /ΓΡΗΓΟΡΕΣ ΕΝΤΟΛΕΣ/i.test(sp));
+  ok('persona: παράδειγμα aircondition', /aircondition/i.test(sp));
 }
 
 // ── report ───────────────────────────────────────────────────────────────────
