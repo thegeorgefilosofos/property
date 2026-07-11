@@ -1113,8 +1113,8 @@ function NowLine({ show, hour, gutter }: { show:boolean; hour:number; gutter:num
   )
 }
 
-function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
-  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl
+function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResize }: {
+  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; drag?:DragCtl; onResize?:(id:string,dur:number)=>void
 }) {
   const y=currentDate.getFullYear(), m=currentDate.getMonth(), d=currentDate.getDate()
   const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
@@ -1123,6 +1123,20 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
+  const HOUR_H=58, START_MIN=7*60, END_MIN=23*60
+  const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
+  const laid=layoutDay(timed,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
+  // Resize με σύρσιμο της κάτω λαβής (ns-resize) — ζωντανή προεπισκόπηση ύψους.
+  const rz=useRef<{id:string;startY:number;startDur:number}|null>(null)
+  const resized=useRef(false)
+  const [rzDur,setRzDur]=useState<{id:string;dur:number}|null>(null)
+  useEffect(()=>{
+    const move=(ev:PointerEvent)=>{ const s=rz.current; if(!s)return; ev.preventDefault(); resized.current=true; const dur=Math.max(15,Math.min(720,Math.round((s.startDur+(ev.clientY-s.startY)/HOUR_H*60)/15)*15)); setRzDur({id:s.id,dur}) }
+    const up=()=>{ const s=rz.current; rz.current=null; if(s&&resized.current&&rzDur&&onResize)onResize(s.id,rzDur.dur); setRzDur(null); setTimeout(()=>{resized.current=false},60) }
+    window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',up)
+    return ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
+  },[rzDur,onResize])
+  const startResize=(id:string,dur:number)=>(ev:React.PointerEvent)=>{ if(ev.button&&ev.button!==0)return; ev.stopPropagation(); ev.preventDefault(); resized.current=false; rz.current={id,startY:ev.clientY,startDur:dur} }
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
@@ -1136,32 +1150,32 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag }: {
         </div>
       )}
       <div style={{ maxHeight:600, overflowY:'auto' }}>
-        {HOURS.map(h=>{
-          const hh=String(h).padStart(2,'0')
-          const evs=timed.filter(e=>parseInt((e.event_time||'0:0').split(':')[0])===h)
-          // Σωστές στήλες για ταυτόχρονα ραντεβού (interval-graph coloring) αντί για wrap.
-          const toMin=(t?:string|null)=>{const[a,b]=(t||'0:0').split(':').map(Number);return a*60+(b||0)}
-          const laid=layoutDay(evs,e=>toMin(e.event_time),e=>toMin(e.event_time)+(e.duration_minutes||60))
-          const laneOf=new Map(laid.map(l=>[l.event as CalEvent,l]))
-          const cols=Math.max(1,...laid.map(l=>l.lanes))
-          const ordered=[...evs].sort((a,b)=>((laneOf.get(a)?.lane||0)-(laneOf.get(b)?.lane||0)))
-          return (
-            <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
+        <div style={{ position:'relative', height:HOURS.length*HOUR_H }}>
+          {/* Υπόβαθρο: γραμμές ωρών + κλικ για νέο ραντεβού */}
+          {HOURS.map((h,i)=>{ const hh=String(h).padStart(2,'0'); return (
+            <div key={h} onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ position:'absolute', top:i*HOUR_H, left:0, right:0, height:HOUR_H, borderBottom:'1px solid var(--border-subtle)', cursor:'pointer' }}>
               <NowLine show={isToday} hour={h} gutter={60}/>
-              <div style={{ width:60, flexShrink:0, padding:'6px 8px', textAlign:'right', fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} data-drop-date={dateStr} data-drop-time={`${hh}:00`} title="Κλικ για νέο ραντεβού" style={{ flex:1, minWidth:0, padding:6, cursor:'pointer', display:'flex', flexDirection:'row', flexWrap:'nowrap', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
-                {ordered.map(e=>(
-                  <button key={e.id} onPointerDown={!e._virtual&&drag?drag.onDown(e.id,e.title):undefined} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ touchAction:'none', flex:`1 1 calc(${100/cols}% - 4px)`, minWidth:0, display:'flex', alignItems:'center', gap:7, padding:'7px 10px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
-                    <span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600, flexShrink:0 }}>{e.event_time}</span>
-                    {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.6, flexShrink:0 }}/>}
-                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
-                    {e.amount!=null&&cols===1&&<span style={{ marginLeft:'auto', color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', flexShrink:0 }}>{e.amount.toLocaleString('el-GR')} €</span>}
-                  </button>
-                ))}
-              </div>
+              <span style={{ position:'absolute', left:8, top:4, fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</span>
+              <div style={{ position:'absolute', left:60, top:0, bottom:0, width:1, background:'var(--border-subtle)' }}/>
             </div>
-          )
-        })}
+          )})}
+          {/* Γεγονότα: αναλογικό ύψος (διάρκεια) + στήλες για επικαλύψεις + λαβή resize */}
+          {laid.map(l=>{ const e=l.event as CalEvent
+            const liveDur=rzDur&&rzDur.id===e.id?rzDur.dur:(e.duration_minutes||60)
+            const s=Math.max(l.startMin,START_MIN), en=Math.min(s+liveDur,END_MIN)
+            if(en<=s)return null
+            const top=(s-START_MIN)/60*HOUR_H, height=Math.max(24,(en-s)/60*HOUR_H-2)
+            const left=`calc(62px + (100% - 66px) * ${l.lane} / ${l.lanes})`, width=`calc((100% - 66px) / ${l.lanes} - 3px)`
+            return (
+              <button key={e.id} onClick={ev=>{ev.stopPropagation(); if(resized.current)return; onEventClick(e)}} title={`${e.event_time} ${e.title}`} style={{ position:'absolute', top, height, left, width, boxSizing:'border-box', display:'flex', flexDirection:'column', gap:2, padding:'5px 8px', borderRadius:9, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:12.5, fontWeight:500, cursor:'pointer', opacity:e._virtual?0.78:1, textAlign:'left', overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
+                <span style={{ display:'flex', alignItems:'center', gap:5 }}><span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600 }}>{e.event_time}</span>{(e.recurring||e._virtual)&&<RotateCcw size={9} style={{ opacity:0.6 }}/>}</span>
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
+                {rzDur&&rzDur.id===e.id&&<span style={{ fontSize:10.5, color:'var(--accent)', fontVariantNumeric:'tabular-nums' }}>{Math.floor(liveDur/60)?`${Math.floor(liveDur/60)}ω `:''}{liveDur%60?`${liveDur%60}′`:''}</span>}
+                {!e._virtual&&onResize&&<div onPointerDown={startResize(e.id,e.duration_minutes||60)} title="Σύρε για διάρκεια" style={{ position:'absolute', left:0, right:0, bottom:0, height:9, cursor:'ns-resize', touchAction:'none' }}><div style={{ position:'absolute', left:'50%', bottom:2, transform:'translateX(-50%)', width:24, height:3, borderRadius:2, background:'var(--accent)', opacity:0.5 }}/></div>}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -1361,6 +1375,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     if(newTime!==undefined)patch.event_time=newTime
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...patch}:e))
     await supabase.from('calendar_events').update(patch).eq('id',id)
+  }
+  // Αλλαγή διάρκειας με σύρσιμο (resize) — ελάχιστη 15', μέγιστη 12 ώρες.
+  async function resizeEvent(id:string, durationMinutes:number){
+    if(id.includes('__'))return
+    const dur=Math.max(15,Math.min(720,Math.round(durationMinutes/15)*15))
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,duration_minutes:dur}:e))
+    await supabase.from('calendar_events').update({duration_minutes:dur}).eq('id',id)
   }
 
   async function saveEvent(){
@@ -1679,7 +1700,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag}/>}
+      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} onResize={resizeEvent}/>}
 
       {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={d=>{setCurrentDate(new Date(d+'T00:00:00'));openNew(d)}} onSlotClick={(date,time)=>{setCurrentDate(new Date(date+'T00:00:00'));setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} drag={drag} stays={stays}/>}
 
