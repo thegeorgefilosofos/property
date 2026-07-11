@@ -9,7 +9,7 @@ import {
   Calendar, List, BarChart2, Check, FileText,
   Zap, Shield, User, Bell, Filter, Download,
   ChevronDown, Edit2, Trash2, RotateCcw,
-  Euro, Wrench, RefreshCw, ToggleLeft, ToggleRight,
+  Euro, Wrench, RefreshCw,
   Printer, Square, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus,
 } from 'lucide-react'
@@ -127,15 +127,6 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   )
 }
 
-function CategoryBadge({ cat }: { cat: EventCategory }) {
-  const c = CATEGORIES[cat]
-  return (
-    <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase', padding:'2px 8px', borderRadius:16, color:c.color, background:c.bg, whiteSpace:'nowrap' }}>
-      {c.icon}{c.label}
-    </span>
-  )
-}
-
 function StatusDot({ status }: { status: EventStatus }) {
   const s = STATUSES[status]
   return (
@@ -146,24 +137,6 @@ function StatusDot({ status }: { status: EventStatus }) {
   )
 }
 
-function PriorityTag({ priority }: { priority: EventPriority }) {
-  const p = PRIORITIES[priority]
-  return (
-    <span style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase', padding:'1px 6px', borderRadius:4, color:p.color, background:`${p.color}15` }}>
-      {p.label}
-    </span>
-  )
-}
-
-function SourceBadge({ source }: { source: string }) {
-  if (source==='manual') return null
-  const labels: Record<string,string> = { bills:'Λογαριασμοί', loan:'Συντήρηση', rent:'Ενοίκιο', checklist:'Εκκρεμότητα', maintenance:'Συντήρηση' }
-  return (
-    <span title="Δημιουργήθηκε αυτόματα από άλλη καρτέλα" style={{ fontSize:11, fontFamily:"'Inter',sans-serif", padding:'1px 6px', borderRadius:4, color:'var(--text-tertiary)', border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
-      αυτόματο · {labels[source]??source}
-    </span>
-  )
-}
 
 // Μετατροπή γεγονότος σε είσοδο για τους συνδέσμους εξωτερικών ημερολογίων.
 function toCalInput(e: CalEvent) {
@@ -232,39 +205,43 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
     isAuto?`Δημιουργήθηκε αυτόματα`:'',
   ].filter(Boolean).join('\n')
   const relLbl = (n:number) => { const a=Math.abs(n); return a===1?'1 ημέρα':`${a} ημέρες` }
+  // Χρώμα μόνο όπου μετράει: η αριστερή γραμμή δείχνει κατηγορία (διακριτικά), ή
+  // κόκκινο όταν εκπρόθεσμο. Χωρίς πολύχρωμα badges/πηγή — καθαρή, ακριβή αίσθηση.
+  const accentBar = overdue?'var(--negative)':`color-mix(in srgb, ${cat.color} 50%, transparent)`
 
   return (
-    <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'12px 16px',
+    <div style={{ display:'flex', alignItems:'flex-start', gap:11, padding:'12px 15px',
       background: selected?'var(--accent-dim)':done?'var(--bg-elevated)':'var(--bg-surface)',
       border:`1px solid ${selected?'var(--border-accent)':overdue?'var(--negative-border)':'var(--border-subtle)'}`,
-      borderLeft:`3px solid ${overdue?'var(--negative)':'var(--border-subtle)'}`,
-      borderRadius:8, opacity:done?0.6:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
+      borderLeft:`3px solid ${accentBar}`,
+      borderRadius:10, opacity:done?0.62:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
     }}>
       {bulkMode&&onSelect&&(
-        <button onClick={()=>onSelect(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:selected?'var(--accent)':'var(--text-tertiary)', padding:0, display:'flex', flexShrink:0, marginTop:1 }}>
-          {selected?<CheckSquare size={15}/>:<Square size={15}/>}
+        <button aria-label="Επιλογή" onClick={()=>onSelect(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:selected?'var(--accent)':'var(--text-tertiary)', padding:0, display:'flex', flexShrink:0, marginTop:2 }}>
+          {selected?<CheckSquare size={16}/>:<Square size={16}/>}
         </button>
       )}
       {!bulkMode&&(
-        <button onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--positive)':'var(--border-default)'}`, background:done?'var(--positive)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all 0.15s' }}>
+        <button aria-label={done?'Αναίρεση':'Ολοκλήρωση'} onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--positive)':'var(--border-default)'}`, background:done?'var(--positive)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all 0.15s' }}>
           {done&&<Check size={9} color="var(--accent-text)"/>}
         </button>
       )}
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:4 }}>
-          <span style={{ fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:500, color:done?'var(--text-tertiary)':'var(--text-primary)', textDecoration:done?'line-through':'none', letterSpacing:'0.1px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:5 }}>
+          <span style={{ fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:500, color:done?'var(--text-tertiary)':'var(--text-primary)', textDecoration:done?'line-through':'none', letterSpacing:'0.1px', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {event.title}
           </span>
-          <CategoryBadge cat={event.category}/>
-          <PriorityTag priority={event.priority}/>
-          <SourceBadge source={event.source}/>
-          {event.recurring&&<Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={10} color="var(--text-tertiary)"/></Tooltip>}
-          {tooltipText&&<Tooltip text={tooltipText}><Info size={10} color="var(--text-tertiary)" style={{ cursor:'help' }}/></Tooltip>}
+          {event.recurring&&<Tooltip text="Επαναλαμβανόμενο"><RotateCcw size={11} color="var(--text-tertiary)" style={{ flexShrink:0 }}/></Tooltip>}
+          {tooltipText&&<Tooltip text={tooltipText}><Info size={11} color="var(--text-tertiary)" style={{ cursor:'help', flexShrink:0 }}/></Tooltip>}
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:9, flexWrap:'wrap' }}>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+            <span style={{ width:7, height:7, borderRadius:2, background:cat.color, flexShrink:0 }}/>
+            <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', letterSpacing:'0.3px' }}>{cat.label}</span>
+          </span>
           <StatusDot status={event.status}/>
           {event.amount!=null&&(
-            <span style={{ fontSize:13, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:500 }}>
+            <span style={{ fontSize:13, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontWeight:500 }}>
               {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
             </span>
           )}
@@ -275,26 +252,21 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           )}
         </div>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:overdue?'var(--negative)':due<=3&&!done?'var(--warning)':'var(--text-secondary)' }}>
-          {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5, flexShrink:0 }}>
+        <span style={{ fontSize:12, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:overdue||due===0?600:400, color:overdue?'var(--negative)':due===0?'var(--text-primary)':'var(--text-secondary)' }}>
+          {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
-        {!done&&due>=0&&due<=7&&(
-          <span style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:500, color:due===0?'var(--negative)':due<=3?'var(--warning)':'var(--accent)', background:due===0?'var(--negative-dim)':'var(--accent-dim)', padding:'2px 8px', borderRadius:12 }}>
-            {due===0?'Σήμερα':`σε ${relLbl(due)}`}
-          </span>
-        )}
         {!bulkMode&&(
           <div style={{ display:'flex', gap:2, alignItems:'center' }}>
             <AddToCalendarMenu event={event}/>
-            {!isAuto&&<>
+            {!isAuto&&(
               <button aria-label="Επεξεργασία" title="Επεξεργασία" onClick={()=>onEdit(event)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
                 onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'}
                 onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Edit2 size={13}/></button>
-              <button aria-label="Διαγραφή" title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
-                onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
-                onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
-            </>}
+            )}
+            <button aria-label="Διαγραφή" title="Διαγραφή" onClick={()=>onDelete(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-tertiary)', padding:4, display:'flex', borderRadius:4 }}
+              onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'}
+              onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><Trash2 size={13}/></button>
           </div>
         )}
       </div>
@@ -447,14 +419,16 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {upcoming7.map(ev=>{
               const d=daysUntil(ev.event_date); const cat=CATEGORIES[ev.category]
+              const when=d===0?'Σήμερα':d===1?'Αύριο':`σε ${d} ημέρες`
+              const soon=d<=1
               return (
-                <div key={ev.id} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                  <div style={{ width:3, borderRadius:2, background:cat.color, alignSelf:'stretch', flexShrink:0, minHeight:28 }}/>
+                <div key={ev.id} title={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''} — ${when}`} style={{ display:'flex', gap:9, alignItems:'flex-start' }}>
+                  <div style={{ width:3, borderRadius:2, background:cat.color, alignSelf:'stretch', flexShrink:0, minHeight:30, opacity:0.85 }}/>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>{ev.title}</p>
-                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                      <span style={{ fontSize:11, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:d===0?'var(--negative)':d<=3?'var(--warning)':'var(--text-secondary)' }}>{d===0?'Σήμερα':d===1?'Αύριο':`${d}μ`}</span>
-                      {ev.amount&&<span style={{ fontSize:11, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{ev.amount}€</span>}
+                    <p style={{ fontSize:12.5, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', lineHeight:1.35, marginBottom:3, letterSpacing:'0.1px' }}>{ev.title}</p>
+                    <div style={{ display:'flex', gap:8, alignItems:'baseline', flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", fontWeight:soon?600:400, color:soon?'var(--text-primary)':'var(--text-tertiary)' }}>{when}</span>
+                      {ev.amount!=null&&<span style={{ fontSize:11.5, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
                     </div>
                   </div>
                 </div>
@@ -617,12 +591,11 @@ function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { even
 type SyncKey='bills'|'maintenance'|'leases'|'bookings'|'tax'|'loans'
 function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:string; userId:string; onRefresh:()=>void; onClose?:()=>void }) {
   const supabase=createClient()
-  const [syncing,setSyncing]=useState(false)
+  const [busy,setBusy]=useState<SyncKey|null>(null)
   const [mode,setMode]=useState<'long_term'|'short_term'|null>(null)
   const [counts,setCounts]=useState<Record<SyncKey,number>|null>(null)
-  const [enabled,setEnabled]=useState<Record<SyncKey,boolean>>({bills:true,maintenance:true,leases:true,bookings:true,tax:true,loans:true})
+  const [done,setDone]=useState<Record<string,{n:number;at:string}>>({})
   const [lastSync,setLastSync]=useState<string|null>(null)
-  const [result,setResult]=useState<{label:string;n:number}[]|null>(null)
   const taxProfile=(mode==='short_term'?'short_term':mode==='long_term'?'long_term':'owner')
 
   const cnt=async(table:string,extra?:(q:any)=>any)=>{ let q=supabase.from(table).select('*',{count:'exact',head:true}).eq('property_id',propertyId); if(extra)q=extra(q); const{count}=await q; return count||0 }
@@ -659,12 +632,12 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     maintenance:{label:'Συντήρηση',            icon:<Wrench size={15}/>,   unit:n=>n===1?'1 εργασία':`${n} εργασίες`},
   }
 
-  async function syncAll() {
-    setSyncing(true); setResult(null)
-    const res:{label:string;n:number}[]=[]
-    const on=(k:SyncKey)=>visible.includes(k)&&enabled[k]&&(counts?.[k]||0)>0
+  // Συγχρονισμός ΜΙΑΣ πηγής — το ίδιο το κουτάκι είναι το κουμπί. Χωρίς on/off,
+  // χωρίς ξεχωριστό «Συγχρονισμός τώρα»: πατάς π.χ. «Φορολογικά (ΑΑΔΕ)» και
+  // τραβιούνται ΟΛΕΣ οι καταληκτικές αλλά και οι πρώτες ημερομηνίες.
+  async function syncOne(k:SyncKey):Promise<number> {
     // ── Λογαριασμοί ──
-    if(on('bills')){
+    if(k==='bills'){
       const{data:bills}=await supabase.from('bills').select('*').eq('property_id',propertyId)
       await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source','bills')
       // Καθάρισε και τυχόν σκαναρισμένη υπενθύμιση λογαριασμού (source='scan',
@@ -677,42 +650,42 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
         return{property_id:propertyId,user_id:userId,title:b.name||b.provider||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,priority:'medium' as EventPriority,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null,source:'bills'}
       })
       if(rows.length)await supabase.from('calendar_events').insert(rows)
-      res.push({label:'Λογαριασμοί',n:rows.length})
+      return rows.length
     }
     // ── Συντήρηση ──
-    if(on('maintenance')){
+    if(k==='maintenance'){
       const{data:tasks}=await supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId)
       await supabase.from('calendar_events').delete().eq('property_id',propertyId).in('source',['loan','maintenance'])
       const rows=(tasks||[]).filter((t:any)=>t.due_date).map((t:any)=>({property_id:propertyId,user_id:userId,title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,amount:null,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,recurring:false,notes:t.description||null,source:'maintenance'}))
       if(rows.length)await supabase.from('calendar_events').insert(rows)
-      res.push({label:'Συντήρηση',n:rows.length})
+      return rows.length
     }
     // ── Ενοίκιο & μισθώσεις (πραγματικά δεδομένα ενοικιαστή, idempotent) ──
-    if(on('leases')){
+    if(k==='leases'){
       const{data:tenants}=await supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past')
       let n=0
       for(const t of (tenants||[])){ await syncTenantSchedule(supabase,t as any,propertyId,userId,'save',{rentDueDay:(t as any).rent_due_day??1}); if((t as any).monthly_rent)n++ }
-      res.push({label:'Ενοίκιο & μισθώσεις',n})
+      return n
     }
     // ── Κρατήσεις (με όνομα επισκέπτη) ──
-    if(on('bookings')){
+    if(k==='bookings'){
       const{data:stays}=await supabase.from('client_stays').select('id,check_in,check_out,total,nights,guests,channel,clients(full_name)').eq('property_id',propertyId)
       await supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','booking:%')
       const rows=buildBookingEvents((stays||[]).map((s:any)=>({id:s.id,check_in:s.check_in,check_out:s.check_out,total:s.total,nights:s.nights,guests:s.guests,channel:s.channel,guest_name:s.clients?.full_name??null})),propertyId,userId)
       if(rows.length)await supabase.from('calendar_events').insert(rows)
-      res.push({label:'Κρατήσεις',n:rows.length})
+      return rows.length
     }
-    // ── Φορολογικά (ΑΑΔΕ): πραγματικές, θεσμοθετημένες προθεσμίες ακινήτου ──
-    if(on('tax')){
+    // ── Φορολογικά (ΑΑΔΕ): πραγματικές, θεσμοθετημένες προθεσμίες — έκδοση/1η/τελευταία δόση ──
+    if(k==='tax'){
       const year=athensNow().getFullYear()
       const obs=[...greekPropertyTaxObligations(year,taxProfile),...greekPropertyTaxObligations(year+1,taxProfile).filter(o=>o.date<`${year+1}-04-01`)]
       await supabase.from('calendar_events').delete().eq('property_id',propertyId).like('source','tax:%')
       const rows=obs.map(o=>taxObligationToEvent(o,propertyId,userId))
       if(rows.length)await supabase.from('calendar_events').insert(rows)
-      res.push({label:'Φορολογικά',n:rows.length})
+      return rows.length
     }
     // ── Δόσεις δανείου: ίδιο source με το κουμπί των Δανείων → idempotent, χωρίς διπλά ──
-    if(on('loans')){
+    if(k==='loans'){
       const{data:loans}=await supabase.from('loans').select('*').eq('property_id',propertyId)
       let n=0
       for(const l of (loans||[])){
@@ -727,67 +700,65 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
         for(let i=0;i<rows.length;i+=20)await supabase.from('calendar_events').insert(rows.slice(i,i+20))
         n+=rows.length
       }
-      res.push({label:'Δόσεις δανείου',n})
+      return n
     }
-    const stamp=new Date().toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
-    setLastSync(stamp); try{ localStorage.setItem(`cal_sync_${propertyId}`,stamp) }catch{}
-    setResult(res); setSyncing(false); onRefresh()
+    return 0
+  }
+
+  async function runOne(k:SyncKey) {
+    if(busy) return
+    setBusy(k)
+    let n=0
+    try{ n=await syncOne(k) }finally{
+      const stamp=new Date().toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+      setDone(d=>({...d,[k]:{n,at:stamp}}))
+      setLastSync(stamp); try{ localStorage.setItem(`cal_sync_${propertyId}`,stamp) }catch{}
+      setBusy(null); onRefresh()
+    }
   }
 
   const modeHint=mode==='short_term'?'Βραχυχρόνια μίσθωση, τραβάω τις κρατήσεις με το όνομα του επισκέπτη.'
     :mode==='long_term'?'Μακροχρόνια μίσθωση, τραβάω την είσπραξη ενοικίου και τις λήξεις.'
     :'Τραβάω αυτόματα ό,τι αφορά αυτό το ακίνητο.'
-  const totalReady=visible.reduce((s,k)=>s+(enabled[k]&&(counts?.[k]||0)>0?(counts?.[k]||0):0),0)
 
-  const canSync=!(syncing||totalReady===0)
+  const hasTax=(counts?.tax||0)>0
   return (
     <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:18, padding:'20px 22px', boxShadow:'0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 44px -22px rgba(0,0,0,0.6)', overflow:'hidden' }}>
       <div style={{ position:'absolute', top:0, left:24, right:24, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)', opacity:0.7 }}/>
       {onClose&&<button aria-label="Κλείσιμο" onClick={onClose} style={{ position:'absolute', top:14, right:14, width:32, height:32, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>}
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:16, paddingRight:38 }}>
-        <div style={{ minWidth:0, display:'flex', gap:12 }}>
-          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:11, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
-          <div style={{ minWidth:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <p style={{ fontSize:15.5, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
-              {mode&&<span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
-            </div>
-            <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint}</p>
-            {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
+      <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginBottom:16, paddingRight:38 }}>
+        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:11, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
+        <div style={{ minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <p style={{ fontSize:15.5, fontFamily:"'Inter',sans-serif", fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
+            {mode&&<span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif" }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
           </div>
+          <p style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", marginTop:4, lineHeight:1.45 }}>{modeHint} Πάτησε μια πηγή για να την τραβήξεις.</p>
+          {lastSync&&<p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}
         </div>
-        <button onClick={syncAll} disabled={!canSync} style={{ display:'flex', alignItems:'center', gap:8, height:40, padding:'0 20px', background:canSync?'linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, #fff), var(--accent))':'var(--bg-elevated)', border:'1px solid '+(canSync?'var(--accent)':'var(--border-default)'), borderRadius:20, cursor:canSync?'pointer':'not-allowed', color:canSync?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, flexShrink:0, boxShadow:canSync?'0 8px 20px -8px var(--accent)':'none', transition:'transform 0.14s, box-shadow 0.14s' }} onMouseEnter={e=>{if(canSync){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 12px 26px -8px var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=canSync?'0 8px 20px -8px var(--accent)':'none'}}>
-          <RefreshCw size={15} style={{ animation:syncing?'spin 1s linear infinite':'none' }}/>{syncing?'Συγχρονισμός…':'Συγχρονισμός τώρα'}
-        </button>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap:10 }}>
         {visible.map(k=>{
-          const c=counts?.[k]; const has=(c||0)>0; const active=enabled[k]&&has; const meta=META[k]
+          const c=counts?.[k]; const has=(c||0)>0; const meta=META[k]
+          const isBusy=busy===k; const d=done[k]; const disabled=!has||(busy!==null&&!isBusy)
           return (
-            <button key={k} onClick={()=>has&&setEnabled(s=>({...s,[k]:!s[k]}))} disabled={!has} style={{ display:'flex', alignItems:'center', gap:11, padding:'13px 15px', background:active?'color-mix(in srgb, var(--accent) 9%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${active?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:13, cursor:has?'pointer':'default', opacity:has?1:0.5, textAlign:'left', boxShadow:active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)', transition:'transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s' }} onMouseEnter={e=>{if(has){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=active?'0 12px 26px -12px var(--accent)':'0 8px 20px -12px rgba(0,0,0,0.5)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=active?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)'}}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:active?'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000))':'var(--bg-elevated)', color:active?'var(--accent-text)':'var(--text-tertiary)', border:active?'none':'1px solid var(--border-subtle)', boxShadow:active?'0 4px 12px -6px var(--accent)':'none' }}>{meta.icon}</span>
+            <button key={k} onClick={()=>has&&runOne(k)} disabled={disabled} style={{ display:'flex', alignItems:'center', gap:11, padding:'13px 15px', background:isBusy?'color-mix(in srgb, var(--accent) 9%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${isBusy?'var(--accent-border)':'var(--border-subtle)'}`, borderRadius:13, cursor:has&&!disabled?'pointer':'default', opacity:has?(disabled&&!isBusy?0.6:1):0.5, textAlign:'left', boxShadow:isBusy?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)', transition:'transform 0.14s, box-shadow 0.14s, border-color 0.14s, background 0.14s' }} onMouseEnter={e=>{if(has&&!disabled){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 20px -12px rgba(0,0,0,0.5)';e.currentTarget.style.borderColor='var(--accent-border)'}}} onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=isBusy?'0 6px 18px -12px var(--accent)':'0 1px 2px rgba(0,0,0,0.15)';e.currentTarget.style.borderColor=isBusy?'var(--accent-border)':'var(--border-subtle)'}}>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:isBusy?'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000))':'var(--bg-elevated)', color:isBusy?'var(--accent-text)':'var(--text-tertiary)', border:isBusy?'none':'1px solid var(--border-subtle)', boxShadow:isBusy?'0 4px 12px -6px var(--accent)':'none' }}>{isBusy?<RefreshCw size={16} style={{ animation:'spin 1s linear infinite' }}/>:meta.icon}</span>
               <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:active?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
-                <p style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:1 }}>{counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
+                <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:isBusy?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
+                <p style={{ fontSize:11.5, color:d?'var(--positive)':'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", marginTop:1 }}>{isBusy?'Συγχρονισμός…':d?`Ενημερώθηκε · ${d.n}`:counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
               </div>
-              {has&&<span style={{ color:active?'var(--accent)':'var(--text-tertiary)', flexShrink:0 }}>{active?<ToggleRight size={22}/>:<ToggleLeft size={22}/>}</span>}
+              {has&&!isBusy&&(d?<Check size={17} style={{ color:'var(--positive)', flexShrink:0 }}/>:<RefreshCw size={15} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>)}
             </button>
           )
         })}
       </div>
-      {enabled.tax&&(counts?.tax||0)>0&&(
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:10, fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>
+      {hasTax&&(
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:12, fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>
           <Info size={13} style={{ color:'var(--accent)' }}/>
-          Οι φορολογικές προθεσμίες βασίζονται στο πλαίσιο της ΑΑΔΕ. Διπλός έλεγχος:
+          Οι φορολογικές προθεσμίες βασίζονται στο πλαίσιο της ΑΑΔΕ (έκδοση, 1η & τελευταία δόση). Διπλός έλεγχος:
           <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>·
           <a href={TAXHEAVEN_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>taxheaven</a>
-        </div>
-      )}
-      {result&&(
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
-          <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12.5, color:'var(--positive)', fontFamily:"'Inter',sans-serif", fontWeight:600 }}><Check size={14}/>Ενημερώθηκε</span>
-          {result.filter(r=>r.n>0).map(r=><span key={r.label} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>{r.label}: <strong style={{ color:'var(--text-primary)' }}>{r.n}</strong></span>)}
-          {result.every(r=>r.n===0)&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Όλα ήδη ενημερωμένα.</span>}
         </div>
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -1006,21 +977,23 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
 }
 
 // Section
-function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=false, bulkMode, selectedIds, onSelect }: {
+function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=false, desc=false, bulkMode, selectedIds, onSelect }: {
   title:string; color:string; events:CalEvent[]; onToggle:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void; onDelete:(id:string)=>void
-  collapsed?:boolean; bulkMode?:boolean; selectedIds?:Set<string>; onSelect?:(id:string)=>void
+  collapsed?:boolean; desc?:boolean; bulkMode?:boolean; selectedIds?:Set<string>; onSelect?:(id:string)=>void
 }) {
   const [open,setOpen]=useState(!collapsed)
+  const sorted=[...events].sort((a,b)=>desc?b.event_date.localeCompare(a.event_date):a.event_date.localeCompare(b.event_date))
   return (
     <div>
-      <button onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', marginBottom:open?10:0, padding:0 }}>
-        <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color, letterSpacing:'0.5px', textTransform:'uppercase' }}>{title}</span>
-        <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)' }}>({events.length})</span>
+      <button onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', marginBottom:open?11:0, padding:0 }}>
+        <span style={{ width:6, height:6, borderRadius:2, background:color, flexShrink:0, opacity:0.9 }}/>
+        <span style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.06em', textTransform:'uppercase' }}>{title}</span>
+        <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-tertiary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:'0 7px', lineHeight:'17px' }}>{events.length}</span>
         <ChevronDown size={13} color="var(--text-tertiary)" style={{ transform:open?'rotate(180deg)':'none', transition:'transform 0.2s' }}/>
       </button>
       {open&&(
-        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          {events.map(e=>(
+        <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+          {sorted.map(e=>(
             <EventCard key={e.id} event={e} onToggleStatus={onToggle} onEdit={onEdit} onDelete={onDelete}
               selected={selectedIds?.has(e.id)} onSelect={onSelect} bulkMode={bulkMode}/>
           ))}
@@ -1220,6 +1193,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [dateFrom,setDateFrom]=useState('')
   const [dateTo,setDateTo]=useState('')
   const [showFilters,setShowFilters]=useState(false)
+  const [showOverdue,setShowOverdue]=useState(false)
   const [showAutoPull,setShowAutoPull]=useState(false)
   const [searchQ,setSearchQ]=useState('')
   const [bulkMode,setBulkMode]=useState(false)
@@ -1535,24 +1509,51 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {/* KPI Bar */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:12 }}>
-        {[
-          {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>},
-          {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>},
-          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>},
-        ].map(kpi=>(
-          <div key={kpi.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', transition:'transform 0.16s ease, box-shadow 0.16s ease' }}
+        {([
+          {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
+          {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--accent)', icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>, onClick:undefined, open:false},
+        ] as {label:string;value:string;color:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
+          const clickable=!!kpi.onClick
+          return (
+          <div key={kpi.label} role={clickable?'button':undefined} tabIndex={clickable?0:undefined} onClick={kpi.onClick} onKeyDown={clickable?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();kpi.onClick!()}}:undefined} style={{ position:'relative', background:kpi.open?`linear-gradient(180deg, color-mix(in srgb, ${kpi.color} 8%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)`:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:`1px solid ${kpi.open?`color-mix(in srgb, ${kpi.color} 45%, var(--border-subtle))`:'var(--border-subtle)'}`, borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', cursor:clickable?'pointer':'default', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s' }}
             onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
             onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
             <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:kpi.color, opacity:0.55 }}/>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
               <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
-              <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{kpi.label}</p>
+              <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', flex:1 }}>{kpi.label}</p>
+              {clickable&&<ChevronDown size={15} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:kpi.open?'rotate(180deg)':'none', transition:'transform 0.18s' }}/>}
             </div>
             <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
           </div>
-        ))}
+        )})}
       </div>
+
+      {/* Εκπρόθεσμα — αναλυτικά, χρονολογικά (παλαιότερο πρώτο) */}
+      {showOverdue&&overdue.length>0&&(
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--negative-border)', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 24px -14px rgba(0,0,0,0.5)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'11px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--negative-dim)' }}>
+            <AlertTriangle size={14} color="var(--negative)"/>
+            <p style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', margin:0, flex:1, letterSpacing:'0.1px' }}>Εκπρόθεσμα · {overdue.length}</p>
+            <button aria-label="Κλείσιμο" onClick={()=>setShowOverdue(false)} style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.borderColor='var(--border-default)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-subtle)'}}><X size={14}/></button>
+          </div>
+          <div>
+            {[...overdue].sort((a,b)=>a.event_date.localeCompare(b.event_date)).map((e,i,arr)=>{ const late=Math.abs(daysUntil(e.event_date)); const cat=CATEGORIES[e.category]; return (
+              <button key={e.id} onClick={()=>openEdit(e)} style={{ display:'flex', alignItems:'center', gap:12, width:'100%', textAlign:'left', padding:'11px 16px', border:'none', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none', background:'transparent', cursor:'pointer', transition:'background 0.12s' }} onMouseEnter={ev=>ev.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={ev=>ev.currentTarget.style.background='transparent'}>
+                <span style={{ width:8, height:8, borderRadius:2, background:cat.color, flexShrink:0 }}/>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:13.5, fontFamily:"'Inter',sans-serif", color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>{e.title}</p>
+                  <p style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)', margin:'2px 0 0' }}>{fmt(e.event_date)}{e.event_time?` · ${e.event_time}`:''}</p>
+                </div>
+                {e.amount!=null&&<span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)' }}>{e.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</span>}
+                <span style={{ fontSize:11.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--negative)', flexShrink:0 }}>πριν {late===1?'1 ημέρα':`${late} ημέρες`}</span>
+              </button>
+            )})}
+          </div>
+        </div>
+      )}
 
       {/* Smart Alerts */}
       {(overdue.length>0||expiring.length>0)&&(
@@ -1697,13 +1698,29 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             </div>
           </div>
           <div>
-            <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:9 }}>Εύρος ημερομηνιών</p>
-            <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-              <div style={{ width:170 }}><DatePicker value={dateFrom} onChange={setDateFrom}/></div>
-              <span style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>έως</span>
-              <div style={{ width:170 }}><DatePicker value={dateTo} onChange={setDateTo}/></div>
-              {(dateFrom||dateTo)&&<button onClick={()=>{setDateFrom('');setDateTo('')}} style={{ height:30, padding:'0 10px', borderRadius:15, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Καθαρισμός</button>}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:10 }}>
+              <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:600, color:'var(--text-secondary)', letterSpacing:'0.06em', textTransform:'uppercase', margin:0 }}>Εύρος ημερομηνιών</p>
+              {(dateFrom||dateTo)&&(()=>{ const f=(d:string)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'…'; return (
+                <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:20, padding:'2px 10px' }}>{f(dateFrom)}<ArrowRight size={11}/>{f(dateTo)}</span>
+              )})()}
             </div>
+            <div style={{ display:'flex', gap:9, alignItems:'center' }}>
+              <div style={{ flex:1, minWidth:0 }}><DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Από"/></div>
+              <ArrowRight size={14} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>
+              <div style={{ flex:1, minWidth:0 }}><DatePicker value={dateTo} onChange={setDateTo} placeholder="Έως"/></div>
+            </div>
+            {(()=>{ const pad2=(n:number)=>String(n).padStart(2,'0'); const iso=(d:Date)=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; const an=athensNow(); const presets=[
+              {label:'Αυτός ο μήνας', from:iso(new Date(an.getFullYear(),an.getMonth(),1)), to:iso(new Date(an.getFullYear(),an.getMonth()+1,0))},
+              {label:'Επόμενες 30 ημέρες', from:todayStr(), to:iso(new Date(an.getFullYear(),an.getMonth(),an.getDate()+30))},
+              {label:'Φέτος', from:`${an.getFullYear()}-01-01`, to:`${an.getFullYear()}-12-31`},
+            ]; return (
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap', marginTop:10 }}>
+                {presets.map(p=>{ const on=dateFrom===p.from&&dateTo===p.to; return (
+                  <button key={p.label} onClick={()=>{setDateFrom(on?'':p.from);setDateTo(on?'':p.to)}} style={{ height:28, padding:'0 11px', borderRadius:14, border:`1px solid ${on?'var(--accent-border)':'var(--border-subtle)'}`, background:on?'var(--accent-soft)':'var(--bg-surface)', color:on?'var(--accent)':'var(--text-secondary)', fontSize:12, fontWeight:on?600:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{if(!on)e.currentTarget.style.borderColor='var(--border-default)'}} onMouseLeave={e=>{if(!on)e.currentTarget.style.borderColor='var(--border-subtle)'}}>{p.label}</button>
+                )})}
+                {(dateFrom||dateTo)&&<button onClick={()=>{setDateFrom('');setDateTo('')}} style={{ display:'inline-flex', alignItems:'center', gap:5, height:28, padding:'0 10px', borderRadius:14, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>e.currentTarget.style.color='var(--negative)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}><X size={12}/>Καθαρισμός</button>}
+              </div>
+            )})()}
           </div>
         </div>
         )
@@ -1736,7 +1753,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           {thisWeek.length>0&&<Section title="Επόμενες 7 μέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {done.length>0&&<Section title="Ολοκληρωμένα / Ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed desc bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {filtered.length===0&&<div style={{ textAlign:'center', padding:'50px 0' }}><Calendar size={28} color="var(--text-tertiary)" style={{ margin:'0 auto 12px' }}/><p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", color:'var(--text-tertiary)' }}>Δεν υπάρχουν γεγονότα</p></div>}
         </div>
       )}
