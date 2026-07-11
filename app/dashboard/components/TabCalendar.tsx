@@ -16,6 +16,7 @@ import {
 import { DatePicker } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
 import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
+import { expandRecurring } from '@/lib/calendar/recurrence'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -29,6 +30,7 @@ interface CalEvent {
   priority: EventPriority; status: EventStatus; recurring: boolean
   recurring_interval?: string | null; notes?: string | null
   source: string; attachment_url?: string | null; color?: string | null; created_at: string
+  _virtual?: boolean; _seriesId?: string  // εικονική εμφάνιση επαναλαμβανόμενου (μόνο για προβολή)
 }
 
 interface FormState {
@@ -282,8 +284,8 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
 }
 
 // Month View
-function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll }: {
-  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]
+function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll, onMove }: {
+  events: CalEvent[]; currentDate: Date; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; onMove?:(id:string,date:string)=>void
 }) {
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=new Date(year,month,1).getDay()
@@ -332,6 +334,9 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
               const cellBg=isToday?'var(--accent-dim)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
                 <div key={idx} onClick={()=>day&&onDayClick(dateStr)} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                  onDragOver={day?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined}
+                  onDragLeave={day?e=>{(e.currentTarget as HTMLElement).style.background=cellBg}:undefined}
+                  onDrop={day&&onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background=cellBg;if(id)onMove(id,dateStr)}:undefined}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -344,9 +349,9 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
                       {hol&&<div title={hol} style={{ fontSize:9.5, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{hol}</div>}
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
-                          <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev.notes?`\n${ev.notes}`:''}`}>
-                            <div onClick={e=>{e.stopPropagation();onEventClick(ev)}} style={{ fontSize:11, padding:'1px 5px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', width:'100%', opacity:ev.status==='paid'?0.4:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
-                              {ev.recurring&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.title}
+                          <Tooltip key={ev.id} text={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''}${ev.amount?` · ${ev.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}` :''}${ev._virtual?'\n(επαναλαμβανόμενο)':''}${ev.notes?`\n${ev.notes}`:''}`}>
+                            <div draggable={!ev._virtual&&!!onMove} onDragStart={e=>{e.dataTransfer.setData('text/plain',ev.id);e.dataTransfer.effectAllowed='move'}} onClick={e=>{e.stopPropagation();onEventClick(ev)}} style={{ fontSize:11, padding:'1px 5px', borderRadius:4, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:ev._virtual?'pointer':'grab', width:'100%', opacity:ev.status==='paid'?0.4:ev._virtual?0.72:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>
+                              {(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.event_time?ev.event_time+' ':''}{ev.title}
                             </div>
                           </Tooltip>
                         ))}
@@ -406,11 +411,12 @@ function MonthView({ events, currentDate, onDayClick, onEventClick, upcomingAll 
 }
 
 // Week View
-function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void }) {
+function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick, onMove }: { events:CalEvent[]; currentDate:Date; onDayClick:(date:string)=>void; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; onMove?:(id:string,date:string,time?:string|null)=>void }) {
   const d=new Date(currentDate); const day=d.getDay(); const diff=d.getDate()-day+(day===0?-6:1); d.setDate(diff)
   const weekDays=Array.from({length:7},(_,i)=>{ const nd=new Date(d); nd.setDate(d.getDate()+i); return nd })
   const dsOf=(dt:Date)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
   const today=todayStr()
+  const weekHasToday=weekDays.some(wd=>dsOf(wd)===today)
   const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const hasAllDay=weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time))
@@ -434,9 +440,9 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick }
             <div style={{ display:'grid', gridTemplateColumns:GRID, borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)' }}>
               <div style={{ fontSize:10, color:'var(--text-tertiary)', textAlign:'right', padding:'6px 8px', textTransform:'uppercase', letterSpacing:'0.05em', fontFamily:"'Inter',sans-serif" }}>Ολοήμερα</div>
               {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const evs=events.filter(e=>e.event_date===ds&&!e.event_time); return (
-                <div key={idx} style={{ borderLeft:'1px solid var(--border-subtle)', padding:4, display:'flex', flexDirection:'column', gap:3, minHeight:28 }}>
+                <div key={idx} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background='transparent'}:undefined} onDrop={onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background='transparent';if(id)onMove(id,ds,null)}:undefined} style={{ borderLeft:'1px solid var(--border-subtle)', padding:4, display:'flex', flexDirection:'column', gap:3, minHeight:28 }}>
                   {evs.map(ev=>(
-                    <button key={ev.id} onClick={()=>onEventClick(ev)} title={ev.title} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'3px 7px', borderRadius:7, border:'none', borderLeft:'3px solid '+(isOverdue(ev)?'var(--negative)':'var(--accent)'), background:isOverdue(ev)?'var(--negative-soft)':'var(--accent-soft)', color:'var(--text-primary)', cursor:'pointer', opacity:ev.status==='paid'?0.5:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{ev.title}</button>
+                    <button key={ev.id} draggable={!ev._virtual&&!!onMove} onDragStart={e=>e.dataTransfer.setData('text/plain',ev.id)} onClick={()=>onEventClick(ev)} title={ev.title} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'3px 7px', borderRadius:7, border:'none', borderLeft:'3px solid '+(isOverdue(ev)?'var(--negative)':'var(--accent)'), background:isOverdue(ev)?'var(--negative-soft)':'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight:3, verticalAlign:'middle', opacity:0.7 }}/>}{ev.title}</button>
                   ))}
                 </div>
               )})}
@@ -445,12 +451,13 @@ function WeekView({ events, currentDate, onDayClick, onSlotClick, onEventClick }
           {/* Πλέγμα ωρών */}
           <div style={{ maxHeight:560, overflowY:'auto' }}>
             {HOURS.map(h=>{ const hh=String(h).padStart(2,'0'); return (
-              <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)' }}>
+              <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
+                <NowLine show={weekHasToday} hour={h} gutter={56}/>
                 <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'right', padding:'4px 8px', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
                 {weekDays.map((wd,idx)=>{ const ds=dsOf(wd); const isToday=ds===today; const evs=events.filter(e=>e.event_date===ds&&!!e.event_time&&parseInt((e.event_time||'0:0').split(':')[0])===h); return (
-                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
+                  <div key={idx} onClick={()=>onSlotClick(ds,`${hh}:00`)} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background=isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent'}:undefined} onDrop={onMove?e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background=isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent';if(id)onMove(id,ds,`${hh}:00`)}:undefined} title="Κλικ για νέο ραντεβού" style={{ borderLeft:'1px solid var(--border-subtle)', padding:3, cursor:'pointer', display:'flex', flexDirection:'column', gap:3, background:isToday?'color-mix(in srgb, var(--accent) 4%, transparent)':'transparent' }}>
                     {evs.map(ev=>(
-                      <button key={ev.id} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:'pointer', opacity:ev.status==='paid'?0.5:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
+                      <button key={ev.id} draggable={!ev._virtual&&!!onMove} onDragStart={e=>e.dataTransfer.setData('text/plain',ev.id)} onClick={e=>{e.stopPropagation();onEventClick(ev)}} title={`${ev.event_time} ${ev.title}`} style={{ display:'block', width:'100%', textAlign:'left', fontSize:11, padding:'4px 7px', borderRadius:7, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', cursor:ev._virtual?'pointer':'grab', opacity:ev.status==='paid'?0.5:ev._virtual?0.75:1, overflow:'hidden', fontFamily:"'Inter',sans-serif" }}>
                         <span style={{ color:'var(--accent)', fontWeight:600, fontVariantNumeric:'tabular-nums' }}>{ev.event_time}</span> <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</span>
                       </button>
                     ))}
@@ -840,23 +847,39 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
 }
 
 // Προβολή Ημέρας — πλέγμα ωρών με ραντεβού. Κλικ σε ώρα → νέο γεγονός σε εκείνη την ώρα.
-function DayView({ events, currentDate, onSlotClick, onEventClick }: {
-  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void
+// Λεπτή γραμμή «τώρα» μέσα στην τρέχουσα ώρα (τοποθέτηση αναλογικά ώστε να μη
+// χαλάει από γραμμές διαφορετικού ύψους). Επιστρέφει null εκτός ωραρίου/μέρας.
+function NowLine({ show, hour, gutter }: { show:boolean; hour:number; gutter:number }) {
+  if(!show)return null
+  const now=new Date()
+  if(now.getHours()!==hour)return null
+  const frac=now.getMinutes()/60
+  return (
+    <div style={{ position:'absolute', left:gutter, right:0, top:`${frac*100}%`, height:2, background:'var(--negative)', zIndex:3, pointerEvents:'none' }}>
+      <span style={{ position:'absolute', left:-5, top:-4, width:9, height:9, borderRadius:'50%', background:'var(--negative)' }}/>
+    </div>
+  )
+}
+
+function DayView({ events, currentDate, onSlotClick, onEventClick, onMove }: {
+  events:CalEvent[]; currentDate:Date; onSlotClick:(date:string,time:string)=>void; onEventClick:(e:CalEvent)=>void; onMove?:(id:string,date:string,time:string)=>void
 }) {
   const y=currentDate.getFullYear(), m=currentDate.getMonth(), d=currentDate.getDate()
   const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+  const isToday=dateStr===todayStr()
   const dayEvents=events.filter(e=>e.event_date===dateStr)
   const allDay=dayEvents.filter(e=>!e.event_time)
   const timed=dayEvents.filter(e=>!!e.event_time)
   const HOURS=Array.from({length:16},(_,i)=>i+7) // 07:00–22:00
+  const drop=(hh:string)=>onMove?(e:React.DragEvent)=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');(e.currentTarget as HTMLElement).style.background='transparent';if(id)onMove(id,dateStr,`${hh}:00`)}:undefined
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
         <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border-subtle)', display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
           <span style={{ fontSize:11, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600, fontFamily:"'Inter',sans-serif" }}>Ολοήμερα</span>
           {allDay.map(e=>(
-            <button key={e.id} onClick={()=>onEventClick(e)} style={{ display:'flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>
-              {e.title}{e.amount!=null?` · ${e.amount.toLocaleString('el-GR')} €`:''}
+            <button key={e.id} draggable={!e._virtual&&!!onMove} onDragStart={ev=>ev.dataTransfer.setData('text/plain',e.id)} onClick={()=>onEventClick(e)} style={{ display:'flex', alignItems:'center', gap:6, height:26, padding:'0 10px', borderRadius:13, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, fontFamily:"'Inter',sans-serif" }}>
+              {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.7 }}/>}{e.title}{e.amount!=null?` · ${e.amount.toLocaleString('el-GR')} €`:''}
             </button>
           ))}
         </div>
@@ -866,12 +889,14 @@ function DayView({ events, currentDate, onSlotClick, onEventClick }: {
           const hh=String(h).padStart(2,'0')
           const evs=timed.filter(e=>parseInt((e.event_time||'0:0').split(':')[0])===h)
           return (
-            <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)' }}>
+            <div key={h} style={{ display:'flex', minHeight:54, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
+              <NowLine show={isToday} hour={h} gutter={60}/>
               <div style={{ width:60, flexShrink:0, padding:'6px 8px', textAlign:'right', fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{hh}:00</div>
-              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} title="Κλικ για νέο ραντεβού" style={{ flex:1, padding:6, cursor:'pointer', display:'flex', flexDirection:'column', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
+              <div onClick={()=>onSlotClick(dateStr,`${hh}:00`)} onDragOver={onMove?e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.background='var(--accent-dim)'}:undefined} onDragLeave={onMove?e=>{(e.currentTarget as HTMLElement).style.background='transparent'}:undefined} onDrop={drop(hh)} title="Κλικ για νέο ραντεβού" style={{ flex:1, padding:6, cursor:'pointer', display:'flex', flexDirection:'column', gap:4, borderLeft:'1px solid var(--border-subtle)' }}>
                 {evs.map(e=>(
-                  <button key={e.id} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
+                  <button key={e.id} draggable={!e._virtual&&!!onMove} onDragStart={ev=>ev.dataTransfer.setData('text/plain',e.id)} onClick={ev=>{ev.stopPropagation();onEventClick(e)}} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', borderRadius:10, border:'none', borderLeft:'3px solid var(--accent)', background:'var(--accent-soft)', color:'var(--text-primary)', fontSize:13, fontWeight:500, cursor:e._virtual?'pointer':'grab', opacity:e._virtual?0.75:1, textAlign:'left', fontFamily:"'Inter',sans-serif" }}>
                     <span style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent)', fontWeight:600 }}>{e.event_time}</span>
+                    {(e.recurring||e._virtual)&&<RotateCcw size={10} style={{ opacity:0.6 }}/>}
                     <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.title}</span>
                     {e.amount!=null&&<span style={{ marginLeft:'auto', color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums' }}>{e.amount.toLocaleString('el-GR')} €</span>}
                   </button>
@@ -958,10 +983,33 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const done=filtered.filter(e=>e.status==='paid'||e.status==='cancelled')
   const totalPending=filtered.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const nextEvent=filtered.filter(e=>e.status==='pending'&&daysUntil(e.event_date)>=0).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
-  const monthEvents=filtered.filter(e=>{const d=new Date(e.event_date);return d.getFullYear()===currentDate.getFullYear()&&d.getMonth()===currentDate.getMonth()})
+  // Εύρη προβολής + επέκταση επαναλαμβανόμενων ώστε να φαίνονται σε ΟΛΕΣ τις εμφανίσεις.
+  const p2=(n:number)=>String(n).padStart(2,'0')
+  const _y=currentDate.getFullYear(), _mo=currentDate.getMonth(), _d=currentDate.getDate()
+  const monthStart=`${_y}-${p2(_mo+1)}-01`, monthEnd=`${_y}-${p2(_mo+1)}-${p2(new Date(_y,_mo+1,0).getDate())}`
+  const monthEvents=expandRecurring(filtered, monthStart, monthEnd)
+  const _wk=new Date(currentDate); const _wd=_wk.getDay(); _wk.setDate(_wk.getDate()-_wd+(_wd===0?-6:1))
+  const weekStart=`${_wk.getFullYear()}-${p2(_wk.getMonth()+1)}-${p2(_wk.getDate())}`
+  const _we=new Date(_wk); _we.setDate(_wk.getDate()+6); const weekEnd=`${_we.getFullYear()}-${p2(_we.getMonth()+1)}-${p2(_we.getDate())}`
+  const weekEvents=expandRecurring(filtered, weekStart, weekEnd)
+  const dayStr=`${_y}-${p2(_mo+1)}-${p2(_d)}`
+  const dayEvents=expandRecurring(filtered, dayStr, dayStr)
 
   function openNew(date?:string){setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date||''});setShowModal(true)}
-  function openEdit(e:CalEvent){setEditingEvent(e);setForm({title:e.title,category:e.category,event_date:e.event_date,event_time:e.event_time||'',duration:e.duration_minutes?String(e.duration_minutes):'',amount:e.amount?.toString()||'',priority:e.priority,status:e.status,recurring:e.recurring,recurring_interval:e.recurring_interval||'monthly',notes:e.notes||'',attachment_url:e.attachment_url||''});setShowModal(true)}
+  function openEdit(ev:CalEvent){
+    // Εικονική εμφάνιση επαναλαμβανόμενου → επεξεργάσου τη ΣΕΙΡΑ (base).
+    const e=ev._virtual&&ev._seriesId?(events.find(x=>x.id===ev._seriesId)||ev):ev
+    setEditingEvent(e);setForm({title:e.title,category:e.category,event_date:e.event_date,event_time:e.event_time||'',duration:e.duration_minutes?String(e.duration_minutes):'',amount:e.amount?.toString()||'',priority:e.priority,status:e.status,recurring:e.recurring,recurring_interval:e.recurring_interval||'monthly',notes:e.notes||'',attachment_url:e.attachment_url||''});setShowModal(true)
+  }
+  // Μετακίνηση με σύρσιμο (drag): αλλάζει ημερομηνία (και ώρα σε προβολή ωρών). Οι
+  // εικονικές εμφανίσεις σειράς ΔΕΝ σύρονται (θα άλλαζαν όλη τη σειρά αμφίσημα).
+  async function moveEvent(id:string, newDate:string, newTime?:string|null){
+    if(id.includes('__'))return
+    const patch:{event_date:string;event_time?:string|null}={event_date:newDate}
+    if(newTime!==undefined)patch.event_time=newTime
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,...patch}:e))
+    await supabase.from('calendar_events').update(patch).eq('id',id)
+  }
 
   async function saveEvent(){
     if(!form.title||!form.event_date)return; setSaving(true)
@@ -1201,7 +1249,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered}/>
+          <MonthView events={monthEvents} currentDate={currentDate} onDayClick={openNew} onEventClick={openEdit} upcomingAll={filtered} onMove={moveEvent}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTH_NAMES_GR[currentDate.getMonth()]}</p>
@@ -1212,9 +1260,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='day'&&<DayView events={filtered} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit}/>}
+      {!loading&&viewMode==='day'&&<DayView events={dayEvents} currentDate={currentDate} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} onMove={moveEvent}/>}
 
-      {!loading&&viewMode==='week'&&<WeekView events={filtered} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit}/>}
+      {!loading&&viewMode==='week'&&<WeekView events={weekEvents} currentDate={currentDate} onDayClick={openNew} onSlotClick={(date,time)=>{setEditingEvent(null);setForm({...EMPTY_FORM,event_date:date,event_time:time});setShowModal(true)}} onEventClick={openEdit} onMove={moveEvent}/>}
 
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
