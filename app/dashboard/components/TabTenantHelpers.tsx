@@ -533,3 +533,34 @@ export async function syncTenantSchedule(
     /* best-effort: ο συγχρονισμός δεν πρέπει ποτέ να μπλοκάρει την αποθήκευση */
   }
 }
+
+/**
+ * Auto-mark-paid: όταν καταγράφεται (ή αναιρείται) πληρωμή ενοικίου για έναν μήνα,
+ * κλείνει/ανοίγει η αντίστοιχη εμφάνιση της μηνιαίας υπενθύμισης «rent_due» στο
+ * Ημερολόγιο μέσω recurrence_exdates — ώστε το ημερολόγιο να μη «θυμίζει» ενοίκιο
+ * που ήδη εισπράχθηκε. Ασφαλές & αντιστρέψιμο (best-effort, δεν μπλοκάρει).
+ */
+export async function setRentDueOccurrencePaid(
+  supabase: SupaClient, tenantId: string, propertyId: string,
+  year: number, month: number, paid: boolean,
+): Promise<void> {
+  if (!tenantId) return;
+  try {
+    const { data } = await supabase
+      .from('calendar_events').select('id,event_date,recurrence_exdates')
+      .eq('property_id', propertyId).eq('source', `tenant:${tenantId}:rent_due`).maybeSingle();
+    const row = data as { id: string; event_date: string; recurrence_exdates: string[] | null } | null;
+    if (!row?.event_date) return;
+    // Η μέρα της εμφάνισης ταυτίζεται με τη μέρα της βάσης (μηνιαία επανάληψη).
+    const day = row.event_date.slice(8, 10);
+    const occ = `${year}-${String(month).padStart(2, '0')}-${day}`;
+    const cur = Array.isArray(row.recurrence_exdates) ? row.recurrence_exdates.slice() : [];
+    const has = cur.includes(occ);
+    if (paid && !has) cur.push(occ);
+    else if (!paid && has) { const i = cur.indexOf(occ); cur.splice(i, 1); }
+    else return;
+    await supabase.from('calendar_events').update({ recurrence_exdates: cur }).eq('id', row.id);
+  } catch {
+    /* best-effort */
+  }
+}
