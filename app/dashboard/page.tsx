@@ -11,6 +11,7 @@ import TabPricing   from './components/TabPricing';
 import TabSettings  from './components/TabSettings';
 import TabTenant    from './components/TabTenant';
 import TabLoan      from './components/TabLoan';
+import TabAccounting from './components/TabAccounting';
 import TabInventory from './components/TabInventory';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
@@ -88,6 +89,7 @@ const NAV_ITEMS = [
   { id:'overview',   label:'Επισκόπηση' },
   { id:'calendar',   label:'Ημερολόγιο' },
   { id:'finances',   label:'Δαπάνες' },
+  { id:'accounting', label:'Λογιστική' },
   { id:'loan',       label:'Δάνειο' },
   { id:'tenant',     label:'Ενοικιαστής' },
   { id:'clients',    label:'Πελάτης' },
@@ -111,6 +113,7 @@ const NAV_ICON: Record<string,string> = {
   bills:     'M5 3h14v18l-3-2-2 2-2-2-2 2-3-2V3|M9 8h6|M9 12h6',
   expenses:  'M3 12h4l3 8 4-16 3 8h4',
   finances:  'M3 12h4l3 8 4-16 3 8h4',
+  accounting:'M4 3h16v18H4z|M8 7h8|M8 11h8|M8 15h5|M16 19l1.5 1.5L21 17',
   tax:       'M9 7h6|M9 11h6|M9 15h4|M6 3h12a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-3-2V4a1 1 0 0 1 1-1z',
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
   tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
@@ -132,7 +135,7 @@ const NAV_ICON: Record<string,string> = {
 // μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: '',                    ids: ['calendar'] },
-  { label: 'Οικονομικά',          ids: ['finances','loan'] },
+  { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
   { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
   { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison','tax','portfolio'] },
@@ -1145,6 +1148,7 @@ export default function Dashboard() {
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}
               {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined}/>}
+              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
