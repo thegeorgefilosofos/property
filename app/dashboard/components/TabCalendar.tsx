@@ -20,6 +20,7 @@ import { expandRecurring } from '@/lib/calendar/recurrence'
 import { findConflicts, findFreeSlots } from '@/lib/calendar/availability'
 import { parseICS } from '@/lib/calendar/icsImport'
 import { parseQuickAdd } from '@/lib/calendar/quickAdd'
+import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 
 type EventCategory = 'financial' | 'bills' | 'maintenance' | 'contract' | 'tenant' | 'reminder'
 type EventPriority = 'low' | 'medium' | 'high' | 'critical'
@@ -1026,6 +1027,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const menuRef=useRef<HTMLDivElement>(null)
   const importRef=useRef<HTMLInputElement>(null)
   const [importMsg,setImportMsg]=useState<string|null>(null)
+  const [notifyOn,setNotifyOn]=useState(false)
+  const notifiedRef=useRef<Set<string>>(new Set())
   // Ενιαίο drag (ποντίκι + αφή) — μετακίνηση γεγονότος με σύρσιμο σε μήνα/εβδομάδα/ημέρα.
   const drag=usePointerDrag((id,date,time)=>moveEvent(id,date,time))
   // Εισαγωγή γεγονότων από αρχείο .ics (Google/Apple/Outlook export).
@@ -1053,6 +1056,36 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     setShowSubscribe(true)
   }
   useEffect(()=>{ if(!showMenu)return; const h=(ev:MouseEvent)=>{ if(menuRef.current&&!menuRef.current.contains(ev.target as Node))setShowMenu(false) }; document.addEventListener('mousedown',h); return ()=>document.removeEventListener('mousedown',h) },[showMenu])
+
+  // Ειδοποιήσεις συσκευής: αναβοσβήνουν όσο η εφαρμογή είναι ανοιχτή, ~10' πριν από
+  // κάθε ραντεβού. Το email υπενθυμίσεων (pg_cron) καλύπτει το background κανάλι.
+  useEffect(()=>{
+    if(typeof window==='undefined'||typeof Notification==='undefined')return
+    if(localStorage.getItem('cal_notify')==='1'&&Notification.permission==='granted')setNotifyOn(true)
+  },[])
+  useEffect(()=>{
+    if(!notifyOn||typeof Notification==='undefined')return
+    const tick=()=>{
+      if(Notification.permission!=='granted')return
+      const due=dueReminders(events.filter(e=>!e._virtual),new Date(),10,notifiedRef.current)
+      for(const e of due){
+        notifiedRef.current.add(e.id)
+        try{ new Notification(e.title,{ body:notifyBody(e,new Date()), tag:`cal_${e.id}` }) }catch{}
+      }
+    }
+    tick()
+    const iv=setInterval(tick,60000)
+    return ()=>clearInterval(iv)
+  },[notifyOn,events])
+  async function toggleNotify(){
+    setShowMenu(false)
+    if(typeof Notification==='undefined'){ setImportMsg('Ο περιηγητής δεν υποστηρίζει ειδοποιήσεις.'); setTimeout(()=>setImportMsg(null),3500); return }
+    if(notifyOn){ setNotifyOn(false); localStorage.removeItem('cal_notify'); setImportMsg('Οι ειδοποιήσεις συσκευής απενεργοποιήθηκαν.'); setTimeout(()=>setImportMsg(null),3500); return }
+    let perm=Notification.permission
+    if(perm==='default')perm=await Notification.requestPermission()
+    if(perm==='granted'){ setNotifyOn(true); localStorage.setItem('cal_notify','1'); setImportMsg('Ενεργές ειδοποιήσεις — θα σε προειδοποιούμε ~10΄ πριν.'); setTimeout(()=>setImportMsg(null),3500) }
+    else{ setImportMsg('Χρειάζεται άδεια ειδοποιήσεων από τον περιηγητή.'); setTimeout(()=>setImportMsg(null),3500) }
+  }
 
   useEffect(()=>{
     load()
@@ -1359,6 +1392,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                 {label: bulkMode?'Τέλος επιλογής':'Επιλογή για μαζικές ενέργειες', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
                 {label: showFilters?'Απόκρυψη φίλτρων':'Φίλτρα', icon:<Filter size={15}/>, on:()=>{setShowFilters(f=>!f);setShowMenu(false)}},
                 {label:'Συγχρονισμός δεδομένων', icon:<RefreshCw size={15}/>, on:()=>{setShowAutoPull(f=>!f);setShowMenu(false)}},
+                {label: notifyOn?'Ειδοποιήσεις συσκευής: ενεργές':'Ειδοποιήσεις στη συσκευή', icon:<Bell size={15}/>, on:toggleNotify},
                 {label:'Συνδρομή σε ζωντανό ημερολόγιο', icon:<CalendarPlus size={15}/>, on:openSubscribe},
                 {label:'Λήψη αρχείου .ics', icon:<Download size={15}/>, on:()=>{exportICal();setShowMenu(false)}},
                 {label:'Εισαγωγή από .ics', icon:<CalendarDays size={15}/>, on:()=>{importRef.current?.click()}},
