@@ -5,8 +5,8 @@ let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
 
 const base: AdvisoryInput = {
-  regime: 'individual_longterm', grossIncome: 9000, taxableIncome: 8550, effectiveRate: 0.135,
-  rentalMode: 'long_term', sqm: 75, propertyCount: 1, hasLoan: false,
+  regime: 'individual_longterm', grossIncome: 9000, taxableIncome: 8550,
+  rentalMode: 'long_term', propertyCount: 1, hasLoan: false,
 }
 
 // ── Επιλεγμένος αριθμός, όχι θόρυβος ────────────────────────────────────────

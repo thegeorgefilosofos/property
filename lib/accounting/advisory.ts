@@ -9,7 +9,7 @@
 // επιβεβαιώνονται στην ΑΑΔΕ / λογιστή (κάθε πρόταση το λέει).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { marginalRate, RENTAL_TAX_BRACKETS_2026, BUSINESS_INCOME_BRACKETS_2026 } from '@/lib/billing/greekTax'
+import { marginalRate, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax'
 
 export type TaxRegime = 'individual_longterm' | 'individual_shortterm' | 'business'
 export type AdvisoryTone = 'opportunity' | 'insight' | 'action' | 'caution'
@@ -22,14 +22,11 @@ export interface AdvisoryInput {
   age?: number | null
   grossIncome: number
   taxableIncome: number
-  effectiveRate: number
   /** 'long_term' | 'short_term' | 'self_use' | άλλο. */
   rentalMode?: string | null
-  sqm?: number | null
   propertyCount: number
   hasLoan: boolean
   loanInterestYear?: number
-  deductibleExpenses?: number
 }
 
 export interface AdvisoryItem {
@@ -59,6 +56,7 @@ const SRC = {
   spitiMou: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akineta/programma-spiti-mou',
   exoikonomo: 'https://exoikonomo.gov.gr',
   ktimatologio: 'https://www.ktimatologio.gr',
+  business: 'https://www.gov.gr/ipiresies/epikheirematike-drasterioteta',
 }
 
 /**
@@ -80,7 +78,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
         id: 'youth-business', tone: 'opportunity',
         title: `Μειωμένη κλίμακα νέων, ${age <= 25 ? 'έως 25' : '26–30'} ετών`,
         body: `Ως ${age <= 25 ? 'έως 25' : '26–30'} ετών με επιχειρηματική δραστηριότητα (ατομική επιχείρηση, άρθρο 15), φορολογείσαι με ${rate} (ν.5246/2025). Ο υπολογισμός εδώ ήδη το εφαρμόζει, για την οριστική εκκαθάριση χρειάζεται δήλωση με τη σωστή ηλικιακή ένδειξη.`,
-        refer: 'accountant',
+        refer: 'accountant', linkLabel: 'Δες στην ΑΑΔΕ', linkHref: SRC.aade,
       })
     } else {
       items.push({
@@ -107,7 +105,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
     id: 'renovation-credit', tone: 'action',
     title: 'Ανακαίνιση & αναβάθμιση, έκπτωση φόρου 40%',
     body: `Δαπάνες ενεργειακής, λειτουργικής και αισθητικής αναβάθμισης κτιρίων εκπίπτουν από τον φόρο εισοδήματος κατά 40%, ισόποσα σε βάθος ετών, με ανώτατο όριο και με προϋπόθεση ηλεκτρονικής πληρωμής και παραστατικών. Κράτα τιμολόγια και εξοφλήσεις μέσω τραπέζης/κάρτας, εδώ μπορείς να τα καταχωρείς ως έξοδα ανά ακίνητο.`,
-    refer: 'accountant',
+    refer: 'accountant', linkLabel: 'Δες στην ΑΑΔΕ', linkHref: SRC.aade,
   })
 
   // 4) Πρόγραμμα «Εξοικονομώ» για ενεργειακή αναβάθμιση (επιδότηση).
@@ -144,7 +142,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       id: 'structure', tone: 'insight',
       title: 'Δομή αξιοποίησης: ιδιώτης, ατομική ή εταιρεία;',
       body: `Με ${input.propertyCount} ακίνητα και έσοδα ${eur(input.grossIncome)}, αξίζει να εξεταστεί αν συμφέρει να παραμείνεις ιδιώτης (κλίμακα ενοικίων), να ανοίξεις ατομική επιχείρηση (κλίμακα άρθρου 15, έκπτωση εξόδων/αποσβέσεων/τόκων) ή νομικό πρόσωπο / holding (σταθερό 22% + διανομή). Καθένα έχει διαφορετικό φόρο, ασφαλιστικές εισφορές, κόστος και ευθύνη. Δεν υπάρχει «σωστό» χωρίς την πλήρη εικόνα.`,
-      refer: 'accountant',
+      refer: 'accountant', linkLabel: 'Ίδρυση επιχείρησης (gov.gr)', linkHref: SRC.business,
     })
   } else if (business && input.businessForm === 'sole' && input.taxableIncome >= 40000) {
     items.push({
@@ -155,10 +153,8 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
     })
   }
 
-  // 7) Βελτιστοποίηση: συνιδιοκτησία/κατανομή εισοδήματος στα κλιμάκια.
-  const marg = business
-    ? marginalRate(input.taxableIncome, BUSINESS_INCOME_BRACKETS_2026)
-    : marginalRate(input.taxableIncome, RENTAL_TAX_BRACKETS_2026)
+  // 7) Βελτιστοποίηση: συνιδιοκτησία/κατανομή εισοδήματος στα κλιμάκια (φυσικό πρόσωπο).
+  const marg = business ? 0 : marginalRate(input.taxableIncome, RENTAL_TAX_BRACKETS_2026)
   if (!business && marg >= 0.35 && input.propertyCount >= 1) {
     items.push({
       id: 'income-split', tone: 'insight',
