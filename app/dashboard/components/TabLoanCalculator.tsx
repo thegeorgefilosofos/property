@@ -620,7 +620,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
           <KPI label="Μέγιστη δόση/μήνα" value={fmtEur(INC*BORROWER_PROFILES[borrower].income_ratio)} color="var(--accent)" sub={`${(BORROWER_PROFILES[borrower].income_ratio*100).toFixed(0)}% εισοδήματος`}/>
           <KPI label="Μέγιστο δάνειο" value={fmtEur(maxLoan)} color={maxLoan>=LA?'var(--positive)':'var(--negative)'}/>
-          <KPI label="DTI Ratio" title="Δείκτης δόσης προς εισόδημα (Debt to Income)" value={monthly>0?fmtPct1((monthly/INC)*100):'—'} color={(monthly/INC)>0.4?'var(--negative)':(monthly/INC)>0.35?'var(--warning)':'var(--positive)'} sub="Δόση / Εισόδημα"/>
+          <KPI label="DTI Ratio" title="Δείκτης δόσης προς εισόδημα (Debt to Income). Όρια ΤτΕ: 50% πρώτη κατοικία / 40% λοιποί" value={monthly>0?fmtPct1((monthly/INC)*100):'—'} color={(monthly/INC)>0.5?'var(--negative)':(monthly/INC)>0.4?'var(--warning)':'var(--positive)'} sub="Δόση / Εισόδημα"/>
         </div>
         {maxLoan<LA&&<div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Υπέρβαση κατά {fmtEur(LA-maxLoan)}, μειώστε ποσό ή αυξήστε διάρκεια</p></div>}
       </Section>
