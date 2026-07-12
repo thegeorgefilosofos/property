@@ -43,6 +43,30 @@ export const ENFIA_SURCHARGE_THRESHOLD = 500_000
 export const ENFIA_SURCHARGE_BRACKETS: { limit: number; pct: number }[] = [
   { limit: 650_000, pct: 5 }, { limit: 800_000, pct: 10 }, { limit: 1_000_000, pct: 15 }, { limit: Infinity, pct: 20 },
 ]
+// Ενότητα Γ΄ (άρθρο 43 ν.4916/2022): πρόσθετος φόρος ΑΝΑ ακίνητο αξίας >400.000€,
+// κλιμακωτά επί της αξίας, εφόσον η ΣΥΝΟΛΙΚΗ αξία περιουσίας υπερβαίνει τις 300.000€.
+export const ENFIA_EXTRA_TAX_FREE = 400_000
+export const ENFIA_EXTRA_WEALTH_THRESHOLD = 300_000
+export const ENFIA_EXTRA_BRACKETS: { upto: number; rate: number }[] = [
+  { upto: 500_000, rate: 0.0020 }, { upto: 600_000, rate: 0.0030 }, { upto: 700_000, rate: 0.0040 },
+  { upto: 800_000, rate: 0.0050 }, { upto: 900_000, rate: 0.0060 }, { upto: 1_000_000, rate: 0.0070 },
+  { upto: 2_000_000, rate: 0.0090 }, { upto: Infinity, rate: 0.0100 },
+]
+
+/** Πρόσθετος φόρος Ενότητας Γ΄ επί της αξίας ενός ακινήτου (κλιμακωτά, αφορολόγητο 400.000€),
+ *  απομειωμένος με το ποσοστό ιδιοκτησίας. Ο έλεγχος συνολικής αξίας >300.000€ γίνεται από τον καλούντα. */
+export function enfiaExtraPropertyTax(propertyValue: number, ownership = 100): number {
+  const v = Number(propertyValue) || 0
+  if (v <= ENFIA_EXTRA_TAX_FREE) return 0
+  let tax = 0, prev = ENFIA_EXTRA_TAX_FREE
+  for (const b of ENFIA_EXTRA_BRACKETS) {
+    if (v <= prev) break
+    const slice = Math.min(v, b.upto) - prev
+    if (slice > 0) tax += slice * b.rate
+    prev = b.upto
+  }
+  return round2(tax * (Math.max(0, Math.min(100, ownership)) / 100))
+}
 
 /** Αυτόματη μείωση % ανά συνολική αξία περιουσίας (0 αν άγνωστη). */
 export function wealthReductionPct(totalValue: number): number {
@@ -58,11 +82,13 @@ export interface ENFIAInput {
   age?: string
   ownership?: number   // ποσοστό ιδιοκτησίας (0–100)
   totalValue?: number  // συνολική αξία ακίνητης περιουσίας (για μείωση & προσαύξηση)
+  propertyValue?: number // αντικειμενική αξία ΤΟΥ ακινήτου (για Ενότητα Γ, >400.000€)
   reductions?: string[]
 }
 export interface ENFIAResult {
   basic: number
-  supplementary: number  // προσαύξηση κύριου φόρου (αξία >500.000€)
+  extra: number          // πρόσθετος φόρος Ενότητας Γ (αξία ακινήτου >400.000€)
+  supplementary: number  // προσαύξηση κύριου φόρου (συνολική αξία >500.000€)
   subtotal: number
   reductionPct: number
   reductionAmount: number
@@ -77,14 +103,19 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const ownership = input.ownership == null ? 100 : Math.max(0, Math.min(100, input.ownership))
   const basic = sqm * ENFIA_ZONE_TAX[input.zone] * (ENFIA_FLOOR_COEF[input.floor ?? 'second'] ?? 1) *
     (ENFIA_AGE_COEF[input.age ?? '10_20'] ?? 1) * (ownership / 100)
-  // Προσαύξηση κύριου φόρου για συνολική αξία >500.000€ (φυσικά πρόσωπα).
-  let suppl = 0
   const totalVal = Number(input.totalValue) || 0
+  // Ενότητα Γ: πρόσθετος φόρος ακινήτου >400.000€, εφόσον συνολική περιουσία >300.000€.
+  const propVal = Number(input.propertyValue) || 0
+  const extra = totalVal > ENFIA_EXTRA_WEALTH_THRESHOLD ? enfiaExtraPropertyTax(propVal, ownership) : 0
+  // Κύριος φόρος (Ενότητα Δ) = κτίσματα (Α) + πρόσθετος (Γ).
+  const kyrios = basic + extra
+  // Προσαύξηση κύριου φόρου για συνολική αξία >500.000€ (Ενότητα Ε).
+  let suppl = 0
   if (totalVal > ENFIA_SURCHARGE_THRESHOLD) {
     const bracket = ENFIA_SURCHARGE_BRACKETS.find(b => totalVal <= b.limit)
-    if (bracket) suppl = basic * (bracket.pct / 100)
+    if (bracket) suppl = kyrios * (bracket.pct / 100)
   }
-  const subtotal = basic + suppl
+  const subtotal = kyrios + suppl
   // Μειώσεις: αυτόματη ανά συνολική αξία (§2Α) ΚΑΙ η μεγαλύτερη χειροκίνητη, πολλαπλασιαστικά.
   const wealthPct = wealthReductionPct(totalVal)
   const manualPct = Math.max(0, ...(input.reductions ?? []).map(r => ENFIA_REDUCTIONS.find(rd => rd.key === r)?.pct || 0))
@@ -92,7 +123,7 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const reductionAmount = subtotal * combinedFrac
   const annual = Math.max(0, subtotal - reductionAmount)
   return {
-    basic: round2(basic), supplementary: round2(suppl), subtotal: round2(subtotal),
+    basic: round2(basic), extra: round2(extra), supplementary: round2(suppl), subtotal: round2(subtotal),
     reductionPct: Math.round(combinedFrac * 100), reductionAmount: round2(reductionAmount), annual: round2(annual),
     installment: Math.ceil(annual / 12),
   }
@@ -128,5 +159,7 @@ export function estimateENFIAFromFacts(facts: { value?: number | null; sqm?: num
   if (sqm <= 0 || value <= 0) return null
   const zone = zoneKeyFromPricePerSqm(value / sqm)
   if (!zone) return null
-  return estimateENFIA({ sqm, zone, totalValue: value, reductions: [] })
+  // Το ίδιο ακίνητο είναι εδώ και η συνολική περιουσία (μονο-ακίνητη εκτίμηση):
+  // propertyValue = totalValue = value, ώστε να εφαρμοστεί σωστά η Ενότητα Γ.
+  return estimateENFIA({ sqm, zone, totalValue: value, propertyValue: value, reductions: [] })
 }
