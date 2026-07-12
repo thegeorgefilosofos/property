@@ -128,13 +128,12 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   const regime = input.regime
   const gross = pos(input.grossIncome)
   const business = regime === 'business'
-  // Τεκμαρτή έκπτωση 5% ΜΟΝΟ στη μακροχρόνια μίσθωση κατοικίας φυσικού προσώπου. Η
-  // βραχυχρόνια φορολογείται στα μεικτά (όπως ήδη στο lib/tax/shortTermTax),
-  // ώστε να ΜΗ διαφέρει ο φόρος από την υπάρχουσα σύνοψη βραχυχρόνιας.
-  // Από 1/1/2026 η τεκμαρτή έκπτωση 5% προϋποθέτει είσπραξη μέσω τραπέζης· με μετρητά
-  // χάνεται (φόρος στο 100% των ενοικίων). Default: θεωρούμε τραπεζική πληρωμή.
+  // Τεκμαρτή έκπτωση 5% για φυσικό πρόσωπο (άρθρο 39 §4 ΚΦΕ): ισχύει στη μακροχρόνια
+  // ΚΑΙ στη βραχυχρόνια χωρίς υπηρεσίες (εισόδημα ακίνητης περιουσίας) — ίδια βάση με
+  // το lib/tax/shortTermTax. Δεν ισχύει για επιχείρηση (ΕΛΠ).
+  // Από 1/1/2026 προϋποθέτει είσπραξη μέσω τραπέζης· με μετρητά χάνεται (φόρος στο 100%).
   const rentsPaidViaBank = input.rentsPaidViaBank !== false
-  const baseRate = input.presumptiveRate ?? (regime === 'individual_longterm' ? PRESUMPTIVE_DEDUCTION_RATE : 0)
+  const baseRate = input.presumptiveRate ?? (business ? 0 : PRESUMPTIVE_DEDUCTION_RATE)
   const presumptiveRate = rentsPaidViaBank ? baseRate : 0
 
   const itemized = business ? pos(input.itemizedExpenses ?? 0) : 0

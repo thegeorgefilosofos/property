@@ -54,12 +54,12 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('individual interest not double-counted', b.netCash === a.netCash - 400 - 2000 - 300)
 }
 
-// ── Βραχυχρόνια: γκρος βάση (χωρίς τεκμαρτή) + ΤΑΚΚ + παρεπιδημούντων ────────
+// ── Βραχυχρόνια: τεκμαρτή έκπτωση 5% (φόρος στο 95%) + ΤΑΚΚ + παρεπιδημούντων ──
 {
   const st = incomeStatement({ regime: 'individual_shortterm', grossIncome: 8000, climateLevy: 240, municipalTax: 0, otherCashExpenses: 900 })
-  ok('shortterm no presumptive (taxed on gross, matches shortTermYearSummary)', st.presumptiveDeduction === 0)
-  ok('shortterm taxable = gross', near(st.taxableIncome, 8000))
-  ok('shortterm tax = brackets(8000)', near(st.incomeTax, rentalIncomeTax(8000)))
+  ok('shortterm presumptive 5% (matches shortTermYearSummary)', near(st.presumptiveDeduction, 400))
+  ok('shortterm taxable = 95%', near(st.taxableIncome, 7600))
+  ok('shortterm tax = brackets(7600)', near(st.incomeTax, rentalIncomeTax(7600)))
   ok('shortterm property taxes = levy', near(st.propertyTaxes, 240))
   ok('shortterm netCash includes levy+other', near(st.netCash, 8000 - st.incomeTax - 240 - 900))
 }
