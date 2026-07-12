@@ -39,13 +39,13 @@ ok('notes παραπέμπουν σε επιβεβαίωση', owner.every(o => 
 // ΕΝΦΙΑ τελευταία δόση → Φεβρουάριος ΕΠΟΜΕΝΟΥ έτους
 const last = owner.find(o => o.id.startsWith('enfia-last'))!
 ok('ΕΝΦΙΑ τελευταία = Φεβ 2027', last.date.startsWith('2027-02'))
-// Ε9 → Μάρτιος 2026
-ok('Ε9 Μάρτιος', owner.find(o => o.id.startsWith('e9-'))!.date.startsWith('2026-03'))
-// Εισόδημα → Ιούνιος/Ιούλιος 2026 (30/6 ή επόμενη εργάσιμη)
-ok('εισόδημα ~Ιούνιος', owner.find(o => o.id.startsWith('income-decl'))!.date >= '2026-06-28')
+// Ε9 → υπενθύμιση ελέγχου πριν την έκδοση ΕΝΦΙΑ (~τέλος Φεβρουαρίου)
+ok('Ε9 Φεβ/Μαρ', owner.find(o => o.id.startsWith('e9-'))!.date >= '2026-02-27')
+// Εισόδημα → 15 Ιουλίου 2026 (ή επόμενη εργάσιμη)
+ok('εισόδημα ~Ιούλιος', owner.find(o => o.id.startsWith('income-decl'))!.date >= '2026-07-15')
 
-// confidence: Ε9/εισόδημα statutory, ΕΝΦΙΑ announced
-ok('Ε9 statutory', owner.find(o => o.id.startsWith('e9-'))!.confidence === 'statutory')
+// confidence: όλα «announced» (οι ημερομηνίες ανακοινώνονται/μετακινούνται ετησίως)
+ok('Ε9 announced', owner.find(o => o.id.startsWith('e9-'))!.confidence === 'announced')
 ok('ΕΝΦΙΑ announced', owner.find(o => o.id.startsWith('enfia-first'))!.confidence === 'announced')
 
 // ── long_term ────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ ok('event notes = obligation notes', ev.notes === owner[0].notes)
 
 // ── διαφορετικό έτος μετακινεί σωστά ─────────────────────────────────────────
 const y2027 = greekPropertyTaxObligations(2027, 'owner')
-ok('2027 Ε9 στο 2027', y2027.find(o => o.id.startsWith('e9-'))!.date.startsWith('2027-03'))
+ok('2027 Ε9 στο 2027', y2027.find(o => o.id.startsWith('e9-'))!.date.startsWith('2027-0'))
 ok('2027 ΕΝΦΙΑ τελευταία στο 2028', y2027.find(o => o.id.startsWith('enfia-last'))!.date.startsWith('2028-02'))
 
 // ── report ───────────────────────────────────────────────────────────────────
