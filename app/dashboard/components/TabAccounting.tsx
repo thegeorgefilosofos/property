@@ -5,6 +5,7 @@ import { Spinner } from '@/components/Theme'
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Info, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
 import { transferCosts } from '@/lib/accounting/transfer'
+import { InfoHint } from './InfoHint'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
   type LedgerInput, type Expected, type Actual, type ReconStatus,
@@ -15,6 +16,7 @@ import {
 } from '@/lib/accounting/statement'
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
+import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
@@ -47,6 +49,19 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 const lineColor = (kind:string, amount:number)=> kind==='result' ? (amount>=0?'var(--accent)':'var(--negative)') : 'var(--text-primary)'
 // Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
 const ADVISORY_TONE:Record<AdvisoryTone,string> = { opportunity:'Ευκαιρία', action:'Ενέργεια', insight:'Ιδέα', caution:'Προσοχή' }
+
+// Minimal, premium checkbox (Google-level): μικρό, καθαρό, με ήπιο animation.
+function Check({ checked, onChange, label, hint, align='center' }:{ checked:boolean; onChange:(v:boolean)=>void; label:React.ReactNode; hint?:string; align?:'center'|'start' }){
+  return (
+    <button type="button" role="checkbox" aria-checked={checked} onClick={()=>onChange(!checked)} title={hint}
+      style={{ display:'inline-flex', alignItems:align==='start'?'flex-start':'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", textAlign:'left', lineHeight:1.5 }}>
+      <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:17, height:17, borderRadius:6, border:`1.5px solid ${checked?'var(--accent)':'var(--border-default)'}`, background:checked?'var(--accent)':'var(--bg-surface)', transition:'border-color 0.14s, background 0.14s', flexShrink:0, marginTop:align==='start'?1:0 }}>
+        {checked&&<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.3l2.2 2.2L9.5 3.6" stroke="var(--accent-text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+      </span>
+      <span>{label}</span>
+    </button>
+  )
+}
 
 export default function TabAccounting({ propertyId, userId, profileType='individual' }: { propertyId:string; userId:string; profileType?:'individual'|'professional' }) {
   const supabase = createClient()
@@ -109,7 +124,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const regime:TaxRegime = (prop?.rental_mode==='short_term') ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
-  const enfia = useMemo(()=>resolveEnfia({ propertyEnfia: prop?.enfia }).annual,[prop])
+  // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από αξία+τ.μ.
+  const enfia = useMemo(()=>{
+    const stored = resolveEnfia({ propertyEnfia: prop?.enfia }).annual
+    if(stored>0) return stored
+    return estimateENFIAFromFacts({ value: prop?.value, sqm: prop?.sqm })?.annual ?? 0
+  },[prop])
+  const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
   const loanActiveInYear = (l:any)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
@@ -162,7 +183,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           // Για επιχείρηση ο ΕΝΦΙΑ ΕΚΠΙΠΤΕΙ → τον περνάμε στα εκπιπτόμενα, όχι ως μη-εκπεστέο τέλος.
           itemizedExpenses:deductibleTotal+enfia, depreciation:inventoryDepr, buildingDepreciation:buildingDepr,
           ekfaContributions: elpForm==='sole'&&ekfa!=='' ? Number(ekfa) : 0,
-          presumptiveMinIncome: elpForm==='sole' ? Math.round(SELF_EMPLOYED_MIN_NET_INCOME_2026*(firstYears?0.5:1)) : undefined, enfia:0,
+          presumptiveMinIncome: elpForm==='sole'&&grossIncome>0 ? Math.round(SELF_EMPLOYED_MIN_NET_INCOME_2026*(firstYears?0.5:1)) : undefined, enfia:0,
           climateLevy: regime==='individual_shortterm'?shortSummary.levy:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
           otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent }
       : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare,
@@ -282,21 +303,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }} title="Ετήσιες ασφαλιστικές εισφορές ΕΦΚΑ — εκπίπτουν από το εισόδημα και μειώνουν το ταμείο.">
               Εισφορές ΕΦΚΑ/έτος
               <input type="number" inputMode="numeric" min={0} value={ekfa} onChange={e=>updateEkfa(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="—"
-                style={{ width:86, height:32, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}/>
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+                style={{ width:86, height:32, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
             </label>
           )}
           {elpForm==='company'&&(
             <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }} title="Ποσοστό κερδών που διανέμεται ως μέρισμα — προσθέτει 5% φόρο μερισμάτων.">
               Διανομή κερδών
               <input type="number" inputMode="numeric" min={0} max={100} value={distribution} onChange={e=>setDistribution(e.target.value===''?'':Math.min(100,Math.max(0,Number(e.target.value))))} placeholder="0"
-                style={{ width:64, height:32, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}/>
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+                style={{ width:64, height:32, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
               <span style={{ color:'var(--text-tertiary)' }}>%</span>
             </label>
           )}
-          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", cursor:'pointer' }} title="Πρώτη τριετία δραστηριότητας: μειωμένο 1ο κλιμάκιο (4,5%) και μειωμένη προκαταβολή (−50%).">
-            <input type="checkbox" checked={firstYears} onChange={e=>updateFirstYears(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }}/>
-            Πρώτη τριετία δραστηριότητας
-          </label>
+          <Check checked={firstYears} onChange={updateFirstYears} label="Πρώτη τριετία δραστηριότητας" hint="Μειωμένο 1ο κλιμάκιο (4,5%) και προκαταβολή −50% τα πρώτα τρία έτη νέας δραστηριότητας." />
         </div>
       )}
 
@@ -333,10 +353,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             })}
           </div>
           {!businessMode&&uncollectedRent>0&&(
-            <label style={{ display:'flex', alignItems:'flex-start', gap:9, marginTop:12, paddingTop:12, borderTop:'1px solid var(--border-subtle)', cursor:'pointer' }} title="Άρθρο 39 §4: τα ανείσπρακτα ενοίκια δεν φορολογούνται εφόσον έχουν διεκδικηθεί νομικά (διαταγή πληρωμής, αγωγή έξωσης κ.λπ.) πριν την προθεσμία δήλωσης.">
-              <input type="checkbox" checked={claimedUncollected} onChange={e=>setClaimedUncollected(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, marginTop:1, cursor:'pointer', flexShrink:0 }}/>
-              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Τα ανείσπρακτα ({eur(uncollectedRent)}) έχουν <strong style={{ color:'var(--text-primary)' }}>διεκδικηθεί νομικά</strong> — να μη φορολογηθούν φέτος (άρθρο 39 §4).</span>
-            </label>
+            <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+              <Check align="start" checked={claimedUncollected} onChange={setClaimedUncollected}
+                hint="Άρθρο 39 §4: τα ανείσπρακτα δεν φορολογούνται εφόσον έχουν διεκδικηθεί νομικά (διαταγή πληρωμής, αγωγή έξωσης) πριν την προθεσμία δήλωσης."
+                label={<span style={{ fontSize:12, color:'var(--text-secondary)' }}>Τα ανείσπρακτα ({eur(uncollectedRent)}) έχουν <strong style={{ color:'var(--text-primary)' }}>διεκδικηθεί νομικά</strong> — να μη φορολογηθούν φέτος.</span>} />
+            </div>
           )}
         </div>
 
@@ -347,17 +368,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <span style={{ fontSize:26, fontWeight:700, color:'var(--accent)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
               <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
             </div>
-            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              Σύνολο <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο = φόρος εισοδήματος <strong style={{ color:'var(--text-primary)' }}>{eur(provision.incomeTax)}</strong>{provision.propertyTaxes>0?<> + φόροι/τέλη ακινήτου <strong style={{ color:'var(--text-primary)' }}>{eur(provision.propertyTaxes)}</strong></>:''}. Προκύπτει από φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?', ως μερίδιο του συνολικού προοδευτικού φόρου του χαρτοφυλακίου':''}. Ισόποσα {eur(provision.monthly)} ανά μήνα{year===athensYear()?<>· για να προλάβεις έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} ανά μήνα</strong></>:''}.{provision.advanceTax>0?<> Συν <strong style={{ color:'var(--text-primary)' }}>προκαταβολή φόρου {eur(provision.advanceTax)}</strong> έναντι του επόμενου έτους (πιστώνεται τότε) — ταμειακή ανάγκη 1ου έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.firstYearTotal)}</strong>.</>:''}
+            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>
+              <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong>/χρόνο σε φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?' (μερίδιο χαρτοφυλακίου)':''}{provision.propertyTaxes>0?<>, εκ των οποίων {eur(provision.propertyTaxes)} φόροι/τέλη ακινήτου</>:''}.{year===athensYear()?<> Έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)}/μήνα</strong>.</>:''}{provision.advanceTax>0?<> +Προκαταβολή {eur(provision.advanceTax)} (πιστώνεται του χρόνου) → 1ο έτος {eur(provision.firstYearTotal)}.</>:''}
             </p>
           </div>
-          <div style={{ ...card, display:'flex', gap:10, alignItems:'flex-start' }}>
-            <Info size={15} style={{ color:'var(--accent)', flexShrink:0, marginTop:1 }}/>
+          <div style={{ ...card, display:'flex', gap:8, alignItems:'center' }}>
+            <Info size={14} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>
             <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              {businessMode
-                ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου/εξοπλισμού και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους — με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
-                : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
-              {' '}Εκτιμήσεις — επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
+              Εκτιμήσεις — επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
+              <InfoHint>
+                {businessMode
+                  ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου/εξοπλισμού και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους — με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
+                  : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
+                {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία/τ.μ. — καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
+              </InfoHint>
             </p>
           </div>
         </div>
@@ -423,7 +447,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--positive)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(expensesTotal-deductibleTotal)}</p></div>
             </div>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για <strong style={{ color:'var(--text-primary)' }}>φυσικό πρόσωπο με μακροχρόνια κατοικίας</strong> τα έξοδα δεν εκπίπτουν αναλυτικά (ισχύει η τεκμαρτή έκπτωση 5%). Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν αναλυτικά, μαζί με <strong style={{ color:'var(--text-primary)' }}>αποσβέσεις εξοπλισμού</strong> ({eur(inventoryDepr)}/έτος) και <strong style={{ color:'var(--text-primary)' }}>τόκους δανείων</strong> ({eur(loanInterestYear)}/έτος) — δες την κατάσταση με τον διακόπτη «Επιχείρηση (ΕΛΠ)».</p>
+            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ως ιδιώτης δεν εκπίπτουν αναλυτικά· ως <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)}/έτος) και τόκους δανείων ({eur(loanInterestYear)}/έτος).</InfoHint></p>
           </div>
         </div>
       )}
@@ -442,7 +466,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             Ηλικία
             <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="—"
               title="Προαιρετικό — ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην επιχειρηματική δραστηριότητα."
-              style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center' }}/>
+              onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+              style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center', outline:'none', transition:'border-color 0.14s' }}/>
           </label>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12 }}>
@@ -486,19 +511,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
             {xferSide==='buy'?'Τίμημα αγοράς':'Τιμή πώλησης'}
             <input type="number" inputMode="numeric" min={0} value={xferPrice} onChange={e=>setXferPrice(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder={(Number(prop?.value)||0)?String(Math.round(Number(prop?.value))):'—'}
-              style={{ width:120, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}/>
+              onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+              style={{ width:120, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
             <span style={{ color:'var(--text-tertiary)' }}>€</span>
           </label>
           {xferSide==='buy'&&(
-            <label style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", cursor:'pointer' }} title="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας.">
-              <input type="checkbox" checked={xferFirstHome} onChange={e=>setXferFirstHome(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }}/>
-              Πρώτη κατοικία
-            </label>
+            <Check checked={xferFirstHome} onChange={setXferFirstHome} label="Πρώτη κατοικία" hint="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας (200.000 € άγαμος / 250.000 € έγγαμος)." />
           )}
-          <label style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", cursor:'pointer' }}>
-            <input type="checkbox" checked={xferAgent} onChange={e=>setXferAgent(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }}/>
-            Μεσίτης
-          </label>
+          <Check checked={xferAgent} onChange={setXferAgent} label="Μεσίτης" hint="Μεσιτική αμοιβή ~2% + ΦΠΑ." />
         </div>
         {xferEffectivePrice>0?(<>
           <div style={{ display:'flex', flexDirection:'column' }}>
@@ -517,7 +537,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <span style={{ fontSize:16, fontWeight:700, color:'var(--accent)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
             </div>
           </div>
-          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση με τα ισχύοντα ποσοστά· τα ακριβή ποσά (κλιμακωτά συμβολαιογραφικά, αντικειμενική αξία, απαλλαγές) ορίζονται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</p>
+          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση — τα ακριβή ποσά ορίζονται από συμβολαιογράφο/ΑΑΔΕ.<InfoHint>Τα ποσοστά είναι τα ισχύοντα· τα κλιμακωτά συμβολαιογραφικά, η αντικειμενική αξία και οι απαλλαγές οριστικοποιούνται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</InfoHint></p>
         </>):(
           <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'4px 0' }}>Δώσε τίμημα για να δεις την ανάλυση κόστους.</p>
         )}
