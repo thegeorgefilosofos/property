@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, Spinner } from '@/components/Theme';
+import { estimateENFIA, ENFIA_REDUCTIONS } from '@/lib/billing/enfia';
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -45,11 +46,6 @@ const ENFIA_DEADLINES = [
   { date: '2026-09-30', label: '5η Δόση', month: 'Σεπ 2026'  },
   { date: '2026-10-30', label: '6η Δόση', month: 'Οκτ 2026'  },
 ];
-const ZONE_TAX: Record<string, number> = {
-  'under_500':2.00,'500_750':2.80,'750_1000':3.70,'1000_1250':4.50,
-  '1250_1500':6.00,'1500_2000':7.60,'2000_2500':9.20,'2500_3000':11.10,
-  '3000_3500':13.00,'3500_4000':14.50,'over_4000':16.00,
-};
 const ZONE_OPTIONS = [
   { value: 'under_500',  label: 'Κάτω από 500 € ανά τετραγωνικό'   },
   { value: '500_750',    label: '500 – 750 € ανά τετραγωνικό'       },
@@ -63,46 +59,25 @@ const ZONE_OPTIONS = [
   { value: '3500_4000',  label: '3.500 – 4.000 € ανά τετραγωνικό'  },
   { value: 'over_4000',  label: 'Άνω των 4.000 € ανά τετραγωνικό'  },
 ];
-const FLOOR_COEF: Record<string, number> = { basement: 0.90, ground: 1.00, first: 1.01, second: 1.02, third: 1.03, fourth: 1.04, fifth_plus: 1.05 };
 const FLOOR_OPTIONS = [
   { value: 'basement',   label: 'Υπόγειο'     },{ value: 'ground', label: 'Ισόγειο' },
   { value: 'first',      label: '1ος Όροφος'  },{ value: 'second', label: '2ος Όροφος' },
   { value: 'third',      label: '3ος Όροφος'  },{ value: 'fourth', label: '4ος Όροφος' },
   { value: 'fifth_plus', label: '5ος+ Όροφος' },
 ];
-const AGE_COEF: Record<string, number> = { 'under_5': 1.05,'5_10': 1.00,'10_20': 0.95,'20_25': 0.90,'25_30': 0.85,'over_30': 0.75 };
 const AGE_OPTIONS = [
   { value: 'under_5', label: 'Κάτω από 5 χρόνια' },{ value: '5_10',  label: '5 – 10 χρόνια'  },
   { value: '10_20',   label: '10 – 20 χρόνια'    },{ value: '20_25', label: '20 – 25 χρόνια' },
   { value: '25_30',   label: '25 – 30 χρόνια'    },{ value: 'over_30', label: 'Άνω των 30 χρόνων' },
 ];
-const REDUCTIONS = [
-  { key: 'main_residence', label: 'Κύρια κατοικία',         pct: 50, note: 'Μόνο αν χαρακτηρισμένη κύρια' },
-  { key: 'three_children', label: 'Τρίτεκνοι',              pct: 25, note: 'Α.Φ.Μ. τριτέκνου γονέα'        },
-  { key: 'four_children',  label: 'Πολύτεκνοι',             pct: 50, note: 'Α.Φ.Μ. πολυτέκνου γονέα'       },
-  { key: 'disability',     label: 'Αναπηρία 80%+',          pct: 50, note: 'Βεβαίωση ΚΕΠΑ'                 },
-  { key: 'insurance',      label: 'Ασφάλεια φυσικών κινδύνων', pct: 15, note: 'Α.1005/2026, 10-20% έκπτωση'  },
-];
-const SUPPL_BRACKETS = [
-  { limit: 100_000, rate: 0 },{ limit: 200_000, rate: 0.001 },{ limit: 300_000, rate: 0.002 },
-  { limit: 400_000, rate: 0.005 },{ limit: 500_000, rate: 0.010 },{ limit: 600_000, rate: 0.015 },
-  { limit: 700_000, rate: 0.020 },{ limit: 800_000, rate: 0.025 },{ limit: 900_000, rate: 0.030 },
-  { limit: 1_000_000, rate: 0.033 },{ limit: Infinity, rate: 0.035 },
-];
+const REDUCTIONS = ENFIA_REDUCTIONS;
 
+// Ο υπολογισμός ζει πλέον στο lib/billing/enfia (μία πηγή αλήθειας). Thin wrapper
+// με τα ίδια ονόματα πεδίων για συμβατότητα του υπάρχοντος UI.
 function calcENFIA(sqm: number, zone: string, floor: string, age: string, ownership: number, totalVal: number, reductions: string[]) {
-  if (!sqm || !zone) return null;
-  const basic = sqm * (ZONE_TAX[zone] || 0) * (FLOOR_COEF[floor] || 1) * (AGE_COEF[age] || 1) * (ownership / 100);
-  let suppl = 0;
-  if (totalVal > 100_000) {
-    const bracket = SUPPL_BRACKETS.find(b => totalVal <= b.limit);
-    if (bracket) suppl = totalVal * bracket.rate;
-  }
-  const subtotal = basic + suppl;
-  const maxPct = Math.max(0, ...reductions.map(r => REDUCTIONS.find(rd => rd.key === r)?.pct || 0));
-  const redAmt = subtotal * (maxPct / 100);
-  const final = Math.max(0, subtotal - redAmt);
-  return { basic, suppl, subtotal, redAmt, maxPct, final, installment: Math.ceil(final / 6) };
+  const r = estimateENFIA({ sqm, zone, floor, age, ownership, totalValue: totalVal, reductions });
+  if (!r) return null;
+  return { basic: r.basic, suppl: r.supplementary, subtotal: r.subtotal, redAmt: r.reductionAmount, maxPct: r.reductionPct, final: r.annual, installment: r.installment };
 }
 
 const DEFAULTS = {
