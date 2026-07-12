@@ -14,7 +14,7 @@ import {
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
-import { usefulLifeYears, yearsSince } from '@/lib/inventory/depreciation'
+import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
@@ -93,8 +93,10 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
   const expensesTotal = useMemo(()=>expensesYear.reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)).reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans])
-  // Αποσβέσεις εξοπλισμού (ευθεία μέθοδος, από τα πραγματικά πάγια) — επιχειρηματική εικόνα.
-  const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0)return s; const life=usefulLifeYears(it.category); const age=yearsSince(it.purchase_date); if(age!=null&&age>=life)return s; return s+val/life },0),[inventory])
+  // Αποσβέσεις εξοπλισμού (ευθεία μέθοδος) για ΤΗ ΧΡΗΣΗ που βλέπουμε — όχι με τη
+  // σημερινή ηλικία: το πάγιο αποσβένεται στο έτος Y αν αγοράστηκε ως το Y και δεν
+  // έχει συμπληρώσει την ωφέλιμη ζωή του μέχρι την αρχή του Y.
+  const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0||!it.purchase_date)return s; const py=Number(String(it.purchase_date).slice(0,4)); if(!py||py>year)return s; const life=usefulLifeYears(it.category); if(year-py>=life)return s; return s+val/life },0),[inventory,year])
   // Τόκοι δανείων για τη χρήση (εκπίπτουν στην επιχείρηση· το κεφάλαιο όχι).
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
@@ -183,7 +185,7 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
     { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), color:'var(--text-secondary)', icon:<TrendingUp size={15}/> },
     { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, color:'var(--text-secondary)', icon:<TrendingDown size={15}/> },
     { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), color:statement.netProfit>=0?'var(--accent)':'var(--negative)', icon:<Wallet size={15}/> },
-    { label:'Φόρος να βάλεις στην άκρη', value:`${eur(provision.monthly)}/μήνα`, sub:`${eur(provision.annualTaxTotal)} τον χρόνο`, color:'var(--text-secondary)', icon:<PiggyBank size={15}/> },
+    { label:'Ταμειακό υπόλοιπο', value:eur(statement.netCash), sub:'μετά φόρους, τέλη & δάνειο', color:statement.netCash>=0?'var(--accent)':'var(--negative)', icon:<PiggyBank size={15}/> },
   ]
 
   return (
