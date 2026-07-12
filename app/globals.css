@@ -1397,6 +1397,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
   outline-offset: 2px;
 }
+/* Πτυσσόμενες κεφαλίδες/στοιχεία ενοτήτων: χωρίς έντονο μπλε πλαίσιο (θόρυβος).
+   Η εστίαση πληκτρολογίου δηλώνεται διακριτικά με υπογράμμιση του τίτλου. */
+.acc-toggle:focus, .acc-toggle:focus-visible { outline: none; }
+.acc-toggle:focus-visible p:first-of-type {
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-decoration-thickness: 2px;
+}
 
 /* MD3 Scrim (for dialogs/modals) */
 .md-scrim {

@@ -96,6 +96,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [openAdvisory,setOpenAdvisory] = useState<string|null>(null)
   const [advisoryOpen,setAdvisoryOpen] = useState(false)
   const [changesOpen,setChangesOpen] = useState(false)
+  const [openChange,setOpenChange] = useState<string|null>(null)
   // Οι δύο ενημερωτικές ενότητες (Συμβουλευτική, Τι άλλαξε) ανοίγουν/κλείνουν ομοιόμορφα:
   // κλικ στην κεφαλίδα εναλλάσσει, κλικ εκτός τις ελαχιστοποιεί (καθαρή, ήσυχη εικόνα).
   const advisoryRef = useRef<HTMLDivElement>(null)
@@ -107,9 +108,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const onDown = (e:PointerEvent)=>{
       const t = e.target as Node
       if(advisoryOpen && advisoryRef.current && !advisoryRef.current.contains(t)){ setAdvisoryOpen(false); setOpenAdvisory(null) }
-      if(changesOpen && changesRef.current && !changesRef.current.contains(t)) setChangesOpen(false)
+      if(changesOpen && changesRef.current && !changesRef.current.contains(t)){ setChangesOpen(false); setOpenChange(null) }
     }
-    const onKey = (e:KeyboardEvent)=>{ if(e.key==='Escape'){ setAdvisoryOpen(false); setOpenAdvisory(null); setChangesOpen(false) } }
+    const onKey = (e:KeyboardEvent)=>{ if(e.key==='Escape'){ setAdvisoryOpen(false); setOpenAdvisory(null); setChangesOpen(false); setOpenChange(null) } }
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey)
     return ()=>{ document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey) }
@@ -301,12 +302,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const drift = !!closing && closing.snapshot?.sig!=null && closing.snapshot.sig!==bookSig
   async function lockYear(){
     const snapshot = { sig:bookSig, taxableIncome:statement.taxableIncome, incomeTax:statement.incomeTax, netProfit:statement.netProfit, netCash:statement.netCash, provisionMonthly:provision.monthly, collectedTotal:rs.collectedTotal, expectedTotal:rs.expectedTotal }
-    await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at:new Date().toISOString() },{ onConflict:'user_id,property_id,year' })
-    setRefreshKey(k=>k+1)
+    const locked_at = new Date().toISOString()
+    // Ενημέρωση κατάστασης ΑΜΕΣΩΣ (ΑΝΟΙΧΤΟ → ΚΛΕΙΣΜΕΝΟ), χωρίς να περιμένουμε επαναφόρτωση
+    // (που μπορεί να αστοχήσει/καθυστερήσει). Η εγγραφή στη βάση γίνεται στη συνέχεια.
+    setClosing({ snapshot, locked_at })
+    const { error } = await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at },{ onConflict:'user_id,property_id,year' })
+    if(error) console.warn('Αποτυχία μόνιμης αποθήκευσης κλειδώματος:', error.message)
   }
   async function unlockYear(){
+    setClosing(null)
     await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
-    setRefreshKey(k=>k+1)
   }
 
   function exportBundle(){
@@ -587,7 +592,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία (ανοιγοκλείνει ομοιόμορφα) */}
       {advisory.length>0 && (
       <div ref={advisoryRef} style={card}>
-        <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+        <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Lightbulb size={15}/></span>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
@@ -601,7 +606,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             const open = openAdvisory===a.id
             return (
               <div key={a.id} style={{ borderRadius:13, background:'var(--bg-surface)', border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
-                <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
+                <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
                   onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 9px', borderRadius:6, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', fontSize:9.5, fontWeight:600, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-tertiary)' }}>{ADVISORY_TONE[a.tone]}</span>
@@ -634,7 +639,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {/* «Τι άλλαξε» — επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (διακριτικό) */}
       {relevantChanges.length>0 && (
       <div ref={changesRef} style={card}>
-        <button onClick={()=>setChangesOpen(o=>!o)} aria-expanded={changesOpen} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+        <button onClick={()=>{ setChangesOpen(o=>!o); setOpenChange(null) }} aria-expanded={changesOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
@@ -645,17 +650,23 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         {changesOpen && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, marginTop:16, alignItems:'start' }}>
             {relevantChanges.map((u:RegulatoryUpdate)=>{
+              const uo = openChange===u.id
               return (
-                <div key={u.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', padding:'13px 15px' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--text-tertiary)', flexShrink:0 }}/>
-                    <p style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.3, fontFamily:"'Inter',sans-serif" }}>{u.title}</p>
-                  </div>
-                  <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, lineHeight:1.55, fontFamily:"'Inter',sans-serif" }}>{u.summary}</p>
-                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:9, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
-                    {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
-                  </div>
+                <div key={u.id} style={{ borderRadius:13, background:'var(--bg-surface)', border:`1px solid ${uo?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
+                  <button onClick={()=>setOpenChange(uo?null:u.id)} aria-expanded={uo} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 15px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
+                    onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
+                    <p style={{ flex:1, minWidth:0, fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.35, fontFamily:"'Inter',sans-serif" }}>{u.title}</p>
+                    <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:uo?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+                  </button>
+                  {uo && (
+                    <div style={{ padding:'0 15px 14px' }}>
+                      <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily:"'Inter',sans-serif" }}>{u.summary}</p>
+                      <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
+                        {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -672,7 +683,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
       <div style={card}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
-          <button onClick={()=>setXferOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
+          <button onClick={()=>setXferOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
             <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
             <div>
               <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
@@ -727,7 +738,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* Ταμειακές ροές */}
       <div style={card}>
-        <button onClick={()=>setCashOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
+        <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
           <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
         </button>
