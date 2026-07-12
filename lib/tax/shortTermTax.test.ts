@@ -48,11 +48,12 @@ ok('εμβαδόν 80 = μικρή κλίμακα', shortTermYearSummary(stays, 
 ok('χωρίς meta → τέλος παρεπ. 0 (τυπική εξαίρεση)', sum.municipalTax === 0 && sum.municipalExempt);
 ok('≤80τμ → εξαίρεση (0)', shortTermYearSummary(stays, 2026, { sqm: 60 }).municipalTax === 0);
 ok('μονοκατοικία >80τμ → εξαίρεση (0)', shortTermYearSummary(stays, 2026, { sqm: 200, isHouse: true }).municipalTax === 0);
-// διαμέρισμα >80τμ, όχι μονοκατοικία → 0,5% × 1500 = 7,5
-ok('διαμέρισμα >80τμ → 0,5% = 7,5', shortTermYearSummary(stays, 2026, { sqm: 120 }).municipalTax === 7.5);
-ok('net αφαιρεί τέλος παρεπ.', Math.abs(shortTermYearSummary(stays, 2026, { sqm: 120 }).net - (1500 - rentalIncomeTax(1500) - 52 - 7.5)) < 0.01);
-// άνω των 2 ακινήτων → όχι εξαίρεση ακόμη κι αν ≤80τμ
-ok('>2 ακίνητα → 0,5% έστω ≤80τμ', shortTermYearSummary(stays, 2026, { sqm: 60, propertyCount: 3 }).municipalTax === 7.5);
+// διαμέρισμα >80τμ, φυσικό πρόσωπο έως 2 ακίνητα → ΕΞΑΙΡΕΣΗ (το κριτήριο είναι
+// η ιδιότητα/αριθμός ακινήτων, όχι τα τ.μ.)
+ok('διαμέρισμα >80τμ φυσ. πρόσωπο → εξαίρεση (0)', shortTermYearSummary(stays, 2026, { sqm: 120 }).municipalTax === 0);
+// άνω των 2 ακινήτων → όχι εξαίρεση (0,5% × 1500 = 7,5), ανεξαρτήτως τ.μ.
+ok('>2 ακίνητα → 0,5% = 7,5', shortTermYearSummary(stays, 2026, { sqm: 60, propertyCount: 3 }).municipalTax === 7.5);
+ok('net αφαιρεί τέλος παρεπ.', Math.abs(shortTermYearSummary(stays, 2026, { sqm: 60, propertyCount: 3 }).net - (1500 - rentalIncomeTax(1500) - 52 - 7.5)) < 0.01);
 ok('φόρος = κλίμακα(1500)', near(sum.incomeTax, rentalIncomeTax(1500)));
 ok('καθαρά = μεικτά - φόρος - ΤΑΚΚ', near(sum.net, 1500 - sum.incomeTax - 52));
 ok('effectiveRate = φόρος/μεικτά', near(sum.effectiveRate, sum.incomeTax / 1500));

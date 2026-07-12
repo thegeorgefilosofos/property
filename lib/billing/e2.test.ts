@@ -34,8 +34,8 @@ ok('open lease starting before year → 12', monthsRentedInYear('2023-05-01', nu
 // ── είδος μίσθωσης (κωδικοί Ε2) ──────────────────────────────────────────────
 ok('rented code = 1', e2LeaseKind('rented').code === '1');
 ok('seasonal code = 60', e2LeaseKind('seasonal').code === '60');
-ok('own_use code = 4', e2LeaseKind('own_use').code === '4');
-ok('vacant code = 5', e2LeaseKind('vacant').code === '5');
+ok('own_use code = 17', e2LeaseKind('own_use').code === '17');
+ok('vacant code = 39', e2LeaseKind('vacant').code === '39');
 ok('for_sale code = "" (χειροκίνητο)', e2LeaseKind('for_sale').code === '');
 ok('null code = ""', e2LeaseKind(null).code === '');
 
@@ -107,7 +107,7 @@ const T = (o: Partial<E2Tenant> = {}): E2Tenant => ({ property_id: 'p1', afm: nu
   ];
   const e1 = buildE1Summary(rows);
   ok('Ε1: κατοικίες αθροίζονται σε έναν κωδικό (103)', e1.lines.some(l => l.code === '103' && l.amount === 10000));
-  ok('Ε1: επαγγελματική στέγη ξεχωριστός κωδικός (107)', e1.lines.some(l => l.code === '107' && l.amount === 5000));
+  ok('Ε1: επαγγελματική στέγη ξεχωριστός κωδικός (105)', e1.lines.some(l => l.code === '105' && l.amount === 5000));
   ok('Ε1: σύνολο ακαθάριστου = 15000', e1.totalGross === 15000);
   ok('Ε1: ταξινόμηση φθίνουσα', e1.lines[0].amount >= e1.lines[e1.lines.length - 1].amount);
   ok('Ε1: σημείωση για ενδεικτικούς κωδικούς', /ενδεικτικοί/.test(e1.note));
