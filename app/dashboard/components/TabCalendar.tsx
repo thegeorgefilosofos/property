@@ -523,11 +523,17 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   )
 }
 
-// Timeline View
-function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void; onPickMonth?:(monthIndex:number)=>void }) {
-  const today=athensNow(); const todayMonth=today.getMonth()
+// Ετήσιος ορίζοντας — 12 mini-ημερολόγια, λογική/αισθητική Google Calendar & Teams
+const DAY_MINI_GR = ['Κυ','Δε','Τρ','Τε','Πέ','Πα','Σά']
+function TimelineView({ events, currentYear, onYearChange, onPickMonth, onPickDay }: { events:CalEvent[]; currentYear:number; onYearChange:(y:number)=>void; onPickMonth?:(monthIndex:number)=>void; onPickDay?:(date:string)=>void }) {
+  const today=athensNow(); const todayY=today.getFullYear(); const todayM=today.getMonth(); const todayD=today.getDate()
   const totalAmt=events.filter(e=>e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
   const paidAmt=events.filter(e=>e.status==='paid').reduce((s,e)=>s+(e.amount||0),0)
+  // Ομαδοποίηση των γεγονότων του έτους ανά ημερομηνία — μία διέλευση.
+  const byDate: Record<string, CalEvent[]> = {}
+  for(const e of events){ if(+e.event_date.slice(0,4)===currentYear){ (byDate[e.event_date]||(byDate[e.event_date]=[])).push(e) } }
+  const statusRank=(e:CalEvent)=> isOverdue(e)?0 : e.status==='pending'?1 : e.status==='paid'?2 : 3
+  const dotColor=(e:CalEvent)=> isOverdue(e)?'var(--negative)' : e.status==='paid'?'var(--text-tertiary)' : e.status==='pending'?'var(--accent)' : 'var(--text-tertiary)'
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:12 }}>
@@ -543,45 +549,71 @@ function TimelineView({ events, currentYear, onYearChange, onPickMonth }: { even
         ))}
       </div>
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:20, boxShadow:'var(--shadow-sm)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:18 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <button onClick={()=>onYearChange(currentYear-1)} style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={16}/></button>
-            <p style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Ετήσιος ορίζοντας {currentYear}</p>
-            <button onClick={()=>onYearChange(currentYear+1)} style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={16}/></button>
+            <button onClick={()=>onYearChange(currentYear-1)} title="Προηγούμενο έτος" style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={16}/></button>
+            <p style={{ fontSize:15, fontFamily:"'Inter', sans-serif", fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.1px', fontVariantNumeric:'tabular-nums', minWidth:44, textAlign:'center' }}>{currentYear}</p>
+            <button onClick={()=>onYearChange(currentYear+1)} title="Επόμενο έτος" style={{ width:32, height:32, borderRadius:16, border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={16}/></button>
+          </div>
+          <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+            {[['var(--accent)','Εκκρεμές'],['var(--negative)','Εκπρόθεσμο'],['var(--text-tertiary)','Πληρωμένο']].map(([c,l])=>(
+              <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ width:6, height:6, borderRadius:'50%', background:c, display:'inline-block' }}/>
+                <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>{l}</span>
+              </div>
+            ))}
           </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(12,1fr)', gap:6 }}>
-          {MONTH_SHORT_GR.map((mName,mIdx)=>{
-            const monthEvs=events.filter(e=>+e.event_date.slice(0,4)===currentYear&&+e.event_date.slice(5,7)-1===mIdx)
-            const isCurrentMonth=mIdx===todayMonth&&currentYear===today.getFullYear()
-            const isPast=currentYear<today.getFullYear()||(currentYear===today.getFullYear()&&mIdx<todayMonth)
-            const pending=monthEvs.filter(e=>e.status==='pending')
-            const totalM=pending.reduce((s,e)=>s+(e.amount||0),0)
-            const overdueCount=monthEvs.filter(isOverdue).length
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 232px), 1fr))', gap:14 }}>
+          {MONTH_NAMES_GR.map((mName,mIdx)=>{
+            const firstDow=new Date(currentYear,mIdx,1).getDay()
+            const dim=new Date(currentYear,mIdx+1,0).getDate()
+            const cells:(number|null)[]=[]
+            for(let i=0;i<firstDow;i++) cells.push(null)
+            for(let i=1;i<=dim;i++) cells.push(i)
+            while(cells.length%7!==0) cells.push(null)
+            const isCurMonth=mIdx===todayM&&currentYear===todayY
+            const isPastMonth=currentYear<todayY||(currentYear===todayY&&mIdx<todayM)
+            let monthPending=0, monthOverdue=0, monthCount=0
+            for(let d=1;d<=dim;d++){ const evs=byDate[`${currentYear}-${String(mIdx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`]; if(evs){ monthCount+=evs.length; for(const e of evs){ if(e.status==='pending') monthPending+=e.amount||0; if(isOverdue(e)) monthOverdue++ } } }
             return (
-              <button key={mIdx} onClick={()=>onPickMonth?.(mIdx)} title={`Άνοιγμα ${MONTH_NAMES_GR[mIdx]}`} style={{ textAlign:'left', background:isCurrentMonth?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${isCurrentMonth?'var(--border-accent)':overdueCount>0?'var(--negative-border)':'var(--border-subtle)'}`, borderRadius:8, padding:'8px 5px', minHeight:100, cursor:onPickMonth?'pointer':'default', transition:'border-color 0.13s, transform 0.1s' }} onMouseEnter={e=>{if(onPickMonth){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.transform='translateY(-2px)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor=isCurrentMonth?'var(--border-accent)':overdueCount>0?'var(--negative-border)':'var(--border-subtle)';e.currentTarget.style.transform='none'}}>
-                <p style={{ fontSize:11, fontFamily:"'Inter',sans-serif", fontWeight:500, color:isCurrentMonth?'var(--accent)':isPast?'var(--text-tertiary)':'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:6, textAlign:'center' }}>{mName}</p>
-                <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                  {monthEvs.slice(0,7).map(ev=>(
-                    <Tooltip key={ev.id} text={`${ev.title}${ev.amount?` · ${ev.amount}€`:''}`}>
-                      <div style={{ width:'100%', height:4, borderRadius:2, background:CATEGORIES[ev.category].color, opacity:ev.status==='paid'?0.2:isPast?0.5:1 }}/>
-                    </Tooltip>
-                  ))}
-                  {monthEvs.length>7&&<span style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Inter',sans-serif" }}>+{monthEvs.length-7}</span>}
+              <div key={mIdx} style={{ border:`1px solid ${isCurMonth?'var(--border-accent)':'var(--border-subtle)'}`, borderRadius:10, overflow:'hidden', background:isCurMonth?'var(--accent-dim)':'var(--bg-elevated)', opacity:isPastMonth&&monthCount===0?0.68:1 }}>
+                <button onClick={()=>onPickMonth?.(mIdx)} title={`Άνοιγμα ${mName}`} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, padding:'9px 11px', background:'transparent', border:'none', borderBottom:'1px solid var(--border-subtle)', cursor:onPickMonth?'pointer':'default' }} onMouseEnter={e=>{if(onPickMonth)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <span style={{ display:'flex', alignItems:'center', gap:6, minWidth:0 }}>
+                    <span style={{ fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:600, color:isCurMonth?'var(--accent)':'var(--text-primary)', letterSpacing:'0.1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{mName}</span>
+                    {monthOverdue>0&&<span title={`${monthOverdue} εκπρόθεσμα`} style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)', flexShrink:0 }}/>}
+                  </span>
+                  {monthPending>0&&<span style={{ fontSize:10.5, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--accent)', flexShrink:0 }}>{Math.round(monthPending).toLocaleString('el-GR')} €</span>}
+                </button>
+                <div style={{ padding:'7px 9px 9px' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:3 }}>
+                    {DAY_MINI_GR.map((d,i)=>(<span key={i} style={{ textAlign:'center', fontSize:9.5, fontFamily:"'Inter',sans-serif", fontWeight:600, color:i===0||i===6?'var(--text-tertiary)':'var(--text-secondary)', letterSpacing:'0.1px' }}>{d}</span>))}
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:1 }}>
+                    {cells.map((d,ci)=>{
+                      if(!d) return <span key={ci} style={{ minHeight:30 }}/>
+                      const dateStr=`${currentYear}-${String(mIdx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+                      const evs=byDate[dateStr]||[]
+                      const isToday=currentYear===todayY&&mIdx===todayM&&d===todayD
+                      const wknd=ci%7===0||ci%7===6
+                      const dots=evs.slice().sort((a,b)=>statusRank(a)-statusRank(b)).slice(0,3)
+                      const cell=(
+                        <button onClick={()=>onPickDay?.(dateStr)} title={onPickDay?`Άνοιγμα ${d} ${mName}`:undefined} style={{ width:'100%', minHeight:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, border:'none', borderRadius:7, background:'transparent', cursor:onPickDay?'pointer':'default', padding:'2px 0', transition:'background 0.1s' }} onMouseEnter={e=>{if(onPickDay)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <span style={{ width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:isToday?700:evs.length?600:400, background:isToday?'var(--accent)':'transparent', color:isToday?'#fff':evs.length?'var(--text-primary)':wknd?'var(--text-tertiary)':'var(--text-secondary)', lineHeight:1 }}>{d}</span>
+                          <span style={{ display:'flex', gap:2, height:4, alignItems:'center', justifyContent:'center' }}>
+                            {dots.map((e,di)=>(<span key={di} style={{ width:4, height:4, borderRadius:'50%', background:dotColor(e) }}/>))}
+                          </span>
+                        </button>
+                      )
+                      return evs.length ? (
+                        <Tooltip key={ci} text={`${d} ${mName}\n`+evs.map(e=>`${e.event_time?e.event_time+' ':''}${e.title}${e.amount?` · ${e.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}`:''}`).join('\n')}>{cell}</Tooltip>
+                      ) : <div key={ci} style={{ display:'flex' }}>{cell}</div>
+                    })}
+                  </div>
                 </div>
-                {totalM>0&&<p style={{ fontSize:10, color:'var(--accent)', textAlign:'center', marginTop:5, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums' }}>{Math.round(totalM).toLocaleString('el-GR')} €</p>}
-                {monthEvs.length===0&&<p style={{ fontSize:9, color:'var(--text-tertiary)', textAlign:'center', fontFamily:"'Inter',sans-serif" }}>—</p>}
-              </button>
+              </div>
             )
           })}
-        </div>
-        <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
-          {Object.entries(CATEGORIES).map(([key,cat])=>(
-            <div key={key} style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <span style={{ width:10, height:4, borderRadius:2, background:cat.color, display:'inline-block' }}/>
-              <span style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.25px' }}>{cat.label}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -1525,7 +1557,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {([
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', hoverColor:undefined, icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:'var(--text-secondary)', hoverColor:overdue.length>0?'var(--negative)':undefined, icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', hoverColor:undefined, icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', hoverColor:nextEvent?'var(--accent)':undefined, icon:<Clock size={14}/>, onClick:undefined, open:false},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', hoverColor:undefined, icon:<Shield size={14}/>, onClick:undefined, open:false},
         ] as {label:string;value:string;color:string;hoverColor?:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
           const clickable=!!kpi.onClick
@@ -1536,9 +1568,9 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
           <div key={kpi.label} role={clickable?'button':undefined} tabIndex={clickable?0:undefined} onClick={kpi.onClick} onKeyDown={clickable?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();kpi.onClick!()}}:undefined} style={{ position:'relative', background:kpi.open?`linear-gradient(180deg, color-mix(in srgb, ${c} 8%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)`:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:`1px solid ${kpi.open?`color-mix(in srgb, ${c} 45%, var(--border-subtle))`:'var(--border-subtle)'}`, borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', cursor:clickable?'pointer':'default', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s' }}
             onMouseEnter={e=>{setHoverKpi(kpi.label);e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
             onMouseLeave={e=>{setHoverKpi(null);e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
-            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:c, opacity:0.55, transition:'background 0.16s' }}/>
+            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:kpi.color, opacity:0.5 }}/>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${c} 14%, transparent)`, color:c, transition:'color 0.16s, background 0.16s' }}>{kpi.icon}</span>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 12%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', flex:1 }}>{kpi.label}</p>
             </div>
             <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:c, fontWeight:500, letterSpacing:'0.2px', transition:'color 0.16s' }}>{kpi.value}</p>
@@ -1758,7 +1790,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         </div>
       )}
 
-      {!loading&&viewMode==='year'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear} onPickMonth={mi=>{setCurrentDate(new Date(timelineYear,mi,1));setViewMode('month')}}/>}
+      {!loading&&viewMode==='year'&&<TimelineView events={filtered} currentYear={timelineYear} onYearChange={setTimelineYear} onPickMonth={mi=>{setCurrentDate(new Date(timelineYear,mi,1));setViewMode('month')}} onPickDay={ds=>{const[y,m,d]=ds.split('-').map(Number);setCurrentDate(new Date(y,m-1,d));setViewMode('day')}}/>}
 
       <input ref={importRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0]; if(f)importIcs(f); e.currentTarget.value=''}}/>
       {importMsg&&<div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--accent-border)', borderRadius:12, padding:'11px 20px', fontSize:13, color:'var(--text-primary)', zIndex:1200, boxShadow:'0 8px 32px rgba(0,0,0,0.35)', fontFamily:"'Inter',sans-serif" }}>{importMsg}</div>}

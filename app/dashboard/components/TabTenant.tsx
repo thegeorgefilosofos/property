@@ -682,7 +682,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
             <SectionTitle>Υποχρεώσεις και Σύνδεσμοι</SectionTitle>
             {[
               {label:'Καταχώρηση Μισθωτηρίου στην ΑΑΑΔΕ',desc:'Εντός 30 ημερών από υπογραφή',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:true},
-              {label:'Ε2, Δήλωση Εισοδήματος Ακινήτων',desc:'Έως 30 Ιουνίου κάθε έτους',url:'https://www.aade.gr',urgent:false},
+              {label:'Ε2, Δήλωση Εισοδήματος Ακινήτων',desc:'Έως 30 Ιουνίου κάθε έτους',url:'https://www.aade.gr/polites/eisodima/misthotiria-akiniton',urgent:false},
               {label:'Πρότυπο Σύμβασης Μίσθωσης',desc:'Επίσημο πρότυπο ΑΑΑΔΕ',url:'https://www.aade.gr/polites/foroi/misthotiria',urgent:false},
             ].map((link,i)=>(
               <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -1437,7 +1437,7 @@ function LegalTaxView({ tenant }:{ tenant:Tenant }) {
           </InfoBlock>
           <div style={{ marginTop:16 }}>
             {linkCard('ΑΑΔΕ, Δηλώσεις Μίσθωσης Ακινήτων','Ηλεκτρονική υποβολή & πληροφορίες','https://www.aade.gr/polites/misthoseis-akiniton-dilosi-plirophoriakon-stoicheion',true)}
-            {linkCard('ΑΑΔΕ, Φορολογία Εισοδήματος Ακινήτων','Ε2 & κλίμακα φόρου ενοικίων','https://www.aade.gr')}
+            {linkCard('ΑΑΔΕ, Φορολογία Εισοδήματος Ακινήτων','Ε2 & κλίμακα φόρου ενοικίων','https://www.aade.gr/polites/eisodima/misthotiria-akiniton')}
           </div>
         </div>
       </div>

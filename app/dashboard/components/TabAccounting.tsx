@@ -305,7 +305,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), hover:'var(--text-primary)', icon:<TrendingUp size={15}/> },
     { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, hover:'var(--text-primary)', icon:<TrendingDown size={15}/> },
     { label:'Καθαρό αποτέλεσμα', value:eur(statement.netProfit), hover:statement.netProfit>=0?'var(--accent)':'var(--negative)', icon:<Wallet size={15}/> },
-    { label:'Ταμειακό υπόλοιπο', value:eur(statement.netCash), sub:'μετά φόρους, τέλη και δάνειο', hover:statement.netCash>=0?'var(--accent)':'var(--negative)', icon:<PiggyBank size={15}/> },
+    { label:'Ταμειακό υπόλοιπο', value:eur(statement.netCash), sub:'μετά από φόρους, τέλη και δόσεις δανείου', hover:statement.netCash>=0?'var(--accent)':'var(--negative)', icon:<PiggyBank size={15}/> },
   ]
 
   return (
@@ -314,7 +314,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ minWidth:0 }}>
           <h2 style={{ fontFamily:"'Inter',sans-serif", fontSize:20, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Λογιστική</h2>
-          <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily:"'Inter',sans-serif" }}>{regimeLabel} · έσοδα, φόρος και καθαρό, από τα πραγματικά δεδομένα σου.</p>
+          <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily:"'Inter',sans-serif" }}>{regimeLabel} · έσοδα, φόρος και καθαρό αποτέλεσμα, με βάση τα πραγματικά σου δεδομένα.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           {mode==='professional'&&(
@@ -350,7 +350,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             {st==='open'?<Unlock size={12}/>:<Lock size={12}/>}{meta.label}
           </span>
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?<>Χρήση {year}, ανοιχτή για αλλαγές.</>:st==='drift'?<>Η χρήση {year} κλείδωσε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
+            {st==='open'?<>Χρήση {year}, ανοιχτή για αλλαγές.</>:st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
             <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
           </span>
           <div style={{ flex:1 }}/>
@@ -437,7 +437,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div style={{ ...card, background:'linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)' }}>
-            <p style={cardTitle}>Φόρος να βάλεις στην άκρη</p>
+            <p style={cardTitle}>Φόρος για να βάλεις στην άκρη</p>
             <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
               <span style={{ fontSize:26, fontWeight:700, color:'var(--accent)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
               <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
@@ -451,7 +451,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               Εκτιμήσεις. Επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
               <InfoHint>
                 {businessMode
-                  ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
+                  ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού, καθώς και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
                   : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
                 {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία και τετραγωνικά. Καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
               </InfoHint>
@@ -523,7 +523,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--positive)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(expensesTotal-deductibleTotal)}</p></div>
             </div>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ως ιδιώτης δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
+            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
           </div>
         </div>
       )}

@@ -1222,7 +1222,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue = 0, owne
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
             {[
               { title: 'Εγγραφή ΜΒΜΑ (Μητρώο Βραχυχρόνιας Μίσθωσης)', desc: 'Υποχρεωτική πριν οποιαδήποτε ανάρτηση. Κωδικός ΜΒΜΑ εμφανίζεται υποχρεωτικά στην αγγελία.', url: 'https://www.aade.gr/polites/foroi/mitroo-vraxyhronion-misthoseon', urgent: true },
-              { title: 'Δήλωση Βραχυχρόνιας Διαμονής', desc: 'Το εισόδημα κάθε κράτησης δηλώνεται στην ΑΑΔΕ (Δήλωση Βραχυχρόνιας Διαμονής). Φορολογικός συντελεστής 15%/25%/35%/45%.', url: 'https://www.aade.gr', urgent: false },
+              { title: 'Δήλωση Βραχυχρόνιας Διαμονής', desc: 'Το εισόδημα κάθε κράτησης δηλώνεται στην ΑΑΔΕ (Δήλωση Βραχυχρόνιας Διαμονής). Φορολογικός συντελεστής 15%/25%/35%/45%.', url: 'https://www.gov.gr/arxes/anexartete-arkhe-demosion-esodon-aade/anexartete-arkhe-demosion-esodon-aade/brakhukhronia-misthose-akineton', urgent: false },
               { title: 'Όριο 3 Ακινήτων', desc: 'Από 3 ακίνητα και πάνω σε βραχυχρόνια μίσθωση: υποχρεωτική έναρξη επιχειρηματικής δραστηριότητας + ΦΠΑ + λογιστής.', url: null, urgent: true },
               { title: 'Κανονισμός Πολυκατοικίας', desc: 'Απαιτείται συγκατάθεση 3/4 των ιδιοκτητών. Έλεγχε τον κανονισμό της πολυκατοικίας σου.', url: null, urgent: false },
             ].map((item, i) => (
