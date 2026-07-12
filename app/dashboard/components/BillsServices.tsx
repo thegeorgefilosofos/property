@@ -72,15 +72,17 @@ const REDUCTIONS = ENFIA_REDUCTIONS;
 
 // Ο υπολογισμός ζει πλέον στο lib/billing/enfia (μία πηγή αλήθειας). Thin wrapper
 // με τα ίδια ονόματα πεδίων για συμβατότητα του υπάρχοντος UI.
-function calcENFIA(sqm: number, zone: string, floor: string, age: string, ownership: number, totalVal: number, reductions: string[]) {
-  const r = estimateENFIA({ sqm, zone, floor, age, ownership, totalValue: totalVal, reductions });
+function calcENFIA(sqm: number, zone: string, floor: string, age: string, ownership: number, totalVal: number, propVal: number, reductions: string[]) {
+  // propVal = αντικειμενική αξία ΑΥΤΟΥ του ακινήτου (Ενότητα Γ). Αν δεν δοθεί ξεχωριστά και
+  // η συνολική αξία αφορά ένα μόνο ακίνητο, ο χρήστης βάζει το ίδιο ποσό και στα δύο πεδία.
+  const r = estimateENFIA({ sqm, zone, floor, age, ownership, totalValue: totalVal, propertyValue: propVal, reductions });
   if (!r) return null;
-  return { basic: r.basic, suppl: r.supplementary, subtotal: r.subtotal, redAmt: r.reductionAmount, maxPct: r.reductionPct, final: r.annual, installment: r.installment };
+  return { basic: r.basic, extra: r.extra, suppl: r.supplementary, subtotal: r.subtotal, redAmt: r.reductionAmount, maxPct: r.reductionPct, final: r.annual, installment: r.installment };
 }
 
 const DEFAULTS = {
   enfiaAnnual: '', enfiaMonthly: '', enfiaSqm: '', enfiaZone: '', enfiaFloor: 'second',
-  enfiaAge: '10_20', enfiaOwnership: '100', enfiaTotalVal: '', enfiaReductions: [] as string[],
+  enfiaAge: '10_20', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
   enfiaShowCalc: true,
   dimotikaHistory: Array(12).fill('') as string[],
   lastBillTotal: '', lastBillDimotika: '',
@@ -160,8 +162,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
   const enfiaResult = useMemo(() => calcENFIA(
     parseFloat(s.enfiaSqm) || 0, s.enfiaZone, s.enfiaFloor, s.enfiaAge,
-    parseFloat(s.enfiaOwnership) || 100, parseFloat(s.enfiaTotalVal) || 0, s.enfiaReductions || []
-  ), [s.enfiaSqm, s.enfiaZone, s.enfiaFloor, s.enfiaAge, s.enfiaOwnership, s.enfiaTotalVal, s.enfiaReductions]);
+    parseFloat(s.enfiaOwnership) || 100, parseFloat(s.enfiaTotalVal) || 0,
+    parseFloat(s.enfiaPropVal) || 0, s.enfiaReductions || []
+  ), [s.enfiaSqm, s.enfiaZone, s.enfiaFloor, s.enfiaAge, s.enfiaOwnership, s.enfiaTotalVal, s.enfiaPropVal, s.enfiaReductions]);
 
   const enfiaM      = enfiaResult ? enfiaResult.final / 12 : (parseFloat(s.enfiaMonthly) || (parseFloat(s.enfiaAnnual) / 12) || 0);
   const dimotikaAvg = (s.dimotikaHistory || []).filter((v: string) => v).length > 0
@@ -385,6 +388,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <div style={{ marginBottom: 14 }}>
                 <NumberInput label="Συνολική Αξία Ακινήτων (€), για Προσαύξηση >500.000€" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
+              <div style={{ marginBottom: 14 }}>
+                <NumberInput label="Αντικειμενική Αξία αυτού του ακινήτου (€), για πρόσθετο φόρο >400.000€" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"/>
+              </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
                 {REDUCTIONS.map(r => {
@@ -439,6 +445,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     </div>
                     {[
                       { label: 'Βασικός Φόρος',         val: enfiaResult.basic,  pos: false },
+                      ...(enfiaResult.extra > 0 ? [{ label: 'Πρόσθετος φόρος (αξία >400k)', val: enfiaResult.extra, pos: false }] : []),
                       { label: 'Προσαύξηση (αξία >500k)',  val: enfiaResult.suppl,  pos: false },
                       ...(enfiaResult.redAmt > 0 ? [{ label: `Μειώσεις ${enfiaResult.maxPct}%`, val: -enfiaResult.redAmt, pos: true }] : []),
                     ].map((row, i) => (

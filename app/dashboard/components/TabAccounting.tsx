@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/Theme'
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
@@ -94,7 +94,27 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [xferFirstHome,setXferFirstHome] = useState(false)
   const [xferAgent,setXferAgent] = useState(true)
   const [openAdvisory,setOpenAdvisory] = useState<string|null>(null)
+  const [advisoryOpen,setAdvisoryOpen] = useState(false)
   const [changesOpen,setChangesOpen] = useState(false)
+  const [openChange,setOpenChange] = useState<string|null>(null)
+  // Οι δύο ενημερωτικές ενότητες (Συμβουλευτική, Τι άλλαξε) ανοίγουν/κλείνουν ομοιόμορφα:
+  // κλικ στην κεφαλίδα εναλλάσσει, κλικ εκτός τις ελαχιστοποιεί (καθαρή, ήσυχη εικόνα).
+  const advisoryRef = useRef<HTMLDivElement>(null)
+  const changesRef = useRef<HTMLDivElement>(null)
+  useEffect(()=>{
+    if(!advisoryOpen && !changesOpen) return
+    // pointerdown: καλύπτει ποντίκι + αφή + πένα (σε iOS το mousedown δεν πυροδοτείται
+    // σε μη-clickable στοιχεία, οπότε το «κλικ εκτός» θα αστοχούσε στο κινητό).
+    const onDown = (e:PointerEvent)=>{
+      const t = e.target as Node
+      if(advisoryOpen && advisoryRef.current && !advisoryRef.current.contains(t)){ setAdvisoryOpen(false); setOpenAdvisory(null) }
+      if(changesOpen && changesRef.current && !changesRef.current.contains(t)){ setChangesOpen(false); setOpenChange(null) }
+    }
+    const onKey = (e:KeyboardEvent)=>{ if(e.key==='Escape'){ setAdvisoryOpen(false); setOpenAdvisory(null); setChangesOpen(false); setOpenChange(null) } }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return ()=>{ document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey) }
+  },[advisoryOpen,changesOpen])
   const [showBankImport,setShowBankImport] = useState(false)
   const [refreshKey,setRefreshKey] = useState(0)
   const [hoverKpi,setHoverKpi] = useState<string|null>(null)
@@ -261,6 +281,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   const [closing,setClosing] = useState<{ snapshot:any; locked_at:string }|null>(null)
+  const [lockErr,setLockErr] = useState(false)
   useEffect(()=>{ (async()=>{
     const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
     setClosing((data as any)||null)
@@ -282,12 +303,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const drift = !!closing && closing.snapshot?.sig!=null && closing.snapshot.sig!==bookSig
   async function lockYear(){
     const snapshot = { sig:bookSig, taxableIncome:statement.taxableIncome, incomeTax:statement.incomeTax, netProfit:statement.netProfit, netCash:statement.netCash, provisionMonthly:provision.monthly, collectedTotal:rs.collectedTotal, expectedTotal:rs.expectedTotal }
-    await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at:new Date().toISOString() },{ onConflict:'user_id,property_id,year' })
-    setRefreshKey(k=>k+1)
+    const locked_at = new Date().toISOString()
+    // Ενημέρωση κατάστασης ΑΜΕΣΩΣ (ΑΝΟΙΧΤΟ → ΚΛΕΙΣΜΕΝΟ) και ΜΟΝΙΜΗ αποθήκευση στη βάση.
+    setLockErr(false); setClosing({ snapshot, locked_at })
+    const { error } = await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at },{ onConflict:'user_id,property_id,year' })
+    // Αν η αποθήκευση αποτύχει, ΔΕΝ κρύβουμε το πρόβλημα: επαναφέρουμε την κατάσταση και
+    // ενημερώνουμε τον χρήστη (εμπιστοσύνη — το UI δεν λέει «κλείδωσε» αν δεν κλείδωσε).
+    if(error){ setClosing(null); setLockErr(true); console.warn('Αποτυχία αποθήκευσης κλειδώματος:', error.message) }
   }
   async function unlockYear(){
+    setLockErr(false); setClosing(null)
     await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
-    setRefreshKey(k=>k+1)
   }
 
   function exportBundle(){
@@ -356,20 +382,23 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       </div>
 
       {/* Κλείσιμο χρήσης, premium κατάσταση με σαφή ένδειξη ανοιχτό/κλειστό */}
-      {(()=>{ const st = drift?'drift':closing?'locked':'open'
-        const meta = { open:{ c:'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
+      {(()=>{ const isCurrent = year===athensYear()
+        const isFuture = year>athensYear()
+        const st = drift?'drift':closing?'locked':'open'
+        const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
         return (
         <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', padding:'10px 14px', borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${st==='drift'?'var(--warning)':'var(--border-subtle)'}` }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:24, padding:'0 10px', borderRadius:7, background:`color-mix(in srgb, ${meta.c} 12%, transparent)`, color:meta.c, fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?<Unlock size={12}/>:<Lock size={12}/>}{meta.label}
+            {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
           </span>
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?<>Χρήση {year}, ανοιχτή για αλλαγές.</>:st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
+            {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth} από 12.</>:isFuture?<>Η χρήση {year} δεν έχει ξεκινήσει ακόμη.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
             <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
+            {lockErr && <span style={{ display:'block', marginTop:4, color:'var(--negative)', fontSize:11.5 }}>Το κλείδωμα δεν αποθηκεύτηκε — δοκίμασε ξανά ή έλεγξε τη σύνδεση.</span>}
           </span>
           <div style={{ flex:1 }}/>
           {st==='open'
-            ? <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 14px', borderRadius:16, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>
+            ? (isFuture ? null : <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 14px', borderRadius:16, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>)
             : <>
                 {st==='drift'&&<button onClick={lockYear} style={{ height:32, padding:'0 13px', borderRadius:16, border:'1px solid var(--warning)', background:'transparent', color:'var(--warning)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Ενημέρωση</button>}
                 <button onClick={unlockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 13px', borderRadius:16, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12.5, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-secondary)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-tertiary)'}}><Unlock size={13}/>Ξεκλείδωμα</button>
@@ -387,6 +416,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
                 style={{ width:110, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
               <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Εκπίπτουν και μειώνουν το ταμείο.</span>
+            </div>
+          )}
+          {elpForm==='sole'&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+              <span style={{ fontSize:11.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>Ηλικία</span>
+              <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="π.χ. 30"
+                title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην ατομική επιχείρηση."
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+                style={{ width:90, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Μειωμένη κλίμακα νέων (έως 30 ετών).</span>
             </div>
           )}
           {elpForm==='company'&&(
@@ -506,7 +545,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           {elp==='personal'&&(
           <div style={card}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-              <Layers size={15} style={{ color:'var(--accent)' }}/>
+              <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
               <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου {year}</p>
             </div>
             {!portfolio?(
@@ -553,30 +592,24 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       )}
 
-      {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία */}
-      <div style={card}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <Lightbulb size={16} style={{ color:'var(--accent)' }}/>
-            <div>
-              <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>Ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
-            </div>
+      {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία (ανοιγοκλείνει ομοιόμορφα) */}
+      {advisory.length>0 && (
+      <div ref={advisoryRef} style={card}>
+        <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Lightbulb size={15}/></span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{advisory.length} ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
           </div>
-          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            Ηλικία
-            <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="π.χ. 30"
-              title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην επιχειρηματική δραστηριότητα."
-              onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
-              style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center', outline:'none', transition:'border-color 0.14s' }}/>
-          </label>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start' }}>
+          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+        </button>
+        {advisoryOpen && (<>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:16 }}>
           {advisory.map(a=>{
             const open = openAdvisory===a.id
             return (
               <div key={a.id} style={{ borderRadius:13, background:'var(--bg-surface)', border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
-                <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
+                <button onClick={()=>setOpenAdvisory(open?null:a.id)} aria-expanded={open} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
                   onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 9px', borderRadius:6, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', fontSize:9.5, fontWeight:600, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-tertiary)' }}>{ADVISORY_TONE[a.tone]}</span>
@@ -602,49 +635,58 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενημερωτικές προτάσεις, όχι επίσημη συμβουλή.<InfoHint>Οι προτάσεις δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</InfoHint></p>
         </div>
+        </>)}
       </div>
+      )}
 
       {/* «Τι άλλαξε» — επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (διακριτικό) */}
       {relevantChanges.length>0 && (
-      <div style={card}>
-        <button onClick={()=>setChangesOpen(o=>!o)} aria-expanded={changesOpen} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+      <div ref={changesRef} style={card}>
+        <button onClick={()=>{ setChangesOpen(o=>!o); setOpenChange(null) }} aria-expanded={changesOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
           <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Τι άλλαξε το 2026</p>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου</p>
+            <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου.</p>
           </div>
           <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:changesOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
         {changesOpen && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, marginTop:16, alignItems:'start' }}>
             {relevantChanges.map((u:RegulatoryUpdate)=>{
-              const dot = u.severity==='warning'?'var(--negative)':u.severity==='action'?'var(--accent)':'var(--text-tertiary)'
+              const uo = openChange===u.id
               return (
-                <div key={u.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', padding:'13px 15px' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0 }}/>
-                    <p style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.3, fontFamily:"'Inter',sans-serif" }}>{u.title}</p>
-                  </div>
-                  <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, lineHeight:1.55, fontFamily:"'Inter',sans-serif" }}>{u.summary}</p>
-                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:9, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
-                    {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
-                  </div>
+                <div key={u.id} style={{ borderRadius:13, background:'var(--bg-surface)', border:`1px solid ${uo?'var(--border-default)':'var(--border-subtle)'}`, overflow:'hidden', transition:'border-color 0.15s' }}>
+                  <button onClick={()=>setOpenChange(uo?null:u.id)} aria-expanded={uo} className="acc-toggle" style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'13px 15px', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:"'Inter',sans-serif" }}
+                    onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{e.currentTarget.style.background='none'}}>
+                    <p style={{ flex:1, minWidth:0, fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.35, fontFamily:"'Inter',sans-serif" }}>{u.title}</p>
+                    <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:uo?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+                  </button>
+                  {uo && (
+                    <div style={{ padding:'0 15px 14px' }}>
+                      <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily:"'Inter',sans-serif" }}>{u.summary}</p>
+                      <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:10.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
+                        {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
         )}
-        <div style={{ marginTop:changesOpen?14:12, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+        {changesOpen && (
+        <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές. Οι κανόνες αλλάζουν, επιβεβαίωσε στο myAADE/gov.gr ή με τον λογιστή σου.</p>
         </div>
+        )}
       </div>
       )}
 
       {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
       <div style={card}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
-          <button onClick={()=>setXferOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
+          <button onClick={()=>setXferOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
             <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
             <div>
               <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
@@ -699,7 +741,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* Ταμειακές ροές */}
       <div style={card}>
-        <button onClick={()=>setCashOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
+        <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
           <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
         </button>

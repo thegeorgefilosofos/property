@@ -1397,6 +1397,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
   outline-offset: 2px;
 }
+/* Πτυσσόμενες κεφαλίδες/στοιχεία ενοτήτων: χωρίς έντονο μπλε πλαίσιο (θόρυβος).
+   Η εστίαση πληκτρολογίου δηλώνεται διακριτικά με υπογράμμιση του τίτλου. */
+.acc-toggle:focus, .acc-toggle:focus-visible { outline: none; }
+.acc-toggle:focus-visible p:first-of-type {
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-decoration-thickness: 2px;
+}
 
 /* MD3 Scrim (for dialogs/modals) */
 .md-scrim {
@@ -1721,6 +1729,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    ══════════════════════════════════════════════════════════════════════════ */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* Ήπιος «ζωντανός» παλμός για τη μοναδική ένδειξη τρέχουσας χρήσης (χαμηλή ένταση, όχι θόρυβος). */
+@keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.78); } }
+.live-dot { animation: livePulse 2.4s ease-in-out infinite; }
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-overlay) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
