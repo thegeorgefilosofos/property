@@ -26,6 +26,7 @@ import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_
 import { useReportBranding } from '@/lib/reportBranding'
 import { downloadCsv } from './exportCsv'
 import { printAccountingReport, type ReconLite } from './accountingReport'
+import { printRentCertificate } from './rentCertificate'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
 import { Printer } from 'lucide-react'
 
@@ -93,6 +94,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [showBankImport,setShowBankImport] = useState(false)
   const [refreshKey,setRefreshKey] = useState(0)
   const [hoverKpi,setHoverKpi] = useState<string|null>(null)
+  const [tenant,setTenant] = useState<{ full_name?:string; afm?:string }|null>(null)
   const [xferOpen,setXferOpen] = useState(true)
   const [cashOpen,setCashOpen] = useState(true)
   useEffect(()=>{ try{
@@ -247,6 +249,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
     setClosing((data as any)||null)
   })() },[propertyId,userId,year,refreshKey])
+  useEffect(()=>{ (async()=>{
+    const { data } = await supabase.from('tenants').select('full_name,afm').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ ascending:false }).limit(1).maybeSingle()
+    setTenant((data as any)||null)
+  })() },[propertyId,userId,refreshKey])
+  // Ετήσια βεβαίωση ενοικίου: μόνο εισπραγμένα μισθώματα του έτους, ανά μήνα.
+  function printCertificate(){
+    const paid = rent.filter((p:any)=>p.paid&&p.period_year===year).sort((a:any,b:any)=>(a.period_month||0)-(b.period_month||0))
+    const months = paid.map((p:any)=>({ label:`${MONTHS_GR_FULL[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0 }))
+    const total = months.reduce((s,m)=>s+m.amount,0)
+    printRentCertificate({ year, propName:prop?.name||'Ακίνητο', address:prop?.address, tenantName:tenant?.full_name, tenantAfm:tenant?.afm, months, total, branding })
+  }
   // Υπογραφή των βασικών αριθμών, για ανίχνευση απόκλισης μετά το κλείδωμα.
   const bookSig = useMemo(()=>[statement.taxableIncome,statement.incomeTax,statement.netProfit,statement.netCash,rs.collectedTotal].map(n=>Math.round(n)).join('|'),[statement,rs])
   const drift = !!closing && closing.snapshot?.sig!=null && closing.snapshot.sig!==bookSig
@@ -655,6 +668,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 </div>
               )})}
             </div>
+          )}
+          {rs.collectedTotal>0&&(
+            <button onClick={printCertificate} title="Ετήσια βεβαίωση καταβληθέντων ενοικίων (PDF) για τον μισθωτή" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', marginTop:12, borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={13}/>Βεβαίωση ενοικίου</button>
           )}
         </div>
 
