@@ -1,5 +1,5 @@
 // Τεστ για την εκτίμηση ΕΝΦΙΑ (lib/billing/enfia.ts) — τιμές ΦΕΚ Α΄65/2022.
-import { estimateENFIA, estimateENFIAFromFacts, zoneKeyFromPricePerSqm, ENFIA_ZONE_TAX } from './enfia'
+import { estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm, ENFIA_ZONE_TAX } from './enfia'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -28,6 +28,29 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   const s = estimateENFIA({ sqm: 120, zone: '1501_2500', totalValue: 700000 })!
   ok('προσαύξηση = κύριος × 10% (κλιμάκιο ≤800k)', near(s.supplementary, s.basic * 0.10))
   ok('>400k → καμία αυτόματη μείωση', s.reductionPct === 0)
+}
+
+// ── Ενότητα Γ: πρόσθετος φόρος ανά ακίνητο >400.000€ (κλιμακωτά) ─────────────
+{
+  // Καθαρή συνάρτηση: αφορολόγητο 400k, μετά κλιμακωτά.
+  ok('extra: αξία ≤400k → 0', enfiaExtraPropertyTax(400000) === 0)
+  // 400-500k → 100.000×0,20% = 200· 500-600k → 100.000×0,30% = 300 → σύνολο 500.
+  ok('extra: 600k → 500€', near(enfiaExtraPropertyTax(600000), 500))
+  // Πλήρης κλίμακα ως 1.000.000: 200+300+400+500+600+700 = 2.700.
+  ok('extra: 1.000.000 → 2.700€', near(enfiaExtraPropertyTax(1000000), 2700))
+  ok('extra: 50% ιδιοκτησία → μισό', near(enfiaExtraPropertyTax(1000000, 50), 1350))
+
+  // Ενσωμάτωση στη μηχανή: εφαρμόζεται μόνο αν συνολική περιουσία >300.000€.
+  const g = estimateENFIA({ sqm: 100, zone: 'over_5000', totalValue: 600000, propertyValue: 600000 })!
+  ok('estimate: extra 600k ακίνητο → 500€', near(g.extra, 500))
+  // Πύλη συνολικής περιουσίας: ≤300k → κανένας πρόσθετος, όσο ακριβό κι αν είναι το ακίνητο.
+  const gate = estimateENFIA({ sqm: 100, zone: 'over_5000', totalValue: 250000, propertyValue: 500000 })!
+  ok('estimate: συνολική ≤300k → extra 0', gate.extra === 0)
+  // Ακίνητο ≤400k → κανένας πρόσθετος, ακόμη κι αν η συνολική περιουσία είναι μεγάλη.
+  const low = estimateENFIA({ sqm: 100, zone: 'over_5000', totalValue: 600000, propertyValue: 350000 })!
+  ok('estimate: ακίνητο ≤400k → extra 0', low.extra === 0)
+  // Ο πρόσθετος μπαίνει στον κύριο φόρο και μετά προσαυξάνεται (>500k).
+  ok('estimate: προσαύξηση επί (βασικός+extra)', near(g.supplementary, (g.basic + g.extra) * 0.05))
 }
 
 // ── Χειροκίνητες εκπτώσεις (απομονωμένες με αξία >400k → wealthPct 0) ────────
