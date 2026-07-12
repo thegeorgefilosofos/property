@@ -102,13 +102,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const changesRef = useRef<HTMLDivElement>(null)
   useEffect(()=>{
     if(!advisoryOpen && !changesOpen) return
-    const onDown = (e:MouseEvent)=>{
+    // pointerdown: καλύπτει ποντίκι + αφή + πένα (σε iOS το mousedown δεν πυροδοτείται
+    // σε μη-clickable στοιχεία, οπότε το «κλικ εκτός» θα αστοχούσε στο κινητό).
+    const onDown = (e:PointerEvent)=>{
       const t = e.target as Node
       if(advisoryOpen && advisoryRef.current && !advisoryRef.current.contains(t)){ setAdvisoryOpen(false); setOpenAdvisory(null) }
       if(changesOpen && changesRef.current && !changesRef.current.contains(t)) setChangesOpen(false)
     }
-    document.addEventListener('mousedown', onDown)
-    return ()=>document.removeEventListener('mousedown', onDown)
+    const onKey = (e:KeyboardEvent)=>{ if(e.key==='Escape'){ setAdvisoryOpen(false); setOpenAdvisory(null); setChangesOpen(false) } }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return ()=>{ document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey) }
   },[advisoryOpen,changesOpen])
   const [showBankImport,setShowBankImport] = useState(false)
   const [refreshKey,setRefreshKey] = useState(0)
@@ -372,6 +376,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* Κλείσιμο χρήσης, premium κατάσταση με σαφή ένδειξη ανοιχτό/κλειστό */}
       {(()=>{ const isCurrent = year===athensYear()
+        const isFuture = year>athensYear()
         const st = drift?'drift':closing?'locked':'open'
         const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
         return (
@@ -380,12 +385,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
           </span>
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth}/12.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
+            {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth} από 12.</>:isFuture?<>Η χρήση {year} δεν έχει ξεκινήσει ακόμη.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
             <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
           </span>
           <div style={{ flex:1 }}/>
           {st==='open'
-            ? <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 14px', borderRadius:16, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>
+            ? (isFuture ? null : <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 14px', borderRadius:16, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>)
             : <>
                 {st==='drift'&&<button onClick={lockYear} style={{ height:32, padding:'0 13px', borderRadius:16, border:'1px solid var(--warning)', background:'transparent', color:'var(--warning)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Ενημέρωση</button>}
                 <button onClick={unlockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 13px', borderRadius:16, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12.5, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color='var(--text-secondary)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-tertiary)'}}><Unlock size={13}/>Ξεκλείδωμα</button>
@@ -403,6 +408,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
                 style={{ width:110, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
               <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Εκπίπτουν και μειώνουν το ταμείο.</span>
+            </div>
+          )}
+          {elpForm==='sole'&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+              <span style={{ fontSize:11.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>Ηλικία</span>
+              <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="π.χ. 30"
+                title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην ατομική επιχείρηση."
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
+                style={{ width:90, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Μειωμένη κλίμακα νέων (έως 30 ετών).</span>
             </div>
           )}
           {elpForm==='company'&&(
@@ -581,16 +596,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
         {advisoryOpen && (<>
-        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:14 }}>
-          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            Ηλικία
-            <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="π.χ. 30"
-              title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην επιχειρηματική δραστηριότητα."
-              onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}
-              style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center', outline:'none', transition:'border-color 0.14s' }}/>
-          </label>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:12 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:16 }}>
           {advisory.map(a=>{
             const open = openAdvisory===a.id
             return (
@@ -632,7 +638,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου.</p>
           </div>
           <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:changesOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
