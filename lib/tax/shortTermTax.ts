@@ -86,7 +86,9 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
   const levy = climateLevyForNights(nightsByMonth, meta?.sqm, meta?.isHouse);
   const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
-  const incomeTax = rentalIncomeTax(grossRevenue);
+  // Βραχυχρόνια φυσικού προσώπου χωρίς υπηρεσίες = εισόδημα από ακίνητη περιουσία:
+  // εφαρμόζεται η τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) → φορολογείται το 95%.
+  const incomeTax = rentalIncomeTax(grossRevenue * 0.95);
   const net = grossRevenue - incomeTax - levy - municipalTax;
   return {
     year, grossRevenue, totalNights, stayCount: inYear.length, nightsByMonth,

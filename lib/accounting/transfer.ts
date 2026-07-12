@@ -19,13 +19,15 @@ const VAT = 0.24 // ΦΠΑ υπηρεσιών (συμβολαιογράφος/μ
 // ── Συντελεστές (ενδεικτικοί, ισχύον πλαίσιο) ──────────────────────────────
 export const TRANSFER_TAX_RATE = 0.0309       // ΦΜΑ 3% + 3% υπέρ δήμου
 export const NEW_BUILD_VAT_RATE = 0.24        // ΦΠΑ νεόδμητων (σε αναστολή)
-export const CADASTRE_RATE = 0.00475          // τέλη Κτηματολογίου (μεταγραφή)
+export const CADASTRE_RATE = 0.005            // αναλογικό τέλος Κτηματολογίου 5‰ (ΚΥΑ ΦΕΚ Β'64/13-1-2026)· +1‰ σε περιοχές με ενεργό κτηματολογικό βιβλίο
+export const CADASTRE_FIXED = 20              // πάγιο τέλος εγγραφής (ενδεικτικό)
 export const AGENT_RATE_DEFAULT = 0.02        // μεσιτική αμοιβή (ανά πλευρά)
 export const CAPITAL_GAINS_RATE = 0.15        // φόρος υπεραξίας (σε αναστολή)
-// Απαλλαγή πρώτης κατοικίας (όρια αντικειμενικής αξίας, ενδεικτικά).
+// Απαλλαγή πρώτης κατοικίας (όρια αντικειμενικής αξίας, αγορά κατοικίας, ν.1078/1980).
 export const FIRST_HOME_EXEMPTION_SINGLE = 200000
 export const FIRST_HOME_EXEMPTION_MARRIED = 250000
-export const FIRST_HOME_EXEMPTION_PER_CHILD = 25000
+export const FIRST_HOME_EXEMPTION_CHILD_FIRST_TWO = 25000  // +25.000 € για καθένα από τα 2 πρώτα τέκνα
+export const FIRST_HOME_EXEMPTION_CHILD_THIRD_PLUS = 30000 // +30.000 € για το 3ο και κάθε επόμενο
 // Πάγια κόστη πιστοποιητικών/τεχνικών (ενδεικτικά).
 export const PEA_COST = 150                    // Πιστοποιητικό Ενεργειακής Απόδοσης
 export const BUILDING_ID_COST = 400            // ταυτότητα κτιρίου / βεβαιώσεις μηχανικού
@@ -82,7 +84,11 @@ export interface TransferResult {
 
 function firstHomeExemption(input: TransferInput): number {
   const base = input.married ? FIRST_HOME_EXEMPTION_MARRIED : FIRST_HOME_EXEMPTION_SINGLE
-  return base + Math.max(0, input.children ?? 0) * FIRST_HOME_EXEMPTION_PER_CHILD
+  const kids = Math.max(0, Math.floor(input.children ?? 0))
+  // +25.000 € για καθένα από τα δύο πρώτα τέκνα, +30.000 € για το τρίτο και κάθε επόμενο.
+  const firstTwo = Math.min(kids, 2) * FIRST_HOME_EXEMPTION_CHILD_FIRST_TWO
+  const rest = Math.max(0, kids - 2) * FIRST_HOME_EXEMPTION_CHILD_THIRD_PLUS
+  return base + firstTwo + rest
 }
 
 /** Δομημένη εκτίμηση κόστους αγοράς ή πώλησης. */
@@ -106,7 +112,7 @@ export function transferCosts(input: TransferInput): TransferResult {
     lines.push({ key: 'notary', label: 'Συμβολαιογραφικά', amount: round2(taxBase * 0.008 * (1 + VAT)), note: 'Ενδεικτικά ~0,8% + ΦΠΑ (κλιμακωτά).' })
     if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός, έλεγχος τίτλων/βαρών.' })
     if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
-    lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: round2(taxBase * CADASTRE_RATE), note: 'Μεταγραφή/καταχώριση.' })
+    lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: round2(taxBase * CADASTRE_RATE + CADASTRE_FIXED), note: 'Αναλογικό 5‰ + πάγιο (ΦΕΚ Β\'64/2026). Σε περιοχές με ενεργό κτηματολόγιο ~6‰.' })
     lines.push({ key: 'certs', label: 'Πιστοποιητικά & παράβολα', amount: CERTS_COST, note: 'Ενδεικτικό πάγιο.' })
 
     const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))

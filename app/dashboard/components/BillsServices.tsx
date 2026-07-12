@@ -385,7 +385,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Συμπληρωματικό Φόρο" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
+                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Προσαύξηση >500.000€" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
@@ -441,7 +441,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     </div>
                     {[
                       { label: 'Βασικός Φόρος',         val: enfiaResult.basic,  pos: false },
-                      { label: 'Συμπληρωματικός Φόρος',  val: enfiaResult.suppl,  pos: false },
+                      { label: 'Προσαύξηση (αξία >500k)',  val: enfiaResult.suppl,  pos: false },
                       ...(enfiaResult.redAmt > 0 ? [{ label: `Μειώσεις ${enfiaResult.maxPct}%`, val: -enfiaResult.redAmt, pos: true }] : []),
                     ].map((row, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-subtle)' }}>

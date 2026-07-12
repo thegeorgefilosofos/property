@@ -1,5 +1,5 @@
 // Τεστ για το κόστος αγοράς/πώλησης ακινήτου (lib/accounting/transfer.ts).
-import { transferCosts, TRANSFER_TAX_RATE, CADASTRE_RATE } from './transfer'
+import { transferCosts, TRANSFER_TAX_RATE, CADASTRE_RATE, CADASTRE_FIXED } from './transfer'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -11,7 +11,7 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   const tax = r.lines.find(l => l.key === 'transferTax')!
   ok('buy: transfer tax 3,09%', near(tax.amount, 200000 * TRANSFER_TAX_RATE))
   ok('buy: has notary', r.lines.some(l => l.key === 'notary'))
-  ok('buy: has cadastre', near(r.lines.find(l => l.key === 'cadastre')!.amount, 200000 * CADASTRE_RATE))
+  ok('buy: has cadastre', near(r.lines.find(l => l.key === 'cadastre')!.amount, 200000 * CADASTRE_RATE + CADASTRE_FIXED))
   ok('buy: cashOut = price + costs', near(r.cashOut!, 200000 + r.totalCosts))
   ok('buy: costPct reasonable (4–8%)', r.costPct > 0.04 && r.costPct < 0.08)
   ok('buy: no agent line by default', !r.lines.some(l => l.key === 'agent'))
