@@ -10,6 +10,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { marginalRate, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax'
+import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026'
+
+const upd = (id: string) => REGULATORY_UPDATES_2026.find(u => u.id === id)
 
 export type TaxRegime = 'individual_longterm' | 'individual_shortterm' | 'business'
 export type AdvisoryTone = 'opportunity' | 'insight' | 'action' | 'caution'
@@ -173,6 +176,16 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
     title: 'Ασφάλιση ακινήτου & απώλειας ενοικίου',
     body: `Ασφαλιστήριο πυρός/σεισμού και κάλυψη απώλειας ενοικίου προστατεύουν τόσο την περιουσία όσο και τη ροή εσόδων σε ζημιά ή αφερεγγυότητα μισθωτή. Για επαγγελματική δομή, τα ασφάλιστρα ακινήτου εκπίπτουν ως έξοδο.`,
   })
+
+  // 9) Επικαιρότητα 2026: κρίσιμοι νέοι κανόνες ανά καθεστώς (από τη βάση updates2026).
+  if (longterm) {
+    const u = upd('rent-bank-payment')
+    if (u) items.push({ id: u.id, tone: 'caution', title: u.title, body: u.summary, refer: 'accountant', linkLabel: u.sourceLabel, linkHref: u.sourceHref })
+  }
+  if (shortterm) {
+    const u = upd('ama-red-zones')
+    if (u) items.push({ id: u.id, tone: 'caution', title: u.title, body: u.summary, refer: 'accountant', linkLabel: u.sourceLabel, linkHref: u.sourceHref })
+  }
 
   // Ταξινόμηση: opportunity/action πρώτα (πρακτική αξία), μετά insight, μετά caution.
   const order: Record<AdvisoryTone, number> = { opportunity: 0, action: 1, insight: 2, caution: 3 }
