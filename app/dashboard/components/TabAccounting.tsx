@@ -15,6 +15,7 @@ import {
 } from '@/lib/accounting/statement'
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
+import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
@@ -109,7 +110,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const regime:TaxRegime = (prop?.rental_mode==='short_term') ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
-  const enfia = useMemo(()=>resolveEnfia({ propertyEnfia: prop?.enfia }).annual,[prop])
+  // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από αξία+τ.μ.
+  const enfia = useMemo(()=>{
+    const stored = resolveEnfia({ propertyEnfia: prop?.enfia }).annual
+    if(stored>0) return stored
+    return estimateENFIAFromFacts({ value: prop?.value, sqm: prop?.sqm })?.annual ?? 0
+  },[prop])
+  const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
   const loanActiveInYear = (l:any)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
@@ -348,7 +355,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
             </div>
             <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              Σύνολο <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο = φόρος εισοδήματος <strong style={{ color:'var(--text-primary)' }}>{eur(provision.incomeTax)}</strong>{provision.propertyTaxes>0?<> + φόροι/τέλη ακινήτου <strong style={{ color:'var(--text-primary)' }}>{eur(provision.propertyTaxes)}</strong></>:''}. Προκύπτει από φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?', ως μερίδιο του συνολικού προοδευτικού φόρου του χαρτοφυλακίου':''}. Ισόποσα {eur(provision.monthly)} ανά μήνα{year===athensYear()?<>· για να προλάβεις έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} ανά μήνα</strong></>:''}.{provision.advanceTax>0?<> Συν <strong style={{ color:'var(--text-primary)' }}>προκαταβολή φόρου {eur(provision.advanceTax)}</strong> έναντι του επόμενου έτους (πιστώνεται τότε) — ταμειακή ανάγκη 1ου έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.firstYearTotal)}</strong>.</>:''}
+              Σύνολο <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο = φόρος εισοδήματος <strong style={{ color:'var(--text-primary)' }}>{eur(provision.incomeTax)}</strong>{provision.propertyTaxes>0?<> + φόροι/τέλη ακινήτου <strong style={{ color:'var(--text-primary)' }}>{eur(provision.propertyTaxes)}</strong></>:''}. Προκύπτει από φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?', ως μερίδιο του συνολικού προοδευτικού φόρου του χαρτοφυλακίου':''}. Ισόποσα {eur(provision.monthly)} ανά μήνα{year===athensYear()?<>· για να προλάβεις έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} ανά μήνα</strong></>:''}.{enfiaEstimated&&provision.propertyTaxes>0?<> Ο ΕΝΦΙΑ ({eur(enfia)}) είναι <strong style={{ color:'var(--text-primary)' }}>αυτόματη εκτίμηση</strong> από αξία/τ.μ. — καταχώρησε το ακριβές ποσό στους Λογαριασμούς.</>:''}{provision.advanceTax>0?<> Συν <strong style={{ color:'var(--text-primary)' }}>προκαταβολή φόρου {eur(provision.advanceTax)}</strong> έναντι του επόμενου έτους (πιστώνεται τότε) — ταμειακή ανάγκη 1ου έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.firstYearTotal)}</strong>.</>:''}
             </p>
           </div>
           <div style={{ ...card, display:'flex', gap:10, alignItems:'flex-start' }}>
