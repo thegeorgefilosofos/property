@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Κόστος ΑΓΟΡΑΣ & ΠΩΛΗΣΗΣ ακινήτου στην Ελλάδα — δομημένη εκτίμηση (όχι επίσημη).
+// Κόστος ΑΓΟΡΑΣ & ΠΩΛΗΣΗΣ ακινήτου στην Ελλάδα, δομημένη εκτίμηση (όχι επίσημη).
 // Καθαρές συναρτήσεις. Τα ποσοστά είναι ΕΝΔΕΙΚΤΙΚΑ (ισχύον πλαίσιο) και τα ακριβή
-// ποσά ορίζονται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ — το UI το δηλώνει ρητά.
+// ποσά ορίζονται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ, το UI το δηλώνει ρητά.
 //
 // ΑΓΟΡΑ: φόρος μεταβίβασης 3,09% (3% + 3% υπέρ δήμου) επί της ΜΕΓΑΛΥΤΕΡΗΣ αξίας
 //   (τίμημα ή αντικειμενική)· για ΝΕΟΔΜΗΤΑ από κατασκευαστή με άδεια από 1/1/2006
-//   οφείλεται ΦΠΑ 24% αντί ΦΜΑ — σε ΑΝΑΣΤΟΛΗ (οπότε 3,09% ΦΜΑ). Πρώτη κατοικία:
+//   οφείλεται ΦΠΑ 24% αντί ΦΜΑ, σε ΑΝΑΣΤΟΛΗ (οπότε 3,09% ΦΜΑ). Πρώτη κατοικία:
 //   απαλλαγή ΦΜΑ έως όριο αξίας. Επιπλέον: συμβολαιογραφικά, δικηγόρος (προαιρετικός),
 //   μεσιτική αμοιβή, τέλη Κτηματολογίου, πιστοποιητικά.
 // ΠΩΛΗΣΗ: μεσιτική αμοιβή, ΠΕΑ, ταυτότητα κτιρίου (μηχανικός), φόρος υπεραξίας 15%
@@ -35,7 +35,7 @@ export interface TransferInput {
   side: 'buy' | 'sell'
   /** Τίμημα συναλλαγής. */
   price: number
-  /** Αντικειμενική αξία (βάση φόρου) — default = τίμημα. Ο φόρος στη μεγαλύτερη. */
+  /** Αντικειμενική αξία (βάση φόρου), default = τίμημα. Ο φόρος στη μεγαλύτερη. */
   objectiveValue?: number
   /** Νεόδμητο από κατασκευαστή (ΦΠΑ αντί ΦΜΑ). */
   newBuild?: boolean
@@ -104,7 +104,7 @@ export function transferCosts(input: TransferInput): TransferResult {
     }
     // Συμβολαιογραφικά (κλιμακωτά ~0,8% + ΦΠΑ), δικηγόρος, μεσίτης, Κτηματολόγιο, πιστοποιητικά.
     lines.push({ key: 'notary', label: 'Συμβολαιογραφικά', amount: round2(taxBase * 0.008 * (1 + VAT)), note: 'Ενδεικτικά ~0,8% + ΦΠΑ (κλιμακωτά).' })
-    if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός — έλεγχος τίτλων/βαρών.' })
+    if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός, έλεγχος τίτλων/βαρών.' })
     if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
     lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: round2(taxBase * CADASTRE_RATE), note: 'Μεταγραφή/καταχώριση.' })
     lines.push({ key: 'certs', label: 'Πιστοποιητικά & παράβολα', amount: CERTS_COST, note: 'Ενδεικτικό πάγιο.' })
@@ -116,13 +116,13 @@ export function transferCosts(input: TransferInput): TransferResult {
   // ── Πώληση ──
   if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
   lines.push({ key: 'pea', label: 'Πιστοποιητικό ενεργειακής απόδοσης (ΠΕΑ)', amount: PEA_COST, note: 'Υποχρεωτικό στην πώληση.' })
-  lines.push({ key: 'buildingId', label: 'Ταυτότητα κτιρίου / βεβαιώσεις μηχανικού', amount: BUILDING_ID_COST, note: 'Ενδεικτικό — από μηχανικό.' })
+  lines.push({ key: 'buildingId', label: 'Ταυτότητα κτιρίου / βεβαιώσεις μηχανικού', amount: BUILDING_ID_COST, note: 'Ενδεικτικό, από μηχανικό.' })
   if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(price * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός.' })
-  // Φόρος υπεραξίας 15% — σε αναστολή (default 0, με σημείωση).
+  // Φόρος υπεραξίας 15%, σε αναστολή (default 0, με σημείωση).
   const gain = Math.max(0, price - pos(input.acquisitionCost ?? 0))
   const cgtActive = !!input.capitalGainsActive
   lines.push({ key: 'capitalGains', label: 'Φόρος υπεραξίας (15%)', amount: cgtActive ? round2(gain * CAPITAL_GAINS_RATE) : 0,
-    note: cgtActive ? `Επί υπεραξίας ${Math.round(gain).toLocaleString('el-GR')} €.` : 'Σε αναστολή — δεν επιβαρύνει επί του παρόντος.' })
+    note: cgtActive ? `Επί υπεραξίας ${Math.round(gain).toLocaleString('el-GR')} €.` : 'Σε αναστολή, δεν επιβαρύνει επί του παρόντος.' })
 
   const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))
   return { side: 'sell', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, netProceeds: round2(price - totalCosts) }
