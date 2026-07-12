@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from './components/ThemeToggle';
 import TabFinances  from './components/TabFinances';
-import TabTaxAnalysis from './components/TabTaxAnalysis';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
@@ -100,7 +99,6 @@ const NAV_ITEMS = [
   { id:'contacts',   label:'Επαφές' },
   { id:'roi',        label:'Αποδόσεις' },
   { id:'comparison', label:'Σύγκριση ακινήτων' },
-  { id:'tax',        label:'Φορολογική Ανάλυση' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
@@ -114,7 +112,6 @@ const NAV_ICON: Record<string,string> = {
   expenses:  'M3 12h4l3 8 4-16 3 8h4',
   finances:  'M3 12h4l3 8 4-16 3 8h4',
   accounting:'M4 3h16v18H4z|M8 7h8|M8 11h8|M8 15h5|M16 19l1.5 1.5L21 17',
-  tax:       'M9 7h6|M9 11h6|M9 15h4|M6 3h12a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-3-2V4a1 1 0 0 1 1-1z',
   calendar:  'M3 5h18v16H3z|M3 9h18|M8 3v4|M16 3v4',
   tenant:    'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   roi:       'M3 17l6-6 4 4 8-8|M21 7v6h-6',
@@ -138,7 +135,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
   { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
-  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison','tax','portfolio'] },
+  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison','portfolio'] },
   { label: '',                    ids: ['settings'] },
 ];
 
@@ -1142,7 +1139,6 @@ export default function Dashboard() {
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={profileType}/>}
               {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={profileType}/>}
-              {nav==='tax'       && <TabTaxAnalysis propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined}/>}

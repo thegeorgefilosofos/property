@@ -15,8 +15,12 @@ import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { annuityMonthly } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
+import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
+import { useReportBranding } from '@/lib/reportBranding'
 import { downloadCsv } from './exportCsv'
+import { printAccountingReport, type ReconLite } from './accountingReport'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
+import { Printer } from 'lucide-react'
 
 const MONTHS_GR = ['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ']
 const eur = (n:number)=>n.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})
@@ -41,6 +45,7 @@ const lineColor = (kind:string, amount:number)=> kind==='result' ? (amount>=0?'v
 
 export default function TabAccounting({ propertyId, userId }: { propertyId:string; userId:string }) {
   const supabase = createClient()
+  const branding = useReportBranding(userId)
   const [loading,setLoading] = useState(true)
   const [year,setYear] = useState(athensYear())
   const [mode,setMode] = useState<'individual'|'professional'>('individual')
@@ -63,7 +68,7 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
       supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
       supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel').eq('property_id',propertyId),
       supabase.from('loans').select('amount,rate,years,bank').eq('property_id',propertyId),
-      supabase.from('user_properties').select('id,name,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
+      supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
       supabase.from('user_properties').select('id,name,rental_mode,enfia').eq('user_id',userId),
       supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
       supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel').eq('user_id',userId),
@@ -149,6 +154,16 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
     downloadCsv(`logistiki_${prop?.name||'akinito'}_${year}`.replace(/\s+/g,'_'), ['Περιγραφή','Ποσό / Ημ.','Κατηγορία'], rows)
   }
 
+  function printReport(){
+    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:{paid:'#188038',partial:'#e37400',unpaid:'#5f6368',overdue:'#c5221f'}[r.status] } })
+    printAccountingReport({
+      propName: prop?.name||'Ακίνητο', address: prop?.address, year, regimeLabel,
+      statement, provision, reconciliation: reconLite,
+      expectedTotal: rs.expectedTotal, collectedTotal: rs.collectedTotal, outstanding: rs.outstanding,
+      branding,
+    })
+  }
+
   if(loading) return <div style={{ padding:40 }}><Spinner label="Φόρτωση λογιστικής…" /></div>
 
   const regimeLabel = regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση'
@@ -174,6 +189,7 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
               <button key={m} onClick={()=>setMode(m)} style={{ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 13px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:mode===m?600:500, background:mode===m?'var(--accent)':'transparent', color:mode===m?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{icon}{label}</button>
             ))}
           </div>
+          <button onClick={printReport} title="Λογιστική αναφορά (PDF) για τον λογιστή/τράπεζα" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Αναφορά</button>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
             <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", minWidth:60, textAlign:'center', fontVariantNumeric:'tabular-nums' }}>{year}</span>
@@ -231,6 +247,19 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
               Εκτιμήσεις βάσει της κλίμακας 2026 και της ισχύουσας μεταχείρισης {regime==='individual_longterm'?'(μακροχρόνια: τεκμαρτή έκπτωση 5%)':'(βραχυχρόνια: φόρος στα μεικτά + ΤΑΚΚ)'}. Επιβεβαίωσε με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Φορολογική κλίμακα 2026 — αναφορά (με έμφαση στο κλιμάκιο του χρήστη) */}
+      <div style={card}>
+        <p style={cardTitle}>Φορολογική κλίμακα ενοικίων 2026</p>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap:8 }}>
+          {RENTAL_TAX_ROWS_2026.map(r=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; return (
+            <div key={r.range} style={{ padding:'10px 12px', borderRadius:12, border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'var(--bg-surface)' }}>
+              <p style={{ fontSize:11.5, color:active?'var(--accent)':'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
+              <p style={{ fontSize:17, fontWeight:700, color:active?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{r.rate}</p>
+            </div>
+          )})}
         </div>
       </div>
 
