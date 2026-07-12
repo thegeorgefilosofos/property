@@ -125,7 +125,7 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   const regime = input.regime
   const gross = pos(input.grossIncome)
   const business = regime === 'business'
-  // Τεκμαρτή έκπτωση 5% ΜΟΝΟ στη μακροχρόνια κατοικίας φυσικού προσώπου. Η
+  // Τεκμαρτή έκπτωση 5% ΜΟΝΟ στη μακροχρόνια μίσθωση κατοικίας φυσικού προσώπου. Η
   // βραχυχρόνια φορολογείται στα μεικτά (όπως ήδη στο lib/tax/shortTermTax),
   // ώστε να ΜΗ διαφέρει ο φόρος από την υπάρχουσα σύνοψη βραχυχρόνιας.
   const presumptiveRate = input.presumptiveRate ?? (regime === 'individual_longterm' ? PRESUMPTIVE_DEDUCTION_RATE : 0)
@@ -146,10 +146,15 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   const taxableGross = business ? gross : pos(gross - uncollectedReliefBase)
   const presumptive = business ? 0 : cents(taxableGross * presumptiveRate)
 
+  // Πραγματική επιχειρηματική βάση (καθαρό κέρδος): μεικτά μείον όλες τις εκπτώσεις.
+  // Χρησιμοποιείται για το ΛΟΓΙΣΤΙΚΟ καθαρό αποτέλεσμα, ώστε να ΜΗΝ επηρεάζεται από
+  // το τεκμαρτό ελάχιστο (που είναι φορολογική παραδοχή, όχι πραγματικό κέρδος).
+  const businessBase = business ? pos(gross - itemized - depreciation - interest - ekfa) : 0
+
   // Φορολογική βάση
   let taxable: number
   if (business) {
-    taxable = pos(gross - itemized - depreciation - interest - ekfa)
+    taxable = businessBase
     // Τεκμαρτό ελάχιστο καθαρό εισόδημα ελεύθερου επαγγελματία (ατομική).
     if (!company && input.presumptiveMinIncome != null) taxable = Math.max(taxable, pos(input.presumptiveMinIncome))
   } else {
@@ -190,7 +195,7 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   // Καθαρό αποτέλεσμα: για επιχείρηση = φορολογητέο − φόρος (− φόρος μερισμάτων στη
   // διανομή)· για φυσικό πρόσωπο = μεικτά − φόρος (η τεκμαρτή έκπτωση είναι
   // φορολογική παραδοχή, ΟΧΙ πραγματική δαπάνη).
-  const netProfit = business ? cents(taxable - incomeTax - dividendTax) : cents(gross - incomeTax)
+  const netProfit = business ? cents(businessBase - incomeTax - dividendTax) : cents(gross - incomeTax)
 
   // Ταμείο: αφαιρούμε ΕΦΚΑ, φόρο μερισμάτων και τα ανείσπρακτα (φορολογούνται/
   // διανέμονται αλλά δεν μπήκαν στο ταμείο). Οι αποσβέσεις ΔΕΝ είναι ταμειακή εκροή.
