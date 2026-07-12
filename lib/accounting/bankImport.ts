@@ -1,0 +1,158 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Εισαγωγή κίνησης τραπεζικού λογαριασμού (CSV) + αυτόματη αντιστοίχιση σε
+// αναμενόμενα ενοίκια και έξοδα. ΚΑΘΑΡΗ λογική (χωρίς I/O/DOM): παίρνει κείμενο
+// CSV, βγάζει κινήσεις, και προτείνει αντιστοιχίσεις — ο χρήστης επιβεβαιώνει.
+// Υποστηρίζει ελληνικές μορφές (διαχωριστικό , ; ή tab· ποσά 1.234,56).
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface BankTxn {
+  date: string          // ISO YYYY-MM-DD (κενό αν δεν αναγνωρίστηκε)
+  description: string
+  amount: number        // θετικό = πίστωση (είσοδος), αρνητικό = χρέωση (έξοδος)
+  raw: string
+}
+
+const DATE_KEYS = ['ημερομηνία', 'ημ/νία', 'date', 'ημερ']
+const DESC_KEYS = ['περιγραφή', 'αιτιολογία', 'description', 'λεπτομέρειες', 'κίνηση', 'συναλλαγή']
+const AMOUNT_KEYS = ['ποσό', 'amount', 'αξία']
+const DEBIT_KEYS = ['χρέωση', 'debit', 'χρεωσεις']
+const CREDIT_KEYS = ['πίστωση', 'credit', 'πιστωσεις']
+
+function detectDelimiter(line: string): string {
+  const counts: Record<string, number> = { ';': (line.match(/;/g) || []).length, '\t': (line.match(/\t/g) || []).length, ',': (line.match(/,/g) || []).length }
+  // Προτίμηση σε ; και tab (τα ελληνικά CSV χρησιμοποιούν κόμμα ως δεκαδικό).
+  if (counts[';'] >= counts['\t'] && counts[';'] > 0) return ';'
+  if (counts['\t'] > 0) return '\t'
+  return ','
+}
+
+function splitCsvLine(line: string, delim: string): string[] {
+  const out: string[] = []; let cur = ''; let inQ = false
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (c === '"') { if (inQ && line[i + 1] === '"') { cur += '"'; i++ } else inQ = !inQ }
+    else if (c === delim && !inQ) { out.push(cur); cur = '' }
+    else cur += c
+  }
+  out.push(cur)
+  return out.map(s => s.trim())
+}
+
+/** Μετατρέπει ελληνικό/διεθνές ποσό σε αριθμό. '1.234,56' → 1234.56, '-45.00' → -45. */
+export function parseAmount(s: string): number | null {
+  if (s == null) return null
+  let t = String(s).replace(/[€\s]/g, '').replace(/["']/g, '')
+  if (!t || !/[0-9]/.test(t)) return null
+  const neg = /^\(.*\)$/.test(t) || t.startsWith('-')
+  t = t.replace(/[()]/g, '').replace(/^-/, '')
+  if (t.includes(',') && t.includes('.')) {
+    // Το τελευταίο σύμβολο είναι το δεκαδικό.
+    if (t.lastIndexOf(',') > t.lastIndexOf('.')) t = t.replace(/\./g, '').replace(',', '.')
+    else t = t.replace(/,/g, '')
+  } else if (t.includes(',')) {
+    t = t.replace(',', '.')
+  }
+  const n = parseFloat(t)
+  if (!Number.isFinite(n)) return null
+  return neg ? -n : n
+}
+
+/** Μετατρέπει ημερομηνία (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD) σε ISO. */
+export function parseDate(s: string): string {
+  if (!s) return ''
+  const t = s.trim()
+  let m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+  m = t.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/)
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` }
+  return ''
+}
+
+function findCol(headers: string[], keys: string[]): number {
+  const low = headers.map(h => h.toLowerCase())
+  for (let i = 0; i < low.length; i++) if (keys.some(k => low[i].includes(k))) return i
+  return -1
+}
+
+/** Διαβάζει CSV κειμένου και επιστρέφει τις κινήσεις. */
+export function parseBankCsv(text: string): BankTxn[] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length)
+  if (lines.length < 2) return []
+  const delim = detectDelimiter(lines[0])
+  const headers = splitCsvLine(lines[0], delim)
+  const di = findCol(headers, DATE_KEYS)
+  const desc = findCol(headers, DESC_KEYS)
+  const ai = findCol(headers, AMOUNT_KEYS)
+  const debit = findCol(headers, DEBIT_KEYS)
+  const credit = findCol(headers, CREDIT_KEYS)
+  const out: BankTxn[] = []
+  for (let r = 1; r < lines.length; r++) {
+    const cells = splitCsvLine(lines[r], delim)
+    if (!cells.length) continue
+    const date = parseDate(di >= 0 ? cells[di] || '' : '')
+    const description = desc >= 0 ? (cells[desc] || '') : cells.filter((_, i) => i !== di && i !== ai).join(' ').trim()
+    let amount: number | null = null
+    if (ai >= 0) amount = parseAmount(cells[ai] || '')
+    else if (debit >= 0 || credit >= 0) {
+      const d = debit >= 0 ? parseAmount(cells[debit] || '') : null
+      const c = credit >= 0 ? parseAmount(cells[credit] || '') : null
+      if (c != null && c !== 0) amount = Math.abs(c)
+      else if (d != null && d !== 0) amount = -Math.abs(d)
+    }
+    if (amount == null) continue
+    out.push({ date, description, amount, raw: lines[r] })
+  }
+  return out
+}
+
+// ── Αντιστοίχιση σε αναμενόμενα ενοίκια & έξοδα ──────────────────────────────
+export interface ExpectedRent { id: string; label: string; amount: number; dueDate: string }
+export interface RentMatch { rentId: string; txn: BankTxn; confidence: 'high' | 'medium' }
+export interface ExpenseSuggestion { txn: BankTxn; description: string; amount: number }
+export interface MatchResult {
+  rentMatches: RentMatch[]           // πιστώσεις που ταιριάζουν σε αναμενόμενο ενοίκιο
+  expenseSuggestions: ExpenseSuggestion[] // χρεώσεις → πιθανά έξοδα προς καταχώριση
+  unmatched: BankTxn[]
+}
+
+const daysBetween = (a: string, b: string) => {
+  const t1 = Date.parse(a + 'T00:00:00Z'), t2 = Date.parse(b + 'T00:00:00Z')
+  if (isNaN(t1) || isNaN(t2)) return Infinity
+  return Math.abs(t1 - t2) / 86400000
+}
+const money = (a: number, b: number) => Math.abs(a - b) <= 0.5
+
+/**
+ * Αντιστοιχίζει κινήσεις: πιστώσεις που ισούνται με αναμενόμενο ενοίκιο (και είναι
+ * κοντά χρονικά) → RentMatch· λοιπές χρεώσεις → προτάσεις εξόδων. Κάθε αναμενόμενο
+ * και κάθε κίνηση χρησιμοποιούνται το πολύ μία φορά.
+ */
+export function matchTransactions(txns: BankTxn[], expectedRents: ExpectedRent[], windowDays = 20): MatchResult {
+  const usedTxn = new Set<number>()
+  const usedRent = new Set<string>()
+  const rentMatches: RentMatch[] = []
+  // Πρώτα τα ενοίκια (πιστώσεις).
+  for (const rent of expectedRents) {
+    let best = -1; let bestDays = Infinity
+    for (let i = 0; i < txns.length; i++) {
+      if (usedTxn.has(i)) continue
+      const t = txns[i]
+      if (t.amount <= 0 || !money(t.amount, rent.amount)) continue
+      const d = t.date ? daysBetween(t.date, rent.dueDate) : windowDays
+      if (d <= windowDays && d < bestDays) { best = i; bestDays = d }
+    }
+    if (best >= 0) {
+      usedTxn.add(best); usedRent.add(rent.id)
+      rentMatches.push({ rentId: rent.id, txn: txns[best], confidence: bestDays <= 5 ? 'high' : 'medium' })
+    }
+  }
+  const expenseSuggestions: ExpenseSuggestion[] = []
+  const unmatched: BankTxn[] = []
+  for (let i = 0; i < txns.length; i++) {
+    if (usedTxn.has(i)) continue
+    const t = txns[i]
+    if (t.amount < 0) expenseSuggestions.push({ txn: t, description: t.description || 'Τραπεζική χρέωση', amount: Math.abs(t.amount) })
+    else unmatched.push(t)
+  }
+  return { rentMatches, expenseSuggestions, unmatched }
+}
