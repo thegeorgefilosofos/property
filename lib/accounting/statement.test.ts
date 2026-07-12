@@ -197,6 +197,8 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   // Δεν αφορά νομικό πρόσωπο.
   const co = incomeStatement({ regime: 'business', businessForm: 'company', grossIncome: 12000, itemizedExpenses: 7000, presumptiveMinIncome: 10920 })
   ok('minimum presumptive not applied to company', near(co.taxableIncome, 5000))
+  // Το ΛΟΓΙΣΤΙΚΟ καθαρό βασίζεται στο ΠΡΑΓΜΑΤΙΚΟ κέρδος, όχι στο τεκμαρτό όριο.
+  ok('netProfit uses real base (5000 - tax), not the 10920 floor', near(low.netProfit, 5000 - low.incomeTax))
 }
 
 // ── Φόρος μερισμάτων 5% στη διανομή νομικού προσώπου ─────────────────────────

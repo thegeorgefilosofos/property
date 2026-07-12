@@ -44,15 +44,17 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     try{
       const rows:any[] = []
       for(const m of rentMatches){ if(m.confirm){
-        await supabase.from('rent_payments').update({ paid:true, paid_date:m.txn.date||null, method:'Τραπεζική κατάθεση' }).eq('id',m.rentId)
+        const { error } = await supabase.from('rent_payments').update({ paid:true, paid_date:m.txn.date||null, method:'Τραπεζική κατάθεση' }).eq('id',m.rentId)
+        if(error) throw error
         rows.push({ user_id:userId, property_id:propertyId, txn_date:m.txn.date||null, description:m.txn.description, amount:m.txn.amount, dedup_hash:hashOf(m.txn) })
       }}
       const toAdd = expenses.filter(e=>e.confirm)
       if(toAdd.length){
-        await supabase.from('expenses').insert(toAdd.map(e=>({ property_id:propertyId, user_id:userId, amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||new Date().toISOString().slice(0,10), category:'Τραπεζική κίνηση' })))
+        const { error } = await supabase.from('expenses').insert(toAdd.map(e=>({ property_id:propertyId, user_id:userId, amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||new Date().toISOString().slice(0,10), category:'Τραπεζική κίνηση' })))
+        if(error) throw error
         for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:hashOf(e.txn) })
       }
-      if(rows.length) await supabase.from('bank_transactions').upsert(rows,{ onConflict:'user_id,dedup_hash', ignoreDuplicates:true })
+      if(rows.length){ const { error } = await supabase.from('bank_transactions').upsert(rows,{ onConflict:'user_id,dedup_hash', ignoreDuplicates:true }); if(error) throw error }
       const nR = rentMatches.filter(m=>m.confirm).length
       setSavedMsg(`Καταχωρήθηκαν ${nR} ${nR===1?'ενοίκιο':'ενοίκια'} και ${toAdd.length} ${toAdd.length===1?'έξοδο':'έξοδα'}.`)
       onDone()
