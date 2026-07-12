@@ -155,7 +155,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const y = useMemo(() => yields(nRent, nVal, nOpex, annualTax), [nRent, nVal, nOpex, annualTax]);
   const reg = regionByKey(region);
   const verdict = yieldVerdict(y.grossYield);
-  const st = SHORT_TERM.find(s => s.key === region) || SHORT_TERM[0];
+  const stExact = SHORT_TERM.find(s => s.key === region);
 
   // Ιστορική διαδρομή: πώς θα κινούνταν η αξία σου τα τελευταία 10/20 έτη.
   const hist = useMemo(() => {
@@ -237,7 +237,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </div>
           {term === 'short' && (
             <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
-              Βραχυχρόνια αναφορά περιοχής: πληρότητα ~{st.occupancy}%, μέση τιμή ~{fe(st.adr, 0)}/νύχτα, ενδεικτική μεικτή ~{fp(st.grossYield)} (vs {fp(st.longTermYield)} μακροχρόνια).{st.redZone ? ' Προσοχή: κόκκινη ζώνη ΑΜΑ — δεν επιτρέπονται νέες εγγραφές.' : ''} Η καθαρή βραχυχρόνια είναι πολύ χαμηλότερη (λειτουργικά κόστη 40–60%).
+              {stExact
+                ? <>Βραχυχρόνια αναφορά περιοχής: πληρότητα ~{stExact.occupancy}%, μέση τιμή ~{fe(stExact.adr, 0)}/νύχτα, ενδεικτική μεικτή ~{fp(stExact.grossYield)} (vs {fp(stExact.longTermYield)} μακροχρόνια).{stExact.redZone ? ' Προσοχή: κόκκινη ζώνη ΑΜΑ — δεν επιτρέπονται νέες εγγραφές.' : ''} </>
+                : <>Στη βραχυχρόνια τα μεικτά έσοδα είναι συνήθως υψηλότερα, αλλά με έντονη εποχικότητα. </>}
+              Η καθαρή βραχυχρόνια είναι πολύ χαμηλότερη από τη μεικτή (λειτουργικά κόστη 40–60%: καθαρισμοί, διαχείριση, ΤΑΚΚ, κενές νύχτες).
             </div>
           )}
         </Section>
@@ -292,9 +295,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               {/* Ανατοκισμός */}
               <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <p style={{ ...titleStyle, marginBottom: 12 }}>Ανατοκισμός επανεπένδυσης</p>
-                <div style={g2}>
-                  <NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} />
-                  <NumberInput label="Ορίζοντας" value={horizon} onChange={(v) => setHorizon(v === '20' ? '20' : '10')} suffix="έτη" />
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ width: 150 }}><NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} /></div>
+                  <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας</p><Seg value={horizon} onChange={setHorizon} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Τελική αξία</p><p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.futureValue, 0)}</p></div>
