@@ -5,6 +5,7 @@ import { Spinner } from '@/components/Theme'
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Info, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
 import { transferCosts } from '@/lib/accounting/transfer'
+import { InfoHint } from './InfoHint'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
   type LedgerInput, type Expected, type Actual, type ReconStatus,
@@ -371,13 +372,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong>/χρόνο σε φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?' (μερίδιο χαρτοφυλακίου)':''}{provision.propertyTaxes>0?<>, εκ των οποίων {eur(provision.propertyTaxes)} φόροι/τέλη ακινήτου</>:''}.{year===athensYear()?<> Έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)}/μήνα</strong>.</>:''}{provision.advanceTax>0?<> +Προκαταβολή {eur(provision.advanceTax)} (πιστώνεται του χρόνου) → 1ο έτος {eur(provision.firstYearTotal)}.</>:''}
             </p>
           </div>
-          <div style={{ ...card, display:'flex', gap:10, alignItems:'flex-start' }}>
-            <Info size={15} style={{ color:'var(--accent)', flexShrink:0, marginTop:1 }}/>
+          <div style={{ ...card, display:'flex', gap:8, alignItems:'center' }}>
+            <Info size={14} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>
             <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              {businessMode
-                ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου/εξοπλισμού και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους — με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
-                : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
-              {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία/τ.μ.`:''}{' '}Εκτιμήσεις — επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
+              Εκτιμήσεις — επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
+              <InfoHint>
+                {businessMode
+                  ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου/εξοπλισμού και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9–44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους — με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
+                  : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
+                {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από αξία/τ.μ. — καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
+              </InfoHint>
             </p>
           </div>
         </div>
@@ -443,7 +447,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--positive)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(expensesTotal-deductibleTotal)}</p></div>
             </div>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για <strong style={{ color:'var(--text-primary)' }}>φυσικό πρόσωπο με μακροχρόνια κατοικίας</strong> τα έξοδα δεν εκπίπτουν αναλυτικά (ισχύει η τεκμαρτή έκπτωση 5%). Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν αναλυτικά, μαζί με <strong style={{ color:'var(--text-primary)' }}>αποσβέσεις εξοπλισμού</strong> ({eur(inventoryDepr)}/έτος) και <strong style={{ color:'var(--text-primary)' }}>τόκους δανείων</strong> ({eur(loanInterestYear)}/έτος) — δες την κατάσταση με τον διακόπτη «Επιχείρηση (ΕΛΠ)».</p>
+            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Ως ιδιώτης δεν εκπίπτουν αναλυτικά· ως <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)}/έτος) και τόκους δανείων ({eur(loanInterestYear)}/έτος).</InfoHint></p>
           </div>
         </div>
       )}
@@ -533,7 +537,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <span style={{ fontSize:16, fontWeight:700, color:'var(--accent)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
             </div>
           </div>
-          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση με τα ισχύοντα ποσοστά· τα ακριβή ποσά (κλιμακωτά συμβολαιογραφικά, αντικειμενική αξία, απαλλαγές) ορίζονται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</p>
+          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση — τα ακριβή ποσά ορίζονται από συμβολαιογράφο/ΑΑΔΕ.<InfoHint>Τα ποσοστά είναι τα ισχύοντα· τα κλιμακωτά συμβολαιογραφικά, η αντικειμενική αξία και οι απαλλαγές οριστικοποιούνται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</InfoHint></p>
         </>):(
           <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'4px 0' }}>Δώσε τίμημα για να δεις την ανάλυση κόστους.</p>
         )}
