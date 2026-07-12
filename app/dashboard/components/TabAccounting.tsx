@@ -16,7 +16,7 @@ import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
-import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
+import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026 } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { downloadCsv } from './exportCsv'
 import { printAccountingReport, type ReconLite } from './accountingReport'
@@ -53,6 +53,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // επαγγελματίας τη διάκριση Φυσικό πρόσωπο / Επιχείρηση (ΕΛΠ). Χωρίς περιττό toggle.
   const mode:'individual'|'professional' = profileType
   const [elp,setElp] = useState<'personal'|'business'>('personal')
+  const [elpForm,setElpForm] = useState<'sole'|'company'>('sole')
   const [expenses,setExpenses] = useState<any[]>([])
   const [rent,setRent] = useState<any[]>([])
   const [stays,setStays] = useState<any[]>([])
@@ -71,7 +72,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel').eq('property_id',propertyId),
       supabase.from('loans').select('amount,rate,years,bank,start_date').eq('property_id',propertyId),
       supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
-      supabase.from('user_properties').select('id,name,rental_mode,enfia').eq('user_id',userId),
+      supabase.from('user_properties').select('id,name,rental_mode,enfia,sqm').eq('user_id',userId),
       supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
       supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel').eq('user_id',userId),
       supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
@@ -85,35 +86,62 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const propCount = Math.max(1, allProps.length)
   const enfia = useMemo(()=>resolveEnfia({ propertyEnfia: prop?.enfia }).annual,[prop])
 
-  // Ετήσια στοιχεία τρέχοντος ακινήτου
-  const rentPaidYear = useMemo(()=>rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
+  // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
+  const loanActiveInYear = (l:any)=>{ const yrs=Number(l.years)||0; if(yrs<=0)return false; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; return year>=startY && year<startY+yrs }
+
+  // Ετήσια στοιχεία τρέχοντος ακινήτου. Φόρος επί ΔΕΔΟΥΛΕΥΜΕΝΟΥ (accrued) ενοικίου
+  // — φορολογείται ό,τι οφείλεται, ανεξάρτητα είσπραξης· τα ανείσπρακτα μειώνουν
+  // μόνο το ταμείο. (Μακροχρόνια.)
+  const rentAccruedYear = useMemo(()=>rent.filter(p=>p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
+  const rentCollectedYear = useMemo(()=>rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
   const shortSummary = useMemo(()=>shortTermYearSummary(stays as any, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
   const expensesYear = useMemo(()=>expenses.filter(e=>(e.date||'').slice(0,4)===String(year)&&(e.amount||0)>0),[expenses,year])
-  const expensesTotal = useMemo(()=>expensesYear.reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
-  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)).reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
-  const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans])
-  // Αποσβέσεις εξοπλισμού (ευθεία μέθοδος) για ΤΗ ΧΡΗΣΗ που βλέπουμε — όχι με τη
-  // σημερινή ηλικία: το πάγιο αποσβένεται στο έτος Y αν αγοράστηκε ως το Y και δεν
-  // έχει συμπληρώσει την ωφέλιμη ζωή του μέχρι την αρχή του Y.
+  // Εξαιρούμε τον ΕΝΦΙΑ ως δαπάνη — τον μετράμε ξεχωριστά (αποφυγή διπλομέτρησης).
+  const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
+  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
+  // Δόσεις δανείων ΜΟΝΟ όσο το δάνειο είναι ενεργό στη χρήση (όχι φαντάσματα).
+  const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year])
   const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0||!it.purchase_date)return s; const py=Number(String(it.purchase_date).slice(0,4)); if(!py||py>year)return s; const life=usefulLifeYears(it.category); if(year-py>=life)return s; return s+val/life },0),[inventory,year])
-  // Τόκοι δανείων για τη χρήση (εκπίπτουν στην επιχείρηση· το κεφάλαιο όχι).
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
   const businessMode = mode==='professional' && elp==='business'
-  const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentPaidYear
+  const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentAccruedYear
+  const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
+
+  // Ενοποίηση χαρτοφυλακίου (φυσικό πρόσωπο): ο φόρος είναι προοδευτικός στο ΣΥΝΟΛΟ
+  // των ενοικίων (Ε1), όχι ανά ακίνητο. Υπολογίζεται ΠΑΝΤΑ, ώστε ο φόρος του τρέχοντος
+  // ακινήτου να είναι το ΜΕΡΙΔΙΟ του από τον συνολικό — σωστά και για πολλά ακίνητα.
+  const consolidation = useMemo(()=>{
+    const items = (allProps.length?allProps:[{id:propertyId,name:prop?.name,rental_mode:prop?.rental_mode,enfia:prop?.enfia,sqm:prop?.sqm}]).map(p=>{
+      const rmode:TaxRegime = p.rental_mode==='short_term' ? 'individual_shortterm' : 'individual_longterm'
+      const pRentAccrued = allRent.filter(r=>r.property_id===p.id&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
+      const pStays = allStays.filter(s=>s.property_id===p.id) as any[]
+      const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
+      const gross = rmode==='individual_shortterm' ? pShort.grossRevenue : pRentAccrued
+      const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: resolveEnfia({ propertyEnfia:p.enfia }).annual,
+        climateLevy: rmode==='individual_shortterm'?pShort.levy:0, municipalTax: rmode==='individual_shortterm'?pShort.municipalTax:0 }
+      return { id:p.id, name:p.name||'Ακίνητο', input }
+    }).filter(x=>x.input.grossIncome>0)
+    if(items.length===0) return null
+    return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input}))), names:Object.fromEntries(items.map(i=>[i.id,i.name])), count:items.length }
+  },[allProps,allRent,allStays,year,propCount,prop,propertyId])
+  const myTaxShare = useMemo(()=>consolidation?.con.perProperty.find(p=>p.id===propertyId)?.taxShare,[consolidation,propertyId])
+  const portfolio = (mode==='professional' && elp==='personal') ? consolidation : null
 
   const statement:IncomeStatement = useMemo(()=>incomeStatement(
     businessMode
-      ? { regime:'business', grossIncome, itemizedExpenses:deductibleTotal, depreciation:inventoryDepr, loanInterest:loanInterestYear, businessTaxRate:0.22, enfia,
+      ? { regime:'business', grossIncome, businessForm:elpForm, itemizedExpenses:deductibleTotal, depreciation:inventoryDepr, loanInterest:loanInterestYear, enfia,
           climateLevy: regime==='individual_shortterm'?shortSummary.levy:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
-          otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear) }
-      : { regime, grossIncome, enfia,
+          otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent }
+      : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare,
           climateLevy: regime==='individual_shortterm' ? shortSummary.levy : 0,
           municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
-          otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual }
-  ),[businessMode,regime,grossIncome,enfia,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual])
+          otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual, uncollectedIncome:uncollectedRent }
+  ),[businessMode,elpForm,regime,grossIncome,enfia,myTaxShare,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual,uncollectedRent])
 
-  const provision = useMemo(()=>taxProvision(statement, athensNow().getMonth()+1),[statement])
+  // Πρόβλεψη: για τρέχον έτος με βάση τον τρέχοντα μήνα· για κλεισμένο/μελλοντικό, ισόποσα στους 12.
+  const provMonth = year===athensYear() ? athensNow().getMonth()+1 : 1
+  const provision = useMemo(()=>taxProvision(statement, provMonth),[statement,provMonth])
 
   // Ενοποιημένο καθολικό & ταμειακές ροές (όπως πριν, αλλά με τη νέα μηχανή για φόρο)
   const entries = useMemo<LedgerInput[]>(()=>{
@@ -135,23 +163,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     return reconcile(expected, actual, todayAthens())
   },[rent,year])
   const rs = useMemo(()=>reconSummary(recon),[recon])
-
-  // Ενοποίηση χαρτοφυλακίου (μόνο επαγγελματίας) — φόρος στο ΣΥΝΟΛΟ (Ε1-style)
-  const portfolio = useMemo(()=>{
-    if(mode!=='professional') return null
-    const items = allProps.map(p=>{
-      const rmode:TaxRegime = p.rental_mode==='short_term' ? 'individual_shortterm' : 'individual_longterm'
-      const pRent = allRent.filter(r=>r.property_id===p.id&&r.paid&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
-      const pStays = allStays.filter(s=>s.property_id===p.id) as any[]
-      const pShort = shortTermYearSummary(pStays, year, { sqm:null, isHouse:false, propertyCount:propCount, individual:true })
-      const gross = rmode==='individual_shortterm' ? pShort.grossRevenue : pRent
-      const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: resolveEnfia({ propertyEnfia:p.enfia }).annual,
-        climateLevy: rmode==='individual_shortterm'?pShort.levy:0, municipalTax: rmode==='individual_shortterm'?pShort.municipalTax:0 }
-      return { id:p.id, name:p.name||'Ακίνητο', input }
-    }).filter(x=>x.input.grossIncome>0)
-    if(items.length===0) return null
-    return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input}))), names:Object.fromEntries(items.map(i=>[i.id,i.name])) }
-  },[mode,allProps,allRent,allStays,year,propCount])
 
   const maxCash = Math.max(1, ...cash.map(c=>Math.max(c.income,c.expense)))
 
@@ -203,6 +214,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               ))}
             </div>
           )}
+          {businessMode&&(
+            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+              {([['sole','Ατομική'],['company','Νομικό πρόσωπο']] as [typeof elpForm,string][]).map(([f,label])=>(
+                <button key={f} onClick={()=>setElpForm(f)} title={f==='sole'?'Ατομική επιχείρηση — προοδευτική κλίμακα 9–44%':'Νομικό πρόσωπο (ΑΕ/ΕΠΕ/ΙΚΕ/ΟΕ/ΕΕ) — σταθερό 22%'} style={{ height:32, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:elpForm===f?600:500, background:elpForm===f?'var(--accent)':'transparent', color:elpForm===f?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
+              ))}
+            </div>
+          )}
           <button onClick={printReport} title="Λογιστική αναφορά (PDF) για τον λογιστή/τράπεζα" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Αναφορά</button>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
@@ -215,7 +233,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {/* KPIs */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap:12 }}>
         {kpis.map(k=>(
-          <div key={k.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'14px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -12px rgba(0,0,0,0.5)', overflow:'hidden' }}>
+          <div key={k.label} style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius:14, padding:'14px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -12px rgba(0,0,0,0.5)', overflow:'hidden', transition:'transform 0.16s ease, box-shadow 0.16s ease' }}
+            onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55)'}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -12px rgba(0,0,0,0.5)'}}>
             <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:k.color, opacity:0.5 }}/>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:9, background:`color-mix(in srgb, ${k.color} 14%, transparent)`, color:k.color }}>{k.icon}</span>
@@ -247,39 +267,53 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <div style={{ ...card, background:'linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)' }}>
             <p style={cardTitle}>Φόρος να βάλεις στην άκρη</p>
-            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:6 }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
               <span style={{ fontSize:26, fontWeight:700, color:'var(--accent)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
-              <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>/μήνα</span>
+              <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
             </div>
             <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              Σύνολο <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο (φόρος εισοδήματος {eur(provision.incomeTax)}{provision.propertyTaxes>0?` + φόροι/τέλη ακινήτου ${eur(provision.propertyTaxes)}`:''}). Για να προλάβεις έως το τέλος του έτους: <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)}/μήνα</strong>.
+              Σύνολο <strong style={{ color:'var(--text-primary)' }}>{eur(provision.annualTaxTotal)}</strong> τον χρόνο = φόρος εισοδήματος <strong style={{ color:'var(--text-primary)' }}>{eur(provision.incomeTax)}</strong>{provision.propertyTaxes>0?<> + φόροι/τέλη ακινήτου <strong style={{ color:'var(--text-primary)' }}>{eur(provision.propertyTaxes)}</strong></>:''}. Προκύπτει από φορολογητέο {eur(statement.taxableIncome)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?', ως μερίδιο του συνολικού προοδευτικού φόρου του χαρτοφυλακίου':''}. Ισόποσα {eur(provision.monthly)} ανά μήνα{year===athensYear()?<>· για να προλάβεις έως το τέλος του έτους <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} ανά μήνα</strong></>:''}.
             </p>
           </div>
           <div style={{ ...card, display:'flex', gap:10, alignItems:'flex-start' }}>
             <Info size={15} style={{ color:'var(--accent)', flexShrink:0, marginTop:1 }}/>
             <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>
-              Εκτιμήσεις βάσει της κλίμακας 2026 και της ισχύουσας μεταχείρισης {regime==='individual_longterm'?'(μακροχρόνια: τεκμαρτή έκπτωση 5%)':'(βραχυχρόνια: φόρος στα μεικτά + ΤΑΚΚ)'}. Επιβεβαίωσε με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
+              {businessMode
+                ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις και τόκους). Επιπλέον ισχύει προκαταβολή φόρου.' : 'Ατομική επιχείρηση: προοδευτική κλίμακα 9–44% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις και τόκους). Επιπλέον ισχύει προκαταβολή φόρου.')
+                : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: τεκμαρτή έκπτωση 5% και προοδευτική κλίμακα ενοικίων 2026. Ο φόρος υπολογίζεται στο σύνολο των ενοικίων σου (Ε1).' : 'Βραχυχρόνια μίσθωση: φόρος στα μεικτά με την κλίμακα 2026, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.')}
+              {' '}Εκτιμήσεις — επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Φορολογική κλίμακα 2026 — αναφορά (με έμφαση στο κλιμάκιο του χρήστη) */}
-      <div style={card}>
-        <p style={cardTitle}>Φορολογική κλίμακα ενοικίων 2026</p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap:8 }}>
-          {RENTAL_TAX_ROWS_2026.map(r=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; return (
-            <div key={r.range} style={{ padding:'10px 12px', borderRadius:12, border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'var(--bg-surface)' }}>
-              <p style={{ fontSize:11.5, color:active?'var(--accent)':'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
-              <p style={{ fontSize:17, fontWeight:700, color:active?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{r.rate}</p>
-            </div>
-          )})}
+      {/* Φορολογική κλίμακα 2026 — αναφορά ανά καθεστώς (έμφαση στο κλιμάκιο του χρήστη) */}
+      {!(businessMode&&elpForm==='company') ? (
+        <div style={card}>
+          <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:8 }}>
+            {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map(r=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; return (
+              <div key={r.range} style={{ padding:'10px 12px', borderRadius:12, border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'var(--bg-surface)' }}>
+                <p style={{ fontSize:11.5, color:active?'var(--accent)':'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
+                <p style={{ fontSize:17, fontWeight:700, color:active?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{r.rate}</p>
+              </div>
+            )})}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ ...card, display:'flex', alignItems:'center', gap:12 }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44, borderRadius:12, background:'var(--accent-soft)', color:'var(--accent)', fontSize:17, fontWeight:700, fontFamily:"'Inter',sans-serif", flexShrink:0 }}>22%</span>
+          <div>
+            <p style={{ ...cardTitle, margin:0 }}>Νομικό πρόσωπο — σταθερός συντελεστής 22%</p>
+            <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Τα νομικά πρόσωπα (ΑΕ, ΕΠΕ, ΙΚΕ, ΟΕ, ΕΕ) φορολογούνται με 22% επί των καθαρών κερδών, ανεξαρτήτως ύψους εισοδήματος. Επιπλέον ισχύει προκαταβολή φόρου — επιβεβαίωσε με τον λογιστή σου.</p>
+          </div>
+        </div>
+      )}
 
       {/* Επαγγελματίας: ενοποίηση χαρτοφυλακίου + εκπιπτόμενα */}
       {mode==='professional'&&(
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
+          {elp==='personal'&&(
           <div style={card}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
               <Layers size={15} style={{ color:'var(--accent)' }}/>
@@ -305,6 +339,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               </div>
             </>)}
           </div>
+          )}
 
           <div style={card}>
             <p style={cardTitle}>Εκπιπτόμενα έξοδα {year}</p>

@@ -54,6 +54,25 @@ export const RENTAL_TAX_ROWS_2026: { range: string; rate: string; from: number; 
   { range: 'Πάνω από 35.000 €', rate: '45%', from: 35000, to: Infinity },
 ];
 
+// ── Κλίμακα φορολογίας ΕΠΙΧΕΙΡΗΜΑΤΙΚΗΣ δραστηριότητας φυσικού προσώπου (ατομική
+// επιχείρηση) — η γενική κλίμακα εισοδήματος. Τα ΝΟΜΙΚΑ πρόσωπα φορολογούνται με
+// σταθερό 22%. Πηγή: γενική κλίμακα φόρου εισοδήματος (ν.4172/2013 άρθρο 15).
+export const BUSINESS_INCOME_BRACKETS_2026: TaxBracket[] = [
+  { from: 0,     to: 10000,    rate: 0.09 },
+  { from: 10000, to: 20000,    rate: 0.22 },
+  { from: 20000, to: 30000,    rate: 0.28 },
+  { from: 30000, to: 40000,    rate: 0.36 },
+  { from: 40000, to: Infinity, rate: 0.44 },
+];
+export const BUSINESS_INCOME_ROWS_2026: { range: string; rate: string; from: number; to: number }[] = [
+  { range: '0 – 10.000 €',      rate: '9%',  from: 0,     to: 10000 },
+  { range: '10.001 – 20.000 €', rate: '22%', from: 10000, to: 20000 },
+  { range: '20.001 – 30.000 €', rate: '28%', from: 20000, to: 30000 },
+  { range: '30.001 – 40.000 €', rate: '36%', from: 30000, to: 40000 },
+  { range: 'Πάνω από 40.000 €', rate: '44%', from: 40000, to: Infinity },
+];
+export const CORPORATE_TAX_RATE_2026 = 0.22; // νομικά πρόσωπα (ΑΕ/ΕΠΕ/ΙΚΕ/ΟΕ/ΕΕ)
+
 /** Σύντομη περιγραφή της κλίμακας (για τον βοηθό / tooltips). */
 export const RENTAL_TAX_SUMMARY_2026 =
   'Φόρος εισοδήματος από ενοίκια (κλίμακα 2026): 15% έως 12.000 €, 25% από 12.000 έως 24.000 €, 35% από 24.000 έως 35.000 €, 45% πάνω από 35.000 €.';

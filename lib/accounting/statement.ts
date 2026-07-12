@@ -16,7 +16,7 @@
 // Οι κανόνες αλλάζουν· τα ποσά επιβεβαιώνονται στην ΑΑΔΕ/λογιστή (το UI το λέει).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { rentalIncomeTax, effectiveRentalRate, type TaxBracket } from '@/lib/billing/greekTax'
+import { rentalIncomeTax, BUSINESS_INCOME_BRACKETS_2026, CORPORATE_TAX_RATE_2026, type TaxBracket } from '@/lib/billing/greekTax'
 
 const cents = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100
 const pos = (n: number): number => Math.max(0, cents(n))
@@ -36,7 +36,10 @@ export interface StatementInput {
   depreciation?: number
   /** Εκπιπτόμενοι τόκοι δανείου — ΜΟΝΟ για επαγγελματία. */
   loanInterest?: number
-  /** Συντελεστής φόρου επιχείρησης (π.χ. 0,22 νομικό πρόσωπο). Default 0,22. */
+  /** Νομική μορφή επιχείρησης: 'sole' = ατομική (προοδευτική κλίμακα 9–44%),
+   *  'company' = νομικό πρόσωπο (σταθερό 22%). Default 'sole'. */
+  businessForm?: 'sole' | 'company'
+  /** Χειροκίνητος συντελεστής νομικού προσώπου (default 22%). */
   businessTaxRate?: number
   /** Προαιρετική προσαρμογή κλίμακας (δοκιμές/μελλοντικά έτη). */
   brackets?: TaxBracket[]
@@ -52,8 +55,13 @@ export interface StatementInput {
   municipalTax?: number
   /** Λοιπές πραγματικές ταμειακές δαπάνες (καθαρισμοί, προμήθειες, μη εκπιπτόμενα). */
   otherCashExpenses?: number
-  /** Χρεολύσιο δανείου (κεφάλαιο) — χρηματοοικονομική εκροή. */
+  /** Δόσεις δανείου (κεφάλαιο) — χρηματοοικονομική εκροή. */
   loanPrincipal?: number
+  /** Ανείσπρακτα έσοδα: φορολογούνται (δεδουλευμένο) αλλά ΔΕΝ μπήκαν στο ταμείο. */
+  uncollectedIncome?: number
+  /** Ρητός φόρος εισοδήματος (π.χ. μερίδιο του προοδευτικού φόρου χαρτοφυλακίου,
+   *  Ε1). Αν δοθεί, υπερισχύει του εσωτερικού υπολογισμού. */
+  overrideIncomeTax?: number
 }
 
 export type LineKind = 'income' | 'deduction' | 'subtotal' | 'tax' | 'result' | 'memo'
@@ -107,17 +115,19 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   if (business) taxable = pos(gross - itemized - depreciation - interest)
   else taxable = pos(gross - presumptive)
 
-  // Φόρος εισοδήματος
+  // Φόρος εισοδήματος. Αν δοθεί ρητός φόρος (π.χ. μερίδιο προοδευτικού φόρου
+  // χαρτοφυλακίου/Ε1), υπερισχύει. Ο μέσος συντελεστής ΠΑΝΤΑ επί των μεικτών,
+  // ώστε να είναι συγκρίσιμος μεταξύ καθεστώτων.
   let incomeTax: number
-  let effRate: number
-  if (business) {
-    const rate = input.businessTaxRate ?? 0.22
-    incomeTax = cents(taxable * Math.max(0, rate))
-    effRate = gross > 0 ? incomeTax / gross : 0
-  } else {
-    incomeTax = cents(rentalIncomeTax(taxable, input.brackets))
-    effRate = effectiveRentalRate(taxable)
+  if (input.overrideIncomeTax != null) incomeTax = pos(input.overrideIncomeTax)
+  else if (business) {
+    // Ατομική επιχείρηση → προοδευτική κλίμακα 9–44%· νομικό πρόσωπο → σταθερό 22%.
+    incomeTax = input.businessForm === 'company'
+      ? cents(taxable * Math.max(0, input.businessTaxRate ?? CORPORATE_TAX_RATE_2026))
+      : cents(rentalIncomeTax(taxable, BUSINESS_INCOME_BRACKETS_2026))
   }
+  else incomeTax = cents(rentalIncomeTax(taxable, input.brackets))
+  const effRate = gross > 0 ? incomeTax / gross : 0
 
   const enfia = pos(input.enfia ?? 0)
   const climateLevy = pos(input.climateLevy ?? 0)
@@ -125,13 +135,15 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   const propertyTaxes = cents(enfia + climateLevy + municipalTax)
   const otherCash = pos(input.otherCashExpenses ?? 0)
   const loanPrincipal = pos(input.loanPrincipal ?? 0)
+  const uncollected = pos(input.uncollectedIncome ?? 0)
 
-  const netProfit = business
-    ? cents(taxable - incomeTax)
-    : cents(gross - presumptive - incomeTax)
+  // Καθαρό αποτέλεσμα: για επιχείρηση = φορολογητέο − φόρος· για φυσικό πρόσωπο =
+  // μεικτά − φόρος (η τεκμαρτή έκπτωση είναι φορολογική παραδοχή, ΟΧΙ πραγματική δαπάνη).
+  const netProfit = business ? cents(taxable - incomeTax) : cents(gross - incomeTax)
 
+  // Ταμείο: αφαιρούμε και τα ανείσπρακτα (φορολογούνται αλλά δεν μπήκαν στο ταμείο).
   const netCash = cents(
-    gross - incomeTax - propertyTaxes - otherCash - loanPrincipal - interest - itemized,
+    gross - incomeTax - propertyTaxes - otherCash - loanPrincipal - interest - itemized - uncollected,
   )
 
   // Γραμμές εμφάνισης (τυπική δομή κατάστασης αποτελεσμάτων)
@@ -153,8 +165,9 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
     if (climateLevy > 0) lines.push({ key: 'climate', label: 'Τέλος ανθεκτικότητας (ΤΑΚΚ)', amount: climateLevy, kind: 'tax', negative: true })
     if (municipalTax > 0) lines.push({ key: 'municipal', label: 'Τέλος παρεπιδημούντων', amount: municipalTax, kind: 'tax', negative: true })
   }
-  if (loanPrincipal > 0) lines.push({ key: 'principal', label: 'Χρεολύσιο δανείου', amount: loanPrincipal, kind: 'deduction', negative: true })
+  if (loanPrincipal > 0) lines.push({ key: 'principal', label: business ? 'Χρεολύσιο δανείου (κεφάλαιο)' : 'Δόσεις δανείου', amount: loanPrincipal, kind: 'deduction', negative: true })
   if (otherCash > 0) lines.push({ key: 'otherCash', label: 'Λοιπές ταμειακές δαπάνες', amount: otherCash, kind: 'deduction', negative: true })
+  if (uncollected > 0) lines.push({ key: 'uncollected', label: 'Ανείσπρακτα ενοίκια', amount: uncollected, kind: 'deduction', negative: true })
   lines.push({ key: 'netCash', label: 'Ταμειακό υπόλοιπο', amount: netCash, kind: 'result' })
 
   return {

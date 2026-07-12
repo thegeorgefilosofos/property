@@ -16,8 +16,8 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('longterm taxable = 95%', near(st.taxableIncome, taxable))
   ok('longterm tax = brackets(9500)', near(st.incomeTax, rentalIncomeTax(taxable)))
   ok('longterm tax = 1425 (15%)', near(st.incomeTax, 1425))
-  ok('longterm netProfit = gross - presumptive - tax', near(st.netProfit, 10000 - 500 - 1425))
-  ok('longterm effRate = tax/taxable', near(st.effectiveRate, st.incomeTax / taxable))
+  ok('longterm netProfit = gross - tax (no presumptive fiction)', near(st.netProfit, 10000 - 1425))
+  ok('longterm effRate = tax/gross', near(st.effectiveRate, st.incomeTax / 10000))
   ok('longterm has taxable line', st.lines.some(l => l.key === 'taxable'))
 }
 
@@ -54,14 +54,22 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
 
 // ── Επαγγελματίας: αναλυτικά έξοδα + αποσβέσεις + τόκοι εκπίπτουν ────────────
 {
-  const st = incomeStatement({ regime: 'business', grossIncome: 40000, itemizedExpenses: 8000, depreciation: 3000, loanInterest: 2000, businessTaxRate: 0.22 })
+  const base = { regime: 'business' as const, grossIncome: 40000, itemizedExpenses: 8000, depreciation: 3000, loanInterest: 2000 }
   const taxable = 40000 - 8000 - 3000 - 2000 // 27000
-  ok('business taxable = gross - all deductions', near(st.taxableIncome, taxable))
-  ok('business tax = 22% flat', near(st.incomeTax, taxable * 0.22))
-  ok('business no presumptive', st.presumptiveDeduction === 0)
-  ok('business netProfit = taxable - tax', near(st.netProfit, taxable - taxable * 0.22))
-  ok('business lines include depreciation', st.lines.some(l => l.key === 'depreciation'))
-  ok('business lines include interest', st.lines.some(l => l.key === 'interest'))
+  // Νομικό πρόσωπο → σταθερό 22%
+  const co = incomeStatement({ ...base, businessForm: 'company' })
+  ok('business taxable = gross - all deductions', near(co.taxableIncome, taxable))
+  ok('company tax = 22% flat', near(co.incomeTax, taxable * 0.22))
+  ok('business no presumptive', co.presumptiveDeduction === 0)
+  ok('company netProfit = taxable - tax', near(co.netProfit, taxable - taxable * 0.22))
+  ok('business lines include depreciation', co.lines.some(l => l.key === 'depreciation'))
+  ok('business lines include interest', co.lines.some(l => l.key === 'interest'))
+  // Ατομική επιχείρηση (default) → προοδευτική κλίμακα 9–44%
+  const sole = incomeStatement({ ...base })
+  const soleTax = 10000*0.09 + 10000*0.22 + 7000*0.28 // 27000 → 900+2200+1960 = 5060
+  ok('sole prop tax = progressive scale', near(sole.incomeTax, soleTax))
+  ok('sole differs from company (not the same anymore)', Math.abs(sole.incomeTax - co.incomeTax) > 1)
+  ok('sole low income cheaper than company', incomeStatement({ regime:'business', grossIncome:8000 }).incomeTax < incomeStatement({ regime:'business', grossIncome:8000, businessForm:'company' }).incomeTax)
 }
 
 // ── Καμία αρνητική φορολογική βάση ──────────────────────────────────────────
@@ -99,6 +107,25 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('consolidated ≥ per-property (progressive)', port.incomeTax >= perPropertyIfSeparate - 0.01)
   ok('tax shares sum to total', near(port.perProperty.reduce((s, p) => s + p.taxShare, 0), port.incomeTax))
   ok('two properties in breakdown', port.perProperty.length === 2)
+}
+
+// ── overrideIncomeTax (μερίδιο προοδευτικού φόρου χαρτοφυλακίου) ─────────────
+{
+  const st = incomeStatement({ regime: 'individual_longterm', grossIncome: 8000, overrideIncomeTax: 900 })
+  ok('override tax used verbatim', near(st.incomeTax, 900))
+  ok('override netProfit = gross - overrideTax', near(st.netProfit, 8000 - 900))
+  ok('override effRate = 900/8000', near(st.effectiveRate, 900 / 8000))
+  const neg = incomeStatement({ regime: 'individual_longterm', grossIncome: 8000, overrideIncomeTax: -5 })
+  ok('override negative clamped to 0', neg.incomeTax === 0)
+}
+
+// ── uncollectedIncome: φορολογείται αλλά μειώνει το ταμείο ───────────────────
+{
+  const a = incomeStatement({ regime: 'individual_longterm', grossIncome: 12000 })
+  const b = incomeStatement({ regime: 'individual_longterm', grossIncome: 12000, uncollectedIncome: 3000 })
+  ok('uncollected does not change tax', near(a.incomeTax, b.incomeTax))
+  ok('uncollected reduces netCash by exactly its amount', near(b.netCash, a.netCash - 3000))
+  ok('uncollected shows as a line', b.lines.some(l => l.key === 'uncollected'))
 }
 
 // ── Στρογγυλοποίηση/ασφάλεια εισόδου ────────────────────────────────────────
