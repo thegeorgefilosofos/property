@@ -1,7 +1,7 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { downloadCsv } from './exportCsv';
-import { E2_HEADERS, buildE2Row, e2RowToCells, type E2Property, type E2Tenant, type E2Payment } from '@/lib/billing/e2';
+import { E2_HEADERS, buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, E1_HEADERS, type E2Property, type E2Tenant, type E2Payment } from '@/lib/billing/e2';
 
 /** Κατεβάζει την Αναλυτική Κατάσταση Ε2 (μία γραμμή ανά ακίνητο) για το `year`. Επιστρέφει πλήθος γραμμών. */
 export async function runE2Export(supabase: SupabaseClient, userId: string, year: number): Promise<number> {
@@ -22,7 +22,19 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   (payments || []).forEach((p: E2Payment) => { const a = paymentsByProp.get(p.property_id) || []; a.push(p); paymentsByProp.set(p.property_id, a); });
   const afmByProp = new Map<string, string>();
   (settings || []).forEach((s: { property_id: string; owner_afm: string | null }) => { if (s.owner_afm) afmByProp.set(s.property_id, s.owner_afm); });
-  const rows = properties.map((p, i) => e2RowToCells(buildE2Row(p, tenantByProp.get(p.id) || null, paymentsByProp.get(p.id) || [], afmByProp.get(p.id) || '', year), i + 1));
-  downloadCsv(`e2_${year}_${new Date().toISOString().slice(0, 10)}`, [...E2_HEADERS], rows);
-  return rows.length;
+  const e2rows = properties.map(p => buildE2Row(p, tenantByProp.get(p.id) || null, paymentsByProp.get(p.id) || [], afmByProp.get(p.id) || '', year));
+  const rows: (string | number)[][] = e2rows.map((r, i) => e2RowToCells(r, i + 1));
+  // Παράρτημα: σύνοψη Ε1 (Πίνακας 4Δ1) — άθροισμα ακαθάριστου ανά κωδικό, στο ίδιο αρχείο.
+  const e1 = buildE1Summary(e2rows);
+  if (e1.lines.length) {
+    const pad = (arr: (string | number)[]) => { const a = [...arr]; while (a.length < E2_HEADERS.length) a.push(''); return a; };
+    rows.push(pad([]));
+    rows.push(pad(['— ΣΥΝΟΨΗ Ε1 (Πίνακας 4Δ1) —']));
+    rows.push(pad([...E1_HEADERS]));
+    for (const l of e1.lines) rows.push(pad(e1LineToCells(l)));
+    rows.push(pad(['Σύνολο ακαθάριστου', '', '', String(e1.totalGross)]));
+    rows.push(pad([e1.note]));
+  }
+  downloadCsv(`e2_e1_${year}_${new Date().toISOString().slice(0, 10)}`, [...E2_HEADERS], rows);
+  return e2rows.length;
 }
