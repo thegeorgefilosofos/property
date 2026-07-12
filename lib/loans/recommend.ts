@@ -91,6 +91,26 @@ export function totalInterest(principal: number, annualRatePct: number, years: n
   return Math.max(0, m * years * 12 - principal)
 }
 
+// Τόκοι που πληρώνονται σε ΕΝΑ έτος του δανείου (για την κατάσταση αποτελεσμάτων
+// επιχείρησης — οι τόκοι εκπίπτουν, το κεφάλαιο όχι). yearIndex 1 = 1ο έτος.
+// Χρησιμοποιεί κανονική τοκοχρεολυτική απόσβεση (declining balance).
+export function interestForYear(principal: number, annualRatePct: number, years: number, yearIndex: number): number {
+  if (principal <= 0 || years <= 0 || yearIndex < 1 || yearIndex > years) return 0
+  const m = annuityMonthly(principal, annualRatePct, years)
+  const r = annualRatePct / 100 / 12
+  let balance = principal
+  let interestSum = 0
+  const startMonth = (yearIndex - 1) * 12 + 1
+  const endMonth = yearIndex * 12
+  for (let month = 1; month <= years * 12 && balance > 0; month++) {
+    const interest = r === 0 ? 0 : balance * r
+    const principalPaid = Math.min(balance, m - interest)
+    if (month >= startMonth && month <= endMonth) interestSum += interest
+    balance -= principalPaid
+  }
+  return Math.round(interestSum * 100) / 100
+}
+
 // Το εισοδηματικό όριο «Σπίτι μου ΙΙ» για τη δεδομένη οικογενειακή κατάσταση.
 export function spitiMouIncomeLimit(maritalStatus: UserLoanNeeds['maritalStatus'], children = 0): number {
   const c = Math.max(0, children)

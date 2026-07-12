@@ -13,7 +13,8 @@ import {
 } from '@/lib/accounting/statement'
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
-import { annuityMonthly } from '@/lib/loans/recommend'
+import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
+import { usefulLifeYears, yearsSince } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
@@ -49,10 +50,12 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
   const [loading,setLoading] = useState(true)
   const [year,setYear] = useState(athensYear())
   const [mode,setMode] = useState<'individual'|'professional'>('individual')
+  const [elp,setElp] = useState<'personal'|'business'>('personal')
   const [expenses,setExpenses] = useState<any[]>([])
   const [rent,setRent] = useState<any[]>([])
   const [stays,setStays] = useState<any[]>([])
   const [loans,setLoans] = useState<any[]>([])
+  const [inventory,setInventory] = useState<any[]>([])
   const [prop,setProp] = useState<any>(null)
   const [allProps,setAllProps] = useState<any[]>([])
   const [allRent,setAllRent] = useState<any[]>([])
@@ -63,18 +66,19 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
 
   useEffect(()=>{ (async()=>{
     setLoading(true)
-    const [ex, rp, st, ln, pr, aps, arp, ast] = await Promise.all([
+    const [ex, rp, st, ln, pr, aps, arp, ast, inv] = await Promise.all([
       supabase.from('expenses').select('date,amount,category,expense_group,description').eq('property_id',propertyId),
       supabase.from('rent_payments').select('period_year,period_month,amount,paid,paid_date,due_date').eq('property_id',propertyId),
       supabase.from('client_stays').select('id,check_in,check_out,nights,nightly_rate,total,channel').eq('property_id',propertyId),
-      supabase.from('loans').select('amount,rate,years,bank').eq('property_id',propertyId),
+      supabase.from('loans').select('amount,rate,years,bank,start_date').eq('property_id',propertyId),
       supabase.from('user_properties').select('id,name,address,rental_mode,enfia,sqm,value').eq('id',propertyId).maybeSingle(),
       supabase.from('user_properties').select('id,name,rental_mode,enfia').eq('user_id',userId),
       supabase.from('rent_payments').select('property_id,period_year,period_month,amount,paid,paid_date,due_date').eq('user_id',userId),
       supabase.from('client_stays').select('property_id,check_in,check_out,nights,nightly_rate,total,channel').eq('user_id',userId),
+      supabase.from('inventory_items').select('purchase_value,category,purchase_date').eq('property_id',propertyId),
     ])
     setExpenses(ex.data||[]); setRent(rp.data||[]); setStays(st.data||[]); setLoans(ln.data||[])
-    setProp(pr.data||null); setAllProps(aps.data||[]); setAllRent(arp.data||[]); setAllStays(ast.data||[])
+    setProp(pr.data||null); setAllProps(aps.data||[]); setAllRent(arp.data||[]); setAllStays(ast.data||[]); setInventory(inv.data||[])
     setLoading(false)
   })() },[propertyId,userId])
 
@@ -89,16 +93,24 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
   const expensesTotal = useMemo(()=>expensesYear.reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)).reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans])
+  // Αποσβέσεις εξοπλισμού (ευθεία μέθοδος, από τα πραγματικά πάγια) — επιχειρηματική εικόνα.
+  const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0)return s; const life=usefulLifeYears(it.category); const age=yearsSince(it.purchase_date); if(age!=null&&age>=life)return s; return s+val/life },0),[inventory])
+  // Τόκοι δανείων για τη χρήση (εκπίπτουν στην επιχείρηση· το κεφάλαιο όχι).
+  const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
+  const businessMode = mode==='professional' && elp==='business'
   const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentPaidYear
 
-  const statement:IncomeStatement = useMemo(()=>incomeStatement({
-    regime, grossIncome, enfia,
-    climateLevy: regime==='individual_shortterm' ? shortSummary.levy : 0,
-    municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
-    otherCashExpenses: expensesTotal,
-    loanPrincipal: loanAnnual,
-  }),[regime,grossIncome,enfia,shortSummary,expensesTotal,loanAnnual])
+  const statement:IncomeStatement = useMemo(()=>incomeStatement(
+    businessMode
+      ? { regime:'business', grossIncome, itemizedExpenses:deductibleTotal, depreciation:inventoryDepr, loanInterest:loanInterestYear, businessTaxRate:0.22, enfia,
+          climateLevy: regime==='individual_shortterm'?shortSummary.levy:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
+          otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear) }
+      : { regime, grossIncome, enfia,
+          climateLevy: regime==='individual_shortterm' ? shortSummary.levy : 0,
+          municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
+          otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual }
+  ),[businessMode,regime,grossIncome,enfia,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual])
 
   const provision = useMemo(()=>taxProvision(statement, athensNow().getMonth()+1),[statement])
 
@@ -166,7 +178,7 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
 
   if(loading) return <div style={{ padding:40 }}><Spinner label="Φόρτωση λογιστικής…" /></div>
 
-  const regimeLabel = regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση'
+  const regimeLabel = businessMode ? 'Επιχείρηση (ΕΛΠ)' : (regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')
   const kpis = [
     { label:'Μεικτά έσοδα', value:eur(statement.grossIncome), color:'var(--text-secondary)', icon:<TrendingUp size={15}/> },
     { label:'Φόρος εισοδήματος', value:eur(statement.incomeTax), sub:`Μέσος συντ. ${pct(statement.effectiveRate)}`, color:'var(--text-secondary)', icon:<TrendingDown size={15}/> },
@@ -189,6 +201,13 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
               <button key={m} onClick={()=>setMode(m)} style={{ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 13px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:mode===m?600:500, background:mode===m?'var(--accent)':'transparent', color:mode===m?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{icon}{label}</button>
             ))}
           </div>
+          {mode==='professional'&&(
+            <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+              {([['personal','Φυσικό πρόσωπο'],['business','Επιχείρηση (ΕΛΠ)']] as [typeof elp,string][]).map(([e,label])=>(
+                <button key={e} onClick={()=>setElp(e)} style={{ height:32, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:elp===e?600:500, background:elp===e?'var(--accent)':'transparent', color:elp===e?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
+              ))}
+            </div>
+          )}
           <button onClick={printReport} title="Λογιστική αναφορά (PDF) για τον λογιστή/τράπεζα" style={{ display:'inline-flex', alignItems:'center', gap:7, height:34, padding:'0 14px', borderRadius:17, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Printer size={14}/>Αναφορά</button>
           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
             <button onClick={()=>setYear(y=>y-1)} aria-label="Προηγούμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronLeft size={17}/></button>
@@ -298,7 +317,7 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--positive)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(expensesTotal-deductibleTotal)}</p></div>
             </div>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για <strong style={{ color:'var(--text-primary)' }}>φυσικό πρόσωπο με μακροχρόνια κατοικίας</strong> τα έξοδα δεν εκπίπτουν αναλυτικά (ισχύει η τεκμαρτή έκπτωση 5%). Εκπίπτουν όταν το ακίνητο ανήκει σε <strong style={{ color:'var(--text-primary)' }}>επιχείρηση</strong> (ΕΛΠ). Η αναλυτική επιχειρηματική εικόνα (ΦΠΑ, αποσβέσεις, ημερολόγιο) έρχεται σε επόμενη φάση.</p>
+            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για <strong style={{ color:'var(--text-primary)' }}>φυσικό πρόσωπο με μακροχρόνια κατοικίας</strong> τα έξοδα δεν εκπίπτουν αναλυτικά (ισχύει η τεκμαρτή έκπτωση 5%). Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν αναλυτικά, μαζί με <strong style={{ color:'var(--text-primary)' }}>αποσβέσεις εξοπλισμού</strong> ({eur(inventoryDepr)}/έτος) και <strong style={{ color:'var(--text-primary)' }}>τόκους δανείων</strong> ({eur(loanInterestYear)}/έτος) — δες την κατάσταση με τον διακόπτη «Επιχείρηση (ΕΛΠ)».</p>
           </div>
         </div>
       )}

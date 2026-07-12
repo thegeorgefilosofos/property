@@ -1,6 +1,6 @@
 // Τεστ για lib/loans/recommend.ts — τρέξε με: npx tsx lib/loans/recommend.test.ts
 import {
-  annuityMonthly, totalInterest, spitiMouIncomeLimit, spitiMouEligibility,
+  annuityMonthly, totalInterest, interestForYear, spitiMouIncomeLimit, spitiMouEligibility,
   spitiMouPayment, rankLoans, type UserLoanNeeds, type BankInput,
 } from './recommend'
 
@@ -15,6 +15,18 @@ ok('zero principal → 0', annuityMonthly(0, 3, 20) === 0)
 ok('zero years → 0', annuityMonthly(1000, 3, 0) === 0)
 ok('totalInterest positive', totalInterest(100000, 3, 30) > 50000)
 ok('totalInterest 0% → 0', totalInterest(100000, 0, 30) === 0)
+
+// ── interestForYear (τοκοχρεολυτική απόσβεση ανά έτος) ──
+{
+  const P = 100000, rate = 3, yrs = 30
+  const y1 = interestForYear(P, rate, yrs, 1)
+  const y30 = interestForYear(P, rate, yrs, 30)
+  ok('interestForYear declines over time', y1 > y30)
+  ok('interestForYear y1 ~ balance*rate first year', y1 > 2900 && y1 < 3000) // ≈100k*3% φθίνον
+  ok('sum of yearly interest ≈ totalInterest', Math.abs(Array.from({length:yrs},(_,i)=>interestForYear(P,rate,yrs,i+1)).reduce((s,x)=>s+x,0) - totalInterest(P,rate,yrs)) < 5)
+  ok('interestForYear 0% → 0', interestForYear(P, 0, yrs, 1) === 0)
+  ok('interestForYear out of range → 0', interestForYear(P, rate, yrs, 31) === 0 && interestForYear(P, rate, yrs, 0) === 0)
+}
 
 // ── income limits ──
 ok('single 20k', spitiMouIncomeLimit('single', 0) === 20000)
