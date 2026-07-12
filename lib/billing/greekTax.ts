@@ -54,24 +54,90 @@ export const RENTAL_TAX_ROWS_2026: { range: string; rate: string; from: number; 
   { range: 'Πάνω από 35.000 €', rate: '45%', from: 35000, to: Infinity },
 ];
 
-// ── Κλίμακα φορολογίας ΕΠΙΧΕΙΡΗΜΑΤΙΚΗΣ δραστηριότητας φυσικού προσώπου (ατομική
-// επιχείρηση) — η γενική κλίμακα εισοδήματος. Τα ΝΟΜΙΚΑ πρόσωπα φορολογούνται με
-// σταθερό 22%. Πηγή: γενική κλίμακα φόρου εισοδήματος (ν.4172/2013 άρθρο 15).
+// ── Γενική κλίμακα φόρου εισοδήματος (ν.4172/2013 άρθρο 15, όπως ισχύει με τον
+// ν.5246/2025 για εισοδήματα από 1/1/2026). Ισχύει για μισθωτή εργασία, συντάξεις
+// και ΕΠΙΧΕΙΡΗΜΑΤΙΚΗ δραστηριότητα φυσικού προσώπου (ατομική επιχείρηση / ελεύθερος
+// επαγγελματίας). ΔΕΝ ισχύει για παθητικό εισόδημα ενοικίων (άρθρο 40 — δική του
+// κλίμακα 15/25/35/45). Τα ΝΟΜΙΚΑ πρόσωπα φορολογούνται με σταθερό 22%.
+// Νέα κλίμακα 2026: μεσαία κλιμάκια −2 μονάδες, νέο κλιμάκιο 40–60k στο 39%.
 export const BUSINESS_INCOME_BRACKETS_2026: TaxBracket[] = [
   { from: 0,     to: 10000,    rate: 0.09 },
-  { from: 10000, to: 20000,    rate: 0.22 },
-  { from: 20000, to: 30000,    rate: 0.28 },
-  { from: 30000, to: 40000,    rate: 0.36 },
-  { from: 40000, to: Infinity, rate: 0.44 },
+  { from: 10000, to: 20000,    rate: 0.20 },
+  { from: 20000, to: 30000,    rate: 0.26 },
+  { from: 30000, to: 40000,    rate: 0.34 },
+  { from: 40000, to: 60000,    rate: 0.39 },
+  { from: 60000, to: Infinity, rate: 0.44 },
 ];
 export const BUSINESS_INCOME_ROWS_2026: { range: string; rate: string; from: number; to: number }[] = [
   { range: '0 – 10.000 €',      rate: '9%',  from: 0,     to: 10000 },
-  { range: '10.001 – 20.000 €', rate: '22%', from: 10000, to: 20000 },
-  { range: '20.001 – 30.000 €', rate: '28%', from: 20000, to: 30000 },
-  { range: '30.001 – 40.000 €', rate: '36%', from: 30000, to: 40000 },
-  { range: 'Πάνω από 40.000 €', rate: '44%', from: 40000, to: Infinity },
+  { range: '10.001 – 20.000 €', rate: '20%', from: 10000, to: 20000 },
+  { range: '20.001 – 30.000 €', rate: '26%', from: 20000, to: 30000 },
+  { range: '30.001 – 40.000 €', rate: '34%', from: 30000, to: 40000 },
+  { range: '40.001 – 60.000 €', rate: '39%', from: 40000, to: 60000 },
+  { range: 'Πάνω από 60.000 €', rate: '44%', from: 60000, to: Infinity },
 ];
 export const CORPORATE_TAX_RATE_2026 = 0.22; // νομικά πρόσωπα (ΑΕ/ΕΠΕ/ΙΚΕ/ΟΕ/ΕΕ)
+
+// ── Κλίμακα άρθρου 15 για ΝΕΟΥΣ (ν.5246/2025) — μηδενικός/μειωμένος φόρος στα
+// πρώτα 20.000 €. Αφορά μισθωτή/επιχειρηματική δραστηριότητα, ΟΧΙ παθητικά ενοίκια.
+//   • έως 25 ετών:  0% έως 20.000 €, μετά κανονική κλίμακα.
+//   • 26–30 ετών:   9% έως 20.000 €, μετά κανονική κλίμακα.
+export const YOUTH_UP_TO_25_BRACKETS_2026: TaxBracket[] = [
+  { from: 0,     to: 10000,    rate: 0.00 },
+  { from: 10000, to: 20000,    rate: 0.00 },
+  { from: 20000, to: 30000,    rate: 0.26 },
+  { from: 30000, to: 40000,    rate: 0.34 },
+  { from: 40000, to: 60000,    rate: 0.39 },
+  { from: 60000, to: Infinity, rate: 0.44 },
+];
+export const YOUTH_26_30_BRACKETS_2026: TaxBracket[] = [
+  { from: 0,     to: 10000,    rate: 0.09 },
+  { from: 10000, to: 20000,    rate: 0.09 },
+  { from: 20000, to: 30000,    rate: 0.26 },
+  { from: 30000, to: 40000,    rate: 0.34 },
+  { from: 40000, to: 60000,    rate: 0.39 },
+  { from: 60000, to: Infinity, rate: 0.44 },
+];
+
+// Νέος επαγγελματίας (πρώτη τριετία, άρθρο 29 §1): πρώτο κλιμάκιο 4,5% (μισό του 9%).
+export const NEW_PROFESSIONAL_BRACKETS_2026: TaxBracket[] = [
+  { from: 0,     to: 10000,    rate: 0.045 },
+  { from: 10000, to: 20000,    rate: 0.20 },
+  { from: 20000, to: 30000,    rate: 0.26 },
+  { from: 30000, to: 40000,    rate: 0.34 },
+  { from: 40000, to: 60000,    rate: 0.39 },
+  { from: 60000, to: Infinity, rate: 0.44 },
+];
+
+/** Κλίμακα άρθρου 15 ανάλογα με ηλικία & πρώτη τριετία δραστηριότητας.
+ *  Προτεραιότητα στη χαμηλότερη επιβάρυνση: νέοι έως 30 (0%/9%) υπερισχύουν. */
+export function art15BracketsForAge(age?: number | null, firstThreeYears?: boolean): TaxBracket[] {
+  if (age != null && age > 0) {
+    if (age <= 25) return YOUTH_UP_TO_25_BRACKETS_2026;
+    if (age <= 30) return YOUTH_26_30_BRACKETS_2026;
+  }
+  if (firstThreeYears) return NEW_PROFESSIONAL_BRACKETS_2026;
+  return BUSINESS_INCOME_BRACKETS_2026;
+}
+
+// ── Επιχειρηματικοί συντελεστές/παράμετροι (ν.4172/2013) ────────────────────
+/** Προκαταβολή φόρου: ατομική 55%, νομικά πρόσωπα 80%· μειωμένη 50% την πρώτη
+ *  τριετία νέας δραστηριότητας (άρθρα 69–71). Πιστώνεται το επόμενο έτος. */
+export const ADVANCE_TAX_RATE_SOLE = 0.55;
+export const ADVANCE_TAX_RATE_COMPANY = 0.80;
+export function advanceTaxRate(form: 'sole' | 'company', firstThreeYears?: boolean): number {
+  const base = form === 'company' ? ADVANCE_TAX_RATE_COMPANY : ADVANCE_TAX_RATE_SOLE;
+  return firstThreeYears ? base * 0.5 : base;
+}
+/** Απόσβεση κτιρίων/κατασκευών, σταθερή μέθοδος (άρθρο 24). Η γη δεν αποσβένεται. */
+export const BUILDING_DEPRECIATION_RATE = 0.04;
+/** Τυπικό ποσοστό αξίας που αναλογεί στο κτίσμα (το υπόλοιπο στη γη) — ενδεικτικό. */
+export const BUILDING_VALUE_FRACTION = 0.6;
+/** Παρακράτηση φόρου μερισμάτων στη διανομή κερδών νομικού προσώπου (άρθρο 64). */
+export const DIVIDEND_WITHHOLDING_RATE = 0.05;
+/** Τεκμαρτό ελάχιστο καθαρό εισόδημα ελεύθερου επαγγελματία (ν.5073/2023),
+ *  βασικό ποσό· προσαυξάνεται με έτη/μισθοδοσία/τζίρο — εδώ το βασικό (ενδεικτικό). */
+export const SELF_EMPLOYED_MIN_NET_INCOME_2026 = 10920;
 
 /** Σύντομη περιγραφή της κλίμακας (για τον βοηθό / tooltips). */
 export const RENTAL_TAX_SUMMARY_2026 =
