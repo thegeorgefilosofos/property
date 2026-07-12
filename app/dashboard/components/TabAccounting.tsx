@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/Theme'
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
@@ -94,7 +94,22 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [xferFirstHome,setXferFirstHome] = useState(false)
   const [xferAgent,setXferAgent] = useState(true)
   const [openAdvisory,setOpenAdvisory] = useState<string|null>(null)
+  const [advisoryOpen,setAdvisoryOpen] = useState(false)
   const [changesOpen,setChangesOpen] = useState(false)
+  // Οι δύο ενημερωτικές ενότητες (Συμβουλευτική, Τι άλλαξε) ανοίγουν/κλείνουν ομοιόμορφα:
+  // κλικ στην κεφαλίδα εναλλάσσει, κλικ εκτός τις ελαχιστοποιεί (καθαρή, ήσυχη εικόνα).
+  const advisoryRef = useRef<HTMLDivElement>(null)
+  const changesRef = useRef<HTMLDivElement>(null)
+  useEffect(()=>{
+    if(!advisoryOpen && !changesOpen) return
+    const onDown = (e:MouseEvent)=>{
+      const t = e.target as Node
+      if(advisoryOpen && advisoryRef.current && !advisoryRef.current.contains(t)){ setAdvisoryOpen(false); setOpenAdvisory(null) }
+      if(changesOpen && changesRef.current && !changesRef.current.contains(t)) setChangesOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return ()=>document.removeEventListener('mousedown', onDown)
+  },[advisoryOpen,changesOpen])
   const [showBankImport,setShowBankImport] = useState(false)
   const [refreshKey,setRefreshKey] = useState(0)
   const [hoverKpi,setHoverKpi] = useState<string|null>(null)
@@ -356,15 +371,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       </div>
 
       {/* Κλείσιμο χρήσης, premium κατάσταση με σαφή ένδειξη ανοιχτό/κλειστό */}
-      {(()=>{ const st = drift?'drift':closing?'locked':'open'
-        const meta = { open:{ c:'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
+      {(()=>{ const isCurrent = year===athensYear()
+        const st = drift?'drift':closing?'locked':'open'
+        const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
         return (
         <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', padding:'10px 14px', borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${st==='drift'?'var(--warning)':'var(--border-subtle)'}` }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:24, padding:'0 10px', borderRadius:7, background:`color-mix(in srgb, ${meta.c} 12%, transparent)`, color:meta.c, fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?<Unlock size={12}/>:<Lock size={12}/>}{meta.label}
+            {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
           </span>
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
-            {st==='open'?<>Χρήση {year}, ανοιχτή για αλλαγές.</>:st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
+            {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth}/12.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
             <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
           </span>
           <div style={{ flex:1 }}/>
@@ -506,7 +522,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           {elp==='personal'&&(
           <div style={card}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-              <Layers size={15} style={{ color:'var(--accent)' }}/>
+              <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
               <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου {year}</p>
             </div>
             {!portfolio?(
@@ -553,16 +569,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       )}
 
-      {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία */}
-      <div style={card}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <Lightbulb size={16} style={{ color:'var(--accent)' }}/>
-            <div>
-              <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>Ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
-            </div>
+      {/* Συμβουλευτική, καθαρές, στοχευμένες προτάσεις με αξία (ανοιγοκλείνει ομοιόμορφα) */}
+      {advisory.length>0 && (
+      <div ref={advisoryRef} style={card}>
+        <button onClick={()=>{ setAdvisoryOpen(o=>!o); setOpenAdvisory(null) }} aria-expanded={advisoryOpen} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+          <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Lightbulb size={15}/></span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{advisory.length} ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης, από τα δικά σου δεδομένα.</p>
           </div>
+          <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+        </button>
+        {advisoryOpen && (<>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:14 }}>
           <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
             Ηλικία
             <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="π.χ. 30"
@@ -571,7 +590,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center', outline:'none', transition:'border-color 0.14s' }}/>
           </label>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:12 }}>
           {advisory.map(a=>{
             const open = openAdvisory===a.id
             return (
@@ -602,27 +621,28 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενημερωτικές προτάσεις, όχι επίσημη συμβουλή.<InfoHint>Οι προτάσεις δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</InfoHint></p>
         </div>
+        </>)}
       </div>
+      )}
 
       {/* «Τι άλλαξε» — επίκαιροι κανόνες 2026 σχετικοί με το προφίλ (διακριτικό) */}
       {relevantChanges.length>0 && (
-      <div style={card}>
+      <div ref={changesRef} style={card}>
         <button onClick={()=>setChangesOpen(o=>!o)} aria-expanded={changesOpen} style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:9, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', color:'var(--text-secondary)', flexShrink:0 }}><Landmark size={15}/></span>
           <div style={{ flex:1, minWidth:0 }}>
-            <p style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif" }}>Τι άλλαξε το 2026</p>
-            <p style={{ fontSize:12, color:'var(--text-secondary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου</p>
+            <p style={{ ...cardTitle, margin:0 }}>Τι άλλαξε το 2026</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'2px 0 0', fontFamily:"'Inter',sans-serif" }}>{relevantChanges.length} επίκαιροι κανόνες για το προφίλ σου</p>
           </div>
           <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:changesOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
         </button>
         {changesOpen && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, marginTop:16, alignItems:'start' }}>
             {relevantChanges.map((u:RegulatoryUpdate)=>{
-              const dot = u.severity==='warning'?'var(--negative)':u.severity==='action'?'var(--accent)':'var(--text-tertiary)'
               return (
                 <div key={u.id} style={{ borderRadius:12, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', padding:'13px 15px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0 }}/>
+                    <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--text-tertiary)', flexShrink:0 }}/>
                     <p style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, lineHeight:1.3, fontFamily:"'Inter',sans-serif" }}>{u.title}</p>
                   </div>
                   <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, lineHeight:1.55, fontFamily:"'Inter',sans-serif" }}>{u.summary}</p>
@@ -635,9 +655,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             })}
           </div>
         )}
-        <div style={{ marginTop:changesOpen?14:12, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+        {changesOpen && (
+        <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές. Οι κανόνες αλλάζουν, επιβεβαίωσε στο myAADE/gov.gr ή με τον λογιστή σου.</p>
         </div>
+        )}
       </div>
       )}
 
