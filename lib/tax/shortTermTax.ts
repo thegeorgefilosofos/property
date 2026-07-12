@@ -9,7 +9,7 @@
 import { stayTotal } from '@/lib/clients/clients';
 import { climateLevyForNights, rentalIncomeTax, municipalAccommodationTax } from '@/lib/billing/greekTax';
 
-export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean }
+export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean; rentsPaidViaBank?: boolean }
 
 export interface TaxStay {
   check_in?: string | null;
@@ -86,7 +86,11 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   const grossRevenue = inYear.reduce((sum, s) => sum + stayTotal(s), 0);
   const levy = climateLevyForNights(nightsByMonth, meta?.sqm, meta?.isHouse);
   const municipalTax = meta ? municipalAccommodationTax(grossRevenue, meta) : 0;
-  const incomeTax = rentalIncomeTax(grossRevenue);
+  // Βραχυχρόνια φυσικού προσώπου χωρίς υπηρεσίες = εισόδημα από ακίνητη περιουσία:
+  // εφαρμόζεται η τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) → φορολογείται το 95%.
+  // Προϋπόθεση (από 1/1/2026): είσπραξη μέσω τραπέζης· με μετρητά φορολογείται το 100%.
+  const taxableFactor = meta?.rentsPaidViaBank === false ? 1 : 0.95;
+  const incomeTax = rentalIncomeTax(grossRevenue * taxableFactor);
   const net = grossRevenue - incomeTax - levy - municipalTax;
   return {
     year, grossRevenue, totalNights, stayCount: inYear.length, nightsByMonth,

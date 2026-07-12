@@ -21,6 +21,18 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('longterm has taxable line', st.lines.some(l => l.key === 'taxable'))
 }
 
+// ── Gate 5%: ενοίκια με μετρητά (όχι τραπεζική πληρωμή) → χάνεται η έκπτωση ────
+{
+  const bank = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000, rentsPaidViaBank: true })
+  const cash = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000, rentsPaidViaBank: false })
+  ok('μετρητά → καμία τεκμαρτή έκπτωση', cash.presumptiveDeduction === 0)
+  ok('μετρητά → φορολογητέο = 100% (10000)', near(cash.taxableIncome, 10000))
+  ok('μετρητά → φόρος = κλίμακα(10000) (1500)', near(cash.incomeTax, 1500))
+  ok('μετρητά > τραπεζικά σε φόρο', cash.incomeTax > bank.incomeTax)
+  const def = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000 })
+  ok('default (χωρίς flag) = τραπεζικά', near(def.incomeTax, bank.incomeTax))
+}
+
 // ── Μακροχρόνια πάνω από κλιμάκιο: προοδευτικό ──────────────────────────────
 {
   const gross = 30000
@@ -42,12 +54,12 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('individual interest not double-counted', b.netCash === a.netCash - 400 - 2000 - 300)
 }
 
-// ── Βραχυχρόνια: γκρος βάση (χωρίς τεκμαρτή) + ΤΑΚΚ + παρεπιδημούντων ────────
+// ── Βραχυχρόνια: τεκμαρτή έκπτωση 5% (φόρος στο 95%) + ΤΑΚΚ + παρεπιδημούντων ──
 {
   const st = incomeStatement({ regime: 'individual_shortterm', grossIncome: 8000, climateLevy: 240, municipalTax: 0, otherCashExpenses: 900 })
-  ok('shortterm no presumptive (taxed on gross, matches shortTermYearSummary)', st.presumptiveDeduction === 0)
-  ok('shortterm taxable = gross', near(st.taxableIncome, 8000))
-  ok('shortterm tax = brackets(8000)', near(st.incomeTax, rentalIncomeTax(8000)))
+  ok('shortterm presumptive 5% (matches shortTermYearSummary)', near(st.presumptiveDeduction, 400))
+  ok('shortterm taxable = 95%', near(st.taxableIncome, 7600))
+  ok('shortterm tax = brackets(7600)', near(st.incomeTax, rentalIncomeTax(7600)))
   ok('shortterm property taxes = levy', near(st.propertyTaxes, 240))
   ok('shortterm netCash includes levy+other', near(st.netCash, 8000 - st.incomeTax - 240 - 900))
 }

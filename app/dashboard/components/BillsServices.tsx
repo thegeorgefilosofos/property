@@ -47,17 +47,15 @@ const ENFIA_DEADLINES = [
   { date: '2026-10-30', label: '6η Δόση', month: 'Οκτ 2026'  },
 ];
 const ZONE_OPTIONS = [
-  { value: 'under_500',  label: 'Κάτω από 500 € ανά τετραγωνικό'   },
-  { value: '500_750',    label: '500 – 750 € ανά τετραγωνικό'       },
-  { value: '750_1000',   label: '750 – 1.000 € ανά τετραγωνικό'    },
-  { value: '1000_1250',  label: '1.000 – 1.250 € ανά τετραγωνικό'  },
-  { value: '1250_1500',  label: '1.250 – 1.500 € ανά τετραγωνικό'  },
-  { value: '1500_2000',  label: '1.500 – 2.000 € ανά τετραγωνικό'  },
-  { value: '2000_2500',  label: '2.000 – 2.500 € ανά τετραγωνικό'  },
-  { value: '2500_3000',  label: '2.500 – 3.000 € ανά τετραγωνικό'  },
-  { value: '3000_3500',  label: '3.000 – 3.500 € ανά τετραγωνικό'  },
-  { value: '3500_4000',  label: '3.500 – 4.000 € ανά τετραγωνικό'  },
-  { value: 'over_4000',  label: 'Άνω των 4.000 € ανά τετραγωνικό'  },
+  { value: '0_750',      label: 'Έως 750 € ανά τετραγωνικό'         },
+  { value: '751_1500',   label: '751 – 1.500 € ανά τετραγωνικό'    },
+  { value: '1501_2500',  label: '1.501 – 2.500 € ανά τετραγωνικό'  },
+  { value: '2501_3000',  label: '2.501 – 3.000 € ανά τετραγωνικό'  },
+  { value: '3001_3500',  label: '3.001 – 3.500 € ανά τετραγωνικό'  },
+  { value: '3501_4000',  label: '3.501 – 4.000 € ανά τετραγωνικό'  },
+  { value: '4001_4500',  label: '4.001 – 4.500 € ανά τετραγωνικό'  },
+  { value: '4501_5000',  label: '4.501 – 5.000 € ανά τετραγωνικό'  },
+  { value: 'over_5000',  label: 'Άνω των 5.000 € ανά τετραγωνικό'  },
 ];
 const FLOOR_OPTIONS = [
   { value: 'basement',   label: 'Υπόγειο'     },{ value: 'ground', label: 'Ισόγειο' },
@@ -385,7 +383,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <CustomSelect label="Παλαιότητα" value={s.enfiaAge}  onChange={v => upd({ enfiaAge: v })}  options={AGE_OPTIONS}/>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Συμπληρωματικό Φόρο" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
+                <NumberInput label="Συνολική Αξία Ακινήτων (€), για Προσαύξηση >500.000€" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"/>
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Μειώσεις</div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
@@ -441,7 +439,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                     </div>
                     {[
                       { label: 'Βασικός Φόρος',         val: enfiaResult.basic,  pos: false },
-                      { label: 'Συμπληρωματικός Φόρος',  val: enfiaResult.suppl,  pos: false },
+                      { label: 'Προσαύξηση (αξία >500k)',  val: enfiaResult.suppl,  pos: false },
                       ...(enfiaResult.redAmt > 0 ? [{ label: `Μειώσεις ${enfiaResult.maxPct}%`, val: -enfiaResult.redAmt, pos: true }] : []),
                     ].map((row, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-subtle)' }}>

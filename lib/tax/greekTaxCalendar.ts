@@ -59,40 +59,41 @@ function ownerObligations(year: number): TaxObligation[] {
   // Απρίλιο/Μάιο, πληρωμή σε μηνιαίες δόσεις (τελευταία εργάσιμη κάθε μήνα) έως
   // τον Φεβρουάριο του επόμενου έτους. Οι ακριβείς ημερομηνίες ανακοινώνονται.
   out.push({
-    id: `enfia-issue-${year}`, date: nextWorkingDay(iso(year, 4, 1)), // ~αρχές Μαΐου
+    id: `enfia-issue-${year}`, date: nextWorkingDay(iso(year, 2, 15)), // ~μέσα Μαρτίου (2026: 15/3)
     title: 'ΕΝΦΙΑ, έκδοση εκκαθαριστικού (αναμένεται)',
-    notes: `Ο ΕΝΦΙΑ (Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων) εκκαθαρίζεται συνήθως Απρίλιο–Μάιο και πληρώνεται σε μηνιαίες δόσεις έως τον Φεβρουάριο. ${CONFIRM}`,
+    notes: `Ο ΕΝΦΙΑ (Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων) εκκαθαρίζεται πλέον νωρίτερα (τα τελευταία έτη ~μέσα Μαρτίου) και πληρώνεται εφάπαξ ή σε 12 μηνιαίες δόσεις έως τον Φεβρουάριο του επόμενου έτους. ${CONFIRM}`,
     category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
   })
   out.push({
-    id: `enfia-first-${year}`, date: lastWorkingDayOfMonth(year, 4), // τέλος Μαΐου
+    id: `enfia-first-${year}`, date: lastWorkingDayOfMonth(year, 2), // τέλος Μαρτίου
     title: 'ΕΝΦΙΑ, 1η δόση',
-    notes: `Καταληκτική 1ης δόσης ΕΝΦΙΑ (τυπικά τέλος Μαΐου). Ακολουθούν μηνιαίες δόσεις έως τον Φεβρουάριο. ${CONFIRM}`,
+    notes: `Καταληκτική 1ης δόσης ΕΝΦΙΑ (τα τελευταία έτη τέλος Μαρτίου). Ακολουθούν έως 12 μηνιαίες δόσεις έως τον Φεβρουάριο του επόμενου έτους. ${CONFIRM}`,
     category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
   })
   out.push({
     id: `enfia-last-${year}`, date: lastWorkingDayOfMonth(year + 1, 1), // τέλος Φεβρουαρίου επόμενου έτους
     title: 'ΕΝΦΙΑ, τελευταία δόση',
-    notes: `Καταληκτική τελευταίας δόσης ΕΝΦΙΑ (τυπικά τελευταία εργάσιμη Φεβρουαρίου του επόμενου έτους). ${CONFIRM}`,
+    notes: `Καταληκτική τελευταίας δόσης ΕΝΦΙΑ (τυπικά τελευταία εργάσιμη Φεβρουαρίου του επόμενου έτους, 12η δόση). ${CONFIRM}`,
     category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
   })
 
   // ── Ε9: Δήλωση στοιχείων ακινήτων για μεταβολές (αγορά/πώληση/μεταβίβαση/
-  // τακτοποίηση) του προηγούμενου έτους — καταληκτική 31 Μαρτίου.
+  // τακτοποίηση). Η νόμιμη προθεσμία είναι 30 ημέρες από κάθε μεταβολή (άρθρο 6
+  // §3 ν.4223/2013)· εδώ μπαίνει ετήσια υπενθύμιση ελέγχου πριν την έκδοση ΕΝΦΙΑ.
   out.push({
-    id: `e9-${year}`, date: nextWorkingDay(iso(year, 2, 31)),
-    title: 'Ε9, δήλωση μεταβολών ακινήτων',
-    notes: `Υποβολή Ε9 για μεταβολές ακινήτων του προηγούμενου έτους (αγορά, πώληση, μεταβίβαση, κληρονομιά). Καταληκτική τυπικά 31 Μαρτίου. Αν δεν είχες μεταβολή, δεν απαιτείται. ${CONFIRM}`,
-    category: 'tax', confidence: 'statutory', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    id: `e9-${year}`, date: nextWorkingDay(iso(year, 1, 28)),
+    title: 'Ε9, έλεγχος/δήλωση μεταβολών ακινήτων',
+    notes: `Έλεγξε ότι έχεις δηλώσει στο Ε9 κάθε μεταβολή ακινήτου (αγορά, πώληση, μεταβίβαση, κληρονομιά). Η νόμιμη προθεσμία είναι 30 ημέρες από την ίδια τη μεταβολή — τακτοποίησε το πριν την έκδοση του ΕΝΦΙΑ. Αν δεν είχες μεταβολή, δεν απαιτείται. ${CONFIRM}`,
+    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
   })
 
   // ── Δήλωση Φορολογίας Εισοδήματος (Ε1) με έντυπο Ε2 για εισόδημα από ακίνητα —
-  // καταληκτική τυπικά 30 Ιουνίου (δίνονται συχνά παρατάσεις).
+  // καταληκτική τα τελευταία έτη 15 Ιουλίου (με έκπτωση για εμπρόθεσμη υποβολή).
   out.push({
-    id: `income-decl-${year}`, date: nextWorkingDay(iso(year, 5, 30)),
+    id: `income-decl-${year}`, date: nextWorkingDay(iso(year, 6, 15)),
     title: 'Δήλωση εισοδήματος (Ε1/Ε2 ακινήτων)',
-    notes: `Καταληκτική υποβολής δήλωσης φορολογίας εισοδήματος (Ε1). Το εισόδημα από εκμίσθωση/ιδιοχρησιμοποίηση ακινήτων δηλώνεται στο έντυπο Ε2. Τυπική προθεσμία 30 Ιουνίου — συχνά δίνεται παράταση. ${CONFIRM}`,
-    category: 'tax', confidence: 'statutory', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
+    notes: `Καταληκτική υποβολής δήλωσης φορολογίας εισοδήματος (Ε1). Το εισόδημα από εκμίσθωση/ιδιοχρησιμοποίηση ακινήτων δηλώνεται στο έντυπο Ε2. Τα τελευταία έτη η προθεσμία είναι 15 Ιουλίου, με έκπτωση φόρου για εμπρόθεσμη υποβολή/εφάπαξ εξόφληση και δυνατότητα καταβολής σε έως 8 δόσεις. ${CONFIRM}`,
+    category: 'tax', confidence: 'announced', official_url: AADE_CALENDAR_URL, profiles: ['owner', 'long_term', 'short_term'],
   })
 
   return out
