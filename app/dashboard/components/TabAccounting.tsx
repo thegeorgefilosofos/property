@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/Theme'
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Info, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
+import { transferCosts } from '@/lib/accounting/transfer'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
   type LedgerInput, type Expected, type Actual, type ReconStatus,
@@ -65,6 +66,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [firstYears,setFirstYears] = useState(false)
   const [distribution,setDistribution] = useState<number|''>('')
   const [claimedUncollected,setClaimedUncollected] = useState(false)
+  // Υπολογιστής κόστους μεταβίβασης (αγορά/πώληση) — τοπικός.
+  const [xferSide,setXferSide] = useState<'buy'|'sell'>('buy')
+  const [xferPrice,setXferPrice] = useState<number|''>('')
+  const [xferFirstHome,setXferFirstHome] = useState(false)
+  const [xferAgent,setXferAgent] = useState(true)
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -173,6 +179,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     rentalMode: prop?.rental_mode, sqm: prop?.sqm, propertyCount: propCount,
     hasLoan: loans.some(l=>loanActiveInYear(l)), loanInterestYear, deductibleExpenses: deductibleTotal,
   }),[businessMode,regime,elpForm,age,grossIncome,statement,prop,propCount,loans,year,loanInterestYear,deductibleTotal])
+
+  // Κόστος μεταβίβασης: προεπιλογή τιμήματος η αξία του ακινήτου (αν υπάρχει).
+  const xferEffectivePrice = xferPrice!=='' ? Number(xferPrice) : (Number(prop?.value)||0)
+  const xfer = useMemo(()=>transferCosts({ side:xferSide, price:xferEffectivePrice, firstHome:xferFirstHome, useAgent:xferAgent, acquisitionCost:xferSide==='sell'?(Number(prop?.value)||0):0 }),[xferSide,xferEffectivePrice,xferFirstHome,xferAgent,prop])
 
   // Πρόβλεψη: για τρέχον έτος με βάση τον τρέχοντα μήνα· για κλεισμένο/μελλοντικό, ισόποσα στους 12.
   const provMonth = year===athensYear() ? athensNow().getMonth()+1 : 1
@@ -457,6 +467,60 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <Info size={14} style={{ color:'var(--text-tertiary)', flexShrink:0, marginTop:1 }}/>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Οι προτάσεις είναι ενημερωτικές και δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</p>
         </div>
+      </div>
+
+      {/* Κόστος αγοράς & πώλησης — δομημένη εκτίμηση μεταβίβασης */}
+      <div style={card}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16 }}>
+          <div>
+            <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς &amp; πώλησης</p>
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>Φόροι, συμβολαιογραφικά, μεσιτικά — εκτίμηση πριν τη μεταβίβαση.</p>
+          </div>
+          <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+            {([['buy','Αγορά'],['sell','Πώληση']] as ['buy'|'sell',string][]).map(([s,label])=>(
+              <button key={s} onClick={()=>setXferSide(s)} style={{ height:32, padding:'0 15px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:xferSide===s?600:500, background:xferSide===s?'var(--accent)':'transparent', color:xferSide===s?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', marginBottom:14 }}>
+          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
+            {xferSide==='buy'?'Τίμημα αγοράς':'Τιμή πώλησης'}
+            <input type="number" inputMode="numeric" min={0} value={xferPrice} onChange={e=>setXferPrice(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder={(Number(prop?.value)||0)?String(Math.round(Number(prop?.value))):'—'}
+              style={{ width:120, height:34, padding:'0 10px', borderRadius:9, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'right' }}/>
+            <span style={{ color:'var(--text-tertiary)' }}>€</span>
+          </label>
+          {xferSide==='buy'&&(
+            <label style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", cursor:'pointer' }} title="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας.">
+              <input type="checkbox" checked={xferFirstHome} onChange={e=>setXferFirstHome(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }}/>
+              Πρώτη κατοικία
+            </label>
+          )}
+          <label style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif", cursor:'pointer' }}>
+            <input type="checkbox" checked={xferAgent} onChange={e=>setXferAgent(e.target.checked)} style={{ accentColor:'var(--accent)', width:15, height:15, cursor:'pointer' }}/>
+            Μεσίτης
+          </label>
+        </div>
+        {xferEffectivePrice>0?(<>
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            {xfer.lines.map(l=>(
+              <div key={l.key} title={l.note} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0' }}>
+                <span style={{ flex:1, fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>{l.label}</span>
+                <span style={{ fontSize:13, color:l.amount===0?'var(--text-tertiary)':'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", fontWeight:500 }}>{eur(l.amount)}</span>
+              </div>
+            ))}
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0 0', marginTop:4, borderTop:'1px solid var(--border-subtle)' }}>
+              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>Σύνολο εξόδων &amp; φόρων</span>
+              <span style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xfer.totalCosts)} <span style={{ fontSize:11.5, fontWeight:500, color:'var(--text-tertiary)' }}>({pct(xfer.costPct)})</span></span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0 0' }}>
+              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{xferSide==='buy'?'Συνολική εκταμίευση':'Καθαρό έσοδο πώλησης'}</span>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--accent)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
+            </div>
+          </div>
+          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση με τα ισχύοντα ποσοστά· τα ακριβή ποσά (κλιμακωτά συμβολαιογραφικά, αντικειμενική αξία, απαλλαγές) ορίζονται από συμβολαιογράφο/δικηγόρο/ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</p>
+        </>):(
+          <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'4px 0' }}>Δώσε τίμημα για να δεις την ανάλυση κόστους.</p>
+        )}
       </div>
 
       {/* Ταμειακές ροές */}
