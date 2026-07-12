@@ -25,6 +25,13 @@ drop policy if exists "own closing insert" on public.book_closings;
 create policy "own closing insert" on public.book_closings
   for insert with check (auth.uid() = user_id);
 
+-- ΚΡΙΣΙΜΟ: το κλείδωμα γίνεται με upsert (onConflict) — όταν υπάρχει ήδη εγγραφή για
+-- (χρήστης, ακίνητο, έτος), το upsert κάνει UPDATE. Χωρίς πολιτική UPDATE, το RLS το
+-- μπλοκάρει σιωπηλά (π.χ. επανα-κλείδωμα ή «Ενημέρωση» μετά από απόκλιση δεν αποθηκεύεται).
+drop policy if exists "own closing update" on public.book_closings;
+create policy "own closing update" on public.book_closings
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 drop policy if exists "own closing delete" on public.book_closings;
 create policy "own closing delete" on public.book_closings
   for delete using (auth.uid() = user_id);

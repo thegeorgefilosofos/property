@@ -1200,5 +1200,9 @@ drop policy if exists "own closing select" on public.book_closings;
 create policy "own closing select" on public.book_closings for select using (auth.uid() = user_id);
 drop policy if exists "own closing insert" on public.book_closings;
 create policy "own closing insert" on public.book_closings for insert with check (auth.uid() = user_id);
+-- Το κλείδωμα γίνεται με upsert (onConflict) → UPDATE όταν υπάρχει ήδη εγγραφή· χωρίς
+-- πολιτική UPDATE το RLS μπλοκάρει σιωπηλά το επανα-κλείδωμα/«Ενημέρωση» απόκλισης.
+drop policy if exists "own closing update" on public.book_closings;
+create policy "own closing update" on public.book_closings for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "own closing delete" on public.book_closings;
 create policy "own closing delete" on public.book_closings for delete using (auth.uid() = user_id);

@@ -281,6 +281,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   const [closing,setClosing] = useState<{ snapshot:any; locked_at:string }|null>(null)
+  const [lockErr,setLockErr] = useState(false)
   useEffect(()=>{ (async()=>{
     const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
     setClosing((data as any)||null)
@@ -303,14 +304,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   async function lockYear(){
     const snapshot = { sig:bookSig, taxableIncome:statement.taxableIncome, incomeTax:statement.incomeTax, netProfit:statement.netProfit, netCash:statement.netCash, provisionMonthly:provision.monthly, collectedTotal:rs.collectedTotal, expectedTotal:rs.expectedTotal }
     const locked_at = new Date().toISOString()
-    // Ενημέρωση κατάστασης ΑΜΕΣΩΣ (ΑΝΟΙΧΤΟ → ΚΛΕΙΣΜΕΝΟ), χωρίς να περιμένουμε επαναφόρτωση
-    // (που μπορεί να αστοχήσει/καθυστερήσει). Η εγγραφή στη βάση γίνεται στη συνέχεια.
-    setClosing({ snapshot, locked_at })
+    // Ενημέρωση κατάστασης ΑΜΕΣΩΣ (ΑΝΟΙΧΤΟ → ΚΛΕΙΣΜΕΝΟ) και ΜΟΝΙΜΗ αποθήκευση στη βάση.
+    setLockErr(false); setClosing({ snapshot, locked_at })
     const { error } = await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot, locked_at },{ onConflict:'user_id,property_id,year' })
-    if(error) console.warn('Αποτυχία μόνιμης αποθήκευσης κλειδώματος:', error.message)
+    // Αν η αποθήκευση αποτύχει, ΔΕΝ κρύβουμε το πρόβλημα: επαναφέρουμε την κατάσταση και
+    // ενημερώνουμε τον χρήστη (εμπιστοσύνη — το UI δεν λέει «κλείδωσε» αν δεν κλείδωσε).
+    if(error){ setClosing(null); setLockErr(true); console.warn('Αποτυχία αποθήκευσης κλειδώματος:', error.message) }
   }
   async function unlockYear(){
-    setClosing(null)
+    setLockErr(false); setClosing(null)
     await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
   }
 
@@ -392,6 +394,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
             {st==='open'?(isCurrent?<>Χρήση {year} σε εξέλιξη · μήνας {provMonth} από 12.</>:isFuture?<>Η χρήση {year} δεν έχει ξεκινήσει ακόμη.</>:<>Χρήση {year} ολοκληρωμένη, έτοιμη για κλείδωμα.</>):st==='drift'?<>Η χρήση {year} κλειδώθηκε, αλλά τα δεδομένα άλλαξαν έκτοτε.</>:<>Χρήση {year}, κλειδωμένη στις {new Date(closing!.locked_at).toLocaleDateString('el-GR')}.</>}
             <InfoHint>Το κλείδωμα κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
+            {lockErr && <span style={{ display:'block', marginTop:4, color:'var(--negative)', fontSize:11.5 }}>Το κλείδωμα δεν αποθηκεύτηκε — δοκίμασε ξανά ή έλεγξε τη σύνδεση.</span>}
           </span>
           <div style={{ flex:1 }}/>
           {st==='open'

@@ -121,10 +121,12 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const manualPct = Math.max(0, ...(input.reductions ?? []).map(r => ENFIA_REDUCTIONS.find(rd => rd.key === r)?.pct || 0))
   const combinedFrac = 1 - (1 - wealthPct / 100) * (1 - manualPct / 100)
   const reductionAmount = subtotal * combinedFrac
-  const annual = Math.max(0, subtotal - reductionAmount)
+  // Στρογγυλοποιούμε ΜΙΑ φορά και βγάζουμε τη δόση από το ΕΜΦΑΝΙΖΟΜΕΝΟ ετήσιο ποσό,
+  // ώστε δόση = ceil(ετήσιο/12) να είναι πάντα συνεπής με το ετήσιο που δείχνουμε.
+  const annual = round2(Math.max(0, subtotal - reductionAmount))
   return {
     basic: round2(basic), extra: round2(extra), supplementary: round2(suppl), subtotal: round2(subtotal),
-    reductionPct: Math.round(combinedFrac * 100), reductionAmount: round2(reductionAmount), annual: round2(annual),
+    reductionPct: Math.round(combinedFrac * 100), reductionAmount: round2(reductionAmount), annual,
     installment: Math.ceil(annual / 12),
   }
 }
