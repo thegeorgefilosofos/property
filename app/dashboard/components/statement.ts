@@ -4,6 +4,7 @@
 // Χωρίς εξαρτήσεις· ο χρήστης επιλέγει «Αποθήκευση ως PDF» από τον διάλογο.
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
+import { incomeStatement } from '@/lib/accounting/statement';
 
 export interface StatementCtx {
   propName: string;
@@ -27,7 +28,8 @@ const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 
 export function printPropertyStatement(c: StatementCtx): void {
   const accent = reportAccent(c.branding);
-  const tax = c.annualRent * 0.15;
+  // Φόρος με την κανονική μηχανή (κλίμακα 2026 + τεκμαρτή έκπτωση 5%), όχι flat 15%.
+  const tax = incomeStatement({ regime: 'individual_longterm', grossIncome: c.annualRent }).incomeTax;
   const net = c.annualRent - c.expensesYTD - tax;
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
   const catMax = Math.max(1, ...c.categories.map(([, v]) => v));
@@ -92,7 +94,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   <table>
     ${row('Ακαθάριστα έσοδα (ενοίκια)', eur(c.annualRent), false, '#188038')}
     ${row('Συνολικές δαπάνες', `− ${eur(c.expensesYTD)}`, false, '#c5221f')}
-    ${row('Εκτιμώμενος φόρος (15%)', `− ${eur(tax)}`, false, '#e37400')}
+    ${row('Εκτιμώμενος φόρος εισοδήματος (κλίμακα 2026)', `− ${eur(tax)}`, false, '#e37400')}
     ${row('Καθαρό αποτέλεσμα', `${net < 0 ? '− ' : ''}${eur(Math.abs(net))}`, true, net >= 0 ? '#188038' : '#c5221f')}
   </table>
 
@@ -100,7 +102,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   ${catRows}
 
   <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e8eaed;color:#80868b;font-size:10px;line-height:1.6">
-    ${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}Η παρούσα αναφορά δημιουργήθηκε αυτόματα από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται ενδεικτικά στο 15% των ακαθάριστων εσόδων.
+    ${c.branding?.companyName ? brandName(c.branding) + ' · ' : ''}Η παρούσα αναφορά δημιουργήθηκε αυτόματα από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Ο εκτιμώμενος φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 και την τεκμαρτή έκπτωση 5% (μακροχρόνια μίσθωση φυσικού προσώπου). Επιβεβαίωση με λογιστή/ΑΑΔΕ.
   </div>
   <script>window.onload=function(){setTimeout(function(){window.print()},350)}</script>
 </body></html>`;
