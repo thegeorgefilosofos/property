@@ -14,6 +14,7 @@ import { resolveRent, resolveValue, computeYields } from '@/lib/billing/property
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
 import {
@@ -191,6 +192,20 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       ? `Έσοδα φιλοξενίας από διαμονές επισκεπτών σε αυτό το ακίνητο: ${eur(Math.round(propHostRevenue))} από ${propStays.length} διαμονές (πηγή: Πελατολόγιο).`
       : '';
 
+    // ── Λογιστική εικόνα (ΙΔΙΑ μηχανή με την καρτέλα Λογιστική) ώστε ο βοηθός να
+    // συμβουλεύει με τον σωστό φόρο/καθαρό, όχι με πρόχειρες εκτιμήσεις. ──────────
+    const isShortAcct = propStays.length > 0;
+    const yearStays = propStays.filter((s: any) => (s.check_in || '').slice(0, 4) === String(year));
+    const acctGross = isShortAcct ? yearStays.reduce((sum: number, s: any) => sum + stayTotal(s), 0) : rent * 12;
+    const acctStmt = incomeStatement({
+      regime: isShortAcct ? 'individual_shortterm' : 'individual_longterm',
+      grossIncome: acctGross, otherCashExpenses: paid, loanPrincipal: Math.round(monthlyDebt * 12),
+    });
+    const acctProv = taxProvision(acctStmt, now.getMonth() + 1);
+    const accountingLine = acctGross > 0
+      ? `Λογιστική ${year} (${isShortAcct ? 'βραχυχρόνια' : 'μακροχρόνια'} μίσθωση): μεικτά έσοδα ${eur(Math.round(acctStmt.grossIncome))}, φορολογητέο ${eur(Math.round(acctStmt.taxableIncome))}, εκτιμώμενος φόρος εισοδήματος ${eur(Math.round(acctStmt.incomeTax))} (μέσος συντελεστής ${(acctStmt.effectiveRate * 100).toFixed(1)}%), καθαρό αποτέλεσμα ${eur(Math.round(acctStmt.netProfit))}. Πρόταση πρόβλεψης φόρου: περίπου ${eur(Math.round(acctProv.monthly))} τον μήνα να μπαίνουν στην άκρη. Εκτίμηση με την κλίμακα 2026 (μακροχρόνια: τεκμαρτή έκπτωση 5%· βραχυχρόνια: φόρος στα μεικτά)· τελική επιβεβαίωση με λογιστή/ΑΑΔΕ.`
+      : '';
+
     // ── Εκκρεμότητες: πραγματικές ανοιχτές εργασίες (καρτέλα Εκκρεμότητες) ώστε ο βοηθός
     // να απαντά «τι εκκρεμεί;» με στοιχεία, όχι υποθέσεις, και να ξεχωρίζει τις ληξιπρόθεσμες.
     const openTasks = chk || [];
@@ -235,6 +250,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       st?.insurance_company || st?.insurance_expiry ? `Ασφάλεια: ${st?.insurance_company || 'εταιρεία άγνωστη'}${st?.insurance_expiry ? `, λήξη ${st.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
       loanLine,
       hostingLine,
+      accountingLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
       checklistLine,
       `Σήμερα είναι ${new Date(todayStr).toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${isWeekend(todayStr) ? ' (Σαββατοκύριακο)' : ''}${holidayName(todayStr) ? ` — αργία: ${holidayName(todayStr)}` : ''}.`,

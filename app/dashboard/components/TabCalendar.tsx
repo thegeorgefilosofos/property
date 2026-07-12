@@ -10,7 +10,7 @@ import {
   Zap, Shield, User, Bell, Filter, Download,
   ChevronDown, Edit2, Trash2, RotateCcw,
   Euro, Wrench, RefreshCw,
-  Printer, Square, CheckSquare, CalendarDays, ArrowRight,
+  Printer, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus,
 } from 'lucide-react'
 import { DatePicker } from './UIComponents'
@@ -111,18 +111,21 @@ function isExpiring(e: CalEvent) { const d=daysUntil(e.event_date); return e.cat
 function todayStr() { const d=athensNow(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 function addDaysStr(date:string, days:number) { const [y,m,d]=date.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+days)); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
 
-// Google-style tooltip
+// Google-style tooltip — portal ώστε να ΜΗΝ κόβεται από overflow (π.χ. στα κελιά του μήνα).
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
   const [show, setShow] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ left:number; top:number; below:boolean }>({ left:0, top:0, below:false })
+  const W = 280
+  const place = () => { const el=ref.current; if(!el)return; const r=el.getBoundingClientRect(); const below=r.top<170; const cx=r.left+r.width/2; const left=Math.max(8+W/2, Math.min(cx, window.innerWidth-8-W/2)); setPos({ left, top: below?r.bottom+8:r.top-8, below }) }
+  useEffect(()=>{ if(!show)return; place(); const s=()=>place(); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{ window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s) } },[show])
   return (
-    <div style={{ position:'relative', display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
+    <div ref={ref} style={{ display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
       {children}
-      {show && text && (
-        <div style={{ position:'absolute', bottom:'110%', left:'50%', transform:'translateX(-50%)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:4, padding:'6px 12px', fontSize:12, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", zIndex:999, pointerEvents:'none', maxWidth:260, whiteSpace:'pre-wrap' as any, boxShadow:'var(--shadow-lg)' }}>
+      {show && text && createPortal(
+        <div style={{ position:'fixed', left:pos.left, top:pos.top, transform:`translate(-50%, ${pos.below?'0':'-100%'})`, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 13px', fontSize:12, lineHeight:1.5, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", zIndex:3000, pointerEvents:'none', width:W, maxWidth:'calc(100vw - 16px)', whiteSpace:'pre-wrap' as any, boxShadow:'0 12px 40px rgba(0,0,0,0.32)' }}>
           {text}
-          <div style={{ position:'absolute', top:'100%', left:'50%', transform:'translateX(-50%)', width:0, height:0, borderLeft:'5px solid transparent', borderRight:'5px solid transparent', borderTop:'5px solid var(--border-default)' }}/>
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   )
 }
@@ -158,7 +161,9 @@ function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: C
   const btnRef=useRef<HTMLButtonElement>(null)
   const popRef=useRef<HTMLDivElement>(null)
   const [pos,setPos]=useState({top:0,left:0})
-  const setOpenX=(v:boolean|((o:boolean)=>boolean))=>setOpen(prev=>{ const next=typeof v==='function'?v(prev):v; onOpenChange?.(next); return next })
+  const setOpenX=setOpen
+  // Ειδοποίηση γονέα εκτός φάσης render (όχι μέσα στον updater) — αποφυγή warning/StrictMode διπλο-κλήσης.
+  useEffect(()=>{ onOpenChange?.(open) },[open,onOpenChange])
   const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=420; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
   useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpenX(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
   const links=allCalendarLinks(toCalInput(event))
@@ -218,8 +223,10 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
       borderRadius:10, opacity:done?0.62:1, transition:'all 0.15s', boxShadow:'var(--shadow-sm)',
     }}>
       {bulkMode&&onSelect&&(
-        <button aria-label="Επιλογή" onClick={()=>onSelect(event.id)} style={{ background:'none', border:'none', cursor:'pointer', color:selected?'var(--accent)':'var(--text-tertiary)', padding:0, display:'flex', flexShrink:0, marginTop:2 }}>
-          {selected?<CheckSquare size={16}/>:<Square size={16}/>}
+        <button aria-label="Επιλογή" aria-pressed={selected} onClick={()=>onSelect(event.id)} style={{ background:'none', border:'none', cursor:'pointer', padding:0, display:'flex', flexShrink:0, marginTop:2 }}>
+          <span style={{ width:18, height:18, borderRadius:5, border:`2px solid ${selected?'var(--accent)':'var(--border-default)'}`, background:selected?'var(--accent)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }}>
+            {selected&&<Check size={12} color="var(--accent-text)" strokeWidth={3}/>}
+          </span>
         </button>
       )}
       {!bulkMode&&(
@@ -451,6 +458,12 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
   const GRID='56px repeat(7, minmax(116px, 1fr))'
   const weekHasStay=weekDays.some(wd=>staysOnDay(stays,dsOf(wd)).length>0)
   const hasAllDay=weekHasStay||weekDays.some(wd=>events.some(e=>e.event_date===dsOf(wd)&&!e.event_time&&!(e.source||'').startsWith('booking:')))
+  // Πλήρες 24ωρο: scroll στην πρώτη ώρα με γεγονός (ή πρωί/τρέχουσα) με το άνοιγμα.
+  const HOUR_ROW=46
+  const gridRef=useRef<HTMLDivElement>(null)
+  useEffect(()=>{ const el=gridRef.current; if(!el)return; const hrs=events.filter(e=>!!e.event_time).map(e=>parseInt((e.event_time||'0:0').split(':')[0])); const h=hrs.length?Math.min(...hrs):(weekHasToday?athensNow().getHours():8); el.scrollTop=Math.max(0,(h-1)*HOUR_ROW)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[dsOf(weekDays[0])])
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
       <div style={{ overflowX:'auto' }}>
@@ -487,7 +500,7 @@ function WeekView({ events, currentDate, selectedDate, onDayClick, onSlotClick, 
             </div>
           )}
           {/* Πλέγμα ωρών */}
-          <div style={{ maxHeight:560, overflowY:'auto' }}>
+          <div ref={gridRef} style={{ maxHeight:560, overflowY:'auto' }}>
             {HOURS.map(h=>{ const hh=String(h).padStart(2,'0'); return (
               <div key={h} style={{ display:'grid', gridTemplateColumns:GRID, minHeight:46, borderBottom:'1px solid var(--border-subtle)', position:'relative' }}>
                 <NowLine show={weekHasToday} hour={h} gutter={56}/>
@@ -1119,6 +1132,12 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
     return ()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up) }
   },[rzDur,onResize])
   const startResize=(id:string,dur:number)=>(ev:React.PointerEvent)=>{ if(ev.button&&ev.button!==0)return; ev.stopPropagation(); ev.preventDefault(); resized.current=false; rz.current={id,startY:ev.clientY,startDur:dur} }
+  // Πλήρες 24ωρο: με το άνοιγμα κάνε scroll στην πρώτη ώρα με γεγονός (ή πρωί/τρέχουσα ώρα)
+  // ώστε να μη «κρύβεται» η μέρα κάτω από τα μεσάνυχτα.
+  const gridRef=useRef<HTMLDivElement>(null)
+  useEffect(()=>{ const el=gridRef.current; if(!el)return; const h=timed.length?Math.min(...timed.map(e=>Math.floor(toMin(e.event_time)/60))):(isToday?athensNow().getHours():8); el.scrollTop=Math.max(0,(h-1)*HOUR_H)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[dateStr])
   return (
     <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:16, boxShadow:'var(--shadow-sm)', overflow:'hidden' }}>
       {allDay.length>0&&(
@@ -1131,7 +1150,7 @@ function DayView({ events, currentDate, onSlotClick, onEventClick, drag, onResiz
           ))}
         </div>
       )}
-      <div style={{ maxHeight:600, overflowY:'auto' }}>
+      <div ref={gridRef} style={{ maxHeight:600, overflowY:'auto' }}>
         <div style={{ position:'relative', height:HOURS.length*HOUR_H }}>
           {/* Υπόβαθρο: γραμμές ωρών + κλικ για νέο ραντεβού */}
           {HOURS.map((h,i)=>{ const hh=String(h).padStart(2,'0'); return (
@@ -1172,6 +1191,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const [currentDate,setCurrentDate]=useState(athensNow())
   const [selectedDate,setSelectedDate]=useState<string>(todayStr())
   const [pendingTime,setPendingTime]=useState<string>('')
+  const [hoverKpi,setHoverKpi]=useState<string|null>(null)
   const [showModal,setShowModal]=useState(false)
   const [editingEvent,setEditingEvent]=useState<CalEvent|null>(null)
   const [editOccDate,setEditOccDate]=useState<string|null>(null)   // ημερομηνία της συγκεκριμένης εμφάνισης
@@ -1503,22 +1523,25 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
       {/* KPI Bar */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:12 }}>
         {([
-          {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
-          {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:overdue.length>0?'var(--negative)':'var(--text-secondary)', icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', icon:<Clock size={14}/>, onClick:undefined, open:false},
-          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', icon:<Shield size={14}/>, onClick:undefined, open:false},
-        ] as {label:string;value:string;color:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
+          {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', hoverColor:undefined, icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
+          {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:'var(--text-secondary)', hoverColor:overdue.length>0?'var(--negative)':undefined, icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', hoverColor:undefined, icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', hoverColor:undefined, icon:<Shield size={14}/>, onClick:undefined, open:false},
+        ] as {label:string;value:string;color:string;hoverColor?:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
           const clickable=!!kpi.onClick
+          // Έξυπνο χρώμα: ουδέτερο σαν τα υπόλοιπα, γίνεται «σημαντικό» χρώμα μόνο σε hover/άνοιγμα.
+          const active=hoverKpi===kpi.label||kpi.open
+          const c=kpi.hoverColor&&active?kpi.hoverColor:kpi.color
           return (
-          <div key={kpi.label} role={clickable?'button':undefined} tabIndex={clickable?0:undefined} onClick={kpi.onClick} onKeyDown={clickable?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();kpi.onClick!()}}:undefined} style={{ position:'relative', background:kpi.open?`linear-gradient(180deg, color-mix(in srgb, ${kpi.color} 8%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)`:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:`1px solid ${kpi.open?`color-mix(in srgb, ${kpi.color} 45%, var(--border-subtle))`:'var(--border-subtle)'}`, borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', cursor:clickable?'pointer':'default', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s' }}
-            onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
-            onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
-            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:kpi.color, opacity:0.55 }}/>
+          <div key={kpi.label} role={clickable?'button':undefined} tabIndex={clickable?0:undefined} onClick={kpi.onClick} onKeyDown={clickable?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();kpi.onClick!()}}:undefined} style={{ position:'relative', background:kpi.open?`linear-gradient(180deg, color-mix(in srgb, ${c} 8%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)`:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:`1px solid ${kpi.open?`color-mix(in srgb, ${c} 45%, var(--border-subtle))`:'var(--border-subtle)'}`, borderRadius:14, padding:'13px 16px', boxShadow:'0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)', overflow:'hidden', cursor:clickable?'pointer':'default', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s' }}
+            onMouseEnter={e=>{setHoverKpi(kpi.label);e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 32px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35)'}}
+            onMouseLeave={e=>{setHoverKpi(null);e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px -8px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.3)'}}>
+            <span style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:c, opacity:0.55, transition:'background 0.16s' }}/>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
-              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${kpi.color} 14%, transparent)`, color:kpi.color }}>{kpi.icon}</span>
+              <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:`color-mix(in srgb, ${c} 14%, transparent)`, color:c, transition:'color 0.16s, background 0.16s' }}>{kpi.icon}</span>
               <p style={{ fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase', flex:1 }}>{kpi.label}</p>
             </div>
-            <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:kpi.color, fontWeight:500, letterSpacing:'0.2px' }}>{kpi.value}</p>
+            <p style={{ fontSize:17, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:c, fontWeight:500, letterSpacing:'0.2px', transition:'color 0.16s' }}>{kpi.value}</p>
           </div>
         )})}
       </div>
@@ -1584,8 +1607,8 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>
 
-        <button onClick={()=>openNew()} title={pendingTime?`Νέο γεγονός στις ${pendingTime}`:'Νέο γεγονός'} style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius:18, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
-          <Plus size={15}/>Νέο{pendingTime?` · ${pendingTime}`:''}
+        <button onClick={()=>openNew()} title="Νέο γεγονός" style={{ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius:18, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
+          <Plus size={15}/>Νέο
         </button>
 
         {/* Ένα ήσυχο μενού για όλα τα δευτερεύοντα */}
