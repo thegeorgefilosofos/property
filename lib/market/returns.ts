@@ -127,7 +127,8 @@ export function leverage(input: LeverageInput): LeverageResult {
     equity: round2(equity), loan: round2(loan), annualRent: round2(annualRent), noi: round2(noi),
     annualDebtService: round2(annualDebtService), annualInterest: round2(annualInterest), cashFlow: round2(cashFlow),
     unleveredYield: round1(unlevered), cashOnCash: round1(coc), leverageBoost: round1(coc - unlevered),
-    positiveCarry: num(input.grossYieldPct) > effectiveRate, effectiveLoanRate: round2(effectiveRate),
+    // Θετικό carry = ΚΑΘΑΡΗ (unlevered) απόδοση > κόστος δανείου (συνεπές με το NOI/cash-on-cash).
+    positiveCarry: unlevered > effectiveRate, effectiveLoanRate: round2(effectiveRate),
   }
 }
 

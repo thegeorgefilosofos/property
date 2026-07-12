@@ -101,7 +101,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [opex, setOpex] = useState('');
   const [region, setRegion] = useState('ath_center');
   const [appreciation, setAppreciation] = useState('3');
-  const [horizon, setHorizon] = useState<'10' | '20'>('10');
+  // Ξεχωριστός ορίζοντας ανά ενότητα (η αλλαγή στη μία ΔΕΝ επηρεάζει τις άλλες).
+  const [histYears, setHistYears] = useState<'10' | '20'>('10');
+  const [cmpYears, setCmpYears] = useState<'10' | '20'>('10');
+  const [compYears, setCompYears] = useState<'10' | '20'>('10');
 
   // Εργαλεία (pro)
   const [compRate, setCompRate] = useState('5');
@@ -138,15 +141,16 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const nRent = parseFloat(rent) || 0;
   const nOpex = parseFloat(opex) || 0;
   const nAppr = parseFloat(appreciation) || 0;
-  const years = parseInt(horizon);
 
   // Φόρος εισοδήματος (ίδια μηχανή με τη Λογιστική).
   const annualTax = useMemo(() => {
     const gross = nRent * 12;
     if (gross <= 0) return 0;
     if (pro) {
-      const st = incomeStatement({ regime: 'business', businessForm: entity, grossIncome: gross, itemizedExpenses: entity === 'sole' ? nOpex : nOpex });
-      return st.incomeTax + (st.dividendTax || 0);
+      // Νομικό πρόσωπο: 22% + φόρος μερίσματος 5% στη διανομή (προεπιλογή: πλήρης διανομή,
+      // ώστε ο φόρος να δείχνει τι φτάνει πραγματικά στον ιδιοκτήτη).
+      const stB = incomeStatement({ regime: 'business', businessForm: entity, grossIncome: gross, itemizedExpenses: nOpex, companyDistribution: entity === 'company' ? 1 : 0 });
+      return stB.incomeTax + (stB.dividendTax || 0);
     }
     const regime: TaxRegime = term === 'short' ? 'individual_shortterm' : 'individual_longterm';
     return incomeStatement({ regime, grossIncome: gross, rentsPaidViaBank: true }).incomeTax;
@@ -159,27 +163,28 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Ιστορική διαδρομή: πώς θα κινούνταν η αξία σου τα τελευταία 10/20 έτη.
   const hist = useMemo(() => {
-    const base = HISTORY_INDEX.filter(p => p.year >= (years === 20 ? 2007 : 2016));
+    const base = HISTORY_INDEX.filter(p => p.year >= (histYears === '20' ? 2007 : 2016));
     const latest = HISTORY_INDEX[HISTORY_INDEX.length - 1].price;
     return base.map(p => ({ year: p.year, value: nVal > 0 ? Math.round(nVal * p.price / latest) : Math.round(p.price) }));
-  }, [nVal, years]);
+  }, [nVal, histYears]);
   const histStart = hist[0]?.value || 0;
   const histEnd = hist[hist.length - 1]?.value || 0;
   const histMax = Math.max(...hist.map(h => h.value), 1);
 
-  // Σύγκριση με εναλλακτικές (ανατοκισμένο ισόποσο για `years`).
+  // Σύγκριση με εναλλακτικές — ΟΛΑ προ φόρου εισοδήματος για δίκαιη σύγκριση (like-for-like):
+  // το ακίνητο με ΚΑΘΑΡΗ απόδοση (προ φόρου) + ανατίμηση· οι εναλλακτικές με τη μεικτή τους απόδοση.
   const compare = useMemo(() => {
-    const totalReturn = propertyTotalReturn(y.netYieldAfterTax, nAppr);
+    const totalReturn = propertyTotalReturn(y.netYield, nAppr);
     const opts = [
       { key: 'property', label: 'Ακίνητο (απόδοση + ανατίμηση)', annualReturnPct: totalReturn },
       ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: b.annualReturnPct })),
     ];
-    return compareInvestments(nVal || 100000, years, opts);
-  }, [y.netYieldAfterTax, nAppr, nVal, years]);
+    return compareInvestments(nVal || 100000, parseInt(cmpYears), opts);
+  }, [y.netYield, nAppr, nVal, cmpYears]);
   const compMax = Math.max(...compare.map(c => c.futureValue), 1);
 
   // Εργαλεία (pro)
-  const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, years, Math.max(0, Math.round((nRent * 12 - nOpex - annualTax)))), [nVal, compRate, years, nRent, nOpex, annualTax]);
+  const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, parseInt(compYears), Math.max(0, Math.round((nRent * 12 - nOpex - annualTax)))), [nVal, compRate, compYears, nRent, nOpex, annualTax]);
   const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: nRent > 0 ? (nOpex / (nRent * 12)) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, nOpex, nRent, ifree]);
 
   if (loading) return <div style={{ padding: 40 }}><Spinner label="Φόρτωση αποδόσεων…" /></div>;
@@ -246,9 +251,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 2) Ιστορική διαδρομή */}
-        <Section icon={<TrendingUp size={15} />} title={`Ιστορική διαδρομή ${horizon}ετίας`} sub="Πώς θα κινούνταν η αξία ενός ακινήτου σαν το δικό σου (δείκτης ΤτΕ)">
+        <Section icon={<TrendingUp size={15} />} title={`Ιστορική διαδρομή ${histYears}ετίας`} sub="Πώς θα κινούνταν η αξία ενός ακινήτου σαν το δικό σου (δείκτης ΤτΕ)">
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-            <Seg value={horizon} onChange={setHorizon} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+            <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 130, padding: '0 2px' }}>
             {hist.map(h => {
@@ -270,13 +275,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
-        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal, 0)}) ανατοκισμένο σε ${horizon} έτη`}>
+        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal, 0)}) ανατοκισμένο σε ${cmpYears} έτη`}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</span>
               <div style={{ width: 90 }}><NumberInput label="" value={appreciation} onChange={setAppreciation} suffix="%" step={0.5} max={20} /></div>
             </div>
-            <Seg value={horizon} onChange={setHorizon} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+            <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {compare.map(c => (
@@ -284,7 +289,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Το ακίνητο = καθαρή απόδοση μετά φόρου + ανατίμηση. Οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές & ρευστές</strong>· το ακίνητο έχει κόστος συναλλαγής (~4–10%), χρόνο, φόρους και συγκέντρωση κινδύνου. Το S&P 500 ETF (accumulating) δεν έχει φόρο μερίσματος. Ενδεικτικά, όχι επενδυτική συμβουλή.
+            Όλα <strong style={{ color: 'var(--text-secondary)' }}>προ φόρου εισοδήματος</strong> για δίκαιη σύγκριση: το ακίνητο = καθαρή απόδοση + ανατίμηση· οι εναλλακτικές με τη μεικτή τους απόδοση (τόκοι κατάθεσης/ομολόγου φορολογούνται 15%). Οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές & ρευστές</strong>· το ακίνητο έχει κόστος συναλλαγής (~4–10%), χρόνο και συγκέντρωση κινδύνου. Το S&P 500 ETF (accumulating) δεν έχει φόρο μερίσματος. Ενδεικτικά, όχι επενδυτική συμβουλή.
           </p>
         </Section>
 
@@ -297,7 +302,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ ...titleStyle, marginBottom: 12 }}>Ανατοκισμός επανεπένδυσης</p>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ width: 150 }}><NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} /></div>
-                  <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας</p><Seg value={horizon} onChange={setHorizon} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+                  <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας</p><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Τελική αξία</p><p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.futureValue, 0)}</p></div>
@@ -318,7 +323,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Απόδοση ιδίων</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashOnCash >= 0 ? 'var(--accent)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fp(lev.cashOnCash)}</p></div>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Ετήσια ροή</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashFlow >= 0 ? 'var(--positive)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(lev.cashFlow, 0)}</p></div>
                 </div>
-                <p style={{ fontSize: 10.5, color: lev.positiveCarry ? 'var(--positive)' : 'var(--warning)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: απόδοση ${fp(y.grossYield)} > κόστος δανείου ${fp(lev.effectiveLoanRate)}.` : `Αρνητική μόχλευση: κόστος δανείου ${fp(lev.effectiveLoanRate)} ≥ απόδοση ${fp(y.grossYield)}.`}</p>
+                <p style={{ fontSize: 10.5, color: lev.positiveCarry ? 'var(--positive)' : 'var(--warning)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: καθαρή απόδοση ${fp(lev.unleveredYield)} > κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ροή μπορεί να είναι αρνητική λόγω χρεολυσίου (χτίζεις κεφάλαιο).` : `Αρνητική μόχλευση: κόστος δανείου ${fp(lev.effectiveLoanRate)} ≥ καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
               </div>
             </div>
           </Section>
