@@ -7,7 +7,7 @@ import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/a
 import { transferCosts } from '@/lib/accounting/transfer'
 import { InfoHint } from './InfoHint'
 import BankImport from './BankImport'
-import { Landmark } from 'lucide-react'
+import { Landmark, Lock } from 'lucide-react'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
   type LedgerInput, type Expected, type Actual, type ReconStatus,
@@ -238,6 +238,25 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const maxCash = Math.max(1, ...cash.map(c=>Math.max(c.income,c.expense)))
 
+  // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
+  const [closing,setClosing] = useState<{ snapshot:any; locked_at:string }|null>(null)
+  useEffect(()=>{ (async()=>{
+    const { data } = await supabase.from('book_closings').select('snapshot,locked_at').eq('property_id',propertyId).eq('user_id',userId).eq('year',year).maybeSingle()
+    setClosing((data as any)||null)
+  })() },[propertyId,userId,year,refreshKey])
+  // Υπογραφή των βασικών αριθμών, για ανίχνευση απόκλισης μετά το κλείδωμα.
+  const bookSig = useMemo(()=>[statement.taxableIncome,statement.incomeTax,statement.netProfit,statement.netCash,rs.collectedTotal].map(n=>Math.round(n)).join('|'),[statement,rs])
+  const drift = !!closing && closing.snapshot?.sig!=null && closing.snapshot.sig!==bookSig
+  async function lockYear(){
+    const snapshot = { sig:bookSig, taxableIncome:statement.taxableIncome, incomeTax:statement.incomeTax, netProfit:statement.netProfit, netCash:statement.netCash, provisionMonthly:provision.monthly, collectedTotal:rs.collectedTotal, expectedTotal:rs.expectedTotal }
+    await supabase.from('book_closings').upsert({ user_id:userId, property_id:propertyId, year, snapshot },{ onConflict:'user_id,property_id,year' })
+    setRefreshKey(k=>k+1)
+  }
+  async function unlockYear(){
+    await supabase.from('book_closings').delete().eq('property_id',propertyId).eq('user_id',userId).eq('year',year)
+    setRefreshKey(k=>k+1)
+  }
+
   function exportBundle(){
     // Φάκελος για τον λογιστή: κατάσταση αποτελεσμάτων + κινήσεις έτους.
     const rows:(string|number)[][] = []
@@ -301,6 +320,26 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <button onClick={()=>setYear(y=>y+1)} aria-label="Επόμενο έτος" style={{ width:34, height:34, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><ChevronRight size={17}/></button>
           </div>
         </div>
+      </div>
+
+      {/* Κλείσιμο χρήσης, διακριτικό */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', padding:'9px 14px', borderRadius:11, background: drift?'color-mix(in srgb, var(--warning) 8%, var(--bg-surface))':'var(--bg-surface)', border:`1px solid ${drift?'var(--warning)':closing?'var(--border-default)':'var(--border-subtle)'}` }}>
+        {closing ? (<>
+          <Lock size={14} style={{ color: drift?'var(--warning)':'var(--text-secondary)', flexShrink:0 }}/>
+          <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
+            {drift ? <>Το {year} είναι κλεισμένο, αλλά τα δεδομένα άλλαξαν από τότε.</> : <>Το {year} είναι κλεισμένο ({new Date(closing.locked_at).toLocaleDateString('el-GR')}).</>}
+            <InfoHint>Το κλείσιμο κρατά αμετάβλητο στιγμιότυπο των αριθμών του έτους. Αν αργότερα αλλάξεις ενοίκια ή έξοδα, εμφανίζεται προειδοποίηση απόκλισης, χωρίς να χαθεί το αρχικό κλείδωμα.</InfoHint>
+          </span>
+          <div style={{ flex:1 }}/>
+          {drift&&<button onClick={lockYear} style={{ height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Ενημέρωση κλειδώματος</button>}
+          <button onClick={unlockYear} style={{ height:30, padding:'0 12px', borderRadius:15, border:'none', background:'transparent', color:'var(--text-tertiary)', fontSize:12.5, cursor:'pointer', fontFamily:"'Inter',sans-serif" }}>Ξεκλείδωμα</button>
+        </>) : (<>
+          <span style={{ fontSize:12.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Έτος ανοιχτό.
+            <InfoHint>Κλείδωσε το έτος για να κρατήσεις αμετάβλητο στιγμιότυπο των αριθμών (χρήσιμο μετά την υποβολή στην ΑΑΔΕ). Αν αλλάξουν δεδομένα, θα σε ειδοποιήσουμε για την απόκλιση.</InfoHint>
+          </span>
+          <div style={{ flex:1 }}/>
+          <button onClick={lockYear} style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 13px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-secondary)', fontSize:12.5, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.borderColor='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.borderColor='var(--border-default)'}}><Lock size={13}/>Κλείδωμα έτους</button>
+        </>)}
       </div>
 
       {/* Παράμετροι επιχείρησης, διακριτικά, μόνο στο επιχειρηματικό καθεστώς */}
