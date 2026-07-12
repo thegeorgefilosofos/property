@@ -44,19 +44,22 @@ const REFER_LABEL: Record<ReferProfessional, string> = {
   accountant: 'Συζήτησέ το με τον λογιστή σου',
   lawyer: 'Ζήτησε νομική γνώμη (δικηγόρος)',
   notary: 'Απευθύνσου σε συμβολαιογράφο',
-  bank: 'Δες με την τράπεζα / σύμβουλο δανείων',
+  bank: 'Συμβουλέψου την τράπεζα ή σύμβουλο δανείων',
 }
 export const referLabel = (r?: ReferProfessional): string | undefined => (r ? REFER_LABEL[r] : undefined)
 
 const eur = (n: number) => Math.round(n).toLocaleString('el-GR') + ' €'
 
 // Επίσημες πηγές (σταθερές, δημόσιες), για να ανοίγει ο χρήστης το επίσημο σημείο.
+// Επίσημες, επαληθευμένες πηγές (deep links). Ανοίγουν στον browser του χρήστη
+// σε νέα καρτέλα. Ελέγχθηκαν ώστε να οδηγούν στην ακριβή σελίδα, όχι σε αρχική.
 const SRC = {
-  aade: 'https://www.aade.gr',
-  spitiMou: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akineta/programma-spiti-mou',
-  exoikonomo: 'https://exoikonomo.gov.gr',
-  ktimatologio: 'https://www.ktimatologio.gr',
-  business: 'https://www.gov.gr/ipiresies/epikheirematike-drasterioteta',
+  aadeRentals: 'https://www.aade.gr/polites/eisodima/misthotiria-akiniton',
+  aadeIncome: 'https://www.aade.gr/polites/eisodima/dilosi-forologias-eisodimatos-fp-e1-e2-e3',
+  spitiMou: 'https://stegasi.gov.gr/programs/spiti-mou-ii/',
+  anakainizo: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/epidoteseis-politon/anakainizo-noikiazo',
+  exoikonomo: 'https://www.gov.gr/ipiresies/periousia-kai-phorologia/diakheirise-akinetes-periousias/exoikonomo-2025',
+  business: 'https://www.gov.gr/ipiresies/epikheirematike-drasterioteta/enarxe-kai-luse-epikheireses/enarxe-atomikes-epikheireses',
 }
 
 /**
@@ -77,15 +80,15 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       items.push({
         id: 'youth-business', tone: 'opportunity',
         title: `Μειωμένη κλίμακα νέων, ${age <= 25 ? 'έως 25' : '26–30'} ετών`,
-        body: `Ως ${age <= 25 ? 'έως 25' : '26–30'} ετών με επιχειρηματική δραστηριότητα (ατομική επιχείρηση, άρθρο 15), φορολογείσαι με ${rate} (ν.5246/2025). Ο υπολογισμός εδώ ήδη το εφαρμόζει, για την οριστική εκκαθάριση χρειάζεται δήλωση με τη σωστή ηλικιακή ένδειξη.`,
-        refer: 'accountant', linkLabel: 'Δες στην ΑΑΔΕ', linkHref: SRC.aade,
+        body: `Ως επιχειρηματίας ${age <= 25 ? 'έως 25' : '26–30'} ετών (ατομική επιχείρηση, άρθρο 15), φορολογείσαι με ${rate} (ν.5246/2025). Ο υπολογισμός εδώ ήδη το εφαρμόζει, για την οριστική εκκαθάριση χρειάζεται δήλωση με τη σωστή ηλικιακή ένδειξη.`,
+        refer: 'accountant', linkLabel: 'Φορολογία εισοδήματος (ΑΑΔΕ)', linkHref: SRC.aadeIncome,
       })
     } else {
       items.push({
         id: 'youth-not-rent', tone: 'insight',
         title: 'Η ελάφρυνση νέων ΔΕΝ αφορά τα ενοίκια',
         body: `Η μειωμένη κλίμακα νέων (0% έως 25, 9% για 26–30) ισχύει για εισόδημα από μισθωτή εργασία και επιχειρηματική δραστηριότητα, ΟΧΙ για παθητικά ενοίκια, που φορολογούνται με τη δική τους κλίμακα ακινήτων (15/25/35/45), ανεξαρτήτως ηλικίας. Αν αξιοποιείς ακίνητα επαγγελματικά (π.χ. μεσιτικό, οργανωμένη βραχυχρόνια με υπηρεσίες), τότε μπαίνεις στην κλίμακα άρθρου 15 και δικαιούσαι την ελάφρυνση.`,
-        refer: 'accountant',
+        refer: 'accountant', linkLabel: 'Μισθώσεις ακινήτων (ΑΑΔΕ)', linkHref: SRC.aadeRentals,
       })
     }
   }
@@ -95,8 +98,8 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
     items.push({
       id: 'longterm-exemption', tone: 'opportunity',
       title: 'Απαλλαγή φόρου ενοικίου έως 3 έτη',
-      body: `Κατοικίες που ήταν κλειστές ή σε βραχυχρόνια και μετατρέπονται σε μακροχρόνια μίσθωση μπορεί να απαλλάσσονται από φόρο εισοδήματος ενοικίου για έως τρία έτη (κίνητρο στέγασης, με προϋποθέσεις εμβαδού/χρόνου). Αν σε ενδιαφέρει σταθερότερο εισόδημα με χαμηλό ρίσκο, αξίζει σύγκριση καθαρού βραχυχρόνιας vs. απαλλασσόμενης μακροχρόνιας.`,
-      refer: 'accountant', linkLabel: 'Όροι στην ΑΑΔΕ', linkHref: SRC.aade,
+      body: `Κατοικίες που ήταν κλειστές ή σε βραχυχρόνια και μετατρέπονται σε μακροχρόνια μίσθωση μπορεί να απαλλάσσονται από φόρο εισοδήματος ενοικίου για έως τρία έτη (κίνητρο στέγασης, με προϋποθέσεις εμβαδού/χρόνου). Αν σε ενδιαφέρει σταθερότερο εισόδημα με χαμηλό ρίσκο, αξίζει να συγκρίνεις το καθαρό έσοδο της βραχυχρόνιας έναντι της απαλλασσόμενης μακροχρόνιας.`,
+      refer: 'accountant', linkLabel: 'Μισθώσεις ακινήτων (ΑΑΔΕ)', linkHref: SRC.aadeRentals,
     })
   }
 
@@ -105,7 +108,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
     id: 'renovation-credit', tone: 'action',
     title: 'Ανακαίνιση & αναβάθμιση, έκπτωση φόρου 40%',
     body: `Δαπάνες ενεργειακής, λειτουργικής και αισθητικής αναβάθμισης κτιρίων εκπίπτουν από τον φόρο εισοδήματος κατά 40%, ισόποσα σε βάθος ετών, με ανώτατο όριο και με προϋπόθεση ηλεκτρονικής πληρωμής και παραστατικών. Κράτα τιμολόγια και εξοφλήσεις μέσω τραπέζης/κάρτας, εδώ μπορείς να τα καταχωρείς ως έξοδα ανά ακίνητο.`,
-    refer: 'accountant', linkLabel: 'Δες στην ΑΑΔΕ', linkHref: SRC.aade,
+    refer: 'accountant', linkLabel: 'Φορολογία εισοδήματος (ΑΑΔΕ)', linkHref: SRC.aadeIncome,
   })
 
   // 4) Πρόγραμμα «Εξοικονομώ» για ενεργειακή αναβάθμιση (επιδότηση).
@@ -114,7 +117,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       id: 'exoikonomo', tone: 'opportunity',
       title: 'Πρόγραμμα «Εξοικονομώ», επιδότηση αναβάθμισης',
       body: `Για ενεργειακή αναβάθμιση (κουφώματα, μόνωση, θέρμανση, φωτοβολταϊκά) το «Εξοικονομώ» επιδοτεί μέρος της δαπάνης ανάλογα με εισοδηματικά κριτήρια. Ανεβάζει την ενεργειακή κλάση, μειώνει λογαριασμούς και αυξάνει την αξία/ενοίκιο του ακινήτου.`,
-      linkLabel: 'exoikonomo.gov.gr', linkHref: SRC.exoikonomo,
+      linkLabel: 'Πρόγραμμα Εξοικονομώ (gov.gr)', linkHref: SRC.exoikonomo,
     })
   }
 
@@ -124,14 +127,14 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       id: 'loan-idea', tone: 'insight',
       title: 'Χρηματοδότηση: «Σπίτι μου ΙΙ» & επισκευαστικά',
       body: `Για αγορά πρώτης κατοικίας (νέοι/νέα ζευγάρια) το «Σπίτι μου ΙΙ» δίνει άτοκο ή χαμηλότοκο τμήμα δανείου με κριτήρια. Για ανακαίνιση υπάρχουν επισκευαστικά/«Ανακαινίζω-Νοικιάζω». Στο εργαλείο Δάνεια βλέπεις επιλεξιμότητα και σύγκριση δόσης πριν πας στην τράπεζα.`,
-      refer: 'bank', linkLabel: 'Πρόγραμμα Σπίτι μου', linkHref: SRC.spitiMou,
+      refer: 'bank', linkLabel: 'Σπίτι μου ΙΙ (gov.gr)', linkHref: SRC.spitiMou,
     })
   } else if ((input.loanInterestYear ?? 0) > 0 && !business) {
     items.push({
       id: 'loan-interest-nondeduct', tone: 'caution',
-      title: 'Οι τόκοι δανείου δεν εκπίπτουν ως ιδιώτης',
+      title: 'Οι τόκοι δανείου δεν εκπίπτουν για ιδιώτη',
       body: `Για φυσικό πρόσωπο με ενοίκια, οι τόκοι στεγαστικού ΔΕΝ μειώνουν τη φορολογητέα βάση, μειώνουν μόνο το ταμείο. Αν το χαρτοφυλάκιο μεγαλώνει, η επιχειρηματική δομή (όπου τόκοι & αποσβέσεις εκπίπτουν) μπορεί να αλλάξει την εικόνα. Χρειάζεται προσεκτική σύγκριση.`,
-      refer: 'accountant',
+      refer: 'accountant', linkLabel: 'Μισθώσεις ακινήτων (ΑΑΔΕ)', linkHref: SRC.aadeRentals,
     })
   }
 
@@ -142,14 +145,14 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       id: 'structure', tone: 'insight',
       title: 'Δομή αξιοποίησης: ιδιώτης, ατομική ή εταιρεία;',
       body: `Με ${input.propertyCount} ακίνητα και έσοδα ${eur(input.grossIncome)}, αξίζει να εξεταστεί αν συμφέρει να παραμείνεις ιδιώτης (κλίμακα ενοικίων), να ανοίξεις ατομική επιχείρηση (κλίμακα άρθρου 15, έκπτωση εξόδων/αποσβέσεων/τόκων) ή νομικό πρόσωπο / holding (σταθερό 22% + διανομή). Καθένα έχει διαφορετικό φόρο, ασφαλιστικές εισφορές, κόστος και ευθύνη. Δεν υπάρχει «σωστό» χωρίς την πλήρη εικόνα.`,
-      refer: 'accountant', linkLabel: 'Ίδρυση επιχείρησης (gov.gr)', linkHref: SRC.business,
+      refer: 'accountant', linkLabel: 'Έναρξη επιχείρησης (gov.gr)', linkHref: SRC.business,
     })
   } else if (business && input.businessForm === 'sole' && input.taxableIncome >= 40000) {
     items.push({
       id: 'structure-company', tone: 'insight',
-      title: 'Ατομική vs νομικό πρόσωπο σε υψηλά κέρδη',
+      title: 'Ατομική έναντι νομικού προσώπου σε υψηλά κέρδη',
       body: `Με καθαρά κέρδη ${eur(input.taxableIncome)}, η ατομική επιχείρηση μπαίνει στα υψηλά κλιμάκια (έως 44%), ενώ ένα νομικό πρόσωπο (π.χ. ΙΚΕ) φορολογείται με 22%, με κόστος διανομής μερίσματος και λειτουργίας. Πάνω από ένα όριο κερδών η εταιρική μορφή συχνά συμφέρει· η ισορροπία εξαρτάται από το αν αναλαμβάνεις τα κέρδη ή τα επανεπενδύεις.`,
-      refer: 'accountant',
+      refer: 'accountant', linkLabel: 'Έναρξη επιχείρησης (gov.gr)', linkHref: SRC.business,
     })
   }
 
@@ -160,7 +163,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
       id: 'income-split', tone: 'insight',
       title: 'Κατανομή εισοδήματος στα κλιμάκια',
       body: `Το οριακό σου κλιμάκιο είναι ${Math.round(marg * 100)}%. Επειδή η κλίμακα είναι προοδευτική, η κατανομή της κυριότητας/επικαρπίας σε περισσότερα πρόσωπα (π.χ. σύζυγο) ή η αξιοποίηση ζημιών/απαλλαγών μπορεί να μειώσει τον μέσο συντελεστή, πάντα νόμιμα και με ουσία, όχι εικονικά. Απαιτεί εξέταση της συνολικής οικογενειακής εικόνας.`,
-      refer: 'accountant',
+      refer: 'accountant', linkLabel: 'Φορολογία εισοδήματος (ΑΑΔΕ)', linkHref: SRC.aadeIncome,
     })
   }
 
@@ -168,7 +171,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
   items.push({
     id: 'insurance', tone: 'action',
     title: 'Ασφάλιση ακινήτου & απώλειας ενοικίου',
-    body: `Ασφαλιστήριο πυρός/σεισμού και κάλυψη απώλειας ενοικίου προστατεύει τόσο την περιουσία όσο και τη ροή εσόδων σε ζημιά ή αφερεγγυότητα μισθωτή. Για επαγγελματική δομή, τα ασφάλιστρα ακινήτου εκπίπτουν ως έξοδο.`,
+    body: `Ασφαλιστήριο πυρός/σεισμού και κάλυψη απώλειας ενοικίου προστατεύουν τόσο την περιουσία όσο και τη ροή εσόδων σε ζημιά ή αφερεγγυότητα μισθωτή. Για επαγγελματική δομή, τα ασφάλιστρα ακινήτου εκπίπτουν ως έξοδο.`,
   })
 
   // Ταξινόμηση: opportunity/action πρώτα (πρακτική αξία), μετά insight, μετά caution.
