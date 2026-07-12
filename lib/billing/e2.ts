@@ -76,3 +76,40 @@ export function e2RowToCells(r: E2Row, index: number): (string | number)[] {
   const dec = (n: number) => n.toFixed(2).replace('.', ',');
   return [index, r.atak, r.address, r.ownerAfm, dec(r.ownershipPct), r.leaseKind, r.months, r.incomeCategory, String(Math.round(r.grossIncome))];
 }
+
+// ── Σύνοψη Ε1 (Πίνακας 4Δ1) — άθροισμα ακαθάριστου εισοδήματος ανά κωδικό ─────
+// Το Ε2 τροφοδοτεί το Ε1: τα ακαθάριστα ανά κατηγορία μεταφέρονται σε συγκεκριμένους
+// κωδικούς. Οι ΑΡΙΘΜΗΤΙΚΟΙ κωδικοί είναι ΕΝΔΕΙΚΤΙΚΟΙ (αλλάζουν ανά έτος) — επιβεβαίωσε
+// στο έντυπο του τρέχοντος έτους στο myAADE.
+export const E1_CODE_MAP: Record<string, { code: string; label: string }> = {
+  'Κατοικία': { code: '103', label: 'Ακαθάριστο εισόδημα από εκμίσθωση κατοικιών' },
+  'Βραχυχρόνια μίσθωση': { code: '105', label: 'Βραχυχρόνια μίσθωση ακινήτων (ψηφιακές πλατφόρμες)' },
+  'Επαγγελματική στέγη': { code: '107', label: 'Εκμίσθωση επαγγελματικής στέγης / λοιπών' },
+  'Γη / Αγρός': { code: '107', label: 'Εκμίσθωση γαιών / λοιπών ακινήτων' },
+  'Βοηθητικός χώρος': { code: '103', label: 'Ακαθάριστο εισόδημα από εκμίσθωση κατοικιών' },
+  'Ακίνητο': { code: '107', label: 'Εκμίσθωση λοιπών ακινήτων' },
+}
+
+export interface E1CodeLine { code: string; label: string; category: string; amount: number }
+export interface E1Summary { lines: E1CodeLine[]; totalGross: number; note: string }
+
+/** Ομαδοποιεί τα Ε2 ακαθάριστα εισοδήματα στους κωδικούς του Ε1 (Πίνακας 4Δ1). */
+export function buildE1Summary(rows: E2Row[]): E1Summary {
+  const byCode = new Map<string, E1CodeLine>()
+  for (const r of rows) {
+    if (!(r.grossIncome > 0)) continue
+    const map = E1_CODE_MAP[r.incomeCategory] || E1_CODE_MAP['Ακίνητο']
+    const key = map.code + '|' + r.incomeCategory
+    const existing = byCode.get(key)
+    if (existing) existing.amount += r.grossIncome
+    else byCode.set(key, { code: map.code, label: map.label, category: r.incomeCategory, amount: r.grossIncome })
+  }
+  const lines = [...byCode.values()].map(l => ({ ...l, amount: Math.round(l.amount) })).sort((a, b) => b.amount - a.amount)
+  const totalGross = lines.reduce((s, l) => s + l.amount, 0)
+  return { lines, totalGross, note: 'Οι κωδικοί Ε1 είναι ενδεικτικοί — επιβεβαίωσε στο έντυπο του τρέχοντος έτους (myAADE).' }
+}
+
+export const E1_HEADERS = ['Κωδικός Ε1', 'Περιγραφή', 'Κατηγορία', 'Ακαθάριστο Εισόδημα (€)']
+export function e1LineToCells(l: E1CodeLine): (string | number)[] {
+  return [l.code, l.label, l.category, String(Math.round(l.amount))]
+}

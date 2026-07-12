@@ -2,7 +2,7 @@
 // Τρέξε: npx tsx lib/billing/e2.test.ts
 import {
   monthsRentedInYear, e2LeaseKind, e2IncomeCategory,
-  buildE2Row, e2RowToCells, type E2Property, type E2Tenant, type E2Payment,
+  buildE2Row, e2RowToCells, buildE1Summary, e1LineToCells, type E2Property, type E2Tenant, type E2Payment, type E2Row,
 } from './e2';
 
 let passed = 0, failed = 0;
@@ -96,6 +96,26 @@ const T = (o: Partial<E2Tenant> = {}): E2Tenant => ({ property_id: 'p1', afm: nu
   ok('ownership 33,33', cells[4] === '33,33');
   ok('address joined', cells[2] === 'Οδός 1, 16232');
   ok('gross is string integer', cells[8] === String(Math.round(r.grossIncome)));
+}
+
+// ── Σύνοψη Ε1 (κωδικοί) ──────────────────────────────────────────────────────
+{
+  const rows: E2Row[] = [
+    buildE2Row(P({ id: 'a', prop_type: 'apartment' }), T({ property_id: 'a' }), [{ property_id: 'a', amount: 6000, period_year: 2025, period_month: 1 }], '999', 2025),
+    buildE2Row(P({ id: 'b', prop_type: 'apartment' }), T({ property_id: 'b' }), [{ property_id: 'b', amount: 4000, period_year: 2025, period_month: 1 }], '999', 2025),
+    buildE2Row(P({ id: 'c', prop_type: 'office' }), T({ property_id: 'c' }), [{ property_id: 'c', amount: 5000, period_year: 2025, period_month: 1 }], '999', 2025),
+  ];
+  const e1 = buildE1Summary(rows);
+  ok('Ε1: κατοικίες αθροίζονται σε έναν κωδικό (103)', e1.lines.some(l => l.code === '103' && l.amount === 10000));
+  ok('Ε1: επαγγελματική στέγη ξεχωριστός κωδικός (107)', e1.lines.some(l => l.code === '107' && l.amount === 5000));
+  ok('Ε1: σύνολο ακαθάριστου = 15000', e1.totalGross === 15000);
+  ok('Ε1: ταξινόμηση φθίνουσα', e1.lines[0].amount >= e1.lines[e1.lines.length - 1].amount);
+  ok('Ε1: σημείωση για ενδεικτικούς κωδικούς', /ενδεικτικοί/.test(e1.note));
+  const cells = e1LineToCells(e1.lines[0]);
+  ok('Ε1: κελιά [κωδικός, περιγραφή, κατηγορία, ποσό]', cells.length === 4 && cells[0] === e1.lines[0].code);
+  // μηδενικά εισοδήματα δεν μπαίνουν
+  const empty = buildE1Summary([buildE2Row(P({ id: 'z', status_detail: 'vacant', target_rent: 0 }), T({ property_id: 'z', monthly_rent: 0 }), [], '999', 2025)]);
+  ok('Ε1: κενά ακίνητα εξαιρούνται', empty.lines.length === 0 && empty.totalGross === 0);
 }
 
 // ── report ───────────────────────────────────────────────────────────────────
