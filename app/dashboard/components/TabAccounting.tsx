@@ -2,7 +2,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/Theme'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Info, Layers } from 'lucide-react'
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, PiggyBank, User, Briefcase, Download, Info, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
+import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
 import {
   buildLedger, cashflowByYear, reconcile, reconSummary,
   type LedgerInput, type Expected, type Actual, type ReconStatus,
@@ -43,6 +44,8 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος — αλλού ουδέτερο (χωρίς θόρυβο).
 const lineColor = (kind:string, amount:number)=> kind==='result' ? (amount>=0?'var(--accent)':'var(--negative)') : 'var(--text-primary)'
+// Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
+const ADVISORY_TONE:Record<AdvisoryTone,string> = { opportunity:'Ευκαιρία', action:'Ενέργεια', insight:'Ιδέα', caution:'Προσοχή' }
 
 export default function TabAccounting({ propertyId, userId, profileType='individual' }: { propertyId:string; userId:string; profileType?:'individual'|'professional' }) {
   const supabase = createClient()
@@ -54,6 +57,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const mode:'individual'|'professional' = profileType
   const [elp,setElp] = useState<'personal'|'business'>('personal')
   const [elpForm,setElpForm] = useState<'sole'|'company'>('sole')
+  // Ηλικία — μόνο για τη μειωμένη κλίμακα νέων (ν.5246/2025). Τοπική, προαιρετική.
+  const [age,setAge] = useState<number|''>('')
+  useEffect(()=>{ try{ const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'') }catch{} },[])
+  const updateAge=(v:number|'')=>{ setAge(v); try{ if(v) localStorage.setItem('acc_age',String(v)); else localStorage.removeItem('acc_age') }catch{} }
   const [expenses,setExpenses] = useState<any[]>([])
   const [rent,setRent] = useState<any[]>([])
   const [stays,setStays] = useState<any[]>([])
@@ -130,14 +137,22 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const statement:IncomeStatement = useMemo(()=>incomeStatement(
     businessMode
-      ? { regime:'business', grossIncome, businessForm:elpForm, itemizedExpenses:deductibleTotal, depreciation:inventoryDepr, loanInterest:loanInterestYear, enfia,
+      ? { regime:'business', grossIncome, businessForm:elpForm, taxpayerAge: age||undefined, itemizedExpenses:deductibleTotal, depreciation:inventoryDepr, loanInterest:loanInterestYear, enfia,
           climateLevy: regime==='individual_shortterm'?shortSummary.levy:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
           otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent }
       : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare,
           climateLevy: regime==='individual_shortterm' ? shortSummary.levy : 0,
           municipalTax: regime==='individual_shortterm' ? shortSummary.municipalTax : 0,
           otherCashExpenses: expensesTotal, loanPrincipal: loanAnnual, uncollectedIncome:uncollectedRent }
-  ),[businessMode,elpForm,regime,grossIncome,enfia,myTaxShare,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual,uncollectedRent])
+  ),[businessMode,elpForm,age,regime,grossIncome,enfia,myTaxShare,shortSummary,expensesTotal,deductibleTotal,inventoryDepr,loanInterestYear,loanAnnual,uncollectedRent])
+
+  // Συμβουλευτική — προτάσεις με αξία από τα πραγματικά δεδομένα (καθαρές, όχι θόρυβος).
+  const advisory = useMemo(()=>buildAdvisory({
+    regime: businessMode?'business':regime, businessForm: businessMode?elpForm:undefined, age: age||null,
+    grossIncome, taxableIncome: statement.taxableIncome, effectiveRate: statement.effectiveRate,
+    rentalMode: prop?.rental_mode, sqm: prop?.sqm, propertyCount: propCount,
+    hasLoan: loans.some(l=>loanActiveInYear(l)), loanInterestYear, deductibleExpenses: deductibleTotal,
+  }),[businessMode,regime,elpForm,age,grossIncome,statement,prop,propCount,loans,year,loanInterestYear,deductibleTotal])
 
   // Πρόβλεψη: για τρέχον έτος με βάση τον τρέχοντα μήνα· για κλεισμένο/μελλοντικό, ισόποσα στους 12.
   const provMonth = year===athensYear() ? athensNow().getMonth()+1 : 1
@@ -351,6 +366,47 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </div>
         </div>
       )}
+
+      {/* Συμβουλευτική — καθαρές, στοχευμένες προτάσεις με αξία */}
+      <div style={card}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+            <Lightbulb size={16} style={{ color:'var(--accent)' }}/>
+            <div>
+              <p style={{ ...cardTitle, margin:0 }}>Συμβουλευτική</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', fontFamily:"'Inter',sans-serif" }}>Ιδέες φορολογίας, χρηματοδότησης και αξιοποίησης — από τα δικά σου δεδομένα.</p>
+            </div>
+          </div>
+          <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
+            Ηλικία
+            <input type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="—"
+              title="Προαιρετικό — ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην επιχειρηματική δραστηριότητα."
+              style={{ width:64, height:34, padding:'0 10px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13.5, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', textAlign:'center' }}/>
+          </label>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12 }}>
+          {advisory.map(a=>(
+            <div key={a.id} style={{ position:'relative', display:'flex', flexDirection:'column', gap:7, padding:'14px 16px 14px 17px', borderRadius:13, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }}>
+              <span style={{ position:'absolute', top:14, left:0, width:3, height:20, borderRadius:2, background:a.tone==='caution'?'var(--warning)':'var(--accent)', opacity:0.6 }}/>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:10, fontWeight:600, letterSpacing:'0.5px', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{ADVISORY_TONE[a.tone]}</span>
+              </div>
+              <p style={{ fontSize:13.5, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.35 }}>{a.title}</p>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>{a.body}</p>
+              {(a.refer||a.linkHref)&&(
+                <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:2, flexWrap:'wrap' }}>
+                  {a.refer&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>{referLabel(a.refer)}</span>}
+                  {a.linkHref&&<a href={a.linkHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11.5, color:'var(--accent)', textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>{a.linkLabel||'Περισσότερα'}<ArrowUpRight size={12}/></a>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap:9, alignItems:'flex-start', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
+          <Info size={14} style={{ color:'var(--text-tertiary)', flexShrink:0, marginTop:1 }}/>
+          <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Οι προτάσεις είναι ενημερωτικές και δεν υποκαθιστούν τον λογιστή, τον δικηγόρο ή τον συμβολαιογράφο σου. Για την επίσημη εξαγωγή συμπερασμάτων και δηλώσεων απευθύνσου σε πιστοποιημένο επαγγελματία.</p>
+        </div>
+      </div>
 
       {/* Ταμειακές ροές */}
       <div style={card}>

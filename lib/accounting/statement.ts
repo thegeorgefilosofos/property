@@ -16,7 +16,7 @@
 // Οι κανόνες αλλάζουν· τα ποσά επιβεβαιώνονται στην ΑΑΔΕ/λογιστή (το UI το λέει).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { rentalIncomeTax, BUSINESS_INCOME_BRACKETS_2026, CORPORATE_TAX_RATE_2026, type TaxBracket } from '@/lib/billing/greekTax'
+import { rentalIncomeTax, art15BracketsForAge, CORPORATE_TAX_RATE_2026, type TaxBracket } from '@/lib/billing/greekTax'
 
 const cents = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100
 const pos = (n: number): number => Math.max(0, cents(n))
@@ -39,6 +39,9 @@ export interface StatementInput {
   /** Νομική μορφή επιχείρησης: 'sole' = ατομική (προοδευτική κλίμακα 9–44%),
    *  'company' = νομικό πρόσωπο (σταθερό 22%). Default 'sole'. */
   businessForm?: 'sole' | 'company'
+  /** Ηλικία φορολογουμένου — ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025)
+   *  ΜΟΝΟ για ατομική επιχείρηση (άρθρο 15). Δεν αφορά παθητικά ενοίκια. */
+  taxpayerAge?: number
   /** Χειροκίνητος συντελεστής νομικού προσώπου (default 22%). */
   businessTaxRate?: number
   /** Προαιρετική προσαρμογή κλίμακας (δοκιμές/μελλοντικά έτη). */
@@ -121,10 +124,11 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   let incomeTax: number
   if (input.overrideIncomeTax != null) incomeTax = pos(input.overrideIncomeTax)
   else if (business) {
-    // Ατομική επιχείρηση → προοδευτική κλίμακα 9–44%· νομικό πρόσωπο → σταθερό 22%.
+    // Ατομική επιχείρηση → κλίμακα άρθρου 15 (μειωμένη για νέους έως 30, ν.5246/2025)·
+    // νομικό πρόσωπο → σταθερό 22%.
     incomeTax = input.businessForm === 'company'
       ? cents(taxable * Math.max(0, input.businessTaxRate ?? CORPORATE_TAX_RATE_2026))
-      : cents(rentalIncomeTax(taxable, BUSINESS_INCOME_BRACKETS_2026))
+      : cents(rentalIncomeTax(taxable, art15BracketsForAge(input.taxpayerAge)))
   }
   else incomeTax = cents(rentalIncomeTax(taxable, input.brackets))
   const effRate = gross > 0 ? incomeTax / gross : 0

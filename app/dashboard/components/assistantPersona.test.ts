@@ -256,6 +256,18 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('knows broker', /ΜΕΣΙΤΗΣ/.test(p));
   ok('knows accountant', /ΛΟΓΙΣΤΗΣ/.test(p));
 }
+// βαθιά λογιστική/φορολογική γνώση & συμβουλευτική δομής
+{
+  const p = buildSystemPrompt(id(), 'x');
+  ok('knows 2026 youth relief', /έως 25 ετών|μειωμένη κλίμακα νέων|ΜΕΙΩΜΕΝΗ ΚΛΙΜΑΚΑ ΝΕΩΝ/i.test(p));
+  ok('youth relief NOT for passive rent', /ΟΧΙ τα παθητικά ενοίκια|δεν αφορά.*ενοίκια|ανεξαρτήτως ηλικίας/i.test(p));
+  ok('knows business structures & tax', /ΙΚΕ/.test(p) && /ατομική επιχείρηση/i.test(p) && /22%/.test(p));
+  ok('knows E1/E2/E9', /Ε1/.test(p) && /Ε2/.test(p) && /Ε9/.test(p));
+  ok('knows net vs gross', /ΜΕΙΚΤΑ vs ΚΑΘΑΡΑ|ταμειακό|ΤΑΜΕΙΑΚΟ/i.test(p));
+  ok('knows tax incentives (40%/exemption)', /40%/.test(p) && /απαλλαγή/i.test(p));
+  ok('defers structure to accountant+lawyer', /λογιστή.*δικηγόρο|δικηγόρο.*σύσταση/i.test(p));
+  ok('links to accounting tab', /\[\[go:accounting\]\]/.test(p));
+}
 // GDPR & ενσωματώσεις: ο advisor ξέρει το απόρρητο και είναι ειλικρινής για τι δουλεύει
 {
   const p = buildSystemPrompt(id(), 'x');
