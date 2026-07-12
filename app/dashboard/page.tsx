@@ -135,7 +135,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
   { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
-  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison','portfolio'] },
+  { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison'] },
   { label: '',                    ids: ['settings'] },
 ];
 
