@@ -526,7 +526,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; const lit=active||hot; return (
               <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
                 style={{ padding:'12px 14px', borderRadius:14, border:`1px solid ${lit?'var(--border-accent)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', boxShadow:hot?'0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 30px -16px rgba(0,0,0,0.6)':'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -16px rgba(0,0,0,0.5)', transform:hot?'translateY(-3px)':'none', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease', cursor:'default' }}>
-                <p style={{ fontSize:11.5, color:lit?'var(--accent)':'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif", transition:'color 0.16s ease' }}>{r.range}</p>
+                <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
                 <p style={{ fontSize:17, fontWeight:700, color:lit?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", transition:'color 0.16s ease' }}>{r.rate}</p>
               </div>
             )})}
