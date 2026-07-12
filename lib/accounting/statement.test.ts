@@ -64,12 +64,32 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('company netProfit = taxable - tax', near(co.netProfit, taxable - taxable * 0.22))
   ok('business lines include depreciation', co.lines.some(l => l.key === 'depreciation'))
   ok('business lines include interest', co.lines.some(l => l.key === 'interest'))
-  // Ατομική επιχείρηση (default) → προοδευτική κλίμακα 9–44%
+  // Ατομική επιχείρηση (default) → κλίμακα άρθρου 15 (ν.5246/2025): 9/20/26/34/39/44
   const sole = incomeStatement({ ...base })
-  const soleTax = 10000*0.09 + 10000*0.22 + 7000*0.28 // 27000 → 900+2200+1960 = 5060
-  ok('sole prop tax = progressive scale', near(sole.incomeTax, soleTax))
+  const soleTax = 10000*0.09 + 10000*0.20 + 7000*0.26 // 27000 → 900+2000+1820 = 4720
+  ok('sole prop tax = article-15 scale 2026', near(sole.incomeTax, soleTax))
   ok('sole differs from company (not the same anymore)', Math.abs(sole.incomeTax - co.incomeTax) > 1)
   ok('sole low income cheaper than company', incomeStatement({ regime:'business', grossIncome:8000 }).incomeTax < incomeStatement({ regime:'business', grossIncome:8000, businessForm:'company' }).incomeTax)
+}
+
+// ── Νέοι επαγγελματίες: μειωμένη κλίμακα άρθρου 15 (ν.5246/2025) ─────────────
+{
+  // Ατομική επιχείρηση, καθαρό κέρδος 18.000.
+  const base = { regime: 'business' as const, grossIncome: 18000 }
+  const adult = incomeStatement({ ...base })                       // 10000*.09 + 8000*.20 = 900+1600 = 2500
+  const y25   = incomeStatement({ ...base, taxpayerAge: 24 })      // 0% έως 20.000 → 0
+  const y28   = incomeStatement({ ...base, taxpayerAge: 28 })      // 9% έως 20.000 → 18000*.09 = 1620
+  ok('adult sole 18k = 2500', near(adult.incomeTax, 2500))
+  ok('age ≤25 pays 0 up to 20k', y25.incomeTax === 0)
+  ok('age 26–30 pays 9% up to 20k', near(y28.incomeTax, 1620))
+  ok('youth cheaper than adult', y25.incomeTax < adult.incomeTax && y28.incomeTax < adult.incomeTax)
+  // Πάνω από 20.000 η μειωμένη ζώνη σταματά — το επιπλέον φορολογείται κανονικά.
+  const y25big = incomeStatement({ regime:'business', grossIncome:30000, taxpayerAge:24 }) // 0 έως 20k + 10000*.26 = 2600
+  ok('age ≤25 above 20k taxed normally', near(y25big.incomeTax, 2600))
+  // Η ηλικία ΔΕΝ επηρεάζει τα παθητικά ενοίκια (άρθρο 40) — μόνο την επιχ. δραστηριότητα.
+  const rentYoung = incomeStatement({ regime:'individual_longterm', grossIncome:18000, taxpayerAge:24 })
+  const rentAdult = incomeStatement({ regime:'individual_longterm', grossIncome:18000 })
+  ok('youth relief does NOT apply to passive rent', near(rentYoung.incomeTax, rentAdult.incomeTax) && rentYoung.incomeTax > 0)
 }
 
 // ── Καμία αρνητική φορολογική βάση ──────────────────────────────────────────
