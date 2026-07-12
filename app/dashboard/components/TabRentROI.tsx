@@ -72,6 +72,41 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   );
 }
 
+// Έξυπνο γράφημα περιοχής (SVG, theme-aware, με σημεία κορυφής/πυθμένα/σήμερα)
+function AreaChart({ points }: { points: { year: number; value: number }[] }) {
+  const W = 640, H = 170, pad = 16;
+  if (points.length < 2) return null;
+  const vals = points.map(p => p.value);
+  const min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
+  const n = points.length;
+  const X = (i: number) => pad + (i / (n - 1)) * (W - 2 * pad);
+  const Y = (v: number) => pad + (1 - (v - min) / range) * (H - 2 * pad - 12);
+  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${X(i).toFixed(1)},${Y(p.value).toFixed(1)}`).join(' ');
+  const area = `${line} L${X(n - 1).toFixed(1)},${(H - pad - 12).toFixed(1)} L${X(0).toFixed(1)},${(H - pad - 12).toFixed(1)} Z`;
+  const mColor: Record<string, string> = { peak: 'var(--warning)', trough: 'var(--negative)', now: 'var(--accent)' };
+  const marks = points.map((p, i) => ({ ...p, i, kind: p.year === HISTORY_ANCHORS.peakYear ? 'peak' : p.year === HISTORY_ANCHORS.troughYear ? 'trough' : i === n - 1 ? 'now' : '' })).filter(m => m.kind);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} role="img" aria-label="Ιστορική διαδρομή αξίας">
+      <defs>
+        <linearGradient id="roiArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.30" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#roiArea)" />
+      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+      {marks.map(m => (
+        <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.6 : 3.6} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.6">
+          <title>{`${m.year}: ${m.value.toLocaleString('el-GR')} €`}</title>
+        </circle>
+      ))}
+      {points.map((p, i) => (i === 0 || i === n - 1 || p.year === HISTORY_ANCHORS.peakYear || p.year === HISTORY_ANCHORS.troughYear) ? (
+        <text key={'t' + p.year} x={X(i)} y={H - 2} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
+      ) : null)}
+    </svg>
+  );
+}
+
 // Segmented control (ομοιόμορφο)
 function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: [T, string][] }) {
   return (
@@ -169,7 +204,6 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   }, [nVal, histYears]);
   const histStart = hist[0]?.value || 0;
   const histEnd = hist[hist.length - 1]?.value || 0;
-  const histMax = Math.max(...hist.map(h => h.value), 1);
 
   // Σύγκριση με εναλλακτικές — ΟΛΑ προ φόρου εισοδήματος για δίκαιη σύγκριση (like-for-like):
   // το ακίνητο με ΚΑΘΑΡΗ απόδοση (προ φόρου) + ανατίμηση· οι εναλλακτικές με τη μεικτή τους απόδοση.
@@ -255,16 +289,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
             <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 130, padding: '0 2px' }}>
-            {hist.map(h => {
-              const isPeak = h.year === HISTORY_ANCHORS.peakYear, isTrough = h.year === HISTORY_ANCHORS.troughYear, isNow = h.year === 2026;
-              return (
-                <div key={h.year} title={`${h.year}: ${fe(h.value, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: '100%', height: `${Math.max(4, (h.value / histMax) * 100)}%`, borderRadius: '4px 4px 0 0', background: isNow ? 'var(--accent)' : isTrough ? 'var(--negative)' : isPeak ? 'var(--warning)' : 'var(--border-default)', transition: 'height 0.4s ease' }} />
-                  <span style={{ fontSize: 8.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>{`'${String(h.year).slice(2)}`}</span>
-                </div>
-              );
-            })}
+          <AreaChart points={hist} />
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            {[['now', 'Σήμερα', 'var(--accent)'], ['peak', 'Κορυφή 2008', 'var(--warning)'], ['trough', 'Πυθμένας 2017', 'var(--negative)']].map(([k, l, c]) => (
+              <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
+            ))}
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
             <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>{hist[0]?.year}</p><p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(histStart, 0)}</p></div>

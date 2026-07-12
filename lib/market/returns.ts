@@ -123,12 +123,14 @@ export function leverage(input: LeverageInput): LeverageResult {
   const totalInvested = price + buyCosts
   const unlevered = totalInvested > 0 ? (noi / totalInvested) * 100 : 0
   const coc = equity > 0 ? (cashFlow / equity) * 100 : 0
+  // Στρογγυλοποιούμε ΜΙΑ φορά και βγάζουμε το positiveCarry από τα ΕΜΦΑΝΙΖΟΜΕΝΑ νούμερα,
+  // ώστε η ένδειξη «θετική μόχλευση» να συμφωνεί πάντα με τα ποσοστά που βλέπει ο χρήστης.
+  const unleveredR = round1(unlevered), effR = round2(effectiveRate)
   return {
     equity: round2(equity), loan: round2(loan), annualRent: round2(annualRent), noi: round2(noi),
     annualDebtService: round2(annualDebtService), annualInterest: round2(annualInterest), cashFlow: round2(cashFlow),
-    unleveredYield: round1(unlevered), cashOnCash: round1(coc), leverageBoost: round1(coc - unlevered),
-    // Θετικό carry = ΚΑΘΑΡΗ (unlevered) απόδοση > κόστος δανείου (συνεπές με το NOI/cash-on-cash).
-    positiveCarry: unlevered > effectiveRate, effectiveLoanRate: round2(effectiveRate),
+    unleveredYield: unleveredR, cashOnCash: round1(coc), leverageBoost: round1(coc - unlevered),
+    positiveCarry: unleveredR > effR, effectiveLoanRate: effR,
   }
 }
 
