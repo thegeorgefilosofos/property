@@ -1721,6 +1721,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    ══════════════════════════════════════════════════════════════════════════ */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* Ήπιος «ζωντανός» παλμός για τη μοναδική ένδειξη τρέχουσας χρήσης (χαμηλή ένταση, όχι θόρυβος). */
+@keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.78); } }
+.live-dot { animation: livePulse 2.4s ease-in-out infinite; }
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-overlay) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
