@@ -63,6 +63,9 @@ export interface StatementInput {
   brackets?: TaxBracket[]
   /** Ποσοστό τεκμαρτής έκπτωσης (default 5% για φυσικά πρόσωπα, 0 για επιχείρηση). */
   presumptiveRate?: number
+  /** Εισπράχθηκαν τα ενοίκια με τραπεζικό/ηλεκτρονικό μέσο; Από 1/1/2026 (ν.5246/2025)
+   *  αν ΟΧΙ (μετρητά), χάνεται η τεκμαρτή έκπτωση 5% → φορολογείται το 100%. Default true. */
+  rentsPaidViaBank?: boolean
 
   // ── Ταμειακές εκροές που ΔΕΝ επηρεάζουν τη φορολογική βάση φυσικού προσώπου ──
   /** ΕΝΦΙΑ (φόρος ακίνητης περιουσίας) — εκροή, όχι έκπτωση για ιδιώτη. */
@@ -128,7 +131,11 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   // Τεκμαρτή έκπτωση 5% ΜΟΝΟ στη μακροχρόνια μίσθωση κατοικίας φυσικού προσώπου. Η
   // βραχυχρόνια φορολογείται στα μεικτά (όπως ήδη στο lib/tax/shortTermTax),
   // ώστε να ΜΗ διαφέρει ο φόρος από την υπάρχουσα σύνοψη βραχυχρόνιας.
-  const presumptiveRate = input.presumptiveRate ?? (regime === 'individual_longterm' ? PRESUMPTIVE_DEDUCTION_RATE : 0)
+  // Από 1/1/2026 η τεκμαρτή έκπτωση 5% προϋποθέτει είσπραξη μέσω τραπέζης· με μετρητά
+  // χάνεται (φόρος στο 100% των ενοικίων). Default: θεωρούμε τραπεζική πληρωμή.
+  const rentsPaidViaBank = input.rentsPaidViaBank !== false
+  const baseRate = input.presumptiveRate ?? (regime === 'individual_longterm' ? PRESUMPTIVE_DEDUCTION_RATE : 0)
+  const presumptiveRate = rentsPaidViaBank ? baseRate : 0
 
   const itemized = business ? pos(input.itemizedExpenses ?? 0) : 0
   const inventoryDepr = business ? pos(input.depreciation ?? 0) : 0

@@ -21,6 +21,18 @@ const near = (a: number, b: number, eps = 0.02) => Math.abs(a - b) <= eps
   ok('longterm has taxable line', st.lines.some(l => l.key === 'taxable'))
 }
 
+// ── Gate 5%: ενοίκια με μετρητά (όχι τραπεζική πληρωμή) → χάνεται η έκπτωση ────
+{
+  const bank = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000, rentsPaidViaBank: true })
+  const cash = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000, rentsPaidViaBank: false })
+  ok('μετρητά → καμία τεκμαρτή έκπτωση', cash.presumptiveDeduction === 0)
+  ok('μετρητά → φορολογητέο = 100% (10000)', near(cash.taxableIncome, 10000))
+  ok('μετρητά → φόρος = κλίμακα(10000) (1500)', near(cash.incomeTax, 1500))
+  ok('μετρητά > τραπεζικά σε φόρο', cash.incomeTax > bank.incomeTax)
+  const def = incomeStatement({ regime: 'individual_longterm', grossIncome: 10000 })
+  ok('default (χωρίς flag) = τραπεζικά', near(def.incomeTax, bank.incomeTax))
+}
+
 // ── Μακροχρόνια πάνω από κλιμάκιο: προοδευτικό ──────────────────────────────
 {
   const gross = 30000

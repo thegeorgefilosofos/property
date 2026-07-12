@@ -57,6 +57,8 @@ ok('net αφαιρεί τέλος παρεπ.', Math.abs(shortTermYearSummary(st
 ok('φόρος = κλίμακα(95% × 1500), τεκμαρτή έκπτωση 5%', near(sum.incomeTax, rentalIncomeTax(1500 * 0.95)));
 ok('καθαρά = μεικτά - φόρος - ΤΑΚΚ', near(sum.net, 1500 - sum.incomeTax - 52));
 ok('effectiveRate = φόρος/μεικτά', near(sum.effectiveRate, sum.incomeTax / 1500));
+// Gate 5%: με μετρητά (όχι τραπεζική είσπραξη) φορολογείται το 100% των μεικτών
+ok('μετρητά → φόρος επί 100% μεικτών', near(shortTermYearSummary(stays, 2026, { rentsPaidViaBank: false }).incomeTax, rentalIncomeTax(1500)));
 ok('κενό set → μηδενικά', shortTermYearSummary([], 2026).grossRevenue === 0 && shortTermYearSummary([], 2026).effectiveRate === 0);
 
 // ── yearsWithStays ───────────────────────────────────────────────────────────
