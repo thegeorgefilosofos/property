@@ -44,12 +44,14 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 // Χρώμα μόνο στη γραμμή αποτελέσματος — αλλού ουδέτερο (χωρίς θόρυβο).
 const lineColor = (kind:string, amount:number)=> kind==='result' ? (amount>=0?'var(--accent)':'var(--negative)') : 'var(--text-primary)'
 
-export default function TabAccounting({ propertyId, userId }: { propertyId:string; userId:string }) {
+export default function TabAccounting({ propertyId, userId, profileType='individual' }: { propertyId:string; userId:string; profileType?:'individual'|'professional' }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [loading,setLoading] = useState(true)
   const [year,setYear] = useState(athensYear())
-  const [mode,setMode] = useState<'individual'|'professional'>('individual')
+  // Η καρτέλα ακολουθεί το προφίλ (Ρυθμίσεις): ο ιδιώτης βλέπει απλή εικόνα, ο
+  // επαγγελματίας τη διάκριση Φυσικό πρόσωπο / Επιχείρηση (ΕΛΠ). Χωρίς περιττό toggle.
+  const mode:'individual'|'professional' = profileType
   const [elp,setElp] = useState<'personal'|'business'>('personal')
   const [expenses,setExpenses] = useState<any[]>([])
   const [rent,setRent] = useState<any[]>([])
@@ -60,9 +62,6 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
   const [allProps,setAllProps] = useState<any[]>([])
   const [allRent,setAllRent] = useState<any[]>([])
   const [allStays,setAllStays] = useState<any[]>([])
-
-  useEffect(()=>{ try{ const m=localStorage.getItem('acc_mode'); if(m==='professional'||m==='individual')setMode(m) }catch{} },[])
-  useEffect(()=>{ try{ localStorage.setItem('acc_mode',mode) }catch{} },[mode])
 
   useEffect(()=>{ (async()=>{
     setLoading(true)
@@ -197,16 +196,10 @@ export default function TabAccounting({ propertyId, userId }: { propertyId:strin
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily:"'Inter',sans-serif" }}>{regimeLabel} · έσοδα, φόρος, καθαρό — από τα πραγματικά δεδομένα σου.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-          {/* Mode toggle */}
-          <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-            {([['individual','Ιδιώτης',<User size={13}/>],['professional','Επαγγελματίας',<Briefcase size={13}/>]] as [typeof mode,string,React.ReactNode][]).map(([m,label,icon])=>(
-              <button key={m} onClick={()=>setMode(m)} style={{ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 13px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily:"'Inter',sans-serif", fontWeight:mode===m?600:500, background:mode===m?'var(--accent)':'transparent', color:mode===m?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{icon}{label}</button>
-            ))}
-          </div>
           {mode==='professional'&&(
             <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
-              {([['personal','Φυσικό πρόσωπο'],['business','Επιχείρηση (ΕΛΠ)']] as [typeof elp,string][]).map(([e,label])=>(
-                <button key={e} onClick={()=>setElp(e)} style={{ height:32, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:elp===e?600:500, background:elp===e?'var(--accent)':'transparent', color:elp===e?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{label}</button>
+              {([['personal','Φυσικό πρόσωπο',<User size={13}/>],['business','Επιχείρηση (ΕΛΠ)',<Briefcase size={13}/>]] as [typeof elp,string,React.ReactNode][]).map(([e,label,icon])=>(
+                <button key={e} onClick={()=>setElp(e)} style={{ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 13px', border:'none', borderRadius:8, cursor:'pointer', fontSize:12.5, fontFamily:"'Inter',sans-serif", fontWeight:elp===e?600:500, background:elp===e?'var(--accent)':'transparent', color:elp===e?'var(--accent-text)':'var(--text-secondary)', transition:'all 0.15s' }}>{icon}{label}</button>
               ))}
             </div>
           )}
