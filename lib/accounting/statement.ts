@@ -92,7 +92,10 @@ export function incomeStatement(input: StatementInput): IncomeStatement {
   const regime = input.regime
   const gross = pos(input.grossIncome)
   const business = regime === 'business'
-  const presumptiveRate = input.presumptiveRate ?? (business ? 0 : PRESUMPTIVE_DEDUCTION_RATE)
+  // Τεκμαρτή έκπτωση 5% ΜΟΝΟ στη μακροχρόνια κατοικίας φυσικού προσώπου. Η
+  // βραχυχρόνια φορολογείται στα μεικτά (όπως ήδη στο lib/tax/shortTermTax),
+  // ώστε να ΜΗ διαφέρει ο φόρος από την υπάρχουσα σύνοψη βραχυχρόνιας.
+  const presumptiveRate = input.presumptiveRate ?? (regime === 'individual_longterm' ? PRESUMPTIVE_DEDUCTION_RATE : 0)
 
   const itemized = business ? pos(input.itemizedExpenses ?? 0) : 0
   const depreciation = business ? pos(input.depreciation ?? 0) : 0
