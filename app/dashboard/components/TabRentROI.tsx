@@ -271,6 +271,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [pSqm, setPSqm] = useState<number | null>(null);
   const [pType, setPType] = useState<string | null>(null);
   const [pName, setPName] = useState('');
+  // Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ· εμφανίζονται μόνο με ≥5 ακίνητα).
+  const [commStat, setCommStat] = useState<{ postal: string; count: number; median: number; p25: number; p75: number } | null>(null);
 
   // Εργαλεία (pro)
   const [compRate, setCompRate] = useState('5');
@@ -288,7 +290,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       setLoading(true);
       try {
         const [pr, rc, exp] = await Promise.all([
-          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name').eq('id', propertyId).maybeSingle(),
+          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
           supabase.from('expenses').select('amount').eq('property_id', propertyId),
         ]);
@@ -302,6 +304,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setPName(p.name || '');
         if (p.rental_mode === 'short_term') setTerm('short');
         const savedR = localStorage.getItem(K('region')); if (savedR) setRegion(savedR);
+        // Δεδομένα κοινότητας για τον ΤΚ του ακινήτου (ανώνυμα· μόνο με ≥5 ακίνητα).
+        const postal = String(p.postal_code || '').trim();
+        if (postal) {
+          try {
+            const { data: cs } = await supabase.rpc('community_market_stats');
+            const row = (cs || []).find((r: any) => String(r.postal_code || '').trim() === postal);
+            if (row && Number(row.sample_count) >= 5) {
+              setCommStat({ postal, count: Number(row.sample_count), median: Number(row.median_gross_yield), p25: Number(row.p25_yield), p75: Number(row.p75_yield) });
+            }
+          } catch { /* λειτουργεί όταν υπάρχει αρκετό δείγμα */ }
+        }
       } catch { /* keep defaults */ }
       finally { setLoading(false); }
     })();
@@ -603,6 +616,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600 }}>{verdictLabel}</p>
             {reg && <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{reg.note}</p>}
           </div>
+          {commStat && (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>Δεδομένα κοινότητας Property OS<TermInfo text={G.community} /></p>
+              <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
+                Ταχυδρομικός κώδικας {commStat.postal}: διάμεση μεικτή απόδοση <strong style={{ color: 'var(--text-secondary)' }}>{fp(commStat.median)}</strong> (εύρος {fp(commStat.p25)}–{fp(commStat.p75)}), από {commStat.count} πραγματικά ακίνητα χρηστών. Ανώνυμα και συγκεντρωτικά.
+              </p>
+            </div>
+          )}
           {term === 'short' && (
             <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {stExact
