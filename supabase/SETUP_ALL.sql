@@ -1207,7 +1207,9 @@ create policy "own closing update" on public.book_closings for update using (aut
 drop policy if exists "own closing delete" on public.book_closings;
 create policy "own closing delete" on public.book_closings for delete using (auth.uid() = user_id);
 
--- ── Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ, k-anonymity ≥5) ──────────
+-- ── Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ, k-anonymity ≥5, με opt-out) ──
+alter table if exists public.billing_profiles
+  add column if not exists share_market_data boolean not null default true;
 create or replace function public.community_market_stats()
 returns table (
   postal_code text, sample_count int, median_gross_yield numeric,
@@ -1219,9 +1221,11 @@ language sql security definer set search_path = public stable as $$
       coalesce(rc.actual_rent, rc.target_rent, up.target_rent)::numeric as rent,
       nullif(up.sqm, 0)::numeric as sqm
     from public.user_properties up
+    left join public.billing_profiles bp on bp.user_id = up.user_id
     left join lateral (select actual_rent, target_rent from public.rent_config rc where rc.property_id = up.id limit 1) rc on true
     where up.postal_code is not null and btrim(up.postal_code) <> '' and up.value > 0
       and coalesce(rc.actual_rent, rc.target_rent, up.target_rent) > 0
+      and coalesce(bp.share_market_data, true) = true
   ), filtered as (
     select postal_code, value, rent, sqm, (rent * 12.0 / value) * 100.0 as gy
     from base where (rent * 12.0 / value) * 100.0 between 1 and 25
