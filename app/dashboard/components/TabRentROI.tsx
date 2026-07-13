@@ -441,8 +441,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Το τέλος παρεπιδημούντων επιβαρύνει το νομικό πρόσωπο· ο ιδιώτης (≤2 ακίνητα) εξαιρείται.
   const individualPerson = !(pro && entity === 'company');
-  const occEff = parseFloat(stOcc) || stRef.occupancy;
-  const adrEff = parseFloat(stAdr) || adrReference(stRef.adr, pSqm, pType);
+  // Κενό πεδίο → προεπιλογή περιοχής· το 0 (π.χ. μοντελοποίηση σχεδόν κενού ακινήτου) γίνεται σεβαστό.
+  const occEff = Number.isFinite(parseFloat(stOcc)) ? parseFloat(stOcc) : stRef.occupancy;
+  const adrEff = Number.isFinite(parseFloat(stAdr)) ? parseFloat(stAdr) : adrReference(stRef.adr, pSqm, pType);
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
   const st = useMemo(() => shortTermEstimate({
@@ -477,7 +478,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const verdictLabel = term === 'short'
     ? (y.grossYield >= stRef.grossYield ? 'Πάνω από την τυπική βραχυχρόνια της περιοχής' : 'Κοντά στην τυπική βραχυχρόνια της περιοχής')
     : yieldVerdict(y.grossYield).label;
-  const stExact = SHORT_TERM.find(s => s.key === region);
+  // Ακριβής αντιστοίχιση προφίλ βραχυχρόνιας· τα σπασμένα νησιά (Μύκονος/Σαντορίνη) δείχνουν
+  // τα κοινά τους δεδομένα αναφοράς (mykonos_santorini) αντί για γενική διατύπωση.
+  const stExact = SHORT_TERM.find(s => s.key === region)
+    || ((region === 'mykonos' || region === 'santorini') ? SHORT_TERM.find(s => s.key === 'mykonos_santorini') : undefined);
 
   // Βαθμός απόδοσης A–F. Σε μακροχρόνια η αναφορά είναι ο μέσος της περιοχής (μεικτός → −1,5
   // για καθαρό). Σε βραχυχρόνια, η αναφορά είναι καθαρή απόδοση ST στην ίδια αναλογία κόστους
@@ -550,18 +554,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     ];
     for (const d of defs) {
       const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 });
-      rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: propertyTotalReturn(y.netYield, nAppr + d.appr), roe: l.cashOnCash, cashFlow: l.cashFlow });
+      rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: clampReturn(propertyTotalReturn(y.netYield, nAppr + d.appr)), roe: l.cashOnCash, cashFlow: l.cashFlow });
     }
     return rows;
   }, [nVal, ltv, loanRate, y.grossYield, y.netYield, nAppr, effOpex, grossAnnual, ifree]);
 
-  // Πληρότητα ισοσκελισμού: το ελάχιστο ποσοστό πληρότητας ώστε τα καθαρά της βραχυχρόνιας
-  // να φτάσουν τα καθαρά της μακροχρόνιας (nRent·12 − έξοδα). Μόνο όταν υπάρχει ενοίκιο αναφοράς.
+  // Πληρότητα ισοσκελισμού: το ελάχιστο ποσοστό πληρότητας ώστε η ΒΡΑΧΥΧΡΟΝΙΑ να αποδώσει
+  // ό,τι και η μακροχρόνια. Το σταθερό opex (ΕΝΦΙΑ, συντήρηση) βαρύνει ΚΑΙ τους δύο τρόπους
+  // εξίσου, οπότε απαλείφεται στη σύγκριση: στόχος = μεικτό ετήσιο ενοίκιο μακροχρόνιας.
   const breakEvenOcc = useMemo(() => {
-    const ltNet = nRent * 12 - nOpex;
-    if (ltNet <= 0) return null;
-    return breakEvenOccupancy(ltNet, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson });
-  }, [nRent, nOpex, adrEff, stClean, stFee, individualPerson]);
+    const ltGross = nRent * 12;
+    if (ltGross <= 0) return null;
+    return breakEvenOccupancy(ltGross, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson });
+  }, [nRent, adrEff, stClean, stFee, individualPerson]);
 
   // Εξαγωγή επαγγελματικής αναφοράς PDF (μέσω παραθύρου εκτύπωσης· escape όλων των τιμών).
   const printReport = () => {
