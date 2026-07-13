@@ -42,6 +42,7 @@ const mdLabelBase: React.CSSProperties = {
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
+  labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -55,7 +56,7 @@ interface NumberInputProps {
 }
 
 export function NumberInput({
-  label, value, onChange, placeholder = '0', suffix, prefix,
+  label, labelInfo, value, onChange, placeholder = '0', suffix, prefix,
   min = 0, max, step = 1, disabled, className,
 }: NumberInputProps) {
   const [focused, setFocused] = useState(false);
@@ -107,7 +108,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label style={mdLabelBase}>{label}</label>}
+      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{labelInfo}</label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
