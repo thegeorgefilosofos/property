@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, SecHdr, SkeletonKPIs, Skeleton } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { stayTotal } from '@/lib/clients/clients';
+import { portfolioReturns } from '@/lib/market/portfolio';
 import { downloadCsv } from './exportCsv';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
@@ -24,6 +25,7 @@ interface Row {
   id: string; name: string; typeLabel: string; mode: Mode;
   revenue: number; expenses: number; net: number;
   occupancy: number | null; nights: number; pending: number;
+  value: number; annualRevenue: number; annualExpenses: number;
 }
 
 type SortKey = 'name' | 'revenue' | 'net' | 'occupancy' | 'pending';
@@ -105,12 +107,19 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const occupancy = mode === 'short' ? Math.min(100, Math.round((nights / daysElapsed) * 100)) : null;
       const unpaid = bills.filter(b => b.property_id === p.id && !b.paid).length;
       const chkAtt = chk.filter(c => c.property_id === p.id && ((c.due_date && new Date(c.due_date).getTime() < nowMs) || c.priority === 'critical')).length;
+      // Ετησιοποίηση (εκτίμηση ρυθμού): μακροχρόνια = ενοίκιο×12· βραχυχρόνια = έσοδα ανά
+      // ημέρα × 365· έξοδα ετησιοποιημένα με τους μήνες που πέρασαν (ομαλότερα από τις ημέρες).
+      const annualRevenue = mode === 'long' ? rent * 12 : mode === 'short' ? Math.round(revenue * (365 / daysElapsed)) : 0;
+      const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
         id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode,
         revenue, expenses, net: revenue - expenses, occupancy, nights, pending: unpaid + chkAtt,
+        value: p.value || 0, annualRevenue, annualExpenses,
       };
     });
   }, [properties, stays, bills, exp, tenants, chk, year, monthsElapsed, daysElapsed, nowMs]);
+
+  const agg = useMemo(() => portfolioReturns(rows.map(r => ({ value: r.value, annualRevenue: r.annualRevenue, annualExpenses: r.annualExpenses }))), [rows]);
 
   const sorted = useMemo(() => {
     const dir = asc ? 1 : -1;
@@ -248,6 +257,19 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         { label: 'Μέση πληρότητα', value: avgOcc != null ? `${avgOcc}%` : '—', sub: shortRows.length ? `${shortRows.length} βραχυχρόνια` : 'χωρίς βραχυχρόνια' },
         { label: 'Εκκρεμότητες', value: String(totalPending), tone: totalPending > 0 ? 'warning' : 'positive' },
       ]} />
+
+      {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
+      {agg.valuedCount > 0 && (
+        <div className="card" style={{ marginTop: 12, padding: '16px 18px' }}>
+          <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία`} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16, marginTop: 14 }}>
+            <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
+            <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
+            <PStat label="Μεικτή απόδοση" value={`${agg.grossYield.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+            <PStat label="Καθαρή απόδοση" value={`${agg.netYield.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+          </div>
+        </div>
+      )}
 
       {/* Πίνακας ανά ακίνητο, με οριζόντια κύλιση σε στενή οθόνη */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -463,6 +485,15 @@ function Th({ label, k, sort, asc, onSort, align = 'right' }: { label: string; k
       style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
       {label}{active ? (asc ? ' ↑' : ' ↓') : ''}
     </th>
+  );
+}
+
+function PStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>{label}</div>
+      <div style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', marginTop: 3 }}>{value}</div>
+    </div>
   );
 }
 
