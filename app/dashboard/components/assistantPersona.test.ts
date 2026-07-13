@@ -268,6 +268,19 @@ ok('empty name → default', buildSystemPrompt(id({ name: '' }), 'x').includes(D
   ok('defers structure to accountant+lawyer', /λογιστή.*δικηγόρο|δικηγόρο.*σύσταση/i.test(p));
   ok('links to accounting tab', /\[\[go:accounting\]\]/.test(p));
 }
+// βαθιά γνώση αποδόσεων & επενδυτικής ανάλυσης (ιδιώτες + επαγγελματίες, μακρο + βραχυ)
+{
+  const p = buildSystemPrompt(id(), 'x');
+  ok('has returns section', /ΑΠΟΔΟΣΕΙΣ & ΕΠΕΝΔΥΤΙΚΗ ΑΝΑΛΥΣΗ/.test(p));
+  ok('knows core yield KPIs', /μεικτή απόδοση/i.test(p) && /καθαρή απόδοση/i.test(p) && /cash-on-cash/i.test(p));
+  ok('knows IRR/NPV/DSCR', /IRR/.test(p) && /NPV/.test(p) && /DSCR/.test(p));
+  ok('knows long vs short + RevPAR', /ΜΑΚΡΟΧΡΟΝΙΑ vs ΒΡΑΧΥΧΡΟΝΙΑ/.test(p) && /RevPAR/.test(p));
+  ok('knows regional yields (Attica+province+islands+Crete)', /Αττική/.test(p) && /Λάρισα/.test(p) && /Μύκονος/.test(p) && /Ηράκλειο/.test(p));
+  ok('ethical leverage + risk of property loss', /ΜΟΧΛΕΥΣΗ/.test(p) && /ΥΠΟΘΗΚΗ|πλειστηριασμ/i.test(p) && /συμφέρον του χρήστη/.test(p));
+  ok('programs only with real criteria', /ΜΟΝΟ ΜΕ ΑΛΗΘΙΝΑ ΚΡΙΤΗΡΙΑ|Σπίτι μου ΙΙ/.test(p));
+  ok('honest good/bad investment', /Ποτέ μην ωραιοποιείς|υπέρ ΚΑΙ τα κατά/.test(p));
+  ok('links to roi tab', /\[\[go:roi\]\]/.test(p));
+}
 // GDPR & ενσωματώσεις: ο advisor ξέρει το απόρρητο και είναι ειλικρινής για τι δουλεύει
 {
   const p = buildSystemPrompt(id(), 'x');

@@ -28,8 +28,20 @@ const ST_ALIAS: Record<string, string> = {
   ath_south: 'ath_riviera', east_attica: 'ath_riviera', piraeus: 'ath_center',
   thess_center: 'thess', thess_kalamaria: 'thess',
   heraklion: 'crete', chania: 'crete',
-  mykonos_santorini: 'mykonos_santorini', paros_naxos: 'paros_naxos', rhodes: 'rhodes', corfu: 'rhodes',
+  mykonos: 'mykonos_santorini', santorini: 'mykonos_santorini', paros_naxos: 'paros_naxos', rhodes: 'rhodes', corfu: 'rhodes',
   patras: 'thess', larissa: 'thess', volos: 'thess', ioannina: 'thess',
+  // Ηπειρωτικές πόλεις → προφίλ πόλης (Θεσσαλονίκη)
+  tripoli: 'thess', corinth: 'thess', pyrgos: 'thess', lamia: 'thess', chalkida: 'thess',
+  trikala: 'thess', karditsa: 'thess', katerini: 'thess', veroia: 'thess', kozani: 'thess',
+  kastoria: 'thess', kavala: 'thess', serres: 'thess', drama: 'thess', xanthi: 'thess',
+  komotini: 'thess', alexandroupoli: 'thess', agrinio: 'thess',
+  sparti: 'thess', livadeia: 'thess', edessa: 'thess', florina: 'thess', grevena: 'thess',
+  karpenisi: 'crete', igoumenitsa: 'thess',
+  // Τουριστικοί προορισμοί → κοντινότερο νησιωτικό/παραθαλάσσιο προφίλ
+  kalamata: 'crete', nafplio: 'crete', preveza: 'crete', halkidiki: 'crete',
+  zakynthos: 'rhodes', kefalonia: 'rhodes', lesvos: 'crete', chios: 'crete', samos: 'crete',
+  kos: 'rhodes', syros: 'paros_naxos', rethymno: 'crete', agios_nikolaos: 'crete',
+  sporades: 'rhodes', limnos: 'crete', milos_ios: 'paros_naxos', andros: 'paros_naxos', karpathos: 'rhodes',
 };
 const stRefFor = (regionKey: string): ShortTermStat =>
   SHORT_TERM.find(s => s.key === (ST_ALIAS[regionKey] || regionKey)) || SHORT_TERM[0];
@@ -37,6 +49,19 @@ const stRefFor = (regionKey: string): ShortTermStat =>
 interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; }
 
 const fp = (n: number) => `${(isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+// Ρεαλιστικό εύρος συνολικής ετήσιας απόδοσης για πολυετείς προβολές/σύγκριση: προστατεύει
+// από ακραίες τιμές λόγω μη ρεαλιστικών εισόδων (π.χ. πολύ μικρή αξία με έσοδα βραχυχρόνιας).
+// Δεν επηρεάζει τους δείκτες KPI — μόνο τον ανατοκισμό στα γραφήματα/μπάρες.
+const clampReturn = (r: number) => Math.max(-30, Math.min(35, isFinite(r) ? r : 0));
+// Συμπαγής μορφή ευρώ (χιλ./εκατ./δισ.) για tooltips & μπάρες — ποτέ υπερχείλιση κειμένου.
+const feC = (n: number) => {
+  const v = isFinite(n) ? n : 0, a = Math.abs(v);
+  const s = (x: number, u: string) => `${(v / x).toLocaleString('el-GR', { maximumFractionDigits: 1 })} ${u} €`;
+  if (a >= 1e12) return s(1e12, 'τρισ.');
+  if (a >= 1e9) return s(1e9, 'δισ.');
+  if (a >= 1e6) return s(1e6, 'εκατ.');
+  return fe(Math.round(v), 0);
+};
 const SANS = "'Inter',sans-serif";
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
@@ -142,61 +167,139 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   );
 }
 
-// Έξυπνο γράφημα περιοχής (SVG, theme-aware, με σημεία κορυφής/πυθμένα/σήμερα)
+// Έξυπνο γράφημα περιοχής — premium: ομαλή καμπύλη, βάθος, διαδραστικό tooltip ανά έτος.
 function AreaChart({ points }: { points: { year: number; value: number }[] }) {
-  const W = 640, H = 170, pad = 16;
+  const W = 640, H = 196, padX = 18, padTop = 16, padBottom = 26;
+  const [hover, setHover] = useState<number | null>(null);
   if (points.length < 2) return null;
   const vals = points.map(p => p.value);
   const min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
   const n = points.length;
-  const X = (i: number) => pad + (i / (n - 1)) * (W - 2 * pad);
-  const Y = (v: number) => pad + (1 - (v - min) / range) * (H - 2 * pad - 12);
-  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${X(i).toFixed(1)},${Y(p.value).toFixed(1)}`).join(' ');
-  const area = `${line} L${X(n - 1).toFixed(1)},${(H - pad - 12).toFixed(1)} L${X(0).toFixed(1)},${(H - pad - 12).toFixed(1)} Z`;
-  // Μονόχρωμη προσέγγιση: κορυφή/πυθμένας ουδέτερα (η θέση στην καμπύλη + η ετικέτα τα εξηγούν),
-  // μόνο το «σήμερα» σε accent.
-  const mColor: Record<string, string> = { peak: 'var(--text-tertiary)', trough: 'var(--text-tertiary)', now: 'var(--accent)' };
+  const baseY = H - padBottom;
+  const X = (i: number) => padX + (i / (n - 1)) * (W - 2 * padX);
+  const Y = (v: number) => padTop + (1 - (v - min) / range) * (baseY - padTop);
+  const pts = points.map((p, i) => [X(i), Y(p.value)] as [number, number]);
+  // Ομαλή καμπύλη (Catmull-Rom → κυβικές Bézier) — δίνει το «ζωντανό», premium αίσθημα.
+  const smooth = (P: [number, number][]) => {
+    let d = `M${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2, t = 0.16;
+      const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = p1[1] + (p2[1] - p0[1]) * t;
+      const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = p2[1] - (p3[1] - p1[1]) * t;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
+  const line = smooth(pts);
+  const area = `${line} L${X(n - 1).toFixed(1)},${baseY} L${X(0).toFixed(1)},${baseY} Z`;
   const marks = points.map((p, i) => ({ ...p, i, kind: p.year === HISTORY_ANCHORS.peakYear ? 'peak' : p.year === HISTORY_ANCHORS.troughYear ? 'trough' : i === n - 1 ? 'now' : '' })).filter(m => m.kind);
+  const mColor: Record<string, string> = { peak: 'var(--text-tertiary)', trough: 'var(--text-tertiary)', now: 'var(--accent)' };
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const vx = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) { const dx = Math.abs(X(i) - vx); if (dx < bd) { bd = dx; best = i; } }
+    setHover(best);
+  };
+  const hp = hover != null ? points[hover] : null;
+  const TW = 96, TH = 34;
+  const tx = hp ? Math.max(2, Math.min(W - TW - 2, X(hover!) - TW / 2)) : 0;
+  const belowTop = hp ? Y(hp.value) - TH - 12 : 0;
+  const ty = belowTop < 2 ? (hp ? Y(hp.value) + 14 : 0) : belowTop;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} role="img" aria-label="Ιστορική διαδρομή αξίας">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Ιστορική διαδρομή αξίας"
+      onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
       <defs>
         <linearGradient id="roiArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.30" />
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.34" />
+          <stop offset="55%" stopColor="var(--accent)" stopOpacity="0.10" />
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </linearGradient>
+        <filter id="roiGlow" x="-10%" y="-30%" width="120%" height="170%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="var(--accent)" floodOpacity="0.30" />
+        </filter>
       </defs>
+      {/* Ελαφριά οριζόντια πλέγματα — «χρηματιστηριακό» look, χωρίς θόρυβο */}
+      {[0, 0.25, 0.5, 0.75, 1].map(f => { const gy = padTop + f * (baseY - padTop); return <line key={f} x1={padX} y1={gy.toFixed(1)} x2={W - padX} y2={gy.toFixed(1)} stroke="var(--border-subtle)" strokeWidth="1" opacity="0.45" />; })}
       <path d={area} fill="url(#roiArea)" />
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#roiGlow)" />
       {marks.map(m => (
-        <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.6 : 3.6} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.6">
-          <title>{`${m.year}: ${m.value.toLocaleString('el-GR')} €`}</title>
-        </circle>
+        <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.4 : 3.4} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.8" />
       ))}
-      {/* Μόνο αρχή/μέση/τέλος — η κορυφή/πυθμένας φαίνονται ως σημεία + υπόμνημα, χωρίς
-          επικαλυπτόμενες ετικέτες. */}
       {points.map((p, i) => (i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2)) ? (
-        <text key={'t' + p.year} x={X(i)} y={H - 2} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
+        <text key={'t' + p.year} x={X(i)} y={H - 6} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="10" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
       ) : null)}
+      {/* Διαδραστικός δείκτης: κάθετη γραμμή, φωτεινό σημείο, tooltip έτους/τιμής */}
+      {hp && (
+        <g pointerEvents="none">
+          <line x1={X(hover!)} y1={padTop - 4} x2={X(hover!)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="7" fill="var(--accent)" opacity="0.16" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2" />
+          <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
+            <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {hp.year}</text>
+            <text x="10" y="28" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(hp.value)}</text>
+          </g>
+        </g>
+      )}
     </svg>
   );
 }
 
-// Γράφημα πολλαπλών γραμμών (forward προβολή)
+// Γράφημα πολλαπλών γραμμών (forward προβολή) — premium, ομαλό, με διαδραστικό tooltip.
 function LineChart({ series }: { series: { label: string; color: string; points: { year: number; value: number }[] }[] }) {
-  const W = 640, H = 180, pad = 16;
+  const W = 640, H = 200, padX = 18, padTop = 16, padBottom = 26;
+  const [hover, setHover] = useState<number | null>(null);
   const all = series.flatMap(s => s.points.map(p => p.value));
   if (!all.length) return null;
   const max = Math.max(...all) || 1;
   const years = Math.max(1, series[0].points.length - 1);
-  const X = (t: number) => pad + (t / years) * (W - 2 * pad);
-  const Y = (v: number) => pad + (1 - v / max) * (H - 2 * pad - 12);
+  const baseY = H - padBottom;
+  const X = (t: number) => padX + (t / years) * (W - 2 * padX);
+  const Y = (v: number) => padTop + (1 - v / max) * (baseY - padTop);
+  const smooth = (P: [number, number][]) => {
+    let d = `M${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2, t = 0.16;
+      d += ` C${(p1[0] + (p2[0] - p0[0]) * t).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) * t).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) * t).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) * t).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const vx = ((e.clientX - r.left) / r.width) * W;
+    setHover(Math.max(0, Math.min(years, Math.round(((vx - padX) / (W - 2 * padX)) * years))));
+  };
+  const th = hover != null ? hover : null;
+  const TW = 148, TH = 20 + series.length * 16 + 6;
+  const tx = th != null ? (X(th) + 12 + TW > W - 2 ? Math.max(2, X(th) - TW - 12) : X(th) + 12) : 0;
+  const ty = th != null ? padTop : 0;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} role="img" aria-label="Προβολή απόδοσης">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Προβολή απόδοσης"
+      onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+      {[0, 0.25, 0.5, 0.75, 1].map(f => { const gy = padTop + f * (baseY - padTop); return <line key={f} x1={padX} y1={gy.toFixed(1)} x2={W - padX} y2={gy.toFixed(1)} stroke="var(--border-subtle)" strokeWidth="1" opacity="0.45" />; })}
       {series.map(s => (
-        <path key={s.label} d={s.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${X(p.year).toFixed(1)},${Y(p.value).toFixed(1)}`).join(' ')} fill="none" stroke={s.color} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+        <path key={s.label} d={smooth(s.points.map(p => [X(p.year), Y(p.value)] as [number, number]))} fill="none" stroke={s.color} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
       ))}
-      {series.map(s => { const last = s.points[s.points.length - 1]; return (<circle key={s.label + 'c'} cx={X(last.year)} cy={Y(last.value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="1.5"><title>{`${s.label}: ${last.value.toLocaleString('el-GR')} €`}</title></circle>); })}
-      {[0, Math.round(years / 2), years].map(t => <text key={t} x={X(t)} y={H - 2} textAnchor={t === 0 ? 'start' : t === years ? 'end' : 'middle'} fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{`Έτος ${t}`}</text>)}
+      {series.map(s => { const last = s.points[s.points.length - 1]; return (<circle key={s.label + 'c'} cx={X(last.year)} cy={Y(last.value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="1.6" />); })}
+      {[0, Math.round(years / 2), years].map(t => <text key={t} x={X(t)} y={H - 6} textAnchor={t === 0 ? 'start' : t === years ? 'end' : 'middle'} fontSize="10" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{`Έτος ${t}`}</text>)}
+      {th != null && (
+        <g pointerEvents="none">
+          <line x1={X(th)} y1={padTop - 4} x2={X(th)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
+          {series.map(s => <circle key={s.label + 'h'} cx={X(th)} cy={Y(s.points[th].value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="2" />)}
+          <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
+            <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
+            {series.map((s, i) => (
+              <g key={s.label + 'r'} transform={`translate(10,${27 + i * 16})`}>
+                <rect x="0" y="-7" width="8" height="3" rx="1.5" fill={s.color} />
+                <text x="14" y="0" fontSize="10.5" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{s.label.length > 12 ? s.label.slice(0, 11) + '…' : s.label}</text>
+                <text x={TW - 10} y="0" textAnchor="end" fontSize="11" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(s.points[th].value)}</text>
+              </g>
+            ))}
+          </g>
+        </g>
+      )}
     </svg>
   );
 }
@@ -303,7 +406,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setPType(p.prop_type || null);
         setPName(p.name || '');
         if (p.rental_mode === 'short_term') setTerm('short');
-        const savedR = localStorage.getItem(K('region')); if (savedR) setRegion(savedR);
+        const savedR = localStorage.getItem(K('region'));
+        if (savedR) setRegion(savedR === 'mykonos_santorini' ? 'mykonos' : savedR); // συμβατότητα με παλαιό κλειδί
         // Δεδομένα κοινότητας για τον ΤΚ του ακινήτου (ανώνυμα· μόνο με ≥5 ακίνητα).
         const postal = String(p.postal_code || '').trim();
         if (postal) {
@@ -337,8 +441,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Το τέλος παρεπιδημούντων επιβαρύνει το νομικό πρόσωπο· ο ιδιώτης (≤2 ακίνητα) εξαιρείται.
   const individualPerson = !(pro && entity === 'company');
-  const occEff = parseFloat(stOcc) || stRef.occupancy;
-  const adrEff = parseFloat(stAdr) || adrReference(stRef.adr, pSqm, pType);
+  // Κενό πεδίο → προεπιλογή περιοχής· το 0 (π.χ. μοντελοποίηση σχεδόν κενού ακινήτου) γίνεται σεβαστό.
+  const occEff = Number.isFinite(parseFloat(stOcc)) ? parseFloat(stOcc) : stRef.occupancy;
+  const adrEff = Number.isFinite(parseFloat(stAdr)) ? parseFloat(stAdr) : adrReference(stRef.adr, pSqm, pType);
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
   const st = useMemo(() => shortTermEstimate({
@@ -373,7 +478,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const verdictLabel = term === 'short'
     ? (y.grossYield >= stRef.grossYield ? 'Πάνω από την τυπική βραχυχρόνια της περιοχής' : 'Κοντά στην τυπική βραχυχρόνια της περιοχής')
     : yieldVerdict(y.grossYield).label;
-  const stExact = SHORT_TERM.find(s => s.key === region);
+  // Ακριβής αντιστοίχιση προφίλ βραχυχρόνιας· τα σπασμένα νησιά (Μύκονος/Σαντορίνη) δείχνουν
+  // τα κοινά τους δεδομένα αναφοράς (mykonos_santorini) αντί για γενική διατύπωση.
+  const stExact = SHORT_TERM.find(s => s.key === region)
+    || ((region === 'mykonos' || region === 'santorini') ? SHORT_TERM.find(s => s.key === 'mykonos_santorini') : undefined);
 
   // Βαθμός απόδοσης A–F. Σε μακροχρόνια η αναφορά είναι ο μέσος της περιοχής (μεικτός → −1,5
   // για καθαρό). Σε βραχυχρόνια, η αναφορά είναι καθαρή απόδοση ST στην ίδια αναλογία κόστους
@@ -401,7 +509,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // (μέση ετήσια 10ετίας ή 20ετίας, ανάλογα με τον ορίζοντα)· το ακίνητο με τη δική σου
   // εκτίμηση (καθαρή απόδοση + ανατίμηση). Ειλικρινή δεδομένα, όχι εξομαλυμένες υποθέσεις.
   const compare = useMemo(() => {
-    const totalReturn = propertyTotalReturn(y.netYield, nAppr);
+    const totalReturn = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const useRet = (b: typeof BENCHMARKS[number]) => cmpYears === '20' ? b.ret20 : b.ret10;
     const opts = [
       { key: 'property', label: 'Το ακίνητό σου (εκτίμηση)', annualReturnPct: totalReturn },
@@ -416,7 +524,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const projSeries = useMemo(() => {
     const yearsN = parseInt(cmpYears);
     const base = nVal || 100000;
-    const propRate = propertyTotalReturn(y.netYield, nAppr);
+    const propRate = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const topAlt = compare.find(c => c.key !== 'property');
     const series = [{ label: 'Ακίνητο', color: 'var(--accent)', points: projectLine(base, propRate, yearsN) }];
     if (topAlt) series.push({ label: topAlt.label, color: 'var(--text-tertiary)', points: projectLine(base, topAlt.annualReturnPct, yearsN) });
@@ -446,18 +554,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     ];
     for (const d of defs) {
       const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 });
-      rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: propertyTotalReturn(y.netYield, nAppr + d.appr), roe: l.cashOnCash, cashFlow: l.cashFlow });
+      rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: clampReturn(propertyTotalReturn(y.netYield, nAppr + d.appr)), roe: l.cashOnCash, cashFlow: l.cashFlow });
     }
     return rows;
   }, [nVal, ltv, loanRate, y.grossYield, y.netYield, nAppr, effOpex, grossAnnual, ifree]);
 
-  // Πληρότητα ισοσκελισμού: το ελάχιστο ποσοστό πληρότητας ώστε τα καθαρά της βραχυχρόνιας
-  // να φτάσουν τα καθαρά της μακροχρόνιας (nRent·12 − έξοδα). Μόνο όταν υπάρχει ενοίκιο αναφοράς.
+  // Πληρότητα ισοσκελισμού: το ελάχιστο ποσοστό πληρότητας ώστε η ΒΡΑΧΥΧΡΟΝΙΑ να αποδώσει
+  // ό,τι και η μακροχρόνια. Το σταθερό opex (ΕΝΦΙΑ, συντήρηση) βαρύνει ΚΑΙ τους δύο τρόπους
+  // εξίσου, οπότε απαλείφεται στη σύγκριση: στόχος = μεικτό ετήσιο ενοίκιο μακροχρόνιας.
   const breakEvenOcc = useMemo(() => {
-    const ltNet = nRent * 12 - nOpex;
-    if (ltNet <= 0) return null;
-    return breakEvenOccupancy(ltNet, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson });
-  }, [nRent, nOpex, adrEff, stClean, stFee, individualPerson]);
+    const ltGross = nRent * 12;
+    if (ltGross <= 0) return null;
+    return breakEvenOccupancy(ltGross, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson });
+  }, [nRent, adrEff, stClean, stFee, individualPerson]);
 
   // Εξαγωγή επαγγελματικής αναφοράς PDF (μέσω παραθύρου εκτύπωσης· escape όλων των τιμών).
   const printReport = () => {
@@ -546,7 +655,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <NumberInput label="Αξία ακινήτου" value={value} onChange={setValue} suffix="€" step={5000} />
           <NumberInput label={term === 'short' ? 'Ενοίκιο μακροχρόνιας' : 'Μηνιαίο ενοίκιο'} value={rent} onChange={setRent} suffix="€" step={50} />
           <NumberInput label="Ετήσια έξοδα" value={opex} onChange={setOpex} suffix="€" step={100} />
-          <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map(r => ({ value: r.key, label: `${r.region} · ${r.label}` }))} />
+          <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map((r, i) => ({ value: r.key, label: r.label, header: r.region !== REGIONS[i - 1]?.region ? r.region : undefined }))} />
         </div>
         {term === 'short' && (
           <div style={{ marginTop: 12 }}>
@@ -671,7 +780,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {compare.map(c => (
-              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={fe(c.futureValue, 0)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${c.totalReturnPct.toFixed(0)}% συνολικά`} />
+              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={feC(c.futureValue)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${c.totalReturnPct.toFixed(0)}% συνολικά`} />
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
@@ -717,7 +826,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
         {/* Επενδυτική ανάλυση IRR/NPV/DSCR — μόνο επαγγελματίας */}
         {pro && (
-          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR — αγορά, κατοχή και πώληση στον ορίζοντα" info={G.irr}>
+          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR — αγορά, κατοχή και πώληση στον ορίζοντα">
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
               <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας κατοχής</p><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
               <div style={{ width: 128 }}><NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} /></div>
