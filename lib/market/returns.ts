@@ -182,3 +182,36 @@ export function compareInvestments(amount: number, years: number, options: Inves
 export function propertyTotalReturn(netYieldPct: number, appreciationPct: number): number {
   return round1(num(netYieldPct) + num(appreciationPct))
 }
+
+// ── Προβολή-γραμμή (forward): ανάπτυξη αξίας/κεφαλαίου στον χρόνο ────────────
+/** Σειρά {year 0..years, value} με ετήσιο σύνθετο ρυθμό (για γραμμικά γραφήματα). */
+export function projectLine(start: number, annualPct: number, years: number): { year: number; value: number }[] {
+  const s = Math.max(0, num(start)); const r = num(annualPct) / 100; const n = Math.max(1, Math.floor(num(years)))
+  const out: { year: number; value: number }[] = []
+  for (let t = 0; t <= n; t++) out.push({ year: t, value: round2(s * Math.pow(1 + r, t)) })
+  return out
+}
+
+// ── Βαθμός απόδοσης (A–F) — signature σύνοψη ────────────────────────────────
+export interface YieldGrade { grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; label: string }
+/**
+ * Βαθμός 0–100 & γράμμα, με βάση την ΚΑΘΑΡΗ απόδοση σε σχέση με τον μέσο όρο της
+ * περιοχής (σχετικό 55%) και το απόλυτο επίπεδο (45%). Ρεαλιστική βαθμονόμηση για
+ * την ελληνική αγορά (μέση καθαρή ~3–4%). Θετική ταμειακή ροή δίνει μικρό μπόνους.
+ */
+export function yieldGrade(netYieldPct: number, regionAvgGrossPct: number, positiveCashFlow = true): YieldGrade {
+  const net = num(netYieldPct)
+  // Βαθμολογία ΣΧΕΤΙΚΑ με την περιοχή (οι ελληνικές αποδόσεις είναι χαμηλές σε απόλυτους
+  // όρους): μέσος όρος → C, σαφώς πάνω → B/A, σαφώς κάτω → D/F. Ο μέσος περιοχής είναι
+  // ΜΕΙΚΤΟΣ, οπότε η καθαρή αναφορά είναι ~1,5 μονάδες χαμηλότερα.
+  const regionNet = Math.max(1, num(regionAvgGrossPct) - 1.5)
+  const rel = regionNet > 0 ? net / regionNet : 1                    // 1 = στον μέσο όρο
+  let score = 50 + (rel - 1) * 60                                    // rel 1→50 (C), 1,5→80, 0,5→20
+  if (net >= 5) score += 5                                           // μικρό απόλυτο μπόνους/ποινή
+  if (net < 2) score -= 8
+  if (positiveCashFlow) score += 3
+  score = Math.max(0, Math.min(100, Math.round(score)))
+  const grade: YieldGrade['grade'] = score >= 82 ? 'A' : score >= 66 ? 'B' : score >= 50 ? 'C' : score >= 34 ? 'D' : 'F'
+  const label = grade === 'A' ? 'Εξαιρετική απόδοση' : grade === 'B' ? 'Πολύ καλή απόδοση' : grade === 'C' ? 'Μέτρια απόδοση' : grade === 'D' ? 'Χαμηλή απόδοση' : 'Πολύ χαμηλή απόδοση'
+  return { grade, score, label }
+}

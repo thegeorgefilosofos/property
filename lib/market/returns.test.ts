@@ -1,5 +1,6 @@
 // Τεστ για τη μηχανή αποδόσεων (lib/market/returns.ts) + ακεραιότητα δεδομένων αγοράς.
-import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn } from './returns'
+import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade } from './returns'
+import { shortTermEstimate, breakEvenOccupancy } from './shortTerm'
 import {
   REGIONS, BENCHMARKS, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS,
   GREECE_AVG_GROSS_YIELD, yieldVerdict, midPricePerSqm,
@@ -63,6 +64,45 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('ταξινόμηση φθίνουσα', c[0].key === 'a')
   ok('FV 10k @5% 10ετία', near(c[0].futureValue, 16288.95, 1))
   ok('propertyTotalReturn = καθαρή + ανατίμηση', propertyTotalReturn(3.5, 6) === 9.5)
+}
+
+// ── projectLine (forward προβολή) ───────────────────────────────────────────
+{
+  const p = projectLine(100000, 5, 10)
+  ok('projectLine μήκος = έτη+1', p.length === 11)
+  ok('projectLine[0] = start', p[0].value === 100000 && p[0].year === 0)
+  ok('projectLine τέλος = start×1,05^10', near(p[10].value, 100000 * Math.pow(1.05, 10), 1))
+  ok('projectLine μονότονο (rate>0)', p.every((x, i) => i === 0 || x.value >= p[i - 1].value))
+}
+
+// ── yieldGrade (βαθμονόμηση σχετική με περιοχή) ─────────────────────────────
+{
+  // Περιοχή μεικτή 5% → καθαρή αναφορά 3,5%. Καθαρή = 3,5 → μέσος → C.
+  ok('grade: στον μέσο → C', yieldGrade(3.5, 5).grade === 'C')
+  ok('grade: σαφώς πάνω → A/B', ['A', 'B'].includes(yieldGrade(5.5, 5).grade))
+  ok('grade: εξαιρετική → A', yieldGrade(6.5, 5).grade === 'A')
+  ok('grade: χαμηλή → D/F', ['D', 'F'].includes(yieldGrade(2.0, 5).grade))
+  ok('grade: score 0–100', [0, 3, 5, 8, 12].every(n => { const s = yieldGrade(n, 5).score; return s >= 0 && s <= 100 }))
+  ok('grade: μονότονο στην καθαρή', yieldGrade(6, 5).score >= yieldGrade(3, 5).score)
+}
+
+// ── shortTermEstimate (βραχυχρόνια) ────────────────────────────────────────
+{
+  const s = shortTermEstimate({ occupancyPct: 60, adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true })
+  ok('ST: νύχτες = round(365×πληρότητα)', s.nights === Math.round(365 * 0.6))
+  ok('ST: μεικτά = νύχτες×ADR', near(s.grossRevenue, s.nights * 100, 0.5))
+  ok('ST: προμήθεια 15%', near(s.platformFees, s.grossRevenue * 0.15, 0.5))
+  ok('ST: καθαρά < μεικτά', s.netRevenue < s.grossRevenue)
+  ok('ST: ΤΑΚΚ > 0', s.climateLevy > 0)
+  ok('ST: παρεπιδημούντων 0 (ιδιώτης ≤2)', s.municipalTax === 0)
+  ok('ST: παρεπιδημούντων >0 (3+ ακίνητα)', shortTermEstimate({ occupancyPct: 60, adr: 100, propertyCount: 3, individual: true }).municipalTax > 0)
+  ok('ST: μηδέν πληρότητα → 0', shortTermEstimate({ occupancyPct: 0, adr: 100 }).grossRevenue === 0)
+  // Μονοτονία στην πληρότητα.
+  ok('ST: μονότονο στην πληρότητα', shortTermEstimate({ occupancyPct: 80, adr: 100 }).netRevenue > shortTermEstimate({ occupancyPct: 40, adr: 100 }).netRevenue)
+  // Break-even: η πληρότητα-στόχος αποδίδει ~το target.
+  const be = breakEvenOccupancy(5000, { adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true })
+  ok('breakEven: εύλογο 0–100+', be > 0 && be < 200)
+  ok('breakEven: επαληθεύεται', near(shortTermEstimate({ occupancyPct: be, adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true }).netRevenue, 5000, 60))
 }
 
 // ── Ακεραιότητα δεδομένων αγοράς ────────────────────────────────────────────
