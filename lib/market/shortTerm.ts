@@ -56,6 +56,33 @@ export function shortTermEstimate(i: ShortTermInput): ShortTermResult {
   }
 }
 
+// ── Ρεαλιστική μέση τιμή/νύχτα ανά μέγεθος & τύπο ────────────────────────────
+// Το ADR κλιμακώνεται ΥΠΟΓΡΑΜΜΙΚΑ με το μέγεθος (μεγαλύτερο ακίνητο δεν σημαίνει
+// ανάλογα υψηλότερη τιμή/νύχτα), ώστε η μεικτή απόδοση να μένει ρεαλιστική αντί να
+// «εκτοξεύεται» όταν ένα μικρό/φθηνό ακίνητο πάρει την τυπική τιμή της ζώνης.
+// Βαθμονομημένο ώστε ένα διαμέρισμα στα REF_SQM=55 τ.μ. να δίνει ακριβώς το ADR
+// αναφοράς της περιοχής (που αναπαράγει το πραγματικό ετήσιο έσοδο).
+const REF_SQM = 55
+const ADR_SIZE_EXP = 0.9
+const TYPE_MULT: Record<string, number> = {
+  studio: 0.9, apartment: 1, maisonette: 1.1, house: 1.15, villa: 1.35, other: 1,
+}
+/** Άνω κατώφλι μεικτής βραχυχρόνιας απόδοσης: πάνω από αυτό, η αξία ή η τιμή/νύχτα
+ *  είναι πιθανότατα μη ρεαλιστική. Οι ισχυρές τουριστικές αγορές (Κρήτη, Ρόδος) μπορεί
+ *  όντως να ξεπερνούν το 15%· πάνω από 18% η ένδειξη είναι σχεδόν πάντα σφάλμα εισαγωγής. */
+export const MAX_ST_GROSS_YIELD_WARN = 18
+
+/** Ρεαλιστική μέση τιμή/νύχτα για ακίνητο δεδομένου μεγέθους/τύπου, με βάση το ADR
+ *  αναφοράς της ζώνης. Κουμπώνει το αποτέλεσμα σε [0,5×, 2,2×] του τυπικού. */
+export function adrReference(typicalAdr: number, sqm?: number | null, propType?: string | null): number {
+  const base = max0(typicalAdr)
+  if (base <= 0) return 0
+  const s = (sqm && sqm > 0) ? sqm : REF_SQM
+  const sizeFactor = clamp(Math.pow(s / REF_SQM, ADR_SIZE_EXP), 0.5, 2.2)
+  const mult = TYPE_MULT[(propType || 'apartment').toLowerCase()] ?? 1
+  return Math.round(base * sizeFactor * mult)
+}
+
 /**
  * Πληρότητα (%) στην οποία τα ΚΑΘΑΡΑ έσοδα βραχυχρόνιας ισοφαρίζουν έναν στόχο
  * (π.χ. τα καθαρά της μακροχρόνιας). Επιστρέφει 0–100 (ή >100 αν ανέφικτο).
