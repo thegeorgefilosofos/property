@@ -3,7 +3,7 @@
 // αναλλοίωτες, αλλά συγκεκριμένα νούμερα). Αποδεικνύει πραγματική ορθότητα.
 // Τρέξε: npx tsx lib/market/returns.golden.test.ts
 // ═══════════════════════════════════════════════════════════════════════════
-import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade } from './returns'
+import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, npv, irr, remainingBalance, dealAnalysis } from './returns'
 import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
 import { BENCHMARKS } from './greekMarket'
 
@@ -119,6 +119,35 @@ const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps
   // Σύγκριση 100.000 στο S&P500 (11% 20ετία) = 100000·1,11^20 = 806.231,15
   const c = compareInvestments(100000, 20, [{ key: 'sp500', label: 'x', annualReturnPct: by('sp500').ret20 }])
   ok('compare S&P500 20ετία = 806.231', near(c[0].futureValue, 806231.15, 1), c[0].futureValue, 806231.15)
+}
+
+// ── IRR / NPV / DSCR (hand-computed) ────────────────────────────────────────
+{
+  // NPV(10%, [-100, 110]) = -100 + 110/1,1 = 0
+  ok('npv(10%, [-100,110]) = 0', npv(10, [-100, 110]) === 0, npv(10, [-100, 110]), 0)
+  // NPV(0%, [-100, 50, 60]) = 10
+  ok('npv(0%, [-100,50,60]) = 10', npv(0, [-100, 50, 60]) === 10, npv(0, [-100, 50, 60]), 10)
+  // IRR([-100, 110]) = 10%
+  ok('irr([-100,110]) = 10,0', near(irr([-100, 110]), 10.0, 0.05), irr([-100, 110]), 10.0)
+  // IRR([-1000,0,0,0,0, 1610.51]) = 10% (1000·1,1^5 = 1610,51)
+  ok('irr 5ετία @10% = 10,0', near(irr([-1000, 0, 0, 0, 0, 1610.51]), 10.0, 0.05), irr([-1000, 0, 0, 0, 0, 1610.51]), 10.0)
+  // IRR χωρίς λύση → NaN
+  ok('irr όλα θετικά → NaN', Number.isNaN(irr([100, 110])))
+  // Υπόλοιπο δανείου
+  ok('υπόλοιπο 25/25 = 0', remainingBalance(140000, 3, 25, 25) === 0)
+  ok('υπόλοιπο 0/25 = αρχικό', remainingBalance(140000, 3, 25, 0) === 140000)
+  ok('υπόλοιπο 5/10 άτοκο = μισό', remainingBalance(140000, 0, 10, 5) === 70000)
+  // dealAnalysis: όλα μετρητά, 100k, 5% απόδοση, 0 opex, 1 έτος, χωρίς ανατίμηση/κόστη πώλησης
+  // ίδια = 100.000, NOI = 5.000, πώληση = 100.000 → ροές [-100000, 105000] → IRR = 5%
+  const d = dealAnalysis({ price: 100000, ltvPct: 0, loanRatePct: 0, loanYears: 25, grossYieldPct: 5, opexPctOfRent: 0, buyCostsPct: 0, holdYears: 1, appreciationPct: 0, sellCostsPct: 0 })
+  ok('deal ίδια = 100.000', d.equity === 100000, d.equity, 100000)
+  ok('deal NOI = 5.000', d.noi === 5000, d.noi, 5000)
+  ok('deal IRR = 5,0 (all-cash 1ετία)', near(d.irrPct, 5.0, 0.05), d.irrPct, 5.0)
+  ok('deal equityMultiple = 1,05', d.equityMultiple === 1.05, d.equityMultiple, 1.05)
+  // DSCR με δάνειο: NOI 8.000 / δόση ≈ 7.966,9 ≈ 1,0
+  const dl = dealAnalysis({ price: 200000, ltvPct: 70, loanRatePct: 3, loanYears: 25, grossYieldPct: 5, opexPctOfRent: 20, holdYears: 10 })
+  ok('deal DSCR ≈ 1,00', near(dl.dscr, 1.0, 0.02), dl.dscr, 1.0)
+  ok('deal cashflows μήκος = hold+1', dl.cashflows.length === 11)
 }
 
 console.log(`returns.golden — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

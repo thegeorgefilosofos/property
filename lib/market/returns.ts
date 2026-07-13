@@ -215,3 +215,110 @@ export function yieldGrade(netYieldPct: number, regionAvgGrossPct: number, posit
   const label = grade === 'A' ? 'Εξαιρετική απόδοση' : grade === 'B' ? 'Πολύ καλή απόδοση' : grade === 'C' ? 'Μέτρια απόδοση' : grade === 'D' ? 'Χαμηλή απόδοση' : 'Πολύ χαμηλή απόδοση'
   return { grade, score, label }
 }
+
+// ── Χρηματοοικονομική ανάλυση επένδυσης: IRR / NPV / DSCR ────────────────────
+// Η «γλώσσα» των επενδυτών: εσωτερικός βαθμός απόδοσης (χρονική αξία χρήματος με
+// έξοδο), καθαρή παρούσα αξία, δείκτης κάλυψης εξυπηρέτησης χρέους.
+
+/** Καθαρή παρούσα αξία σειράς ταμειακών ροών (cashflows[0] στο t0). */
+export function npv(annualRatePct: number, cashflows: number[]): number {
+  const r = num(annualRatePct) / 100
+  let acc = 0
+  for (let t = 0; t < cashflows.length; t++) acc += num(cashflows[t]) / Math.pow(1 + r, t)
+  return round2(acc)
+}
+
+/** Εσωτερικός βαθμός απόδοσης (%) — διχοτόμηση (robust, χωρίς απόκλιση). NaN αν δεν ορίζεται. */
+export function irr(cashflows: number[]): number {
+  if (cashflows.length < 2) return NaN
+  const f = (rate: number) => { let a = 0; for (let t = 0; t < cashflows.length; t++) a += num(cashflows[t]) / Math.pow(1 + rate, t); return a }
+  let lo = -0.9, hi = 10
+  let flo = f(lo), fhi = f(hi)
+  if (!isFinite(flo) || !isFinite(fhi) || flo * fhi > 0) return NaN
+  for (let i = 0; i < 300; i++) {
+    const mid = (lo + hi) / 2, fm = f(mid)
+    if (!isFinite(fm)) return NaN
+    if (Math.abs(fm) < 1e-6) return round1(mid * 100)
+    if (flo * fm < 0) { hi = mid; fhi = fm } else { lo = mid; flo = fm }
+  }
+  return round1(((lo + hi) / 2) * 100)
+}
+
+/** Ανεξόφλητο υπόλοιπο τοκοχρεολυτικού δανείου μετά από `elapsedYears`. */
+export function remainingBalance(principal: number, annualRatePct: number, totalYears: number, elapsedYears: number): number {
+  const P = pos(principal)
+  const n = Math.max(1, Math.floor(pos(totalYears))) * 12
+  const t = Math.min(n, Math.max(0, Math.floor(pos(elapsedYears)) * 12))
+  const i = num(annualRatePct) / 100 / 12
+  if (P <= 0) return 0
+  if (i === 0) return round2(P * (1 - t / n))
+  const bal = P * (Math.pow(1 + i, n) - Math.pow(1 + i, t)) / (Math.pow(1 + i, n) - 1)
+  return round2(Math.max(0, bal))
+}
+
+export interface DealInput {
+  price: number
+  ltvPct: number
+  loanRatePct: number
+  loanYears: number
+  grossYieldPct: number
+  opexPctOfRent?: number      // default 20%
+  buyCostsPct?: number        // default 4%
+  interestFreePct?: number    // Σπίτι μου ΙΙ
+  holdYears: number           // ορίζοντας κατοχής
+  rentGrowthPct?: number      // ετήσια αύξηση NOI
+  appreciationPct?: number    // ετήσια ανατίμηση αξίας
+  sellCostsPct?: number       // κόστη πώλησης στην έξοδο (default 3%)
+  discountRatePct?: number    // επιτόκιο προεξόφλησης για NPV (default 8%)
+}
+export interface DealResult {
+  equity: number
+  loan: number
+  noi: number
+  annualDebtService: number
+  dscr: number               // NOI / ετήσια δόση (>1 = το εισόδημα καλύπτει το χρέος)
+  cashflows: number[]        // t0..holdYears (t0 = −ίδια κεφάλαια)
+  saleProceeds: number       // καθαρό προϊόν πώλησης στην έξοδο
+  loanBalanceAtExit: number
+  irrPct: number
+  npv: number                // στο discountRatePct
+  equityMultiple: number     // σύνολο διανομών / σύνολο επενδυμένων ιδίων
+}
+
+/** Πλήρης χρηματοοικονομική ανάλυση αγοράς-κατοχής-πώλησης (buy-hold-sell). */
+export function dealAnalysis(input: DealInput): DealResult {
+  const price = pos(input.price)
+  const ltv = Math.max(0, Math.min(100, num(input.ltvPct)))
+  const loan = price * ltv / 100
+  const buyCosts = price * Math.max(0, num(input.buyCostsPct ?? 4)) / 100
+  const equity = Math.max(0, price - loan + buyCosts)
+  const annualRent = price * Math.max(0, num(input.grossYieldPct)) / 100
+  const opex = annualRent * Math.max(0, Math.min(100, num(input.opexPctOfRent ?? 20))) / 100
+  const noi = annualRent - opex
+  const ifree = Math.max(0, Math.min(100, num(input.interestFreePct ?? 0))) / 100
+  const effRate = num(input.loanRatePct) * (1 - ifree)
+  const loanYears = num(input.loanYears) || 25
+  const ads = annuity(loan, effRate, loanYears)
+  const hold = Math.max(1, Math.floor(num(input.holdYears) || 10))
+  const g = num(input.rentGrowthPct ?? 0) / 100
+  const appr = num(input.appreciationPct ?? 0) / 100
+  const sellCosts = Math.max(0, num(input.sellCostsPct ?? 3)) / 100
+  const salePrice = price * Math.pow(1 + appr, hold)
+  const balExit = remainingBalance(loan, effRate, loanYears, hold)
+  const saleProceeds = salePrice * (1 - sellCosts) - balExit
+  const cashflows: number[] = [round2(-equity)]
+  let invested = equity, distributed = 0
+  for (let t = 1; t <= hold; t++) {
+    const noiT = noi * Math.pow(1 + g, t - 1)
+    let cf = noiT - ads
+    if (t === hold) cf += saleProceeds
+    cashflows.push(round2(cf))
+    if (cf >= 0) distributed += cf; else invested += -cf
+  }
+  return {
+    equity: round2(equity), loan: round2(loan), noi: round2(noi), annualDebtService: round2(ads),
+    dscr: ads > 0 ? round2(noi / ads) : Infinity, cashflows, saleProceeds: round2(saleProceeds),
+    loanBalanceAtExit: balExit, irrPct: irr(cashflows), npv: npv(num(input.discountRatePct ?? 8), cashflows),
+    equityMultiple: invested > 0 ? round2(distributed / invested) : 0,
+  }
+}
