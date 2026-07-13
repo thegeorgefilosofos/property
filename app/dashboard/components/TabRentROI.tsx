@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Spinner, fe } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info } from 'lucide-react';
-import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
+import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
@@ -98,7 +98,7 @@ function KPI({ label, value, sub, accent, info }: { label: string; value: string
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
       style={{ background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? '0 16px 30px -18px rgba(0,0,0,0.6)' : '0 8px 20px -18px rgba(0,0,0,0.5)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
       <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
-      <p style={{ fontSize: 24, fontWeight: 700, color: accent ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: 24, fontWeight: 700, color: accent && hot ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1, transition: 'color 0.16s ease' }}>{value}</p>
       {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
     </div>
   );
@@ -229,6 +229,16 @@ function LeverCard({ lever }: { lever: YieldLever }) {
   );
 }
 
+// Πλακίδιο μετρικής (IRR/NPV/DSCR) — μονόχρωμο· κόκκινο μόνο σε προβληματική τιμή.
+function MetricTile({ label, value, info, tone }: { label: string; value: string; info?: string; tone?: 'neg' }) {
+  return (
+    <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+      <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
+      <p style={{ fontSize: 20, fontWeight: 700, color: tone === 'neg' ? 'var(--negative)' : 'var(--text-primary)', margin: '4px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</p>
+    </div>
+  );
+}
+
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 };
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 165px), 1fr))', gap: 12 };
 
@@ -260,12 +270,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // Χαρακτηριστικά ακινήτου (για ρεαλιστική τιμή/νύχτα ανά μέγεθος & τύπο).
   const [pSqm, setPSqm] = useState<number | null>(null);
   const [pType, setPType] = useState<string | null>(null);
+  const [pName, setPName] = useState('');
+  // Δεδομένα κοινότητας (ανώνυμα aggregates ανά ΤΚ· εμφανίζονται μόνο με ≥5 ακίνητα).
+  const [commStat, setCommStat] = useState<{ postal: string; count: number; median: number; p25: number; p75: number } | null>(null);
 
   // Εργαλεία (pro)
   const [compRate, setCompRate] = useState('5');
   const [ltv, setLtv] = useState('70');
   const [loanRate, setLoanRate] = useState('3.5');
   const [ifree, setIfree] = useState('0');
+  // Επενδυτική ανάλυση (IRR/NPV/DSCR)
+  const [holdYears, setHoldYears] = useState<'5' | '10' | '20'>('10');
+  const [rentGrowth, setRentGrowth] = useState('2');
+  const [discountRate, setDiscountRate] = useState('8');
 
   const K = (s: string) => `roi_${propertyId}_${s}`;
   useEffect(() => {
@@ -273,7 +290,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       setLoading(true);
       try {
         const [pr, rc, exp] = await Promise.all([
-          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type').eq('id', propertyId).maybeSingle(),
+          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
           supabase.from('expenses').select('amount').eq('property_id', propertyId),
         ]);
@@ -284,8 +301,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setOpex(String(Math.round(expSum) || localStorage.getItem(K('opex')) || ''));
         setPSqm(p.sqm && p.sqm > 0 ? p.sqm : null);
         setPType(p.prop_type || null);
+        setPName(p.name || '');
         if (p.rental_mode === 'short_term') setTerm('short');
         const savedR = localStorage.getItem(K('region')); if (savedR) setRegion(savedR);
+        // Δεδομένα κοινότητας για τον ΤΚ του ακινήτου (ανώνυμα· μόνο με ≥5 ακίνητα).
+        const postal = String(p.postal_code || '').trim();
+        if (postal) {
+          try {
+            const { data: cs } = await supabase.rpc('community_market_stats');
+            const row = (cs || []).find((r: any) => String(r.postal_code || '').trim() === postal);
+            if (row && Number(row.sample_count) >= 5) {
+              setCommStat({ postal, count: Number(row.sample_count), median: Number(row.median_gross_yield), p25: Number(row.p25_yield), p75: Number(row.p75_yield) });
+            }
+          } catch { /* λειτουργεί όταν υπάρχει αρκετό δείγμα */ }
+        }
       } catch { /* keep defaults */ }
       finally { setLoading(false); }
     })();
@@ -398,6 +427,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, parseInt(compYears), Math.max(0, Math.round(grossAnnual - effOpex - annualTax))), [nVal, compRate, compYears, grossAnnual, effOpex, annualTax]);
   const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree]);
 
+  // Χρηματοοικονομική ανάλυση αγοράς-κατοχής-πώλησης (IRR/NPV/DSCR), με τα ίδια στοιχεία.
+  const deal = useMemo(() => dealAnalysis({
+    price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25,
+    grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20,
+    interestFreePct: parseFloat(ifree) || 0, holdYears: parseInt(holdYears), rentGrowthPct: parseFloat(rentGrowth) || 0,
+    appreciationPct: nAppr, sellCostsPct: 3, discountRatePct: parseFloat(discountRate) || 0,
+  }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree, holdYears, rentGrowth, nAppr, discountRate]);
+
   // Ανάλυση ευαισθησίας (pro): απόδοση ιδίων & συνολική απόδοση σε δυσμενές/βασικό/ευνοϊκό
   // σενάριο (μεταβολή επιτοκίου & ετήσιας ανατίμησης). Δείχνει την αντοχή της επένδυσης.
   const scenarios = useMemo(() => {
@@ -422,6 +459,63 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     return breakEvenOccupancy(ltNet, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson });
   }, [nRent, nOpex, adrEff, stClean, stFee, individualPerson]);
 
+  // Εξαγωγή επαγγελματικής αναφοράς PDF (μέσω παραθύρου εκτύπωσης· escape όλων των τιμών).
+  const printReport = () => {
+    const w = window.open('', '_blank'); if (!w) return;
+    const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const d = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const name = pName.trim() || 'Ακίνητο';
+    const kpi = (l: string, v: string) => `<div class="kpi"><div class="kl">${esc(l)}</div><div class="kv">${esc(v)}</div></div>`;
+    const trow = (l: string, v: string) => `<tr><td>${esc(l)}</td><td class="n">${esc(v)}</td></tr>`;
+    const regionRows = term === 'short'
+      ? [['Το ακίνητό σου', fp(y.grossYield)], ['Τυπική βραχυχρόνια περιοχής', fp(stRef.grossYield)], ['Μακροχρόνια στην ίδια περιοχή', fp(reg?.grossYield || 0)]]
+      : [['Το ακίνητό σου', fp(y.grossYield)], [reg?.label || 'Περιοχή', fp(reg?.grossYield || 0)], ['Μέσος όρος Αθήνας', fp(ATHENS_AVG_GROSS_YIELD)], ['Εθνικός μέσος όρος', fp(GREECE_AVG_GROSS_YIELD)]];
+    const proBlock = pro ? `<h2>Μόχλευση και επενδυτική ανάλυση</h2><div class="kpis">
+        ${kpi('Απόδοση ιδίων', fp(lev.cashOnCash))}
+        ${kpi('IRR', Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—')}
+        ${kpi('DSCR', Number.isFinite(deal.dscr) ? deal.dscr.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '∞')}
+        ${kpi('Πολλαπλασιαστής ιδίων', `${deal.equityMultiple.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)}
+      </div>` : '';
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης — ${esc(name)}</title>
+      <style>
+        *{font-family:Inter,system-ui,Arial,sans-serif;box-sizing:border-box}
+        body{margin:40px;color:#111}
+        .brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#2563eb}
+        h1{font-size:22px;margin:6px 0 2px}h2{font-size:14px;margin:26px 0 10px;color:#111;border-bottom:1px solid #e5e5e5;padding-bottom:6px}
+        .sub{color:#666;font-size:12px;margin-bottom:22px}
+        .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+        .kpi{border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px}
+        .kl{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#777}
+        .kv{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+        table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+        td{padding:8px 10px;border-bottom:1px solid #eee}td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+        .disc{margin-top:26px;font-size:10px;color:#888;line-height:1.5}
+        .foot{margin-top:8px;font-size:9.5px;color:#aaa}
+        @media print{body{margin:18mm}}
+      </style></head>
+      <body>
+        <div class="brand">Property OS</div>
+        <h1>Αναφορά απόδοσης ακινήτου</h1>
+        <div class="sub">${esc(name)} · ${esc(regimeLabel)} · ${esc(term === 'short' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')} · ${esc(d)}</div>
+        <div class="kpis">
+          ${kpi('Αξία ακινήτου', fe(nVal, 0))}
+          ${kpi(term === 'short' ? 'Ετήσια έσοδα' : 'Μηνιαίο ενοίκιο', term === 'short' ? fe(grossAnnual, 0) : fe(nRent, 0))}
+          ${kpi('Μεικτή απόδοση', fp(y.grossYield))}
+          ${kpi('Καθαρή απόδοση', fp(y.netYield))}
+          ${kpi('Απόδοση μετά τον φόρο', fp(y.netYieldAfterTax))}
+          ${kpi('Βαθμός απόδοσης', `${grade.grade} (${grade.score}/100)`)}
+        </div>
+        <h2>Σύγκριση με την αγορά</h2>
+        <table><tbody>${regionRows.map(r => trow(r[0], r[1])).join('')}</tbody></table>
+        ${proBlock}
+        <h2>Σύγκριση με εναλλακτικές επενδύσεις (${esc(cmpYears)} έτη, πραγματικές αποδόσεις)</h2>
+        <table><tbody>${compare.map(c => trow(c.label, `${fe(c.futureValue, 0)}  ·  ${fp(c.annualReturnPct)}/έτος`)).join('')}</tbody></table>
+        <div class="disc">${esc(MARKET_DISCLAIMER)}</div>
+        <div class="foot">Πηγές: ${MARKET_SOURCES.map(s => esc(s.label)).join(' · ')}</div>
+      </body></html>`);
+    w.document.close(); w.focus(); w.print();
+  };
+
   if (loading) return <div style={{ padding: 40 }}><Spinner label="Φόρτωση αποδόσεων…" /></div>;
 
   const regimeLabel = pro ? (entity === 'company' ? 'Επιχείρηση · Νομικό πρόσωπο' : 'Επιχείρηση · Φυσικό πρόσωπο') : 'Ιδιώτης';
@@ -438,6 +532,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {pro && <Seg value={entity} onChange={setEntity} options={[['sole', 'Φυσικό πρόσωπο'], ['company', 'Νομικό πρόσωπο']]} />}
           <Seg value={term} onChange={setTerm} options={[['long', 'Μακροχρόνια'], ['short', 'Βραχυχρόνια']]} />
+          {!empty && (
+            <button onClick={printReport} className="acc-toggle" style={{ height: 36, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <ArrowUpRight size={14} /> Αναφορά PDF
+            </button>
+          )}
         </div>
       </div>
 
@@ -517,6 +616,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600 }}>{verdictLabel}</p>
             {reg && <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{reg.note}</p>}
           </div>
+          {commStat && (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>Δεδομένα κοινότητας Property OS<TermInfo text={G.community} /></p>
+              <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
+                Ταχυδρομικός κώδικας {commStat.postal}: διάμεση μεικτή απόδοση <strong style={{ color: 'var(--text-secondary)' }}>{fp(commStat.median)}</strong> (εύρος {fp(commStat.p25)}–{fp(commStat.p75)}), από {commStat.count} πραγματικά ακίνητα χρηστών. Ανώνυμα και συγκεντρωτικά.
+              </p>
+            </div>
+          )}
           {term === 'short' && (
             <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {stExact
@@ -605,6 +712,26 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου — αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
               </div>
             </div>
+          </Section>
+        )}
+
+        {/* Επενδυτική ανάλυση IRR/NPV/DSCR — μόνο επαγγελματίας */}
+        {pro && (
+          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR — αγορά, κατοχή και πώληση στον ορίζοντα" info={G.irr}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
+              <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας κατοχής</p><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+              <div style={{ width: 128 }}><NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} /></div>
+              <div style={{ width: 158 }}><NumberInput label="Επιτόκιο προεξόφλησης" value={discountRate} onChange={setDiscountRate} suffix="%" step={0.5} labelInfo={<TermInfo text={G.npv} />} /></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12 }}>
+              <MetricTile label="IRR" value={Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—'} info={G.irr} />
+              <MetricTile label="Καθαρή παρούσα αξία" value={fe(deal.npv, 0)} info={G.npv} tone={deal.npv < 0 ? 'neg' : undefined} />
+              <MetricTile label="DSCR" value={Number.isFinite(deal.dscr) ? deal.dscr.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '∞'} info={G.dscr} tone={deal.dscr < 1 ? 'neg' : undefined} />
+              <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${deal.equityMultiple.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`} info={G.equity_multiple} />
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+              Υποθέτει πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds, 0)} (μετά κόστη πώλησης 3% και υπόλοιπο δανείου {fe(deal.loanBalanceAtExit, 0)}). Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο· η NPV υπολογίζεται με επιτόκιο προεξόφλησης {fp(parseFloat(discountRate) || 0)}. Ενδεικτικά, όχι επενδυτική συμβουλή.
+            </p>
           </Section>
         )}
 
