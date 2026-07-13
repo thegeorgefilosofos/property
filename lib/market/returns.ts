@@ -112,7 +112,9 @@ export function leverage(input: LeverageInput): LeverageResult {
   const buyCosts = price * Math.max(0, num(input.buyCostsPct ?? 4)) / 100
   const equity = Math.max(0, price - loan + buyCosts)
   const annualRent = price * Math.max(0, num(input.grossYieldPct)) / 100
-  const opex = annualRent * Math.max(0, Math.min(100, num(input.opexPctOfRent ?? 20))) / 100
+  // Δεν περιορίζουμε άνω το opex% στο 100: αν τα έξοδα ξεπερνούν το ενοίκιο, το NOI ΠΡΕΠΕΙ
+  // να γίνει αρνητικό (αλλιώς DSCR/ταμειακή ροή/IRR βγαίνουν ψευδώς αισιόδοξα).
+  const opex = annualRent * Math.max(0, num(input.opexPctOfRent ?? 20)) / 100
   const noi = annualRent - opex
   // Άτοκο μέρος (π.χ. Σπίτι μου ΙΙ): μειώνει το μέσο επιτόκιο.
   const ifree = Math.max(0, Math.min(100, num(input.interestFreePct ?? 0))) / 100
@@ -293,7 +295,9 @@ export function dealAnalysis(input: DealInput): DealResult {
   const buyCosts = price * Math.max(0, num(input.buyCostsPct ?? 4)) / 100
   const equity = Math.max(0, price - loan + buyCosts)
   const annualRent = price * Math.max(0, num(input.grossYieldPct)) / 100
-  const opex = annualRent * Math.max(0, Math.min(100, num(input.opexPctOfRent ?? 20))) / 100
+  // Δεν περιορίζουμε άνω το opex% στο 100: αν τα έξοδα ξεπερνούν το ενοίκιο, το NOI ΠΡΕΠΕΙ
+  // να γίνει αρνητικό (αλλιώς DSCR/ταμειακή ροή/IRR βγαίνουν ψευδώς αισιόδοξα).
+  const opex = annualRent * Math.max(0, num(input.opexPctOfRent ?? 20)) / 100
   const noi = annualRent - opex
   const ifree = Math.max(0, Math.min(100, num(input.interestFreePct ?? 0))) / 100
   const effRate = num(input.loanRatePct) * (1 - ifree)
