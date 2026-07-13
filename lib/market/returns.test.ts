@@ -3,7 +3,7 @@ import { yields, compound, leverage, applySeries, compareInvestments, propertyTo
 import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
 import {
   REGIONS, BENCHMARKS, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS,
-  GREECE_AVG_GROSS_YIELD, yieldVerdict, midPricePerSqm,
+  GREECE_AVG_GROSS_YIELD, yieldVerdict, midPricePerSqm, estimatePropertyValue, regionByKey,
 } from './greekMarket'
 
 let passed = 0, failed = 0
@@ -155,6 +155,17 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   // yieldVerdict λογική.
   ok('verdict καλό ≥5,5', yieldVerdict(6).tone === 'good' && yieldVerdict(4).tone === 'ok' && yieldVerdict(3).tone === 'low')
   ok('midPricePerSqm', midPricePerSqm(REGIONS[0]) > 0)
+  // AVM: εκτίμηση αξίας από ζώνη × τ.μ. × τύπο.
+  {
+    const r = regionByKey('ath_center')!
+    const mid = midPricePerSqm(r)
+    ok('AVM ≈ €/τ.μ. × τ.μ. (apartment)', near(estimatePropertyValue('ath_center', 80, 'apartment'), Math.round(mid * 80 / 1000) * 1000, 1001))
+    ok('AVM στρογγυλή χιλιάδα', estimatePropertyValue('ath_center', 73, 'apartment') % 1000 === 0)
+    ok('AVM villa > apartment', estimatePropertyValue('ath_center', 100, 'villa') > estimatePropertyValue('ath_center', 100, 'apartment'))
+    ok('AVM 0 χωρίς τ.μ.', estimatePropertyValue('ath_center', 0, 'apartment') === 0 && estimatePropertyValue('ath_center', null) === 0)
+    ok('AVM 0 σε άγνωστη ζώνη', estimatePropertyValue('nowhere', 80, 'apartment') === 0)
+    ok('AVM θετική σε νησί', estimatePropertyValue('mykonos', 90, 'villa') > 0)
+  }
 }
 
 console.log(`returns/market — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

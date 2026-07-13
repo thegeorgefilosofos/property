@@ -16,7 +16,7 @@ import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
   GREECE_AVG_GROSS_YIELD, ATHENS_AVG_GROSS_YIELD, MARKET_DISCLAIMER, MARKET_DATA_ASOF, MARKET_SOURCES,
-  yieldVerdict, regionByKey, type ShortTermStat, type YieldLever,
+  yieldVerdict, regionByKey, estimatePropertyValue, type ShortTermStat, type YieldLever,
 } from '@/lib/market/greekMarket';
 import { incomeStatement, type TaxRegime } from '@/lib/accounting/statement';
 import { GLOSSARY as G } from '@/lib/market/glossary';
@@ -438,6 +438,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const nOpex = parseFloat(opex) || 0;
   const nAppr = parseFloat(appreciation) || 0;
   const reg = regionByKey(region);
+  // Ενδεικτική αυτόματη εκτίμηση αξίας (AVM) από τη ζώνη × τετραγωνικά × τύπο.
+  const estValue = useMemo(() => estimatePropertyValue(region, pSqm, pType), [region, pSqm, pType]);
+  // Πρότεινε μόνο όταν υπάρχει εκτίμηση και είτε λείπει αξία είτε αποκλίνει >7% από την τρέχουσα.
+  const showEstValue = estValue > 0 && (nVal <= 0 || Math.abs(nVal - estValue) / estValue > 0.07);
 
   // Το τέλος παρεπιδημούντων επιβαρύνει το νομικό πρόσωπο· ο ιδιώτης (≤2 ακίνητα) εξαιρείται.
   const individualPerson = !(pro && entity === 'company');
@@ -446,10 +450,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const adrEff = Number.isFinite(parseFloat(stAdr)) ? parseFloat(stAdr) : adrReference(stRef.adr, pSqm, pType);
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
+  const isHouseType = ['house', 'villa', 'maisonette'].includes((pType || '').toLowerCase());
   const st = useMemo(() => shortTermEstimate({
     occupancyPct: occEff, adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0,
-    platformFeePct: parseFloat(stFee) || 0, propertyCount: 1, individual: individualPerson,
-  }), [occEff, adrEff, stClean, stFee, individualPerson]);
+    platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, propertyCount: 1, individual: individualPerson,
+  }), [occEff, adrEff, stClean, stFee, pSqm, isHouseType, individualPerson]);
 
   // Ενοποιημένα μεγέθη: το toggle μακροχρόνια/βραχυχρόνια αλλάζει πραγματικά τα έσοδα & κόστη.
   const grossAnnual = term === 'short' ? st.grossRevenue : nRent * 12;
@@ -657,6 +662,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <NumberInput label="Ετήσια έξοδα" value={opex} onChange={setOpex} suffix="€" step={100} />
           <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map((r, i) => ({ value: r.key, label: r.label, header: r.region !== REGIONS[i - 1]?.region ? r.region : undefined }))} />
         </div>
+        {showEstValue && (
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5, fontFamily: SANS, color: 'var(--text-secondary)' }}>
+            <span>Ενδεικτική εκτίμηση αξίας από τη ζώνη{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue, 0)}</strong></span>
+            <TermInfo text={`Ενδεικτικός υπολογισμός: μέσο €/τ.μ. της περιοχής × τετραγωνικά × συντελεστή τύπου ακινήτου. Δεν υποκαθιστά αντικειμενική αξία ή εκτιμητή — χρησίμευσε ως αφετηρία και προσαρμόσ' την στην πραγματική κατάσταση, όροφο και θέση.`} />
+            <button onClick={() => setValue(String(estValue))} className="acc-toggle" style={{ height: 28, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>Χρήση</button>
+          </div>
+        )}
         {term === 'short' && (
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -673,6 +685,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.5 }}>
                   Η μεικτή απόδοση προκύπτει <strong style={{ color: 'var(--text-primary)' }}>{fp(y.grossYield)}</strong>, ασυνήθιστα υψηλή. Σε ισχυρές τουριστικές αγορές μπορεί να είναι πραγματική· διαφορετικά έλεγξε την αξία και τη μέση τιμή ανά νύχτα.
+                </p>
+              </div>
+            )}
+            {!empty && (
+              <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
+                </div>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος Ανθεκτικότητας (ΤΑΚΚ) <TermInfo text={G.takk} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy, 0)}/έτος</div></div>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος παρεπιδημούντων <TermInfo text={G.transient_tax} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{st.municipalTax > 0 ? `${fe(st.municipalTax, 0)}/έτος` : 'Εξαιρείται'}</div></div>
+                </div>
+                <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+                  Το ΤΑΚΚ χρεώνεται ανά διανυκτέρευση, με υψηλότερη τιμή σε υψηλή περίοδο και για μονοκατοικίες/βίλες. Το τέλος παρεπιδημούντων (0,5%) εξαιρεί μικρούς ιδιοκτήτες (έως 2 ακίνητα, φυσικό πρόσωπο). {individualPerson ? 'Όταν η δραστηριότητα ξεπεράσει τα όρια (πολλά ακίνητα ή παροχή υπηρεσιών ξενοδοχειακού τύπου), θεωρείται επιχειρηματική — υπαγωγή σε ΦΠΑ και κλίμακα άρθρου 15· θέμα λογιστή.' : 'Ως νομικό πρόσωπο, τα έσοδα υπάγονται σε ΦΠΑ και εταιρική φορολογία· τα τέλη εκπίπτουν ως δαπάνες.'} Κάθε ακίνητο χρειάζεται Αριθμό Μητρώου Ακινήτων (ΑΜΑ) σε κάθε αγγελία. Οι τελικές υποχρεώσεις επιβεβαιώνονται με τον λογιστή/ΑΑΔΕ.
                 </p>
               </div>
             )}
