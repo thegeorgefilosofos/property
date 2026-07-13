@@ -142,41 +142,79 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   );
 }
 
-// Έξυπνο γράφημα περιοχής (SVG, theme-aware, με σημεία κορυφής/πυθμένα/σήμερα)
+// Έξυπνο γράφημα περιοχής — premium: ομαλή καμπύλη, βάθος, διαδραστικό tooltip ανά έτος.
 function AreaChart({ points }: { points: { year: number; value: number }[] }) {
-  const W = 640, H = 170, pad = 16;
+  const W = 640, H = 196, padX = 18, padTop = 16, padBottom = 26;
+  const [hover, setHover] = useState<number | null>(null);
   if (points.length < 2) return null;
   const vals = points.map(p => p.value);
   const min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
   const n = points.length;
-  const X = (i: number) => pad + (i / (n - 1)) * (W - 2 * pad);
-  const Y = (v: number) => pad + (1 - (v - min) / range) * (H - 2 * pad - 12);
-  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${X(i).toFixed(1)},${Y(p.value).toFixed(1)}`).join(' ');
-  const area = `${line} L${X(n - 1).toFixed(1)},${(H - pad - 12).toFixed(1)} L${X(0).toFixed(1)},${(H - pad - 12).toFixed(1)} Z`;
-  // Μονόχρωμη προσέγγιση: κορυφή/πυθμένας ουδέτερα (η θέση στην καμπύλη + η ετικέτα τα εξηγούν),
-  // μόνο το «σήμερα» σε accent.
-  const mColor: Record<string, string> = { peak: 'var(--text-tertiary)', trough: 'var(--text-tertiary)', now: 'var(--accent)' };
+  const baseY = H - padBottom;
+  const X = (i: number) => padX + (i / (n - 1)) * (W - 2 * padX);
+  const Y = (v: number) => padTop + (1 - (v - min) / range) * (baseY - padTop);
+  const pts = points.map((p, i) => [X(i), Y(p.value)] as [number, number]);
+  // Ομαλή καμπύλη (Catmull-Rom → κυβικές Bézier) — δίνει το «ζωντανό», premium αίσθημα.
+  const smooth = (P: [number, number][]) => {
+    let d = `M${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2, t = 0.16;
+      const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = p1[1] + (p2[1] - p0[1]) * t;
+      const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = p2[1] - (p3[1] - p1[1]) * t;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
+  const line = smooth(pts);
+  const area = `${line} L${X(n - 1).toFixed(1)},${baseY} L${X(0).toFixed(1)},${baseY} Z`;
   const marks = points.map((p, i) => ({ ...p, i, kind: p.year === HISTORY_ANCHORS.peakYear ? 'peak' : p.year === HISTORY_ANCHORS.troughYear ? 'trough' : i === n - 1 ? 'now' : '' })).filter(m => m.kind);
+  const mColor: Record<string, string> = { peak: 'var(--text-tertiary)', trough: 'var(--text-tertiary)', now: 'var(--accent)' };
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const vx = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) { const dx = Math.abs(X(i) - vx); if (dx < bd) { bd = dx; best = i; } }
+    setHover(best);
+  };
+  const hp = hover != null ? points[hover] : null;
+  const TW = 116, TH = 42;
+  const tx = hp ? Math.max(2, Math.min(W - TW - 2, X(hover!) - TW / 2)) : 0;
+  const belowTop = hp ? Y(hp.value) - TH - 12 : 0;
+  const ty = belowTop < 2 ? (hp ? Y(hp.value) + 14 : 0) : belowTop;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} role="img" aria-label="Ιστορική διαδρομή αξίας">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Ιστορική διαδρομή αξίας"
+      onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
       <defs>
         <linearGradient id="roiArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.30" />
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.34" />
+          <stop offset="55%" stopColor="var(--accent)" stopOpacity="0.10" />
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </linearGradient>
+        <filter id="roiGlow" x="-10%" y="-30%" width="120%" height="170%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="var(--accent)" floodOpacity="0.30" />
+        </filter>
       </defs>
       <path d={area} fill="url(#roiArea)" />
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#roiGlow)" />
       {marks.map(m => (
-        <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.6 : 3.6} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.6">
-          <title>{`${m.year}: ${m.value.toLocaleString('el-GR')} €`}</title>
-        </circle>
+        <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.4 : 3.4} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.8" />
       ))}
-      {/* Μόνο αρχή/μέση/τέλος — η κορυφή/πυθμένας φαίνονται ως σημεία + υπόμνημα, χωρίς
-          επικαλυπτόμενες ετικέτες. */}
       {points.map((p, i) => (i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2)) ? (
-        <text key={'t' + p.year} x={X(i)} y={H - 2} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
+        <text key={'t' + p.year} x={X(i)} y={H - 6} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="10" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
       ) : null)}
+      {/* Διαδραστικός δείκτης: κάθετη γραμμή, φωτεινό σημείο, tooltip έτους/τιμής */}
+      {hp && (
+        <g pointerEvents="none">
+          <line x1={X(hover!)} y1={padTop - 4} x2={X(hover!)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="7.5" fill="var(--accent)" opacity="0.18" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="4.2" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2" />
+          <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
+            <rect width={TW} height={TH} rx="9" fill="var(--bg-elevated)" stroke="var(--border-default)" strokeWidth="1" style={{ filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.35))' }} />
+            <text x="12" y="17" fontSize="10.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">Έτος {hp.year}</text>
+            <text x="12" y="33" fontSize="13.5" fontWeight="700" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{fe(hp.value, 0)}</text>
+          </g>
+        </g>
+      )}
     </svg>
   );
 }
