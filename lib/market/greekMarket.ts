@@ -58,6 +58,45 @@ export const REGIONS: RegionYield[] = [
   { key: 'larissa', label: 'Λάρισα', region: 'Θεσσαλία', pricePerSqm: [1170, 1335], rentPerSqm: [8, 9], grossYield: 7.0, tags: ['city'], note: 'Από τις υψηλότερες αποδόσεις Ελλάδας: πολύ χαμηλές τιμές (~1.333 €/τ.μ.), ενοίκια που ανεβαίνουν ταχύτερα, φοιτητές/νοσοκομείο.' },
   { key: 'volos', label: 'Βόλος', region: 'Θεσσαλία', pricePerSqm: [1430, 1710], rentPerSqm: [7, 8], grossYield: 5.4, tags: ['city', 'port'], note: 'Παν. Θεσσαλίας + λιμάνι + πύλη Πηλίου/Σποράδων. Απόδοση συμπιέζεται (τιμές +18% ενώ ενοίκια σταθερά).' },
   { key: 'ioannina', label: 'Ιωάννινα', region: 'Ήπειρος', pricePerSqm: [1700, 1880], rentPerSqm: [8, 9], grossYield: 5.5, tags: ['city'], note: 'Πανεπιστήμιο + Πανεπιστημιακό Νοσοκομείο: ισχυρή, σταθερή φοιτητική ζήτηση. Ανερχόμενος τουρισμός (Ζαγόρι/Βίκος).' },
+  // ── Πελοπόννησος ──
+  { key: 'kalamata', label: 'Καλαμάτα', region: 'Πελοπόννησος', pricePerSqm: [1300, 1900], rentPerSqm: [6, 8], grossYield: 5.3, tags: ['city', 'port', 'airport', 'tourist'], note: 'Λιμάνι + αεροδρόμιο + Πανεπιστήμιο Πελοποννήσου. Παραλιακή ανάπτυξη, ισχυρή εποχική ζήτηση, σταθερή φοιτητική βάση.' },
+  { key: 'tripoli', label: 'Τρίπολη', region: 'Πελοπόννησος', pricePerSqm: [900, 1300], rentPerSqm: [5, 6], grossYield: 6.0, tags: ['city'], note: 'Διοικητικό κέντρο Αρκαδίας + Πανεπιστήμιο. Χαμηλές τιμές, σταθερή ζήτηση, καλή απόδοση.' },
+  { key: 'corinth', label: 'Κόρινθος', region: 'Πελοπόννησος', pricePerSqm: [1100, 1600], rentPerSqm: [5, 7], grossYield: 5.3, tags: ['city', 'port'], note: 'Προαστιακός σιδηρόδρομος προς Αθήνα: ζήτηση από μετακινούμενους. Λιμάνι, βιομηχανική ζώνη.' },
+  { key: 'nafplio', label: 'Ναύπλιο', region: 'Πελοπόννησος', pricePerSqm: [1600, 2600], rentPerSqm: [7, 10], grossYield: 4.8, tags: ['tourist', 'port'], note: 'Κορυφαίος προορισμός σαββατοκύριακου. Υψηλές αξίες στην Παλιά Πόλη, ισχυρή βραχυχρόνια, χαμηλότερη % απόδοση.' },
+  { key: 'pyrgos', label: 'Πύργος / Ηλεία', region: 'Δυτική Ελλάδα', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Κοντά στην Αρχαία Ολυμπία και τις ακτές Κυλλήνης. Χαμηλό κόστος εισόδου, υψηλή απόδοση.' },
+  // ── Στερεά Ελλάδα / Θεσσαλία ──
+  { key: 'lamia', label: 'Λαμία', region: 'Στερεά Ελλάδα', pricePerSqm: [1000, 1450], rentPerSqm: [5, 7], grossYield: 5.9, tags: ['city'], note: 'Κόμβος στον άξονα Αθήνα–Θεσσαλονίκη + Πανεπιστήμιο Θεσσαλίας. Σταθερή ζήτηση, καλή απόδοση.' },
+  { key: 'chalkida', label: 'Χαλκίδα', region: 'Στερεά Ελλάδα', pricePerSqm: [1300, 1900], rentPerSqm: [6, 8], grossYield: 5.3, tags: ['city', 'port'], note: 'Μία ώρα από την Αθήνα: ζήτηση από μετακινούμενους και παραθεριστές. Παραλιακό μέτωπο.' },
+  { key: 'trikala', label: 'Τρίκαλα', region: 'Θεσσαλία', pricePerSqm: [900, 1300], rentPerSqm: [5, 6], grossYield: 6.0, tags: ['city'], note: 'Από τις πιο βιώσιμες πόλεις της χώρας. Χαμηλές τιμές, σταθερή ζήτηση κατοικίας.' },
+  { key: 'karditsa', label: 'Καρδίτσα', region: 'Θεσσαλία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Πεδινή θεσσαλική πόλη, πολύ προσιτές τιμές, υψηλή % απόδοση με χαμηλό κόστος εισόδου.' },
+  // ── Κεντρική / Δυτική Μακεδονία ──
+  { key: 'katerini', label: 'Κατερίνη / Πιερία', region: 'Κεντρική Μακεδονία', pricePerSqm: [1000, 1500], rentPerSqm: [5, 6], grossYield: 5.3, tags: ['city', 'tourist'], note: 'Κοντά σε Ολυμπο και Παραλία Κατερίνης: παραθεριστική ζήτηση, εγγύτητα στη Θεσσαλονίκη.' },
+  { key: 'veroia', label: 'Βέροια / Ημαθία', region: 'Κεντρική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Ιστορική πόλη, χαμηλές τιμές, σταθερή τοπική ζήτηση.' },
+  { key: 'kozani', label: 'Κοζάνη', region: 'Δυτική Μακεδονία', pricePerSqm: [900, 1300], rentPerSqm: [5, 6], grossYield: 6.0, tags: ['city'], note: 'Πανεπιστήμιο Δυτικής Μακεδονίας. Μετάβαση από τη λιγνιτική οικονομία — προσοχή στη ζήτηση μεσοπρόθεσμα.' },
+  { key: 'kastoria', label: 'Καστοριά', region: 'Δυτική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 5], grossYield: 5.4, tags: ['city', 'tourist'], note: 'Λίμνη, γουνοποιία, τουρισμός. Μικρή αγορά με εποχική ζήτηση.' },
+  // ── Ανατολική Μακεδονία & Θράκη ──
+  { key: 'kavala', label: 'Καβάλα', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [900, 1400], rentPerSqm: [5, 7], grossYield: 6.2, tags: ['city', 'port'], note: 'Λιμάνι, αμφιθεατρική πόλη, πύλη προς Θάσο. Καλή απόδοση, χαμηλό κόστος εισόδου.' },
+  { key: 'serres', label: 'Σέρρες', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [700, 1100], rentPerSqm: [4, 6], grossYield: 6.5, tags: ['city'], note: 'Πανεπιστημιακό τμήμα, πολύ προσιτές τιμές, από τις υψηλότερες αποδόσεις της χώρας.' },
+  { key: 'drama', label: 'Δράμα', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Μικρή, σταθερή αγορά. Χαμηλές τιμές, τοπική ζήτηση.' },
+  { key: 'xanthi', label: 'Ξάνθη', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [800, 1200], rentPerSqm: [5, 6], grossYield: 6.5, tags: ['city'], note: 'Δημοκρίτειο Πανεπιστήμιο: ισχυρή φοιτητική ζήτηση, υψηλή απόδοση, χαμηλό κόστος.' },
+  { key: 'komotini', label: 'Κομοτηνή', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [750, 1150], rentPerSqm: [5, 6], grossYield: 6.8, tags: ['city'], note: 'Έδρα Δημοκρίτειου Πανεπιστημίου, μεγάλος φοιτητικός πληθυσμός. Από τις κορυφαίες αποδόσεις.' },
+  { key: 'alexandroupoli', label: 'Αλεξανδρούπολη', region: 'Ανατολική Μακεδονία και Θράκη', pricePerSqm: [1100, 1600], rentPerSqm: [5, 7], grossYield: 5.3, tags: ['city', 'port', 'airport'], note: 'Λιμάνι, αεροδρόμιο, γεωπολιτική/ενεργειακή σημασία (FSRU). Ανερχόμενη ζήτηση.' },
+  // ── Ήπειρος / Δυτική Ελλάδα ──
+  { key: 'agrinio', label: 'Αγρίνιο', region: 'Δυτική Ελλάδα', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Μεγαλύτερη πόλη Αιτωλοακαρνανίας. Χαμηλές τιμές, σταθερή ζήτηση.' },
+  { key: 'preveza', label: 'Πρέβεζα / Άρτα', region: 'Ήπειρος', pricePerSqm: [1200, 1800], rentPerSqm: [6, 8], grossYield: 5.5, tags: ['city', 'port', 'airport', 'tourist'], note: 'Αεροδρόμιο Ακτίου, Αμβρακικός, ακτές. Τουριστική και τοπική ζήτηση.' },
+  // ── Ιόνια Νησιά ──
+  { key: 'zakynthos', label: 'Ζάκυνθος', region: 'Ιόνια Νησιά', pricePerSqm: [1600, 2600], rentPerSqm: [7, 11], grossYield: 5.0, tags: ['island', 'tourist', 'airport'], note: 'Δημοφιλής προορισμός πακέτων, ισχυρή βραχυχρόνια. Έντονη εποχικότητα.' },
+  { key: 'kefalonia', label: 'Κεφαλονιά / Λευκάδα', region: 'Ιόνια Νησιά', pricePerSqm: [1600, 2600], rentPerSqm: [7, 10], grossYield: 4.8, tags: ['island', 'tourist', 'airport'], note: 'Υψηλής ποιότητας τουρισμός, ισχυρή βραχυχρόνια, υψηλότερες αξίες → χαμηλότερη % μακροχρόνια.' },
+  // ── Βόρειο Αιγαίο ──
+  { key: 'lesvos', label: 'Λέσβος (Μυτιλήνη)', region: 'Βόρειο Αιγαίο', pricePerSqm: [1100, 1700], rentPerSqm: [5, 7], grossYield: 5.0, tags: ['island', 'city', 'port', 'airport'], note: 'Πανεπιστήμιο Αιγαίου + αεροδρόμιο/λιμάνι. Φοιτητική και τοπική ζήτηση, ανερχόμενος τουρισμός.' },
+  { key: 'chios', label: 'Χίος', region: 'Βόρειο Αιγαίο', pricePerSqm: [1200, 1800], rentPerSqm: [5, 7], grossYield: 4.8, tags: ['island', 'port', 'airport'], note: 'Ναυτιλιακή παράδοση, σταθερή τοπική οικονομία. Μέτρια % απόδοση.' },
+  { key: 'samos', label: 'Σάμος / Ικαρία', region: 'Βόρειο Αιγαίο', pricePerSqm: [1200, 1900], rentPerSqm: [6, 8], grossYield: 5.3, tags: ['island', 'tourist', 'airport'], note: 'Τουρισμός φύσης, αεροδρόμιο. Καλή εποχική βραχυχρόνια.' },
+  // ── Νότιο Αιγαίο (πέραν Κυκλάδων premium) ──
+  { key: 'kos', label: 'Κως', region: 'Νότιο Αιγαίο', pricePerSqm: [1800, 3000], rentPerSqm: [8, 12], grossYield: 5.0, tags: ['island', 'tourist', 'airport'], note: 'Νησί πακέτων Δωδεκανήσου, μεγάλη σεζόν, διεθνές αεροδρόμιο. Ισχυρή βραχυχρόνια.' },
+  { key: 'syros', label: 'Σύρος / Τήνος', region: 'Νότιο Αιγαίο', pricePerSqm: [2200, 3600], rentPerSqm: [9, 13], grossYield: 4.5, tags: ['island', 'tourist', 'port'], note: 'Πρωτεύουσα Κυκλάδων (Ερμούπολη): διοικητικό κέντρο + τουρισμός όλο τον χρόνο. Υψηλές αξίες.' },
+  // ── Κρήτη (επιπλέον) ──
+  { key: 'rethymno', label: 'Ρέθυμνο', region: 'Κρήτη', pricePerSqm: [1600, 2400], rentPerSqm: [7, 9], grossYield: 4.8, tags: ['island', 'tourist', 'city'], note: 'Πανεπιστήμιο Κρήτης + ισχυρός τουρισμός. Υψηλότερες αξίες, μέτρια μακροχρόνια, δυνατή βραχυχρόνια.' },
+  { key: 'agios_nikolaos', label: 'Άγιος Νικόλαος / Λασίθι', region: 'Κρήτη', pricePerSqm: [1700, 2600], rentPerSqm: [7, 10], grossYield: 4.7, tags: ['island', 'tourist'], note: 'Premium τουρισμός Ανατολικής Κρήτης (Ελούντα). Υψηλές αξίες, ισχυρή βραχυχρόνια.' },
 ]
 
 /** Επίδραση εγγύτητας σε υποδομές στην αξία/ζήτηση (ενδεικτικά, ποιοτικά). */
