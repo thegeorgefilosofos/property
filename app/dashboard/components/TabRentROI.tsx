@@ -5,19 +5,21 @@
 // εργαλεία, με διάκριση φυσικού/νομικού προσώπου όπου έχει σημασία.
 // Πραγματικά δεδομένα αγοράς (lib/market/greekMarket) + μηχανή (lib/market/returns).
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { Spinner, fe } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info } from 'lucide-react';
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
-import { shortTermEstimate, breakEvenOccupancy } from '@/lib/market/shortTerm';
+import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
 import {
-  REGIONS, BENCHMARKS, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
+  REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
   GREECE_AVG_GROSS_YIELD, ATHENS_AVG_GROSS_YIELD, MARKET_DISCLAIMER, MARKET_DATA_ASOF, MARKET_SOURCES,
-  yieldVerdict, regionByKey, type ShortTermStat,
+  yieldVerdict, regionByKey, type ShortTermStat, type YieldLever,
 } from '@/lib/market/greekMarket';
 import { incomeStatement, type TaxRegime } from '@/lib/accounting/statement';
+import { GLOSSARY as G } from '@/lib/market/glossary';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -34,21 +36,52 @@ const stRefFor = (regionKey: string): ShortTermStat =>
 
 interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; }
 
-const fp = (n: number) => `${(isFinite(n) ? n : 0).toFixed(1)}%`;
+const fp = (n: number) => `${(isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 const SANS = "'Inter',sans-serif";
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
 
+// ── Επεξήγηση όρου (διακριτικό εικονίδιο· επαγγελματικός ορισμός στο hover) ───
+// Portal-based popover ώστε να μην «κόβεται» από scroll containers. Καθαρό, μονόχρωμο.
+function TermInfo({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false });
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r || typeof window === 'undefined') return;
+    const W = 280;
+    const left = Math.min(Math.max(8, r.left - 2), window.innerWidth - W - 8);
+    const up = r.bottom + 130 > window.innerHeight;
+    setPos({ top: up ? r.top - 8 : r.bottom + 8, left, up });
+    setOpen(true);
+  };
+  return (
+    <>
+      <span ref={ref} onMouseEnter={show} onMouseLeave={() => setOpen(false)} aria-label="Επεξήγηση"
+        style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginLeft: 5, color: 'var(--text-tertiary)', cursor: 'help' }}>
+        <Info size={12.5} />
+      </span>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 280, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
+          <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>{text}</p>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 // ── Πτυσσόμενη ενότητα (ομοιόμορφη, χωρίς μπλε πλαίσιο) ─────────────────────
-function Section({ icon, title, sub, children, defaultOpen = false }: { icon: React.ReactNode; title: string; sub?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+function Section({ icon, title, sub, info, children, defaultOpen = false }: { icon: React.ReactNode; title: string; sub?: string; info?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={card}>
       <button onClick={() => setOpen(o => !o)} aria-expanded={open} className="acc-toggle" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={titleStyle}>{title}</p>
+          <p style={titleStyle}>{title}{info && <TermInfo text={info} />}</p>
           {sub && <p style={subStyle}>{sub}</p>}
         </div>
         <ChevronRight size={17} style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.18s' }} />
@@ -59,12 +92,12 @@ function Section({ icon, title, sub, children, defaultOpen = false }: { icon: Re
 }
 
 // ── KPI κάρτα 3D ────────────────────────────────────────────────────────────
-function KPI({ label, value, sub, accent, title }: { label: string; value: string; sub?: string; accent?: boolean; title?: string }) {
+function KPI({ label, value, sub, accent, info }: { label: string; value: string; sub?: string; accent?: boolean; info?: string }) {
   const [hot, setHot] = useState(false);
   return (
-    <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)} title={title}
+    <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
       style={{ background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? '0 16px 30px -18px rgba(0,0,0,0.6)' : '0 8px 20px -18px rgba(0,0,0,0.5)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
-      <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS }}>{label}</p>
+      <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
       <p style={{ fontSize: 24, fontWeight: 700, color: accent ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1 }}>{value}</p>
       {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
     </div>
@@ -81,9 +114,9 @@ function GradeCard({ grade, note }: { grade: YieldGrade; note: string }) {
         <span style={{ fontSize: 32, fontWeight: 700, color: strong ? 'var(--accent)' : 'var(--text-primary)', fontFamily: SANS, lineHeight: 1 }}>{grade.grade}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS }}>{grade.label}</p>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{grade.score} / 100</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>Βαθμός απόδοσης<TermInfo text={G.grade} /></p>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{grade.label} · {grade.score} / 100</span>
         </div>
         <div style={{ marginTop: 8, height: 6, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
           <div style={{ width: `${Math.max(3, grade.score)}%`, height: '100%', borderRadius: 4, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
@@ -100,7 +133,7 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   const bg = tone === 'accent' ? 'var(--accent)' : tone === 'muted' ? 'var(--text-tertiary)' : 'var(--border-default)';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '5px 0' }} title={hint}>
-      <span style={{ width: 128, flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ width: 156, flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
       <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', borderRadius: 4, background: bg, transition: 'width 0.4s ease' }} />
       </div>
@@ -139,7 +172,9 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
           <title>{`${m.year}: ${m.value.toLocaleString('el-GR')} €`}</title>
         </circle>
       ))}
-      {points.map((p, i) => (i === 0 || i === n - 1 || p.year === HISTORY_ANCHORS.peakYear || p.year === HISTORY_ANCHORS.troughYear) ? (
+      {/* Μόνο αρχή/μέση/τέλος — η κορυφή/πυθμένας φαίνονται ως σημεία + υπόμνημα, χωρίς
+          επικαλυπτόμενες ετικέτες. */}
+      {points.map((p, i) => (i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2)) ? (
         <text key={'t' + p.year} x={X(i)} y={H - 2} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
       ) : null)}
     </svg>
@@ -177,6 +212,23 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
   );
 }
 
+// Κάρτα μοχλού — στο hover γίνεται accent ΜΟΝΟ ο τίτλος (καθαρή, διακριτική ένδειξη).
+function LeverCard({ lever }: { lever: YieldLever }) {
+  const [hot, setHot] = useState(false);
+  return (
+    <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
+      style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s' }}>{lever.title}</p>
+        {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600 }}>{lever.impact}</p>
+      <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>{lever.detail}</p>
+      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.5 }}><strong style={{ color: 'var(--text-secondary)' }}>Προσοχή:</strong> {lever.risk}</p>
+    </div>
+  );
+}
+
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 };
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 165px), 1fr))', gap: 12 };
 
@@ -205,6 +257,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [stAdr, setStAdr] = useState('');
   const [stClean, setStClean] = useState('45');
   const [stFee, setStFee] = useState('15');
+  // Χαρακτηριστικά ακινήτου (για ρεαλιστική τιμή/νύχτα ανά μέγεθος & τύπο).
+  const [pSqm, setPSqm] = useState<number | null>(null);
+  const [pType, setPType] = useState<string | null>(null);
 
   // Εργαλεία (pro)
   const [compRate, setCompRate] = useState('5');
@@ -218,7 +273,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       setLoading(true);
       try {
         const [pr, rc, exp] = await Promise.all([
-          supabase.from('user_properties').select('value,target_rent,rental_mode').eq('id', propertyId).maybeSingle(),
+          supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
           supabase.from('expenses').select('amount').eq('property_id', propertyId),
         ]);
@@ -227,6 +282,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));
         const expSum = (exp.data || []).reduce((s: number, e: any) => s + (e.amount || 0), 0);
         setOpex(String(Math.round(expSum) || localStorage.getItem(K('opex')) || ''));
+        setPSqm(p.sqm && p.sqm > 0 ? p.sqm : null);
+        setPType(p.prop_type || null);
         if (p.rental_mode === 'short_term') setTerm('short');
         const savedR = localStorage.getItem(K('region')); if (savedR) setRegion(savedR);
       } catch { /* keep defaults */ }
@@ -240,7 +297,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // Prefill πληρότητας/τιμής βραχυχρόνιας από την αναφορά της περιοχής (επαναφορά όταν
   // αλλάζει η περιοχή· ο χρήστης μπορεί πάντα να διορθώσει).
   const stRef = stRefFor(region);
-  useEffect(() => { if (loading) return; setStOcc(String(stRef.occupancy)); setStAdr(String(stRef.adr)); }, [region, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Prefill ADR κουμπωμένο στο μέγεθος & τύπο του ακινήτου (ρεαλιστικό ανά κατηγορία).
+  useEffect(() => { if (loading) return; setStOcc(String(stRef.occupancy)); setStAdr(String(adrReference(stRef.adr, pSqm, pType))); }, [region, loading, pSqm, pType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nVal = parseFloat(value) || 0;
   const nRent = parseFloat(rent) || 0;
@@ -251,7 +309,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // Το τέλος παρεπιδημούντων επιβαρύνει το νομικό πρόσωπο· ο ιδιώτης (≤2 ακίνητα) εξαιρείται.
   const individualPerson = !(pro && entity === 'company');
   const occEff = parseFloat(stOcc) || stRef.occupancy;
-  const adrEff = parseFloat(stAdr) || stRef.adr;
+  const adrEff = parseFloat(stAdr) || adrReference(stRef.adr, pSqm, pType);
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
   const st = useMemo(() => shortTermEstimate({
@@ -310,13 +368,15 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const histStart = hist[0]?.value || 0;
   const histEnd = hist[hist.length - 1]?.value || 0;
 
-  // Σύγκριση με εναλλακτικές — ΟΛΑ προ φόρου εισοδήματος για δίκαιη σύγκριση (like-for-like):
-  // το ακίνητο με ΚΑΘΑΡΗ απόδοση (προ φόρου) + ανατίμηση· οι εναλλακτικές με τη μεικτή τους απόδοση.
+  // Σύγκριση με εναλλακτικές — οι εναλλακτικές με τις ΠΡΑΓΜΑΤΙΚΕΣ ιστορικές τους αποδόσεις
+  // (μέση ετήσια 10ετίας ή 20ετίας, ανάλογα με τον ορίζοντα)· το ακίνητο με τη δική σου
+  // εκτίμηση (καθαρή απόδοση + ανατίμηση). Ειλικρινή δεδομένα, όχι εξομαλυμένες υποθέσεις.
   const compare = useMemo(() => {
     const totalReturn = propertyTotalReturn(y.netYield, nAppr);
+    const useRet = (b: typeof BENCHMARKS[number]) => cmpYears === '20' ? b.ret20 : b.ret10;
     const opts = [
-      { key: 'property', label: 'Ακίνητο (απόδοση + ανατίμηση)', annualReturnPct: totalReturn },
-      ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: b.annualReturnPct })),
+      { key: 'property', label: 'Το ακίνητό σου (εκτίμηση)', annualReturnPct: totalReturn },
+      ...BENCHMARKS.filter(b => b.key !== 'inflation').map(b => ({ key: b.key, label: b.label, annualReturnPct: useRet(b) })),
     ];
     return compareInvestments(nVal || 100000, parseInt(cmpYears), opts);
   }, [y.netYield, nAppr, nVal, cmpYears]);
@@ -393,14 +453,21 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Παράμετροι βραχυχρόνιας</span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}>· προσυμπληρωμένες από την αναφορά της περιοχής</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}>· προσυμπληρωμένες από τα δεδομένα αναφοράς της περιοχής{pSqm ? `, για ${pSqm} τ.μ.` : ''}</span>
             </div>
             <div style={g4}>
-              <NumberInput label="Ετήσια πληρότητα" value={stOcc} onChange={setStOcc} suffix="%" max={100} />
-              <NumberInput label="Μέση τιμή ανά νύχτα" value={stAdr} onChange={setStAdr} suffix="€" step={5} />
+              <NumberInput label="Ετήσια πληρότητα" value={stOcc} onChange={setStOcc} suffix="%" max={100} labelInfo={<TermInfo text={G.occupancy} />} />
+              <NumberInput label="Μέση τιμή ανά νύχτα" value={stAdr} onChange={setStAdr} suffix="€" step={5} labelInfo={<TermInfo text={G.adr} />} />
               <NumberInput label="Καθαρισμός ανά διαμονή" value={stClean} onChange={setStClean} suffix="€" step={5} />
-              <NumberInput label="Προμήθεια πλατφόρμας" value={stFee} onChange={setStFee} suffix="%" max={100} step={0.5} />
+              <NumberInput label="Προμήθεια πλατφόρμας" value={stFee} onChange={setStFee} suffix="%" max={100} step={0.5} labelInfo={<TermInfo text={G.platform_fee} />} />
             </div>
+            {!empty && y.grossYield > MAX_ST_GROSS_YIELD_WARN && (
+              <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.5 }}>
+                  Η μεικτή απόδοση προκύπτει <strong style={{ color: 'var(--text-primary)' }}>{fp(y.grossYield)}</strong>, ασυνήθιστα υψηλή. Σε ισχυρές τουριστικές αγορές μπορεί να είναι πραγματική· διαφορετικά έλεγξε την αξία και τη μέση τιμή ανά νύχτα.
+                </p>
+              </div>
+            )}
           </div>
         )}
         {empty && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS }}>{term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα για να δεις τις αποδόσεις.' : 'Συμπλήρωσε αξία και ενοίκιο για να δεις τις αποδόσεις.'}</p>}
@@ -409,19 +476,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       {!empty && (<>
         {/* KPIs */}
         <div style={g4}>
-          <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent, 0)} έσοδα/έτος`} title="Ετήσια έσοδα ÷ αξία ακινήτου" />
-          <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" title="(Ετήσια έσοδα − λειτουργικά έξοδα) ÷ αξία ακινήτου" />
-          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)}/έτος`} accent title="(Έσοδα − έξοδα − φόρος εισοδήματος) ÷ αξία. Ο φόρος υπολογίζεται με την ίδια μηχανή που τροφοδοτεί τη Λογιστική." />
+          <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent, 0)} έσοδα/έτος`} info={G.gross_yield} />
+          <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
+          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)}/έτος`} accent info={G.after_tax_yield} />
           {pro
-            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.positiveCarry ? 'θετική μόχλευση' : 'αρνητική μόχλευση'} title="Ετήσια ταμειακή ροή ÷ ίδια κεφάλαια, με τον δανεισμό που έχεις ορίσει στα Εργαλεία" />
+            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.positiveCarry ? 'θετική μόχλευση' : 'αρνητική μόχλευση'} info={G.cash_on_cash} />
             : term === 'short'
-              ? <KPI label="Τυπική βραχυχρόνια περιοχής" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} title="Ενδεικτική μεικτή απόδοση βραχυχρόνιας για την περιοχή (AirDNA / AirROI)" />
-              : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} title="Τυπική μεικτή απόδοση μακροχρόνιας για την περιοχή (Global Property Guide)" />}
+              ? <KPI label="Τυπική βραχυχρόνια απόδοση" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
+              : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={G.region_ref} />}
         </div>
 
         {/* Βαθμός απόδοσης A–F */}
         <GradeCard grade={grade} note={term === 'short'
-          ? `Σε σχέση με την τυπική βραχυχρόνια απόδοση της περιοχής, μετά τα κόστη λειτουργίας και τον φόρο.`
+          ? `Σε σχέση με την τυπική βραχυχρόνια απόδοση της περιοχής, μετά τα λειτουργικά έξοδα και τον φόρο.`
           : `Σε σχέση με τον μέσο όρο της περιοχής (${reg?.region || 'Ελλάδα'}, μεικτή ${fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)}), με βάση την καθαρή απόδοση και την ταμειακή ροή.`} />
 
         {/* 1) Η περιοχή σου */}
@@ -432,7 +499,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <BarRow label="Το ακίνητό σου" value={y.grossYield} max={m} valueLabel={fp(y.grossYield)} tone="accent" hint="Μεικτή απόδοση βραχυχρόνιας" />
                 <BarRow label="Τυπική βραχυχρόνια" value={stRef.grossYield} max={m} valueLabel={fp(stRef.grossYield)} tone="neutral" hint={stRef.note} />
-                <BarRow label="Μακροχρόνια, ίδια περιοχή" value={reg?.grossYield || 0} max={m} valueLabel={fp(reg?.grossYield || 0)} tone="muted" hint={reg?.note} />
+                <BarRow label="Μακροχρόνια στην ίδια περιοχή" value={reg?.grossYield || 0} max={m} valueLabel={fp(reg?.grossYield || 0)} tone="muted" hint={reg?.note} />
               </div>
             );
           })() : (() => {
@@ -453,15 +520,15 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           {term === 'short' && (
             <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {stExact
-                ? <>Αναφορά περιοχής: πληρότητα περίπου {stExact.occupancy}%, μέση τιμή {fe(stExact.adr, 0)} ανά νύχτα, ενδεικτική μεικτή απόδοση {fp(stExact.grossYield)} έναντι {fp(stExact.longTermYield)} στη μακροχρόνια.{stExact.redZone ? ' Κόκκινη ζώνη Αριθμού Μητρώου Ακινήτων: δεν επιτρέπονται νέες εγγραφές.' : ''} </>
+                ? <>Δεδομένα αναφοράς περιοχής: πληρότητα περίπου {stExact.occupancy}%, μέση τιμή {fe(stExact.adr, 0)} ανά νύχτα, ενδεικτική μεικτή απόδοση {fp(stExact.grossYield)} έναντι {fp(stExact.longTermYield)} στη μακροχρόνια.{stExact.redZone ? ' Κόκκινη ζώνη Αριθμού Μητρώου Ακινήτων: δεν επιτρέπονται νέες εγγραφές.' : ''} </>
                 : <>Στη βραχυχρόνια τα μεικτά έσοδα είναι συνήθως υψηλότερα, με έντονη όμως εποχικότητα. </>}
-              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή, καθώς τα λειτουργικά κόστη (καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας, κενές νύχτες) απορροφούν το 40–60% των εσόδων.
+              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή, καθώς τα λειτουργικά έξοδα (καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας, κενές νύχτες) απορροφούν το 40–60% των εσόδων.
             </div>
           )}
         </Section>
 
         {/* 2) Ιστορική διαδρομή */}
-        <Section icon={<TrendingUp size={15} />} title={`Ιστορική διαδρομή ${histYears}ετίας`} sub="Πώς θα κινούνταν η αξία ενός ακινήτου σαν το δικό σου (δείκτης ΤτΕ)">
+        <Section icon={<TrendingUp size={15} />} title={`Ιστορική διαδρομή ${histYears}ετίας`} sub="Πώς θα κινούνταν η αξία ενός ακινήτου όπως το δικό σου (δείκτης Τράπεζας της Ελλάδος)" info={G.hist_index}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
             <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
@@ -480,7 +547,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
-        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal, 0)}) ανατοκισμένο σε ${cmpYears} έτη`}>
+        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal, 0)}) με τις πραγματικές αποδόσεις ${cmpYears}ετίας`} info={G.total_return}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</span>
@@ -497,11 +564,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {compare.map(c => (
-              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={fe(c.futureValue, 0)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · +${c.totalReturnPct.toFixed(0)}% συνολικά`} />
+              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={fe(c.futureValue, 0)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${c.totalReturnPct.toFixed(0)}% συνολικά`} />
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Όλα <strong style={{ color: 'var(--text-secondary)' }}>προ φόρου εισοδήματος</strong>, για δίκαιη σύγκριση: το ακίνητο υπολογίζεται με καθαρή απόδοση συν ανατίμηση, οι εναλλακτικές με τη μεικτή τους απόδοση (οι τόκοι κατάθεσης και ομολόγου φορολογούνται 15%). Οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>· το ακίνητο έχει κόστος συναλλαγής (περίπου 4–10%), απαιτεί χρόνο και συγκεντρώνει κίνδυνο σε ένα στοιχείο. Ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
+            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}) — όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4–10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
           </p>
         </Section>
 
@@ -511,7 +578,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
               {/* Ανατοκισμός */}
               <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-                <p style={{ ...titleStyle, marginBottom: 12 }}>Ανατοκισμός επανεπένδυσης</p>
+                <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Ανατοκισμός επανεπένδυσης<TermInfo text={G.compound} /></p>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ width: 150 }}><NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} /></div>
                   <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας</p><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
@@ -524,7 +591,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               </div>
               {/* Μόχλευση */}
               <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-                <p style={{ ...titleStyle, marginBottom: 12 }}>Μόχλευση (δανεισμός)</p>
+                <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Μόχλευση (δανεισμός)<TermInfo text={G.leverage} /></p>
                 <div style={g2}>
                   <NumberInput label="Δάνειο (% αξίας)" value={ltv} onChange={setLtv} suffix="%" max={100} />
                   <NumberInput label="Επιτόκιο" value={loanRate} onChange={setLoanRate} suffix="%" step={0.1} />
@@ -535,7 +602,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Απόδοση ιδίων</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashOnCash >= 0 ? 'var(--accent)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fp(lev.cashOnCash)}</p></div>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Ετήσια ροή</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashFlow >= 0 ? 'var(--text-primary)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(lev.cashFlow, 0)}</p></div>
                 </div>
-                <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου — χτίζεις όμως κεφάλαιο.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου — αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
               </div>
             </div>
           </Section>
@@ -543,7 +610,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
         {/* Ανάλυση ευαισθησίας & αντοχή — μόνο επαγγελματίας */}
         {pro && (
-          <Section icon={<TrendingUp size={15} />} title="Ανάλυση ευαισθησίας" sub="Πώς αντέχει η επένδυση σε μεταβολές επιτοκίου και ανατίμησης">
+          <Section icon={<TrendingUp size={15} />} title="Ανάλυση ευαισθησίας" sub="Πώς αντέχει η επένδυση σε μεταβολές επιτοκίου και ανατίμησης" info={G.sensitivity}>
             <div style={{ overflowX: 'auto' }}>
               <div style={{ minWidth: 460, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 8, padding: '0 12px 8px' }}>
@@ -566,8 +633,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             </div>
             {term === 'short' && breakEvenOcc !== null && (
               <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600 }}>
-                  Πληρότητα ισοσκελισμού: {isFinite(breakEvenOcc) ? `${Math.min(100, breakEvenOcc).toFixed(0)}%` : 'μη εφικτή'}
+                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                  Πληρότητα ισοσκελισμού: {isFinite(breakEvenOcc) ? `${Math.min(100, breakEvenOcc).toFixed(0)}%` : 'μη εφικτή'}<TermInfo text={G.break_even} />
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
                   {isFinite(breakEvenOcc) && breakEvenOcc <= 100
@@ -580,18 +647,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         )}
 
         {/* Μοχλοί μεγιστοποίησης — επαγγελματίας (πλήρες) / ιδιώτης (μόνο βασικά) */}
-        <Section icon={<Wallet size={15} />} title="Μοχλοί μεγιστοποίησης απόδοσης" sub={pro ? 'Συγκεκριμένες κινήσεις με ποσοτικοποιημένη επίδραση και κίνδυνο' : 'Απλές κινήσεις που ανεβάζουν την καθαρή απόδοση'}>
+        <Section icon={<Wallet size={15} />} title="Μοχλοί μεγιστοποίησης απόδοσης" sub={pro ? 'Συγκεκριμένες κινήσεις με μετρήσιμη επίδραση και κίνδυνο' : 'Απλές κινήσεις που αυξάνουν την καθαρή απόδοση'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {YIELD_LEVERS.filter(l => pro || l.audience === 'all').map(l => (
-              <div key={l.key} style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: SANS }}>{l.title}</p>
-                  {l.href && <a href={l.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600 }}>{l.impact}</p>
-                <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>{l.detail}</p>
-                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.5 }}><strong style={{ color: 'var(--text-secondary)' }}>Προσοχή:</strong> {l.risk}</p>
-              </div>
+              <LeverCard key={l.key} lever={l} />
             ))}
           </div>
           {pro && (
@@ -602,7 +661,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <a href={AUCTION_FACTS.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>
               </div>
               <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>
-                Μέσω συμβολαιογράφου. Μετά από 2 άγονους η τιμή πέφτει στο 80%, μετά τον 3ο στο 65% — έως −35% της εκτιμηθείσας αξίας. Εγγύηση {AUCTION_FACTS.guaranteePct}% + τέλος {AUCTION_FACTS.systemFee}€. Μόνο ~1 στους 7 βρίσκει αγοραστή. {AUCTION_FACTS.note}
+                Μέσω συμβολαιογράφου. Μετά από 2 άγονους η τιμή πέφτει στο 80%, μετά τον 3ο στο 65% — έως −35% της εκτιμηθείσας αξίας. Εγγύηση {AUCTION_FACTS.guaranteePct}% + τέλος {AUCTION_FACTS.systemFee}€. Μόνο περίπου 1 στους 7 βρίσκει αγοραστή. {AUCTION_FACTS.note}
               </p>
             </div>
           )}

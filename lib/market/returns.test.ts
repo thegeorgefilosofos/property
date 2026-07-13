@@ -1,6 +1,6 @@
 // Τεστ για τη μηχανή αποδόσεων (lib/market/returns.ts) + ακεραιότητα δεδομένων αγοράς.
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade } from './returns'
-import { shortTermEstimate, breakEvenOccupancy } from './shortTerm'
+import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
 import {
   REGIONS, BENCHMARKS, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS,
   GREECE_AVG_GROSS_YIELD, yieldVerdict, midPricePerSqm,
@@ -105,6 +105,30 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('breakEven: επαληθεύεται', near(shortTermEstimate({ occupancyPct: be, adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true }).netRevenue, 5000, 60))
 }
 
+// ── adrReference (ρεαλιστική τιμή/νύχτα ανά μέγεθος & τύπο) ─────────────────
+{
+  const stAth = SHORT_TERM.find(s => s.key === 'ath_center')!
+  ok('adr: στα 55 τ.μ. (apartment) = αναφορά', adrReference(stAth.adr, 55, 'apartment') === stAth.adr)
+  ok('adr: μονότονο στο μέγεθος', adrReference(100, 30) < adrReference(100, 60) && adrReference(100, 60) < adrReference(100, 120))
+  ok('adr: villa > apartment', adrReference(100, 80, 'villa') > adrReference(100, 80, 'apartment'))
+  ok('adr: clamp άνω σε ακραίο μέγεθος', adrReference(100, 100000) <= Math.round(100 * 2.2 * 1.35) + 1)
+  ok('adr: μηδέν βάση → 0', adrReference(0, 60) === 0)
+  ok('adr: υπογραμμικό (2× μέγεθος < 2× τιμή)', adrReference(100, 110) < 2 * adrReference(100, 55))
+  // Το ζητούμενο (κατά τον ελεγκτή): η μεικτή βραχυχρόνια απόδοση μένει ρεαλιστική & ~σταθερή
+  // ανά μέγεθος για διαμέρισμα στη μέση τιμή/τ.μ. της περιοχής — δεν «εκτοξεύεται».
+  const region = REGIONS.find(r => r.key === 'ath_center')!
+  const mid = midPricePerSqm(region)
+  const gys = [25, 55, 120].map(sqm => {
+    const adr = adrReference(stAth.adr, sqm, 'apartment')
+    const gross = shortTermEstimate({ occupancyPct: stAth.occupancy, adr }).grossRevenue
+    return (gross / (sqm * mid)) * 100
+  })
+  ok('adr: μεικτή εντός 4–13% ανά μέγεθος', gys.every(g => g >= 4 && g <= 13))
+  ok('adr: μεικτή ~σταθερή ως προς το μέγεθος (<1,5×)', Math.max(...gys) / Math.min(...gys) < 1.5)
+  // Βαθμονόμηση: στα 55 τ.μ. τα έσοδα αναπαράγουν το πραγματικό ετήσιο έσοδο της ζώνης.
+  ok('adr: έσοδα 55τ.μ. ≈ πραγματικό ετήσιο', near(shortTermEstimate({ occupancyPct: stAth.occupancy, adr: adrReference(stAth.adr, 55) }).grossRevenue, stAth.annualRevenue, stAth.annualRevenue * 0.05))
+}
+
 // ── Ακεραιότητα δεδομένων αγοράς ────────────────────────────────────────────
 {
   ok('υπάρχουν περιοχές', REGIONS.length >= 15)
@@ -120,7 +144,9 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
     return Math.abs(implied - r.grossYield) <= 2.5
   }))
   ok('εθνικός μέσος 4,4%', GREECE_AVG_GROSS_YIELD === 4.4)
-  ok('benchmarks πλήρη', BENCHMARKS.length >= 4 && BENCHMARKS.every(b => Number.isFinite(b.annualReturnPct)))
+  ok('benchmarks πλήρη (10ετία & 20ετία)', BENCHMARKS.length >= 4 && BENCHMARKS.every(b => Number.isFinite(b.ret10) && Number.isFinite(b.ret20)))
+  // Ειλικρίνεια: το Χρηματιστήριο Αθηνών έχει σχεδόν μηδενική 20ετία (κρίση).
+  ok('ΧΑ 20ετία ~μηδενική', BENCHMARKS.find(b => b.key === 'athex')!.ret20 < 3)
   ok('ιστορικό 2007–2026', HISTORY_INDEX[0].year === 2007 && HISTORY_INDEX[HISTORY_INDEX.length - 1].year === 2026)
   ok('ιστορικό: έτη αύξοντα, τιμές θετικές', HISTORY_INDEX.every((p, i) => p.price > 0 && (i === 0 || p.year > HISTORY_INDEX[i - 1].year)))
   ok('πυθμένας 2017', HISTORY_ANCHORS.troughYear === 2017)

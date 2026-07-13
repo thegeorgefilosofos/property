@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const MARKET_DISCLAIMER =
-  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές (Τράπεζα Ελλάδος, ΕΛΣΤΑΤ, Global Property Guide, AirDNA/AirROI). Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
+  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές (Τράπεζα της Ελλάδος, ΕΛΣΤΑΤ, Global Property Guide, AirDNA/AirROI). Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
 
 export const MARKET_DATA_ASOF = 'Ιούλιος 2026'
 
@@ -101,35 +101,43 @@ export const HISTORY_ANCHORS = {
   note: 'Κορυφή 2008 → πυθμένας 2017: −42% (ονομαστικά, −48% πραγματικά). Ανάκαμψη από τον πυθμένα ~+95% ως το 2026. Οι πρόσφατες ανατιμήσεις αποκλιμακώνονται (2023 +13,9% → 2026 Q1 +5,7%).',
 }
 
-// ── Εναλλακτικές επενδύσεις (benchmarks, 2026) ──────────────────────────────
-// Πηγές: Trading Economics (ομόλογο/πληθωρισμός), Τράπεζα Ελλάδος (καταθέσεις),
-// ATHEX, World Gold Council. Οι μακροχρόνιες αποδόσεις εξαρτώνται από την περίοδο.
-export interface Benchmark { key: string; label: string; annualReturnPct: number; note: string }
+// ── Εναλλακτικές επενδύσεις (benchmarks) — ΠΡΑΓΜΑΤΙΚΕΣ ιστορικές αποδόσεις ────
+// Μέση ετήσια απόδοση (CAGR) τελευταίας 10ετίας & 20ετίας, ορίζοντας τέλος 2025,
+// total return σε ευρώ όπου έχει νόημα. ΕΙΛΙΚΡΙΝΗ στοιχεία (όχι εξομαλυμένες
+// «στρογγυλές» υποθέσεις): η 20ετία αποτυπώνει και την κρίση.
+// Πηγές: S&P 500 macrotrends/slickcharts (USD TR) + ισοτιμία EUR/USD ΕΚΤ· Euronext
+// Athens (Γενικός Δείκτης)· World Gold Council/goldprice· ESM/PIIE (PSI 2012)·
+// Τράπεζα Ελλάδος (καταθέσεις)· Global Property Guide/ΤτΕ (κατοικία)· World Bank (πληθωρισμός).
+export interface Benchmark { key: string; label: string; ret10: number; ret20: number; note: string; taxFree?: boolean }
 export const BENCHMARKS: Benchmark[] = [
-  { key: 'deposit', label: 'Προθεσμιακή κατάθεση', annualReturnPct: 1.1, note: 'Μέσο επιτόκιο νέων καταθέσεων ≤1 έτους (ΤτΕ, 2026). Κάτω από τον πληθωρισμό → αρνητική πραγματική απόδοση.' },
-  { key: 'bond', label: 'Ελληνικό 10ετές ομόλογο', annualReturnPct: 3.75, note: 'Τρέχουσα απόδοση (2026). Το πλησιέστερο σε «χωρίς ρίσκο» σημείο αναφοράς σε ευρώ.' },
-  { key: 'gold', label: 'Χρυσός', annualReturnPct: 7.0, note: 'Μακροχρόνια ~7%/έτος σε ευρώ (πρόσφατη δεκαετία υψηλότερα). Χωρίς εισόδημα, έντονη μεταβλητότητα.' },
-  { key: 'stocks', label: 'Χρηματιστήριο Αθηνών', annualReturnPct: 8.0, note: 'Τεράστια μεταβλητότητα: ~+13–18%/έτος την τελευταία 10ετία (μετά την κρίση), αλλά ~0% σε ορίζοντα 20ετίας. Ενδεικτικά ~8% μακροπρόθεσμα.' },
-  { key: 'sp500', label: 'S&P 500 ETF (VUAA / SXR8, accumulating)', annualReturnPct: 8.0, note: 'Παγκόσμιος δείκτης ΗΠΑ: ιστορικά ~9–10%/έτος (USD)· ενδεικτικά ~8% σε ευρώ. Accumulating → χωρίς φόρο μερίσματος· η υπεραξία εισηγμένων τίτλων ΕΕ δεν φορολογείται σήμερα για φυσικά πρόσωπα (0,2% τέλος πώλησης). Κίνδυνος αγοράς & συναλλάγματος (EUR/USD).' },
-  { key: 'inflation', label: 'Πληθωρισμός (αναφορά)', annualReturnPct: 3.3, note: 'Μέσος ~3,3%/έτος (10ετία ΕΕ)· τρέχων Ελλάδα ~4,4% (2026). Αφαιρείται για πραγματική απόδοση.' },
+  { key: 'deposit', label: 'Προθεσμιακή κατάθεση', ret10: 0.5, ret20: 1.9, note: 'Μέσο επιτόκιο προθεσμιακής. Η τελευταία 10ετία σχεδόν μηδενική (~0,5%), κάτω από τον πληθωρισμό — αρνητική πραγματική απόδοση.' },
+  { key: 'bond', label: 'Ελληνικό 10ετές ομόλογο', ret10: 6.0, ret20: 1.0, note: 'Ισχυρή 10ετία από τη συμπίεση των αποδόσεων· η 20ετία σχεδόν μηδενική λόγω του PSI 2012 (ονομαστικό κούρεμα 53,5%).' },
+  { key: 'gold', label: 'Χρυσός', ret10: 14.5, ret20: 11.4, note: 'Χρυσός σε ευρώ. Ισχυρές και οι δύο περίοδοι, με έντονη όμως μεταβλητότητα και χωρίς εισόδημα.' },
+  { key: 'athex', label: 'Χρηματιστήριο Αθηνών', ret10: 17.0, ret20: 0.5, note: 'Γενικός Δείκτης με επανεπένδυση μερισμάτων. Εκρηκτική 10ετία μετά την κρίση, αλλά 20ετία σχεδόν μηδενική: ο δείκτης τιμών παραμένει κάτω από το 2005.' },
+  { key: 'sp500', label: 'S&P 500 ETF (EUR, accumulating)', ret10: 13.5, ret20: 11.0, taxFree: true, note: 'Παγκόσμιος δείκτης ΗΠΑ σε ευρώ (VUAA/SXR8). Accumulating → χωρίς φόρο μερίσματος· η υπεραξία εισηγμένων τίτλων για φυσικά πρόσωπα δεν φορολογείται σήμερα (τέλος πώλησης 0,2%). Κίνδυνος αγοράς και συναλλάγματος (EUR/USD).' },
+  { key: 'inflation', label: 'Πληθωρισμός (αναφορά)', ret10: 2.1, ret20: 1.9, note: 'Μέσος πληθωρισμός ~2%/έτος, με ακραία διασπορά (αποπληθωρισμός 2013–2015, +9,7% το 2022). Αφαιρείται για πραγματική απόδοση.' },
 ]
+export const BENCHMARKS_ASOF = 'Δεκέμβριος 2025'
 
 // ── Βραχυχρόνια μίσθωση ανά περιοχή (πληρότητα, ADR, μεικτή απόδοση) ─────────
 // Πηγές: AirDNA / AirROI / Airbtics 2025-2026. Δεδομένα θορυβώδη (±20% ανά πηγή).
 // ΣΗΜΑΝΤΙΚΟ: η καθαρή απόδοση βραχυχρόνιας είναι πολύ χαμηλότερη — λειτουργικά κόστη
 // (καθαρισμοί, διαχείριση 15–25%, ΤΑΚΚ, κενές νύχτες) «τρώνε» 40–60% των μεικτών.
+// Το `adr` είναι η ΠΡΑΓΜΑΤΙΚΗ ΜΕΣΗ τιμή ανά μισθωμένη νύχτα (annualRevenue / (365×πληρότητα)),
+// όχι η τιμή αιχμής — ώστε νύχτες×ADR να αναπαράγει το πραγματικό ετήσιο έσοδο και να μη
+// φουσκώνει η μεικτή απόδοση.
 export interface ShortTermStat {
   key: string; label: string; occupancy: number; adr: number; annualRevenue: number
   grossYield: number; longTermYield: number; redZone?: boolean; note: string
 }
 export const SHORT_TERM: ShortTermStat[] = [
-  { key: 'ath_center', label: 'Κέντρο Αθήνας', occupancy: 58, adr: 125, annualRevenue: 16000, grossYield: 8, longTermYield: 5.0, redZone: true, note: 'Κόκκινη ζώνη μητρώου ακινήτων (1ο–3ο διαμέρισμα) ως 31/12/2026: κανένα νέο μητρώο — για νέους αγοραστές η βραχυχρόνια δεν είναι επιλογή.' },
-  { key: 'ath_riviera', label: 'Αθηναϊκή Ριβιέρα', occupancy: 55, adr: 120, annualRevenue: 14000, grossYield: 6, longTermYield: 3.8, note: 'Εκτός κόκκινης ζώνης — επιτρέπονται νέα μητρώα ακινήτων· βασικός διαφοροποιητής έναντι του κέντρου.' },
-  { key: 'thess', label: 'Θεσσαλονίκη', occupancy: 62, adr: 68, annualRevenue: 14000, grossYield: 7, longTermYield: 4.4, redZone: true, note: 'Πάγωμα μητρώου ακινήτων στο 1ο διαμέρισμα από 1/7/2026.' },
-  { key: 'mykonos_santorini', label: 'Μύκονος / Σαντορίνη', occupancy: 62, adr: 200, annualRevenue: 50000, grossYield: 5, longTermYield: 3.5, note: 'Τεράστια έσοδα (Αύγ. ADR €360+) αλλά πολύ υψηλή τιμή αγοράς → η % απόδοση μέτρια. Ακραία εποχικότητα (5–6 μήνες).' },
-  { key: 'paros_naxos', label: 'Πάρος / Νάξος', occupancy: 75, adr: 116, annualRevenue: 32000, grossYield: 7, longTermYield: 3.0, note: 'Υψηλή πληρότητα & ταχεία άνοδος ADR στη βραχυχρόνια· η μακροχρόνια απόδοση χαμηλή λόγω τιμών.' },
-  { key: 'crete', label: 'Κρήτη (Χανιά/Ηράκλειο)', occupancy: 74, adr: 90, annualRevenue: 23000, grossYield: 6.5, longTermYield: 4.5, note: 'Μεγάλη σεζόν, υψηλότερο RevPAR πανελλαδικά· Ηράκλειο κορυφή μακροχρόνιας απόδοσης (~5,7%).' },
-  { key: 'rhodes', label: 'Ρόδος', occupancy: 72, adr: 124, annualRevenue: 33000, grossYield: 6.5, longTermYield: 5.0, note: 'Νησί πακέτων, ισχυρή σεζόν Ιουν–Σεπ.' },
+  { key: 'ath_center', label: 'Κέντρο Αθήνας', occupancy: 58, adr: 76, annualRevenue: 16000, grossYield: 8, longTermYield: 5.0, redZone: true, note: 'Κόκκινη ζώνη μητρώου ακινήτων (1ο–3ο διαμέρισμα) ως 31/12/2026: κανένα νέο μητρώο — για νέους αγοραστές η βραχυχρόνια δεν είναι επιλογή.' },
+  { key: 'ath_riviera', label: 'Αθηναϊκή Ριβιέρα', occupancy: 55, adr: 70, annualRevenue: 14000, grossYield: 6, longTermYield: 3.8, note: 'Εκτός κόκκινης ζώνης — επιτρέπονται νέα μητρώα ακινήτων· βασικός διαφοροποιητής έναντι του κέντρου.' },
+  { key: 'thess', label: 'Θεσσαλονίκη', occupancy: 62, adr: 62, annualRevenue: 14000, grossYield: 7, longTermYield: 4.4, redZone: true, note: 'Πάγωμα μητρώου ακινήτων στο 1ο διαμέρισμα από 1/7/2026.' },
+  { key: 'mykonos_santorini', label: 'Μύκονος / Σαντορίνη', occupancy: 62, adr: 221, annualRevenue: 50000, grossYield: 5, longTermYield: 3.5, note: 'Τεράστια έσοδα (Αύγ. ADR €360+) αλλά πολύ υψηλή τιμή αγοράς → η % απόδοση μέτρια. Ακραία εποχικότητα (5–6 μήνες).' },
+  { key: 'paros_naxos', label: 'Πάρος / Νάξος', occupancy: 75, adr: 117, annualRevenue: 32000, grossYield: 7, longTermYield: 3.0, note: 'Υψηλή πληρότητα & ταχεία άνοδος ADR στη βραχυχρόνια· η μακροχρόνια απόδοση χαμηλή λόγω τιμών.' },
+  { key: 'crete', label: 'Κρήτη (Χανιά/Ηράκλειο)', occupancy: 74, adr: 85, annualRevenue: 23000, grossYield: 6.5, longTermYield: 4.5, note: 'Μεγάλη σεζόν, υψηλότερο RevPAR πανελλαδικά· Ηράκλειο κορυφή μακροχρόνιας απόδοσης (~5,7%).' },
+  { key: 'rhodes', label: 'Ρόδος', occupancy: 72, adr: 126, annualRevenue: 33000, grossYield: 6.5, longTermYield: 5.0, note: 'Νησί πακέτων, ισχυρή σεζόν Ιουν–Σεπ.' },
 ]
 
 // Εποχικότητα (ενδεικτικά, 12 μήνες, 0=Ιαν): νησιά = καλοκαιρινή καμπύλη· πόλη = δίδυμες
@@ -139,7 +147,7 @@ export const SEASONALITY_CITY = [45, 48, 65, 80, 85, 70, 60, 55, 85, 90, 55, 50]
 
 // ── Πηγές (για εμφάνιση/διαφάνεια) ──────────────────────────────────────────
 export const MARKET_SOURCES: { label: string; href: string }[] = [
-  { label: 'Τράπεζα Ελλάδος — Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
+  { label: 'Τράπεζα της Ελλάδος — Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
   { label: 'ΕΛΣΤΑΤ — Δείκτης Τιμών Καταναλωτή (ενοίκια)', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
   { label: 'Global Property Guide — Greece rental yields', href: 'https://www.globalpropertyguide.com/europe/greece/rental-yields' },
   { label: 'AirDNA / AirROI — βραχυχρόνια Ελλάδας', href: 'https://www.airroi.com/airbnb-data/greece' },
