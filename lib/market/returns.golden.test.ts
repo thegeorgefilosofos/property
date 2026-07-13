@@ -1,0 +1,126 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// GOLDEN CASES — κάθε αναμενόμενη τιμή υπολογισμένη ΑΝΕΞΑΡΤΗΤΑ στο χέρι (όχι
+// αναλλοίωτες, αλλά συγκεκριμένα νούμερα). Αποδεικνύει πραγματική ορθότητα.
+// Τρέξε: npx tsx lib/market/returns.golden.test.ts
+// ═══════════════════════════════════════════════════════════════════════════
+import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade } from './returns'
+import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
+import { BENCHMARKS } from './greekMarket'
+
+let passed = 0, failed = 0
+function ok(name: string, cond: boolean, got?: unknown, want?: unknown) {
+  if (cond) passed++
+  else { failed++; console.log('  ✗ ' + name + (got !== undefined ? `  (got ${got}, want ${want})` : '')) }
+}
+const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps
+
+// ── yields: value 200.000, ενοίκιο 1.000/μήνα, έξοδα 2.000, φόρος 3.000 ──────
+{
+  const y = yields(1000, 200000, 2000, 3000)
+  // ετ.ενοίκιο 12.000. μεικτή=12000/200000=6,0%. καθαρή=(12000-2000)/200000=5,0%.
+  // μετά-φόρου=(12000-2000-3000)/200000=3,5%.
+  ok('yields μεικτή = 6,0', y.grossYield === 6.0, y.grossYield, 6.0)
+  ok('yields καθαρή = 5,0', y.netYield === 5.0, y.netYield, 5.0)
+  ok('yields μετά-φόρου = 3,5', y.netYieldAfterTax === 3.5, y.netYieldAfterTax, 3.5)
+  ok('yields cap = 5,0', y.capRate === 5.0, y.capRate, 5.0)
+  ok('yields annualRent = 12.000', y.annualRent === 12000, y.annualRent, 12000)
+}
+
+// ── compound: κλειστός τύπος ─────────────────────────────────────────────────
+{
+  // 100.000 @6% 10ετία εφάπαξ = 100000·1,06^10 = 179.084,77
+  ok('compound εφάπαξ 179.084,77', near(compound(100000, 6, 10).futureValue, 179084.77, 0.01))
+  // Ράντα 10.000/έτος @5% 20ετία = 10000·(1,05^20−1)/0,05 = 330.659,54
+  ok('compound ράντα 330.659,54', near(compound(0, 5, 20, 10000).futureValue, 330659.54, 0.5))
+  // r=0 γραμμικό: 10.000 + 1.000·10 = 20.000
+  ok('compound r=0 → 20.000', compound(10000, 0, 10, 1000).futureValue === 20000)
+}
+
+// ── leverage: δομικές ταυτότητες (τιμή 200k, 70% δάνειο, 3%, 25ετία, 5% απόδοση) ──
+{
+  const l = leverage({ price: 200000, ltvPct: 70, loanRatePct: 3, loanYears: 25, grossYieldPct: 5, opexPctOfRent: 20 })
+  ok('leverage δάνειο = 140.000', l.loan === 140000, l.loan, 140000)
+  ok('leverage ίδια = 68.000 (4% κόστη)', l.equity === 68000, l.equity, 68000) // 200k-140k+8k
+  ok('leverage NOI = 8.000', l.noi === 8000, l.noi, 8000) // 10.000 ενοίκιο - 20%
+  ok('leverage annualRent = 10.000', l.annualRent === 10000, l.annualRent, 10000)
+  ok('leverage effRate = 3,0', l.effectiveLoanRate === 3.0, l.effectiveLoanRate, 3.0)
+  // Τοκοχρεολυτική δόση: 140000·(0,0025)/(1−1,0025^−300)·12 ≈ 7.966,9/έτος
+  ok('leverage δόση ≈ 7.966,9', near(l.annualDebtService, 7966.87, 1), l.annualDebtService, 7966.87)
+  ok('leverage cashFlow = NOI − δόση', near(l.cashFlow, l.noi - l.annualDebtService, 0.01))
+  ok('leverage θετικό carry (3,8>3,0)', l.positiveCarry === true)
+  // Σπίτι μου ΙΙ: 50% άτοκο → μέσο επιτόκιο 4%·0,5 = 2,0%
+  const s = leverage({ price: 300000, ltvPct: 90, loanRatePct: 4, loanYears: 30, grossYieldPct: 5, interestFreePct: 50 })
+  ok('leverage Σπίτι μου ΙΙ effRate = 2,0', s.effectiveLoanRate === 2.0, s.effectiveLoanRate, 2.0)
+}
+
+// ── applySeries: γινόμενο μεταβολών ──────────────────────────────────────────
+{
+  const r = applySeries(100000, [{ year: 2018, pct: 1.8 }, { year: 2019, pct: 7.2 }])
+  // 100000·1,018·1,072 = 109.129,60
+  ok('applySeries end = 109.129,60', near(r.endValue, 109129.60, 0.01), r.endValue, 109129.60)
+  ok('applySeries totalReturn = 9,1', r.totalReturnPct === 9.1, r.totalReturnPct, 9.1)
+}
+
+// ── compareInvestments + projectLine: κλειστός τύπος ─────────────────────────
+{
+  const c = compareInvestments(10000, 10, [{ key: 'a', label: 'A', annualReturnPct: 5 }, { key: 'b', label: 'B', annualReturnPct: 3 }])
+  ok('compare[0] = A (φθίνουσα)', c[0].key === 'a')
+  ok('compare A FV = 16.288,95', near(c[0].futureValue, 16288.95, 0.01), c[0].futureValue, 16288.95)
+  ok('compare B FV = 13.439,16', near(c[1].futureValue, 13439.16, 0.01), c[1].futureValue, 13439.16)
+  // projectLine 100.000 @5% 10ετία τέλος = 162.889,46
+  ok('projectLine[10] = 162.889,46', near(projectLine(100000, 5, 10)[10].value, 162889.46, 0.01))
+  ok('propertyTotalReturn 3,5+6 = 9,5', propertyTotalReturn(3.5, 6) === 9.5)
+}
+
+// ── yieldGrade: σχετικό με περιοχή ───────────────────────────────────────────
+{
+  ok('grade στον μέσο (3,5 vs 5) = C', yieldGrade(3.5, 5).grade === 'C')
+  ok('grade εξαιρετική (6,5 vs 5) = A', yieldGrade(6.5, 5).grade === 'A')
+  ok('grade χαμηλή (2,0 vs 5) = D/F', ['D', 'F'].includes(yieldGrade(2.0, 5).grade))
+}
+
+// ── adrReference: υπογραμμική κλιμάκωση (hand-computed) ──────────────────────
+{
+  ok('adr 55τ.μ. apartment = 76 (ταυτότητα)', adrReference(76, 55, 'apartment') === 76, adrReference(76, 55, 'apartment'), 76)
+  // (22/55)^0,9 = 0,438 → clamp κάτω 0,5 → 76·0,5 = 38
+  ok('adr 22τ.μ. = 38 (clamp 0,5×)', adrReference(76, 22, 'apartment') === 38, adrReference(76, 22, 'apartment'), 38)
+  // (110/55)^0,9 = 2^0,9 = 1,866 → 76·1,866 = 141,8 → 142
+  ok('adr 110τ.μ. = 142', adrReference(76, 110, 'apartment') === 142, adrReference(76, 110, 'apartment'), 142)
+  // villa 80τ.μ.: (80/55)^0,9·1,35·100 = 1,401·1,35·100 = 189,1 → 189
+  ok('adr 80τ.μ. villa = 189', adrReference(100, 80, 'villa') === 189, adrReference(100, 80, 'villa'), 189)
+}
+
+// ── shortTermEstimate: hand-computed έσοδα/κόστη ─────────────────────────────
+{
+  const s = shortTermEstimate({ occupancyPct: 60, adr: 100, cleaningPerStay: 40, platformFeePct: 15, avgNightsPerStay: 4, propertyCount: 1, individual: true })
+  // νύχτες = round(365·0,6) = 219. μεικτά = 219·100 = 21.900. προμήθεια 15% = 3.285.
+  // διαμονές = 219/4 = 54,75. καθαρισμός = 54,75·40 = 2.190.
+  ok('ST νύχτες = 219', s.nights === 219, s.nights, 219)
+  ok('ST μεικτά = 21.900', s.grossRevenue === 21900, s.grossRevenue, 21900)
+  ok('ST προμήθεια = 3.285', s.platformFees === 3285, s.platformFees, 3285)
+  ok('ST καθαρισμός = 2.190', s.cleaning === 2190, s.cleaning, 2190)
+  ok('ST ΤΑΚΚ > 0', s.climateLevy > 0)
+  ok('ST παρεπιδημούντων = 0 (ιδιώτης ≤2)', s.municipalTax === 0)
+  ok('ST καθαρά = μεικτά − όλα τα κόστη', near(s.netRevenue, 21900 - 3285 - 2190 - s.climateLevy - s.municipalTax, 0.01))
+  // Break-even: πληρότητα-στόχος αναπαράγει τον στόχο
+  const be = breakEvenOccupancy(5000, { adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true })
+  ok('breakEven αναπαράγει στόχο', near(shortTermEstimate({ occupancyPct: be, adr: 100, cleaningPerStay: 40, platformFeePct: 15, propertyCount: 1, individual: true }).netRevenue, 5000, 60))
+}
+
+// ── honest benchmarks: πραγματικές αποδόσεις (sanity) ───────────────────────
+{
+  const by = (k: string) => BENCHMARKS.find(b => b.key === k)!
+  ok('sp500 10ετία ∈ [10,16]', by('sp500').ret10 >= 10 && by('sp500').ret10 <= 16)
+  ok('sp500 20ετία ∈ [8,13]', by('sp500').ret20 >= 8 && by('sp500').ret20 <= 13)
+  ok('ΧΑ 20ετία ~μηδέν (<3, κρίση)', by('athex').ret20 < 3)
+  ok('ομόλογο 20ετία ~μηδέν (<3, PSI)', by('bond').ret20 < 3)
+  ok('κατάθεση 10ετία < πληθωρισμό', by('deposit').ret10 < by('inflation').ret10)
+  ok('sp500 accumulating = αφορολόγητο', by('sp500').taxFree === true)
+  // Σύγκριση 100.000 στο S&P500 (11% 20ετία) = 100000·1,11^20 = 806.231,15
+  const c = compareInvestments(100000, 20, [{ key: 'sp500', label: 'x', annualReturnPct: by('sp500').ret20 }])
+  ok('compare S&P500 20ετία = 806.231', near(c[0].futureValue, 806231.15, 1), c[0].futureValue, 806231.15)
+}
+
+console.log(`returns.golden — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
+if (failed > 0) process.exit(1)
+console.log('όλα τα golden πέρασαν — κάθε νούμερο επαληθεύτηκε ανεξάρτητα στο χέρι')
