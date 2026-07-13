@@ -1399,12 +1399,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 /* Πτυσσόμενες κεφαλίδες/στοιχεία ενοτήτων: χωρίς έντονο μπλε πλαίσιο (θόρυβος).
    Η εστίαση πληκτρολογίου δηλώνεται διακριτικά με υπογράμμιση του τίτλου. */
-.acc-toggle:focus, .acc-toggle:focus-visible { outline: none; }
-.acc-toggle:focus-visible p:first-of-type {
-  text-decoration: underline; text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  text-decoration-thickness: 2px;
-}
+.acc-toggle:focus { outline: none; }
+/* Καμία υπογράμμιση στον τίτλο. Ένδειξη εστίασης πληκτρολογίου μόνο, με διακριτικό δαχτυλίδι
+   (εμφανίζεται αποκλειστικά σε πλοήγηση με πληκτρολόγιο, ποτέ με ποντίκι). */
+.acc-toggle:focus-visible { outline: none; border-radius: 10px; box-shadow: 0 0 0 2px var(--accent-dim); }
 
 /* MD3 Scrim (for dialogs/modals) */
 .md-scrim {
