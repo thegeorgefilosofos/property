@@ -212,6 +212,24 @@ export const shortTermByKey = (key: string) => SHORT_TERM.find(s => s.key === ke
 export const midPricePerSqm = (r: RegionYield) => Math.round((r.pricePerSqm[0] + r.pricePerSqm[1]) / 2)
 export const midRentPerSqm = (r: RegionYield) => Math.round((r.rentPerSqm[0] + r.rentPerSqm[1]) / 2)
 
+// Ενδεικτικός συντελεστής αξίας ανά τύπο ακινήτου (η αξία €/τ.μ. διαφέρει λιγότερο από
+// το ADR ανά τύπο — μικρές αποκλίσεις). Καθαρά ενδεικτικός.
+const VALUE_TYPE_MULT: Record<string, number> = {
+  studio: 0.95, apartment: 1, maisonette: 1.06, house: 1.03, villa: 1.25, other: 1,
+}
+/**
+ * ΕΝΔΕΙΚΤΙΚΗ αυτόματη εκτίμηση αξίας ακινήτου (AVM): μέσο €/τ.μ. ζώνης × τετραγωνικά ×
+ * συντελεστή τύπου, στρογγυλοποιημένη στην πλησιέστερη χιλιάδα. Δεν υποκαθιστά
+ * αντικειμενική αξία/εκτιμητή. Επιστρέφει 0 αν λείπει ζώνη ή τετραγωνικά.
+ */
+export function estimatePropertyValue(regionKey: string, sqm?: number | null, propType?: string | null): number {
+  const r = regionByKey(regionKey)
+  if (!r || !sqm || sqm <= 0) return 0
+  const mult = VALUE_TYPE_MULT[(propType || 'apartment').toLowerCase()] ?? 1
+  const raw = midPricePerSqm(r) * sqm * mult
+  return Math.round(raw / 1000) * 1000
+}
+
 /** Αξιολόγηση μιας απόδοσης σε σχέση με την ελληνική αγορά (μακροχρόνια). */
 export function yieldVerdict(grossYieldPct: number): { label: string; tone: 'good' | 'ok' | 'low' } {
   if (grossYieldPct >= 5.5) return { label: 'Πάνω από τον μέσο όρο αγοράς', tone: 'good' }
