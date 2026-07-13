@@ -6,6 +6,7 @@
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, npv, irr, remainingBalance, dealAnalysis } from './returns'
 import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
 import { BENCHMARKS } from './greekMarket'
+import { portfolioReturns } from './portfolio'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean, got?: unknown, want?: unknown) {
@@ -148,6 +149,25 @@ const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps
   const dl = dealAnalysis({ price: 200000, ltvPct: 70, loanRatePct: 3, loanYears: 25, grossYieldPct: 5, opexPctOfRent: 20, holdYears: 10 })
   ok('deal DSCR ≈ 1,00', near(dl.dscr, 1.0, 0.02), dl.dscr, 1.0)
   ok('deal cashflows μήκος = hold+1', dl.cashflows.length === 11)
+}
+
+// ── portfolioReturns (συγκεντρωτική, σταθμισμένη) ───────────────────────────
+{
+  const p = portfolioReturns([
+    { value: 100000, annualRevenue: 6000, annualExpenses: 1000 },
+    { value: 200000, annualRevenue: 10000, annualExpenses: 2000 },
+  ])
+  ok('portfolio totalValue = 300.000', p.totalValue === 300000, p.totalValue, 300000)
+  ok('portfolio totalNet = 13.000', p.totalNet === 13000, p.totalNet, 13000)
+  // σταθμισμένη μεικτή = 16000/300000 = 5,33 → 5,3· καθαρή = 13000/300000 = 4,33 → 4,3
+  ok('portfolio grossYield = 5,3', p.grossYield === 5.3, p.grossYield, 5.3)
+  ok('portfolio netYield = 4,3', p.netYield === 4.3, p.netYield, 4.3)
+  ok('portfolio valuedCount = 2', p.valuedCount === 2)
+  // Ακίνητο χωρίς αξία δεν μπαίνει στις αποδόσεις, μπαίνει όμως στα σύνολα εσόδων
+  const p2 = portfolioReturns([{ value: 0, annualRevenue: 5000, annualExpenses: 500 }, { value: 100000, annualRevenue: 5000, annualExpenses: 500 }])
+  ok('portfolio αγνοεί αξία 0 στη %', p2.valuedCount === 1 && p2.netYield === 4.5, p2.netYield, 4.5)
+  ok('portfolio συνολικά έσοδα μετρούν όλα', p2.totalRevenue === 10000)
+  ok('portfolio κενό → μηδενικά', portfolioReturns([]).totalValue === 0 && portfolioReturns([]).grossYield === 0)
 }
 
 console.log(`returns.golden — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
