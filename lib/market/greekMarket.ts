@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const MARKET_DISCLAIMER =
-  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές (Τράπεζα Ελλάδος, ΕΛΣΤΑΤ, Global Property Guide, AirDNA/AirROI). Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
+  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές (Τράπεζα της Ελλάδος, ΕΛΣΤΑΤ, Global Property Guide, AirDNA/AirROI). Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
 
 export const MARKET_DATA_ASOF = 'Ιούλιος 2026'
 
@@ -147,7 +147,7 @@ export const SEASONALITY_CITY = [45, 48, 65, 80, 85, 70, 60, 55, 85, 90, 55, 50]
 
 // ── Πηγές (για εμφάνιση/διαφάνεια) ──────────────────────────────────────────
 export const MARKET_SOURCES: { label: string; href: string }[] = [
-  { label: 'Τράπεζα Ελλάδος — Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
+  { label: 'Τράπεζα της Ελλάδος — Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
   { label: 'ΕΛΣΤΑΤ — Δείκτης Τιμών Καταναλωτή (ενοίκια)', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
   { label: 'Global Property Guide — Greece rental yields', href: 'https://www.globalpropertyguide.com/europe/greece/rental-yields' },
   { label: 'AirDNA / AirROI — βραχυχρόνια Ελλάδας', href: 'https://www.airroi.com/airbnb-data/greece' },
