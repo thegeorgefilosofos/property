@@ -123,6 +123,35 @@ function AccountantLink({ userId }: { userId: string }) {
   );
 }
 
+// Συγκατάθεση δεδομένων κοινότητας (ανά χρήστη, opt-out). Προεπιλογή: συμμετοχή.
+function MarketDataSharing({ userId }: { userId: string }) {
+  const supabase = createClient();
+  const [on, setOn] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    supabase.from('billing_profiles').select('share_market_data').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data && data.share_market_data === false) setOn(false); setLoaded(true); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+  const toggle = async (v: boolean) => {
+    setOn(v);
+    await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
+  };
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Συνεισφορά στα δεδομένα κοινότητας</div>
+          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            Τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά. Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου — εμφανίζονται μόνο περιοχές με τουλάχιστον πέντε ακίνητα. Μπορείς να εξαιρεθείς όποτε θέλεις.
+          </div>
+        </div>
+        {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
+      </div>
+    </div>
+  );
+}
+
 // Ενσωματώσεις: ειλικρινής εικόνα του τι δουλεύει ΤΩΡΑ και τι έρχεται (χρειάζεται
 // εξωτερική υποδομή). Καμία ψεύτικη σύνδεση — μόνο πραγματική κατάσταση.
 function IntegrationsCard() {
@@ -526,6 +555,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
           <ProfileTypeCard userId={userId} value={profileType} onChange={v => onProfileChange?.(v)} />
           <AccountantLink userId={userId} />
+          <MarketDataSharing userId={userId} />
           <IntegrationsCard />
           <Referral userId={userId} />
           <DeleteAccountCard />
