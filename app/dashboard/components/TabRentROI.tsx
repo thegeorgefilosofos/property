@@ -35,10 +35,13 @@ const ST_ALIAS: Record<string, string> = {
   trikala: 'thess', karditsa: 'thess', katerini: 'thess', veroia: 'thess', kozani: 'thess',
   kastoria: 'thess', kavala: 'thess', serres: 'thess', drama: 'thess', xanthi: 'thess',
   komotini: 'thess', alexandroupoli: 'thess', agrinio: 'thess',
+  sparti: 'thess', livadeia: 'thess', edessa: 'thess', florina: 'thess', grevena: 'thess',
+  karpenisi: 'crete', igoumenitsa: 'thess',
   // Τουριστικοί προορισμοί → κοντινότερο νησιωτικό/παραθαλάσσιο προφίλ
-  kalamata: 'crete', nafplio: 'crete', preveza: 'crete',
+  kalamata: 'crete', nafplio: 'crete', preveza: 'crete', halkidiki: 'crete',
   zakynthos: 'rhodes', kefalonia: 'rhodes', lesvos: 'crete', chios: 'crete', samos: 'crete',
   kos: 'rhodes', syros: 'paros_naxos', rethymno: 'crete', agios_nikolaos: 'crete',
+  sporades: 'rhodes', limnos: 'crete', milos_ios: 'paros_naxos', andros: 'paros_naxos', karpathos: 'rhodes',
 };
 const stRefFor = (regionKey: string): ShortTermStat =>
   SHORT_TERM.find(s => s.key === (ST_ALIAS[regionKey] || regionKey)) || SHORT_TERM[0];
