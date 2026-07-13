@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Spinner, fe } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info } from 'lucide-react';
-import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
+import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS, AUCTION_FACTS,
@@ -98,7 +98,7 @@ function KPI({ label, value, sub, accent, info }: { label: string; value: string
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
       style={{ background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? '0 16px 30px -18px rgba(0,0,0,0.6)' : '0 8px 20px -18px rgba(0,0,0,0.5)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
       <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
-      <p style={{ fontSize: 24, fontWeight: 700, color: accent ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: 24, fontWeight: 700, color: accent && hot ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1, transition: 'color 0.16s ease' }}>{value}</p>
       {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
     </div>
   );
@@ -229,6 +229,16 @@ function LeverCard({ lever }: { lever: YieldLever }) {
   );
 }
 
+// Πλακίδιο μετρικής (IRR/NPV/DSCR) — μονόχρωμο· κόκκινο μόνο σε προβληματική τιμή.
+function MetricTile({ label, value, info, tone }: { label: string; value: string; info?: string; tone?: 'neg' }) {
+  return (
+    <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+      <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
+      <p style={{ fontSize: 20, fontWeight: 700, color: tone === 'neg' ? 'var(--negative)' : 'var(--text-primary)', margin: '4px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</p>
+    </div>
+  );
+}
+
 const g2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 };
 const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 165px), 1fr))', gap: 12 };
 
@@ -266,6 +276,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [ltv, setLtv] = useState('70');
   const [loanRate, setLoanRate] = useState('3.5');
   const [ifree, setIfree] = useState('0');
+  // Επενδυτική ανάλυση (IRR/NPV/DSCR)
+  const [holdYears, setHoldYears] = useState<'5' | '10' | '20'>('10');
+  const [rentGrowth, setRentGrowth] = useState('2');
+  const [discountRate, setDiscountRate] = useState('8');
 
   const K = (s: string) => `roi_${propertyId}_${s}`;
   useEffect(() => {
@@ -397,6 +411,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // Εργαλεία (pro)
   const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, parseInt(compYears), Math.max(0, Math.round(grossAnnual - effOpex - annualTax))), [nVal, compRate, compYears, grossAnnual, effOpex, annualTax]);
   const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree]);
+
+  // Χρηματοοικονομική ανάλυση αγοράς-κατοχής-πώλησης (IRR/NPV/DSCR), με τα ίδια στοιχεία.
+  const deal = useMemo(() => dealAnalysis({
+    price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25,
+    grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20,
+    interestFreePct: parseFloat(ifree) || 0, holdYears: parseInt(holdYears), rentGrowthPct: parseFloat(rentGrowth) || 0,
+    appreciationPct: nAppr, sellCostsPct: 3, discountRatePct: parseFloat(discountRate) || 0,
+  }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree, holdYears, rentGrowth, nAppr, discountRate]);
 
   // Ανάλυση ευαισθησίας (pro): απόδοση ιδίων & συνολική απόδοση σε δυσμενές/βασικό/ευνοϊκό
   // σενάριο (μεταβολή επιτοκίου & ετήσιας ανατίμησης). Δείχνει την αντοχή της επένδυσης.
@@ -605,6 +627,26 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου — αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
               </div>
             </div>
+          </Section>
+        )}
+
+        {/* Επενδυτική ανάλυση IRR/NPV/DSCR — μόνο επαγγελματίας */}
+        {pro && (
+          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR — αγορά, κατοχή και πώληση στον ορίζοντα" info={G.irr}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
+              <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας κατοχής</p><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+              <div style={{ width: 128 }}><NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} /></div>
+              <div style={{ width: 158 }}><NumberInput label="Επιτόκιο προεξόφλησης" value={discountRate} onChange={setDiscountRate} suffix="%" step={0.5} labelInfo={<TermInfo text={G.npv} />} /></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12 }}>
+              <MetricTile label="IRR" value={Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—'} info={G.irr} />
+              <MetricTile label="Καθαρή παρούσα αξία" value={fe(deal.npv, 0)} info={G.npv} tone={deal.npv < 0 ? 'neg' : undefined} />
+              <MetricTile label="DSCR" value={Number.isFinite(deal.dscr) ? deal.dscr.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '∞'} info={G.dscr} tone={deal.dscr < 1 ? 'neg' : undefined} />
+              <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${deal.equityMultiple.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`} info={G.equity_multiple} />
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+              Υποθέτει πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds, 0)} (μετά κόστη πώλησης 3% και υπόλοιπο δανείου {fe(deal.loanBalanceAtExit, 0)}). Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο· η NPV υπολογίζεται με επιτόκιο προεξόφλησης {fp(parseFloat(discountRate) || 0)}. Ενδεικτικά, όχι επενδυτική συμβουλή.
+            </p>
           </Section>
         )}
 
