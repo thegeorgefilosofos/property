@@ -28,7 +28,7 @@ const ST_ALIAS: Record<string, string> = {
   ath_south: 'ath_riviera', east_attica: 'ath_riviera', piraeus: 'ath_center',
   thess_center: 'thess', thess_kalamaria: 'thess',
   heraklion: 'crete', chania: 'crete',
-  mykonos_santorini: 'mykonos_santorini', paros_naxos: 'paros_naxos', rhodes: 'rhodes', corfu: 'rhodes',
+  mykonos: 'mykonos_santorini', santorini: 'mykonos_santorini', paros_naxos: 'paros_naxos', rhodes: 'rhodes', corfu: 'rhodes',
   patras: 'thess', larissa: 'thess', volos: 'thess', ioannina: 'thess',
   // Ηπειρωτικές πόλεις → προφίλ πόλης (Θεσσαλονίκη)
   tripoli: 'thess', corinth: 'thess', pyrgos: 'thess', lamia: 'thess', chalkida: 'thess',
@@ -49,6 +49,19 @@ const stRefFor = (regionKey: string): ShortTermStat =>
 interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; }
 
 const fp = (n: number) => `${(isFinite(n) ? n : 0).toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+// Ρεαλιστικό εύρος συνολικής ετήσιας απόδοσης για πολυετείς προβολές/σύγκριση: προστατεύει
+// από ακραίες τιμές λόγω μη ρεαλιστικών εισόδων (π.χ. πολύ μικρή αξία με έσοδα βραχυχρόνιας).
+// Δεν επηρεάζει τους δείκτες KPI — μόνο τον ανατοκισμό στα γραφήματα/μπάρες.
+const clampReturn = (r: number) => Math.max(-30, Math.min(35, isFinite(r) ? r : 0));
+// Συμπαγής μορφή ευρώ (χιλ./εκατ./δισ.) για tooltips & μπάρες — ποτέ υπερχείλιση κειμένου.
+const feC = (n: number) => {
+  const v = isFinite(n) ? n : 0, a = Math.abs(v);
+  const s = (x: number, u: string) => `${(v / x).toLocaleString('el-GR', { maximumFractionDigits: 1 })} ${u} €`;
+  if (a >= 1e12) return s(1e12, 'τρισ.');
+  if (a >= 1e9) return s(1e9, 'δισ.');
+  if (a >= 1e6) return s(1e6, 'εκατ.');
+  return fe(Math.round(v), 0);
+};
 const SANS = "'Inter',sans-serif";
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
@@ -189,7 +202,7 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
     setHover(best);
   };
   const hp = hover != null ? points[hover] : null;
-  const TW = 116, TH = 42;
+  const TW = 96, TH = 34;
   const tx = hp ? Math.max(2, Math.min(W - TW - 2, X(hover!) - TW / 2)) : 0;
   const belowTop = hp ? Y(hp.value) - TH - 12 : 0;
   const ty = belowTop < 2 ? (hp ? Y(hp.value) + 14 : 0) : belowTop;
@@ -220,12 +233,12 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
       {hp && (
         <g pointerEvents="none">
           <line x1={X(hover!)} y1={padTop - 4} x2={X(hover!)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
-          <circle cx={X(hover!)} cy={Y(hp.value)} r="7.5" fill="var(--accent)" opacity="0.18" />
-          <circle cx={X(hover!)} cy={Y(hp.value)} r="4.2" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="7" fill="var(--accent)" opacity="0.16" />
+          <circle cx={X(hover!)} cy={Y(hp.value)} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2" />
           <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
-            <rect width={TW} height={TH} rx="9" fill="var(--bg-elevated)" stroke="var(--border-default)" strokeWidth="1" style={{ filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.35))' }} />
-            <text x="12" y="17" fontSize="10.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">Έτος {hp.year}</text>
-            <text x="12" y="33" fontSize="13.5" fontWeight="700" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{fe(hp.value, 0)}</text>
+            <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {hp.year}</text>
+            <text x="10" y="28" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(hp.value)}</text>
           </g>
         </g>
       )}
@@ -258,8 +271,8 @@ function LineChart({ series }: { series: { label: string; color: string; points:
     setHover(Math.max(0, Math.min(years, Math.round(((vx - padX) / (W - 2 * padX)) * years))));
   };
   const th = hover != null ? hover : null;
-  const TW = 168, TH = 18 + series.length * 18 + 8;
-  const tx = th != null ? (X(th) + 14 + TW > W - 2 ? Math.max(2, X(th) - TW - 14) : X(th) + 14) : 0;
+  const TW = 148, TH = 20 + series.length * 16 + 6;
+  const tx = th != null ? (X(th) + 12 + TW > W - 2 ? Math.max(2, X(th) - TW - 12) : X(th) + 12) : 0;
   const ty = th != null ? padTop : 0;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Προβολή απόδοσης"
@@ -273,15 +286,15 @@ function LineChart({ series }: { series: { label: string; color: string; points:
       {th != null && (
         <g pointerEvents="none">
           <line x1={X(th)} y1={padTop - 4} x2={X(th)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
-          {series.map(s => <circle key={s.label + 'h'} cx={X(th)} cy={Y(s.points[th].value)} r="4.2" fill={s.color} stroke="var(--bg-surface)" strokeWidth="2" />)}
+          {series.map(s => <circle key={s.label + 'h'} cx={X(th)} cy={Y(s.points[th].value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="2" />)}
           <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
-            <rect width={TW} height={TH} rx="9" fill="var(--bg-elevated)" stroke="var(--border-default)" strokeWidth="1" style={{ filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.35))' }} />
-            <text x="12" y="17" fontSize="10.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">Έτος {th}</text>
+            <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
             {series.map((s, i) => (
-              <g key={s.label + 'r'} transform={`translate(12,${28 + i * 18})`}>
-                <rect x="0" y="-7" width="9" height="3" rx="1.5" fill={s.color} />
-                <text x="15" y="0" fontSize="11" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{s.label.length > 16 ? s.label.slice(0, 15) + '…' : s.label}</text>
-                <text x={TW - 12} y="0" textAnchor="end" fontSize="11" fontWeight="700" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{fe(s.points[th].value, 0)}</text>
+              <g key={s.label + 'r'} transform={`translate(10,${27 + i * 16})`}>
+                <rect x="0" y="-7" width="8" height="3" rx="1.5" fill={s.color} />
+                <text x="14" y="0" fontSize="10.5" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{s.label.length > 12 ? s.label.slice(0, 11) + '…' : s.label}</text>
+                <text x={TW - 10} y="0" textAnchor="end" fontSize="11" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(s.points[th].value)}</text>
               </g>
             ))}
           </g>
@@ -393,7 +406,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         setPType(p.prop_type || null);
         setPName(p.name || '');
         if (p.rental_mode === 'short_term') setTerm('short');
-        const savedR = localStorage.getItem(K('region')); if (savedR) setRegion(savedR);
+        const savedR = localStorage.getItem(K('region'));
+        if (savedR) setRegion(savedR === 'mykonos_santorini' ? 'mykonos' : savedR); // συμβατότητα με παλαιό κλειδί
         // Δεδομένα κοινότητας για τον ΤΚ του ακινήτου (ανώνυμα· μόνο με ≥5 ακίνητα).
         const postal = String(p.postal_code || '').trim();
         if (postal) {
@@ -491,7 +505,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // (μέση ετήσια 10ετίας ή 20ετίας, ανάλογα με τον ορίζοντα)· το ακίνητο με τη δική σου
   // εκτίμηση (καθαρή απόδοση + ανατίμηση). Ειλικρινή δεδομένα, όχι εξομαλυμένες υποθέσεις.
   const compare = useMemo(() => {
-    const totalReturn = propertyTotalReturn(y.netYield, nAppr);
+    const totalReturn = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const useRet = (b: typeof BENCHMARKS[number]) => cmpYears === '20' ? b.ret20 : b.ret10;
     const opts = [
       { key: 'property', label: 'Το ακίνητό σου (εκτίμηση)', annualReturnPct: totalReturn },
@@ -506,7 +520,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const projSeries = useMemo(() => {
     const yearsN = parseInt(cmpYears);
     const base = nVal || 100000;
-    const propRate = propertyTotalReturn(y.netYield, nAppr);
+    const propRate = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const topAlt = compare.find(c => c.key !== 'property');
     const series = [{ label: 'Ακίνητο', color: 'var(--accent)', points: projectLine(base, propRate, yearsN) }];
     if (topAlt) series.push({ label: topAlt.label, color: 'var(--text-tertiary)', points: projectLine(base, topAlt.annualReturnPct, yearsN) });
@@ -636,7 +650,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <NumberInput label="Αξία ακινήτου" value={value} onChange={setValue} suffix="€" step={5000} />
           <NumberInput label={term === 'short' ? 'Ενοίκιο μακροχρόνιας' : 'Μηνιαίο ενοίκιο'} value={rent} onChange={setRent} suffix="€" step={50} />
           <NumberInput label="Ετήσια έξοδα" value={opex} onChange={setOpex} suffix="€" step={100} />
-          <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map(r => ({ value: r.key, label: `${r.region} · ${r.label}` }))} />
+          <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map((r, i) => ({ value: r.key, label: r.label, header: r.region !== REGIONS[i - 1]?.region ? r.region : undefined }))} />
         </div>
         {term === 'short' && (
           <div style={{ marginTop: 12 }}>
@@ -761,7 +775,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {compare.map(c => (
-              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={fe(c.futureValue, 0)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${c.totalReturnPct.toFixed(0)}% συνολικά`} />
+              <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={feC(c.futureValue)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${c.totalReturnPct.toFixed(0)}% συνολικά`} />
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>

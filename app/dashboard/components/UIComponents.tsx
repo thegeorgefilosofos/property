@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useState, useRef, useEffect, ReactNode, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 
@@ -189,6 +189,7 @@ interface SelectOption {
   description?: string;
   color?: string;
   dot?: string;
+  header?: string; // προαιρετική επικεφαλίδα ομάδας (εμφανίζεται πριν από αυτή την επιλογή)
 }
 
 interface CustomSelectProps {
@@ -268,8 +269,15 @@ export function CustomSelect({
           padding: '6px',
         }}>
           {options.map(opt => (
+            <Fragment key={opt.value}>
+            {opt.header && (
+              <div style={{
+                padding: '10px 12px 5px', fontFamily: "'Inter', sans-serif", fontSize: 10.5,
+                fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase',
+                color: 'var(--text-tertiary)', userSelect: 'none', pointerEvents: 'none',
+              }}>{opt.header}</div>
+            )}
             <div
-              key={opt.value}
               onMouseEnter={() => setHovered(opt.value)}
               onMouseLeave={() => setHovered(null)}
               onClick={() => { onChange(opt.value); setOpen(false); }}
@@ -300,6 +308,7 @@ export function CustomSelect({
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
               )}
             </div>
+            </Fragment>
           ))}
         </div>
       )}
