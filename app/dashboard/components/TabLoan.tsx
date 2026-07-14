@@ -953,9 +953,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
                 {loan.start_date&&(
                   <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',gap:24,flexWrap:'wrap'}}>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{loan.start_date}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Αποπλ. μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{new Date(loan.start_date).toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Μήνες αποπληρωμής</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
                   </div>
                 )}
               </div>
