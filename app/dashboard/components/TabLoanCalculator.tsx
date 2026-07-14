@@ -191,6 +191,18 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
   )
 }
 
+// ── Lens switcher: εναλλάσσει ΕΝΑ δυναμικό πάνελ επί τόπου (όχι στοίβαγμα) ──
+function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
+  return (
+    <div style={{display:'flex',gap:4,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:5,boxShadow:'var(--shadow-sm)',overflowX:'auto'}}>
+      {items.map(it=>{const on=value===it.id;return(
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:12,padding:'10px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,
+          color:on?'var(--accent)':'var(--text-secondary)',background:on?'var(--accent-dim)':'transparent',border:`1px solid ${on?'var(--border-accent)':'transparent'}`,transition:'color 0.2s, background 0.2s, border-color 0.2s'}}>{it.label}</button>
+      )})}
+    </div>
+  )
+}
+
 const PROPERTY_TYPES = [
   {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα', notary_pct:0.013, stamp:0, vat_possible:false},
   {value:'new_residence',label:'Νεόδμητη Κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%',      notary_pct:0.015, stamp:0, vat_possible:true},
@@ -303,7 +315,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const [customBank,  setCustomBank]  = useState('')
   const [notes,       setNotes]       = useState('')
   const [extraPay,    setExtraPay]    = useState('0')
-  const [showAdv,     setShowAdv]     = useState(false)
+  const [lens,        setLens]        = useState('amort')
   const [income,      setIncome]      = useState('2000')
   const [monthlyRent, setMonthlyRent] = useState(()=>String(Math.round((parseFloat(initial?.propValue||'185000')||185000)*0.04/12)))
   const [marital,     setMarital]     = useState<'single'|'married'>('single')
@@ -779,7 +791,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       )}
 
-      {/* Charts — bespoke SVG (donut + σωρευτική ροή) */}
+      {/* ── Lens switcher: ένα δυναμικό πάνελ επί τόπου (όχι στοίβαγμα) ── */}
+      <LensBar value={lens} onChange={setLens} items={[
+        {id:'amort',label:'Απόσβεση'},
+        {id:'rate',label:'Επιτόκιο'},
+        {id:'capacity',label:'Ικανότητα'},
+        {id:'more',label:'Φόρος και αντοχή'},
+        {id:'table',label:'Πίνακας και έγγραφα'},
+      ]}/>
+
+      {lens==='amort' && (
       <Section title="Γράφημα αποπληρωμής" sub="Κεφάλαιο έναντι τόκων στη διάρκεια" defaultOpen>
         <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap'}}>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
@@ -797,19 +818,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           </div>
         </div>
       </Section>
+      )}
 
-      {/* ── Διακριτικός διακόπτης: όλα τα προχωρημένα εργαλεία μαζεμένα ── */}
-      <button onClick={()=>setShowAdv(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 18px',background:'var(--bg-elevated)',border:`1px solid ${showAdv?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,cursor:'pointer',transition:'border-color 0.2s'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={showAdv?'var(--accent)':'var(--text-secondary)'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-          <span style={{fontSize:14,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Προχωρημένα εργαλεία</span>
-          <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>σύγκριση επιτοκίου, δανειοληπτική ικανότητα, φορολογία, πίνακας δόσεων, έγγραφα</span>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,transform:showAdv?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-
-      {showAdv && (<>
-      <Section title="Σταθερό ή κυμαινόμενο επιτόκιο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά">
+      {lens==='rate' && (<>
+      <Section title="Σταθερό ή κυμαινόμενο επιτόκιο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά" defaultOpen>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
@@ -879,13 +891,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
         )}
       </Section>
+      </>)}
 
+      {lens==='capacity' && (<>
       {(()=>{
         // Δανειοληπτική ικανότητα με τα πραγματικά όρια ΤτΕ (50% πρώτη κατοικία / 40% λοιποί).
         const firstHome = loanType==='first_home'
         const aff = affordability({ incomeMonthly:INC, firstHome, desiredAmount:LA, ratePct:effRate, years:Y })
         return (
-      <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος">
+      <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
         <div style={{marginBottom:12}}><NumberInput label="Μηνιαίο καθαρό εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
           <KPI label="Μέγιστη δόση τον μήνα" value={fmtEur(aff.maxMonthly)} color="var(--accent)" sub={`${Math.round(aff.limitPct*100)}% εισοδήματος${firstHome?' (πρώτη κατοικία)':''}`}/>
@@ -938,8 +952,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       </Section>
         )
       })()}
+      </>)}
 
-      <Section title="Φορολογική ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026">
+      {lens==='more' && (<>
+      <Section title="Φορολογική ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026" defaultOpen>
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
             <p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου · ΦΠΑ: Φόρος Προστιθέμενης Αξίας" style={{...labelStyle,marginBottom:12}}>{isNewBuilding?'ΦΠΑ 24%':isCommercial?'ΦΜΑ 3% + Χαρτόσημο':'ΦΜΑ 3%'}</p>
@@ -1031,8 +1047,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           <KPI label="Break-even" value={brkEven?`${brkEven} μήνες`:'—'} color={brkEven&&brkEven<24?'var(--accent)':'var(--text-primary)'} sub="Αποσβέσεως εξόδων"/>
         </div>
       </Section>
+      </>)}
 
-      <Section title="Πίνακας αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`}>
+      {lens==='table' && (<>
+      <Section title="Πίνακας αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`} defaultOpen>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
           <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
