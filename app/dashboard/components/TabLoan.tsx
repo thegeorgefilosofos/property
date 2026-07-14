@@ -94,6 +94,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   // Μία ανοιχτή τη φορά, ώστε να παραμένει καθαρό — όχι «σούπερ μάρκετ» με καρτέλες.
   const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'|null>('advisor')
   const toggle = (id:'advisor'|'banks'|'programs'|'guide'|'saved')=>setOpenSec(s=>s===id?null:id)
+  // Προφίλ χρήστη: καθορίζει τι βλέπει ο καθένας — ιδιώτης ή επιχείρηση.
+  const [profile,setProfile] = useState<'individual'|'business'>('individual')
   const calcRef = useRef<HTMLDivElement>(null)
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   const [saved,setSaved] = useState<SavedLoan[]>([])
@@ -189,10 +191,39 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         </div>
       </div>
 
+      {/* ═══ ΠΡΟΦΙΛ ΧΡΗΣΤΗ — καθορίζει τι βλέπει ο καθένας ═══ */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:10}}>
+        {([
+          {id:'individual' as const, title:'Ιδιώτης', sub:'Πρώτη κατοικία, επένδυση, κρατικά προγράμματα',
+           icon:<><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></>},
+          {id:'business' as const, title:'Επαγγελματίας ή επιχείρηση', sub:'Φορολογική έκπτωση τόκων, ισολογισμοί, μόχλευση',
+           icon:<><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"/></>},
+        ]).map(p=>{
+          const active = profile===p.id
+          return (
+            <button key={p.id} onClick={()=>setProfile(p.id)} aria-pressed={active}
+              style={{display:'flex',alignItems:'center',gap:13,textAlign:'left',padding:'14px 16px',borderRadius:14,cursor:'pointer',
+                background:active?'var(--accent-dim)':'var(--bg-elevated)',
+                border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`,
+                boxShadow:active?'0 1px 3px color-mix(in srgb, var(--accent) 18%, transparent)':'none',transition:'all 0.15s'}}>
+              <span style={{width:40,height:40,borderRadius:12,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',
+                background:active?'var(--accent)':'var(--bg-surface)',border:active?'none':'1px solid var(--border-subtle)'}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active?'var(--accent-text)':'var(--text-secondary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p.icon}</svg>
+              </span>
+              <span style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:14.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:active?'var(--accent)':'var(--text-primary)'}}>{p.title}</span>
+                <span style={{display:'block',fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",lineHeight:1.4}}>{p.sub}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ — πάντα ορατός στην κορυφή ═══ */}
       <div ref={calcRef}>
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
+          profile={profile}
           market={{euribor_3m:market.euribor_3m,euribor_1m:market.euribor_1m,ecb_rate:market.ecb_rate,updated_at:market.updated_at}}
           initial={{
             loanAmount:String(initAmount), propValue:String(initValue),
@@ -483,9 +514,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
             {/* ── Στρατηγική ανά προφίλ: φυσικό vs νομικό πρόσωπο ── */}
             {(()=>{
-              const isLegal = advBorr==='company' || advBorr==='professional'
+              const isLegal = profile==='business'
               const isCompany = advBorr==='company'
-              const kindLabel = isCompany ? 'Νομικό πρόσωπο' : advBorr==='professional' ? 'Επαγγελματική δραστηριότητα' : 'Φυσικό πρόσωπο'
+              const kindLabel = !isLegal ? 'Ιδιώτης' : isCompany ? 'Νομικό πρόσωπο' : 'Επαγγελματίας'
               // Ασπίδα φόρου: οι τόκοι επιχειρηματικού δανείου εκπίπτουν. Για νομικό
               // πρόσωπο ο συντελεστής είναι 22% (σταθερός) — δίνουμε πραγματικό νούμερο.
               const taxShieldCompany = Math.round(cs.totalInterest * 0.22)
@@ -781,9 +812,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη Ένοπλων Δυνάμεων και Σωμάτων Ασφαλείας. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι Εξωτερικού',desc:'Max LTV 55-70%. Απαιτούνται επίσημες μεταφράσεις, αποδεικτικό κατοικίας εξωτερικού, εισοδήματα από ξένη χώρα. Ισχύουν ΣΑΔΦ.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, σύναψη σύμβασης έως 31/08/2026 (η προθεσμία αιτήσεων 31/05/2026 έχει παρέλθει). Εισοδηματικά όρια: άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Πρώτη κατοικία έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/en/home-loans/'},
+                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, σύναψη σύμβασης έως 31/08/2026 (η προθεσμία αιτήσεων 31/05/2026 έχει παρέλθει). Εισοδηματικά όρια: άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Πρώτη κατοικία έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Ελεύθεροι Επαγγελματίες',desc:'Μέσος όρος εισοδήματος 2 ετών. Max LTV 65-70%. Απαιτείται συνέπεια στις φορολογικές δηλώσεις.',url:'https://www.aade.gr'},
-                {title:'Πολύτεκνοι & Τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου Σπίτι μου ΙΙ. Εισόδημα έως €45.000 (2 παιδιά) ή €50.000 (3+ παιδιά). Αυξημένα όρια ΦΜΑ.',url:'https://greece20.gov.gr/en/home-loans/'},
+                {title:'Πολύτεκνοι & Τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου Σπίτι μου ΙΙ. Εισόδημα έως €45.000 (2 παιδιά) ή €50.000 (3+ παιδιά). Αυξημένα όρια ΦΜΑ.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες & Επαγγελματικά',desc:'Ισολογισμοί 3 ετών + Απόφαση ΔΣ + εγγύηση φυσικού προσώπου. LTV 60-70%. Πλήρης έκπτωση τόκων από φορολογικά αποτελέσματα.',url:'https://www.nbg.gr/el/epixeiriseis'},
               ].map(cat=>(
                 <div key={cat.title} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:14}}>
@@ -853,7 +884,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <SectionLabel label="Επίσημες Πηγές"/>
             {[
               {category:'Κρατικά Προγράμματα',links:[
-                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/en/home-loans/'},
+                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
                 {label:'Αναβαθμίζω το Σπίτι μου',sub:'HDB, επίσημη πλατφόρμα αιτήσεων',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
                 {label:'Εξοικονομώ 2025',sub:'Επιδότηση ενεργειακής αναβάθμισης',url:'https://exoikonomo2025.gov.gr/'},
                 {label:'Ανακαινίζω & Νοικιάζω, ΟΠΕΚΑ',sub:'40% επιδότηση + εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
