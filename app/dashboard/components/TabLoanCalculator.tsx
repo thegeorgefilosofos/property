@@ -1,6 +1,5 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from 'recharts'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea } from './UIComponents'
 import { downloadCsv, csvEur } from './exportCsv'
 import { escHtml } from '@/lib/reportBranding'
@@ -68,21 +67,6 @@ function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?
   )
 }
 
-function ChartTip({active,payload,label}:any) {
-  if(!active||!payload?.length)return null
-  return (
-    <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:12,padding:'10px 14px',fontSize:11,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',boxShadow:'var(--shadow-lg)'}}>
-      <p style={{color:'var(--text-secondary)',marginBottom:6,fontSize:10,fontFamily:"'Inter',sans-serif"}}>{label}</p>
-      {payload.map((p:any,i:number)=>(
-        <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-          <span style={{width:8,height:8,borderRadius:2,background:p.color,display:'inline-block'}}/>
-          <p style={{color:'var(--text-primary)'}}>{p.name}: <strong style={{color:p.color}}>{p.value>100?fmtEur(p.value):`${p.value}%`}</strong></p>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ── Bespoke SVG: donut κατανομής κεφαλαίου/τόκων (αισθητική «2050», μονόχρωμη) ──
 function AmortDonut({principal,interest}:{principal:number;interest:number}) {
   const total = Math.max(1, principal+interest)
@@ -109,69 +93,76 @@ function AmortDonut({principal,interest}:{principal:number;interest:number}) {
   )
 }
 
-// ── Bespoke SVG: σταθερού ύψους σωρευτική ροή κεφαλαίου/τόκων ανά έτος ──
-// Το ύψος κάθε στήλης είναι η ετήσια δόση· η αναλογία μετατοπίζεται από «κυρίως
-// τόκοι» σε «κυρίως κεφάλαιο». Σημειώνεται το έτος τομής.
+// ── Bespoke SVG: στοιβαγμένες στήλες ανά έτος — κεφάλαιο (κάτω) / τόκοι (πάνω) ──
+// Κάθε στήλη είναι η ετήσια δόση. Η αναλογία μετατοπίζεται σταδιακά από «κυρίως
+// τόκοι» σε «κυρίως κεφάλαιο». Καθαρός διαχωρισμός, χωρίς αλληλοκαλύψεις.
 function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n:number)=>string}) {
-  const W=580,H=224,padL=8,padR=12,padT=22,padB=28
+  const W=620,H=228,padL=6,padR=52,padT=16,padB=26
   const n=data.length
-  if(n<2) return null
+  if(n<1) return null
   const maxTotal=Math.max(...data.map(d=>d.cap+d.int),1)
-  const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
-  const Y=(v:number)=> padT + (1 - v/maxTotal)*(H-padT-padB)
-  const capTop = data.map((d,i)=>[X(i),Y(d.cap)] as const)
-  const totTop = data.map((d,i)=>[X(i),Y(d.cap+d.int)] as const)
-  const base = Y(0)
-  const capArea = `M ${X(0)} ${base} ` + capTop.map(([x,y])=>`L ${x} ${y}`).join(' ') + ` L ${X(n-1)} ${base} Z`
-  const intAreaPath = `M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')} L ${[...totTop].reverse().map(([x,y])=>`${x} ${y}`).join(' L ')} Z`
-  const crossIdx = data.findIndex(d=>d.cap>d.int)
-  const tickEvery = Math.ceil(n/8)
-  // Οριζόντιες γραμμές αναφοράς στο 25/50/75/100% της ετήσιας δόσης
-  const grid = [0.25,0.5,0.75,1].map(f=>({ y:Y(maxTotal*f), label:fmt(maxTotal*f) }))
+  const plotW=W-padL-padR, plotH=H-padT-padB
+  const step=plotW/n
+  const bw=Math.min(26, step*0.58)
+  const cx=(i:number)=> padL + i*step + step/2
+  const Y=(v:number)=> padT + (1 - v/maxTotal)*plotH
+  const base=padT+plotH
+  const r=Math.min(3, bw/2)
+  const crossIdx=data.findIndex(d=>d.cap>=d.int)
+  const grid=[0,0.5,1].map(f=>({ y:padT+(1-f)*plotH, label:fmt(maxTotal*f) }))
+  const tickEvery=Math.max(1, Math.ceil(n/8))
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
       <defs>
-        <linearGradient id="areaCap" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.9"/>
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.32"/>
+        <linearGradient id="barCap" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/>
+          <stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 78%, transparent)" stopOpacity="1"/>
         </linearGradient>
-        <linearGradient id="areaInt" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="var(--text-tertiary)" stopOpacity="0.2"/>
-        </linearGradient>
-        <filter id="areaGlow" x="-4%" y="-20%" width="108%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--accent)" floodOpacity="0.18"/></filter>
+        <filter id="barLift" x="-30%" y="-20%" width="160%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="var(--accent)" floodOpacity="0.18"/></filter>
       </defs>
-      {/* Γραμμές αναφοράς */}
+      {/* Γραμμές αναφοράς + ετικέτες αξόνων */}
       {grid.map((g,i)=>(
         <g key={i}>
-          <line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity="0.5"/>
-          <text x={W-padR} y={g.y-3} textAnchor="end" style={{fontSize:8.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{g.label}</text>
+          <line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.45}/>
+          <text x={W-padR+6} y={g.y+3} textAnchor="start" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{g.label}</text>
         </g>
       ))}
-      {/* Περιοχές */}
-      <path d={intAreaPath} fill="url(#areaInt)"/>
-      <path d={capArea} fill="url(#areaCap)" filter="url(#areaGlow)"/>
-      {/* Οροφή ετήσιας δόσης + όριο κεφαλαίου */}
-      <path d={`M ${totTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--text-tertiary)" strokeWidth="1.4" strokeOpacity="0.7" strokeDasharray="4 3" strokeLinejoin="round"/>
-      <path d={`M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round"/>
+      {/* Στοιβαγμένες στήλες */}
+      {data.map((d,i)=>{
+        const x=cx(i)-bw/2
+        const yTot=Y(d.cap+d.int), yCap=Y(d.cap)
+        const intH=Math.max(0,yCap-yTot), capH=Math.max(0,base-yCap)
+        return (
+          <g key={i}>
+            {/* τόκοι (πάνω, ήσυχο) */}
+            <path d={`M ${x} ${yCap} L ${x} ${yTot+r} Q ${x} ${yTot} ${x+r} ${yTot} L ${x+bw-r} ${yTot} Q ${x+bw} ${yTot} ${x+bw} ${yTot+r} L ${x+bw} ${yCap} Z`} fill="var(--text-tertiary)" fillOpacity="0.26"/>
+            {/* κεφάλαιο (κάτω, accent) */}
+            {capH>0 && <rect x={x} y={yCap} width={bw} height={capH} fill="url(#barCap)" filter={i===n-1?'url(#barLift)':undefined}/>}
+          </g>
+        )
+      })}
       <line x1={padL} y1={base} x2={W-padR} y2={base} stroke="var(--border-default)" strokeWidth="1"/>
+      {/* Έτος τομής — όπου το κεφάλαιο ξεπερνά τους τόκους */}
       {crossIdx>0&&(
         <g>
-          <line x1={X(crossIdx)} y1={padT} x2={X(crossIdx)} y2={base} stroke="var(--border-accent)" strokeWidth="1.2" strokeDasharray="3 3"/>
-          <circle cx={X(crossIdx)} cy={Y(data[crossIdx].cap)} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
-          <text x={X(crossIdx)} y={padT-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
+          <line x1={cx(crossIdx)} y1={padT} x2={cx(crossIdx)} y2={base} stroke="var(--accent)" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.55"/>
+          <text x={cx(crossIdx)} y={padT-4} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
         </g>
       )}
-      {data.map((d,i)=> i%tickEvery===0 || i===n-1 ? (
-        <text key={i} x={X(i)} y={H-9} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
+      {/* Άξονας x */}
+      {data.map((d,i)=> (i%tickEvery===0 || i===n-1) ? (
+        <text key={i} x={cx(i)} y={H-8} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
       ) : null)}
     </svg>
   )
 }
 
-// ── Bespoke SVG: δύο σωρευτικές γραμμές (καθαρό, με σωστά περιθώρια/άξονες) ──
+// ── Bespoke SVG: δύο σωρευτικές γραμμές, διαδραστικές (δείκτης ή άγγιγμα) ──
+// Περιηγήσου πάνω στο γράφημα με τον κέρσορα ή το δάχτυλο για να δεις κάθε έτος.
 function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
-  const W=580,H=180,padL=8,padR=14,padT=16,padB=26
+  const [hi,setHi]=useState<number|null>(null)
+  const wrapRef=useRef<HTMLDivElement>(null)
+  const W=620,H=200,padL=8,padR=18,padT=18,padB=28
   const n=data.length
   if(n<2) return null
   const vals=data.flatMap(d=>[d[keyA],d[keyB]] as number[])
@@ -179,15 +170,58 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
   const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
   const Y=(v:number)=> padT + (1 - v/maxV)*(H-padT-padB)
   const path=(k:string)=> data.map((d,i)=>`${i===0?'M':'L'} ${X(i)} ${Y(d[k])}`).join(' ')
-  const grid=[0.5,1].map(f=>({y:Y(maxV*f),label:fmt(maxV*f)}))
+  const areaA=`M ${X(0)} ${Y(0)} `+data.map((d,i)=>`L ${X(i)} ${Y(d[keyA])}`).join(' ')+` L ${X(n-1)} ${Y(0)} Z`
+  const grid=[0,0.5,1].map(f=>({y:Y(maxV*f),label:fmt(maxV*f)}))
+  const locate=(clientX:number)=>{
+    const el=wrapRef.current; if(!el)return
+    const r=el.getBoundingClientRect()
+    const xv=((clientX-r.left)/r.width)*W
+    let i=Math.round((xv-padL)/((W-padL-padR)/(n-1)))
+    setHi(Math.max(0,Math.min(n-1,i)))
+  }
+  const leftPct=hi!=null?Math.max(11,Math.min(89,(X(hi)/W)*100)):0
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση σωρευτικών τόκων">
-      {grid.map((g,i)=>(<g key={i}><line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity="0.5"/><text x={W-padR} y={g.y-3} textAnchor="end" style={{fontSize:8.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{g.label}</text></g>))}
-      <path d={path(keyB)} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="5 3" strokeLinejoin="round" strokeLinecap="round"/>
-      <path d={path(keyA)} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"/>
-      <circle cx={X(n-1)} cy={Y(data[n-1][keyA])} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
-      {data.map((d,i)=>(<text key={i} x={X(i)} y={H-8} textAnchor={i===0?'start':i===n-1?'end':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>))}
-    </svg>
+    <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
+      onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
+      onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση σωρευτικών τόκων στη διάρκεια">
+        <defs>
+          <linearGradient id="dualAreaA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.16"/>
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        {grid.map((g,i)=>(<g key={i}><line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+5} y={g.y+3} textAnchor="start" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{g.label}</text></g>))}
+        <path d={areaA} fill="url(#dualAreaA)"/>
+        <path d={path(keyB)} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" strokeOpacity="0.85"/>
+        <path d={path(keyA)} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"/>
+        {hi!=null&&(
+          <g>
+            <line x1={X(hi)} y1={padT-4} x2={X(hi)} y2={Y(0)} stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.5"/>
+            <circle cx={X(hi)} cy={Y(data[hi][keyB])} r="4" fill="var(--bg-surface)" stroke="var(--text-tertiary)" strokeWidth="2"/>
+            <circle cx={X(hi)} cy={Y(data[hi][keyA])} r="4.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
+          </g>
+        )}
+        {hi==null&&<circle cx={X(n-1)} cy={Y(data[n-1][keyA])} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>}
+        {data.map((d,i)=> (i===0||i===n-1||i===Math.floor(n/2)) ? (<text key={i} x={X(i)} y={H-8} textAnchor={i===0?'start':i===n-1?'end':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>) : null)}
+      </svg>
+      {hi!=null&&(
+        <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',
+          background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const}}>
+          <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily:"'Inter',sans-serif",textAlign:'center' as const}}>{data[hi].year}</p>
+          <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+            <span style={{width:12,height:2.4,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>
+            <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Σταθερό</span>
+            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi][keyA])}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:7}}>
+            <span style={{width:12,height:0,borderTop:'2px dashed var(--text-tertiary)',display:'inline-block'}}/>
+            <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Κυμαινόμενο</span>
+            <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi][keyB])}</span>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -428,7 +462,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const varMonthly  = calcMonthly(LA,variableRate,Y)
   // Σωρευτικοί τόκοι με πραγματική τοκοχρεολυτική απόσβεση (όχι γραμμική αναλογία κεφαλαίου).
   const cumInterest = (ratePct:number,uptoYear:number)=>{const m=calcMonthly(LA,ratePct,Y);const rr=ratePct/100/12;let bal=LA,sum=0;for(let k=1;k<=uptoYear*12&&bal>0;k++){const i=rr===0?0:bal*rr;sum+=i;bal-=(m-i)}return Math.round(sum)}
-  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr}χρ`,Σταθερό:cumInterest(effRate,yr),Κυμαινόμενο:cumInterest(variableRate,yr)}))},[effRate,variableRate,LA,Y])
+  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr} έτη`,Σταθερό:cumInterest(effRate,yr),Κυμαινόμενο:cumInterest(variableRate,yr)}))},[effRate,variableRate,LA,Y])
   const scenChart = useMemo(()=>scenarios.map(s=>({name:s.label,Τόκοι:Math.round(calcMonthly(s.amount,s.rate,s.years)*s.years*12-s.amount)})),[scenarios])
 
   const extraSav = useMemo(()=>{
@@ -555,11 +589,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       <div style={{position:'sticky',top:0,zIndex:50,background:'var(--bg-base)',borderBottom:'1px solid var(--border-subtle)',padding:'10px 0',marginBottom:2}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           {[
-            {l:'Δόση/μήνα',v:fmtEur(monthly),c:'var(--accent)',big:true,t:undefined as string|undefined},
+            {l:'Δόση τον μήνα',v:fmtEur(monthly),c:'var(--accent)',big:true,t:undefined as string|undefined},
             {l:'Τόκοι',v:fmtEur(totalInt),c:'var(--text-primary)',big:false,t:undefined},
             {l:'Σύνολο',v:fmtEur(total),c:'var(--text-primary)',big:false,t:undefined},
-            {l:'LTV',v:`${ltv.toFixed(1)}%`,c:ltv>90?'var(--negative)':'var(--text-primary)',big:false,t:'Δάνειο προς αξία (Loan to Value)'},
-            {l:'€/τμ',v:sqmPrice>0?fmtEur(sqmPrice):'—',c:'var(--text-secondary)',big:false,t:'Ευρώ ανά τετραγωνικό μέτρο'},
+            {l:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,c:ltv>90?'var(--negative)':'var(--text-primary)',big:false,t:'Ποσοστό δανείου ως προς την αξία του ακινήτου'},
+            {l:'Ανά τετραγωνικό',v:sqmPrice>0?fmtEur(sqmPrice):'—',c:'var(--text-secondary)',big:false,t:'Ευρώ ανά τετραγωνικό μέτρο'},
           ].map(item=>(
             <div key={item.l} title={item.t} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8,cursor:item.t?'help':undefined}}>
               <span style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:"'Inter',sans-serif"}}>{item.l}</span>
@@ -681,24 +715,18 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </div>
 
-      {/* KPIs — premium metric tiles (hero + ήσυχα υποστηρικτικά) */}
+      {/* KPIs — ομοιόμορφα 3D κουτάκια· ήπια έμφαση μόνο στη δόση (accent στον αριθμό) */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:14}}>
-        {/* Hero: μηνιαία δόση */}
-        <div style={{position:'relative',overflow:'hidden',borderRadius:16,padding:'18px 18px 16px',
-          background:'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 84%, #000) 100%)',
-          boxShadow:'0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent)'}}>
-          <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'color-mix(in srgb, var(--accent-text) 78%, transparent)',fontFamily:"'Inter',sans-serif"}}>Μηνιαία δόση</p>
-          <p style={{fontSize:30,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:'var(--accent-text)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{fmtEur(monthly)}</p>
-          <p style={{fontSize:11.5,marginTop:7,color:'color-mix(in srgb, var(--accent-text) 72%, transparent)',fontFamily:"'Inter',sans-serif"}}>{rateType==='variable'?'κυμαινόμενο':'σταθερό'} {fmtPct(effRate)} · {Y} έτη</p>
-        </div>
         {[
-          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`,neg:false},
-          {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,neg:false},
-          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
+          {k:'Μηνιαία δόση',v:fmtEur(monthly),s:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη`,accent:true,neg:false},
+          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`,accent:false,neg:false},
+          {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,accent:false,neg:false},
+          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,accent:false,neg:ltv>90},
         ].map(t=>(
-          <div key={t.k} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'var(--shadow-sm)'}}>
+          <div key={t.k} style={{position:'relative',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 18px 16px',
+            boxShadow:'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
             <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
-            <p style={{fontSize:30,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{t.v}</p>
+            <p style={{fontSize:29,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':t.accent?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{t.v}</p>
             <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
           </div>
         ))}
@@ -728,7 +756,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div>
                   <p style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtEur(h.monthly)}/μήνα</p>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{fmtEur(h.amount)} · {fmtPct(h.rate)} · {h.years}χρ · {h.ts}</p>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{fmtEur(h.amount)} · {fmtPct(h.rate)} · {h.years} έτη · {h.ts}</p>
                 </div>
               </button>
             ))}
@@ -743,7 +771,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           <div style={{overflowX:'auto',marginBottom:16}}>
             <div className="table-wrap">
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-              <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Ποσό','Επιτόκιο','Χρόνια','Δόση/μήνα','Σύν. Τόκοι','Διαφορά',''].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</th>)}</tr></thead>
+              <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Ποσό','Επιτόκιο','Χρόνια','Δόση τον μήνα','Συνολικοί τόκοι','Διαφορά',''].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</th>)}</tr></thead>
               <tbody>
                 {scenarios.map(s=>{
                   const m=calcMonthly(s.amount,s.rate,s.years),ti=m*s.years*12-s.amount,saved=totalInt-ti
@@ -755,7 +783,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
                       <td style={{padding:'9px 10px'}}>{isEd?cell(s.label,'label',120):<div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.label}</span>{isBest&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:8,background:'var(--accent-dim)',color:'var(--accent)',border:'1px solid var(--border-accent)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>ΒΕΛΤΙΣΤΟ</span>}</div>}</td>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.amount),'amount',90):<span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:600}}>{fmtEur(s.amount)}</span>}</td>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.rate),'rate',65):<span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtPct(s.rate)}</span>}</td>
-                      <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.years),'years',55):<span style={{color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{s.years} χρ</span>}</td>
+                      <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.years),'years',55):<span style={{color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{s.years} έτη</span>}</td>
                       <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:600}}>{fmtEur(m)}</td>
                       <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtEur(ti)}</td>
                       <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:saved>0?'var(--accent)':'var(--text-tertiary)',fontWeight:600}}>{saved>0?`-${fmtEur(saved)}`:`+${fmtEur(-saved)}`}</td>
@@ -778,16 +806,29 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             </table>
             </div>
           </div>
-          {scenChart.length>0&&(
-            <ResponsiveContainer width="100%" height={100}>
-              <BarChart data={scenChart} barCategoryGap="30%">
-                <defs><linearGradient id="scenNeg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{stopColor:'var(--accent)',stopOpacity:0.8}}/><stop offset="100%" style={{stopColor:'var(--accent)',stopOpacity:0.32}}/></linearGradient></defs>
-                <XAxis dataKey="name" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
-                <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
-                <Tooltip content={ChartTip}/><Bar dataKey="Τόκοι" fill="url(#scenNeg)" radius={[5,5,0,0]}/>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+          {scenChart.length>0&&(()=>{
+            const maxI=Math.max(...scenChart.map(s=>s.Τόκοι),1)
+            const minI=Math.min(...scenChart.map(s=>s.Τόκοι))
+            return (
+            <div style={{display:'flex',flexDirection:'column',gap:9}}>
+              <p style={{...labelStyle,marginBottom:2}}>Συνολικοί τόκοι ανά σενάριο</p>
+              {scenChart.map((s,i)=>{
+                const best=scenChart.length>1&&s.Τόκοι===minI
+                const w=Math.max(4,(s.Τόκοι/maxI)*100)
+                return (
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:12}}>
+                    <span style={{width:96,flexShrink:0,fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const,overflow:'hidden',textOverflow:'ellipsis'}}>{s.name}</span>
+                    <div style={{flex:1,height:26,borderRadius:8,background:'var(--bg-surface)',overflow:'hidden',position:'relative'}}>
+                      <div style={{width:`${w}%`,height:'100%',borderRadius:8,transition:'width 0.4s ease',
+                        background:best?'linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 82%, transparent))':'color-mix(in srgb, var(--text-tertiary) 34%, transparent)'}}/>
+                    </div>
+                    <span style={{width:88,flexShrink:0,textAlign:'right' as const,fontSize:12.5,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:best?'var(--accent)':'var(--text-primary)',fontWeight:600}}>{fmtEur(s.Τόκοι)}</span>
+                  </div>
+                )
+              })}
+            </div>
+            )
+          })()}
         </div>
       )}
 
@@ -830,7 +871,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>{item.label}</p>
               <div style={{display:'flex',gap:16,marginBottom:12}}>
-                {[['Επιτόκιο',fmtPct(item.rate)],['Δόση/μήνα',fmtEur(item.m)],['Σύν. Τόκοι',fmtEur(item.m*Y*12-LA)]].map(([k,v])=>(
+                {[['Επιτόκιο',fmtPct(item.rate)],['Δόση τον μήνα',fmtEur(item.m)],['Συνολικοί τόκοι',fmtEur(item.m*Y*12-LA)]].map(([k,v])=>(
                   <div key={k}><p style={{fontSize:9,color:'var(--text-tertiary)',marginBottom:2,fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
                 ))}
               </div>
@@ -856,7 +897,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>{item.label}</p>
-              {[['Επιτόκιο',fmtPct(item.rate)],['Δόση/μήνα',fmtEur(item.m)],['Σύν. τόκοι',fmtEur(item.ti)],['Σύνολο',fmtEur(item.m*Y*12)]].map(([k,v])=>(
+              {[['Επιτόκιο',fmtPct(item.rate)],['Δόση τον μήνα',fmtEur(item.m)],['Συνολικοί τόκοι',fmtEur(item.ti)],['Σύνολο',fmtEur(item.m*Y*12)]].map(([k,v])=>(
                 <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                   <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{k}</span>
                   <span style={{fontSize:12,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:600}}>{v}</span>
@@ -900,15 +941,44 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         const aff = affordability({ incomeMonthly:INC, firstHome, desiredAmount:LA, ratePct:effRate, years:Y })
         return (
       <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
-        <div style={{marginBottom:12}}><NumberInput label="Μηνιαίο καθαρό εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
-          <KPI label="Μέγιστη δόση τον μήνα" value={fmtEur(aff.maxMonthly)} color="var(--accent)" sub={`${Math.round(aff.limitPct*100)}% εισοδήματος${firstHome?' (πρώτη κατοικία)':''}`}/>
-          <KPI label="Μέγιστο δάνειο" value={fmtEur(aff.maxLoan)} color={aff.maxLoan>=LA?'var(--text-primary)':'var(--negative)'} sub={`με ${fmtPct(effRate)} / ${Y} έτη`}/>
-          <KPI label="Δείκτης δόσης προς εισόδημα" title="Debt Service to Income. Όρια ΤτΕ: 50% πρώτη κατοικία / 40% λοιποί" value={INC>0?fmtPct1(aff.dstiUsedPct):'—'} color={aff.dstiUsedPct/100>aff.limitPct?'var(--negative)':'var(--text-primary)'} sub={`όριο ${Math.round(aff.limitPct*100)}%`}/>
+        <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16}}>
+          {[
+            {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${Math.round(aff.limitPct*100)}% του εισοδήματος${firstHome?', πρώτη κατοικία':''}`,accent:true,neg:false},
+            {k:'Μέγιστο δάνειο',v:fmtEur(aff.maxLoan),s:`με ${fmtPct(effRate)} · ${Y} έτη`,accent:false,neg:aff.maxLoan<LA},
+            {k:'Δείκτης δόσης προς εισόδημα',v:INC>0?fmtPct1(aff.dstiUsedPct):'—',s:`όριο ${Math.round(aff.limitPct*100)}%`,accent:false,neg:aff.dstiUsedPct/100>aff.limitPct},
+          ].map(t=>(
+            <div key={t.k} style={{position:'relative',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'16px 16px 14px',
+              boxShadow:'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
+              <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
+              <p style={{fontSize:26,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':t.accent?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{t.v}</p>
+              <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
+            </div>
+          ))}
         </div>
+        {/* Οπτικός μετρητής: πού βρίσκεται η δόση σου σε σχέση με το όριο */}
+        {INC>0&&(()=>{
+          const limitPct=aff.limitPct*100, usedPct=aff.dstiUsedPct, over=usedPct>limitPct
+          const scaleMax=Math.max(limitPct*1.35, usedPct*1.08, 1)
+          const usedW=Math.min(100,(usedPct/scaleMax)*100), limitX=Math.min(100,(limitPct/scaleMax)*100)
+          return (
+            <div style={{marginBottom:14}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:9}}>
+                <span style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Η δόση ως ποσοστό του εισοδήματος</span>
+                <span style={{fontSize:12.5,color:over?'var(--negative)':'var(--accent)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtPct1(usedPct)} <span style={{color:'var(--text-tertiary)'}}>από {Math.round(limitPct)}%</span></span>
+              </div>
+              <div style={{position:'relative',height:38,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${usedW}%`,borderRadius:'12px 0 0 12px',transition:'width 0.4s ease',
+                  background:over?'linear-gradient(90deg, color-mix(in srgb, var(--negative) 80%, transparent), var(--negative))':'linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, transparent), var(--accent))'}}/>
+                <div style={{position:'absolute',left:`${limitX}%`,top:0,bottom:0,width:0,borderLeft:'2px dashed var(--text-secondary)'}}/>
+                <span style={{position:'absolute',left:`calc(${limitX}% + 6px)`,top:'50%',transform:'translateY(-50%)',fontSize:10.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:600,whiteSpace:'nowrap' as const}}>Όριο {Math.round(limitPct)}%</span>
+              </div>
+            </div>
+          )
+        })()}
         {!aff.affordable
-          ? <div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μειώστε το ποσό (έως {fmtEur(aff.maxLoan)}) ή αυξήστε τη διάρκεια.</p></div>
-          : <div style={{marginTop:10,padding:'10px 14px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:8}}><p style={{fontSize:12,color:'var(--accent)',fontFamily:"'Inter',sans-serif"}}>Η δόση χωράει άνετα στο όριο. Περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα ({fmtEur(aff.maxLoan-LA)} επιπλέον δανειοδότηση).</p></div>
+          ? <div style={{padding:'11px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--negative)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μείωσε το ποσό έως {fmtEur(aff.maxLoan)} ή αύξησε τη διάρκεια.</p></div>
+          : <div style={{padding:'11px 14px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--accent)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Η δόση χωράει άνετα στο όριο. Περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα, δηλαδή {fmtEur(aff.maxLoan-LA)} επιπλέον δανειοδότηση.</p></div>
         }
       </Section>
         )
@@ -1000,21 +1070,45 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       </Section>
 
       <Section title="Αντοχή σε άνοδο επιτοκίου" sub="Αντοχή δόσης σε σενάρια ανόδου Euribor">
-        <div style={{marginBottom:14}}>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={stress.map(s=>({name:s.label,Δόση:Math.round(s.monthly)}))} barCategoryGap="22%">
-              <defs><linearGradient id="stressAccent" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{stopColor:'var(--accent)',stopOpacity:0.95}}/><stop offset="100%" style={{stopColor:'var(--accent)',stopOpacity:0.5}}/></linearGradient></defs>
-              <XAxis dataKey="name" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
-              <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
-              <Tooltip content={ChartTip}/>
-              <ReferenceLine y={INC*BORROWER_PROFILES[borrower].income_ratio} stroke="var(--border-default)" strokeDasharray="4 4"/>
-              <Bar dataKey="Δόση" fill="url(#stressAccent)" radius={[5,5,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
+        <div style={{marginBottom:16}}>
+          {(()=>{
+            const limit=INC>0?INC*BORROWER_PROFILES[borrower].income_ratio:0
+            const W=620,H=176,padL=8,padR=58,padT=18,padB=28
+            const plotW=W-padL-padR, plotH=H-padT-padB, base=padT+plotH
+            const maxV=Math.max(...stress.map(s=>s.monthly), limit, 1)*1.14
+            const step=plotW/stress.length, bw=Math.min(42, step*0.56)
+            const Y=(v:number)=> padT+(1-v/maxV)*plotH
+            const cx=(i:number)=> padL+i*step+step/2
+            const grid=limit>0?[0,limit,maxV/1.14]:[0,maxV/2/1.14,maxV/1.14]
+            return (
+              <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Αντοχή δόσης σε άνοδο επιτοκίου">
+                <defs>
+                  <linearGradient id="stressBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 76%, transparent)"/></linearGradient>
+                  <linearGradient id="stressOver" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--negative)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--negative) 74%, transparent)"/></linearGradient>
+                </defs>
+                {grid.map((gv,i)=>(<g key={i}><line x1={padL} y1={Y(gv)} x2={W-padR} y2={Y(gv)} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+6} y={Y(gv)+3} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{fmtEur(gv)}</text></g>))}
+                {stress.map((s,i)=>{
+                  const over=limit>0&&s.monthly>limit
+                  const x=cx(i)-bw/2, y=Y(s.monthly), h=Math.max(0,base-y), r=Math.min(4,bw/2)
+                  return (
+                    <g key={i}>
+                      <path d={`M ${x} ${y+r} Q ${x} ${y} ${x+r} ${y} L ${x+bw-r} ${y} Q ${x+bw} ${y} ${x+bw} ${y+r} L ${x+bw} ${base} L ${x} ${base} Z`} fill={over?'url(#stressOver)':'url(#stressBar)'}/>
+                      <text x={cx(i)} y={H-9} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:i===0?'var(--accent)':'var(--text-secondary)',fontWeight:i===0?600:400}}>{s.label}</text>
+                    </g>
+                  )
+                })}
+                {limit>0&&(<g>
+                  <line x1={padL} y1={Y(limit)} x2={W-padR} y2={Y(limit)} stroke="var(--text-secondary)" strokeWidth="1.4" strokeDasharray="5 4"/>
+                  <text x={padL+2} y={Y(limit)-5} style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>Όριο δόσης</text>
+                </g>)}
+                <line x1={padL} y1={base} x2={W-padR} y2={base} stroke="var(--border-default)" strokeWidth="1"/>
+              </svg>
+            )
+          })()}
         </div>
         <div className="table-wrap">
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-          <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Επιτόκιο','Δόση/μήνα','Αύξηση','DTI'].map(h=><th key={h} title={h==='DTI'?'Δείκτης δόσης προς εισόδημα (Debt to Income)':undefined} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif",cursor:h==='DTI'?'help':undefined}}>{h}</th>)}</tr></thead>
+          <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Σενάριο','Επιτόκιο','Δόση τον μήνα','Αύξηση','Δόση προς εισόδημα'].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'left',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</th>)}</tr></thead>
           <tbody>
             {stress.map((s,i)=>{
               const diff=s.monthly-stress[0].monthly,dti=(s.monthly/INC)*100
@@ -1064,7 +1158,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         <div style={{overflowX:'auto'}}>
           <div className="table-wrap">
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-            <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Μήνας','Δόση','Κεφάλαιο','Τόκος','Υπόλοιπο','Σύν. Τόκοι'].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'right',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</th>)}</tr></thead>
+            <thead><tr style={{borderBottom:'1px solid var(--border-subtle)'}}>{['Μήνας','Δόση','Κεφάλαιο','Τόκος','Υπόλοιπο','Συνολικοί τόκοι'].map(h=><th key={h} style={{padding:'7px 10px',textAlign:'right',fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{h}</th>)}</tr></thead>
             <tbody>
               {amort.slice(0,24).map(row=>(
                 <tr key={row.month} style={{borderBottom:'1px solid var(--border-subtle)'}}>
