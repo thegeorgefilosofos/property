@@ -1179,6 +1179,51 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               })
             )}/>
           </div>
+
+          {/* ── Ενιαίο δάνειο: όλα τα δάνεια του δανειολήπτη σε μία εικόνα ── */}
+          {saved.length>0&&(()=>{
+            const rows = saved.map(l=>{ const m=calcMonthly(l.amount,l.rate,l.years); return { l, m, ti:m*l.years*12-l.amount } })
+            const totalAmount = rows.reduce((s,r)=>s+r.l.amount,0)
+            const totalMonthly = rows.reduce((s,r)=>s+r.m,0)
+            const totalInterest = rows.reduce((s,r)=>s+r.ti,0)
+            const blended = totalAmount>0 ? rows.reduce((s,r)=>s+r.l.amount*r.l.rate,0)/totalAmount : 0
+            const tiles = [
+              { k:'Συνολικό υπόλοιπο', v:fmtEur(totalAmount), accent:true },
+              { k:'Συνολική δόση τον μήνα', v:fmtEur(totalMonthly), accent:false },
+              { k:'Μέσο σταθμισμένο επιτόκιο', v:fmtPct(blended), accent:false },
+              { k:'Συνολικοί τόκοι', v:fmtEur(totalInterest), accent:false },
+            ]
+            return (
+              <MiniSection title="Ενιαίο δάνειο, συνολική εικόνα" defaultOpen meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{rows.length} δάνεια</span>}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16}}>
+                  {tiles.map(t=>(
+                    <div key={t.k} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'14px 15px'}}>
+                      <p style={{fontSize:10,textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
+                      <p style={{fontSize:23,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.accent?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{t.v}</p>
+                    </div>
+                  ))}
+                </div>
+                {rows.length>1&&(<>
+                  <p style={{...labelStyle,marginBottom:9}}>Κατανομή μηνιαίας δόσης ανά δάνειο</p>
+                  <div style={{display:'flex',height:14,borderRadius:7,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:10}}>
+                    {rows.map((r,i)=>(
+                      <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)}/μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${100-i*14}%, var(--bg-surface))`}}/>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {rows.map((r,i)=>(
+                      <div key={r.l.id} style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{width:10,height:10,borderRadius:3,flexShrink:0,background:`color-mix(in srgb, var(--accent) ${100-i*14}%, var(--bg-surface))`}}/>
+                        <span style={{fontSize:12.5,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.l.bank||'Δάνειο'}</span>
+                        <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{fmtPct(r.l.rate)}</span>
+                        <span style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,minWidth:96,textAlign:'right' as const}}>{fmtEur(r.m)}/μήνα</span>
+                      </div>
+                    ))}
+                  </div>
+                </>)}
+              </MiniSection>
+            )
+          })()}
           {saved.length===0&&(
             <div style={{textAlign:'center',padding:'60px 0'}}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-default)" strokeWidth="1.5" style={{margin:'0 auto 14px',display:'block'}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
