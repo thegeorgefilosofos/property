@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode, Fragment } from 'react';
+import { useState, useRef, useEffect, useId, ReactNode, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 
@@ -201,7 +201,6 @@ interface CustomSelectProps {
   disabled?: boolean;
 }
 
-let selectSeq = 0;
 export function CustomSelect({
   label, value, onChange, options, placeholder = 'Επιλογή...', disabled,
 }: CustomSelectProps) {
@@ -211,9 +210,10 @@ export function CustomSelect({
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const optRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const idRef = useRef<string>('');
-  if (!idRef.current) idRef.current = `sel-${++selectSeq}`;
-  const listId = `${idRef.current}-list`;
+  // useId(): σταθερό αναγνωριστικό σε server και client (χωρίς hydration mismatch).
+  const baseId = useId();
+  const idRef = { current: baseId };
+  const listId = `${baseId}-list`;
   const selected = options.find(o => o.value === value);
 
   useEffect(() => {
