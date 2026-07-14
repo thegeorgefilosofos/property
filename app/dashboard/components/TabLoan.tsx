@@ -252,7 +252,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
 
           <div style={cardStyle}>
-            <SectionLabel label={banksUpdStr ? `Σύγκριση Επιτοκίων · ${banksUpdStr}` : 'Σύγκριση Επιτοκίων'}/>
+            <SectionLabel label={banksUpdStr ? `Σύγκριση επιτοκίων · ${banksUpdStr}` : 'Σύγκριση επιτοκίων'}/>
             <div style={{overflowX:'auto'}}>
               <div className="table-wrap">
               <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
@@ -611,7 +611,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             ); })()}
 
             <div style={cardStyle}>
-              <SectionLabel label="Τι Βλέπω στο Σενάριό σας"/>
+              <SectionLabel label="Τι βλέπω στο σενάριό σας"/>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {/* LTV */}
                 <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8,border:'1px solid var(--border-subtle)'}}>
@@ -693,7 +693,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
             {/* Eligibility */}
             <div style={cardStyle}>
-              <SectionLabel label="Επιλεξιμότητα Κρατικών Προγραμμάτων"/>
+              <SectionLabel label="Επιλεξιμότητα κρατικών προγραμμάτων"/>
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 {[
                   {l:'Σπίτι μου ΙΙ, Deadline 31/08/2026',el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'?`Πληροίτε τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)}/μήνα`:advType!=='first_home'?'Αλλάξτε σε "Πρώτη κατοικία"':'Ηλικία 25-50',badge:`-${fmtEur(cs.monthly-spitiMonthly)}/μήνα`},
@@ -722,7 +722,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             {/* Improvements */}
             {issues.length>0&&(
               <div style={cardStyle}>
-                <SectionLabel label="Τι Μπορείτε να Βελτιώσετε"/>
+                <SectionLabel label="Τι μπορείτε να βελτιώσετε"/>
                 <div style={{display:'flex',flexDirection:'column',gap:7}}>
                   {issues.includes('LTV')&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
@@ -761,7 +761,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={cardStyle}>
-            <SectionLabel label="Πώς Λειτουργεί Ένα Στεγαστικό Δάνειο στην Ελλάδα"/>
+            <SectionLabel label="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα"/>
             {[
               {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
               {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
@@ -931,7 +931,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <button onClick={()=>setShowGloss(g=>!g)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <span style={{width:5,height:5,borderRadius:'50%',background:showGloss?'var(--accent)':'var(--border-default)',display:'inline-block',transition:'background 0.2s'}}/>
-                <p style={{fontSize:13,color:showGloss?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:400}}>Γλωσσάρι Βασικών Όρων</p>
+                <p style={{fontSize:13,color:showGloss?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:400}}>Γλωσσάρι βασικών όρων</p>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points={showGloss?"18 15 12 9 6 15":"6 9 12 15 18 9"}/></svg>
             </button>
@@ -949,7 +949,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Links */}
           <div style={cardStyle}>
-            <SectionLabel label="Επίσημες Πηγές"/>
+            <SectionLabel label="Επίσημες πηγές"/>
             {[
               {category:'Κρατικά Προγράμματα',links:[
                 {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
