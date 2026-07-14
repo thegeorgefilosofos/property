@@ -1557,7 +1557,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
         {([
           {label:'Εκκρεμή ποσά', value:totalPending>0?totalPending.toLocaleString('el-GR',{style:'currency',currency:'EUR'}):'—', color:totalPending>0?'var(--accent)':'var(--text-secondary)', hoverColor:undefined, icon:<TrendingUp size={14}/>, onClick:undefined, open:false},
           {label:'Εκπρόθεσμα', value:overdue.length>0?`${overdue.length} γεγονότα`:'Κανένα', color:'var(--text-secondary)', hoverColor:overdue.length>0?'var(--negative)':undefined, icon:<AlertTriangle size={14}/>, onClick:overdue.length>0?()=>setShowOverdue(o=>!o):undefined, open:showOverdue&&overdue.length>0},
-          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', hoverColor:nextEvent?'var(--accent)':undefined, icon:<Clock size={14}/>, onClick:undefined, open:false},
+          {label:'Επόμενη πληρωμή', value:nextEvent?(daysUntil(nextEvent.event_date)===0?'Σήμερα':`σε ${daysUntil(nextEvent.event_date)} ημέρες`):'—', color:'var(--text-secondary)', hoverColor:undefined, icon:<Clock size={14}/>, onClick:undefined, open:false},
           {label:'Λήξεις συμβολαίων', value:expiring.length>0?`${expiring.length} σύντομα`:'Κανένα', color:expiring.length>0?'var(--warning)':'var(--text-secondary)', hoverColor:undefined, icon:<Shield size={14}/>, onClick:undefined, open:false},
         ] as {label:string;value:string;color:string;hoverColor?:string;icon:React.ReactNode;onClick?:()=>void;open:boolean}[]).map(kpi=>{
           const clickable=!!kpi.onClick

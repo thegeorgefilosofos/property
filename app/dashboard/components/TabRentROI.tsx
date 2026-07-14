@@ -62,6 +62,11 @@ const feC = (n: number) => {
   if (a >= 1e6) return s(1e6, 'εκατ.');
   return fe(Math.round(v), 0);
 };
+// Σύντομες, ολοκληρωμένες (χωρίς συντομογραφίες) ονομασίες εναλλακτικών για τα γραφήματα.
+const BENCH_SHORT: Record<string, string> = {
+  deposit: 'Κατάθεση', bond: 'Ομόλογο', gold: 'Χρυσός', athex: 'Χρηματιστήριο', sp500: 'S&P 500', inflation: 'Πληθωρισμός',
+};
+const benchShort = (key: string, fallback: string) => BENCH_SHORT[key] || fallback;
 const SANS = "'Inter',sans-serif";
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
@@ -271,7 +276,12 @@ function LineChart({ series }: { series: { label: string; color: string; points:
     setHover(Math.max(0, Math.min(years, Math.round(((vx - padX) / (W - 2 * padX)) * years))));
   };
   const th = hover != null ? hover : null;
-  const TW = 148, TH = 20 + series.length * 16 + 6;
+  // Πλαίσιο διαστασιολογημένο στο περιεχόμενο: πλήρεις ονομασίες (χωρίς συντομογραφίες),
+  // η τιμή δεξιά, με σταθερό κενό ώστε να μην ακουμπούν ποτέ ετικέτα και ποσό.
+  const rows = th != null ? series.map(s => ({ label: s.label, color: s.color, value: feC(s.points[th].value) })) : [];
+  const rowW = (r: { label: string; value: string }) => 11 + 8 + 7 + r.label.length * 5.7 + 14 + r.value.length * 6.2 + 11;
+  const TW = rows.length ? Math.min(200, Math.max(120, Math.ceil(Math.max(...rows.map(rowW))))) : 148;
+  const TH = 16 + rows.length * 16 + 8;
   const tx = th != null ? (X(th) + 12 + TW > W - 2 ? Math.max(2, X(th) - TW - 12) : X(th) + 12) : 0;
   const ty = th != null ? padTop : 0;
   return (
@@ -289,12 +299,12 @@ function LineChart({ series }: { series: { label: string; color: string; points:
           {series.map(s => <circle key={s.label + 'h'} cx={X(th)} cy={Y(s.points[th].value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="2" />)}
           <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
             <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
-            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
-            {series.map((s, i) => (
-              <g key={s.label + 'r'} transform={`translate(10,${27 + i * 16})`}>
-                <rect x="0" y="-7" width="8" height="3" rx="1.5" fill={s.color} />
-                <text x="14" y="0" fontSize="10.5" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{s.label.length > 12 ? s.label.slice(0, 11) + '…' : s.label}</text>
-                <text x={TW - 10} y="0" textAnchor="end" fontSize="11" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(s.points[th].value)}</text>
+            <text x="11" y="13" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
+            {rows.map((r, i) => (
+              <g key={r.label + 'r'} transform={`translate(11,${27 + i * 16})`}>
+                <rect x="0" y="-6.5" width="8" height="3" rx="1.5" fill={r.color} />
+                <text x="15" y="0" fontSize="10.5" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{r.label}</text>
+                <text x={TW - 22} y="0" textAnchor="end" fontSize="11" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{r.value}</text>
               </g>
             ))}
           </g>
@@ -532,7 +542,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     const propRate = clampReturn(propertyTotalReturn(y.netYield, nAppr));
     const topAlt = compare.find(c => c.key !== 'property');
     const series = [{ label: 'Ακίνητο', color: 'var(--accent)', points: projectLine(base, propRate, yearsN) }];
-    if (topAlt) series.push({ label: topAlt.label, color: 'var(--text-tertiary)', points: projectLine(base, topAlt.annualReturnPct, yearsN) });
+    if (topAlt) series.push({ label: benchShort(topAlt.key, topAlt.label), color: 'var(--text-tertiary)', points: projectLine(base, topAlt.annualReturnPct, yearsN) });
     return series;
   }, [cmpYears, nVal, y.netYield, nAppr, compare]);
 
@@ -623,7 +633,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <table><tbody>${regionRows.map(r => trow(r[0], r[1])).join('')}</tbody></table>
         ${proBlock}
         <h2>Σύγκριση με εναλλακτικές επενδύσεις (${esc(cmpYears)} έτη, πραγματικές αποδόσεις)</h2>
-        <table><tbody>${compare.map(c => trow(c.label, `${fe(c.futureValue, 0)}  ·  ${fp(c.annualReturnPct)}/έτος`)).join('')}</tbody></table>
+        <table><tbody>${compare.map(c => trow(c.label, `${fe(c.futureValue, 0)}  ·  ${fp(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>
         <div class="disc">${esc(MARKET_DISCLAIMER)}</div>
         <div class="foot">Πηγές: ${MARKET_SOURCES.map(s => esc(s.label)).join(' · ')}</div>
       </body></html>`);
@@ -664,8 +674,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </div>
         {showEstValue && (
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5, fontFamily: SANS, color: 'var(--text-secondary)' }}>
-            <span>Ενδεικτική εκτίμηση αξίας από τη ζώνη{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue, 0)}</strong></span>
-            <TermInfo text={`Ενδεικτικός υπολογισμός: μέσο €/τ.μ. της περιοχής × τετραγωνικά × συντελεστή τύπου ακινήτου. Δεν υποκαθιστά αντικειμενική αξία ή εκτιμητή — χρησίμευσε ως αφετηρία και προσαρμόσ' την στην πραγματική κατάσταση, όροφο και θέση.`} />
+            <span>Ενδεικτική εκτίμηση αξίας για την περιοχή{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue, 0)}</strong></span>
+            <TermInfo text={`Ενδεικτικός υπολογισμός: μέση τιμή ανά τετραγωνικό μέτρο στην περιοχή, επί τα τετραγωνικά και τον συντελεστή τύπου του ακινήτου. Δεν υποκαθιστά την αντικειμενική αξία ούτε την εκτίμηση πιστοποιημένου εκτιμητή. Χρησιμοποίησέ την ως αφετηρία και προσάρμοσέ την στην πραγματική κατάσταση, τον όροφο και τη θέση του ακινήτου.`} />
             <button onClick={() => setValue(String(estValue))} className="acc-toggle" style={{ height: 28, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>Χρήση</button>
           </div>
         )}
@@ -694,11 +704,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
                 </div>
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος Ανθεκτικότητας (ΤΑΚΚ) <TermInfo text={G.takk} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy, 0)}/έτος</div></div>
-                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος παρεπιδημούντων <TermInfo text={G.transient_tax} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{st.municipalTax > 0 ? `${fe(st.municipalTax, 0)}/έτος` : 'Εξαιρείται'}</div></div>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος Ανθεκτικότητας (ΤΑΚΚ) <TermInfo text={G.takk} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy, 0)} τον χρόνο</div></div>
+                  <div><span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS }}>Τέλος παρεπιδημούντων <TermInfo text={G.transient_tax} /></span><div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{st.municipalTax > 0 ? `${fe(st.municipalTax, 0)} τον χρόνο` : 'Εξαιρείται'}</div></div>
                 </div>
                 <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
-                  Το ΤΑΚΚ χρεώνεται ανά διανυκτέρευση, με υψηλότερη τιμή σε υψηλή περίοδο και για μονοκατοικίες/βίλες. Το τέλος παρεπιδημούντων (0,5%) εξαιρεί μικρούς ιδιοκτήτες (έως 2 ακίνητα, φυσικό πρόσωπο). {individualPerson ? 'Όταν η δραστηριότητα ξεπεράσει τα όρια (πολλά ακίνητα ή παροχή υπηρεσιών ξενοδοχειακού τύπου), θεωρείται επιχειρηματική — υπαγωγή σε ΦΠΑ και κλίμακα άρθρου 15· θέμα λογιστή.' : 'Ως νομικό πρόσωπο, τα έσοδα υπάγονται σε ΦΠΑ και εταιρική φορολογία· τα τέλη εκπίπτουν ως δαπάνες.'} Κάθε ακίνητο χρειάζεται Αριθμό Μητρώου Ακινήτων (ΑΜΑ) σε κάθε αγγελία. Οι τελικές υποχρεώσεις επιβεβαιώνονται με τον λογιστή/ΑΑΔΕ.
+                  Το Τέλος Ανθεκτικότητας χρεώνεται ανά διανυκτέρευση, με υψηλότερη τιμή στην υψηλή περίοδο και για μονοκατοικίες και βίλες. Το τέλος παρεπιδημούντων (0,5%) εξαιρεί τους μικρούς ιδιοκτήτες (έως δύο ακίνητα, ως φυσικό πρόσωπο). {individualPerson ? 'Όταν η δραστηριότητα ξεπεράσει τα όρια (πολλά ακίνητα ή παροχή υπηρεσιών ξενοδοχειακού τύπου), θεωρείται επιχειρηματική και υπάγεται σε ΦΠΑ και στην κλίμακα του άρθρου 15· είναι θέμα του λογιστή.' : 'Ως νομικό πρόσωπο, τα έσοδα υπάγονται σε ΦΠΑ και εταιρική φορολογία, ενώ τα τέλη εκπίπτουν ως δαπάνες.'} Κάθε ακίνητο χρειάζεται Αριθμό Μητρώου Ακινήτων σε κάθε αγγελία. Οι τελικές υποχρεώσεις επιβεβαιώνονται με τον λογιστή ή την ΑΑΔΕ.
                 </p>
               </div>
             )}
@@ -710,9 +720,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       {!empty && (<>
         {/* KPIs */}
         <div style={g4}>
-          <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent, 0)} έσοδα/έτος`} info={G.gross_yield} />
+          <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent, 0)} έσοδα τον χρόνο`} info={G.gross_yield} />
           <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
-          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)}/έτος`} accent info={G.after_tax_yield} />
+          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)} τον χρόνο`} accent info={G.after_tax_yield} />
           {pro
             ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.positiveCarry ? 'θετική μόχλευση' : 'αρνητική μόχλευση'} info={G.cash_on_cash} />
             : term === 'short'
