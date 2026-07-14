@@ -4,6 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContai
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea } from './UIComponents'
 import { downloadCsv, csvEur } from './exportCsv'
 import { escHtml } from '@/lib/reportBranding'
+import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
@@ -270,6 +271,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const [notes,       setNotes]       = useState('')
   const [extraPay,    setExtraPay]    = useState('0')
   const [income,      setIncome]      = useState('2000')
+  const [monthlyRent, setMonthlyRent] = useState(()=>String(Math.round((parseFloat(initial?.propValue||'185000')||185000)*0.04/12)))
   const [marital,     setMarital]     = useState<'single'|'married'>('single')
   const [children,    setChildren]    = useState('0')
   const [hasAgent,    setHasAgent]    = useState(false)
@@ -826,15 +828,62 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         )}
       </Section>
 
-      <Section title="Δανειοληπτική Ικανότητα & DTI" sub="Μέγιστο δάνειο βάσει εισοδήματος">
-        <div style={{marginBottom:12}}><NumberInput label="Μηνιαίο Καθαρό Εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
+      {(()=>{
+        // Δανειοληπτική ικανότητα με τα πραγματικά όρια ΤτΕ (50% πρώτη κατοικία / 40% λοιποί).
+        const firstHome = loanType==='first_home'
+        const aff = affordability({ incomeMonthly:INC, firstHome, desiredAmount:LA, ratePct:effRate, years:Y })
+        return (
+      <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος">
+        <div style={{marginBottom:12}}><NumberInput label="Μηνιαίο καθαρό εισόδημα (€)" value={income} onChange={setIncome} suffix="€"/></div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
-          <KPI label="Μέγιστη δόση/μήνα" value={fmtEur(INC*BORROWER_PROFILES[borrower].income_ratio)} color="var(--accent)" sub={`${(BORROWER_PROFILES[borrower].income_ratio*100).toFixed(0)}% εισοδήματος`}/>
-          <KPI label="Μέγιστο δάνειο" value={fmtEur(maxLoan)} color={maxLoan>=LA?'var(--text-primary)':'var(--negative)'}/>
-          <KPI label="DTI Ratio" title="Δείκτης δόσης προς εισόδημα (Debt to Income). Όρια ΤτΕ: 50% πρώτη κατοικία / 40% λοιποί" value={monthly>0?fmtPct1((monthly/INC)*100):'—'} color={(monthly/INC)>0.5?'var(--negative)':'var(--text-primary)'} sub="Δόση / Εισόδημα"/>
+          <KPI label="Μέγιστη δόση τον μήνα" value={fmtEur(aff.maxMonthly)} color="var(--accent)" sub={`${Math.round(aff.limitPct*100)}% εισοδήματος${firstHome?' (πρώτη κατοικία)':''}`}/>
+          <KPI label="Μέγιστο δάνειο" value={fmtEur(aff.maxLoan)} color={aff.maxLoan>=LA?'var(--text-primary)':'var(--negative)'} sub={`με ${fmtPct(effRate)} / ${Y} έτη`}/>
+          <KPI label="Δείκτης δόσης προς εισόδημα" title="Debt Service to Income. Όρια ΤτΕ: 50% πρώτη κατοικία / 40% λοιποί" value={INC>0?fmtPct1(aff.dstiUsedPct):'—'} color={aff.dstiUsedPct/100>aff.limitPct?'var(--negative)':'var(--text-primary)'} sub={`όριο ${Math.round(aff.limitPct*100)}%`}/>
         </div>
-        {maxLoan<LA&&<div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Υπέρβαση κατά {fmtEur(LA-maxLoan)}, μειώστε ποσό ή αυξήστε διάρκεια</p></div>}
+        {!aff.affordable
+          ? <div style={{marginTop:10,padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:8}}><p style={{fontSize:12,color:'var(--negative)',fontFamily:"'Inter',sans-serif"}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μειώστε το ποσό (έως {fmtEur(aff.maxLoan)}) ή αυξήστε τη διάρκεια.</p></div>
+          : <div style={{marginTop:10,padding:'10px 14px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:8}}><p style={{fontSize:12,color:'var(--accent)',fontFamily:"'Inter',sans-serif"}}>Η δόση χωράει άνετα στο όριο. Περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα ({fmtEur(aff.maxLoan-LA)} επιπλέον δανειοδότηση).</p></div>
+        }
       </Section>
+        )
+      })()}
+
+      {(()=>{
+        // Ενοικίαση ή αγορά — απλό, έντιμο TCO σε βάθος ετών.
+        const rent = parseFloat(monthlyRent)||0
+        const horizon = Math.min(Math.max(Y,5),20)
+        const rvb = rentVsBuy({ price:PV, downPayment:PV-LA, ratePct:effRate, years:Y, monthlyRent:rent, purchaseCosts:totalCosts.total-((PV-LA)), horizonYears:horizon })
+        const buys = rvb.advantageAtHorizon>0
+        // Bespoke SVG δύο σωρευτικών γραμμών (αγορά vs ενοικίαση)
+        const W=560,H=170,padL=6,padR=6,padT=14,padB=22, n=horizon+1
+        const maxV=Math.max(...rvb.buyNetCostByYear,...rvb.rentCostByYear,1)
+        const minV=Math.min(...rvb.buyNetCostByYear,0)
+        const X=(i:number)=>padL+(i/(n-1))*(W-padL-padR)
+        const Yv=(v:number)=>padT+(1-(v-minV)/(maxV-minV||1))*(H-padT-padB)
+        const buyLine=rvb.buyNetCostByYear.map((v,i)=>`${i===0?'M':'L'} ${X(i)} ${Yv(v)}`).join(' ')
+        const rentLine=rvb.rentCostByYear.map((v,i)=>`${i===0?'M':'L'} ${X(i)} ${Yv(v)}`).join(' ')
+        return (
+      <Section title="Ενοικίαση ή αγορά" sub={`Σύγκριση συνολικού κόστους σε ${horizon} έτη`}>
+        <div style={{marginBottom:12,maxWidth:280}}><NumberInput label="Μηνιαίο ενοίκιο αντίστοιχου ακινήτου (€)" value={monthlyRent} onChange={setMonthlyRent} suffix="€"/></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:14}}>
+          <KPI label="Καθαρό κόστος αγοράς" value={fmtEur(rvb.buyNetAtHorizon)} sub={`σε ${horizon} έτη, μετά την περιουσία`}/>
+          <KPI label="Κόστος ενοικίασης" value={fmtEur(rvb.rentAtHorizon)} sub={`σε ${horizon} έτη`}/>
+          <KPI label={buys?'Πλεονέκτημα αγοράς':'Πλεονέκτημα ενοικίασης'} value={fmtEur(Math.abs(rvb.advantageAtHorizon))} color={buys?'var(--accent)':'var(--text-primary)'} sub={rvb.breakEvenYear?`ισοσκελισμός στο έτος ${rvb.breakEvenYear}`:'χωρίς ισοσκελισμό στον ορίζοντα'}/>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση κόστους αγοράς και ενοικίασης">
+          <path d={rentLine} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="4 3" strokeLinejoin="round"/>
+          <path d={buyLine} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round"/>
+          {rvb.breakEvenYear&&<line x1={X(rvb.breakEvenYear)} y1={padT} x2={X(rvb.breakEvenYear)} y2={H-padB} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>}
+          {[0,Math.round(horizon/2),horizon].map(i=><text key={i} x={X(i)} y={H-6} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>έτος {i}</text>)}
+        </svg>
+        <div style={{display:'flex',gap:16,marginTop:8}}>
+          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:14,height:2.4,background:'var(--accent)',display:'inline-block'}}/>Αγορά (καθαρό)</span>
+          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:14,height:2,borderTop:'2px dashed var(--text-tertiary)',display:'inline-block'}}/>Ενοικίαση</span>
+        </div>
+        <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Το «καθαρό κόστος αγοράς» αφαιρεί την περιουσία που χτίζεις (αξία μείον υπόλοιπο δανείου) και υποθέτει ήπια ανατίμηση και αύξηση ενοικίου ~2% τον χρόνο. Ενδεικτικό.</p>
+      </Section>
+        )
+      })()}
 
       <Section title="Φορολογική Ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026">
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
