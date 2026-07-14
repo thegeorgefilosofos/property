@@ -364,12 +364,15 @@ interface Props {
   profile?:'individual'|'business'
   // Αρχικές τιμές από το πραγματικό ακίνητο του χρήστη (προαιρετικά).
   initial?:{loanAmount?:string;propValue?:string;sqm?:string}
+  // Τιμές που «εφαρμόζονται» εξωτερικά (π.χ. από σάρωση εγγράφου δανειολήπτη).
+  // Το πεδίο v είναι σφραγίδα έκδοσης ώστε η εφαρμογή να ενεργοποιείται μόνο σε νέα σάρωση.
+  applied?:{v:number;loanAmount?:number;propValue?:number;rate?:number;years?:number;rateType?:RateType;loanType?:string;income?:number;marital?:'single'|'married';children?:number}
 }
 
 const NATURAL_BORROWERS:BorrowerType[] = ['individual','young','family','senior','military','abroad']
 const BUSINESS_BORROWERS:BorrowerType[] = ['professional','company']
 
-export default function TabLoanCalculator({propertyId,userId,market,initial,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual'}:Props) {
+export default function TabLoanCalculator({propertyId,userId,market,initial,applied,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual'}:Props) {
   const [loanAmount,  setLoanAmount]  = useState(initial?.loanAmount || '150000')
   const [propValue,   setPropValue]   = useState(initial?.propValue || '185000')
   const [sqm,         setSqm]         = useState(initial?.sqm || '80')
@@ -395,6 +398,22 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const [agentPct,    setAgentPct]    = useState('2')
   const [scenarios,   setScenarios]   = useState<LoanScenario[]>([])
   const [editingId,   setEditingId]   = useState<string|null>(null)
+
+  // Εφαρμογή τιμών από εξωτερική σάρωση (έγγραφο/φωτογραφία δανειολήπτη). Τρέχει
+  // μόνο όταν αλλάζει η σφραγίδα έκδοσης, ώστε να μη «μαχαιρώνει» τις χειροκίνητες αλλαγές.
+  useEffect(()=>{
+    if(!applied) return
+    if(applied.loanAmount!=null && applied.loanAmount>0) setLoanAmount(String(Math.round(applied.loanAmount)))
+    if(applied.propValue!=null && applied.propValue>0) setPropValue(String(Math.round(applied.propValue)))
+    if(applied.rate!=null && applied.rate>0) setRate(String(applied.rate))
+    if(applied.years!=null && applied.years>0) setYears(String(Math.round(applied.years)))
+    if(applied.rateType) setRateType(applied.rateType)
+    if(applied.loanType && (LOAN_TYPES as any)[applied.loanType]) setLoanType(applied.loanType as LoanType)
+    if(applied.income!=null && applied.income>0) setIncome(String(Math.round(applied.income)))
+    if(applied.marital) setMarital(applied.marital)
+    if(applied.children!=null) setChildren(String(Math.round(applied.children)))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[applied?.v])
   const [remBal,      setRemBal]      = useState('100000')
   const [remYears,    setRemYears]    = useState('20')
   const [curRate,     setCurRate]     = useState('4.0')
