@@ -150,6 +150,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
   const updStr = market.isLoading?'...' : new Date(market.updated_at).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
   const banksUpdStr = new Date(verifiedAt || BANKS_VERIFIED).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
+  // Έντιμη φρεσκάδα: τα ανά-τράπεζα επιτόκια είναι επαληθευμένα δεδομένα με
+  // ημερομηνία (όχι αυτόματη ροή). Αν παλιώσουν, το λέμε καθαρά και παραπέμπουμε
+  // στην πηγή, αντί να δίνουμε ψευδή εντύπωση «ζωντανών» τιμών.
+  const banksAgeDays = Math.floor((Date.now() - new Date(verifiedAt || BANKS_VERIFIED).getTime())/86400000)
+  const banksStale = banksAgeDays > 45
   // Μία πηγή αλήθειας: η ανάλυση αντλεί απευθείας τα στοιχεία του Υπολογιστή
   // (χωρίς διπλά πεδία ποσού/διάρκειας/σκοπού).
   const advType = calcState.loanType
@@ -243,9 +248,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       </div>
 
       {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ (πτυσσόμενο) ═══ */}
-      <Accordion title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}`} open={openSec==='banks'} onToggle={()=>toggle('banks')}>
+      <Accordion title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`} open={openSec==='banks'} onToggle={()=>toggle('banks')}>
         {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {banksStale&&(
+            <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>Τα επιτόκια επιβεβαιώθηκαν πριν από {banksAgeDays} ημέρες και ενδέχεται να έχουν αλλάξει. Για δεσμευτική προσφορά επιβεβαιώστε απευθείας με την τράπεζα ή στο <a href="https://vresdaneio.gr/epitokia/index.html" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>vresdaneio.gr</a>.</p>
+            </div>
+          )}
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:36,background:filterSpiti?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:20,cursor:'pointer',color:filterSpiti?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:500}}>
               Σπίτι μου ΙΙ
