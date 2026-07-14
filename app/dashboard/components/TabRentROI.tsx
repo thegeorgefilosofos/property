@@ -397,6 +397,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [ltv, setLtv] = useState('70');
   const [loanRate, setLoanRate] = useState('3.5');
   const [ifree, setIfree] = useState('0');
+  const [savedLoan, setSavedLoan] = useState<{ amount:number; rate:number; property_value:number; loan_type:string } | null>(null);
   // Επενδυτική ανάλυση (IRR/NPV/DSCR)
   const [holdYears, setHoldYears] = useState<'5' | '10' | '20'>('10');
   const [rentGrowth, setRentGrowth] = useState('2');
@@ -407,12 +408,15 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     (async () => {
       setLoading(true);
       try {
-        const [pr, rc, exp] = await Promise.all([
+        const [pr, rc, exp, ln] = await Promise.all([
           supabase.from('user_properties').select('value,target_rent,rental_mode,sqm,prop_type,name,postal_code').eq('id', propertyId).maybeSingle(),
           supabase.from('rent_config').select('actual_rent,target_rent').eq('property_id', propertyId).maybeSingle(),
           supabase.from('expenses').select('amount').eq('property_id', propertyId),
+          supabase.from('loans').select('amount,rate,property_value,loan_type,status').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }),
         ]);
         const p: any = pr.data || {}; const c: any = rc.data || {};
+        const activeLoan = (ln.data || []).find((l: any) => l.status !== 'inactive' && l.status !== 'closed');
+        if (activeLoan) setSavedLoan({ amount: Number(activeLoan.amount) || 0, rate: Number(activeLoan.rate) || 0, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));
         const expSum = (exp.data || []).reduce((s: number, e: any) => s + (e.amount || 0), 0);
@@ -854,7 +858,22 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               </div>
               {/* Μόχλευση */}
               <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-                <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Μόχλευση (δανεισμός)<TermInfo text={G.leverage} /></p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <p style={{ ...titleStyle, margin: 0, display: 'flex', alignItems: 'center' }}>Μόχλευση (δανεισμός)<TermInfo text={G.leverage} /></p>
+                  {savedLoan && savedLoan.amount > 0 && (
+                    <button
+                      onClick={() => {
+                        const base = (savedLoan.property_value || parseFloat(value) || 0);
+                        if (base > 0) setLtv(String(Math.min(100, Math.round((savedLoan.amount / base) * 100))));
+                        setLoanRate(String(savedLoan.rate));
+                        setIfree(savedLoan.loan_type === 'first_home' ? '50' : '0');
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 16, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 500, cursor: 'pointer' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12a9 9 0 11-6.2-8.5"/><polyline points="21 3 21 9 15 9"/></svg>
+                      Χρησιμοποίησε το πραγματικό μου δάνειο
+                    </button>
+                  )}
+                </div>
                 <div style={g2}>
                   <NumberInput label="Δάνειο (% αξίας)" value={ltv} onChange={setLtv} suffix="%" max={100} />
                   <NumberInput label="Επιτόκιο" value={loanRate} onChange={setLoanRate} suffix="%" step={0.1} />

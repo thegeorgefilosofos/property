@@ -1,19 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { CustomSelect, NumberInput } from './UIComponents'
 import { ExportButton } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDec, csvDate } from './exportCsv'
 import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms } from '../../hooks/useMarketData'
 import {
   BANKS_NORM, STATE_PROGRAMS as PROGRAMS_STATIC, BANKS_VERIFIED, RATES_DISCLAIMER,
-  LOAN_TYPES, BORROWER_PROFILES, GLOSSARY, EURIBOR_HISTORY,
+  LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY,
   calcMonthly, fmtEur, fmtPct, fmtPct1,
   LoanType, RateType, BorrowerType, SavedLoan, MarketRates, MARKET_FALLBACK
 } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
+import { euriborInsight } from '@/lib/loans/affordability'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -44,6 +44,28 @@ function KPI({label,value,color,sub,title}:{label:string;value:string;color?:str
   )
 }
 
+// Ενοποιημένη «έξυπνη» πτυσσόμενη ενότητα — μία ροή, χωρίς καρτέλες.
+function Accordion({title,subtitle,count,open,onToggle,children}:{title:string;subtitle?:string;count?:number;open:boolean;onToggle:()=>void;children:React.ReactNode}) {
+  return (
+    <div style={{background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
+      <button onClick={onToggle} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'16px 20px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
+        <div style={{display:'flex',alignItems:'center',gap:11,minWidth:0}}>
+          <span style={{width:7,height:7,borderRadius:'50%',background:open?'var(--accent)':'var(--border-default)',flexShrink:0,transition:'background 0.2s'}}/>
+          <div style={{minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <p style={{fontSize:14.5,fontWeight:500,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>{title}</p>
+              {count!==undefined&&count>0&&<span style={{fontSize:11,minWidth:20,height:20,padding:'0 6px',borderRadius:10,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",fontWeight:600}}>{count}</span>}
+            </div>
+            {subtitle&&<p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{subtitle}</p>}
+          </div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open&&<div style={{padding:'0 20px 20px'}}>{children}</div>}
+    </div>
+  )
+}
+
 function ChartTip({active,payload,label}:any) {
   if(!active||!payload?.length)return null
   return (
@@ -59,9 +81,6 @@ function ChartTip({active,payload,label}:any) {
   )
 }
 
-const LOAN_TYPE_OPTIONS = Object.entries(LOAN_TYPES).map(([k,v])=>({value:k,label:v.label}))
-const BORROWER_OPTIONS  = Object.entries(BORROWER_PROFILES).map(([k,v])=>({value:k,label:v.label}))
-
 interface CalcState {
   loanType:LoanType;borrowerType:BorrowerType;loanAmount:number;years:number
   rateType:RateType;effectiveRate:number;monthly:number;totalInterest:number;propertyValue:number
@@ -72,7 +91,19 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   // Πραγματικά στοιχεία του ακινήτου του χρήστη (αντί για γενικές προεπιλογές).
   const initValue  = propertyValue && propertyValue > 0 ? Math.round(propertyValue) : 200000
   const initAmount = propertyValue && propertyValue > 0 ? Math.round(propertyValue * 0.8) : 150000
-  const [tab,setTab] = useState<'calculator'|'banks'|'programs'|'advisor'|'guide'|'saved'>('calculator')
+  // Ενοποιημένη ροή: ένας υπολογιστής στην κορυφή + έξυπνες πτυσσόμενες ενότητες.
+  // Μία ανοιχτή τη φορά, ώστε να παραμένει καθαρό — όχι «σούπερ μάρκετ» με καρτέλες.
+  const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'|null>('advisor')
+  const toggle = (id:'advisor'|'banks'|'programs'|'guide'|'saved')=>setOpenSec(s=>s===id?null:id)
+  // Προφίλ χρήστη: καθορίζει τι βλέπει ο καθένας — ιδιώτης ή επιχείρηση.
+  // Θυμόμαστε την επιλογή τοπικά, ώστε να μην ξαναρωτάμε τον ίδιο χρήστη.
+  const [profile,setProfile] = useState<'individual'|'business'>(()=>{
+    if(typeof window==='undefined')return 'individual'
+    return window.localStorage.getItem('loanProfile')==='business'?'business':'individual'
+  })
+  useEffect(()=>{ try{ window.localStorage.setItem('loanProfile',profile) }catch{} },[profile])
+  const calcRef = useRef<HTMLDivElement>(null)
+  const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   const [saved,setSaved] = useState<SavedLoan[]>([])
   const [filterSpiti,setFS] = useState(false)
   const [showGloss,setShowGloss] = useState(false)
@@ -92,18 +123,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
     monthly:calcMonthly(initAmount,3.5,25),totalInterest:0,propertyValue:initValue,
   })
 
-  const [advType,setAdvType] = useState<LoanType>('purchase')
-  const [advBorr,setAdvBorr] = useState<BorrowerType>('individual')
-  const [advAmt,setAdvAmt]   = useState('150000')
-  const [advYrs,setAdvYrs]   = useState('25')
-
   useEffect(()=>{loadSaved()},[propertyId])
-  useEffect(()=>{
-    if(tab==='advisor'){
-      setAdvType(calcState.loanType);setAdvBorr(calcState.borrowerType)
-      setAdvAmt(String(Math.round(calcState.loanAmount)));setAdvYrs(String(calcState.years))
-    }
-  },[tab])
 
   async function loadSaved(){const{data}=await supabase.from('loans').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false});setSaved(data||[])}
   async function handleSaveLoan(loan:Partial<SavedLoan>){await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId});await loadSaved()}
@@ -130,18 +150,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
   const updStr = market.isLoading?'...' : new Date(market.updated_at).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
   const banksUpdStr = new Date(verifiedAt || BANKS_VERIFIED).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
-  const LA = parseFloat(advAmt)||150000
-  const Y  = parseInt(advYrs)||25
+  // Έντιμη φρεσκάδα: τα ανά-τράπεζα επιτόκια είναι επαληθευμένα δεδομένα με
+  // ημερομηνία (όχι αυτόματη ροή). Αν παλιώσουν, το λέμε καθαρά και παραπέμπουμε
+  // στην πηγή, αντί να δίνουμε ψευδή εντύπωση «ζωντανών» τιμών.
+  const banksAgeDays = Math.floor((Date.now() - new Date(verifiedAt || BANKS_VERIFIED).getTime())/86400000)
+  const banksStale = banksAgeDays > 45
+  // Μία πηγή αλήθειας: η ανάλυση αντλεί απευθείας τα στοιχεία του Υπολογιστή
+  // (χωρίς διπλά πεδία ποσού/διάρκειας/σκοπού).
+  const advType = calcState.loanType
+  const advBorr = calcState.borrowerType
+  const LA = calcState.loanAmount || 150000
+  const Y  = calcState.years || 25
   const activePrograms = PROGRAMS
-
-  const TABS = [
-    {id:'calculator',label:'Υπολογιστής'},
-    {id:'banks',label:'Τράπεζες'},
-    {id:'programs',label:'Κρατικά Προγράμματα'},
-    {id:'advisor',label:'Σύμβουλος'},
-    {id:'guide',label:'Οδηγός'},
-    {id:'saved',label:`Αποθηκευμένα${saved.length>0?` (${saved.length})`:''}` },
-  ]
 
   return (
     <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',display:'flex',flexDirection:'column',gap:16}}>
@@ -182,20 +202,39 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div style={{display:'flex',borderBottom:'1px solid var(--border-subtle)',gap:0,overflowX:'auto'}}>
-        {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id as any)}
-            style={{padding:'12px 18px',fontSize:13,fontWeight:tab===t.id?500:400,fontFamily:"'Inter',sans-serif",color:tab===t.id?'var(--accent)':'var(--text-secondary)',borderBottom:`2px solid ${tab===t.id?'var(--accent)':'transparent'}`,borderLeft:'none',borderRight:'none',borderTop:'none',background:'none',cursor:'pointer',whiteSpace:'nowrap' as const,transition:'all 0.15s',marginBottom:-1}}>
-            {t.label}
-          </button>
-        ))}
+      {/* ═══ ΠΡΟΦΙΛ ΧΡΗΣΤΗ — καθορίζει τι βλέπει ο καθένας ═══ */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:10}}>
+        {([
+          {id:'individual' as const, title:'Ιδιώτης', sub:'Πρώτη κατοικία, επένδυση, κρατικά προγράμματα',
+           icon:<><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></>},
+          {id:'business' as const, title:'Επαγγελματίας ή επιχείρηση', sub:'Φορολογική έκπτωση τόκων, ισολογισμοί, μόχλευση',
+           icon:<><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"/></>},
+        ]).map(p=>{
+          const active = profile===p.id
+          return (
+            <button key={p.id} onClick={()=>setProfile(p.id)} aria-pressed={active}
+              style={{display:'flex',alignItems:'center',gap:13,textAlign:'left',padding:'14px 16px',borderRadius:14,cursor:'pointer',
+                background:active?'var(--accent-dim)':'var(--bg-elevated)',
+                border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`,
+                boxShadow:active?'0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent)':'none',transform:active?'translateY(-2px)':'none',transition:'transform 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s, border-color 0.2s, background 0.2s'}}>
+              <span style={{width:40,height:40,borderRadius:12,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',
+                background:active?'var(--accent)':'var(--bg-surface)',border:active?'none':'1px solid var(--border-subtle)'}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active?'var(--accent-text)':'var(--text-secondary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p.icon}</svg>
+              </span>
+              <span style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:14.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:active?'var(--accent)':'var(--text-primary)'}}>{p.title}</span>
+                <span style={{display:'block',fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",lineHeight:1.4}}>{p.sub}</span>
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* ═══ CALCULATOR ═══ */}
-      {tab==='calculator'&&(
+      {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ — πάντα ορατός στην κορυφή ═══ */}
+      <div ref={calcRef}>
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
+          profile={profile}
           market={{euribor_3m:market.euribor_3m,euribor_1m:market.euribor_1m,ecb_rate:market.ecb_rate,updated_at:market.updated_at}}
           initial={{
             loanAmount:String(initAmount), propValue:String(initValue),
@@ -206,18 +245,25 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           onSaveToExpenses={handleSaveExp}
           onStateChange={setCalcState}
         />
-      )}
+      </div>
 
-      {/* ═══ BANKS ═══ */}
-      {tab==='banks'&&(
+      {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ (πτυσσόμενο) ═══ */}
+      <Accordion title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`} open={openSec==='banks'} onToggle={()=>toggle('banks')}>
+        {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {banksStale&&(
+            <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>Τα επιτόκια επιβεβαιώθηκαν πριν από {banksAgeDays} ημέρες και ενδέχεται να έχουν αλλάξει. Για δεσμευτική προσφορά επιβεβαιώστε απευθείας με την τράπεζα ή στο <a href="https://vresdaneio.gr/epitokia/index.html" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>vresdaneio.gr</a>.</p>
+            </div>
+          )}
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             <button onClick={()=>setFS(f=>!f)} style={{display:'flex',alignItems:'center',gap:7,padding:'0 14px',height:36,background:filterSpiti?'var(--accent-dim)':'var(--bg-elevated)',border:`1px solid ${filterSpiti?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:20,cursor:'pointer',color:filterSpiti?'var(--accent)':'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:500}}>
               Σπίτι μου ΙΙ
             </button>
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily:"'Inter',sans-serif"}}>
-              {banksLoading?'Φόρτωση...':`vresdaneio.gr · ${banksUpdStr}`}
-              {liveBanks.length>0&&<span style={{color:'var(--text-secondary)',marginLeft:6}}>Live DB</span>}
+              {banksLoading?'Φόρτωση…':`vresdaneio.gr · ${banksUpdStr}`}
+              {liveBanks.length>0&&<span style={{color:'var(--text-secondary)',marginLeft:6}}>Ενημερωμένα στοιχεία</span>}
             </p>
           </div>
 
@@ -283,7 +329,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   </div>
                   <div style={{display:'flex',gap:8,flexShrink:0}}>
                     {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:36,borderRadius:20,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
-                    <button onClick={()=>setTab('calculator')} style={{padding:'0 16px',height:36,borderRadius:20,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer',fontWeight:500}}>Υπολόγισε</button>
+                    <button onClick={scrollToCalc} style={{padding:'0 16px',height:36,borderRadius:20,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12,fontFamily:"'Inter',sans-serif",cursor:'pointer',fontWeight:500}}>Υπολόγισε</button>
                   </div>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'}}>
@@ -322,10 +368,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </p>
           </div>
         </div>
-      )}
+        )}
+      </Accordion>
 
-      {/* ═══ PROGRAMS ═══ */}
-      {tab==='programs'&&(
+      {/* ═══ ΚΡΑΤΙΚΑ ΠΡΟΓΡΑΜΜΑΤΑ (πτυσσόμενο) ═══ */}
+      <Accordion title="Κρατικά προγράμματα" subtitle={`${activePrograms.length} ενεργά · Σπίτι μου ΙΙ, Αναβαθμίζω, Εξοικονομώ`} open={openSec==='programs'} onToggle={()=>toggle('programs')}>
+        {openSec==='programs'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'10px 16px'}}>
             <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
@@ -397,10 +445,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </div>
           )}
         </div>
-      )}
+        )}
+      </Accordion>
 
-      {/* ═══ ADVISOR ═══ */}
-      {tab==='advisor'&&(()=>{
+      {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ (πτυσσόμενο, ανοιχτό εξ ορισμού) ═══ */}
+      <Accordion title="Σύσταση και ανάλυση δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`} open={openSec==='advisor'} onToggle={()=>toggle('advisor')}>
+        {openSec==='advisor'&&(()=>{
         const cs = calcState
         const ltv = cs.propertyValue>0?(cs.loanAmount/cs.propertyValue)*100:0
         const totalCost = cs.monthly*cs.years*12
@@ -438,9 +488,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         // Μονόχρωμο: η βαθμολογία σε ουδέτερο/accent, κόκκινο μόνο σε πραγματικά χαμηλό σκορ.
         const scoreColor=score>=60?'var(--text-primary)':'var(--negative)'
         const scoreLabel=score>=80?'Υγιές δάνειο':score>=60?'Αποδεκτό, υπάρχει περιθώριο βελτίωσης':'Προσοχή, αξίζει επανεξέταση'
+        const insight = euriborInsight({ euribor3m: euribor, loanAmount: cs.loanAmount, ratePct: cs.effectiveRate, years: cs.years, rateType: cs.rateType })
 
         return (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
+
+            {/* ── Insight της ημέρας ── */}
+            {insight&&(
+              <div style={{display:'flex',alignItems:'flex-start',gap:11,padding:'12px 16px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:12}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
+                <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{insight}</p>
+              </div>
+            )}
 
             {/* ── Σύσταση καλύτερου δανείου (recommender) ── */}
             <div style={cardStyle}>
@@ -479,7 +538,53 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{RATES_DISCLAIMER}</p>
             </div>
 
-            <div style={{padding:'14px 18px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            {/* ── Στρατηγική ανά προφίλ: φυσικό vs νομικό πρόσωπο ── */}
+            {(()=>{
+              const isLegal = profile==='business'
+              const isCompany = advBorr==='company'
+              const kindLabel = !isLegal ? 'Ιδιώτης' : isCompany ? 'Νομικό πρόσωπο' : 'Επαγγελματίας'
+              // Ασπίδα φόρου: οι τόκοι επιχειρηματικού δανείου εκπίπτουν. Για νομικό
+              // πρόσωπο ο συντελεστής είναι 22% (σταθερός) — δίνουμε πραγματικό νούμερο.
+              const taxShieldCompany = Math.round(cs.totalInterest * 0.22)
+              const intro = isLegal
+                ? (isCompany
+                    ? 'Ως νομικό πρόσωπο το δάνειο αξιολογείται με βάση τους ισολογισμούς και την ταμειακή ροή, όχι το προσωπικό εισόδημα. Η βασική διαφορά είναι φορολογική: οι τόκοι εκπίπτουν.'
+                    : 'Ως επαγγελματίας κρίνεσαι με τον μέσο όρο των φορολογικών δηλώσεων της τελευταίας διετίας. Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα.')
+                : 'Ως φυσικό πρόσωπο η έγκριση βασίζεται στο εισόδημα και στον Τειρεσία. Στόχος: χαμηλότερο κόστος, σταθερότητα δόσης και αξιοποίηση κρατικών προγραμμάτων για πρώτη κατοικία και αναβάθμιση.'
+              const rows = isLegal ? [
+                {t:'Φορολογική ασπίδα των τόκων', b: isCompany
+                  ? `Οι τόκοι εκπίπτουν πλήρως. Με συντελεστή 22% το έμμεσο όφελος στη διάρκεια εκτιμάται περίπου ${fmtEur(taxShieldCompany)} — δηλαδή το πραγματικό κόστος δανεισμού είναι χαμηλότερο από το ονομαστικό επιτόκιο.`
+                  : 'Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα. Το όφελος εξαρτάται από τον οριακό σου συντελεστή — επιβεβαίωσέ το με τον λογιστή σου.'},
+                {t:'Απόσβεση κτηρίου', b:'Το κτηριακό μέρος (όχι το οικόπεδο) αποσβένεται και μειώνει το φορολογητέο αποτέλεσμα κάθε χρόνο. Συνδυασμένο με τους τόκους, βελτιώνει ουσιαστικά την καθαρή απόδοση.'},
+                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό LTV 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
+                {t:'Ανάπτυξη χαρτοφυλακίου με μόχλευση', b:'Η μόχλευση επιταχύνει την ανάπτυξη μόνο όταν η καθαρή απόδοση του ακινήτου υπερβαίνει το κόστος δανεισμού. Κράτα απόθεμα ρευστότητας για κενές περιόδους και συντήρηση.'},
+              ] : [
+                {t:'Αξιοποίηση κρατικών προγραμμάτων', b:'Για πρώτη κατοικία, το «Σπίτι μου ΙΙ» μειώνει δραστικά το κόστος (50% άτοκο). Έλεγξε την επιλεξιμότητα πριν επιλέξεις τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις.'},
+                {t:'Πειθαρχία στον δείκτη δόσης', b:'Τα όρια της Τράπεζας Ελλάδος: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους. Χαμηλότερος δείκτης σημαίνει καλύτερο επιτόκιο και ευκολότερη έγκριση.'},
+                {t:'Αύξηση αξίας με ενεργειακή αναβάθμιση', b:'Προγράμματα όπως «Εξοικονομώ» και «Αναβαθμίζω» ανεβάζουν την ενεργειακή κλάση, την αξία και το ενοίκιο — με επιδοτούμενο επιτόκιο και επιχορήγηση.'},
+                {t:'Σταθερότητα δόσης', b:`Το σταθερό επιτόκιο προστατεύει από αυξήσεις. Στο τρέχον σενάριο, αύξηση Euribor +2% θα ανέβαζε τη δόση κατά ${fmtEur(calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)-cs.monthly)} τον μήνα.`},
+              ]
+              return (
+                <div style={cardStyle}>
+                  <SectionLabel label="Στρατηγική ανά προφίλ" right={<span style={{fontSize:11,padding:'2px 10px',borderRadius:20,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{kindLabel}</span>}/>
+                  <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.65,fontFamily:"'Inter',sans-serif",marginBottom:14}}>{intro}</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {rows.map(r=>(
+                      <div key={r.t} style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
+                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:6}}/>
+                        <div>
+                          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
+                          <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.b}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Ρύθμισε τον τύπο δανειολήπτη στον Υπολογιστή για να προσαρμοστεί η στρατηγική. Ενημερωτικές πληροφορίες, όχι φορολογική ή νομική συμβουλή.</p>
+                </div>
+              )
+            })()}
+
+            <div style={{padding:'14px 18px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
               <div>
                 <p style={{fontSize:15,color:'var(--text-primary)',fontWeight:400,fontFamily:"'Inter',sans-serif"}}>Προσωπικός Σύμβουλος</p>
                 <p style={{fontSize:12,color:'var(--text-secondary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>
@@ -490,16 +595,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 <p style={{...labelStyle,marginBottom:3}}>Βαθμολογία δανείου</p>
                 <p style={{fontSize:22,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:scoreColor,fontWeight:700}}>{score}/100</p>
                 <p style={{fontSize:11,color:scoreColor,fontFamily:"'Inter',sans-serif"}}>{scoreLabel}</p>
-              </div>
-            </div>
-
-            <div style={cardStyle}>
-              <SectionLabel label="Στοιχεία Ανάλυσης" right={<span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Συγχρονισμένο από τον Υπολογιστή</span>}/>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10}}>
-                <CustomSelect label="Σκοπός Δανείου" value={advType} onChange={v=>setAdvType(v as LoanType)} options={LOAN_TYPE_OPTIONS}/>
-                <CustomSelect label="Τύπος Δανειολήπτη" value={advBorr} onChange={v=>setAdvBorr(v as BorrowerType)} options={BORROWER_OPTIONS}/>
-                <NumberInput label="Ποσό Δανείου (€)" value={advAmt} onChange={setAdvAmt} min={0} prefix="€"/>
-                <NumberInput label="Διάρκεια (χρόνια)" value={advYrs} onChange={setAdvYrs} min={1} max={40} suffix="χρ"/>
               </div>
             </div>
 
@@ -602,7 +697,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     </div>
                     <div>
                       <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--accent)',marginBottom:3}}>
-                        Σπίτι μου ΙΙ: εξοικονομείτε {fmtEur(spitiSaving)}, deadline 31/08/2026
+                        Σπίτι μου ΙΙ: εξοικονομείτε {fmtEur(spitiSaving)}, προθεσμία συμβολαίων 31/08/2026
                       </p>
                       <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
                         Δόση {fmtEur(spitiMonthly)}/μήνα αντί {fmtEur(cs.monthly)}, διαφορά {fmtEur(cs.monthly-spitiMonthly)}/μήνα.
@@ -641,38 +736,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               </div>
             </div>
 
-            {/* Bank ranking */}
-            <div style={cardStyle}>
-              <SectionLabel label={`Καλύτερες Τράπεζες για ${fmtEur(cs.loanAmount)} / ${cs.years} χρόνια`}/>
-              {BANKS.slice().sort((a:any,b:any)=>(a.fixed_min||parseFloat(a.fixed_3yr)||99)-(b.fixed_min||parseFloat(b.fixed_3yr)||99)).slice(0,4).map((bank:any,i:number)=>{
-                const m=calcMonthly(cs.loanAmount,bank.fixed_min,cs.years)
-                const ti=m*cs.years*12-cs.loanAmount
-                const medals=['1','2','3','4']
-                return(
-                  <div key={bank.id||bank.bank_id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',marginBottom:7,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:i===0?`3px solid var(--accent)`:'3px solid transparent',borderRadius:8}}>
-                    <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent)':'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <span style={{fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:700,color:i===0?'var(--accent-text)':'var(--text-secondary)'}}>{medals[i]}</span>
-                    </div>
-                    <div style={{flex:1}}>
-                      <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{bank.bank_name||bank.name}</p>
-                      <p style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>
-                        {bank.note} · {fmtPct(bank.fixed_min)} σταθερό
-                        {bank.spiti_mou&&<span style={{color:'var(--text-secondary)',marginLeft:8}}>· Σπίτι ΙΙ</span>}
-                      </p>
-                    </div>
-                    <div style={{textAlign:'right' as const}}>
-                      <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:700}}>{fmtEur(m)}/μήνα</p>
-                      {i===0
-                        ?<p style={{fontSize:10,color:'var(--accent)',fontFamily:"'Inter',sans-serif"}}>Καλύτερο στην αγορά</p>
-                        :<p style={{fontSize:10,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Συνολικοί τόκοι: {fmtEur(ti)}</p>
-                      }
-                    </div>
-                    <button onClick={()=>setTab('calculator')} style={{padding:'0 12px',height:32,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,cursor:'pointer',color:'var(--text-secondary)',fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:500}}>Επιλογή</button>
-                  </div>
-                )
-              })}
-            </div>
-
             {/* Improvements */}
             {issues.length>0&&(
               <div style={cardStyle}>
@@ -708,9 +771,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
         )
       })()}
+      </Accordion>
 
-      {/* ═══ GUIDE ═══ */}
-      {tab==='guide'&&(
+      {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ (πτυσσόμενο) ═══ */}
+      <Accordion title="Οδηγός και διαδικασία" subtitle="Βήματα, απορρίψεις, ειδικές κατηγορίες, ιστορικό Euribor, γλωσσάρι" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
+        {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={cardStyle}>
             <SectionLabel label="Πώς Λειτουργεί Ένα Στεγαστικό Δάνειο στην Ελλάδα"/>
@@ -773,9 +838,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη Ένοπλων Δυνάμεων και Σωμάτων Ασφαλείας. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι Εξωτερικού',desc:'Max LTV 55-70%. Απαιτούνται επίσημες μεταφράσεις, αποδεικτικό κατοικίας εξωτερικού, εισοδήματα από ξένη χώρα. Ισχύουν ΣΑΔΦ.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, σύναψη σύμβασης έως 31/08/2026 (η προθεσμία αιτήσεων 31/05/2026 έχει παρέλθει). Εισοδηματικά όρια: άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Πρώτη κατοικία έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/en/home-loans/'},
+                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, σύναψη σύμβασης έως 31/08/2026 (η προθεσμία αιτήσεων 31/05/2026 έχει παρέλθει). Εισοδηματικά όρια: άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Πρώτη κατοικία έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Ελεύθεροι Επαγγελματίες',desc:'Μέσος όρος εισοδήματος 2 ετών. Max LTV 65-70%. Απαιτείται συνέπεια στις φορολογικές δηλώσεις.',url:'https://www.aade.gr'},
-                {title:'Πολύτεκνοι & Τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου Σπίτι μου ΙΙ. Εισόδημα έως €45.000 (2 παιδιά) ή €50.000 (3+ παιδιά). Αυξημένα όρια ΦΜΑ.',url:'https://greece20.gov.gr/en/home-loans/'},
+                {title:'Πολύτεκνοι & Τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου Σπίτι μου ΙΙ. Εισόδημα έως €45.000 (2 παιδιά) ή €50.000 (3+ παιδιά). Αυξημένα όρια ΦΜΑ.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες & Επαγγελματικά',desc:'Ισολογισμοί 3 ετών + Απόφαση ΔΣ + εγγύηση φυσικού προσώπου. LTV 60-70%. Πλήρης έκπτωση τόκων από φορολογικά αποτελέσματα.',url:'https://www.nbg.gr/el/epixeiriseis'},
               ].map(cat=>(
                 <div key={cat.title} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:14}}>
@@ -804,7 +869,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 {l:'Ιστορικό χαμηλό',v:'-0.55% (2021)',c:'var(--text-primary)'},
                 {l:'Ιστορικό υψηλό',v:'4.0% (Οκτ 2023)',c:'var(--text-primary)'},
                 {l:'Τρέχον',v:fmtPct(market.euribor_3m),c:'var(--text-primary)'},
-                {l:'Μείωση από peak',v:`-${fmtPct(4.0-market.euribor_3m)}`,c:'var(--text-primary)'},
+                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(4.0-market.euribor_3m)}`,c:'var(--text-primary)'},
               ].map(item=>(
                 <div key={item.l}>
                   <p style={{...labelStyle,marginBottom:3}}>{item.l}</p>
@@ -845,7 +910,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <SectionLabel label="Επίσημες Πηγές"/>
             {[
               {category:'Κρατικά Προγράμματα',links:[
-                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, deadline 31/08/2026',url:'https://greece20.gov.gr/en/home-loans/'},
+                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
                 {label:'Αναβαθμίζω το Σπίτι μου',sub:'HDB, επίσημη πλατφόρμα αιτήσεων',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
                 {label:'Εξοικονομώ 2025',sub:'Επιδότηση ενεργειακής αναβάθμισης',url:'https://exoikonomo2025.gov.gr/'},
                 {label:'Ανακαινίζω & Νοικιάζω, ΟΠΕΚΑ',sub:'40% επιδότηση + εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
@@ -894,10 +959,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </div>
           </div>
         </div>
-      )}
+        )}
+      </Accordion>
 
-      {/* ═══ SAVED ═══ */}
-      {tab==='saved'&&(
+      {/* ═══ ΑΠΟΘΗΚΕΥΜΕΝΑ ΔΑΝΕΙΑ (πτυσσόμενο) ═══ */}
+      <Accordion title="Αποθηκευμένα δάνεια" subtitle={saved.length>0?'Παρακολούθηση υπολοίπου και εξαγωγή':'Αποθηκεύστε ένα σενάριο από τον Υπολογιστή'} count={saved.length} open={openSec==='saved'} onToggle={()=>toggle('saved')}>
+        {openSec==='saved'&&(
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
             <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{saved.length} δάνεια</span>
@@ -922,7 +989,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-default)" strokeWidth="1.5" style={{margin:'0 auto 14px',display:'block'}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               <p style={{fontSize:15,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:400}}>Δεν υπάρχουν αποθηκευμένα δάνεια</p>
               <p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Inter',sans-serif"}}>Χρησιμοποίησε τον Υπολογιστή Δανείου για να υπολογίσεις και να αποθηκεύσεις δάνεια.</p>
-              <button onClick={()=>setTab('calculator')} style={{marginTop:14,padding:'0 18px',height:36,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>Άνοιξε τον Υπολογιστή Δανείου</button>
+              <button onClick={scrollToCalc} style={{marginTop:14,padding:'0 18px',height:36,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--text-secondary)',fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>Άνοιξε τον Υπολογιστή Δανείου</button>
             </div>
           )}
           {saved.map(loan=>{
@@ -953,16 +1020,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
                 {loan.start_date&&(
                   <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',gap:24,flexWrap:'wrap'}}>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{loan.start_date}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Αποπλ. μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
-                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{new Date(loan.start_date).toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Μήνες αποπληρωμής</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>~{elapsed}</p></div>
+                    <div><p style={{...labelStyle,marginBottom:2}}>Υπόλοιποι μήνες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>~{rem}</p></div>
                   </div>
                 )}
               </div>
             )
           })}
         </div>
-      )}
+        )}
+      </Accordion>
 
       {toast&&(
         <div style={{position:'fixed',bottom:24,right:24,zIndex:1000,display:'flex',alignItems:'center',gap:9,padding:'11px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--shadow-lg)',maxWidth:320}}>
