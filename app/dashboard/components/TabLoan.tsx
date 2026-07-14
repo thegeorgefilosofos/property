@@ -44,24 +44,30 @@ function KPI({label,value,color,sub,title}:{label:string;value:string;color?:str
   )
 }
 
-// Ενοποιημένη «έξυπνη» πτυσσόμενη ενότητα — μία ροή, χωρίς καρτέλες.
-function Accordion({title,subtitle,count,open,onToggle,children}:{title:string;subtitle?:string;count?:number;open:boolean;onToggle:()=>void;children:React.ReactNode}) {
+// ── Cockpit: εναλλαγή φακών επί τόπου (ένα πάνελ τη φορά, χωρίς στοίβαγμα) ──
+function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
   return (
-    <div style={{background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
-      <button onClick={onToggle} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'16px 20px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
-        <div style={{display:'flex',alignItems:'center',gap:11,minWidth:0}}>
-          <span style={{width:7,height:7,borderRadius:'50%',background:open?'var(--accent)':'var(--border-default)',flexShrink:0,transition:'background 0.2s'}}/>
-          <div style={{minWidth:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <p style={{fontSize:14.5,fontWeight:500,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>{title}</p>
-              {count!==undefined&&count>0&&<span style={{fontSize:11,minWidth:20,height:20,padding:'0 6px',borderRadius:10,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",fontWeight:600}}>{count}</span>}
-            </div>
-            {subtitle&&<p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{subtitle}</p>}
-          </div>
+    <div style={{display:'flex',gap:4,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:5,boxShadow:'var(--shadow-sm)',overflowX:'auto'}}>
+      {items.map(it=>{const on=value===it.id;return(
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:12,padding:'10px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,
+          color:on?'var(--accent)':'var(--text-secondary)',background:on?'var(--accent-dim)':'transparent',border:`1px solid ${on?'var(--border-accent)':'transparent'}`,transition:'color 0.2s, background 0.2s, border-color 0.2s'}}>{it.label}</button>
+      )})}
+    </div>
+  )
+}
+
+// Επικεφαλίδα ενεργού φακού — ο τίτλος τον οποίο το LensBar έχει επιλέξει.
+function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:string;right?:React.ReactNode;children:React.ReactNode}) {
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,flexWrap:'wrap',padding:'2px 2px 0'}}>
+        <div style={{minWidth:0}}>
+          <p style={{fontSize:16,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.01em'}}>{title}</p>
+          {subtitle&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>{subtitle}</p>}
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      {open&&<div style={{padding:'0 20px 20px'}}>{children}</div>}
+        {right}
+      </div>
+      {children}
     </div>
   )
 }
@@ -93,8 +99,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const initAmount = propertyValue && propertyValue > 0 ? Math.round(propertyValue * 0.8) : 150000
   // Ενοποιημένη ροή: ένας υπολογιστής στην κορυφή + έξυπνες πτυσσόμενες ενότητες.
   // Μία ανοιχτή τη φορά, ώστε να παραμένει καθαρό — όχι «σούπερ μάρκετ» με καρτέλες.
-  const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'|null>('advisor')
-  const toggle = (id:'advisor'|'banks'|'programs'|'guide'|'saved')=>setOpenSec(s=>s===id?null:id)
+  const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'>('advisor')
   // Το προφίλ ακολουθεί την καθολική ρύθμιση της εφαρμογής (Ρυθμίσεις → τύπος
   // προφίλ). ΜΙΑ πηγή αλήθειας — χωρίς διπλό διακόπτη μέσα στην καρτέλα.
   const profile: 'individual'|'business' = profileType==='professional' ? 'business' : 'individual'
@@ -231,8 +236,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         />
       </div>
 
-      {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ (πτυσσόμενο) ═══ */}
-      <Accordion title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`} open={openSec==='banks'} onToggle={()=>toggle('banks')}>
+      {/* ═══ COCKPIT: εναλλαγή φακών επί τόπου — ένα πάνελ τη φορά ═══ */}
+      <LensBar value={openSec} onChange={v=>setOpenSec(v as any)} items={[
+        {id:'advisor',label:'Σύσταση'},
+        {id:'banks',label:'Τράπεζες'},
+        {id:'programs',label:'Προγράμματα'},
+        {id:'saved',label:saved.length>0?`Αποθηκευμένα · ${saved.length}`:'Αποθηκευμένα'},
+        {id:'guide',label:'Μάθε περισσότερα'},
+      ]}/>
+
+      {/* ═══ ΣΥΓΚΡΙΣΗ ΤΡΑΠΕΖΩΝ ═══ */}
+      {openSec==='banks' && (<LensPanel title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`}>
         {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           {banksStale&&(
@@ -341,10 +355,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
         </div>
         )}
-      </Accordion>
+      </LensPanel>)}
 
-      {/* ═══ ΚΡΑΤΙΚΑ ΠΡΟΓΡΑΜΜΑΤΑ (πτυσσόμενο) ═══ */}
-      <Accordion title="Κρατικά προγράμματα" subtitle={`${activePrograms.length} ενεργά · Σπίτι μου ΙΙ, Αναβαθμίζω, Εξοικονομώ`} open={openSec==='programs'} onToggle={()=>toggle('programs')}>
+      {/* ═══ ΚΡΑΤΙΚΑ ΠΡΟΓΡΑΜΜΑΤΑ ═══ */}
+      {openSec==='programs' && (<LensPanel title="Κρατικά προγράμματα" subtitle={`${activePrograms.length} ενεργά · Σπίτι μου ΙΙ, Αναβαθμίζω, Εξοικονομώ`}>
         {openSec==='programs'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'10px 16px'}}>
@@ -418,10 +432,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           )}
         </div>
         )}
-      </Accordion>
+      </LensPanel>)}
 
-      {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ (πτυσσόμενο, ανοιχτό εξ ορισμού) ═══ */}
-      <Accordion title="Σύσταση και ανάλυση δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`} open={openSec==='advisor'} onToggle={()=>toggle('advisor')}>
+      {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ ═══ */}
+      {openSec==='advisor' && (<LensPanel title="Σύσταση και ανάλυση δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`}>
         {openSec==='advisor'&&(()=>{
         const cs = calcState
         const ltv = cs.propertyValue>0?(cs.loanAmount/cs.propertyValue)*100:0
@@ -754,10 +768,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
         )
       })()}
-      </Accordion>
+      </LensPanel>)}
 
-      {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ (πτυσσόμενο) ═══ */}
-      <Accordion title="Μάθε περισσότερα" subtitle="Διαδικασία, διαχειριστές και κόκκινα δάνεια, απορρίψεις, γλωσσάρι, πηγές" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
+      {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ ═══ */}
+      {openSec==='guide' && (<LensPanel title="Μάθε περισσότερα" subtitle="Διαδικασία, διαχειριστές και κόκκινα δάνεια, απορρίψεις, γλωσσάρι, πηγές">
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={cardStyle}>
@@ -1002,10 +1016,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
         </div>
         )}
-      </Accordion>
+      </LensPanel>)}
 
-      {/* ═══ ΑΠΟΘΗΚΕΥΜΕΝΑ ΔΑΝΕΙΑ (πτυσσόμενο) ═══ */}
-      <Accordion title="Αποθηκευμένα δάνεια" subtitle={saved.length>0?'Παρακολούθηση υπολοίπου και εξαγωγή':'Αποθηκεύστε ένα σενάριο από τον Υπολογιστή'} count={saved.length} open={openSec==='saved'} onToggle={()=>toggle('saved')}>
+      {/* ═══ ΑΠΟΘΗΚΕΥΜΕΝΑ ΔΑΝΕΙΑ ═══ */}
+      {openSec==='saved' && (<LensPanel title="Αποθηκευμένα δάνεια" subtitle={saved.length>0?'Παρακολούθηση υπολοίπου και εξαγωγή':'Αποθηκεύστε ένα σενάριο από τον Υπολογιστή'}>
         {openSec==='saved'&&(
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
@@ -1072,7 +1086,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           })}
         </div>
         )}
-      </Accordion>
+      </LensPanel>)}
 
       {toast&&(
         <div style={{position:'fixed',bottom:24,right:24,zIndex:1000,display:'flex',alignItems:'center',gap:9,padding:'11px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--shadow-lg)',maxWidth:320}}>
