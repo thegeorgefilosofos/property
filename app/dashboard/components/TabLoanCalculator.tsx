@@ -113,7 +113,7 @@ function AmortDonut({principal,interest}:{principal:number;interest:number}) {
 // Το ύψος κάθε στήλης είναι η ετήσια δόση· η αναλογία μετατοπίζεται από «κυρίως
 // τόκοι» σε «κυρίως κεφάλαιο». Σημειώνεται το έτος τομής.
 function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n:number)=>string}) {
-  const W=560,H=190,padL=6,padR=6,padT=14,padB=24
+  const W=580,H=224,padL=8,padR=12,padT=22,padB=28
   const n=data.length
   if(n<2) return null
   const maxTotal=Math.max(...data.map(d=>d.cap+d.int),1)
@@ -122,38 +122,71 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
   const capTop = data.map((d,i)=>[X(i),Y(d.cap)] as const)
   const totTop = data.map((d,i)=>[X(i),Y(d.cap+d.int)] as const)
   const base = Y(0)
-  // Περιοχή κεφαλαίου: από baseline έως capTop
   const capArea = `M ${X(0)} ${base} ` + capTop.map(([x,y])=>`L ${x} ${y}`).join(' ') + ` L ${X(n-1)} ${base} Z`
-  // Περιοχή τόκων: πάνω από το κεφάλαιο, από capTop έως totTop (αντίστροφα)
   const intAreaPath = `M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')} L ${[...totTop].reverse().map(([x,y])=>`${x} ${y}`).join(' L ')} Z`
-  // Έτος τομής: πρώτο όπου το κεφάλαιο ξεπερνά τους τόκους
   const crossIdx = data.findIndex(d=>d.cap>d.int)
   const tickEvery = Math.ceil(n/8)
+  // Οριζόντιες γραμμές αναφοράς στο 25/50/75/100% της ετήσιας δόσης
+  const grid = [0.25,0.5,0.75,1].map(f=>({ y:Y(maxTotal*f), label:fmt(maxTotal*f) }))
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
       <defs>
         <linearGradient id="areaCap" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.85"/>
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.35"/>
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.9"/>
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.32"/>
         </linearGradient>
         <linearGradient id="areaInt" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="0.42"/>
-          <stop offset="100%" stopColor="var(--text-tertiary)" stopOpacity="0.16"/>
+          <stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="0.5"/>
+          <stop offset="100%" stopColor="var(--text-tertiary)" stopOpacity="0.2"/>
         </linearGradient>
+        <filter id="areaGlow" x="-4%" y="-20%" width="108%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--accent)" floodOpacity="0.18"/></filter>
       </defs>
+      {/* Γραμμές αναφοράς */}
+      {grid.map((g,i)=>(
+        <g key={i}>
+          <line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity="0.5"/>
+          <text x={W-padR} y={g.y-3} textAnchor="end" style={{fontSize:8.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{g.label}</text>
+        </g>
+      ))}
+      {/* Περιοχές */}
       <path d={intAreaPath} fill="url(#areaInt)"/>
-      <path d={capArea} fill="url(#areaCap)"/>
-      <path d={`M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d={capArea} fill="url(#areaCap)" filter="url(#areaGlow)"/>
+      {/* Οροφή ετήσιας δόσης + όριο κεφαλαίου */}
+      <path d={`M ${totTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--text-tertiary)" strokeWidth="1.4" strokeOpacity="0.7" strokeDasharray="4 3" strokeLinejoin="round"/>
+      <path d={`M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinejoin="round"/>
+      <line x1={padL} y1={base} x2={W-padR} y2={base} stroke="var(--border-default)" strokeWidth="1"/>
       {crossIdx>0&&(
         <g>
-          <line x1={X(crossIdx)} y1={padT} x2={X(crossIdx)} y2={base} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>
-          <circle cx={X(crossIdx)} cy={Y(data[crossIdx].cap)} r="3.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="1.5"/>
-          <text x={X(crossIdx)} y={padT-4} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
+          <line x1={X(crossIdx)} y1={padT} x2={X(crossIdx)} y2={base} stroke="var(--border-accent)" strokeWidth="1.2" strokeDasharray="3 3"/>
+          <circle cx={X(crossIdx)} cy={Y(data[crossIdx].cap)} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
+          <text x={X(crossIdx)} y={padT-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
         </g>
       )}
       {data.map((d,i)=> i%tickEvery===0 || i===n-1 ? (
-        <text key={i} x={X(i)} y={H-8} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
+        <text key={i} x={X(i)} y={H-9} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
       ) : null)}
+    </svg>
+  )
+}
+
+// ── Bespoke SVG: δύο σωρευτικές γραμμές (καθαρό, με σωστά περιθώρια/άξονες) ──
+function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
+  const W=580,H=180,padL=8,padR=14,padT=16,padB=26
+  const n=data.length
+  if(n<2) return null
+  const vals=data.flatMap(d=>[d[keyA],d[keyB]] as number[])
+  const maxV=Math.max(...vals,1)
+  const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
+  const Y=(v:number)=> padT + (1 - v/maxV)*(H-padT-padB)
+  const path=(k:string)=> data.map((d,i)=>`${i===0?'M':'L'} ${X(i)} ${Y(d[k])}`).join(' ')
+  const grid=[0.5,1].map(f=>({y:Y(maxV*f),label:fmt(maxV*f)}))
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση σωρευτικών τόκων">
+      {grid.map((g,i)=>(<g key={i}><line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity="0.5"/><text x={W-padR} y={g.y-3} textAnchor="end" style={{fontSize:8.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{g.label}</text></g>))}
+      <path d={path(keyB)} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="5 3" strokeLinejoin="round" strokeLinecap="round"/>
+      <path d={path(keyA)} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"/>
+      <circle cx={X(n-1)} cy={Y(data[n-1][keyA])} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
+      {data.map((d,i)=>(<text key={i} x={X(i)} y={H-8} textAnchor={i===0?'start':i===n-1?'end':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>))}
     </svg>
   )
 }
@@ -521,28 +554,25 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             </div>
           ))}
           <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:advisorSync?'var(--accent-dim)':'transparent',border:`1px solid ${advisorSync?'var(--border-accent)':'transparent'}`,borderRadius:8,transition:'all 0.3s'}}>
-            <span style={{fontSize:10,color:advisorSync?'var(--accent)':'var(--border-default)',fontFamily:"'Inter',sans-serif",fontWeight:500,transition:'color 0.3s'}}>{advisorSync?'Advisor ενημερώθηκε':'Advisor'}</span>
+            <span style={{fontSize:10,color:advisorSync?'var(--accent)':'var(--border-default)',fontFamily:"'Inter',sans-serif",fontWeight:500,transition:'color 0.3s'}}>{advisorSync?'Ανάλυση ενημερώθηκε':'Σε συγχρονισμό'}</span>
           </div>
         </div>
       </div>
 
-      {/* Quick Presets */}
-      <div style={cardStyle}>
-        <SectionLabel label="Γρήγορα Προφίλ" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>Κλικ για αυτόματη συμπλήρωση</span>}/>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
-          {PRESETS.map(p=>(
-            <button key={p.id} onClick={()=>applyPreset(p)} style={{padding:'12px 14px',background:activePreset===p.id?p.color:'var(--bg-surface)',border:`1px solid ${activePreset===p.id?p.border:'var(--border-subtle)'}`,borderRadius:12,cursor:'pointer',textAlign:'left' as const,transition:'all 0.2s'}}>
-              <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:6}}>
-                <div style={{width:20,height:20,borderRadius:'50%',background:activePreset===p.id?p.textColor:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {activePreset===p.id&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                </div>
-                <p style={{fontSize:13,color:activePreset===p.id?p.textColor:'var(--text-primary)',fontWeight:activePreset===p.id?500:400,fontFamily:"'Inter',sans-serif"}}>{p.label}</p>
-              </div>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{p.desc}</p>
-            </button>
-          ))}
+      {/* Quick Presets — συμπτυσσόμενα, διακριτικά chips (όχι κουραστικές κάρτες) */}
+      <Section title="Γρήγορη συμπλήρωση" sub="Έτοιμα σενάρια — προαιρετικό ξεκίνημα">
+        <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+          {PRESETS.map(p=>{
+            const on = activePreset===p.id
+            return (
+              <button key={p.id} onClick={()=>applyPreset(p)} title={p.desc} style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 14px',borderRadius:20,cursor:'pointer',background:on?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,color:on?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,transition:'all 0.15s'}}>
+                {on&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>}
+                {p.label}
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </Section>
 
       {/* Property + Loan type */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
@@ -770,17 +800,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             </div>
           ))}
         </div>
-        <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί Τόκοι ανά Χρόνο</p>
-        <ResponsiveContainer width="100%" height={140}>
-          <LineChart data={fvChartData}>
-            <XAxis dataKey="year" tick={{fontSize:9,fill:'var(--text-secondary)'}} axisLine={false} tickLine={false}/>
-            <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
-            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false}/>
-            <Tooltip content={ChartTip}/><Legend wrapperStyle={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}/>
-            <Line type="monotone" dataKey="Σταθερό" stroke="var(--accent)" strokeWidth={2.4} dot={false}/>
-            <Line type="monotone" dataKey="Κυμαινόμενο" stroke="var(--text-tertiary)" strokeWidth={2} dot={false} strokeDasharray="4 3"/>
-          </LineChart>
-        </ResponsiveContainer>
+        <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί τόκοι στη διάρκεια</p>
+        <DualLine data={fvChartData} keyA="Σταθερό" keyB="Κυμαινόμενο" fmt={fmtEur}/>
+        <div style={{display:'flex',gap:16,marginTop:8}}>
+          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:14,height:2.4,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>Σταθερό</span>
+          <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:14,height:0,borderTop:'2px dashed var(--text-tertiary)',display:'inline-block'}}/>Κυμαινόμενο</span>
+        </div>
       </Section>
 
       <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub={spitiEligible?'Εκτίμηση εξοικονόμησης, προθεσμία συμβολαίων 31/08/2026':'Κριτήρια ένταξης'}>
