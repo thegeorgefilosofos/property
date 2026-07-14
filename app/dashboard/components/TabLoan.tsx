@@ -481,7 +481,53 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{RATES_DISCLAIMER}</p>
             </div>
 
-            <div style={{padding:'14px 18px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            {/* ── Στρατηγική ανά προφίλ: φυσικό vs νομικό πρόσωπο ── */}
+            {(()=>{
+              const isLegal = advBorr==='company' || advBorr==='professional'
+              const isCompany = advBorr==='company'
+              const kindLabel = isCompany ? 'Νομικό πρόσωπο' : advBorr==='professional' ? 'Επαγγελματική δραστηριότητα' : 'Φυσικό πρόσωπο'
+              // Ασπίδα φόρου: οι τόκοι επιχειρηματικού δανείου εκπίπτουν. Για νομικό
+              // πρόσωπο ο συντελεστής είναι 22% (σταθερός) — δίνουμε πραγματικό νούμερο.
+              const taxShieldCompany = Math.round(cs.totalInterest * 0.22)
+              const intro = isLegal
+                ? (isCompany
+                    ? 'Ως νομικό πρόσωπο το δάνειο αξιολογείται με βάση τους ισολογισμούς και την ταμειακή ροή, όχι το προσωπικό εισόδημα. Η βασική διαφορά είναι φορολογική: οι τόκοι εκπίπτουν.'
+                    : 'Ως επαγγελματίας κρίνεσαι με τον μέσο όρο των φορολογικών δηλώσεων της τελευταίας διετίας. Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα.')
+                : 'Ως φυσικό πρόσωπο η έγκριση βασίζεται στο εισόδημα και στον Τειρεσία. Στόχος: χαμηλότερο κόστος, σταθερότητα δόσης και αξιοποίηση κρατικών προγραμμάτων για πρώτη κατοικία και αναβάθμιση.'
+              const rows = isLegal ? [
+                {t:'Φορολογική ασπίδα των τόκων', b: isCompany
+                  ? `Οι τόκοι εκπίπτουν πλήρως. Με συντελεστή 22% το έμμεσο όφελος στη διάρκεια εκτιμάται περίπου ${fmtEur(taxShieldCompany)} — δηλαδή το πραγματικό κόστος δανεισμού είναι χαμηλότερο από το ονομαστικό επιτόκιο.`
+                  : 'Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα. Το όφελος εξαρτάται από τον οριακό σου συντελεστή — επιβεβαίωσέ το με τον λογιστή σου.'},
+                {t:'Απόσβεση κτηρίου', b:'Το κτηριακό μέρος (όχι το οικόπεδο) αποσβένεται και μειώνει το φορολογητέο αποτέλεσμα κάθε χρόνο. Συνδυασμένο με τους τόκους, βελτιώνει ουσιαστικά την καθαρή απόδοση.'},
+                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό LTV 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
+                {t:'Ανάπτυξη χαρτοφυλακίου με μόχλευση', b:'Η μόχλευση επιταχύνει την ανάπτυξη μόνο όταν η καθαρή απόδοση του ακινήτου υπερβαίνει το κόστος δανεισμού. Κράτα απόθεμα ρευστότητας για κενές περιόδους και συντήρηση.'},
+              ] : [
+                {t:'Αξιοποίηση κρατικών προγραμμάτων', b:'Για πρώτη κατοικία, το «Σπίτι μου ΙΙ» μειώνει δραστικά το κόστος (50% άτοκο). Έλεγξε την επιλεξιμότητα πριν επιλέξεις τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις.'},
+                {t:'Πειθαρχία στον δείκτη δόσης', b:'Τα όρια της Τράπεζας Ελλάδος: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους. Χαμηλότερος δείκτης σημαίνει καλύτερο επιτόκιο και ευκολότερη έγκριση.'},
+                {t:'Αύξηση αξίας με ενεργειακή αναβάθμιση', b:'Προγράμματα όπως «Εξοικονομώ» και «Αναβαθμίζω» ανεβάζουν την ενεργειακή κλάση, την αξία και το ενοίκιο — με επιδοτούμενο επιτόκιο και επιχορήγηση.'},
+                {t:'Σταθερότητα δόσης', b:`Το σταθερό επιτόκιο προστατεύει από αυξήσεις. Στο τρέχον σενάριο, αύξηση Euribor +2% θα ανέβαζε τη δόση κατά ${fmtEur(calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)-cs.monthly)} τον μήνα.`},
+              ]
+              return (
+                <div style={cardStyle}>
+                  <SectionLabel label="Στρατηγική ανά προφίλ" right={<span style={{fontSize:11,padding:'2px 10px',borderRadius:20,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{kindLabel}</span>}/>
+                  <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.65,fontFamily:"'Inter',sans-serif",marginBottom:14}}>{intro}</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {rows.map(r=>(
+                      <div key={r.t} style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
+                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:6}}/>
+                        <div>
+                          <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
+                          <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.b}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Ρύθμισε τον τύπο δανειολήπτη στον Υπολογιστή για να προσαρμοστεί η στρατηγική. Ενημερωτικές πληροφορίες, όχι φορολογική ή νομική συμβουλή.</p>
+                </div>
+              )
+            })()}
+
+            <div style={{padding:'14px 18px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
               <div>
                 <p style={{fontSize:15,color:'var(--text-primary)',fontWeight:400,fontFamily:"'Inter',sans-serif"}}>Προσωπικός Σύμβουλος</p>
                 <p style={{fontSize:12,color:'var(--text-secondary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>
