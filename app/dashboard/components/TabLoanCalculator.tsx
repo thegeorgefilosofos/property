@@ -780,7 +780,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       )}
 
       {/* Charts — bespoke SVG (donut + σωρευτική ροή) */}
-      <Section title="Γράφημα Αποπληρωμής" sub="Κεφάλαιο έναντι τόκων στη διάρκεια" defaultOpen>
+      <Section title="Γράφημα αποπληρωμής" sub="Κεφάλαιο έναντι τόκων στη διάρκεια" defaultOpen>
         <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap'}}>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
             <AmortDonut principal={LA} interest={totalInt}/>
@@ -809,7 +809,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       </button>
 
       {showAdv && (<>
-      <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά">
+      <Section title="Σταθερό ή κυμαινόμενο επιτόκιο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
@@ -835,7 +835,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </Section>
 
-      <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub={spitiEligible?'Εκτίμηση εξοικονόμησης, προθεσμία συμβολαίων 31/08/2026':'Κριτήρια ένταξης'}>
+      <Section title="Σπίτι μου ΙΙ έναντι κανονικού δανείου" sub={spitiEligible?'Εκτίμηση εξοικονόμησης, προθεσμία συμβολαίων 31/08/2026':'Κριτήρια ένταξης'}>
         {spitiEligible?(<>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
@@ -939,7 +939,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         )
       })()}
 
-      <Section title="Φορολογική Ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026">
+      <Section title="Φορολογική ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026">
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
             <p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου · ΦΠΑ: Φόρος Προστιθέμενης Αξίας" style={{...labelStyle,marginBottom:12}}>{isNewBuilding?'ΦΠΑ 24%':isCommercial?'ΦΜΑ 3% + Χαρτόσημο':'ΦΜΑ 3%'}</p>
@@ -983,7 +983,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </Section>
 
-      <Section title="Stress Test Επιτοκίου" sub="Αντοχή δόσης σε σενάρια ανόδου Euribor">
+      <Section title="Αντοχή σε άνοδο επιτοκίου" sub="Αντοχή δόσης σε σενάρια ανόδου Euribor">
         <div style={{marginBottom:14}}>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={stress.map(s=>({name:s.label,Δόση:Math.round(s.monthly)}))} barCategoryGap="22%">
@@ -1016,7 +1016,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια, προστατευμένοι από ανατιμήσεις Euribor</p></div>}
       </Section>
 
-      <Section title="Ανάλυση Αναχρηματοδότησης" sub="Break-even, πότε αξίζει η μεταφορά">
+      <Section title="Ανάλυση αναχρηματοδότησης" sub="Break-even, πότε αξίζει η μεταφορά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
           <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="χρ"/>
@@ -1032,7 +1032,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </Section>
 
-      <Section title="Πίνακας Αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`}>
+      <Section title="Πίνακας αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`}>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
           <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -1065,7 +1065,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </Section>
 
-      <Section title="Απαραίτητα Έγγραφα" sub={`${LOAN_TYPES[loanType].label} · ${propTypeLabel}`}>
+      <Section title="Απαραίτητα έγγραφα" sub={`${LOAN_TYPES[loanType].label} · ${propTypeLabel}`}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
           <div>
             <p style={{...labelStyle,marginBottom:10}}>Γενικά Δικαιολογητικά</p>
