@@ -167,11 +167,17 @@ interface Props {
   onSaveToCalendar:(monthly:number,years:number,startDate:string,bankName:string)=>Promise<void>
   onSaveToExpenses:(monthly:number,bankName:string)=>Promise<void>
   onStateChange?:(s:any)=>void
+  // Προφίλ χρήστη: «ιδιώτης» ή «επιχείρηση». Καθορίζει ποιοι τύποι δανειολήπτη
+  // είναι σχετικοί, ώστε να μην κουράζουμε τον χρήστη με άσχετες επιλογές.
+  profile?:'individual'|'business'
   // Αρχικές τιμές από το πραγματικό ακίνητο του χρήστη (προαιρετικά).
   initial?:{loanAmount?:string;propValue?:string;sqm?:string}
 }
 
-export default function TabLoanCalculator({propertyId,userId,market,initial,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange}:Props) {
+const NATURAL_BORROWERS:BorrowerType[] = ['individual','young','family','senior','military','abroad']
+const BUSINESS_BORROWERS:BorrowerType[] = ['professional','company']
+
+export default function TabLoanCalculator({propertyId,userId,market,initial,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual'}:Props) {
   const [loanAmount,  setLoanAmount]  = useState(initial?.loanAmount || '150000')
   const [propValue,   setPropValue]   = useState(initial?.propValue || '185000')
   const [sqm,         setSqm]         = useState(initial?.sqm || '80')
@@ -208,6 +214,18 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const historyTimer = useRef<any>(null)
   const toastTimer   = useRef<any>(null)
   function showToast(msg:string){setToast(msg);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(null),2500)}
+
+  // Το προφίλ (ιδιώτης/επιχείρηση) περιορίζει τους τύπους δανειολήπτη σε αυτούς
+  // που πραγματικά αφορούν τον χρήστη — καθαρή, στοχευμένη εμπειρία.
+  const borrowerOptions = useMemo(
+    ()=>BORROWER_OPTIONS.filter(o=>(profile==='business'?BUSINESS_BORROWERS:NATURAL_BORROWERS).includes(o.value as BorrowerType)),
+    [profile]
+  )
+  useEffect(()=>{
+    const allowed = profile==='business'?BUSINESS_BORROWERS:NATURAL_BORROWERS
+    if(!allowed.includes(borrower)) setBorrower(profile==='business'?'professional':'individual')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[profile])
 
   const LA   = parseFloat(loanAmount)||0
   const PV   = parseFloat(propValue)||0
@@ -486,7 +504,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             <div style={{padding:'8px 12px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:8}}>
               <p style={{fontSize:12,color:'var(--accent)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{LOAN_TYPES[loanType].tax_note}</p>
             </div>
-            <CustomSelect label="Τύπος Δανειολήπτη" value={borrower} onChange={v=>{setBorrower(v as BorrowerType);setActivePreset(null)}} options={BORROWER_OPTIONS}/>
+            <CustomSelect label="Τύπος Δανειολήπτη" value={borrower} onChange={v=>{setBorrower(v as BorrowerType);setActivePreset(null)}} options={borrowerOptions}/>
             <div style={{padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
               <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{BORROWER_PROFILES[borrower].tax_benefits}</p>
             </div>
