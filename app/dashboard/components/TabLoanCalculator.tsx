@@ -97,6 +97,8 @@ function AmortDonut({principal,interest}:{principal:number;interest:number}) {
 // Κάθε στήλη είναι η ετήσια δόση. Η αναλογία μετατοπίζεται σταδιακά από «κυρίως
 // τόκοι» σε «κυρίως κεφάλαιο». Καθαρός διαχωρισμός, χωρίς αλληλοκαλύψεις.
 function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n:number)=>string}) {
+  const [hi,setHi]=useState<number|null>(null)
+  const wrapRef=useRef<HTMLDivElement>(null)
   const W=620,H=228,padL=6,padR=52,padT=16,padB=26
   const n=data.length
   if(n<1) return null
@@ -111,7 +113,18 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
   const crossIdx=data.findIndex(d=>d.cap>=d.int)
   const grid=[0,0.5,1].map(f=>({ y:padT+(1-f)*plotH, label:fmt(maxTotal*f) }))
   const tickEvery=Math.max(1, Math.ceil(n/8))
+  const locate=(clientX:number)=>{
+    const el=wrapRef.current; if(!el)return
+    const r2=el.getBoundingClientRect()
+    const xv=((clientX-r2.left)/r2.width)*W
+    let i=Math.floor((xv-padL)/step)
+    setHi(Math.max(0,Math.min(n-1,i)))
+  }
+  const leftPct=hi!=null?Math.max(13,Math.min(87,(cx(hi)/W)*100)):0
   return (
+    <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
+      onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
+      onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
       <defs>
         <linearGradient id="barCap" x1="0" y1="0" x2="0" y2="1">
@@ -127,23 +140,25 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
           <text x={W-padR+6} y={g.y+3} textAnchor="start" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{g.label}</text>
         </g>
       ))}
-      {/* Στοιβαγμένες στήλες */}
+      {/* Στοιβαγμένες στήλες — η δόση ανάβει μπλε στο πέρασμα του δείκτη/δαχτύλου */}
       {data.map((d,i)=>{
         const x=cx(i)-bw/2
         const yTot=Y(d.cap+d.int), yCap=Y(d.cap)
-        const intH=Math.max(0,yCap-yTot), capH=Math.max(0,base-yCap)
+        const capH=Math.max(0,base-yCap)
+        const active=hi===i
         return (
           <g key={i}>
-            {/* τόκοι (πάνω, ήσυχο) */}
-            <path d={`M ${x} ${yCap} L ${x} ${yTot+r} Q ${x} ${yTot} ${x+r} ${yTot} L ${x+bw-r} ${yTot} Q ${x+bw} ${yTot} ${x+bw} ${yTot+r} L ${x+bw} ${yCap} Z`} fill="var(--text-tertiary)" fillOpacity="0.26"/>
-            {/* κεφάλαιο (κάτω, accent) */}
-            {capH>0 && <rect x={x} y={yCap} width={bw} height={capH} fill="url(#barCap)" filter={i===n-1?'url(#barLift)':undefined}/>}
+            {active&&<rect x={cx(i)-step/2} y={padT} width={step} height={plotH} fill="var(--accent)" fillOpacity="0.06"/>}
+            {/* τόκοι (πάνω· στο hover γίνονται πιο έντονο accent) */}
+            <path d={`M ${x} ${yCap} L ${x} ${yTot+r} Q ${x} ${yTot} ${x+r} ${yTot} L ${x+bw-r} ${yTot} Q ${x+bw} ${yTot} ${x+bw} ${yTot+r} L ${x+bw} ${yCap} Z`} fill={active?'var(--accent)':'var(--text-tertiary)'} fillOpacity={active?0.4:0.26}/>
+            {/* κεφάλαιο (κάτω, accent — πιο φωτεινό στο hover) */}
+            {capH>0 && <rect x={x} y={yCap} width={bw} height={capH} fill={active?'var(--accent)':'url(#barCap)'} filter={(active||i===n-1)?'url(#barLift)':undefined}/>}
           </g>
         )
       })}
       <line x1={padL} y1={base} x2={W-padR} y2={base} stroke="var(--border-default)" strokeWidth="1"/>
       {/* Έτος τομής — όπου το κεφάλαιο ξεπερνά τους τόκους */}
-      {crossIdx>0&&(
+      {crossIdx>0&&hi==null&&(
         <g>
           <line x1={cx(crossIdx)} y1={padT} x2={cx(crossIdx)} y2={base} stroke="var(--accent)" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.55"/>
           <text x={cx(crossIdx)} y={padT-4} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
@@ -151,9 +166,29 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
       )}
       {/* Άξονας x */}
       {data.map((d,i)=> (i%tickEvery===0 || i===n-1) ? (
-        <text key={i} x={cx(i)} y={H-8} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
+        <text key={i} x={cx(i)} y={H-8} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:hi===i?'var(--accent)':'var(--text-secondary)',fontWeight:hi===i?700:400}}>{d.year}</text>
       ) : null)}
     </svg>
+    {hi!=null&&(
+      <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const}}>
+        <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:5,fontFamily:"'Inter',sans-serif",textAlign:'center' as const}}>Έτος {data[hi].year}</p>
+        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+          <span style={{width:9,height:9,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/>
+          <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Κεφάλαιο</span>
+          <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi].cap)}</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
+          <span style={{width:9,height:9,borderRadius:2,background:'var(--text-tertiary)',opacity:0.5,display:'inline-block'}}/>
+          <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Τόκοι</span>
+          <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{fmt(data[hi].int)}</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:14,paddingTop:5,marginTop:2,borderTop:'1px solid var(--border-subtle)'}}>
+          <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Ετήσια δόση</span>
+          <span style={{fontSize:12.5,color:'var(--accent)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:700,marginLeft:'auto'}}>{fmt(data[hi].cap+data[hi].int)}</span>
+        </div>
+      </div>
+    )}
+    </div>
   )
 }
 
@@ -228,10 +263,12 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
 // ── Lens switcher: εναλλάσσει ΕΝΑ δυναμικό πάνελ επί τόπου (όχι στοίβαγμα) ──
 function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
   return (
-    <div style={{display:'flex',gap:4,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:5,boxShadow:'var(--shadow-sm)',overflowX:'auto'}}>
+    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:4,overflowX:'auto'}}>
       {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:12,padding:'10px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,
-          color:on?'var(--accent)':'var(--text-secondary)',background:on?'var(--accent-dim)':'transparent',border:`1px solid ${on?'var(--border-accent)':'transparent'}`,transition:'color 0.2s, background 0.2s, border-color 0.2s'}}>{it.label}</button>
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:11,padding:'9px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
+          color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
+          boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
+          transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>
       )})}
     </div>
   )
@@ -264,9 +301,9 @@ function calcNotaryFees(propValue:number, propType:string):{notary:number;landRe
   const breakdown=[
     `Συμβολαιογραφικά αγοράς: ${fmtEur(notaryFee)}`,
     `Συμβολαιογραφικά υποθήκης: ${fmtEur(mortgageDeed)}`,
-    `Κτηματολόγιο (0.475‰): ${fmtEur(landReg)}`,
+    `Κτηματολόγιο (0,475‰): ${fmtEur(landReg)}`,
     `Δικηγόρος ελέγχου τίτλων: ${fmtEur(legal)}`,
-    isCommercial?`Τέλη χαρτοσήμου μίσθωσης (3.6%): ${fmtEur(propValue*0.036)}`:`Φόρος ενεγγύησης υποθήκης: ${fmtEur(mortgageTax)}`,
+    isCommercial?`Τέλη χαρτοσήμου μίσθωσης (3,6%): ${fmtEur(propValue*0.036)}`:`Φόρος ενεγγύησης υποθήκης: ${fmtEur(mortgageTax)}`,
   ]
   return{notary:notaryFee+mortgageDeed,landReg,agent:0,legal,other:mortgageTax,total,breakdown}
 }
@@ -592,7 +629,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             {l:'Δόση τον μήνα',v:fmtEur(monthly),c:'var(--accent)',big:true,t:undefined as string|undefined},
             {l:'Τόκοι',v:fmtEur(totalInt),c:'var(--text-primary)',big:false,t:undefined},
             {l:'Σύνολο',v:fmtEur(total),c:'var(--text-primary)',big:false,t:undefined},
-            {l:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,c:ltv>90?'var(--negative)':'var(--text-primary)',big:false,t:'Ποσοστό δανείου ως προς την αξία του ακινήτου'},
+            {l:'Δάνειο προς αξία',v:`${ltv.toFixed(1).replace('.',',')}%`,c:ltv>90?'var(--negative)':'var(--text-primary)',big:false,t:'Ποσοστό δανείου ως προς την αξία του ακινήτου'},
             {l:'Ανά τετραγωνικό',v:sqmPrice>0?fmtEur(sqmPrice):'—',c:'var(--text-secondary)',big:false,t:'Ευρώ ανά τετραγωνικό μέτρο'},
           ].map(item=>(
             <div key={item.l} title={item.t} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8,cursor:item.t?'help':undefined}}>
@@ -639,7 +676,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
               </div>
             )}
             {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
-            {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3.6% αν εκμισθωθεί</p></div>}
+            {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <button onClick={()=>setHasAgent(h=>!h)} style={pillBtn(hasAgent,'var(--accent)')}>
                 {hasAgent?<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
@@ -675,7 +712,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             <div>
               <NumberInput label="Ποσό Δανείου (€)" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
-                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:ltv>90?'var(--negative)':'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δάνειο προς αξία {ltv.toFixed(1)}%</span>
+                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:ltv>90?'var(--negative)':'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δάνειο προς αξία {ltv.toFixed(1).replace('.',',')}%</span>
                 <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Ίδια: {fmtEur(PV-LA)}</span>
               </div>
             </div>
@@ -721,7 +758,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           {k:'Μηνιαία δόση',v:fmtEur(monthly),s:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη`,accent:true,neg:false},
           {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`,accent:false,neg:false},
           {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,accent:false,neg:false},
-          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,accent:false,neg:ltv>90},
+          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1).replace('.',',')}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,accent:false,neg:ltv>90},
         ].map(t=>(
           <div key={t.k} style={{position:'relative',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 18px 16px',
             boxShadow:'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
