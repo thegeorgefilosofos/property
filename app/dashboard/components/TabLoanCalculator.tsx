@@ -2,6 +2,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from 'recharts'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea } from './UIComponents'
+import { downloadCsv, csvEur } from './exportCsv'
+import { escHtml } from '@/lib/reportBranding'
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax,
@@ -315,6 +317,95 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
   function applyHist(h:CalcHistory){setLoanAmount(String(h.amount));setRate(String(h.rate));setYears(String(h.years));setLoanType(h.loanType);setActivePreset(null)}
   async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τμ, ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
+
+  // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
+  function installmentDate(i:number){
+    const base=startDate?new Date(startDate):new Date()
+    const d=new Date(base.getFullYear(),base.getMonth()+i,base.getDate())
+    return d
+  }
+  const amortFileBase = ()=>`toxoxreolysio_${bankName?bankName.toLowerCase().replace(/\s+/g,'_').slice(0,24)+'_':''}${Math.round(LA/1000)}k_${Y}et`
+
+  // ── Εξαγωγή πλήρους πίνακα τοκοχρεολυσίου σε CSV (ανοίγει σε Excel) ───────────
+  function exportAmortCsv(){
+    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    downloadCsv(
+      amortFileBase(),
+      ['Δόση','Ημερομηνία','Έτος','Ποσό δόσης (€)','Κεφάλαιο (€)','Τόκος (€)','Υπόλοιπο (€)','Σωρευτικοί τόκοι (€)'],
+      amort.map(r=>{
+        const dt=installmentDate(r.month)
+        return [
+          r.month,
+          dt.toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'}),
+          Math.ceil(r.month/12),
+          csvEur(r.payment), csvEur(r.principal), csvEur(r.interest),
+          csvEur(r.balance), csvEur(r.totalInterestPaid),
+        ]
+      })
+    )
+    showToast('Ο πίνακας τοκοχρεολυσίου εξήχθη')
+  }
+
+  // ── Εξαγωγή πίνακα τοκοχρεολυσίου σε εκτυπώσιμο PDF (μέσω παραθύρου εκτύπωσης) ─
+  function exportAmortPdf(){
+    if(!amort.length){showToast('Δεν υπάρχουν δόσεις προς εξαγωγή');return}
+    const w=window.open('','_blank','width=900,height=700')
+    if(!w){showToast('Επιτρέψτε τα αναδυόμενα παράθυρα για εξαγωγή PDF');return}
+    const today=new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'})
+    const meta=[
+      ['Τράπεζα', bankName||'—'],
+      ['Ποσό δανείου', fmtEur(LA)],
+      ['Επιτόκιο', `${fmtPct(effRate)} · ${rateType==='variable'?'κυμαινόμενο':'σταθερό'}`],
+      ['Διάρκεια', `${Y} έτη (${Y*12} δόσεις)`],
+      ['Μηνιαία δόση', fmtEur(monthly)],
+      ['Σύνολο τόκων', fmtEur(totalInt)],
+      ['Συνολική αποπληρωμή', fmtEur(LA+totalInt)],
+    ]
+    const metaRows=meta.map(([k,v])=>`<div class="m"><span>${escHtml(k)}</span><strong>${escHtml(v)}</strong></div>`).join('')
+    const bodyRows=amort.map(r=>{
+      const dt=installmentDate(r.month).toLocaleDateString('el-GR',{month:'2-digit',year:'numeric'})
+      const yearStart=(r.month-1)%12===0
+      return `<tr${yearStart?' class="ys"':''}><td class="n">${r.month}</td><td class="n">${escHtml(dt)}</td><td class="e">${escHtml(fmtEur(r.payment))}</td><td class="e">${escHtml(fmtEur(r.principal))}</td><td class="e dim">${escHtml(fmtEur(r.interest))}</td><td class="e">${escHtml(fmtEur(r.balance))}</td><td class="e dim">${escHtml(fmtEur(r.totalInterestPaid))}</td></tr>`
+    }).join('')
+    w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="utf-8"/><title>Πίνακας τοκοχρεολυσίου</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111;padding:32px 36px;font-size:12px;line-height:1.4}
+      h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+      .sub{color:#666;font-size:11px;margin-top:3px}
+      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:16px}
+      .brand{font-size:12px;color:#666;text-align:right}
+      .meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 28px;margin-bottom:20px}
+      .m{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:5px 0}
+      .m span{color:#666}
+      .m strong{font-variant-numeric:tabular-nums;font-weight:600}
+      table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+      thead th{text-align:right;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:#666;font-weight:600;padding:7px 8px;border-bottom:1px solid #111}
+      thead th:first-child,thead th:nth-child(2){text-align:left}
+      tbody td{padding:4px 8px;border-bottom:1px solid #f0f0f0}
+      td.n{text-align:left;color:#666}
+      td.e{text-align:right}
+      td.dim{color:#666}
+      tr.ys td{border-top:1px solid #d8d8d8}
+      tfoot{color:#999;font-size:10px}
+      .note{margin-top:16px;color:#999;font-size:10px;line-height:1.5}
+      @media print{body{padding:0}@page{margin:14mm}}
+    </style></head><body>
+      <div class="hd">
+        <div><h1>Πίνακας τοκοχρεολυσίου</h1><div class="sub">Ανάλυση αποπληρωμής ανά δόση</div></div>
+        <div class="brand"><strong>Property OS</strong><br/>${escHtml(today)}</div>
+      </div>
+      <div class="meta">${metaRows}</div>
+      <table>
+        <thead><tr><th>Δόση</th><th>Ημ/νία</th><th>Ποσό</th><th>Κεφάλαιο</th><th>Τόκος</th><th>Υπόλοιπο</th><th>Σωρ. τόκοι</th></tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+      <div class="note">Ενδεικτικός υπολογισμός με σταθερή τοκοχρεολυτική δόση. Οι πραγματικοί όροι εξαρτώνται από την τράπεζα και τυχόν έξοδα, ασφάλιστρα ή μεταβολές επιτοκίου.</div>
+      <script>window.onload=function(){window.print()}</script>
+    </body></html>`)
+    w.document.close()
+    showToast('Άνοιξε το παράθυρο εκτύπωσης PDF')
+  }
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -751,6 +842,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
       </Section>
 
       <Section title="Πίνακας Αποπληρωμής" sub={`${Y*12} δόσεις αναλυτικά`}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+          <button onClick={exportAmortPdf} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-accent)',background:'var(--accent-dim)',color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Εκτύπωση / PDF
+          </button>
+          <button onClick={exportAmortCsv} style={{display:'inline-flex',alignItems:'center',gap:7,height:36,padding:'0 14px',borderRadius:20,border:'1px solid var(--border-default)',background:'var(--bg-surface)',color:'var(--text-secondary)',fontSize:12.5,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:'pointer'}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Λήψη για Excel
+          </button>
+        </div>
         <div style={{overflowX:'auto'}}>
           <div className="table-wrap">
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
