@@ -189,13 +189,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   // λήξης (πλησιέστερη πρώτη), και τέλος κατά σημαντικότητα (Σπίτι μου ΙΙ ψηλά).
   const progDeadlineTs = (d?:string):number => {
     if(!d) return Number.POSITIVE_INFINITY
-    const iso = d.match(/^\d{4}-\d{2}-\d{2}$/) ? d
-      : (d.match(/(\d{2})\/(\d{2})\/(\d{4})/) ? `${RegExp.$3}-${RegExp.$2}-${RegExp.$1}` : null)
+    let iso: string|null = null
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)) iso = d
+    else { const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/); if(m) iso = `${m[3]}-${m[2]}-${m[1]}` }
     if(!iso) return Number.POSITIVE_INFINITY
     const t = new Date(iso).getTime()
     return isNaN(t) ? Number.POSITIVE_INFINITY : t
   }
-  const progRank = (p:any):number => /σπίτι μου/i.test(p.name||'') ? 0 : p.status==='active' ? 1 : 2
+  // Μόνο το «Σπίτι μου ΙΙ» θεωρείται κορυφαίας σημασίας — όχι το «Αναβαθμίζω το
+  // Σπίτι μου», που περιέχει επίσης τη φράση. Γι' αυτό αγκυρώνουμε στην αρχή.
+  const isSpitiMou2 = (name?:string) => /^\s*σπίτι μου/i.test(name||'')
+  const progRank = (p:any):number => isSpitiMou2(p.name) ? 0 : p.status==='active' ? 1 : 2
   const activePrograms = [...PROGRAMS].sort((a:any,b:any)=>{
     if(!!a.deadline_urgent !== !!b.deadline_urgent) return a.deadline_urgent ? -1 : 1
     const da=progDeadlineTs(a.deadline), db=progDeadlineTs(b.deadline)
@@ -335,7 +339,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Λεπτομέρειες επιλεγμένης τράπεζας */}
           {(()=>{
-            const bank:any = BANKS.find((b:any)=>String(b.id||b.bank_id||b.bank_name||b.name)===selBank)
+            const bank:any = BANKS.filter((b:any)=>!filterSpiti||b.spiti_mou).find((b:any)=>String(b.id||b.bank_id||b.bank_name||b.name)===selBank)
             if(!bank) return null
             const varRate = bank.variable_spread_min!==undefined?fmtPct(market.euribor_3m+bank.variable_spread_min):null
             const myM = calcMonthly(calcState.loanAmount||150000, bank.fixed_min||parseFloat(bank.fixed_5yr)||parseFloat(bank.fixed_3yr)||3.5, calcState.years||25)
@@ -441,7 +445,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           {activePrograms.map((prog:any)=>{
             const deadStr = prog.deadline ? (prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline) : null
             return (
-            <MiniSection key={prog.id} title={prog.name} defaultOpen={/σπίτι μου/i.test(prog.name||'')}
+            <MiniSection key={prog.id} title={prog.name} defaultOpen={isSpitiMou2(prog.name)}
               badges={<>
                 <span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:prog.status==='active'?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{prog.status==='active'?'Ενεργό':'Επερχόμενο'}</span>
                 {prog.deadline_urgent&&<span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Λήγει σύντομα</span>}
