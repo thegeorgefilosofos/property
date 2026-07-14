@@ -14,6 +14,7 @@ import {
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
+import DocChecklist from './DocChecklist'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -740,16 +741,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",marginBottom:4}}>Φορολογικά & νομικά</div>
                   <div style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{info.tax_note}</div>
                 </div>
-                <div>
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",marginBottom:8}}>Δικαιολογητικά που θα χρειαστείς</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-                    {info.docs.map(d=>(
-                      <span key={d} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:100,padding:'5px 11px'}}>
-                        <span style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>{d}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <DocChecklist docs={info.docs} storageKey={`${propertyId}:${advType}`}/>
               </div>
             ); })()}
 
