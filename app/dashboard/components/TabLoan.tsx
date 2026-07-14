@@ -656,9 +656,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                       prog.deadline&&['Προθεσμία',(prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline),'var(--text-primary)',13],
                       (prog.total_budget&&prog.total_budget!=='null'&&prog.total_budget!=='-')&&['Προϋπολογισμός',prog.total_budget,'var(--text-primary)',13],
                     ].filter(Boolean).map((item:any)=>(
-                      <div key={item[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid var(--border-subtle)'}}>
-                        <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{item[0]}</span>
-                        <span style={{fontSize:item[3],fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:item[2],fontWeight:item[3]>12?700:500}}>{item[1]}</span>
+                      <div key={item[0]} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:16,padding:'6px 0',borderBottom:'1px solid var(--border-subtle)'}}>
+                        <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",flexShrink:0}}>{item[0]}</span>
+                        <span style={{fontSize:item[3],fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:item[2],fontWeight:item[3]>12?700:500,textAlign:'right' as const,lineHeight:1.35}}>{item[1]}</span>
                       </div>
                     ))}
                   </div>
@@ -841,7 +841,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {rows.map(r=>(
                       <div key={r.t} style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
-                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:6}}/>
+                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--border-default)',flexShrink:0,marginTop:6}}/>
                         <div>
                           <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
                           <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.b}</p>
@@ -1118,7 +1118,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:10}}>
                     {t.facts.map((f,i)=>(
                       <div key={i} style={{display:'flex',alignItems:'flex-start',gap:7}}>
-                        <span style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:6}}/>
+                        <span style={{width:5,height:5,borderRadius:'50%',background:'var(--border-default)',flexShrink:0,marginTop:6}}/>
                         <span style={{fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{f}</span>
                       </div>
                     ))}
