@@ -257,6 +257,10 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const spitiM   = calcMonthly(LA*0.5,0,Y) + calcMonthly(LA*0.5,effRate,Y)
   const spitiR   = effRate/2
   const spitiSv  = (monthly-spitiM)*Y*12
+  // «Σπίτι μου ΙΙ»: μόνο πρώτη κατοικία, αξία έως 250.000€, υφιστάμενο (όχι νεόδμητο)
+  // και όχι επαγγελματικό. Χωρίς αυτά τα κριτήρια η εκτίμηση εξοικονόμησης είναι
+  // παραπλανητική — γι' αυτό την εμφανίζουμε μόνο όταν το ακίνητο πληροί τα βασικά.
+  const spitiEligible = loanType==='first_home' && PV<=250000 && !isNewBuilding && !isCommercial
 
   // Στην αναχρηματοδότηση το «τρέχον» επιτόκιο είναι του υπάρχοντος δανείου
   // (curRate), όχι το νέο μοντελοποιημένο επιτόκιο.
@@ -598,7 +602,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </ResponsiveContainer>
       </Section>
 
-      <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub="Εκτίμηση εξοικονόμησης, deadline 31/08/2026">
+      <Section title="Σπίτι μου ΙΙ vs Κανονικό Δάνειο" sub={spitiEligible?'Εκτίμηση εξοικονόμησης, προθεσμία συμβολαίων 31/08/2026':'Κριτήρια ένταξης'}>
+        {spitiEligible?(<>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σπίτι μου ΙΙ (εκτίμηση)',rate:spitiR,m:spitiM,ti:spitiM*Y*12-LA,c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
@@ -618,9 +623,28 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         <div style={{background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:10,padding:'14px 18px',textAlign:'center' as const}}>
           <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Εκτιμώμενη συνολική εξοικονόμηση</p>
           <p style={{fontSize:32,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
-          <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Inter',sans-serif"}}>{fmtEur(spitiSv/Math.max(Y*12,1))}/μήνα εξοικονόμηση</p>
+          <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Inter',sans-serif"}}>{fmtEur(spitiSv/Math.max(Y*12,1))} τον μήνα εξοικονόμηση</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Εκτίμηση βάσει μέσου επιδοτούμενου επιτοκίου. → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
+        </>):(
+        <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'16px 18px'}}>
+          <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",lineHeight:1.7,marginBottom:12}}>Το πρόγραμμα «Σπίτι μου ΙΙ» αφορά αποκλειστικά την αγορά πρώτης κατοικίας. Με τα τρέχοντα στοιχεία δεν πληρούνται τα βασικά κριτήρια, οπότε δεν εμφανίζεται εκτίμηση εξοικονόμησης για να μη σας δώσουμε παραπλανητικό νούμερο.</p>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {[
+              {ok:loanType==='first_home',t:'Σκοπός: αγορά πρώτης κατοικίας'},
+              {ok:PV<=250000,t:'Αξία ακινήτου έως 250.000€'},
+              {ok:!isNewBuilding,t:'Υφιστάμενο ακίνητο (όχι νεόδμητο)'},
+              {ok:!isCommercial,t:'Κατοικία (όχι επαγγελματικό ακίνητο)'},
+            ].map(c=>(
+              <div key={c.t} style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{width:18,height:18,borderRadius:'50%',flexShrink:0,border:`1.5px solid ${c.ok?'var(--border-accent)':'var(--border-default)'}`,background:c.ok?'var(--accent-dim)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,color:c.ok?'var(--accent)':'var(--text-tertiary)',fontWeight:700}}>{c.ok?'✓':''}</span>
+                <span style={{fontSize:12.5,color:c.ok?'var(--text-primary)':'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{c.t}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Αναλυτικά κριτήρια και δικαιολογητικά → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
+        </div>
+        )}
       </Section>
 
       <Section title="Δανειοληπτική Ικανότητα & DTI" sub="Μέγιστο δάνειο βάσει εισοδήματος">

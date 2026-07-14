@@ -118,9 +118,9 @@ where not exists (select 1 from public.market_rates);
 
 -- ── Seed: bank_rates (7 τράπεζες, verified 2026-07-08, ενδεικτικά) ──
 insert into public.bank_rates (bank_id, bank_name, color, fixed_3yr, fixed_5yr, fixed_10yr, fixed_15yr, fixed_20yr, variable_spread_min, variable_spread_max, fixed_min, max_ltv, max_years, max_amount, min_amount, green_discount, spiti_mou, features, programs, fees, note, url, source_url, verified_at, is_active) values
- ('eurobank','Eurobank','#1a73e8','2.50-2.90','3.40-3.50','3.80-3.90','4.10-4.20','4.10-4.20',0.60,2.45,2.50,90,35,500000,20000,0.20,true,
-   array['Spread από 0,60%','Χωρίς έξοδα έγκρισης','Νομικός και τεχνικός έλεγχος','Προέγκριση σε 48 ώρες','Υπογραφή μέσω gov.gr'],
-   array['Σπίτι μου ΙΙ','Αναβαθμίζω','Εξοικονομώ'],'Χωρίς έξοδα εξέτασης','Από τα χαμηλότερα spread αγοράς','https://www.eurobank.gr/el/retail/proionta-upiresies/proionta/daneia/stegastika','https://vresdaneio.gr',date '2026-07-08',true),
+ ('eurobank','Eurobank','#1a73e8','2.50-2.90','3.40-3.50','3.80-3.90','4.10-4.20','4.10-4.20',1.45,2.45,2.50,90,35,500000,20000,0.20,true,
+   array['Spread από 1,45%','Χωρίς έξοδα έγκρισης','Νομικός και τεχνικός έλεγχος','Προέγκριση σε 48 ώρες','Υπογραφή μέσω gov.gr'],
+   array['Σπίτι μου ΙΙ','Αναβαθμίζω','Εξοικονομώ'],'Χωρίς έξοδα εξέτασης','Ανταγωνιστικοί όροι','https://www.eurobank.gr/el/retail/proionta-upiresies/proionta/daneia/stegastika','https://vresdaneio.gr',date '2026-07-08',true),
  ('ethniki','Εθνική Τράπεζα','#1a73e8','2.90-3.20','3.50','3.70','4.20','4.20',1.60,2.85,2.80,90,35,500000,30000,0.25,true,
    array['Έως 90% της αξίας','Σταθερό 3 έως 30 έτη','Χωρίς έξοδα αίτησης','Ενεργειακή έκπτωση -0,25%','Τρίτεκνοι: +50% επιδότηση'],
    array['Σπίτι μου ΙΙ','Αναβαθμίζω','Εξοικονομώ'],'Χωρίς έξοδα εξέτασης','Υψηλό ποσοστό χρηματοδότησης','https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia','https://vresdaneio.gr',date '2026-07-08',true),
