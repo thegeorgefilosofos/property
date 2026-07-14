@@ -163,21 +163,21 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
     <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',display:'flex',flexDirection:'column',gap:16}}>
 
       {/* Header */}
-      <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'14px 20px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+      <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 22px',display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',boxShadow:'var(--shadow-sm)'}}>
         <div>
-          <p style={{fontSize:16,color:'var(--text-secondary)',fontWeight:400,fontFamily:"'Inter',sans-serif"}}>Εργαλείο Στεγαστικών Δανείων</p>
-          <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>Ελληνική Αγορά · Δεδομένα ECB + ΤτΕ</p>
+          <p style={{fontSize:18,color:'var(--text-primary)',fontWeight:640,fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em'}}>Στεγαστικό δάνειο</p>
+          <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>Ελληνική αγορά · δεδομένα ΕΚΤ και Τράπεζας Ελλάδος</p>
         </div>
-        <div style={{display:'flex',gap:24,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
+        <div style={{display:'flex',gap:28,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
           {[
-            {l:'Euribor 3M',v:market.euribor_3m,c:'var(--text-primary)'},
-            {l:'Euribor 1M',v:market.euribor_1m,c:'var(--text-primary)'},
-            {l:'ΕΚΤ',v:market.ecb_rate,c:'var(--text-primary)'},
-            ...(market.bog_housing_new?[{l:'ΤτΕ Μέσο',v:market.bog_housing_new,c:'var(--text-primary)'}]:[]),
+            {l:'Euribor 3M',v:market.euribor_3m},
+            {l:'Euribor 1M',v:market.euribor_1m},
+            {l:'ΕΚΤ',v:market.ecb_rate},
+            ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new}]:[]),
           ].map(item=>(
-            <div key={item.l} style={{textAlign:'center' as const}}>
-              <p style={{...labelStyle,marginBottom:2}}>{item.l}</p>
-              <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':item.c,fontWeight:700}}>
+            <div key={item.l} style={{textAlign:'right' as const}}>
+              <p style={{fontSize:9.5,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{item.l}</p>
+              <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':'var(--text-primary)',fontWeight:700,marginTop:3,letterSpacing:'-0.01em'}}>
                 {market.isLoading?'…':fmtPct(item.v)}
               </p>
             </div>
@@ -556,19 +556,30 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               )
             })()}
 
-            <div style={{padding:'14px 18px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-              <div>
-                <p style={{fontSize:15,color:'var(--text-primary)',fontWeight:400,fontFamily:"'Inter',sans-serif"}}>Προσωπικός Σύμβουλος</p>
-                <p style={{fontSize:12,color:'var(--text-secondary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>
-                  Ανάλυση βάσει <strong>{fmtEur(cs.loanAmount)}</strong> / <strong>{cs.years} χρ</strong> / <strong>{fmtPct(cs.effectiveRate)}</strong> {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}
-                </p>
+            {(()=>{
+              const R=30,C=2*Math.PI*R,seg=C*(score/100)
+              const ok=score>=60
+              return (
+              <div style={{padding:'18px 20px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,boxShadow:'var(--shadow-sm)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
+                <div style={{minWidth:0}}>
+                  <p style={{fontSize:15,color:'var(--text-primary)',fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:'-0.01em'}}>Ανάλυση δανείου</p>
+                  <p style={{fontSize:12.5,color:'var(--text-secondary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>
+                    Βάσει <strong style={{color:'var(--text-primary)'}}>{fmtEur(cs.loanAmount)}</strong> · <strong style={{color:'var(--text-primary)'}}>{cs.years} έτη</strong> · <strong style={{color:'var(--text-primary)'}}>{fmtPct(cs.effectiveRate)}</strong> {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}
+                  </p>
+                  <p style={{fontSize:12,color:ok?'var(--text-secondary)':'var(--negative)',marginTop:8,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{scoreLabel}</p>
+                </div>
+                <div style={{position:'relative',width:78,height:78,flexShrink:0}}>
+                  <svg width="78" height="78" viewBox="0 0 78 78" role="img" aria-label={`Βαθμολογία δανείου ${score} στα 100`}>
+                    <circle cx="39" cy="39" r={R} fill="none" stroke="var(--border-default)" strokeWidth="7" strokeOpacity="0.5"/>
+                    <circle cx="39" cy="39" r={R} fill="none" stroke={ok?'var(--accent)':'var(--negative)'} strokeWidth="7" strokeLinecap="round"
+                      strokeDasharray={`${seg} ${C-seg}`} transform="rotate(-90 39 39)"/>
+                    <text x="39" y="37" textAnchor="middle" style={{fontSize:21,fontWeight:700,fontVariantNumeric:'tabular-nums',fill:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em'}}>{score}</text>
+                    <text x="39" y="51" textAnchor="middle" style={{fontSize:9,fontWeight:600,letterSpacing:'0.05em',fill:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>ΣΤΑ 100</text>
+                  </svg>
+                </div>
               </div>
-              <div style={{textAlign:'right' as const}}>
-                <p style={{...labelStyle,marginBottom:3}}>Βαθμολογία δανείου</p>
-                <p style={{fontSize:22,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:scoreColor,fontWeight:700}}>{score}/100</p>
-                <p style={{fontSize:11,color:scoreColor,fontFamily:"'Inter',sans-serif"}}>{scoreLabel}</p>
-              </div>
-            </div>
+              )
+            })()}
 
             {(()=>{ const info=LOAN_TYPES[advType]; return (
               <div style={cardStyle}>
