@@ -163,7 +163,7 @@ export const SERVICERS_GUIDE = {
   sources: [
     { label: 'ΕΓΔΙΧ — Εξωδικαστικός μηχανισμός', sub: 'Ειδική Γραμματεία Διαχείρισης Ιδιωτικού Χρέους', url: 'https://www.keyd.gov.gr/ryumish_ofeilvn_ejvdik/' },
     { label: 'Υπ. Εθνικής Οικονομίας — Ρύθμιση οφειλών', sub: 'Επίσημο πλαίσιο, δόσεις, κριτήρια', url: 'https://minfin.gov.gr/diacheirisi-idiotikou-xreous/rythmisi-ofeilon/exodikastikos-michanismos-rythmisis-ofeilon/' },
-    { label: 'Τράπεζα Ελλάδος', sub: 'Κατάλογος αδειοδοτημένων διαχειριστών & Κώδικας Δεοντολογίας', url: 'https://www.bankofgreece.gr' },
+    { label: 'Μητρώο διαχειριστών — Τράπεζα Ελλάδος', sub: 'Κατάλογος αδειοδοτημένων εταιρειών διαχείρισης και Κώδικας Δεοντολογίας', url: 'https://www.bankofgreece.gr/kyria-themata/epopteia/epopteuomena-idrymata/etaireies-diaxeirisis-apaitiseon' },
     { label: 'Ένωση Εταιρειών Διαχείρισης (ΕΕΔΑΔΠ)', sub: 'Πληροφορίες κλάδου servicers', url: 'https://eedadp.com/' },
     { label: 'Συνήγορος του Καταναλωτή', sub: 'Ανεξάρτητη αρχή, εξωδικαστική επίλυση διαφορών', url: 'https://www.synigoroskatanaloti.gr' },
   ],
