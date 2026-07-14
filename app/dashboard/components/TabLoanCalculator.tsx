@@ -687,7 +687,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   function delScen(id:string){setScenarios(s=>s.filter(x=>x.id!==id))}
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
   function applyHist(h:CalcHistory){setLoanAmount(String(h.amount));setRate(String(h.rate));setYears(String(h.years));setLoanType(h.loanType);setActivePreset(null)}
-  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM} μ², ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
+  async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
   function installmentDate(i:number){
@@ -805,7 +805,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <CustomSelect label="Περιοχή" value={area} onChange={v=>{setArea(v);setActivePreset(null)}} options={AREA_OPTIONS}/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
               <NumberInput label="Τιμή αγοράς (€)" value={propValue} onChange={v=>{setPropValue(v);setActivePreset(null)}} suffix="€"/>
-              <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="μ²"/>
+              <NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={sqm} onChange={v=>{setSqm(v);setActivePreset(null)}} suffix="τ.μ."/>
             </div>
             {sqmPrice>0&&(
               <div style={{padding:'10px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -1369,7 +1369,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
       {/* Full acquisition cost */}
       <div style={cardStyle}>
-        <SectionLabel label="Πλήρης ανάλυση κόστους απόκτησης" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{propTypeLabel}{SQM>0?` · ${SQM} μ²`:''} · {areaLabel}</span>}/>
+        <SectionLabel label="Πλήρης ανάλυση κόστους απόκτησης" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{propTypeLabel}{SQM>0?` · ${SQM}τ.μ.`:''} · {areaLabel}</span>}/>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8,marginBottom:14}}>
           {[
             {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας',hi:false},
