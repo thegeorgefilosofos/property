@@ -207,6 +207,9 @@ export function CustomSelect({
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Άνοιγμα προς τα πάνω όταν δεν χωράει από κάτω — καθαρό, επαγγελματικό,
+  // χωρίς να «κόβεται» ή να καλύπτει άβολα το περιεχόμενο.
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const optRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -228,6 +231,17 @@ export function CustomSelect({
   useEffect(() => {
     if (open && activeIndex >= 0) optRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
+
+  // Αποφάσισε κατεύθυνση ανοίγματος με βάση τον διαθέσιμο χώρο.
+  useEffect(() => {
+    if (!open) return;
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom;
+    const needed = Math.min(264, options.length * 42 + 12) + 10;
+    setDropUp(below < needed && r.top > below);
+  }, [open, options.length]);
 
   const openList = (to?: number) => {
     setOpen(true);
@@ -322,15 +336,15 @@ export function CustomSelect({
       {open && (
         <div role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
           position: 'absolute',
-          top: 'calc(100% + 2px)',
+          ...(dropUp ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }),
           left: 0,
           right: 0,
           background: 'var(--bg-surface)',
           borderRadius: 12,
           zIndex: 200,
           boxShadow: 'var(--elev-3)',
-          border: '1px solid var(--border-subtle)',
-          maxHeight: 240,
+          border: '1px solid var(--border-default)',
+          maxHeight: 264,
           overflowY: 'auto',
           padding: '6px',
         }}>
