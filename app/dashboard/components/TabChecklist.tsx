@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
+import { annuityMonthly } from '@/lib/loans/recommend'
 
 const supabase = createSupabaseClient()
 
@@ -1484,10 +1485,16 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     } catch (_) {}
 
     try {
+      // Η μηνιαία δόση υπολογίζεται από ποσό/επιτόκιο/διάρκεια (τοκοχρεολυτική
+      // φόρμουλα) — ίδια πηγή με την Επισκόπηση, άθροισμα ενεργών δανείων.
       const { data: loanData } = await supabase
-        .from('loans').select('monthly_payment')
-        .eq('property_id', propertyId).limit(1)
-      setLoanPayment(loanData?.[0]?.monthly_payment || 0)
+        .from('loans').select('amount,rate,years,status')
+        .eq('property_id', propertyId)
+      setLoanPayment(
+        (loanData||[])
+          .filter((l:any)=>l.status!=='inactive'&&l.status!=='closed')
+          .reduce((s:number,l:any)=>s+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
+      )
     } catch (_) {}
 
     try {
