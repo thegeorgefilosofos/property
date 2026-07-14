@@ -758,7 +758,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       </Accordion>
 
       {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ (πτυσσόμενο) ═══ */}
-      <Accordion title="Οδηγός και διαδικασία" subtitle="Βήματα, διαχειριστές (servicers) και κόκκινα δάνεια, απορρίψεις, ιστορικό Euribor, γλωσσάρι" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
+      <Accordion title="Μάθε περισσότερα" subtitle="Διαδικασία, διαχειριστές και κόκκινα δάνεια, απορρίψεις, γλωσσάρι, πηγές" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={cardStyle}>
@@ -780,14 +780,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     <p style={{fontSize:14,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{step.title}</p>
                     <span style={{fontSize:10,color:'var(--text-secondary)',background:'var(--bg-surface)',padding:'2px 8px',borderRadius:8,border:'1px solid var(--border-subtle)',fontFamily:"'Inter',sans-serif"}}>{step.time}</span>
                   </div>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,marginBottom:8,fontFamily:"'Inter',sans-serif"}}>{step.desc}</p>
-                  <div style={{padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:6}}>
-                    <p title={step.tip.includes('ESIS')?'Τυποποιημένο Ευρωπαϊκό Δελτίο Πληροφοριών δανείου':undefined} style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{step.tip}</p>
-                  </div>
-                  <div style={{padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'2px solid var(--border-default)',borderRadius:8}}>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{step.warning}</p>
-                  </div>
-                  {step.url&&<a href={step.url} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:8,fontSize:12,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Επίσημη πηγή →</a>}
+                  <p style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.65,fontFamily:"'Inter',sans-serif"}}>{step.desc}</p>
+                  <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,marginTop:6,fontFamily:"'Inter',sans-serif"}}>{step.warning}{step.url&&<> · <a href={step.url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>πηγή</a></>}</p>
                 </div>
               </div>
             ))}
@@ -859,41 +853,43 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Rejection reasons */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Γιατί Απορρίπτεται Μια Αίτηση, Τι να Ελέγξετε Πρώτα"/>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
+            <SectionLabel label="Γιατί απορρίπτεται μια αίτηση"/>
+            <div style={{display:'flex',flexDirection:'column'}}>
               {[
-                {title:'Εγγραφή στον Τειρεσία',desc:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση άνω των 90 ημερών αρκεί. Τυχόν οφειλές πρέπει να τακτοποιηθούν πριν από οποιαδήποτε αίτηση.',url:'https://www.tiresias.gr'},
-                {title:'Χαμηλό εισόδημα / Υψηλό DTI',desc:'Θεσμικά όρια ΤτΕ (από 1/1/2025): η δόση δεν πρέπει να ξεπερνά το 50% του εισοδήματος για πρώτη κατοικία/πρώτη φορά, 40% για τους υπόλοιπους. Επαγγελματίες με χαμηλές δηλώσεις είναι ο κύριος λόγος απόρριψης.',url:null},
-                {title:'Αυθαίρετα στο ακίνητο',desc:'Τροποποιήσεις χωρίς άδεια (κλεισμένη βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
-                {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα ακίνητα σε Ε9, εκκρεμείς διαδικασίες κληρονομιάς. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
-                {title:'Χρέη σε ΔΟΥ / ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου. Χρέη πρέπει να τακτοποιηθούν πριν.',url:'https://www.aade.gr'},
-                {title:'LTV > 80-90%',desc:'Οι τράπεζες χορηγούν συνήθως έως 80% για κανονικό δάνειο ή 90% για Σπίτι μου ΙΙ. Χρειάζεστε ίδια κεφάλαια για τη διαφορά + έξοδα.',url:null},
-              ].map(item=>(
-                <div key={item.title} style={{padding:'14px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
-                  <p title={item.title.includes('DTI')?'Δείκτης δόσης προς εισόδημα (Debt to Income)':undefined} style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:6}}>{item.title}</p>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:item.url?8:0,fontFamily:"'Inter',sans-serif"}}>{item.desc}</p>
-                  {item.url&&<a href={item.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Ελέγξτε εδώ →</a>}
+                {title:'Εγγραφή στον Τειρεσία',desc:'Μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών αρκεί. Τακτοποίησε οφειλές πριν την αίτηση.',url:'https://www.tiresias.gr'},
+                {title:'Χαμηλό εισόδημα ή υψηλός δείκτης δόσης',desc:'Όρια ΤτΕ: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους.',url:null},
+                {title:'Αυθαίρετα στο ακίνητο',desc:'Αλλαγές χωρίς άδεια (βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
+                {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα σε Ε9, εκκρεμείς κληρονομιές. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
+                {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:'https://www.aade.gr'},
+                {title:'Δείκτης δανείου προς αξία πάνω από 80-90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
+              ].map((item,i,a)=>(
+                <div key={item.title} style={{display:'flex',gap:12,padding:'11px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
+                  <div style={{minWidth:0,flex:1}}>
+                    <span style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{item.title}</span>
+                    <span style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}> — {item.desc}{item.url&&<> <a href={item.url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>έλεγχος</a></>}</span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Special borrower categories */}
+          {/* Special borrower categories — compact */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Ειδικές Κατηγορίες Δανειοληπτών"/>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10}}>
+            <SectionLabel label="Ειδικές κατηγορίες δανειοληπτών"/>
+            <div style={{display:'flex',flexDirection:'column'}}>
               {[
-                {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη Ένοπλων Δυνάμεων και Σωμάτων Ασφαλείας. Ισχύουν ειδικά κριτήρια βαθμού και υπηρεσίας.',url:'https://www.tap.gr'},
-                {title:'Κάτοικοι Εξωτερικού',desc:'Max LTV 55-70%. Απαιτούνται επίσημες μεταφράσεις, αποδεικτικό κατοικίας εξωτερικού, εισοδήματα από ξένη χώρα. Ισχύουν ΣΑΔΦ.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο κεφάλαιο, σύναψη σύμβασης έως 31/08/2026 (η προθεσμία αιτήσεων 31/05/2026 έχει παρέλθει). Εισοδηματικά όρια: άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Πρώτη κατοικία έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
-                {title:'Ελεύθεροι Επαγγελματίες',desc:'Μέσος όρος εισοδήματος 2 ετών. Max LTV 65-70%. Απαιτείται συνέπεια στις φορολογικές δηλώσεις.',url:'https://www.aade.gr'},
-                {title:'Πολύτεκνοι & Τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου Σπίτι μου ΙΙ. Εισόδημα έως €45.000 (2 παιδιά) ή €50.000 (3+ παιδιά). Αυξημένα όρια ΦΜΑ.',url:'https://greece20.gov.gr/home-loans/'},
-                {title:'Εταιρείες & Επαγγελματικά',desc:'Ισολογισμοί 3 ετών + Απόφαση ΔΣ + εγγύηση φυσικού προσώπου. LTV 60-70%. Πλήρης έκπτωση τόκων από φορολογικά αποτελέσματα.',url:'https://www.nbg.gr/el/epixeiriseis'},
-              ].map(cat=>(
-                <div key={cat.title} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:14}}>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:7}}>{cat.title}</p>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8,fontFamily:"'Inter',sans-serif"}}>{cat.desc}</p>
-                  <a href={cat.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:'var(--accent)',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4,fontFamily:"'Inter',sans-serif",fontWeight:500}}>Περισσότερα →</a>
+                {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
+                {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55-70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
+                {title:'Νέοι 25-50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65-70% της αξίας. Συνέπεια στις δηλώσεις.',url:'https://www.aade.gr'},
+                {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
+              ].map((cat,i,a)=>(
+                <div key={cat.title} style={{display:'flex',gap:12,padding:'11px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
+                  <div style={{minWidth:0,flex:1}}>
+                    <span style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{cat.title}</span>
+                    <span style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}> — {cat.desc} <a href={cat.url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>περισσότερα</a></span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -941,11 +937,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points={showGloss?"18 15 12 9 6 15":"6 9 12 15 18 9"}/></svg>
             </button>
             {showGloss&&(
-              <div style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8}}>
+              <div style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',columnGap:24,rowGap:0}}>
                 {GLOSSARY.map((item,i)=>(
-                  <div key={i} style={{padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',fontWeight:500,marginBottom:4,fontFamily:"'Roboto Mono',monospace"}}>{item.term}</p>
-                    <p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{item.def}</p>
+                  <div key={i} style={{padding:'9px 0',borderBottom:'1px solid var(--border-subtle)'}}>
+                    <span style={{fontSize:12,color:'var(--text-primary)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{item.term}</span>
+                    <span style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}> — {item.def}</span>
                   </div>
                 ))}
               </div>
