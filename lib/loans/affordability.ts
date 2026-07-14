@@ -110,7 +110,10 @@ export function rentVsBuy(opts: {
   const ownerCostsPct = (opts.annualOwnerCostsPct ?? 1.5) / 100
   const monthly = annuityMonthly(loan, opts.ratePct, years)
 
-  const buyNetCostByYear: number[] = [r0(down + purchaseCosts)]
+  // Έτος 0: η προκαταβολή μετατρέπεται άμεσα σε περιουσία (equity = down), οπότε
+  // το καθαρό κόστος αγοράς είναι μόνο τα έξοδα συναλλαγής — συνεπές με τον βρόχο
+  // παρακάτω (cashOut − equity). Αν το χρεώναμε ως down+costs θα διπλομετρούσαμε.
+  const buyNetCostByYear: number[] = [r0(purchaseCosts)]
   const rentCostByYear: number[] = [0]
 
   let balance = loan

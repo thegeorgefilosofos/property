@@ -852,7 +852,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         // Ενοικίαση ή αγορά — απλό, έντιμο TCO σε βάθος ετών.
         const rent = parseFloat(monthlyRent)||0
         const horizon = Math.min(Math.max(Y,5),20)
-        const rvb = rentVsBuy({ price:PV, downPayment:PV-LA, ratePct:effRate, years:Y, monthlyRent:rent, purchaseCosts:totalCosts.total-((PV-LA)), horizonYears:horizon })
+        // totalCosts.total = φόροι + συμβολαιογραφικά + μεσιτικά (έξοδα συναλλαγής,
+        // ΧΩΡΙΣ την προκαταβολή). Η προκαταβολή περνά χωριστά ως downPayment.
+        const rvb = rentVsBuy({ price:PV, downPayment:PV-LA, ratePct:effRate, years:Y, monthlyRent:rent, purchaseCosts:totalCosts.total, horizonYears:horizon })
         const buys = rvb.advantageAtHorizon>0
         // Bespoke SVG δύο σωρευτικών γραμμών (αγορά vs ενοικίαση)
         const W=560,H=170,padL=6,padR=6,padT=14,padB=22, n=horizon+1

@@ -42,7 +42,7 @@ ok('limits exported', DSTI_LIMIT.firstHome === 0.5 && DSTI_LIMIT.other === 0.4)
 {
   const r = rentVsBuy({ price: 200000, downPayment: 40000, ratePct: 3.5, years: 25, monthlyRent: 700, horizonYears: 15 })
   ok('arrays length horizon+1', r.buyNetCostByYear.length === 16 && r.rentCostByYear.length === 16)
-  ok('year0 buy = down + costs', r.buyNetCostByYear[0] === 40000 + Math.round(200000 * 0.04))
+  ok('year0 buy = transaction costs only (down offset by equity)', r.buyNetCostByYear[0] === Math.round(200000 * 0.04))
   ok('year0 rent = 0', r.rentCostByYear[0] === 0)
   ok('rent grows monotonically', r.rentCostByYear[15] > r.rentCostByYear[1])
   ok('advantage = rent - buy', r.advantageAtHorizon === r.rentAtHorizon - r.buyNetAtHorizon)
