@@ -29,7 +29,7 @@ ok('totalInterest 0% → 0', totalInterest(100000, 0, 30) === 0)
 }
 
 // ── income limits ──
-ok('single 20k', spitiMouIncomeLimit('single', 0) === 20000)
+ok('single 25k', spitiMouIncomeLimit('single', 0) === 25000)
 ok('married +2 kids 45k', spitiMouIncomeLimit('married', 2) === 45000)
 ok('single_parent 3 kids 49k', spitiMouIncomeLimit('single_parent', 3) === 49000)
 
@@ -41,9 +41,11 @@ const baseNeeds: UserLoanNeeds = {
 }
 const e1 = spitiMouEligibility(baseNeeds)
 ok('eligible base case', e1.eligible === true)
-ok('share 0.5 for <3 kids', e1.interestFreeShare === 0.5)
+ok('share 0.5 for all', e1.interestFreeShare === 0.5)
+ok('no rate subsidy <3 kids', e1.rateSubsidyShare === 0)
 const e2 = spitiMouEligibility({ ...baseNeeds, children: 3 })
-ok('share 0.75 for 3+ kids', e2.interestFreeShare === 0.75)
+ok('interest-free stays 0.5 for 3+ kids', e2.interestFreeShare === 0.5)
+ok('rate subsidy 0.5 for 3+ kids', e2.rateSubsidyShare === 0.5)
 const e3 = spitiMouEligibility({ ...baseNeeds, propertyValue: 300000 })
 ok('ineligible when value > 250k', e3.eligible === false)
 const e4 = spitiMouEligibility({ ...baseNeeds, age: 60 })

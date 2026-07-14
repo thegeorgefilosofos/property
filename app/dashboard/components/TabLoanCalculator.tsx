@@ -247,7 +247,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
     return{tax,notary:notaryCosts.notary,landReg:notaryCosts.landReg,legal:notaryCosts.legal,agent:AGNT,other:notaryCosts.other,total:tax+notaryCosts.total+AGNT,downpayment:PV-LA,totalCash:(PV-LA)+tax+notaryCosts.total+AGNT}
   },[isNewBuilding,vatOwed,fmaOwed,notaryCosts,AGNT,PV,LA])
 
-  const renInc   = loanType==='investment'?monthly*12*0.8:0
+  // Ενδεικτικό μεικτό ετήσιο ενοίκιο ~4% της αξίας (όχι συνάρτηση της δόσης — η προηγούμενη
+  // εκτίμηση «80% της δόσης» ανέβαινε αντι-διαισθητικά όταν ανέβαινε το επιτόκιο).
+  const renInc   = loanType==='investment'?PV*0.04:0
   const renTax   = calcRentalTax(renInc*(1-TAX_DATA.rental_expense_deduction))
   // «Σπίτι μου ΙΙ»: το 50% του δανείου είναι άτοκο (0%), το υπόλοιπο 50% με το
   // επιτόκιο της τράπεζάς σου. Μοντελοποιούμε τα δύο σκέλη αντί για αυθαίρετο
@@ -272,8 +274,14 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
 
   const stress   = [{label:'Τρέχον',rate:effRate},{label:'+0.5%',rate:effRate+0.5},{label:'+1%',rate:effRate+1},{label:'+2%',rate:effRate+2},{label:'+3%',rate:effRate+3},{label:'6%',rate:6}].map(s=>({...s,monthly:calcMonthly(LA,s.rate,Y)}))
   const amortChart = useMemo(()=>{const out=[];for(let y=1;y<=Math.min(Y,30);y++){const rows=amort.slice((y-1)*12,y*12);out.push({year:`${y}`,Κεφάλαιο:Math.round(rows.reduce((s,r)=>s+r.principal,0)),Τόκοι:Math.round(rows.reduce((s,r)=>s+r.interest,0))})}return out},[amort,Y])
-  const varMonthly  = calcMonthly(LA,market.euribor_3m+R,Y)
-  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr}χρ`,Σταθερό:Math.round(monthly*yr*12-LA*(yr/Y)),Κυμαινόμενο:Math.round(varMonthly*yr*12-LA*(yr/Y))}))},[monthly,varMonthly,LA,Y])
+  // Κυμαινόμενο = Euribor + ΠΕΡΙΘΩΡΙΟ (spread). Σε λειτουργία «σταθερού» το R είναι το ΠΛΗΡΕΣ
+  // επιτόκιο, όχι spread — γι' αυτό χρησιμοποιούμε τυπικό περιθώριο αγοράς (πριν διπλομετρούσαμε).
+  const typicalVarSpread = 1.5
+  const variableRate = market.euribor_3m + (rateType==='variable'?R:typicalVarSpread)
+  const varMonthly  = calcMonthly(LA,variableRate,Y)
+  // Σωρευτικοί τόκοι με πραγματική τοκοχρεολυτική απόσβεση (όχι γραμμική αναλογία κεφαλαίου).
+  const cumInterest = (ratePct:number,uptoYear:number)=>{const m=calcMonthly(LA,ratePct,Y);const rr=ratePct/100/12;let bal=LA,sum=0;for(let k=1;k<=uptoYear*12&&bal>0;k++){const i=rr===0?0:bal*rr;sum+=i;bal-=(m-i)}return Math.round(sum)}
+  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr}χρ`,Σταθερό:cumInterest(effRate,yr),Κυμαινόμενο:cumInterest(variableRate,yr)}))},[effRate,variableRate,LA,Y])
   const scenChart = useMemo(()=>scenarios.map(s=>({name:s.label,Τόκοι:Math.round(calcMonthly(s.amount,s.rate,s.years)*s.years*12-s.amount)})),[scenarios])
 
   const extraSav = useMemo(()=>{
@@ -563,7 +571,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
-            {label:'Κυμαινόμενο Επιτόκιο',rate:market.euribor_3m+R,m:varMonthly,pros:['Σήμερα χαμηλότερο κόστος','Ωφελείσαι αν Euribor πέσει','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
+            {label:'Κυμαινόμενο Επιτόκιο',rate:variableRate,m:varMonthly,pros:['Σήμερα χαμηλότερο κόστος','Ωφελείσαι αν Euribor πέσει','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>{item.label}</p>
