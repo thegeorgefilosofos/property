@@ -82,6 +82,81 @@ function ChartTip({active,payload,label}:any) {
   )
 }
 
+// ── Bespoke SVG: donut κατανομής κεφαλαίου/τόκων (αισθητική «2050», μονόχρωμη) ──
+function AmortDonut({principal,interest}:{principal:number;interest:number}) {
+  const total = Math.max(1, principal+interest)
+  const pFrac = principal/total
+  const R=52, sw=15, C=2*Math.PI*R
+  const pLen = C*pFrac
+  return (
+    <svg viewBox="0 0 136 136" width="128" height="128" role="img" aria-label={`Κατανομή: ${Math.round(pFrac*100)}% κεφάλαιο, ${Math.round((1-pFrac)*100)}% τόκοι`} style={{flexShrink:0}}>
+      <defs>
+        <linearGradient id="donutCap" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.95"/>
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.6"/>
+        </linearGradient>
+        <filter id="donutShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--accent)" floodOpacity="0.25"/>
+        </filter>
+      </defs>
+      <circle cx="68" cy="68" r={R} fill="none" stroke="var(--text-tertiary)" strokeOpacity="0.22" strokeWidth={sw}/>
+      <circle cx="68" cy="68" r={R} fill="none" stroke="url(#donutCap)" strokeWidth={sw} strokeLinecap="round"
+        strokeDasharray={`${pLen} ${C-pLen}`} transform="rotate(-90 68 68)" filter="url(#donutShadow)"/>
+      <text x="68" y="63" textAnchor="middle" style={{fontSize:22,fontWeight:700,fontFamily:"'Inter',sans-serif",fill:'var(--text-primary)'}}>{Math.round(pFrac*100)}%</text>
+      <text x="68" y="80" textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',letterSpacing:'0.04em'}}>ΚΕΦΑΛΑΙΟ</text>
+    </svg>
+  )
+}
+
+// ── Bespoke SVG: σταθερού ύψους σωρευτική ροή κεφαλαίου/τόκων ανά έτος ──
+// Το ύψος κάθε στήλης είναι η ετήσια δόση· η αναλογία μετατοπίζεται από «κυρίως
+// τόκοι» σε «κυρίως κεφάλαιο». Σημειώνεται το έτος τομής.
+function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n:number)=>string}) {
+  const W=560,H=190,padL=6,padR=6,padT=14,padB=24
+  const n=data.length
+  if(n<2) return null
+  const maxTotal=Math.max(...data.map(d=>d.cap+d.int),1)
+  const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
+  const Y=(v:number)=> padT + (1 - v/maxTotal)*(H-padT-padB)
+  const capTop = data.map((d,i)=>[X(i),Y(d.cap)] as const)
+  const totTop = data.map((d,i)=>[X(i),Y(d.cap+d.int)] as const)
+  const base = Y(0)
+  // Περιοχή κεφαλαίου: από baseline έως capTop
+  const capArea = `M ${X(0)} ${base} ` + capTop.map(([x,y])=>`L ${x} ${y}`).join(' ') + ` L ${X(n-1)} ${base} Z`
+  // Περιοχή τόκων: πάνω από το κεφάλαιο, από capTop έως totTop (αντίστροφα)
+  const intAreaPath = `M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')} L ${[...totTop].reverse().map(([x,y])=>`${x} ${y}`).join(' L ')} Z`
+  // Έτος τομής: πρώτο όπου το κεφάλαιο ξεπερνά τους τόκους
+  const crossIdx = data.findIndex(d=>d.cap>d.int)
+  const tickEvery = Math.ceil(n/8)
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
+      <defs>
+        <linearGradient id="areaCap" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.85"/>
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.35"/>
+        </linearGradient>
+        <linearGradient id="areaInt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="0.42"/>
+          <stop offset="100%" stopColor="var(--text-tertiary)" stopOpacity="0.16"/>
+        </linearGradient>
+      </defs>
+      <path d={intAreaPath} fill="url(#areaInt)"/>
+      <path d={capArea} fill="url(#areaCap)"/>
+      <path d={`M ${capTop.map(([x,y])=>`${x} ${y}`).join(' L ')}`} fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round"/>
+      {crossIdx>0&&(
+        <g>
+          <line x1={X(crossIdx)} y1={padT} x2={X(crossIdx)} y2={base} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>
+          <circle cx={X(crossIdx)} cy={Y(data[crossIdx].cap)} r="3.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="1.5"/>
+          <text x={X(crossIdx)} y={padT-4} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--accent)',fontWeight:600}}>έτος {data[crossIdx].year}</text>
+        </g>
+      )}
+      {data.map((d,i)=> i%tickEvery===0 || i===n-1 ? (
+        <text key={i} x={X(i)} y={H-8} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)'}}>{d.year}</text>
+      ) : null)}
+    </svg>
+  )
+}
+
 const PROPERTY_TYPES = [
   {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα', notary_pct:0.013, stamp:0, vat_possible:false},
   {value:'new_residence',label:'Νεόδμητη Κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%',      notary_pct:0.015, stamp:0, vat_possible:true},
@@ -656,31 +731,26 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       )}
 
-      {/* Charts */}
-      <Section title="Γράφημα Αποπληρωμής" sub="Κεφάλαιο έναντι τόκων ανά έτος" defaultOpen>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={amortChart} barCategoryGap="12%">
-            <defs>
-              <linearGradient id="amortCap" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style={{stopColor:'var(--accent)',stopOpacity:0.9}}/>
-                <stop offset="100%" style={{stopColor:'var(--accent)',stopOpacity:0.45}}/>
-              </linearGradient>
-              <linearGradient id="amortInt" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style={{stopColor:'var(--text-tertiary)',stopOpacity:0.55}}/>
-                <stop offset="100%" style={{stopColor:'var(--text-tertiary)',stopOpacity:0.22}}/>
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="year" tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false}/>
-            <YAxis tickFormatter={v=>fmtEur(v)} tick={{fontSize:9,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} width={72}/>
-            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false}/>
-            <Tooltip content={ChartTip}/><Legend wrapperStyle={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}/>
-            <Bar dataKey="Κεφάλαιο" stackId="a" fill="url(#amortCap)" radius={[0,0,2,2]}/>
-            <Bar dataKey="Τόκοι"    stackId="a" fill="url(#amortInt)" radius={[5,5,0,0]}/>
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Charts — bespoke SVG (donut + σωρευτική ροή) */}
+      <Section title="Γράφημα Αποπληρωμής" sub="Κεφάλαιο έναντι τόκων στη διάρκεια" defaultOpen>
+        <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap'}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+            <AmortDonut principal={LA} interest={totalInt}/>
+            <div style={{display:'flex',gap:14}}>
+              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:9,height:9,borderRadius:2,background:'var(--accent)'}}/>Κεφάλαιο {fmtEur(LA)}</span>
+              <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}><span style={{width:9,height:9,borderRadius:2,background:'var(--text-tertiary)',opacity:0.5}}/>Τόκοι {fmtEur(totalInt)}</span>
+            </div>
+          </div>
+          <div style={{flex:1,minWidth:260}}>
+            <AmortArea data={amortChart.map(d=>({year:d.year,cap:d.Κεφάλαιο,int:d.Τόκοι}))} fmt={fmtEur}/>
+            <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:6,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
+              Κάθε στήλη είναι η ετήσια δόση. Στην αρχή πληρώνεις κυρίως τόκους· σταδιακά υπερισχύει το κεφάλαιο. Η διακεκομμένη γραμμή δείχνει το έτος όπου το κεφάλαιο ξεπερνά τους τόκους.
+            </p>
+          </div>
+        </div>
       </Section>
 
-      <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="LIVE">
+      <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό Επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
