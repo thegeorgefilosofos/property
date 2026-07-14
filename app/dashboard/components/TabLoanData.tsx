@@ -201,5 +201,7 @@ export function calcRentalTax(annualRental:number):number {
 }
 
 export const fmtEur=(n:number)=>n.toLocaleString('el-GR',{style:'currency',currency:'EUR',maximumFractionDigits:0})
-export const fmtPct=(n:number)=>`${n.toFixed(2)}%`
-export const fmtPct1=(n:number)=>`${n.toFixed(1)}%`
+export const fmtPct=(n:number)=>`${n.toFixed(2).replace('.',',')}%`
+export const fmtPct1=(n:number)=>`${n.toFixed(1).replace('.',',')}%`
+// Δεκαδικός αριθμός με ελληνική υποδιαστολή (κόμμα), για ποσοστά/δείκτες εκτός fmtPct.
+export const fmtDec=(n:number,d=1)=>n.toFixed(d).replace('.',',')

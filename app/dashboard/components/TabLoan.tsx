@@ -46,10 +46,12 @@ function KPI({label,value,color,sub,title}:{label:string;value:string;color?:str
 // ── Cockpit: εναλλαγή φακών επί τόπου (ένα πάνελ τη φορά, χωρίς στοίβαγμα) ──
 function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
   return (
-    <div style={{display:'flex',gap:4,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:5,boxShadow:'var(--shadow-sm)',overflowX:'auto'}}>
+    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:4,overflowX:'auto'}}>
       {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:12,padding:'10px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,
-          color:on?'var(--accent)':'var(--text-secondary)',background:on?'var(--accent-dim)':'transparent',border:`1px solid ${on?'var(--border-accent)':'transparent'}`,transition:'color 0.2s, background 0.2s, border-color 0.2s'}}>{it.label}</button>
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:11,padding:'9px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
+          color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
+          boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
+          transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>
       )})}
     </div>
   )
@@ -121,10 +123,10 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
       <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
       {/* Υψηλό */}
       <circle cx={X(maxI)} cy={Y(maxV)} r="3" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-      <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>{maxV.toFixed(2)}%</text>
+      <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>{maxV.toFixed(2).replace('.',',')}%</text>
       {/* Χαμηλό */}
       <circle cx={X(minI)} cy={Y(minRaw)} r="3" fill="var(--text-tertiary)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-      <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{minRaw.toFixed(2)}%</text>
+      <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{minRaw.toFixed(2).replace('.',',')}%</text>
       {/* Τρέχον */}
       <circle cx={X(n-1)} cy={Y(vals[n-1])} r="3.5" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
       {yearTicks.map(t=>(<text key={t.yr} x={X(t.i)} y={H-6} textAnchor={t.i===0?'start':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{t.yr}</text>))}
@@ -178,21 +180,38 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   useEffect(()=>{loadSaved()},[propertyId])
 
   async function loadSaved(){const{data}=await supabase.from('loans').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false});setSaved(data||[])}
-  async function handleSaveLoan(loan:Partial<SavedLoan>){await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId});await loadSaved()}
-  async function handleSaveCal(monthly:number,years:number,startDate:string,bankName:string){
+  async function handleSaveLoan(loan:Partial<SavedLoan>){
+    await supabase.from('loans').insert({...loan,property_id:propertyId,user_id:userId})
+    await loadSaved()
+    // Αυτόματη προσυμπλήρωση των δόσεων στο Ημερολόγιο, ανά ημέρα πληρωμής,
+    // εφόσον το δάνειο είναι ενεργό — ώστε να συμψηφίζεται με το υπόλοιπο app.
+    const active = (loan.status ?? 'active') === 'active'
+    if(active && loan.amount && loan.rate && loan.years){
+      const monthly = calcMonthly(loan.amount, loan.rate, loan.years)
+      const start = loan.start_date || new Date().toISOString().split('T')[0]
+      await handleSaveCal(monthly, loan.years, start, loan.bank || '', loan.amount, true)
+      showToast('Το δάνειο αποθηκεύτηκε και οι δόσεις προστέθηκαν στο Ημερολόγιο')
+    } else {
+      showToast('Το δάνειο αποθηκεύτηκε')
+    }
+  }
+  async function handleSaveCal(monthly:number,years:number,startDate:string,bankName:string,loanAmount?:number,silent=false){
     const d=new Date(startDate),events=[]
     const n=Math.min(years*12,60)
     // Ξεχωριστή, ιδιότυπη πηγή ανά τράπεζα → idempotent (δεν διπλογράφεται στο
     // ξαναπάτημα, ούτε μπερδεύεται με χειροκίνητα γεγονότα). Ρητές δόσεις, όχι
     // recurring, ώστε να μη διπλασιάζονται από την ανάπτυξη επαναλαμβανόμενων.
     const src='loan_schedule:'+(bankName||'γενικό').toLowerCase().replace(/\s+/g,'_').slice(0,40)
+    const title=`Δόση δανείου${bankName?`, ${bankName}`:''}`
+    // Οι σημειώσεις κρατούν ποιο δάνειο και τι ποσό, για συμψηφισμό/αναγνώριση.
+    const note=`Δόση ${fmtEur(monthly)} τον μήνα${loanAmount?` · Δάνειο ${fmtEur(loanAmount)}`:''}${bankName?` · ${bankName}`:''}`
     for(let i=0;i<n;i++){
       const ev=new Date(d.getFullYear(),d.getMonth()+i+1,d.getDate())
-      events.push({property_id:propertyId,user_id:userId,title:`Δόση δανείου${bankName?`, ${bankName}`:''}`,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:`${fmtEur(monthly)}/μήνα`,source:src})
+      events.push({property_id:propertyId,user_id:userId,title,category:'financial',event_date:ev.toISOString().split('T')[0],amount:Math.round(monthly),priority:'high',status:'pending',recurring:false,recurring_interval:null,notes:note,source:src})
     }
     await supabase.from('calendar_events').delete().eq('property_id',propertyId).eq('source',src)
     for(let i=0;i<events.length;i+=20)await supabase.from('calendar_events').insert(events.slice(i,i+20))
-    showToast(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
+    if(!silent) showToast(`${n} δόσεις αποθηκεύτηκαν στο Ημερολόγιο`)
   }
   async function handleSaveExp(monthly:number,bankName:string){
     await supabase.from('expenses').insert({property_id:propertyId,user_id:userId,description:`Δόση δανείου${bankName?`, ${bankName}`:''}`,amount:Math.round(monthly),category:'Δόση Δανείου',date:new Date().toISOString().split('T')[0]})
@@ -612,7 +631,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         <p style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{r.eligible?r.why:r.blockers.join(' · ')}</p>
                       </div>
                       <div style={{textAlign:'right' as const,flexShrink:0}}>
-                        <p style={{fontSize:isBest?20:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:isBest?'var(--accent)':'var(--text-primary)',fontWeight:700,letterSpacing:'-0.01em',lineHeight:1}}>{r.effectiveRatePct.toFixed(1)}%</p>
+                        <p style={{fontSize:isBest?20:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:isBest?'var(--accent)':'var(--text-primary)',fontWeight:700,letterSpacing:'-0.01em',lineHeight:1}}>{r.effectiveRatePct.toFixed(1).replace('.',',')}%</p>
                         <p style={{fontSize:isBest?12.5:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:isBest?5:2}}>{fmtEur(r.monthlyPayment)} τον μήνα</p>
                         <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:1}}>Σύνολο {fmtEur(r.totalCost)}</p>
                       </div>
@@ -733,7 +752,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   </div>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>
-                      Δείκτης δανείου προς αξία (LTV): {ltv.toFixed(1)}%. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
+                      Δάνειο προς αξία: {ltv.toFixed(1).replace('.',',')}%. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
                     </p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>
                       {ltv>85
@@ -780,7 +799,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                       Για {fmtEur(cs.loanAmount)} θα αποπληρώσετε συνολικά {fmtEur(totalCost)}.
                       {cs.years>20&&savedByShortening>0
                         ?` Σε 20 χρόνια: δόση ${fmtEur(shortMonthly20)}/μήνα (+${fmtEur(shortMonthly20-cs.monthly)}) → εξοικονόμηση ${fmtEur(savedByShortening)} τόκοι.`
-                        :` Έκτακτη πληρωμή 100€/μήνα → -${extraPay100Saving.toFixed(1)} χρόνια διάρκεια.`
+                        :` Έκτακτη πληρωμή 100€ τον μήνα → -${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια διάρκεια.`
                       }
                     </p>
                   </div>
@@ -1159,7 +1178,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <KPI label="Επιτόκιο" value={fmtPct(loan.rate)} color="var(--text-primary)" sub={loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό'}/>
                   <KPI label="Δόση/μήνα" value={fmtEur(m)} color="var(--text-primary)"/>
                   <KPI label="Συνολικοί Τόκοι" value={fmtEur(ti)} color="var(--text-primary)"/>
-                  <KPI label="Δάνειο προς αξία" value={`${ltv.toFixed(1)}%`} color={ltv>90?'var(--negative)':'var(--text-primary)'} title="Ποσοστό δανείου ως προς την αξία του ακινήτου"/>
+                  <KPI label="Δάνειο προς αξία" value={`${ltv.toFixed(1).replace('.',',')}%`} color={ltv>90?'var(--negative)':'var(--text-primary)'} title="Ποσοστό δανείου ως προς την αξία του ακινήτου"/>
                 </div>
                 {loan.start_date&&(
                   <div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,display:'flex',gap:24,flexWrap:'wrap'}}>
