@@ -15,6 +15,7 @@ import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
 import DocChecklist from './DocChecklist'
+import Glossary from './Glossary'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -98,8 +99,12 @@ function MiniSection({title,badges,meta,defaultOpen,order,children}:{title:strin
 
 // Bespoke minimal γράφημα Euribor — καθαρή περιοχή/γραμμή, σημεία υψηλού/χαμηλού
 // και τρέχοντος, χωρίς βιβλιοθήκη. Επαγγελματικό, ήσυχο, χωρίς θόρυβο.
+const EU_MONTHS=['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ']
+const euFmtDate=(d:string)=>{ const [y,m]=d.split('-'); return `${EU_MONTHS[(Number(m)||1)-1]} ${y}` }
 function EuriborArea({data}:{data:{date:string;val:number}[]}) {
-  const W=620,H=150,padL=6,padR=10,padT=16,padB=22
+  const [hi,setHi]=useState<number|null>(null)
+  const wrapRef=useRef<HTMLDivElement>(null)
+  const W=620,H=160,padL=6,padR=10,padT=18,padB=22
   const n=data.length
   if(n<2) return null
   const vals=data.map(d=>d.val)
@@ -112,27 +117,48 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
   const maxI=vals.indexOf(maxV), minI=vals.indexOf(minRaw)
   const seen=new Set<string>(); const yearTicks:{i:number;yr:string}[]=[]
   data.forEach((d,i)=>{ const yr=d.date.slice(0,4); if(!seen.has(yr)){seen.add(yr); yearTicks.push({i,yr})} })
+  const locate=(clientX:number)=>{
+    const el=wrapRef.current; if(!el)return
+    const r=el.getBoundingClientRect()
+    const xv=((clientX-r.left)/r.width)*W
+    setHi(Math.max(0,Math.min(n-1,Math.round((xv-padL)/((W-padL-padR)/(n-1))))))
+  }
+  const leftPct=hi!=null?Math.max(12,Math.min(88,(X(hi)/W)*100)):0
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Ιστορική πορεία Euribor τριμήνου">
-      <defs>
-        <linearGradient id="euriborFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18"/>
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      {minV<0&&<line x1={padL} y1={Y(0)} x2={W-padR} y2={Y(0)} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3"/>}
-      <path d={area} fill="url(#euriborFill)"/>
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
-      {/* Υψηλό */}
-      <circle cx={X(maxI)} cy={Y(maxV)} r="3" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-      <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>{maxV.toFixed(2).replace('.',',')}%</text>
-      {/* Χαμηλό */}
-      <circle cx={X(minI)} cy={Y(minRaw)} r="3" fill="var(--text-tertiary)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
-      <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{minRaw.toFixed(2).replace('.',',')}%</text>
-      {/* Τρέχον */}
-      <circle cx={X(n-1)} cy={Y(vals[n-1])} r="3.5" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
-      {yearTicks.map(t=>(<text key={t.yr} x={X(t.i)} y={H-6} textAnchor={t.i===0?'start':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{t.yr}</text>))}
-    </svg>
+    <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
+      onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
+      onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Ιστορική πορεία Euribor τριμήνου, διαδραστικό">
+        <defs>
+          <linearGradient id="euriborFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.2"/>
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        {minV<0&&<line x1={padL} y1={Y(0)} x2={W-padR} y2={Y(0)} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3"/>}
+        <path d={area} fill="url(#euriborFill)"/>
+        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+        {hi==null&&(<>
+          <circle cx={X(maxI)} cy={Y(maxV)} r="3" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
+          <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>{maxV.toFixed(2).replace('.',',')}%</text>
+          <circle cx={X(minI)} cy={Y(minRaw)} r="3" fill="var(--text-tertiary)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
+          <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{minRaw.toFixed(2).replace('.',',')}%</text>
+        </>)}
+        {/* Τρέχον σημείο (ζωντανό) */}
+        <circle cx={X(n-1)} cy={Y(vals[n-1])} r="4" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
+        {hi!=null&&(<g>
+          <line x1={X(hi)} y1={padT-6} x2={X(hi)} y2={Y(minV)} stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.5"/>
+          <circle cx={X(hi)} cy={Y(vals[hi])} r="4.5" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
+        </g>)}
+        {yearTicks.map(t=>(<text key={t.yr} x={X(t.i)} y={H-6} textAnchor={t.i===0?'start':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:hi!=null&&data[hi].date.slice(0,4)===t.yr?'var(--accent)':'var(--text-tertiary)',fontWeight:hi!=null&&data[hi].date.slice(0,4)===t.yr?700:400}}>{t.yr}</text>))}
+      </svg>
+      {hi!=null&&(
+        <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'7px 12px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const,textAlign:'center' as const}}>
+          <p style={{fontSize:10,color:'var(--text-tertiary)',marginBottom:3,fontFamily:"'Inter',sans-serif"}}>{euFmtDate(data[hi].date)}</p>
+          <p style={{fontSize:15,color:'var(--accent)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1}}>{vals[hi].toFixed(2).replace('.',',')}%</p>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1086,14 +1112,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
           <MiniSection order={guideOrder.glossary} title="Γλωσσάρι όρων" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Πλήρες':'Βασικοί όροι'}</span>}>
-            <div style={{display:'flex',flexDirection:'column'}}>
-              {GLOSSARY.filter(g=>profile==='business'||g.level==='basic').map((item,i,a)=>(
-                <div key={item.term} style={{padding:'12px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
-                  <p style={{fontSize:13.5,color:'var(--text-primary)',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{item.term}</p>
-                  <p style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{item.def}</p>
-                </div>
-              ))}
-            </div>
+            <Glossary items={GLOSSARY.filter(g=>profile==='business'||g.level==='basic')}/>
             {profile!=='business'&&(
               <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
                 Περισσότεροι, πιο εξειδικευμένοι όροι εμφανίζονται στη λειτουργία «Επαγγελματίας», από τις Ρυθμίσεις.
