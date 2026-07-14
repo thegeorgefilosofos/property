@@ -303,6 +303,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
   const [customBank,  setCustomBank]  = useState('')
   const [notes,       setNotes]       = useState('')
   const [extraPay,    setExtraPay]    = useState('0')
+  const [showAdv,     setShowAdv]     = useState(false)
   const [income,      setIncome]      = useState('2000')
   const [monthlyRent, setMonthlyRent] = useState(()=>String(Math.round((parseFloat(initial?.propValue||'185000')||185000)*0.04/12)))
   const [marital,     setMarital]     = useState<'single'|'married'>('single')
@@ -782,6 +783,17 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </Section>
 
+      {/* ── Διακριτικός διακόπτης: όλα τα προχωρημένα εργαλεία μαζεμένα ── */}
+      <button onClick={()=>setShowAdv(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 18px',background:'var(--bg-elevated)',border:`1px solid ${showAdv?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,cursor:'pointer',transition:'border-color 0.2s'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={showAdv?'var(--accent)':'var(--text-secondary)'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+          <span style={{fontSize:14,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Προχωρημένα εργαλεία</span>
+          <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>σύγκριση επιτοκίου, δανειοληπτική ικανότητα, φορολογία, πίνακας δόσεων, έγγραφα</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,transform:showAdv?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      {showAdv && (<>
       <Section title="Σταθερό vs Κυμαινόμενο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
@@ -1128,6 +1140,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           <a href="https://www.aade.gr" target="_blank" rel="noreferrer" title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>ΑΑΔΕ</a>
         </p>
       </div>
+      </>)}
 
       {/* Non-blocking success toast */}
       {toast&&(
