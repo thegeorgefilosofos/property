@@ -330,18 +330,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     </div>
                   ))}
                 </div>
-                <div style={{padding:'12px 20px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                  {(bank.features||[]).map((f:string,fi:number)=>(
-                    <span key={fi} style={{fontSize:11,padding:'4px 12px',borderRadius:20,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",display:'flex',alignItems:'center',gap:5}}>
-                      <span style={{width:5,height:5,borderRadius:'50%',background:'var(--border-subtle)',display:'inline-block',flexShrink:0}}/>
-                      {f}
-                    </span>
-                  ))}
-                  {(bank.programs||[]).map((p:string)=>(
-                    <span key={p} style={{fontSize:11,padding:'4px 12px',borderRadius:20,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>{p}</span>
-                  ))}
-                  {bank.fees&&<span style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily:"'Inter',sans-serif"}}>{bank.fees}</span>}
-                </div>
               </div>
             )
           })}
