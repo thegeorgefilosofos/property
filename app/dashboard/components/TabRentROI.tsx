@@ -615,7 +615,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       <style>
         *{font-family:Inter,system-ui,Arial,sans-serif;box-sizing:border-box}
         body{margin:40px;color:#111}
-        .brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#2563eb}
+        .brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#111}
         h1{font-size:22px;margin:6px 0 2px}h2{font-size:14px;margin:26px 0 10px;color:#111;border-bottom:1px solid #e5e5e5;padding-bottom:6px}
         .sub{color:#666;font-size:12px;margin-bottom:22px}
         .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -735,7 +735,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
           <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)} τον χρόνο`} accent info={G.after_tax_yield} />
           {pro
-            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.positiveCarry ? 'θετική μόχλευση' : 'αρνητική μόχλευση'} info={G.cash_on_cash} />
+            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
             : term === 'short'
               ? <KPI label="Τυπική βραχυχρόνια απόδοση" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
               : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={G.region_ref} />}
