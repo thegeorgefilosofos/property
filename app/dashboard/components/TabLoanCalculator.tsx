@@ -669,12 +669,27 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         </div>
       </div>
 
-      {/* KPIs */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
-        <KPI label="Μηνιαία Δόση" value={fmtEur(monthly)} color="var(--accent)"/>
-        <KPI label="Σύνολο Τόκων" value={fmtEur(totalInt)} color="var(--text-primary)" sub={`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`}/>
-        <KPI label="Συνολική Αποπληρωμή" value={fmtEur(total)}/>
-        <KPI label="LTV" title="Δάνειο προς αξία (Loan to Value)" value={`${ltv.toFixed(1)}%`} color={ltv>90?'var(--negative)':'var(--text-primary)'} sub={`Ίδια: ${fmtEur(PV-LA)}`}/>
+      {/* KPIs — premium metric tiles (hero + ήσυχα υποστηρικτικά) */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:14}}>
+        {/* Hero: μηνιαία δόση */}
+        <div style={{position:'relative',overflow:'hidden',borderRadius:16,padding:'18px 18px 16px',
+          background:'linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 84%, #000) 100%)',
+          boxShadow:'0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent)'}}>
+          <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'color-mix(in srgb, var(--accent-text) 78%, transparent)',fontFamily:"'Inter',sans-serif"}}>Μηνιαία δόση</p>
+          <p style={{fontSize:30,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:'var(--accent-text)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{fmtEur(monthly)}</p>
+          <p style={{fontSize:11.5,marginTop:7,color:'color-mix(in srgb, var(--accent-text) 72%, transparent)',fontFamily:"'Inter',sans-serif"}}>{rateType==='variable'?'κυμαινόμενο':'σταθερό'} {fmtPct(effRate)} · {Y} έτη</p>
+        </div>
+        {[
+          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${((totalInt/Math.max(LA,1))*100).toFixed(0)}% επί κεφαλαίου`,neg:false},
+          {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,neg:false},
+          {k:'Δάνειο προς αξία',v:`${ltv.toFixed(1)}%`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
+        ].map(t=>(
+          <div key={t.k} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 18px 16px',boxShadow:'var(--shadow-sm)'}}>
+            <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
+            <p style={{fontSize:30,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif"}}>{t.v}</p>
+            <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
+          </div>
+        ))}
       </div>
 
       {/* Actions */}
