@@ -13,6 +13,7 @@ import {
   LoanType, RateType, BorrowerType, SavedLoan, MarketRates, MARKET_FALLBACK
 } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
+import { euriborInsight } from '@/lib/loans/affordability'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -95,7 +96,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'|null>('advisor')
   const toggle = (id:'advisor'|'banks'|'programs'|'guide'|'saved')=>setOpenSec(s=>s===id?null:id)
   // Προφίλ χρήστη: καθορίζει τι βλέπει ο καθένας — ιδιώτης ή επιχείρηση.
-  const [profile,setProfile] = useState<'individual'|'business'>('individual')
+  // Θυμόμαστε την επιλογή τοπικά, ώστε να μην ξαναρωτάμε τον ίδιο χρήστη.
+  const [profile,setProfile] = useState<'individual'|'business'>(()=>{
+    if(typeof window==='undefined')return 'individual'
+    return window.localStorage.getItem('loanProfile')==='business'?'business':'individual'
+  })
+  useEffect(()=>{ try{ window.localStorage.setItem('loanProfile',profile) }catch{} },[profile])
   const calcRef = useRef<HTMLDivElement>(null)
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   const [saved,setSaved] = useState<SavedLoan[]>([])
@@ -205,7 +211,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               style={{display:'flex',alignItems:'center',gap:13,textAlign:'left',padding:'14px 16px',borderRadius:14,cursor:'pointer',
                 background:active?'var(--accent-dim)':'var(--bg-elevated)',
                 border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`,
-                boxShadow:active?'0 1px 3px color-mix(in srgb, var(--accent) 18%, transparent)':'none',transition:'all 0.15s'}}>
+                boxShadow:active?'0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent)':'none',transform:active?'translateY(-2px)':'none',transition:'transform 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s, border-color 0.2s, background 0.2s'}}>
               <span style={{width:40,height:40,borderRadius:12,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',
                 background:active?'var(--accent)':'var(--bg-surface)',border:active?'none':'1px solid var(--border-subtle)'}}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active?'var(--accent-text)':'var(--text-secondary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p.icon}</svg>
@@ -471,9 +477,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         // Μονόχρωμο: η βαθμολογία σε ουδέτερο/accent, κόκκινο μόνο σε πραγματικά χαμηλό σκορ.
         const scoreColor=score>=60?'var(--text-primary)':'var(--negative)'
         const scoreLabel=score>=80?'Υγιές δάνειο':score>=60?'Αποδεκτό, υπάρχει περιθώριο βελτίωσης':'Προσοχή, αξίζει επανεξέταση'
+        const insight = euriborInsight({ euribor3m: euribor, loanAmount: cs.loanAmount, ratePct: cs.effectiveRate, years: cs.years, rateType: cs.rateType })
 
         return (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
+
+            {/* ── Insight της ημέρας ── */}
+            {insight&&(
+              <div style={{display:'flex',alignItems:'flex-start',gap:11,padding:'12px 16px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:12}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
+                <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{insight}</p>
+              </div>
+            )}
 
             {/* ── Σύσταση καλύτερου δανείου (recommender) ── */}
             <div style={cardStyle}>
