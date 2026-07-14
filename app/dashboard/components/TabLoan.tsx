@@ -200,6 +200,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [appliedLoan,setAppliedLoan] = useState<AppliedLoan|undefined>(undefined)
   const [recHover,setRecHover] = useState(false)
   const [scoreHover,setScoreHover] = useState(false)
+  const [otherHover,setOtherHover] = useState<string|null>(null)
   const [toast,setToast] = useState<string|null>(null)
   function showToast(msg:string){setToast(msg);setTimeout(()=>setToast(null),2500)}
 
@@ -792,8 +793,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {otherRecs.length>0 && (
                 <MiniSection title={`Άλλες επιλογές (${otherRecs.length})`}>
                   <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                    {otherRecs.map(r=>(
-                      <div key={r.bankId} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,opacity:r.eligible?1:0.55}}>
+                    {otherRecs.map(r=>{
+                      const on=otherHover===r.bankId
+                      return (
+                      <div key={r.bankId}
+                        onMouseEnter={()=>setOtherHover(r.bankId)} onMouseLeave={()=>setOtherHover(null)}
+                        onTouchStart={()=>setOtherHover(r.bankId)} onTouchEnd={()=>setOtherHover(null)}
+                        style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:10,opacity:r.eligible?1:0.55,transition:'border-color 0.15s'}}>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:2}}>
                             <span style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{r.bankName}</span>
@@ -802,12 +808,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                           <p style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{r.eligible?r.why:r.blockers.join(' · ')}</p>
                         </div>
                         <div style={{textAlign:'right' as const,flexShrink:0}}>
-                          <p style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{fmtPct(r.effectiveRatePct)}</p>
+                          <p style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s'}}>{fmtPct(r.effectiveRatePct)}</p>
                           <p style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:3}}>{fmtEur(r.monthlyPayment)} τον μήνα</p>
                           <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:1}}>Σύνολο {fmtEur(r.totalCost)}</p>
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </MiniSection>
               )}
@@ -954,7 +961,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)}, αύξηση ${fmtEur(stressMonthly2-cs.monthly)} τον μήνα.`
                         :bestBank&&savingVsBestBank>0
                         ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.bank_name||bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
-                        :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένοι. Euribor 3M: ${fmtPct(market.euribor_3m)}.`
+                        :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένοι. Euribor τριμήνου: ${fmtPct(market.euribor_3m)}.`
                       }
                     </p>
                   </div>
