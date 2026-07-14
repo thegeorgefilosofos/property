@@ -274,7 +274,7 @@ function calcNotaryFees(propValue:number, propType:string):{notary:number;landRe
 const LOAN_TYPE_OPTIONS = Object.entries(LOAN_TYPES).map(([k,v])=>({value:k,label:v.label,description:`${v.typical_rate} · LTV έως ${v.typical_ltv}%`}))
 const BORROWER_OPTIONS  = Object.entries(BORROWER_PROFILES).map(([k,v])=>({value:k,label:v.label,description:v.notes}))
 const BANK_OPTIONS      = [...BANKS.map(b=>({value:b.id,label:b.name,description:`${b.note} · ${b.fees}`})),{value:'custom',label:'Άλλη τράπεζα',description:'Καταχωρήστε το όνομά της'}]
-const RATE_TYPE_OPTIONS = [{value:'fixed',label:'Σταθερό',description:'Σταθερό για την επιλεγμένη περίοδο'},{value:'variable',label:'Κυμαινόμενο',description:'Euribor + spread'},{value:'mixed',label:'Μικτό',description:'Σταθερό αρχικά, μετά κυμαινόμενο'}]
+const RATE_TYPE_OPTIONS = [{value:'fixed',label:'Σταθερό',description:'Σταθερό για την επιλεγμένη περίοδο'},{value:'variable',label:'Κυμαινόμενο',description:'Euribor συν περιθώριο τράπεζας'},{value:'mixed',label:'Μικτό',description:'Σταθερό αρχικά, μετά κυμαινόμενο'}]
 const FIXED_PERIOD_OPTIONS = ['3','5','10','15','20'].map(v=>({value:v,label:`${v} χρόνια`,description:v==='5'?'Πιο συνηθισμένο':v==='10'?'Καλή ισορροπία':''}))
 const MARITAL_OPTIONS   = [{value:'single',label:'Άγαμος / Άγαμη',description:'Όριο ΦΜΑ: 200.000€'},{value:'married',label:'Έγγαμος / Έγγαμη',description:'Όριο ΦΜΑ: 250.000€'}]
 const CHILDREN_OPTIONS  = [0,1,2,3,4,5].map(n=>({value:String(n),label:n===0?'Χωρίς τέκνα':`${n} εξαρτώμεν${n===1?'ο':'α'} τέκν${n===1?'ο':'α'}`,description:n===0?'—':n===1?'+25.000€':n===2?'+50.000€':`+${50+(n-2)*30}.000€`}))
@@ -675,7 +675,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
             <div>
               <NumberInput label="Ποσό Δανείου (€)" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
-                <span title="Δάνειο προς αξία ακινήτου (Loan to Value)" style={{fontSize:12,color:ltv>90?'var(--negative)':'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>LTV {ltv.toFixed(1)}%</span>
+                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:ltv>90?'var(--negative)':'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δάνειο προς αξία {ltv.toFixed(1)}%</span>
                 <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>Ίδια: {fmtEur(PV-LA)}</span>
               </div>
             </div>
@@ -694,7 +694,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
             <CustomSelect label="Τύπος Επιτοκίου" value={rateType} onChange={v=>{setRateType(v as RateType);setActivePreset(null)}} options={RATE_TYPE_OPTIONS}/>
             {(rateType==='fixed'||rateType==='mixed')&&<CustomSelect label="Διάρκεια Σταθερής Περιόδου" value={fixedPeriod} onChange={setFixedPeriod} options={FIXED_PERIOD_OPTIONS}/>}
-            <div title={rateType==='variable'?'spread: Περιθώριο τράπεζας πάνω από το Euribor':undefined}>
+            <div title={rateType==='variable'?'Περιθώριο τράπεζας πάνω από το Euribor':undefined}>
               <NumberInput label={rateType==='variable'?'Spread Τράπεζας (%)':'Ετήσιο Επιτόκιο (%)'} value={rate} onChange={v=>{setRate(v);setActivePreset(null)}} suffix="%" step={0.05}/>
               {rateType==='variable'&&(
                 <div style={{marginTop:7,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
@@ -1126,7 +1126,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
         {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια, προστατευμένοι από ανατιμήσεις Euribor</p></div>}
       </Section>
 
-      <Section title="Ανάλυση αναχρηματοδότησης" sub="Break-even, πότε αξίζει η μεταφορά">
+      <Section title="Ανάλυση αναχρηματοδότησης" sub="Σημείο απόσβεσης, πότε αξίζει η μεταφορά">
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginBottom:14}}>
           <NumberInput label="Υπόλοιπο (€)" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="χρ"/>
@@ -1138,7 +1138,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,onSa
           <KPI label="Τρέχουσα δόση" value={fmtEur(currM)} color="var(--text-primary)"/>
           <KPI label="Νέα δόση" value={fmtEur(newM)} color="var(--accent)" sub={`${fmtEur(mSav)}/μήνα`}/>
           <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} color={refSav>0?'var(--accent)':'var(--text-secondary)'} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
-          <KPI label="Break-even" value={brkEven?`${brkEven} μήνες`:'—'} color={brkEven&&brkEven<24?'var(--accent)':'var(--text-primary)'} sub="Αποσβέσεως εξόδων"/>
+          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'—'} color={brkEven&&brkEven<24?'var(--accent)':'var(--text-primary)'} sub="Απόσβεση εξόδων μεταφοράς"/>
         </div>
       </Section>
       </>)}
