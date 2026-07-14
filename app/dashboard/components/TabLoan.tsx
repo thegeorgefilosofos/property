@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { ExportButton } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDec, csvDate } from './exportCsv'
 import TabLoanCalculator from './TabLoanCalculator'
@@ -78,15 +77,14 @@ function MiniSection({title,badges,meta,defaultOpen,children}:{title:string;badg
   const [open,setOpen] = useState(!!defaultOpen)
   return (
     <div style={{background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
-      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
-        <div style={{display:'flex',alignItems:'center',gap:11,minWidth:0,flexWrap:'wrap'}}>
-          <span style={{width:7,height:7,borderRadius:'50%',background:open?'var(--accent)':'var(--border-default)',flexShrink:0,transition:'background 0.2s'}}/>
-          <span style={{fontSize:14.5,fontWeight:500,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>{title}</span>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'15px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,flexWrap:'wrap'}}>
+          <span style={{fontSize:14.5,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.01em'}}>{title}</span>
           {badges}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
           {meta}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </button>
       {open&&<div style={{padding:'0 18px 18px'}}>{children}</div>}
@@ -94,18 +92,43 @@ function MiniSection({title,badges,meta,defaultOpen,children}:{title:string;badg
   )
 }
 
-function ChartTip({active,payload,label}:any) {
-  if(!active||!payload?.length)return null
+// Bespoke minimal γράφημα Euribor — καθαρή περιοχή/γραμμή, σημεία υψηλού/χαμηλού
+// και τρέχοντος, χωρίς βιβλιοθήκη. Επαγγελματικό, ήσυχο, χωρίς θόρυβο.
+function EuriborArea({data}:{data:{date:string;val:number}[]}) {
+  const W=620,H=150,padL=6,padR=10,padT=16,padB=22
+  const n=data.length
+  if(n<2) return null
+  const vals=data.map(d=>d.val)
+  const maxV=Math.max(...vals), minRaw=Math.min(...vals), minV=Math.min(minRaw,0)
+  const range=(maxV-minV)||1
+  const X=(i:number)=> padL+(i/(n-1))*(W-padL-padR)
+  const Y=(v:number)=> padT+(1-(v-minV)/range)*(H-padT-padB)
+  const line=data.map((d,i)=>`${i===0?'M':'L'} ${X(i).toFixed(1)} ${Y(d.val).toFixed(1)}`).join(' ')
+  const area=`M ${X(0).toFixed(1)} ${Y(minV).toFixed(1)} `+data.map((d,i)=>`L ${X(i).toFixed(1)} ${Y(d.val).toFixed(1)}`).join(' ')+` L ${X(n-1).toFixed(1)} ${Y(minV).toFixed(1)} Z`
+  const maxI=vals.indexOf(maxV), minI=vals.indexOf(minRaw)
+  const seen=new Set<string>(); const yearTicks:{i:number;yr:string}[]=[]
+  data.forEach((d,i)=>{ const yr=d.date.slice(0,4); if(!seen.has(yr)){seen.add(yr); yearTicks.push({i,yr})} })
   return (
-    <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:12,padding:'10px 14px',fontSize:11,fontFamily:"'Roboto Mono',monospace",boxShadow:'var(--shadow-lg)'}}>
-      <p style={{color:'var(--text-secondary)',marginBottom:6,fontSize:10,fontFamily:"'Inter',sans-serif"}}>{label}</p>
-      {payload.map((p:any,i:number)=>(
-        <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-          <span style={{width:8,height:8,borderRadius:2,background:p.color,display:'inline-block'}}/>
-          <p style={{color:'var(--text-primary)'}}>{p.name}: <strong style={{color:p.color}}>{typeof p.value==='number'&&p.value>10?fmtEur(p.value):`${p.value}%`}</strong></p>
-        </div>
-      ))}
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Ιστορική πορεία Euribor τριμήνου">
+      <defs>
+        <linearGradient id="euriborFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18"/>
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      {minV<0&&<line x1={padL} y1={Y(0)} x2={W-padR} y2={Y(0)} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3"/>}
+      <path d={area} fill="url(#euriborFill)"/>
+      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+      {/* Υψηλό */}
+      <circle cx={X(maxI)} cy={Y(maxV)} r="3" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
+      <text x={X(maxI)} y={Y(maxV)-7} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-secondary)',fontWeight:600}}>{maxV.toFixed(2)}%</text>
+      {/* Χαμηλό */}
+      <circle cx={X(minI)} cy={Y(minRaw)} r="3" fill="var(--text-tertiary)" stroke="var(--bg-elevated)" strokeWidth="1.5"/>
+      <text x={X(minI)} y={Y(minRaw)+13} textAnchor="middle" style={{fontSize:9.5,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{minRaw.toFixed(2)}%</text>
+      {/* Τρέχον */}
+      <circle cx={X(n-1)} cy={Y(vals[n-1])} r="3.5" fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth="2"/>
+      {yearTicks.map(t=>(<text key={t.yr} x={X(t.i)} y={H-6} textAnchor={t.i===0?'start':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)'}}>{t.yr}</text>))}
+    </svg>
   )
 }
 
@@ -130,7 +153,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [saved,setSaved] = useState<SavedLoan[]>([])
   const [filterSpiti,setFS] = useState(false)
   const [selBank,setSelBank] = useState<string|null>(null)
-  const [showGloss,setShowGloss] = useState(false)
   const [toast,setToast] = useState<string|null>(null)
   function showToast(msg:string){setToast(msg);setTimeout(()=>setToast(null),2500)}
 
@@ -613,7 +635,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   ? `Οι τόκοι εκπίπτουν πλήρως. Με συντελεστή 22% το έμμεσο όφελος στη διάρκεια εκτιμάται περίπου ${fmtEur(taxShieldCompany)} — δηλαδή το πραγματικό κόστος δανεισμού είναι χαμηλότερο από το ονομαστικό επιτόκιο.`
                   : 'Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα. Το όφελος εξαρτάται από τον οριακό σου συντελεστή — επιβεβαίωσέ το με τον λογιστή σου.'},
                 {t:'Απόσβεση κτηρίου', b:'Το κτηριακό μέρος (όχι το οικόπεδο) αποσβένεται και μειώνει το φορολογητέο αποτέλεσμα κάθε χρόνο. Συνδυασμένο με τους τόκους, βελτιώνει ουσιαστικά την καθαρή απόδοση.'},
-                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό LTV 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
+                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό δάνειο προς αξία 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
                 {t:'Ανάπτυξη χαρτοφυλακίου με μόχλευση', b:'Η μόχλευση επιταχύνει την ανάπτυξη μόνο όταν η καθαρή απόδοση του ακινήτου υπερβαίνει το κόστος δανεισμού. Κράτα απόθεμα ρευστότητας για κενές περιόδους και συντήρηση.'},
               ] : [
                 {t:'Αξιοποίηση κρατικών προγραμμάτων', b:'Για πρώτη κατοικία, το «Σπίτι μου ΙΙ» μειώνει δραστικά το κόστος (50% άτοκο). Έλεγξε την επιλεξιμότητα πριν επιλέξεις τράπεζα — δεν επιτρέπονται ταυτόχρονες αιτήσεις.'},
@@ -812,7 +834,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   {issues.includes('LTV')&&(
                     <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                       <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily:"'Inter',sans-serif"}}>Αξία</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}><strong>Αυξήστε την προκαταβολή:</strong> LTV κάτω από 80% → καλύτερο επιτόκιο και αποδοχή.</p>
+                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}><strong>Αυξήστε την προκαταβολή:</strong> δάνειο προς αξία κάτω από 80% → καλύτερο επιτόκιο και αποδοχή.</p>
                     </div>
                   )}
                   {issues.includes('Επιτόκιο')&&(
@@ -850,13 +872,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {step:1,title:'Προεπιλογή και προετοιμασία',time:'1-2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
               {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
               {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα, δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
-              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής, ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
+              {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το δάνειο προς αξία υπολογίζεται επί αυτής, ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
               {step:5,title:'Έγκριση Δανείου',time:'3-10 εργάσιμες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Η τράπεζα αξιολογεί εισόδημα, Τειρεσία, εκτίμηση, νομικά. Η απόφαση ισχύει συνήθως 90 ημέρες.',tip:'Σε απόρριψη ζητήστε γραπτώς τον λόγο. Επανεξετάστε μετά από 6 μήνες ή αλλάξτε τράπεζα.',warning:'Ακόμα και μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών επηρεάζει τον Τειρεσία.',url:'https://www.tiresias.gr'},
               {step:6,title:'Συμβόλαιο & Εκταμίευση',time:'1-2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Αγοραπωλητήριο ενώπιον συμβολαιογράφου. Εκταμίευση μετά καταχώρηση στο Κτηματολόγιο.',tip:'Νεόδμητα: απαιτείται ΠΕΑ για τη μεταβίβαση.',warning:'Φορολογικές & ασφαλιστικές ενημερότητες λήγουν γρήγορα (15-30 μέρες), έχετε τα μαζί σας.',url:null},
             ].map((step,i,arr)=>(
               <div key={i} style={{display:'flex',gap:16,alignItems:'flex-start',paddingBottom:20,borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none',marginBottom:i<arr.length-1?20:0}}>
-                <div style={{width:34,height:34,borderRadius:'50%',background:(step as any).dim||'var(--accent-dim)',border:`2px solid ${step.color}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <span style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:step.color,fontWeight:700}}>{step.step}</span>
+                <div style={{width:32,height:32,borderRadius:'50%',background:'var(--bg-surface)',border:'1px solid var(--border-default)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <span style={{fontSize:13,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:600}}>{step.step}</span>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
@@ -976,55 +998,42 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Euribor chart */}
           <MiniSection title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10.5,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={EURIBOR_HISTORY.map(d=>({date:d.date,Euribor:d.val}))} barCategoryGap="8%">
-                <XAxis dataKey="date" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false} interval={3}/>
-                <YAxis tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Roboto Mono',monospace"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} width={36}/>
-                <Tooltip content={ChartTip}/>
-                <ReferenceLine y={0} stroke="var(--border-subtle)" strokeWidth={1}/>
-                <Bar dataKey="Euribor" radius={[3,3,0,0]} fill="var(--accent)" opacity={0.7}/>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={{display:'flex',gap:24,marginTop:12,flexWrap:'wrap'}}>
+            <EuriborArea data={EURIBOR_HISTORY}/>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
               {[
-                {l:'Ιστορικό χαμηλό',v:'-0.55% (2021)',c:'var(--text-primary)'},
-                {l:'Ιστορικό υψηλό',v:'4.0% (Οκτ 2023)',c:'var(--text-primary)'},
-                {l:'Τρέχον',v:fmtPct(market.euribor_3m),c:'var(--text-primary)'},
-                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(4.0-market.euribor_3m)}`,c:'var(--text-primary)'},
+                {l:'Ιστορικό χαμηλό',v:'-0,55%',s:'2021'},
+                {l:'Ιστορικό υψηλό',v:'4,00%',s:'Οκτώβριος 2023'},
+                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:'σήμερα'},
+                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(4.0-market.euribor_3m)}`,s:'από το 2023'},
               ].map(item=>(
-                <div key={item.l}>
-                  <p style={{...labelStyle,marginBottom:3}}>{item.l}</p>
-                  <p style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{item.v}</p>
+                <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
+                  <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
+                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{item.s}</p>
                 </div>
               ))}
             </div>
-            <div style={{marginTop:12,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-              <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
-                Κυμαινόμενα δάνεια (2021, Euribor -0.55%) έχουν σήμερα πραγματικό επιτόκιο ~{fmtPct(market.euribor_3m+1.5)}. Η ΕΚΤ μείωσε 8 φορές από Ιούνιο 2024.
-              </p>
-            </div>
+            <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif",marginTop:14}}>
+              Δάνεια που δόθηκαν το 2021 με Euribor -0,55% έχουν σήμερα πραγματικό επιτόκιο περίπου {fmtPct(market.euribor_3m+1.5)}. Η Ευρωπαϊκή Κεντρική Τράπεζα μείωσε το επιτόκιο 8 φορές από τον Ιούνιο 2024.
+            </p>
           </MiniSection>
 
-          {/* Glossary */}
-          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,overflow:'hidden'}}>
-            <button onClick={()=>setShowGloss(g=>!g)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{width:5,height:5,borderRadius:'50%',background:showGloss?'var(--accent)':'var(--border-default)',display:'inline-block',transition:'background 0.2s'}}/>
-                <p style={{fontSize:13,color:showGloss?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:400}}>Γλωσσάρι βασικών όρων</p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points={showGloss?"18 15 12 9 6 15":"6 9 12 15 18 9"}/></svg>
-            </button>
-            {showGloss&&(
-              <div style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',columnGap:24,rowGap:0}}>
-                {GLOSSARY.map((item,i)=>(
-                  <div key={i} style={{padding:'9px 0',borderBottom:'1px solid var(--border-subtle)'}}>
-                    <span style={{fontSize:12,color:'var(--text-primary)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{item.term}</span>
-                    <span style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}> — {item.def}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
+          <MiniSection title="Γλωσσάρι όρων" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Πλήρες':'Βασικοί όροι'}</span>}>
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {GLOSSARY.filter(g=>profile==='business'||g.level==='basic').map((item,i,a)=>(
+                <div key={item.term} style={{padding:'12px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
+                  <p style={{fontSize:13.5,color:'var(--text-primary)',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{item.term}</p>
+                  <p style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{item.def}</p>
+                </div>
+              ))}
+            </div>
+            {profile!=='business'&&(
+              <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
+                Περισσότεροι, πιο εξειδικευμένοι όροι εμφανίζονται στη λειτουργία «Επαγγελματίας», από τις Ρυθμίσεις.
+              </p>
             )}
-          </div>
+          </MiniSection>
 
           {/* Links */}
           <MiniSection title="Επίσημες πηγές">
@@ -1090,7 +1099,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{saved.length} δάνεια</span>
             <ExportButton disabled={saved.length===0} onClick={()=>downloadCsv(
               `daneio_${new Date().toISOString().slice(0,10)}`,
-              ['Τράπεζα','Τύπος Δανείου','Ποσό (€)','Επιτόκιο (%)','Τύπος Επιτοκίου','Διάρκεια (έτη)','Δόση/μήνα (€)','Συνολικοί Τόκοι (€)','LTV (%)','Έναρξη','Κατάσταση','Σημειώσεις'],
+              ['Τράπεζα','Τύπος Δανείου','Ποσό (€)','Επιτόκιο (%)','Τύπος Επιτοκίου','Διάρκεια (έτη)','Δόση τον μήνα (€)','Συνολικοί Τόκοι (€)','Δάνειο προς αξία (%)','Έναρξη','Κατάσταση','Σημειώσεις'],
               saved.map(loan=>{
                 const m=calcMonthly(loan.amount,loan.rate,loan.years)
                 const ti=m*loan.years*12-loan.amount
