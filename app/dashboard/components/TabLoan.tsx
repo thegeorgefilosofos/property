@@ -72,6 +72,28 @@ function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:strin
   )
 }
 
+// Πτυσσόμενη υπο-ενότητα — premium, διακριτική· ο τίτλος και προαιρετικά
+// badges/meta μένουν ορατά, οι λεπτομέρειες ανοίγουν με κλικ (όχι ατέρμονες λίστες).
+function MiniSection({title,badges,meta,defaultOpen,children}:{title:string;badges?:React.ReactNode;meta?:React.ReactNode;defaultOpen?:boolean;children:React.ReactNode}) {
+  const [open,setOpen] = useState(!!defaultOpen)
+  return (
+    <div style={{background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,overflow:'hidden',transition:'border-color 0.2s'}}>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'14px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
+        <div style={{display:'flex',alignItems:'center',gap:11,minWidth:0,flexWrap:'wrap'}}>
+          <span style={{width:7,height:7,borderRadius:'50%',background:open?'var(--accent)':'var(--border-default)',flexShrink:0,transition:'background 0.2s'}}/>
+          <span style={{fontSize:14.5,fontWeight:500,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>{title}</span>
+          {badges}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+          {meta}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </button>
+      {open&&<div style={{padding:'0 18px 18px'}}>{children}</div>}
+    </div>
+  )
+}
+
 function ChartTip({active,payload,label}:any) {
   if(!active||!payload?.length)return null
   return (
@@ -162,7 +184,23 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const advBorr = calcState.borrowerType
   const LA = calcState.loanAmount || 150000
   const Y  = calcState.years || 25
-  const activePrograms = PROGRAMS
+  // Ταξινόμηση προγραμμάτων: πρώτα όσα λήγουν σύντομα, μετά κατά ημερομηνία
+  // λήξης (πλησιέστερη πρώτη), και τέλος κατά σημαντικότητα (Σπίτι μου ΙΙ ψηλά).
+  const progDeadlineTs = (d?:string):number => {
+    if(!d) return Number.POSITIVE_INFINITY
+    const iso = d.match(/^\d{4}-\d{2}-\d{2}$/) ? d
+      : (d.match(/(\d{2})\/(\d{2})\/(\d{4})/) ? `${RegExp.$3}-${RegExp.$2}-${RegExp.$1}` : null)
+    if(!iso) return Number.POSITIVE_INFINITY
+    const t = new Date(iso).getTime()
+    return isNaN(t) ? Number.POSITIVE_INFINITY : t
+  }
+  const progRank = (p:any):number => /σπίτι μου/i.test(p.name||'') ? 0 : p.status==='active' ? 1 : 2
+  const activePrograms = [...PROGRAMS].sort((a:any,b:any)=>{
+    if(!!a.deadline_urgent !== !!b.deadline_urgent) return a.deadline_urgent ? -1 : 1
+    const da=progDeadlineTs(a.deadline), db=progDeadlineTs(b.deadline)
+    if(da!==db) return da-db
+    return progRank(a)-progRank(b)
+  })
 
   return (
     <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',display:'flex',flexDirection:'column',gap:16}}>
@@ -369,24 +407,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </p>
           </div>
 
-          {activePrograms.map((prog:any)=>(
-            <div key={prog.id} style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:12,padding:18}}>
-              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
-                <div>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                    <div>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <p style={{fontSize:16,fontWeight:400,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{prog.name}</p>
-                        <span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:prog.status==='active'?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{prog.status==='active'?'Ενεργό':'Επερχόμενο'}</span>
-                        {prog.deadline_urgent&&<span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Λήγει σύντομα</span>}
-                      </div>
-                      <p style={{fontSize:11,color:'var(--text-secondary)',marginTop:2,fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{prog.type}</p>
-                    </div>
-                  </div>
-                  <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{prog.desc}</p>
-                </div>
-                <a href={prog.url} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:5,padding:'0 13px',height:32,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--accent)',fontSize:12,fontFamily:"'Inter',sans-serif",textDecoration:'none',fontWeight:500,flexShrink:0,marginLeft:14}}>Επίσκεψη</a>
-              </div>
+          {activePrograms.map((prog:any)=>{
+            const deadStr = prog.deadline ? (prog.deadline.match(/^\d{4}-\d{2}-\d{2}$/)?prog.deadline.split('-').reverse().join('/'):prog.deadline) : null
+            return (
+            <MiniSection key={prog.id} title={prog.name} defaultOpen={/σπίτι μου/i.test(prog.name||'')}
+              badges={<>
+                <span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:prog.status==='active'?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{prog.status==='active'?'Ενεργό':'Επερχόμενο'}</span>
+                {prog.deadline_urgent&&<span style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Λήγει σύντομα</span>}
+              </>}
+              meta={deadStr?<span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>Προθεσμία {deadStr}</span>:undefined}
+            >
+              <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:10,fontWeight:600,fontFamily:"'Inter',sans-serif",textTransform:'uppercase' as const,letterSpacing:'0.05em'}}>{prog.type}</p>
+              <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif",marginBottom:16}}>{prog.desc}</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:14,marginBottom:12}}>
                 <div>
                   <p style={{...labelStyle,marginBottom:10}}>Κριτήρια Επιλεξιμότητας</p>
@@ -402,7 +434,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{display:'flex',flexDirection:'column',gap:6}}>
                     {[
                       prog.max_amount&&['Μέγιστο ποσό',fmtEur(prog.max_amount),'var(--text-primary)',16],
-                      prog.max_ltv&&['Μέγιστο LTV',`${prog.max_ltv}%`,'var(--text-primary)',14],
+                      prog.max_ltv&&['Μέγιστο δάνειο προς αξία',`${prog.max_ltv}%`,'var(--text-primary)',14],
                       (prog as any).max_sqm&&['Μέγιστα τετραγωνικά',`${(prog as any).max_sqm} τετραγωνικά μέτρα`,'var(--text-primary)',12],
                       (prog as any).age_max&&['Ηλικία δικαιούχου',`${(prog as any).age_min}–${(prog as any).age_max} ετών`,'var(--text-primary)',12],
                       (prog.duration&&prog.duration!=='null')&&['Διάρκεια',prog.duration,'var(--text-secondary)',12],
@@ -420,11 +452,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {(prog as any).how_it_works&&<div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:8}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{(prog as any).how_it_works}</p></div>}
               {prog.extra&&<div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:8}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{prog.extra}</p></div>}
               {prog.savings_example&&<div style={{padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:10}}><p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{prog.savings_example}</p></div>}
-              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:14}}>
                 {(prog.participating_banks||prog.banks||[]).map((b:string)=><span key={b} style={{fontSize:11,padding:'3px 9px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{b}</span>)}
               </div>
-            </div>
-          ))}
+              <a href={prog.url} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'0 15px',height:34,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:20,color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",textDecoration:'none',fontWeight:500}}>Επίσημη σελίδα προγράμματος →</a>
+            </MiniSection>
+            )
+          })}
           {activePrograms.length===0&&(
             <div style={{textAlign:'center',padding:'40px 0',color:'var(--text-secondary)'}}>
               <p style={{fontSize:14,fontFamily:"'Inter',sans-serif"}}>Δεν υπάρχουν ενεργά προγράμματα.</p>
@@ -774,10 +808,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       {openSec==='guide' && (<LensPanel title="Μάθε περισσότερα" subtitle="Διαδικασία, διαχειριστές και κόκκινα δάνεια, απορρίψεις, γλωσσάρι, πηγές">
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          <div style={cardStyle}>
-            <SectionLabel label="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα"/>
+          <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen>
             {[
-              {step:1,title:'Προεπιλογή & Προετοιμασία',time:'1-2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
+              {step:1,title:'Προεπιλογή και προετοιμασία',time:'1-2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
               {step:2,title:'Συλλογή Εγγράφων',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
               {step:3,title:'Αίτηση στην Τράπεζα',time:'1 ημέρα',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Για Σπίτι μου ΙΙ επιλέξτε ΜΙΑ τράπεζα, δεν επιτρέπονται ταυτόχρονες αιτήσεις. Επιλέξτε προσεκτικά βάσει επιτοκίου.',tip:'Ζητήστε γραπτή προσφορά (ESIS) από 2-3 τράπεζες πριν δεσμευτείτε. Δικαιούστε 7 εργάσιμες για απόφαση.',warning:'Μην υπογράφετε τίποτα την πρώτη μέρα. Μελετήστε το ESIS.',url:'https://www.bankofgreece.gr'},
               {step:4,title:'Εκτίμηση Ακινήτου & Νομικός Έλεγχος',time:'1-3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Πιστοποιημένος εκτιμητής (RICS ή ΤΕΕ) αξιολογεί το ακίνητο. Νομικός έλεγχος τίτλων στο Κτηματολόγιο.',tip:'Αν η εκτίμηση είναι χαμηλότερη από την τιμή αγοράς, το LTV υπολογίζεται επί αυτής, ενδέχεται να χρειαστείτε επιπλέον κεφάλαια.',warning:'Αυθαίρετα (κλεισμένες βεράντες, αλλαγές χωρίς άδεια) μπλοκάρουν τη μεταβίβαση. Ζητήστε τεχνικό έλεγχο πρώτα.',url:'https://www.ktimatologio.gr'},
@@ -798,11 +831,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
               </div>
             ))}
-          </div>
+          </MiniSection>
 
           {/* ── Διαχειριστές (servicers) & κόκκινα δάνεια ── */}
-          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Δάνεια σε διαχειριστές (servicers) και κόκκινα δάνεια"/>
+          <MiniSection title="Δάνεια σε διαχειριστές και κόκκινα δάνεια">
             <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,fontFamily:"'Inter',sans-serif",marginBottom:16}}>{SERVICERS_GUIDE.intro}</p>
 
             <p style={{...labelStyle,marginBottom:10}}>Τα δικαιώματά σου</p>
@@ -861,12 +893,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               ))}
             </div>
             <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Ενημερωτικές πληροφορίες με βάση το ισχύον πλαίσιο (Ιούλιος 2026), όχι νομική ή χρηματοοικονομική συμβουλή. Για την περίπτωσή σου συμβουλέψου δικηγόρο ή πιστοποιημένο σύμβουλο αναδιάρθρωσης.</p>
-          </div>
-
+          </MiniSection>
 
           {/* Rejection reasons */}
-          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Γιατί απορρίπτεται μια αίτηση"/>
+          <MiniSection title="Γιατί απορρίπτεται μια αίτηση">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
                 {title:'Εγγραφή στον Τειρεσία',desc:'Μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών αρκεί. Τακτοποίησε οφειλές πριν την αίτηση.',url:'https://www.tiresias.gr'},
@@ -884,11 +914,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
               ))}
             </div>
-          </div>
+          </MiniSection>
 
           {/* Special borrower categories — compact */}
-          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
-            <SectionLabel label="Ειδικές κατηγορίες δανειοληπτών"/>
+          <MiniSection title="Ειδικές κατηγορίες δανειοληπτών">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
@@ -906,11 +935,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
               ))}
             </div>
-          </div>
+          </MiniSection>
 
           {/* Euribor chart */}
-          <div style={cardStyle}>
-            <SectionLabel label="Ιστορικό Euribor 3M, 2020 έως Σήμερα" right={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: ECB</a>}/>
+          <MiniSection title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10.5,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={EURIBOR_HISTORY.map(d=>({date:d.date,Euribor:d.val}))} barCategoryGap="8%">
                 <XAxis dataKey="date" tick={{fontSize:10,fill:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}} axisLine={false} tickLine={false} interval={3}/>
@@ -938,7 +966,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 Κυμαινόμενα δάνεια (2021, Euribor -0.55%) έχουν σήμερα πραγματικό επιτόκιο ~{fmtPct(market.euribor_3m+1.5)}. Η ΕΚΤ μείωσε 8 φορές από Ιούνιο 2024.
               </p>
             </div>
-          </div>
+          </MiniSection>
 
           {/* Glossary */}
           <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,overflow:'hidden'}}>
@@ -962,47 +990,46 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </div>
 
           {/* Links */}
-          <div style={cardStyle}>
-            <SectionLabel label="Επίσημες πηγές"/>
+          <MiniSection title="Επίσημες πηγές">
             {[
-              {category:'Κρατικά Προγράμματα',links:[
-                {label:'Σπίτι μου ΙΙ, Επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
-                {label:'Αναβαθμίζω το Σπίτι μου',sub:'HDB, επίσημη πλατφόρμα αιτήσεων',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
+              {category:'Κρατικά προγράμματα',links:[
+                {label:'Σπίτι μου ΙΙ — επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
+                {label:'Αναβαθμίζω το Σπίτι μου',sub:'Ελληνική Αναπτυξιακή Τράπεζα, επίσημη πλατφόρμα',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
                 {label:'Εξοικονομώ 2025',sub:'Επιδότηση ενεργειακής αναβάθμισης',url:'https://exoikonomo2025.gov.gr/'},
-                {label:'Ανακαινίζω & Νοικιάζω, ΟΠΕΚΑ',sub:'40% επιδότηση + εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
-                {label:'Γέφυρα 3, Επιδότηση δόσης',sub:'Για κυμαινόμενα δάνεια, ευάλωτοι',url:'https://gefyra3.gr'},
+                {label:'Ανακαινίζω και Νοικιάζω — ΟΠΕΚΑ',sub:'40% επιδότηση και εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
+                {label:'Γέφυρα 3 — επιδότηση δόσης',sub:'Για κυμαινόμενα δάνεια ευάλωτων',url:'https://gefyra3.gr'},
               ]},
-              {category:'Τράπεζες & Επιτόκια',links:[
-                {label:'Τράπεζα Ελλάδος, Επιτόκια',sub:'Επίσημα μέσα επιτόκια αγοράς',url:'https://www.bankofgreece.gr/el/statistiki/nomismatiki-kai-trapeziki-statistiki/epitokia-katatheseon-kai-daneion'},
-                {label:'vresdaneio.gr, Σύγκριση',sub:'Σύγκριση επιτοκίων όλων των τραπεζών',url:'https://vresdaneio.gr/epitokia/index.html'},
-                {label:'e-stegastiko.gr, Πλατφόρμα ΤτΕ',sub:'Επίσημη πλατφόρμα στεγαστικών',url:'https://e-stegastiko.gr'},
-                {label:'Τειρεσίας, Έλεγχος πιστοληπτικής',sub:'Ελέγξτε αν έχετε εγγραφές πριν αιτηθείτε',url:'https://www.tiresias.gr'},
+              {category:'Τράπεζες και επιτόκια',links:[
+                {label:'Τράπεζα Ελλάδος — επιτόκια',sub:'Επίσημα μέσα επιτόκια αγοράς',url:'https://www.bankofgreece.gr/el/statistiki/nomismatiki-kai-trapeziki-statistiki/epitokia-katatheseon-kai-daneion'},
+                {label:'Σύγκριση επιτοκίων τραπεζών',sub:'Ενημερωμένη σύγκριση όλων των τραπεζών',url:'https://vresdaneio.gr/epitokia/index.html'},
+                {label:'e-stegastiko — πλατφόρμα Τράπεζας Ελλάδος',sub:'Επίσημη πλατφόρμα στεγαστικών',url:'https://e-stegastiko.gr'},
+                {label:'Τειρεσίας — έλεγχος πιστοληπτικής',sub:'Ελέγξτε αν έχετε εγγραφές πριν αιτηθείτε',url:'https://www.tiresias.gr'},
               ]},
-              {category:'Φορολογικά',links:[
-                {label:'ΑΑΔΕ, Φορολογικά ακινήτων',sub:'ΦΜΑ, ΕΝΦΙΑ, εισοδήματα από ενοίκια',url:'https://www.aade.gr/polites/foroi-akiniton'},
-                {label:'Κτηματολόγιο, Έλεγχος τίτλων',sub:'Ηλεκτρονικός έλεγχος εγγράφων',url:'https://www.ktimatologio.gr'},
-                {label:'Επιλεξιμότητα Σπίτι μου ΙΙ, gov.gr',sub:'Ηλεκτρονικός έλεγχος με Taxisnet',url:'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii'},
+              {category:'Φορολογικά και τίτλοι',links:[
+                {label:'ΑΑΔΕ — φορολογικά ακινήτων',sub:'Φόρος μεταβίβασης, ΕΝΦΙΑ, εισοδήματα ενοικίων',url:'https://www.aade.gr/polites/foroi-akiniton'},
+                {label:'Κτηματολόγιο — έλεγχος τίτλων',sub:'Ηλεκτρονικός έλεγχος εγγράφων',url:'https://www.ktimatologio.gr'},
+                {label:'Επιλεξιμότητα Σπίτι μου ΙΙ — gov.gr',sub:'Ηλεκτρονικός έλεγχος με κωδικούς Taxisnet',url:'https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii'},
               ]},
-              {category:'Χρήσιμα Εργαλεία',links:[
-                {label:'HDB, Ελληνική Αναπτυξιακή Τράπεζα',sub:'Διαχείριση κρατικών προγραμμάτων δανείων',url:'https://hdb.gr'},
-                {label:'ΥΠΕΝ, Ενεργειακά προγράμματα',sub:'Παρατάσεις, νέα, ανακοινώσεις',url:'https://ypen.gov.gr'},
-                {label:'ΤΑΠ, Ταμείο Αλληλοβοηθείας',sub:'Στεγαστικά για στελέχη Ένοπλων Δυνάμεων',url:'https://www.tap.gr'},
-                {label:'Ευρωπαϊκή Κεντρική Τράπεζα, Euribor',sub:'Επίσημα ιστορικά δεδομένα Euribor',url:'https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA'},
+              {category:'Χρήσιμα εργαλεία',links:[
+                {label:'Ελληνική Αναπτυξιακή Τράπεζα',sub:'Διαχείριση κρατικών προγραμμάτων δανείων',url:'https://hdb.gr'},
+                {label:'Υπουργείο Περιβάλλοντος και Ενέργειας',sub:'Ενεργειακά προγράμματα, παρατάσεις, ανακοινώσεις',url:'https://ypen.gov.gr'},
+                {label:'Ταμείο Αλληλοβοηθείας Στρατού',sub:'Στεγαστικά για στελέχη Ενόπλων Δυνάμεων',url:'https://www.tap.gr'},
+                {label:'Ευρωπαϊκή Κεντρική Τράπεζα — Euribor',sub:'Επίσημα ιστορικά δεδομένα Euribor',url:'https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA'},
               ]},
             ].map(group=>(
               <div key={group.category} style={{marginBottom:16}}>
                 <p style={{...labelStyle,marginBottom:8}}>{group.category}</p>
-                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',gap:8}}>
                   {group.links.map(link=>(
-                    <a key={link.url} href={link.url} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,textDecoration:'none',transition:'background 0.15s'}}
-                      onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-elevated)')}
-                      onMouseLeave={e=>(e.currentTarget.style.background='var(--bg-surface)')}
+                    <a key={link.url} href={link.url} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,textDecoration:'none',transition:'background 0.15s, border-color 0.15s'}}
+                      onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-elevated)';e.currentTarget.style.borderColor='var(--border-default)'}}
+                      onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)'}}
                     >
-                      <div>
-                        <p style={{fontSize:13,color:'var(--text-primary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{link.label}</p>
-                        <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>{link.sub}</p>
+                      <div style={{minWidth:0}}>
+                        <p style={{fontSize:13,color:'var(--text-primary)',fontWeight:500,fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{link.label}</p>
+                        <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{link.sub}</p>
                       </div>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,marginLeft:12}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </a>
                   ))}
                 </div>
@@ -1013,7 +1040,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 Ενημερωτικές πληροφορίες, δεν αποτελούν χρηματοοικονομική, νομική ή φορολογική συμβουλή.
               </p>
             </div>
-          </div>
+          </MiniSection>
         </div>
         )}
       </LensPanel>)}
