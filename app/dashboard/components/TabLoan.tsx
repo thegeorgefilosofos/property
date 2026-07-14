@@ -25,6 +25,9 @@ const labelStyle: React.CSSProperties = {
 const cardStyle: React.CSSProperties = {
   background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:16,
 }
+// Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
+// π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
+const fmtRateStr = (v:unknown):string => String(v ?? '').trim().replace(/\./g,',').replace(/\s*-\s*/g,'–')
 
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
@@ -191,6 +194,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [selBank,setSelBank] = useState<string|null>(null)
   const [appliedLoan,setAppliedLoan] = useState<AppliedLoan|undefined>(undefined)
   const [recHover,setRecHover] = useState(false)
+  const [scoreHover,setScoreHover] = useState(false)
   const [toast,setToast] = useState<string|null>(null)
   function showToast(msg:string){setToast(msg);setTimeout(()=>setToast(null),2500)}
 
@@ -500,11 +504,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     <span style={{fontSize:14,fontWeight:600,fontFamily:"'Inter',sans-serif",color:on?'var(--accent)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bank.bank_name||bank.name}</span>
                     {bank.spiti_mou&&<span style={{flexShrink:0,fontSize:9.5,padding:'2px 7px',borderRadius:10,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                   </div>
-                  <div style={{display:'flex',gap:14}}>
-                    {[['Σταθερό 5 ετών',`${fixed5}%`],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',`${bank.max_ltv}%`]].map(([k,v])=>(
-                      <div key={k}>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{k}</p>
-                        <p style={{fontSize:15,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{v}</p>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10,alignItems:'end'}}>
+                    {[['Σταθερό 5 ετών',fixed5==='—'?'—':`${fmtRateStr(fixed5)}%`],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',`${bank.max_ltv}%`]].map(([k,v])=>(
+                      <div key={k} style={{minWidth:0}}>
+                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:5,lineHeight:1.3,minHeight:24}}>{k}</p>
+                        <p style={{fontSize:14.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</p>
                       </div>
                     ))}
                   </div>
@@ -537,13 +541,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   {terms.map(([lab,k])=>(
                     <div key={k} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'10px 12px'}}>
                       <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginBottom:5}}>{lab}</p>
-                      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{(bank as any)[k]?`${(bank as any)[k]}%`:'—'}</p>
+                      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{(bank as any)[k]?`${fmtRateStr((bank as any)[k])}%`:'—'}</p>
                     </div>
                   ))}
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8}}>
                   {[
-                    {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${bank.variable_spread_min}–${bank.variable_spread_max}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
+                    {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fmtRateStr(bank.variable_spread_min)}–${fmtRateStr(bank.variable_spread_max)}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
                     {label:'Εκτιμώμενη δόση',value:fmtEur(myM),sub:`${fmtEur(calcState.loanAmount||150000)} · ${calcState.years||25} έτη`},
                     {label:'Μέγιστο δάνειο προς αξία',value:`${bank.max_ltv}%`,sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
@@ -581,9 +585,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         </div>
                       </td>
                       {['fixed_3yr','fixed_5yr','fixed_10yr','fixed_15yr','fixed_20yr'].map(k=>(
-                        <td key={k} style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{(bank as any)[k]||'—'}%</td>
+                        <td key={k} style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:(bank as any)[k]?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500}}>{(bank as any)[k]?`${fmtRateStr((bank as any)[k])}%`:'—'}</td>
                       ))}
-                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)'}}>{bank.variable_spread_min!==undefined?`+${bank.variable_spread_min}–${bank.variable_spread_max}%`:'—'}</td>
+                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)'}}>{bank.variable_spread_min!==undefined?`+${fmtRateStr(bank.variable_spread_min)}–${fmtRateStr(bank.variable_spread_max)}%`:'—'}</td>
                       <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{bank.max_ltv}%</td>
                       <td style={{padding:'9px 10px'}}>
                         {bank.spiti_mou
@@ -856,8 +860,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               return (
               <MiniSection title="Ανάλυση δανείου" defaultOpen meta={<span style={{fontSize:12,color:score>=60?'var(--text-secondary)':'var(--negative)',fontFamily:"'Inter',sans-serif",fontWeight:600,whiteSpace:'nowrap' as const}}>{scoreLabel}</span>}>
                 <div style={{display:'flex',alignItems:'center',gap:22,flexWrap:'wrap'}}>
-                  <div style={{display:'flex',alignItems:'baseline',gap:5,flexShrink:0}}>
-                    <span style={{fontSize:46,fontWeight:700,color:c,fontFamily:"'Inter',sans-serif",letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{score}</span>
+                  <div onMouseEnter={()=>setScoreHover(true)} onMouseLeave={()=>setScoreHover(false)}
+                    onTouchStart={()=>setScoreHover(true)} onTouchEnd={()=>setScoreHover(false)}
+                    style={{display:'flex',alignItems:'baseline',gap:5,flexShrink:0,cursor:'default'}}>
+                    <span style={{fontSize:46,fontWeight:700,color:score<60?'var(--negative)':scoreHover?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,transition:'color 0.15s'}}>{score}</span>
                     <span style={{fontSize:15,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontWeight:600}}>/ 100</span>
                   </div>
                   <div style={{flex:1,minWidth:220}}>
