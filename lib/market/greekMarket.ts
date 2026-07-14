@@ -27,6 +27,7 @@ export interface RegionYield {
   grossYield: number          // τυπική μεικτή απόδοση % (μακροχρόνια)
   tags: RegionTag[]
   note: string
+  typicalPerSqm?: number      // τυπική €/τ.μ. για εκτίμηση αξίας σε ασύμμετρες ζώνες (αλλιώς μέσος εύρους)
 }
 
 // Οι μεικτές αποδόσεις είναι διασταυρωμένες (Global Property Guide / Investropa /
@@ -37,7 +38,7 @@ export const REGIONS: RegionYield[] = [
   // Οργανωμένα ανά περιφέρεια (συνεχόμενα) — η λίστα εμφανίζεται ομαδοποιημένη στο πεδίο επιλογής.
   // ── Αττική (Global Property Guide: Αθήνα 5,4% μέσος) ──
   { key: 'ath_center', label: 'Κέντρο Αθήνας', region: 'Αττική', pricePerSqm: [2100, 3800], rentPerSqm: [10, 16], grossYield: 5.0, tags: ['center', 'metro', 'city'], note: 'Κυψέλη 5,4–7,3% · Εξάρχεια ~4,9% · Παγκράτι ~4,3% · Κουκάκι 3–4,4% (κορεσμός βραχυχρόνιας). Οι φθηνότερες και κεντρικές αποδίδουν περισσότερο.' },
-  { key: 'ath_kolonaki', label: 'Κολωνάκι / Prime', region: 'Αττική', pricePerSqm: [4500, 8900], rentPerSqm: [15, 22], grossYield: 3.7, tags: ['center', 'metro', 'city'], note: 'Prime κέντρο (~5.400 €/τ.μ.): υψηλές αξίες, χαμηλή % απόδοση αλλά ισχυρή διατήρηση αξίας και ζήτηση Golden Visa.' },
+  { key: 'ath_kolonaki', label: 'Κολωνάκι (προνομιακή ζώνη)', region: 'Αττική', pricePerSqm: [4500, 8900], rentPerSqm: [15, 22], grossYield: 3.7, tags: ['center', 'metro', 'city'], typicalPerSqm: 5400, note: 'Προνομιακό κέντρο (~5.400 €/τ.μ.): υψηλές αξίες, χαμηλή % απόδοση αλλά ισχυρή διατήρηση αξίας και ζήτηση Golden Visa.' },
   { key: 'ath_south', label: 'Νότια προάστια', region: 'Αττική', pricePerSqm: [3700, 7600], rentPerSqm: [13, 21], grossYield: 3.6, tags: ['suburb', 'metro'], note: 'Γλυφάδα 3,8% · Βούλα 3,3% · Ελληνικό 3,5%: το ακριβότερο της Ελλάδας (Βουλιαγμένη ~7.586 €/τ.μ.). Χαμηλή % απόδοση, κορυφαία ανατίμηση (The Ellinikon).' },
   { key: 'ath_north', label: 'Βόρεια προάστια', region: 'Αττική', pricePerSqm: [2800, 5000], rentPerSqm: [11, 17], grossYield: 4.0, tags: ['suburb', 'metro'], note: 'Κηφισιά, Μαρούσι, Χαλάνδρι: οικογενειακή ζήτηση, μετρό Γρ. 3. Ζώνη Μετρό Γρ. 4 (Γαλάτσι/Ζωγράφου) με ισχυρή άνοδο.' },
   { key: 'ath_west', label: 'Δυτικά προάστια', region: 'Αττική', pricePerSqm: [1400, 2450], rentPerSqm: [9, 11], grossYield: 5.8, tags: ['suburb', 'metro', 'city'], note: 'Περιστέρι, Αιγάλεω (Παν. Δυτ. Αττικής), Ίλιον: προσιτές τιμές, υψηλή % απόδοση 5,4–6,5%· ταχεία άνοδος 2025 (Περιστέρι +22%).' },
@@ -46,7 +47,7 @@ export const REGIONS: RegionYield[] = [
   // ── Κεντρική Μακεδονία ──
   { key: 'thess_center', label: 'Κέντρο Θεσσαλονίκης', region: 'Κεντρική Μακεδονία', pricePerSqm: [2000, 3000], rentPerSqm: [9, 11], grossYield: 4.4, tags: ['center', 'city', 'port'], note: 'Λαδάδικα, Άνω Πόλη: μεγάλη φοιτητική ζήτηση (ΑΠΘ), μετρό 2024. Κόκκινη ζώνη μητρώου ακινήτων (1ο διαμέρισμα) από 1/7/2026.' },
   { key: 'thess_kalamaria', label: 'Καλαμαριά / Ανατολικά Θεσσαλονίκης', region: 'Κεντρική Μακεδονία', pricePerSqm: [2500, 4700], rentPerSqm: [8, 10], grossYield: 3.3, tags: ['suburb', 'city'], note: 'Καλαμαριά (ακριβότερη), Πανόραμα, Πυλαία: premium προαστιακή ζώνη· επέκταση μετρό ~2026. Χαμηλή % απόδοση, υψηλές αξίες.' },
-  { key: 'katerini', label: 'Κατερίνη / Πιερία', region: 'Κεντρική Μακεδονία', pricePerSqm: [1000, 1500], rentPerSqm: [5, 6], grossYield: 5.3, tags: ['city', 'tourist'], note: 'Κοντά σε Ολυμπο και Παραλία Κατερίνης: παραθεριστική ζήτηση, εγγύτητα στη Θεσσαλονίκη.' },
+  { key: 'katerini', label: 'Κατερίνη / Πιερία', region: 'Κεντρική Μακεδονία', pricePerSqm: [1000, 1500], rentPerSqm: [5, 6], grossYield: 5.3, tags: ['city', 'tourist'], note: 'Κοντά στον Όλυμπο και την Παραλία Κατερίνης: παραθεριστική ζήτηση, εγγύτητα στη Θεσσαλονίκη.' },
   { key: 'halkidiki', label: 'Χαλκιδική', region: 'Κεντρική Μακεδονία', pricePerSqm: [1600, 2600], rentPerSqm: [7, 10], grossYield: 4.9, tags: ['tourist', 'suburb'], note: 'Κορυφαίος παραθεριστικός προορισμός Βορείου Ελλάδας (Κασσάνδρα/Σιθωνία), εγγύτητα Θεσσαλονίκης, ισχυρή βραχυχρόνια. Χαμηλότερη μακροχρόνια % απόδοση.' },
   { key: 'edessa', label: 'Έδεσσα / Γιαννιτσά', region: 'Κεντρική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city', 'tourist'], note: 'Πρωτεύουσα Πέλλας, καταρράκτες/τουρισμός. Χαμηλές τιμές, σταθερή τοπική ζήτηση.' },
   { key: 'veroia', label: 'Βέροια / Ημαθία', region: 'Κεντρική Μακεδονία', pricePerSqm: [800, 1200], rentPerSqm: [4, 6], grossYield: 6.0, tags: ['city'], note: 'Ιστορική πόλη, χαμηλές τιμές, σταθερή τοπική ζήτηση.' },
@@ -97,8 +98,8 @@ export const REGIONS: RegionYield[] = [
   { key: 'samos', label: 'Σάμος / Ικαρία', region: 'Βόρειο Αιγαίο', pricePerSqm: [1200, 1900], rentPerSqm: [6, 8], grossYield: 5.3, tags: ['island', 'tourist', 'airport'], note: 'Τουρισμός φύσης, αεροδρόμιο. Καλή εποχική βραχυχρόνια.' },
   { key: 'limnos', label: 'Λήμνος', region: 'Βόρειο Αιγαίο', pricePerSqm: [1100, 1700], rentPerSqm: [5, 7], grossYield: 5.1, tags: ['island', 'tourist', 'airport'], note: 'Ήσυχο νησί, αεροδρόμιο, ανερχόμενος τουρισμός. Μικρή αγορά, σταθερή τοπική ζήτηση.' },
   // ── Νότιο Αιγαίο (Κυκλάδες & Δωδεκάνησα· μακροχρόνια χαμηλή, βραχυχρόνια πολύ υψηλή) ──
-  { key: 'mykonos', label: 'Μύκονος', region: 'Νότιο Αιγαίο', pricePerSqm: [5500, 12000], rentPerSqm: [17, 26], grossYield: 2.9, tags: ['island', 'tourist'], note: 'Κορυφαία εμπορική αξία (~7.574 €/τ.μ.)· η μακροχρόνια % πολύ χαμηλή, αλλά έσοδα βραχυχρόνιας €40–70k/έτος με ακραία εποχικότητα.' },
-  { key: 'santorini', label: 'Σαντορίνη (Θήρα)', region: 'Νότιο Αιγαίο', pricePerSqm: [4200, 7500], rentPerSqm: [15, 22], grossYield: 3.8, tags: ['island', 'tourist'], note: 'Παγκόσμιο brand caldera (~4.810 €/τ.μ.)· υψηλές αξίες, ισχυρή βραχυχρόνια, μακροχρόνια απόδοση χαμηλή.' },
+  { key: 'mykonos', label: 'Μύκονος', region: 'Νότιο Αιγαίο', pricePerSqm: [5500, 12000], rentPerSqm: [17, 26], grossYield: 2.9, tags: ['island', 'tourist'], typicalPerSqm: 7574, note: 'Κορυφαία εμπορική αξία (~7.574 €/τ.μ.)· η μακροχρόνια % πολύ χαμηλή, αλλά έσοδα βραχυχρόνιας €40–70 χιλιάδες τον χρόνο με ακραία εποχικότητα.' },
+  { key: 'santorini', label: 'Σαντορίνη (Θήρα)', region: 'Νότιο Αιγαίο', pricePerSqm: [4200, 7500], rentPerSqm: [15, 22], grossYield: 3.8, tags: ['island', 'tourist'], typicalPerSqm: 4810, note: 'Παγκοσμίως αναγνωρίσιμη καλντέρα (~4.810 €/τ.μ.)· υψηλές αξίες, ισχυρή βραχυχρόνια, χαμηλή μακροχρόνια απόδοση.' },
   { key: 'paros_naxos', label: 'Πάρος / Νάξος', region: 'Νότιο Αιγαίο', pricePerSqm: [3500, 5000], rentPerSqm: [9, 14], grossYield: 3.0, tags: ['island', 'tourist'], note: 'Boutique νησιά, ταχεία ανατίμηση (Πάρος +108% από 2018). Μακροχρόνια απόδοση χαμηλή· βραχυχρόνια 6–8% με υψηλή πληρότητα.' },
   { key: 'syros', label: 'Σύρος / Τήνος', region: 'Νότιο Αιγαίο', pricePerSqm: [2200, 3600], rentPerSqm: [9, 13], grossYield: 4.5, tags: ['island', 'tourist', 'port'], note: 'Πρωτεύουσα Κυκλάδων (Ερμούπολη): διοικητικό κέντρο + τουρισμός όλο τον χρόνο. Υψηλές αξίες.' },
   { key: 'milos_ios', label: 'Μήλος / Ίος', region: 'Νότιο Αιγαίο', pricePerSqm: [2600, 4200], rentPerSqm: [10, 14], grossYield: 4.2, tags: ['island', 'tourist'], note: 'Ανερχόμενες Κυκλάδες (Μήλος: παραλίες): ισχυρή βραχυχρόνια, ταχεία ανατίμηση. Υψηλές αξίες → χαμηλότερη μακροχρόνια.' },
@@ -167,7 +168,7 @@ export const BENCHMARKS: Benchmark[] = [
   { key: 'bond', label: 'Ελληνικό 10ετές ομόλογο', ret10: 6.0, ret20: 1.0, note: 'Ισχυρή 10ετία από τη συμπίεση των αποδόσεων· η 20ετία σχεδόν μηδενική λόγω του PSI 2012 (ονομαστικό κούρεμα 53,5%).' },
   { key: 'gold', label: 'Χρυσός', ret10: 14.5, ret20: 11.4, note: 'Χρυσός σε ευρώ. Ισχυρές και οι δύο περίοδοι, με έντονη όμως μεταβλητότητα και χωρίς εισόδημα.' },
   { key: 'athex', label: 'Χρηματιστήριο Αθηνών', ret10: 17.0, ret20: 0.5, note: 'Γενικός Δείκτης με επανεπένδυση μερισμάτων. Εκρηκτική 10ετία μετά την κρίση, αλλά 20ετία σχεδόν μηδενική: ο δείκτης τιμών παραμένει κάτω από το 2005.' },
-  { key: 'sp500', label: 'S&P 500 ETF (EUR, accumulating)', ret10: 13.5, ret20: 11.0, taxFree: true, note: 'Παγκόσμιος δείκτης ΗΠΑ σε ευρώ (VUAA/SXR8). Accumulating → χωρίς φόρο μερίσματος· η υπεραξία εισηγμένων τίτλων για φυσικά πρόσωπα δεν φορολογείται σήμερα (τέλος πώλησης 0,2%). Κίνδυνος αγοράς και συναλλάγματος (EUR/USD).' },
+  { key: 'sp500', label: 'S&P 500 (σε ευρώ, κεφαλαιοποιητικό)', ret10: 13.5, ret20: 11.0, taxFree: true, note: 'Παγκόσμιος δείκτης ΗΠΑ σε ευρώ (VUAA/SXR8). Κεφαλαιοποιητικό → χωρίς φόρο μερίσματος· η υπεραξία εισηγμένων τίτλων για φυσικά πρόσωπα δεν φορολογείται σήμερα (τέλος πώλησης 0,2%). Κίνδυνος αγοράς και συναλλάγματος (ευρώ/δολαρίου).' },
   { key: 'inflation', label: 'Πληθωρισμός (αναφορά)', ret10: 2.1, ret20: 1.9, note: 'Μέσος πληθωρισμός ~2%/έτος, με ακραία διασπορά (αποπληθωρισμός 2013–2015, +9,7% το 2022). Αφαιρείται για πραγματική απόδοση.' },
 ]
 export const BENCHMARKS_ASOF = 'Δεκέμβριος 2025'
@@ -226,7 +227,10 @@ export function estimatePropertyValue(regionKey: string, sqm?: number | null, pr
   const r = regionByKey(regionKey)
   if (!r || !sqm || sqm <= 0) return 0
   const mult = VALUE_TYPE_MULT[(propType || 'apartment').toLowerCase()] ?? 1
-  const raw = midPricePerSqm(r) * sqm * mult
+  // Σε ασύμμετρες ζώνες (π.χ. προνομιακό κέντρο, νησιά) ο απλός μέσος του εύρους υπερεκτιμά·
+  // χρησιμοποιούμε την τυπική €/τ.μ. όταν έχει οριστεί, αλλιώς τον μέσο του εύρους.
+  const perSqm = r.typicalPerSqm ?? midPricePerSqm(r)
+  const raw = perSqm * sqm * mult
   return Math.round(raw / 1000) * 1000
 }
 
