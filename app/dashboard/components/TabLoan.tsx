@@ -13,6 +13,7 @@ import {
 } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
+import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -161,6 +162,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const [saved,setSaved] = useState<SavedLoan[]>([])
   const [filterSpiti,setFS] = useState(false)
   const [selBank,setSelBank] = useState<string|null>(null)
+  const [appliedLoan,setAppliedLoan] = useState<AppliedLoan|undefined>(undefined)
   const [toast,setToast] = useState<string|null>(null)
   function showToast(msg:string){setToast(msg);setTimeout(()=>setToast(null),2500)}
 
@@ -314,6 +316,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
           profile={profile}
+          applied={appliedLoan}
           market={{euribor_3m:market.euribor_3m,euribor_1m:market.euribor_1m,ecb_rate:market.ecb_rate,updated_at:market.updated_at}}
           initial={{
             loanAmount:String(initAmount), propValue:String(initValue),
@@ -552,6 +555,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
       {/* ═══ ΣΥΣΤΑΣΗ ΚΑΙ ΑΝΑΛΥΣΗ ═══ */}
       {openSec==='advisor' && (<LensPanel title="Σύσταση και ανάλυση δανείου" subtitle={`Βάσει ${fmtEur(LA)} / ${Y} χρόνια · από τον Υπολογιστή`}>
+        <LoanDocScan
+          banks={BANKS}
+          euribor={market.euribor_3m || MARKET_FALLBACK.euribor_3m}
+          defaultPropertyValue={calcState.propertyValue}
+          onApply={a=>setAppliedLoan(a)}
+          onSaveLoan={handleSaveLoan}
+          onOpenCalculator={scrollToCalc}
+        />
         {openSec==='advisor'&&(()=>{
         const cs = calcState
         const ltv = cs.propertyValue>0?(cs.loanAmount/cs.propertyValue)*100:0
