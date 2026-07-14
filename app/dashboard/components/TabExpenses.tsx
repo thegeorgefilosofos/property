@@ -7,6 +7,7 @@ import ExpenseAnalytics from './ExpenseAnalytics';
 import { Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
+import { annuityMonthly } from '@/lib/loans/recommend';
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1044,11 +1045,18 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
   // ── Cross-tab data fetch (loan + bills + property) ──
   useEffect(() => {
     const fetchCrossData = async () => {
-      const [{ data:loan }, { data:prop }] = await Promise.all([
-        supabase.from('loans').select('monthly_payment').eq('property_id', propertyId).single(),
+      const [{ data:loanRows }, { data:prop }] = await Promise.all([
+        // Το δάνειο αποθηκεύεται ως ποσό/επιτόκιο/διάρκεια — η μηνιαία δόση
+        // υπολογίζεται με την τοκοχρεολυτική φόρμουλα (ίδια πηγή με την Επισκόπηση),
+        // αθροίζοντας όλα τα ενεργά δάνεια του ακινήτου.
+        supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
         supabase.from('user_properties').select('target_rent,insurance_expiry').eq('id', propertyId).single(),
       ]);
-      if (loan) setLoanPayment(loan.monthly_payment||0);
+      if (loanRows) setLoanPayment(
+        loanRows
+          .filter((l:any)=>l.status!=='inactive'&&l.status!=='closed')
+          .reduce((s:number,l:any)=>s+annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0),0)
+      );
       if (prop) {
         setTargetRent(prop.target_rent||0);
         setInsuranceExpiry(prop.insurance_expiry||null);
