@@ -86,7 +86,7 @@ interface CalcState {
   rateType:RateType;effectiveRate:number;monthly:number;totalInterest:number;propertyValue:number
 }
 
-export default function TabLoan({propertyId,userId,propertyValue,propertyRent,propertySqm,propertyYearBuilt}:{propertyId:string;userId:string;propertyValue?:number;propertyRent?:number;propertySqm?:number;propertyYearBuilt?:number}) {
+export default function TabLoan({propertyId,userId,propertyValue,propertyRent,propertySqm,propertyYearBuilt,profileType='individual'}:{propertyId:string;userId:string;propertyValue?:number;propertyRent?:number;propertySqm?:number;propertyYearBuilt?:number;profileType?:'individual'|'professional'}) {
   const supabase = createClient()
   // Πραγματικά στοιχεία του ακινήτου του χρήστη (αντί για γενικές προεπιλογές).
   const initValue  = propertyValue && propertyValue > 0 ? Math.round(propertyValue) : 200000
@@ -95,13 +95,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   // Μία ανοιχτή τη φορά, ώστε να παραμένει καθαρό — όχι «σούπερ μάρκετ» με καρτέλες.
   const [openSec,setOpenSec] = useState<'advisor'|'banks'|'programs'|'guide'|'saved'|null>('advisor')
   const toggle = (id:'advisor'|'banks'|'programs'|'guide'|'saved')=>setOpenSec(s=>s===id?null:id)
-  // Προφίλ χρήστη: καθορίζει τι βλέπει ο καθένας — ιδιώτης ή επιχείρηση.
-  // Θυμόμαστε την επιλογή τοπικά, ώστε να μην ξαναρωτάμε τον ίδιο χρήστη.
-  const [profile,setProfile] = useState<'individual'|'business'>(()=>{
-    if(typeof window==='undefined')return 'individual'
-    return window.localStorage.getItem('loanProfile')==='business'?'business':'individual'
-  })
-  useEffect(()=>{ try{ window.localStorage.setItem('loanProfile',profile) }catch{} },[profile])
+  // Το προφίλ ακολουθεί την καθολική ρύθμιση της εφαρμογής (Ρυθμίσεις → τύπος
+  // προφίλ). ΜΙΑ πηγή αλήθειας — χωρίς διπλό διακόπτη μέσα στην καρτέλα.
+  const profile: 'individual'|'business' = profileType==='professional' ? 'business' : 'individual'
   const calcRef = useRef<HTMLDivElement>(null)
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   const [saved,setSaved] = useState<SavedLoan[]>([])
@@ -202,32 +198,20 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         </div>
       </div>
 
-      {/* ═══ ΠΡΟΦΙΛ ΧΡΗΣΤΗ — καθορίζει τι βλέπει ο καθένας ═══ */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:10}}>
-        {([
-          {id:'individual' as const, title:'Ιδιώτης', sub:'Πρώτη κατοικία, επένδυση, κρατικά προγράμματα',
-           icon:<><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></>},
-          {id:'business' as const, title:'Επαγγελματίας ή επιχείρηση', sub:'Φορολογική έκπτωση τόκων, ισολογισμοί, μόχλευση',
-           icon:<><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"/></>},
-        ]).map(p=>{
-          const active = profile===p.id
-          return (
-            <button key={p.id} onClick={()=>setProfile(p.id)} aria-pressed={active}
-              style={{display:'flex',alignItems:'center',gap:13,textAlign:'left',padding:'14px 16px',borderRadius:14,cursor:'pointer',
-                background:active?'var(--accent-dim)':'var(--bg-elevated)',
-                border:`1px solid ${active?'var(--border-accent)':'var(--border-subtle)'}`,
-                boxShadow:active?'0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent)':'none',transform:active?'translateY(-2px)':'none',transition:'transform 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s, border-color 0.2s, background 0.2s'}}>
-              <span style={{width:40,height:40,borderRadius:12,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',
-                background:active?'var(--accent)':'var(--bg-surface)',border:active?'none':'1px solid var(--border-subtle)'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active?'var(--accent-text)':'var(--text-secondary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p.icon}</svg>
-              </span>
-              <span style={{minWidth:0}}>
-                <span style={{display:'block',fontSize:14.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:active?'var(--accent)':'var(--text-primary)'}}>{p.title}</span>
-                <span style={{display:'block',fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",lineHeight:1.4}}>{p.sub}</span>
-              </span>
-            </button>
-          )
-        })}
+      {/* ═══ ΕΝΕΡΓΟ ΠΡΟΦΙΛ — ακολουθεί τις Ρυθμίσεις (μία πηγή αλήθειας) ═══ */}
+      <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
+        <span style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',background:'var(--accent-dim)',border:'1px solid var(--border-accent)'}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            {profile==='business'
+              ? <><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"/></>
+              : <><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></>}
+          </svg>
+        </span>
+        <div style={{minWidth:0,flex:1}}>
+          <p style={{fontSize:14,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{profile==='business'?'Προφίλ επαγγελματία ή επιχείρησης':'Προφίλ ιδιώτη'}</p>
+          <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:1,fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Φορολογική έκπτωση τόκων, ισολογισμοί, μόχλευση':'Πρώτη κατοικία, επένδυση, κρατικά προγράμματα'}</p>
+        </div>
+        <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>Αλλαγή στις Ρυθμίσεις</span>
       </div>
 
       {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ — πάντα ορατός στην κορυφή ═══ */}
@@ -664,7 +648,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                       {cs.rateType==='variable'
                         ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)}, αύξηση ${fmtEur(stressMonthly2-cs.monthly)}/μήνα.`
                         :bestBank&&savingVsBestBank>0
-                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
+                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.bank_name||bestBank.name}) → δόση ${fmtEur(bestBankMonthly)} → εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
                         :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένοι. Euribor 3M: ${fmtPct(market.euribor_3m)}.`
                       }
                     </p>
