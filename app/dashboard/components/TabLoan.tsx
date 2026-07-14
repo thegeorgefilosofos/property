@@ -14,7 +14,6 @@ import {
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
-import DocChecklist from './DocChecklist'
 import Glossary from './Glossary'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
@@ -101,6 +100,24 @@ function MiniSection({title,badges,meta,defaultOpen,order,children}:{title:strin
         </div>
       </button>
       {open&&<div style={{padding:'0 18px 18px'}}>{children}</div>}
+    </div>
+  )
+}
+
+// Ατομικά πτυσσόμενη σειρά — κλειστή δείχνει μόνο τον τίτλο με βέλος δεξιά·
+// με κλικ αποκαλύπτεται η περιγραφή και ο σύνδεσμος. Ήσυχη, ομοιόμορφη,
+// χωρίς γαλάζια διακόσμηση (το βέλος περιστρέφεται 180° στο άνοιγμα).
+function CatRow({title,desc,url,linkLabel,last}:{title:string;desc:string;url?:string|null;linkLabel:string;last?:boolean}) {
+  const [open,setOpen] = useState(false)
+  return (
+    <div style={{borderBottom:last?'none':'1px solid var(--border-subtle)'}}>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 2px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
+        <span style={{fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',minWidth:0}}>{title}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open&&(
+        <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif",padding:'0 2px 12px'}}>{desc}{url&&<> <a href={url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>{linkLabel}</a></>}</p>
+      )}
     </div>
   )
 }
@@ -586,7 +603,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     <tr key={bank.id||bank.bank_id} style={{borderBottom:'1px solid var(--border-subtle)'}}>
                       <td style={{padding:'9px 10px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{width:8,height:8,borderRadius:2,background:'var(--accent)',flexShrink:0}}/>
+                          <div style={{width:8,height:8,borderRadius:2,background:'var(--border-default)',flexShrink:0}}/>
                           <span style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{bank.bank_name||bank.name}</span>
                         </div>
                       </td>
@@ -752,8 +769,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
             {/* ── Insight της ημέρας ── */}
             {insight&&(
-              <div style={{display:'flex',alignItems:'flex-start',gap:11,padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--accent)',borderRadius:12}}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
+              <div style={{display:'flex',alignItems:'flex-start',gap:11,padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:12}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
                 <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{insight}</p>
               </div>
             )}
@@ -920,7 +937,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",marginBottom:4}}>Φορολογικά και νομικά</div>
                   <div style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{info.tax_note}</div>
                 </div>
-                <DocChecklist docs={info.docs} storageKey={`${propertyId}:${advType}`}/>
+                <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif",margin:0}}>Τα απαραίτητα δικαιολογητικά και η πρόοδός τους βρίσκονται στον Υπολογιστή, ενότητα «Πίνακας και έγγραφα».</p>
               </MiniSection>
             ); })()}
 
@@ -1112,7 +1129,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:18}}>
               {SERVICERS_GUIDE.rights.map(r=>(
                 <div key={r.t} style={{display:'flex',gap:12,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" style={{flexShrink:0,marginTop:2}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:2}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                   <div>
                     <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
                     <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.d}</p>
@@ -1177,12 +1194,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:'https://www.aade.gr'},
                 {title:'Δείκτης δανείου προς αξία πάνω από 80-90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
               ].map((item,i,a)=>(
-                <div key={item.title} style={{display:'flex',gap:12,padding:'11px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <p style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{item.title}</p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{item.desc}{item.url&&<> <a href={item.url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>έλεγχος</a></>}</p>
-                  </div>
-                </div>
+                <CatRow key={item.title} title={item.title} desc={item.desc} url={item.url} linkLabel="έλεγχος" last={i===a.length-1}/>
               ))}
             </div>
           </MiniSection>
@@ -1198,12 +1210,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
               ].map((cat,i,a)=>(
-                <div key={cat.title} style={{display:'flex',gap:12,padding:'11px 0',borderBottom:i<a.length-1?'1px solid var(--border-subtle)':'none'}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <p style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{cat.title}</p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{cat.desc} <a href={cat.url} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>περισσότερα</a></p>
-                  </div>
-                </div>
+                <CatRow key={cat.title} title={cat.title} desc={cat.desc} url={cat.url} linkLabel="περισσότερα" last={i===a.length-1}/>
               ))}
             </div>
           </MiniSection>
@@ -1232,7 +1239,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
           {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
           <MiniSection order={guideOrder.glossary} title="Γλωσσάρι όρων" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Πλήρες':'Βασικοί όροι'}</span>}>
-            <Glossary items={GLOSSARY.filter(g=>profile==='business'||g.level==='basic')}/>
+            <Glossary items={[...GLOSSARY.filter(g=>profile==='business'||g.level==='basic')].sort((a,b)=>a.term.localeCompare(b.term,'el'))}/>
             {profile!=='business'&&(
               <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
                 Περισσότεροι, πιο εξειδικευμένοι όροι εμφανίζονται στη λειτουργία «Επαγγελματίας», από τις Ρυθμίσεις.
