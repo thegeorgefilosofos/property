@@ -201,12 +201,19 @@ interface CustomSelectProps {
   disabled?: boolean;
 }
 
+let selectSeq = 0;
 export function CustomSelect({
   label, value, onChange, options, placeholder = 'Επιλογή...', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const optRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const idRef = useRef<string>('');
+  if (!idRef.current) idRef.current = `sel-${++selectSeq}`;
+  const listId = `${idRef.current}-list`;
   const selected = options.find(o => o.value === value);
 
   useEffect(() => {
@@ -217,11 +224,70 @@ export function CustomSelect({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Κράτα ορατή την επιλογή που «φωτίζεται» με το πληκτρολόγιο.
+  useEffect(() => {
+    if (open && activeIndex >= 0) optRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, open]);
+
+  const openList = (to?: number) => {
+    setOpen(true);
+    setActiveIndex(to ?? Math.max(0, options.findIndex(o => o.value === value)));
+  };
+  const close = () => { setOpen(false); triggerRef.current?.focus(); };
+  const selectAt = (i: number) => {
+    const opt = options[i];
+    if (!opt) return;
+    onChange(opt.value); setOpen(false); triggerRef.current?.focus();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (!open) openList(); else if (activeIndex >= 0) selectAt(activeIndex);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (!open) openList();
+        else setActiveIndex(i => Math.min(options.length - 1, i + 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (!open) openList(options.length - 1);
+        else setActiveIndex(i => Math.max(0, i - 1));
+        break;
+      case 'Home':
+        if (open) { e.preventDefault(); setActiveIndex(0); }
+        break;
+      case 'End':
+        if (open) { e.preventDefault(); setActiveIndex(options.length - 1); }
+        break;
+      case 'Escape':
+        if (open) { e.preventDefault(); close(); }
+        break;
+      case 'Tab':
+        if (open) setOpen(false);
+        break;
+    }
+  };
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase}>{label}</label>}
+      {label && <label style={mdLabelBase} id={`${idRef.current}-label`}>{label}</label>}
       <div
-        onClick={() => !disabled && setOpen(v => !v)}
+        ref={triggerRef}
+        role="combobox"
+        tabIndex={disabled ? -1 : 0}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-disabled={disabled || undefined}
+        aria-labelledby={label ? `${idRef.current}-label` : undefined}
+        aria-label={label ? undefined : (selected?.label || placeholder)}
+        onClick={() => !disabled && (open ? setOpen(false) : openList())}
+        onKeyDown={onKeyDown}
         style={{
           ...mdInputBase,
           display: 'flex',
@@ -249,12 +315,12 @@ export function CustomSelect({
             {selected?.label || placeholder}
           </span>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text-secondary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }} aria-hidden="true">
           <path d="M7 10l5 5 5-5z"/>
         </svg>
       </div>
       {open && (
-        <div style={{
+        <div role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
           position: 'absolute',
           top: 'calc(100% + 2px)',
           left: 0,
@@ -268,7 +334,7 @@ export function CustomSelect({
           overflowY: 'auto',
           padding: '6px',
         }}>
-          {options.map(opt => (
+          {options.map((opt, i) => (
             <Fragment key={opt.value}>
             {opt.header && (
               <div style={{
@@ -278,9 +344,12 @@ export function CustomSelect({
               }}>{opt.header}</div>
             )}
             <div
-              onMouseEnter={() => setHovered(opt.value)}
+              ref={el => { optRefs.current[i] = el; }}
+              role="option"
+              aria-selected={opt.value === value}
+              onMouseEnter={() => { setHovered(opt.value); setActiveIndex(i); }}
               onMouseLeave={() => setHovered(null)}
-              onClick={() => { onChange(opt.value); setOpen(false); }}
+              onClick={() => { onChange(opt.value); setOpen(false); triggerRef.current?.focus(); }}
               style={{
                 padding: '9px 12px',
                 borderRadius: 8,
@@ -292,7 +361,8 @@ export function CustomSelect({
                 fontSize: 14,
                 letterSpacing: 0,
                 color: opt.value === value ? 'var(--accent)' : 'var(--text-primary)',
-                background: opt.value === value ? 'var(--accent-dim)' : hovered === opt.value ? 'var(--bg-hover)' : 'transparent',
+                background: opt.value === value ? 'var(--accent-dim)' : (hovered === opt.value || activeIndex === i) ? 'var(--bg-hover)' : 'transparent',
+                outline: activeIndex === i && opt.value !== value ? '1px solid var(--border-accent)' : 'none',
                 transition: 'background 0.1s',
               }}
             >
@@ -305,7 +375,7 @@ export function CustomSelect({
                 )}
               </div>
               {opt.value === value && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
               )}
             </div>
             </Fragment>
@@ -386,7 +456,18 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
     <div ref={ref} style={{ position: 'relative' }}>
       {label && <label style={mdLabelBase}>{label}</label>}
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-disabled={disabled || undefined}
+        aria-label={`${label ? label + ': ' : ''}${value ? fmtDisplay(value) : placeholder}`}
         onClick={() => !disabled && setOpen(v => !v)}
+        onKeyDown={e => {
+          if (disabled) return;
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v); }
+          else if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false); }
+        }}
         style={{
           ...mdInputBase,
           display: 'flex',
@@ -403,7 +484,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, letterSpacing: 0, color: value ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
           {value ? fmtDisplay(value) : placeholder}
         </span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)" aria-hidden="true">
           <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
         </svg>
       </div>
@@ -421,18 +502,18 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           boxShadow: 'var(--shadow-lg)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
             </button>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '0.1px' }}>
               {MONTHS_GR[month]} {year}
             </span>
-            <button onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+            <button onClick={nextMonth} aria-label="Επόμενος μήνας" style={{ width: 32, height: 32, borderRadius: 16, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
@@ -451,6 +532,9 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
                 <button
                   key={day}
                   onClick={() => pick(day)}
+                  aria-label={new Date(iso).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  aria-current={isToday ? 'date' : undefined}
+                  aria-pressed={isSelected}
                   style={{
                     width: '100%', aspectRatio: '1',
                     borderRadius: '50%',
@@ -509,20 +593,27 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
   const thumbOff = size === 'sm' ? 12 : 16;
   const thumbOn  = size === 'sm' ? 16 : 24;
 
+  const text = on ? (label || 'Ναι') : (labelOff || label || 'Όχι');
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}>
-      <div
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, userSelect: 'none' }}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label || labelOff || 'Εναλλαγή'}
         onClick={() => onChange(!on)}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(!on); } }}
         style={{
           width: w, height: h, borderRadius: h,
           background: on ? 'var(--accent)' : 'transparent',
           border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
-          position: 'relative', flexShrink: 0,
+          position: 'relative', flexShrink: 0, padding: 0,
           transition: 'background 0.2s, border-color 0.2s',
           cursor: 'pointer',
         }}
       >
-        <div style={{
+        <span style={{
+          display: 'block',
           width: on ? thumbOn : thumbOff,
           height: on ? thumbOn : thumbOff,
           borderRadius: '50%',
@@ -534,13 +625,13 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
           transition: 'all 0.2s cubic-bezier(0.2,0,0,1)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }}/>
-      </div>
+      </button>
       {(label || labelOff) && (
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: on ? 'var(--positive)' : 'var(--text-secondary)', letterSpacing: '0.25px', transition: 'color 0.15s' }}>
-          {on ? (label || 'Ναι') : (labelOff || label || 'Όχι')}
+          {text}
         </span>
       )}
-    </label>
+    </span>
   );
 }
 
