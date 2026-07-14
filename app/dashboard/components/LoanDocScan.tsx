@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
-import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
+import { rankLoans, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { fmtEur, fmtPct } from './TabLoanData'
 
 // ── Σάρωση εγγράφου/φωτογραφίας δανειολήπτη → εξαγωγή πεδίων → πρόταση δανείου ──
@@ -114,7 +114,6 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
   } : null
 
   const ranked = needs ? rankLoans(needs, banks as any, euribor) : []
-  const spiti = needs ? spitiMouEligibility(needs) : null
   const best = ranked.find(r => r.eligible) || ranked[0]
 
   const applyToCalc = () => {
@@ -225,15 +224,6 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
             </div>
           ) : (
             <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: font }}>Δεν προέκυψαν αρκετά στοιχεία (ποσό ή αξία ακινήτου) για πρόταση. Δοκίμασε πιο πλήρες έγγραφο.</p>
-          )}
-
-          {spiti && needs && (
-            <div style={{ display: 'flex', gap: 12, padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${spiti.eligible ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: 10 }}>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: font, marginBottom: 3 }}>Σπίτι μου ΙΙ: {spiti.eligible ? 'πιθανώς επιλέξιμο' : 'μη επιλέξιμο'} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>· {Math.round(spiti.interestFreeShare * 100)}% άτοκο</span></p>
-                <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: font }}>{spiti.reasons.slice(0, 3).join(' · ')} — ενδεικτικό, επιβεβαίωσε στην πύλη.</p>
-              </div>
-            </div>
           )}
 
           {needs && (

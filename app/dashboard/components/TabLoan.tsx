@@ -39,11 +39,16 @@ const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   </div>
 )
 
+// Ομοιόμορφο πλακίδιο μετρικής: λευκή τιμή, γαλάζια μόνο στο hover· αρνητικές
+// τιμές κόκκινες. Ήπιο 3D στο πέρασμα του κέρσορα/δαχτύλου.
 function KPI({label,value,color,sub,title}:{label:string;value:string;color?:string;sub?:string;title?:string}) {
+  const [h,setH]=useState(false)
+  const isNeg = color==='var(--negative)'
   return (
-    <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'12px 14px'}}>
+    <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
+      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,padding:'12px 14px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
       <p title={title} style={{...labelStyle,marginBottom:6}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:color||'var(--text-primary)',fontWeight:700}}>{value}</p>
+      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:isNeg?'var(--negative)':h?'var(--accent)':'var(--text-primary)',fontWeight:700,transition:'color 0.15s'}}>{value}</p>
       {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
     </div>
   )
@@ -319,7 +324,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         const totalInterest = rows.reduce((s,r)=>s+r.ti,0)
         const blended = totalAmount>0 ? rows.reduce((s,r)=>s+r.l.amount*r.l.rate,0)/totalAmount : 0
         const tiles = [
-          { k:'Συνολικό υπόλοιπο', v:fmtEur(totalAmount), accent:true },
+          { k:'Συνολικό υπόλοιπο', v:fmtEur(totalAmount), accent:false },
           { k:'Συνολική δόση τον μήνα', v:fmtEur(totalMonthly), accent:false },
           { k:'Μέσο σταθμισμένο επιτόκιο', v:fmtPct(blended), accent:false },
           { k:'Συνολικοί τόκοι', v:fmtEur(totalInterest), accent:false },
@@ -414,8 +419,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         </div>
         <div style={{display:'flex',gap:28,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
           {[
-            {l:'Euribor 3M',v:market.euribor_3m},
-            {l:'Euribor 1M',v:market.euribor_1m},
+            {l:'Euribor τριμήνου',v:market.euribor_3m},
+            {l:'Euribor μηνός',v:market.euribor_1m},
             {l:'ΕΚΤ',v:market.ecb_rate},
             ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new}]:[]),
           ].map(item=>(
@@ -505,7 +510,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     {bank.spiti_mou&&<span style={{flexShrink:0,fontSize:9.5,padding:'2px 7px',borderRadius:10,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10,alignItems:'end'}}>
-                    {[['Σταθερό 5 ετών',fixed5==='—'?'—':`${fmtRateStr(fixed5)}%`],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',`${bank.max_ltv}%`]].map(([k,v])=>(
+                    {[['Σταθερό 5 ετών',fixed5==='—'?'—':`${fmtRateStr(fixed5)}%`],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',bank.max_ltv?`${bank.max_ltv}%`:'—']].map(([k,v])=>(
                       <div key={k} style={{minWidth:0}}>
                         <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:5,lineHeight:1.3,minHeight:24}}>{k}</p>
                         <p style={{fontSize:14.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</p>
@@ -549,7 +554,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   {[
                     {label:'Κυμαινόμενο περιθώριο',value:bank.variable_spread_min!==undefined?`+${fmtRateStr(bank.variable_spread_min)}–${fmtRateStr(bank.variable_spread_max)}%`:'—',sub:varRate?`≈ ${varRate} σήμερα`:null},
                     {label:'Εκτιμώμενη δόση',value:fmtEur(myM),sub:`${fmtEur(calcState.loanAmount||150000)} · ${calcState.years||25} έτη`},
-                    {label:'Μέγιστο δάνειο προς αξία',value:`${bank.max_ltv}%`,sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
+                    {label:'Μέγιστο δάνειο προς αξία',value:bank.max_ltv?`${bank.max_ltv}%`:'—',sub:bank.max_amount?`έως ${fmtEur(bank.max_amount)}`:null},
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
                   ].map(s=>(
                     <div key={s.label} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
@@ -588,7 +593,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         <td key={k} style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:(bank as any)[k]?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500}}>{(bank as any)[k]?`${fmtRateStr((bank as any)[k])}%`:'—'}</td>
                       ))}
                       <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)'}}>{bank.variable_spread_min!==undefined?`+${fmtRateStr(bank.variable_spread_min)}–${fmtRateStr(bank.variable_spread_max)}%`:'—'}</td>
-                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:'var(--text-primary)',fontWeight:500}}>{bank.max_ltv}%</td>
+                      <td style={{padding:'9px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontSize:12,color:bank.max_ltv?'var(--text-primary)':'var(--text-tertiary)',fontWeight:500}}>{bank.max_ltv?`${bank.max_ltv}%`:'—'}</td>
                       <td style={{padding:'9px 10px'}}>
                         {bank.spiti_mou
                           ?<span style={{fontSize:11,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Ναι</span>
@@ -899,8 +904,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,150px),1fr))',gap:10,marginBottom:14}}>
                   {[['Τυπικό επιτόκιο',info.typical_rate],['Τυπικό δάνειο προς αξία',`έως ${info.typical_ltv}%`]].map(([k,v])=>(
                     <div key={k as string} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
+                      <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginBottom:5}}>{k}</div>
                       <div style={{fontSize:16,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',letterSpacing:'-0.01em'}}>{v}</div>
-                      <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginTop:3}}>{k}</div>
                     </div>
                   ))}
                 </div>
