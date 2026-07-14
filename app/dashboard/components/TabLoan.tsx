@@ -8,7 +8,7 @@ import TabLoanCalculator from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms } from '../../hooks/useMarketData'
 import {
   BANKS_NORM, STATE_PROGRAMS as PROGRAMS_STATIC, BANKS_VERIFIED, RATES_DISCLAIMER,
-  LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY,
+  LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE,
   calcMonthly, fmtEur, fmtPct, fmtPct1,
   LoanType, RateType, BorrowerType, SavedLoan, MarketRates, MARKET_FALLBACK
 } from './TabLoanData'
@@ -774,7 +774,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       </Accordion>
 
       {/* ═══ ΟΔΗΓΟΣ ΚΑΙ ΔΙΑΔΙΚΑΣΙΑ (πτυσσόμενο) ═══ */}
-      <Accordion title="Οδηγός και διαδικασία" subtitle="Βήματα, απορρίψεις, ειδικές κατηγορίες, ιστορικό Euribor, γλωσσάρι" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
+      <Accordion title="Οδηγός και διαδικασία" subtitle="Βήματα, διαχειριστές (servicers) και κόκκινα δάνεια, απορρίψεις, ιστορικό Euribor, γλωσσάρι" open={openSec==='guide'} onToggle={()=>toggle('guide')}>
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <div style={cardStyle}>
@@ -807,6 +807,69 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* ── Διαχειριστές (servicers) & κόκκινα δάνεια ── */}
+          <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:16}}>
+            <SectionLabel label="Δάνεια σε διαχειριστές (servicers) και κόκκινα δάνεια"/>
+            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,fontFamily:"'Inter',sans-serif",marginBottom:16}}>{SERVICERS_GUIDE.intro}</p>
+
+            <p style={{...labelStyle,marginBottom:10}}>Τα δικαιώματά σου</p>
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:18}}>
+              {SERVICERS_GUIDE.rights.map(r=>(
+                <div key={r.t} style={{display:'flex',gap:12,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" style={{flexShrink:0,marginTop:2}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
+                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p style={{...labelStyle,marginBottom:10}}>Εργαλεία ρύθμισης και προστασίας</p>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:10,marginBottom:18}}>
+              {SERVICERS_GUIDE.tools.map(t=>(
+                <div key={t.name} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,display:'flex',flexDirection:'column'}}>
+                  <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:6}}>{t.name}</p>
+                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif",marginBottom:10}}>{t.d}</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:10}}>
+                    {t.facts.map((f,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'flex-start',gap:7}}>
+                        <span style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginTop:6}}/>
+                        <span style={{fontSize:11.5,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <a href={t.url} target="_blank" rel="noreferrer" style={{marginTop:'auto',fontSize:12,color:'var(--accent)',textDecoration:'none',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Επίσημη πηγή →</a>
+                </div>
+              ))}
+            </div>
+
+            <p style={{...labelStyle,marginBottom:10}}>Προσοχή στα ψιλά γράμματα</p>
+            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:16}}>
+              {SERVICERS_GUIDE.redFlags.map((f,i)=>(
+                <div key={i} style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:8}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:1}}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{f}</p>
+                </div>
+              ))}
+            </div>
+
+            <p style={{...labelStyle,marginBottom:8}}>Επίσημες πηγές</p>
+            <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:12}}>
+              {SERVICERS_GUIDE.sources.map(s=>(
+                <a key={s.url} href={s.url} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8,textDecoration:'none'}}
+                  onMouseEnter={e=>(e.currentTarget.style.background='var(--bg-elevated)')} onMouseLeave={e=>(e.currentTarget.style.background='var(--bg-surface)')}>
+                  <div>
+                    <p style={{fontSize:13,color:'var(--text-primary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>{s.label}</p>
+                    <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>{s.sub}</p>
+                  </div>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{flexShrink:0,marginLeft:12}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+              ))}
+            </div>
+            <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Ενημερωτικές πληροφορίες με βάση το ισχύον πλαίσιο (Ιούλιος 2026), όχι νομική ή χρηματοοικονομική συμβουλή. Για την περίπτωσή σου συμβουλέψου δικηγόρο ή πιστοποιημένο σύμβουλο αναδιάρθρωσης.</p>
           </div>
 
 
