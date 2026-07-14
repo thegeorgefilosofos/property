@@ -72,11 +72,12 @@ const card: React.CSSProperties = { position: 'relative', background: 'linear-gr
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
 
-// ── Επεξήγηση όρου (διακριτικό εικονίδιο· επαγγελματικός ορισμός στο hover) ───
-// Portal-based popover ώστε να μην «κόβεται» από scroll containers. Καθαρό, μονόχρωμο.
+// ── Επεξήγηση όρου (διακριτικό εικονίδιο· επαγγελματικός ορισμός) ─────────────
+// Προσβάσιμο: πραγματικό κουμπί (πληκτρολόγιο + αφή), ανοίγει σε hover, εστίαση ή άγγιγμα,
+// κλείνει σε Escape/έξοδο. Portal-based popover ώστε να μην «κόβεται» από scroll containers.
 function TermInfo({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false });
   const show = () => {
     const r = ref.current?.getBoundingClientRect();
@@ -87,14 +88,18 @@ function TermInfo({ text }: { text: string }) {
     setPos({ top: up ? r.top - 8 : r.bottom + 8, left, up });
     setOpen(true);
   };
+  const hide = () => setOpen(false);
   return (
     <>
-      <span ref={ref} onMouseEnter={show} onMouseLeave={() => setOpen(false)} aria-label="Επεξήγηση"
-        style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginLeft: 5, color: 'var(--text-tertiary)', cursor: 'help' }}>
+      <button ref={ref} type="button" aria-label="Επεξήγηση όρου" aria-expanded={open}
+        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
+        onKeyDown={(e) => { if (e.key === 'Escape') hide(); }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 5, padding: 0, width: 16, height: 16, border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help' }}>
         <Info size={12.5} />
-      </span>
+      </button>
       {open && typeof document !== 'undefined' && createPortal(
-        <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 280, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
+        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 280, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
           <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>{text}</p>
         </div>,
         document.body,
@@ -460,11 +465,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const adrEff = Number.isFinite(parseFloat(stAdr)) ? parseFloat(stAdr) : adrReference(stRef.adr, pSqm, pType);
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
-  const isHouseType = ['house', 'villa', 'maisonette'].includes((pType || '').toLowerCase());
+  // Το μεγάλο κλιμάκιο ΤΑΚΚ (μονοκατοικίες >80 τ.μ.) αφορά ΜΟΝΟ μονοκατοικίες/βίλες — όχι μεζονέτες.
+  const isHouseType = ['house', 'villa'].includes((pType || '').toLowerCase());
+  // Μερίδιο νυχτών σε υψηλή περίοδο: νησιά/τουριστικά συγκεντρώνουν τη ζήτηση στο καλοκαίρι.
+  const highSeasonShare = (reg?.tags || []).some(t => t === 'island' || t === 'tourist') ? 0.85 : 0.6;
   const st = useMemo(() => shortTermEstimate({
     occupancyPct: occEff, adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0,
-    platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, propertyCount: 1, individual: individualPerson,
-  }), [occEff, adrEff, stClean, stFee, pSqm, isHouseType, individualPerson]);
+    platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, highSeasonShare, propertyCount: 1, individual: individualPerson,
+  }), [occEff, adrEff, stClean, stFee, pSqm, isHouseType, highSeasonShare, individualPerson]);
 
   // Ενοποιημένα μεγέθη: το toggle μακροχρόνια/βραχυχρόνια αλλάζει πραγματικά τα έσοδα & κόστη.
   const grossAnnual = term === 'short' ? st.grossRevenue : nRent * 12;
@@ -488,6 +496,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   }, [grossAnnual, effOpex, pro, entity, term]);
 
   const y = useMemo(() => yields(monthlyEquiv, nVal, effOpex, annualTax), [monthlyEquiv, nVal, effOpex, annualTax]);
+  // Μη στρογγυλοποιημένη μεικτή απόδοση για τα εργαλεία μόχλευσης/IRR (ώστε NOI/DSCR/IRR να
+  // συμφωνούν ακριβώς με το ενοίκιο που έδωσε ο χρήστης, χωρίς σφάλμα στρογγυλοποίησης).
+  const grossYieldExact = nVal > 0 ? (grossAnnual / nVal) * 100 : 0;
   // Κρίση αγοράς: μακροχρόνια → μεικτή του ακινήτου vs μέσος αγοράς· βραχυχρόνια → μεικτή
   // βραχυχρόνιας vs τυπική βραχυχρόνια της περιοχής.
   const verdictLabel = term === 'short'
@@ -548,12 +559,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Εργαλεία (pro)
   const comp = useMemo(() => compound(nVal, parseFloat(compRate) || 0, parseInt(compYears), Math.max(0, Math.round(grossAnnual - effOpex - annualTax))), [nVal, compRate, compYears, grossAnnual, effOpex, annualTax]);
-  const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree]);
+  const lev: LeverageResult = useMemo(() => leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25, grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree]);
 
   // Χρηματοοικονομική ανάλυση αγοράς-κατοχής-πώλησης (IRR/NPV/DSCR), με τα ίδια στοιχεία.
   const deal = useMemo(() => dealAnalysis({
     price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: parseFloat(loanRate) || 0, loanYears: 25,
-    grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20,
+    grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20,
     interestFreePct: parseFloat(ifree) || 0, holdYears: parseInt(holdYears), rentGrowthPct: parseFloat(rentGrowth) || 0,
     appreciationPct: nAppr, sellCostsPct: 3, discountRatePct: parseFloat(discountRate) || 0,
   }), [nVal, ltv, loanRate, y.grossYield, effOpex, grossAnnual, ifree, holdYears, rentGrowth, nAppr, discountRate]);
@@ -568,7 +579,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       { key: 'good', label: 'Ευνοϊκό', note: 'επιτόκιο −1% · ανατίμηση +2%', appr: +2, rate: -1 },
     ];
     for (const d of defs) {
-      const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: 25, grossYieldPct: y.grossYield, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 });
+      const l = leverage({ price: nVal, ltvPct: parseFloat(ltv) || 0, loanRatePct: Math.max(0, (parseFloat(loanRate) || 0) + d.rate), loanYears: 25, grossYieldPct: grossYieldExact, opexPctOfRent: grossAnnual > 0 ? (effOpex / grossAnnual) * 100 : 20, interestFreePct: parseFloat(ifree) || 0 });
       rows.push({ key: d.key, label: d.label, note: d.note, totalReturn: clampReturn(propertyTotalReturn(y.netYield, nAppr + d.appr)), roe: l.cashOnCash, cashFlow: l.cashFlow });
     }
     return rows;
@@ -604,7 +615,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       <style>
         *{font-family:Inter,system-ui,Arial,sans-serif;box-sizing:border-box}
         body{margin:40px;color:#111}
-        .brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#2563eb}
+        .brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#111}
         h1{font-size:22px;margin:6px 0 2px}h2{font-size:14px;margin:26px 0 10px;color:#111;border-bottom:1px solid #e5e5e5;padding-bottom:6px}
         .sub{color:#666;font-size:12px;margin-bottom:22px}
         .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -724,7 +735,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
           <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)} sub={`φόρος ${fe(annualTax, 0)} τον χρόνο`} accent info={G.after_tax_yield} />
           {pro
-            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.positiveCarry ? 'θετική μόχλευση' : 'αρνητική μόχλευση'} info={G.cash_on_cash} />
+            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
             : term === 'short'
               ? <KPI label="Τυπική βραχυχρόνια απόδοση" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
               : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={G.region_ref} />}

@@ -41,7 +41,8 @@ export interface BankInput {
 
 export interface SpitiMouResult {
   eligible: boolean
-  interestFreeShare: number       // 0.5 κανονικά, 0.75 για τρίτεκνους (>=3 τέκνα)
+  interestFreeShare: number       // 0.5 για ΟΛΟΥΣ (άτοκο σκέλος από το Ταμείο Ανάκαμψης)
+  rateSubsidyShare: number        // επιδότηση επιτοκίου στο τραπεζικό σκέλος (0.5 για τρίτεκνους/πολύτεκνους, αλλιώς 0)
   reasons: string[]               // γιατί ΝΑΙ/ΟΧΙ (ελληνικά)
 }
 
@@ -70,11 +71,18 @@ export const SPITI_MOU = {
   maxLtv: 90,
   maxSqm: 150,
   maxYearBuilt: 2007,
-  // Ενδεικτικά εισοδηματικά όρια (διευρυμένα κριτήρια) ανά οικογενειακή κατάσταση.
-  incomeSingle: 20000,
+  minYears: 3,
+  maxYears: 30,
+  // Εισοδηματικά όρια (ΚΥΑ Νοεμβρίου 2025): άγαμος 25.000· έγγαμοι 35.000 +5.000/τέκνο·
+  // μονογονεϊκές 39.000. Ελάχιστο εισόδημα ~10.000 (δυνατότητα εξυπηρέτησης). Ενδεικτικά.
+  incomeSingle: 25000,
   incomeMarriedBase: 35000,
   incomePerChild: 5000,
   incomeSingleParentBase: 39000,
+  incomeMin: 10000,
+  // Προθεσμίες: αίτηση/υπαγωγή έως 31/05/2026 (έχει παρέλθει)· σύναψη σύμβασης έως 31/08/2026.
+  applicationDeadline: '2026-05-31',
+  contractDeadline: '2026-08-31',
 }
 
 // Τοκοχρεολύσιο: σταθερή μηνιαία δόση (annuity).
@@ -150,24 +158,34 @@ export function spitiMouEligibility(n: UserLoanNeeds): SpitiMouResult {
     eligible = false
     reasons.push(`Έτος κατασκευής ${n.propertyYearBuilt} > ${SPITI_MOU.maxYearBuilt}`)
   }
+  if (n.years != null && n.years > SPITI_MOU.maxYears) {
+    eligible = false
+    reasons.push(`Διάρκεια ${n.years} έτη > όριο ${SPITI_MOU.maxYears} έτη`)
+  }
   if (n.income != null) {
     const limit = spitiMouIncomeLimit(n.maritalStatus, n.children)
     if (n.income > limit) { eligible = false; reasons.push(`Εισόδημα ${Math.round(n.income)}€ > ενδεικτικό όριο ${limit}€`) }
-    else reasons.push(`Εισόδημα εντός ενδεικτικού ορίου ${limit}€`)
+    else if (n.income < SPITI_MOU.incomeMin) { eligible = false; reasons.push(`Εισόδημα ${Math.round(n.income)}€ < ελάχιστο ${SPITI_MOU.incomeMin}€`) }
+    else reasons.push(`Εισόδημα εντός ορίου (${SPITI_MOU.incomeMin}€–${limit}€)`)
   } else reasons.push('Εισόδημα: προς επιβεβαίωση')
 
-  const interestFreeShare = (n.children ?? 0) >= 3 ? 0.75 : 0.5
-  return { eligible, interestFreeShare, reasons }
+  // Το άτοκο σκέλος είναι 50% για ΟΛΟΥΣ. Οι τρίτεκνοι/πολύτεκνοι λαμβάνουν επιπλέον
+  // επιδότηση 50% στο επιτόκιο του τραπεζικού σκέλους (ΟΧΙ μεγαλύτερο άτοκο κεφάλαιο).
+  const interestFreeShare = 0.5
+  const rateSubsidyShare = (n.children ?? 0) >= 3 ? 0.5 : 0
+  return { eligible, interestFreeShare, rateSubsidyShare, reasons }
 }
 
 // Πραγματική μηνιαία δόση/τόκοι με «Σπίτι μου ΙΙ»: το άτοκο σκέλος έχει επιτόκιο 0%,
 // το έντοκο σκέλος επιτόκιο τράπεζας. Ίδια διάρκεια στα δύο σκέλη.
-export function spitiMouPayment(amount: number, bankRatePct: number, years: number, interestFreeShare: number) {
+export function spitiMouPayment(amount: number, bankRatePct: number, years: number, interestFreeShare: number, rateSubsidyShare = 0) {
   const freePart = amount * interestFreeShare
   const bankPart = amount - freePart
-  const monthly = annuityMonthly(freePart, 0, years) + annuityMonthly(bankPart, bankRatePct, years)
-  const interest = totalInterest(bankPart, bankRatePct, years)
-  const blendedRatePct = amount > 0 ? bankRatePct * (bankPart / amount) : 0
+  // Τρίτεκνοι/πολύτεκνοι: 50% επιδότηση στο επιτόκιο του τραπεζικού σκέλους.
+  const bankRate = bankRatePct * (1 - Math.max(0, Math.min(1, rateSubsidyShare)))
+  const monthly = annuityMonthly(freePart, 0, years) + annuityMonthly(bankPart, bankRate, years)
+  const interest = totalInterest(bankPart, bankRate, years)
+  const blendedRatePct = amount > 0 ? (bankRate * bankPart) / amount : 0
   return { monthly, interest, blendedRatePct }
 }
 
@@ -196,7 +214,7 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
 
     let monthlyPayment: number, interest: number, effectiveRatePct: number
     if (useSpiti) {
-      const s = spitiMouPayment(needs.amount, nominal, needs.years, spiti.interestFreeShare)
+      const s = spitiMouPayment(needs.amount, nominal, needs.years, spiti.interestFreeShare, spiti.rateSubsidyShare)
       monthlyPayment = s.monthly; interest = s.interest; effectiveRatePct = s.blendedRatePct
     } else {
       monthlyPayment = annuityMonthly(needs.amount, nominal, needs.years)
@@ -205,7 +223,7 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     }
 
     const whyBits: string[] = []
-    if (useSpiti) whyBits.push(`«Σπίτι μου ΙΙ» ${Math.round(spiti.interestFreeShare * 100)}% άτοκο`)
+    if (useSpiti) whyBits.push(`«Σπίτι μου ΙΙ» 50% άτοκο${spiti.rateSubsidyShare > 0 ? ' + επιδότηση επιτοκίου 50%' : ''}`)
     if (greenDisc > 0) whyBits.push(`πράσινη έκπτωση -${greenDisc}%`)
     whyBits.push(`επιτόκιο ${effectiveRatePct.toFixed(2)}%`)
 
