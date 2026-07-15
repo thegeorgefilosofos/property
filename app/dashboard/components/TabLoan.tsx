@@ -18,6 +18,7 @@ import Glossary from './Glossary'
 import SpitiMouPanel from './SpitiMouPanel'
 import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
+import { InfoDot } from './UIComponents'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -836,23 +837,23 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               {topRec && (
                 <div onMouseEnter={()=>setRecHover(true)} onMouseLeave={()=>setRecHover(false)}
                   onTouchStart={()=>setRecHover(true)} onTouchEnd={()=>setRecHover(false)}
-                  style={{position:'relative',overflow:'hidden',borderRadius:16,padding:'18px 20px',marginBottom:12,
+                  style={{position:'relative',overflow:'hidden',borderRadius:14,padding:'13px 16px',marginBottom:10,
                   background:'var(--bg-surface)',
                   border:`1px solid ${recHover?'var(--border-default)':'var(--border-subtle)'}`,
-                  boxShadow:recHover?'0 2px 4px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 12px 26px -14px color-mix(in srgb, var(--text-primary) 26%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent)',transition:'border-color 0.15s, box-shadow 0.15s'}}>
-                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+                  boxShadow:recHover?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent), 0 10px 22px -14px color-mix(in srgb, var(--text-primary) 22%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent)',transition:'border-color 0.15s, box-shadow 0.15s'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
                     <div style={{minWidth:0}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:6}}>
-                        <span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:'0.02em'}}>Καλύτερη επιλογή</span>
-                        {topRec.spitiMouApplied&&<span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
+                      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:5}}>
+                        <span style={{fontSize:9.5,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:'0.02em'}}>Καλύτερη επιλογή</span>
+                        {topRec.spitiMouApplied&&<span style={{fontSize:9.5,padding:'2px 8px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                       </div>
-                      <p style={{fontSize:19,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em',lineHeight:1.1}}>{topRec.bankName}</p>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',marginTop:5,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{topRec.eligible?topRec.why:topRec.blockers.join(' · ')}</p>
+                      <p style={{fontSize:16,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em',lineHeight:1.1}}>{topRec.bankName}</p>
+                      <p style={{fontSize:11.5,color:'var(--text-secondary)',marginTop:3,lineHeight:1.45,fontFamily:"'Inter',sans-serif"}}>{topRec.eligible?topRec.why:topRec.blockers.join(' · ')}</p>
                     </div>
                     <div style={{textAlign:'right' as const,flexShrink:0}}>
-                      <p style={{fontSize:30,fontWeight:700,color:recHover?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.03em',transition:'color 0.15s'}}>{fmtPct(topRec.effectiveRatePct)}</p>
-                      <p style={{fontSize:13,color:'var(--text-primary)',marginTop:8,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtEur(topRec.monthlyPayment)} τον μήνα</p>
-                      <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>Συνολικό κόστος {fmtEur(topRec.totalCost)}</p>
+                      <p style={{fontSize:23,fontWeight:700,color:recHover?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.03em',transition:'color 0.15s'}}>{fmtPct(topRec.effectiveRatePct)}</p>
+                      <p style={{fontSize:12.5,color:'var(--text-primary)',marginTop:5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtEur(topRec.monthlyPayment)} τον μήνα</p>
+                      <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>Σύνολο {fmtEur(topRec.totalCost)}</p>
                     </div>
                   </div>
                 </div>
@@ -872,18 +873,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                       <div key={r.bankId}
                         onMouseEnter={()=>setOtherHover(r.bankId)} onMouseLeave={()=>setOtherHover(null)}
                         onTouchStart={()=>setOtherHover(r.bankId)} onTouchEnd={()=>setOtherHover(null)}
-                        style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:10,opacity:r.eligible?1:0.55,transition:'border-color 0.15s'}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:2}}>
-                            <span style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>{r.bankName}</span>
-                            {r.spitiMouApplied&&<span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
-                          </div>
-                          <p style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{r.eligible?r.why:r.blockers.join(' · ')}</p>
-                        </div>
-                        <div style={{textAlign:'right' as const,flexShrink:0}}>
-                          <p style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s'}}>{fmtPct(r.effectiveRatePct)}</p>
-                          <p style={{fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:3}}>{fmtEur(r.monthlyPayment)} τον μήνα</p>
-                          <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',marginTop:1}}>Σύνολο {fmtEur(r.totalCost)}</p>
+                        style={{display:'flex',alignItems:'center',gap:9,padding:'9px 12px',background:'var(--bg-surface)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:10,opacity:r.eligible?1:0.6,transition:'border-color 0.15s'}}>
+                        <span style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{r.bankName}</span>
+                        {r.spitiMouApplied&&<span style={{flexShrink:0,fontSize:9.5,padding:'2px 7px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
+                        <InfoDot text={r.eligible?r.why:r.blockers.join(' · ')}/>
+                        <div style={{marginLeft:'auto',flexShrink:0,display:'flex',alignItems:'baseline',gap:10}}>
+                          <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap' as const}}>{fmtEur(r.monthlyPayment)}/μήνα</span>
+                          <span style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s'}}>{fmtPct(r.effectiveRatePct)}</span>
                         </div>
                       </div>
                       )

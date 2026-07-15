@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
-import { NumberInput, CustomSelect, Toggle } from './UIComponents'
+import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { analyzeEsis, esisVerdictLabel, type EsisVerdict, type FlagKind } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
@@ -41,10 +41,11 @@ const RATE_OPTIONS = [
   { value:'mixed', label:'Μεικτό' },
 ]
 
-const V_STYLE: Record<EsisVerdict,{c:string;bg:string;bd:string}> = {
-  good:      { c:'var(--accent)',    bg:'var(--accent-dim)',   bd:'var(--border-accent)' },
-  fair:      { c:'var(--text-primary)', bg:'var(--bg-surface)', bd:'var(--border-default)' },
-  expensive: { c:'var(--negative)',  bg:'var(--negative-dim)', bd:'var(--negative-border)' },
+// Ουδέτερο κουτί· χρώμα μόνο στην ετυμηγορία και τα κύρια νούμερα.
+const V_STYLE: Record<EsisVerdict,{c:string}> = {
+  good:      { c:'var(--accent)' },
+  fair:      { c:'var(--text-primary)' },
+  expensive: { c:'var(--negative)' },
 }
 const FLAG_STROKE: Record<FlagKind,string> = { info:'var(--text-secondary)', warn:'var(--text-secondary)', bad:'var(--negative)' }
 
@@ -161,8 +162,8 @@ export default function EsisScanPanel({
       </div>
       <Toggle on={prepay} onChange={setPrepay} label="Ρήτρα πρόωρης εξόφλησης"/>
 
-      {/* Ετυμηγορία */}
-      <div style={{background:vs.bg,border:`1px solid ${vs.bd}`,borderRadius:14,padding:'16px 18px'}}>
+      {/* Ετυμηγορία — ουδέτερο κουτί, χρώμα μόνο στην ετυμηγορία και το ΣΕΠΠΕ */}
+      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:14}}>
           <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:vs.c,letterSpacing:'-0.01em'}}>{esisVerdictLabel(res.verdict)}</p>
           {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${res.vsMarketPct} μονάδες vs αγορά`}</p>}
@@ -175,7 +176,7 @@ export default function EsisScanPanel({
             </div>
           ))}
         </div>
-        <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${vs.bd}`,display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
+        <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
           <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:font}}>Συνολικό κόστος πέραν κεφαλαίου</span>
           <span style={{fontSize:16,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(res.totalCost)}</span>
         </div>
@@ -185,18 +186,16 @@ export default function EsisScanPanel({
       {res.flags.length>0 && (
         <div>
           <p style={{...labelStyle,marginBottom:10}}>Τι να προσέξεις</p>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
             {res.flags.map((f,i)=>(
-              <div key={i} style={{display:'flex',gap:11,padding:'10px 13px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flexShrink:0,marginTop:2}} aria-hidden="true">
+              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                <span style={{flexShrink:0,display:'inline-flex'}} aria-hidden="true">
                   {f.kind==='info'
-                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE.info} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE[f.kind]} strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE.info} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE[f.kind]} strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
                 </span>
-                <div style={{minWidth:0}}>
-                  <p style={{fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',marginBottom:2}}>{f.label}</p>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:font}}>{f.detail}</p>
-                </div>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+                <InfoDot text={f.detail}/>
               </div>
             ))}
           </div>
