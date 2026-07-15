@@ -16,6 +16,7 @@ import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
 import Glossary from './Glossary'
 import SpitiMouPanel from './SpitiMouPanel'
+import ApprovalPanel from './ApprovalPanel'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -802,6 +803,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 />
               </MiniSection>
             )}
+
+            {/* ── Θα εγκριθώ; — διαδραστική εκτίμηση πιθανότητας έγκρισης ── */}
+            <MiniSection title="Θα εγκριθώ;" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>Εκτίμηση έγκρισης</span>}>
+              <ApprovalPanel
+                amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
+                incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
+                firstHomeDefault={advType==='first_home'} fmtEur={fmtEur}
+              />
+            </MiniSection>
 
             {/* ── Σύσταση καλύτερου δανείου — premium, πτυσσόμενη ── */}
             <MiniSection title="Σύσταση καλύτερου δανείου" defaultOpen meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>{fmtEur(LA)} / {Y} έτη</span>}>
