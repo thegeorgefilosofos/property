@@ -384,7 +384,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:3}}>
               <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Αύξηση</span>
-              <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{hi===0?'—':`+${fmt(diff)}`}</span>
+              <span style={{fontSize:12,color:'var(--text-primary)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',fontWeight:600,marginLeft:'auto'}}>{hi===0?'—':diff>=0?`+${fmt(diff)}`:`-${fmt(-diff)}`}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:14,paddingTop:5,marginTop:2,borderTop:'1px solid var(--border-subtle)'}}>
               <span style={{fontSize:11.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Δόση προς εισόδημα</span>
@@ -785,7 +785,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
 
       {/* Quick Presets — συμπτυσσόμενα, διακριτικά chips (όχι κουραστικές κάρτες) */}
-      <Section title="Γρήγορη συμπλήρωση" sub="Έτοιμα σενάρια — προαιρετικό ξεκίνημα">
+      <Section title="Γρήγορη συμπλήρωση" sub="Έτοιμα σενάρια, προαιρετικό ξεκίνημα">
         <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
           {PRESETS.map(p=>{
             const on = activePreset===p.id
@@ -907,7 +907,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             onMouseEnter={()=>setHoverKpi(i)} onMouseLeave={()=>setHoverKpi(null)}
             onTouchStart={()=>setHoverKpi(i)} onTouchEnd={()=>setHoverKpi(null)}
             style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
-            boxShadow:on?'0 2px 4px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 12px 26px -12px color-mix(in srgb, var(--text-primary) 28%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
+            boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
             <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
             <p style={{fontSize:29,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
             <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
@@ -1072,7 +1072,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   <div key={k}><p style={{fontSize:9,color:'var(--text-tertiary)',marginBottom:2,fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
                 ))}
               </div>
-              {item.pros.map((p,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--accent)',flexShrink:0,fontWeight:600}}>+</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{p}</p></div>)}
+              {item.pros.map((p,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--text-tertiary)',flexShrink:0,fontWeight:600}}>+</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{p}</p></div>)}
               {item.cons.map((c,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--text-tertiary)',flexShrink:0,fontWeight:600}}>−</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{c}</p></div>)}
             </div>
           ))}
@@ -1160,7 +1160,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               onMouseEnter={()=>setHoverCap(i)} onMouseLeave={()=>setHoverCap(null)}
               onTouchStart={()=>setHoverCap(i)} onTouchEnd={()=>setHoverCap(null)}
               style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
-              boxShadow:on?'0 2px 4px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 12px 26px -12px color-mix(in srgb, var(--text-primary) 28%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
+              boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
               <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
               <p style={{fontSize:26,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
               <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
@@ -1283,7 +1283,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <td style={{padding:'8px 10px',color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:i===0?600:400}}>{s.label}</td>
                 <td style={{padding:'8px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtPct(s.rate)}</td>
                 <td style={{padding:'8px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(s.monthly)}</td>
-                <td style={{padding:'8px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:i===0?'var(--text-tertiary)':'var(--text-secondary)'}}>{i===0?'—':`+${fmtEur(diff)}`}</td>
+                <td style={{padding:'8px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:i===0?'var(--text-tertiary)':'var(--text-secondary)'}}>{i===0?'—':diff>=0?`+${fmtEur(diff)}`:`-${fmtEur(-diff)}`}</td>
                 <td style={{padding:'8px 10px',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:dti>40?"var(--negative)":"var(--text-primary)",fontWeight:600}}>{fmtPct1(dti)}</td>
               </tr>
             })}
