@@ -523,7 +523,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10,alignItems:'end'}}>
                     {[['Σταθερό 5 ετών',fixed5==='—'?'—':`${fmtRateStr(fixed5)}%`],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',bank.max_ltv?`${bank.max_ltv}%`:'—']].map(([k,v])=>(
                       <div key={k} style={{minWidth:0}}>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:5,lineHeight:1.3,minHeight:24}}>{k}</p>
+                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:5,lineHeight:1.3,minHeight:24}}>{k}</p>
                         <p style={{fontSize:14.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:(!on&&hoverBank===key&&k==='Εκτίμηση δόσης')?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',transition:'color 0.15s'}}>{v}</p>
                       </div>
                     ))}
@@ -569,7 +569,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     {label:'Σπίτι μου ΙΙ',value:bank.spiti_mou?'Ναι':'Όχι',sub:bank.spiti_mou?'Συμμετέχει στο πρόγραμμα':'Δεν συμμετέχει'},
                   ].map(s=>(
                     <div key={s.label} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
-                      <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{s.label}</p>
+                      <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{s.label}</p>
                       <p style={{fontSize:18,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{s.value}</p>
                       {s.sub&&<p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{s.sub}</p>}
                     </div>
@@ -1216,7 +1216,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 {l:'Μείωση από το ανώτατο',v:`-${fmtPct(4.0-market.euribor_3m)}`,s:'από το 2023'},
               ].map(item=>(
                 <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.04em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
                   <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
                   <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{item.s}</p>
                 </div>
