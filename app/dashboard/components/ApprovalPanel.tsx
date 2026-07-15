@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { NumberInput, CustomSelect, Toggle } from './UIComponents'
+import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory, type ApprovalVerdict } from '@/lib/loans/approval'
 import type { BorrowerType } from './TabLoanData'
 
@@ -32,11 +32,13 @@ function defaultEmployment(b?: BorrowerType): EmploymentType {
   return 'employee_permanent'
 }
 
-const V_STYLE: Record<ApprovalVerdict,{c:string;bg:string;bd:string}> = {
-  high:    { c:'var(--accent)',    bg:'var(--accent-dim)',   bd:'var(--border-accent)' },
-  medium:  { c:'var(--text-primary)',  bg:'var(--bg-surface)',  bd:'var(--border-default)' },
-  low:     { c:'var(--text-secondary)', bg:'var(--bg-surface)', bd:'var(--border-default)' },
-  blocked: { c:'var(--negative)',  bg:'var(--negative-dim)', bd:'var(--negative-border)' },
+// Ουδέτερο κουτί· χρώμα (γαλάζιο θετικό / κόκκινο κινδύνου) ΜΟΝΟ στην ετυμηγορία
+// και τη μπάρα — όχι σε ολόκληρο το πλαίσιο.
+const V_STYLE: Record<ApprovalVerdict,{c:string}> = {
+  high:    { c:'var(--accent)' },
+  medium:  { c:'var(--text-primary)' },
+  low:     { c:'var(--text-secondary)' },
+  blocked: { c:'var(--negative)' },
 }
 
 export default function ApprovalPanel({
@@ -82,8 +84,8 @@ export default function ApprovalPanel({
         <Toggle on={guarantor} onChange={setGuarantor} label="Υπάρχει εγγυητής ή συνοφειλέτης"/>
       </div>
 
-      {/* Ετυμηγορία */}
-      <div style={{background:vs.bg,border:`1px solid ${vs.bd}`,borderRadius:14,padding:'16px 18px'}}>
+      {/* Ετυμηγορία — ουδέτερο κουτί, χρώμα μόνο στην ετυμηγορία και τη μπάρα */}
+      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:12}}>
           <p style={{fontSize:16,fontWeight:700,fontFamily:"'Inter',sans-serif",color:vs.c,letterSpacing:'-0.01em'}}>{verdictLabel(res.verdict)}</p>
           <p style={{fontSize:13,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
@@ -102,28 +104,23 @@ export default function ApprovalPanel({
         </div>
       </div>
 
-      {/* Παράγοντες */}
+      {/* Ανάλυση κριτηρίων — μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ */}
       <div>
         <p style={{...labelStyle,marginBottom:10}}>Ανάλυση κριτηρίων</p>
-        <div style={{display:'flex',flexDirection:'column',gap:6}}>
-          {res.factors.map((f,i)=>{
-            const col = f.kind==='block'?'var(--negative)':f.kind==='warn'?'var(--text-secondary)':'var(--text-secondary)'
-            return (
-              <div key={i} style={{display:'flex',gap:11,padding:'10px 13px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flexShrink:0,marginTop:2}} aria-hidden="true">
-                  {f.kind==='pass'
-                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    : f.kind==='warn'
-                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-                </span>
-                <div style={{minWidth:0}}>
-                  <p style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:f.kind==='block'?'var(--negative)':'var(--text-primary)',marginBottom:2}}>{f.label}</p>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{f.detail}</p>
-                </div>
-              </div>
-            )
-          })}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
+          {res.factors.map((f,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+              <span style={{flexShrink:0,display:'inline-flex'}} aria-hidden="true">
+                {f.kind==='pass'
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  : f.kind==='warn'
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+              </span>
+              <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:f.kind==='block'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+              <InfoDot text={f.detail}/>
+            </div>
+          ))}
         </div>
       </div>
 
