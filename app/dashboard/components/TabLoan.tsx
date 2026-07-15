@@ -460,13 +460,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   return (
     <div style={{fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',display:'flex',flexDirection:'column',gap:16}}>
 
-      {/* Header */}
-      <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:'18px 22px',display:'flex',alignItems:'center',gap:20,flexWrap:'wrap',boxShadow:'var(--shadow-sm)'}}>
-        <div>
-          <p style={{fontSize:18,color:'var(--text-primary)',fontWeight:640,fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em'}}>Στεγαστικό δάνειο</p>
-          <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>Ελληνική αγορά · δεδομένα ΕΚΤ και Τράπεζας Ελλάδος</p>
+      {/* Header — compact, premium, ήσυχο */}
+      <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'13px 18px',display:'flex',alignItems:'center',gap:18,flexWrap:'wrap',boxShadow:'var(--shadow-sm)'}}>
+        <div style={{minWidth:0}}>
+          <p style={{fontSize:15.5,color:'var(--text-primary)',fontWeight:640,fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em'}}>Στεγαστικό δάνειο</p>
+          <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:1,fontFamily:"'Inter',sans-serif"}}>Ελληνική αγορά · δεδομένα ΕΚΤ και Τράπεζας Ελλάδος</p>
         </div>
-        <div style={{display:'flex',gap:28,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
+        <div style={{display:'flex',gap:20,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
           {[
             {l:'Euribor τριμήνου',v:market.euribor_3m},
             {l:'Euribor μηνός',v:market.euribor_1m},
@@ -474,25 +474,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new}]:[]),
           ].map(item=>(
             <div key={item.l} style={{textAlign:'right' as const}}>
-              <p style={{fontSize:9.5,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{item.l}</p>
-              <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':'var(--text-primary)',fontWeight:700,marginTop:3,letterSpacing:'-0.01em'}}>
+              <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{item.l}</p>
+              <p style={{fontSize:15,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':'var(--text-primary)',fontWeight:700,marginTop:2,letterSpacing:'-0.01em'}}>
                 {market.isLoading?'…':fmtPct(item.v)}
               </p>
             </div>
           ))}
-          {(()=>{ const isLive = market.source_euribor==='ECB EMMI live' && !market.isStale; return (
-          <div style={{textAlign:'right' as const}}>
-            <div style={{display:'flex',alignItems:'center',gap:5,justifyContent:'flex-end'}}>
-              <span style={{width:6,height:6,borderRadius:'50%',background:isLive?'var(--accent)':'var(--text-tertiary)',display:'inline-block'}}/>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>
-                {isLive?`Ζωντανά (ΕΚΤ) · ${updStr}`:`Στοιχεία ${updStr}`}
-              </p>
-            </div>
-            <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:1,fontFamily:"'Inter',sans-serif"}}>
-              {isLive?'Πηγή: ECB EMMI':'Χωρίς ζωντανή σύνδεση · αποθηκευμένες τιμές'}
-            </p>
-          </div>
-          )})()}
         </div>
       </div>
 
