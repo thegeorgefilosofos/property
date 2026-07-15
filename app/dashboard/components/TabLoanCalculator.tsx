@@ -488,7 +488,6 @@ const AREA_OPTIONS = [
   {value:'other',label:'Άλλη περιοχή',description:''},
 ]
 
-interface CalcHistory {id:string;ts:string;loanType:LoanType;amount:number;rate:number;years:number;monthly:number}
 
 interface Props {
   propertyId:string;userId:string;market:MarketRates
@@ -558,16 +557,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [xferCost,    setXferCost]    = useState('2000')
   const [saving,      setSaving]      = useState(false)
   const [activePreset,setActivePreset]= useState<string|null>(null)
-  const [history,     setHistory]     = useState<CalcHistory[]>([])
   // Ομοιόμορφοι αριθμοί: όλα λευκά, γαλάζιο μόνο όταν περνά ο κέρσορας/δάχτυλο.
   const [hoverKpi,  setHoverKpi]  = useState<number|null>(null)
   const [hoverAct,  setHoverAct]  = useState<number|null>(null)
   const [hoverCap,  setHoverCap]  = useState<number|null>(null)
-  const [hoverHist, setHoverHist] = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
   const [hoverCost, setHoverCost] = useState<number|null>(null)
   const [toast,       setToast]       = useState<string|null>(null)
-  const historyTimer = useRef<any>(null)
   const toastTimer   = useRef<any>(null)
   function showToast(msg:string){setToast(msg);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(null),2500)}
 
@@ -674,10 +670,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   useMemo(()=>{
     onStateChange?.({loanType,borrowerType:borrower,loanAmount:LA,years:Y,rateType,effectiveRate:effRate,monthly,totalInterest:totalInt,propertyValue:PV,sqm:SQM,propType,area,incomeMonthly:INC,marital,children:Number(children)||0})
-    if(LA>0&&Y>0&&effRate>0){
-      if(historyTimer.current)clearTimeout(historyTimer.current)
-      historyTimer.current=setTimeout(()=>{setHistory(h=>[{id:Date.now().toString(),ts:new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),loanType,amount:LA,rate:effRate,years:Y,monthly},...h].slice(0,5))},800)
-    }
   },[loanType,borrower,LA,Y,rateType,effRate,monthly,totalInt,PV])
 
   const bankName = bankId==='custom'?customBank:BANKS.find(b=>b.id===bankId)?.name||''
@@ -689,7 +681,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   function updScen(id:string,f:string,v:any){setScenarios(s=>s.map(x=>x.id===id?{...x,[f]:v}:x))}
   function delScen(id:string){setScenarios(s=>s.filter(x=>x.id!==id))}
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
-  function applyHist(h:CalcHistory){setLoanAmount(String(h.amount));setRate(String(h.rate));setYears(String(h.years));setLoanType(h.loanType);setActivePreset(null)}
   async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
@@ -931,36 +922,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       </div>
 
       {/* History */}
-      {history.length>0&&(
-        <div style={cardStyle}>
-          <SectionLabel label="Ιστορικό υπολογισμών" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>Πάτησε για επαναφορά</span>}/>
-          <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:2,scrollbarWidth:'none' as any}}>
-            {history.map((h,i)=>{
-              const on=hoverHist===i
-              // «Έξυπνη» ένδειξη: διαφορά δόσης από τον προηγούμενο υπολογισμό.
-              const prev=history[i+1]
-              const delta=prev?Math.round(h.monthly-prev.monthly):0
-              return (
-              <button key={h.id} onClick={()=>applyHist(h)}
-                onMouseEnter={()=>setHoverHist(i)} onMouseLeave={()=>setHoverHist(null)}
-                onTouchStart={()=>setHoverHist(i)} onTouchEnd={()=>setHoverHist(null)}
-                style={{flexShrink:0,display:'flex',flexDirection:'column',gap:5,padding:'10px 13px',minWidth:150,textAlign:'left' as const,cursor:'pointer',
-                  background:'var(--bg-surface)',borderRadius:12,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
-                  border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderLeft:i===0?'2px solid var(--accent)':undefined,
-                  transform:on?'translateY(-1px)':'none',boxShadow:on?'0 4px 14px -6px color-mix(in srgb, var(--text-primary) 30%, transparent)':'none'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                  <span style={{fontSize:9,textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:700,color:i===0?'var(--accent)':'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{i===0?'Τελευταίο':h.ts}</span>
-                  {delta!==0&&<span style={{fontSize:10,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:600,color:'var(--text-tertiary)'}}>{delta>0?'▲':'▼'} {fmtEur(Math.abs(delta))}</span>}
-                </div>
-                <p style={{fontSize:15,color:on?'var(--accent)':'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,transition:'color 0.15s'}}>{fmtEur(h.monthly)}<span style={{fontSize:10,fontWeight:500,color:'var(--text-tertiary)'}}> τον μήνα</span></p>
-                <p style={{fontSize:10.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{fmtEur(h.amount)} · {fmtPct(h.rate)} · {h.years} έτη</p>
-              </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Scenarios */}
       {scenarios.length>0&&(
         <div style={cardStyle}>
