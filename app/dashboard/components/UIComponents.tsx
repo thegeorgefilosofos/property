@@ -271,16 +271,8 @@ export function CustomSelect({
     if (open && activeIndex >= 0) optRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
 
-  // Αποφάσισε κατεύθυνση ανοίγματος με βάση τον διαθέσιμο χώρο.
-  useEffect(() => {
-    if (!open) return;
-    const el = triggerRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const below = window.innerHeight - r.bottom;
-    const needed = Math.min(264, options.length * 42 + 12) + 10;
-    setDropUp(below < needed && r.top > below);
-  }, [open, options.length]);
+  // Πάντα άνοιγμα προς τα κάτω — σταθερή, προβλέψιμη συμπεριφορά σε όλη την εφαρμογή.
+  useEffect(() => { setDropUp(false); }, [open, options.length]);
 
   const openList = (to?: number) => {
     setOpen(true);
@@ -469,10 +461,10 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   const reposition = () => {
     if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    const PANEL_H = 348, PANEL_W = 280;
-    const openUp = r.bottom + PANEL_H + 8 > window.innerHeight && r.top - PANEL_H - 8 > 0;
+    const PANEL_W = 280;
+    // Πάντα προς τα κάτω — σταθερή συμπεριφορά σε όλη την εφαρμογή.
     const left = Math.min(r.left, window.innerWidth - PANEL_W - 8);
-    setCoords({ top: openUp ? r.top - PANEL_H - 4 : r.bottom + 4, left: Math.max(8, left) });
+    setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
   };
 
   useEffect(() => {

@@ -876,13 +876,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                       <div key={r.bankId}
                         onMouseEnter={()=>setOtherHover(r.bankId)} onMouseLeave={()=>setOtherHover(null)}
                         onTouchStart={()=>setOtherHover(r.bankId)} onTouchEnd={()=>setOtherHover(null)}
-                        style={{display:'flex',alignItems:'center',gap:9,padding:'9px 12px',background:'var(--bg-surface)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:10,opacity:r.eligible?1:0.6,transition:'border-color 0.15s'}}>
-                        <span style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{r.bankName}</span>
+                        style={{display:'flex',alignItems:'center',gap:9,padding:'10px 13px',background:'var(--bg-surface)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:10,opacity:r.eligible?1:0.6,transition:'border-color 0.15s'}}>
+                        <span style={{fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{r.bankName||'Τράπεζα'}</span>
                         {r.spitiMouApplied&&<span style={{flexShrink:0,fontSize:9.5,padding:'2px 7px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
-                        <InfoDot text={r.eligible?r.why:r.blockers.join(' · ')}/>
-                        <div style={{marginLeft:'auto',flexShrink:0,display:'flex',alignItems:'baseline',gap:10}}>
-                          <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap' as const}}>{fmtEur(r.monthlyPayment)}/μήνα</span>
-                          <span style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s'}}>{fmtPct(r.effectiveRatePct)}</span>
+                        <div style={{marginLeft:'auto',flexShrink:0,display:'flex',alignItems:'baseline',gap:12}}>
+                          <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap' as const}}>{fmtEur(r.monthlyPayment)}/μήνα</span>
+                          <span style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s',minWidth:52,textAlign:'right' as const}}>{fmtPct(r.effectiveRatePct)}</span>
+                          <InfoDot text={r.eligible?r.why:r.blockers.join(' · ')}/>
                         </div>
                       </div>
                       )
