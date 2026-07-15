@@ -88,7 +88,7 @@ export default function ApprovalPanel({
           <p style={{fontSize:16,fontWeight:700,fontFamily:"'Inter',sans-serif",color:vs.c,letterSpacing:'-0.01em'}}>{verdictLabel(res.verdict)}</p>
           <p style={{fontSize:13,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
         </div>
-        <div style={{height:6,borderRadius:3,background:'color-mix(in srgb, var(--text-primary) 8%, transparent)',overflow:'hidden'}}>
+        <div role="progressbar" aria-valuenow={res.score} aria-valuemin={0} aria-valuemax={100} aria-label={`Βαθμολογία έγκρισης ${res.score} στα 100`} style={{height:6,borderRadius:3,background:'color-mix(in srgb, var(--text-primary) 8%, transparent)',overflow:'hidden'}}>
           <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:vs.c,transition:'width 0.3s'}}/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
