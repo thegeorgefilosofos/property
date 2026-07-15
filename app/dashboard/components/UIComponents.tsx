@@ -39,6 +39,41 @@ const mdLabelBase: React.CSSProperties = {
   marginBottom: 7,
 };
 
+// ── InfoDot: διακριτικό εικονίδιο «i» με tooltip στο πέρασμα του κέρσορα/δαχτύλου.
+// Κρύβει επεξηγήσεις/σημειώσεις πίσω από σύμβολο, ώστε τα πεδία να μένουν καθαρά
+// και μαζεμένα (όχι «σούπερ μάρκετ» με μόνιμα κατεβατά). Portal → δεν κόβεται.
+export function InfoDot({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false });
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r || typeof window === 'undefined') return;
+    const W = 260;
+    const left = Math.min(Math.max(8, r.left - 2), window.innerWidth - W - 8);
+    const up = r.bottom + 120 > window.innerHeight;
+    setPos({ top: up ? r.top - 8 : r.bottom + 8, left, up });
+    setOpen(true);
+  };
+  const hide = () => setOpen(false);
+  return (
+    <>
+      <button ref={ref} type="button" aria-label="Επεξήγηση"
+        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 6, padding: 0, width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
+      </button>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
+          <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.55 }}>{text}</p>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
@@ -196,6 +231,7 @@ interface SelectOption {
 
 interface CustomSelectProps {
   label?: string;
+  labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
   options: SelectOption[];
@@ -204,7 +240,7 @@ interface CustomSelectProps {
 }
 
 export function CustomSelect({
-  label, value, onChange, options, placeholder = 'Επιλογή…', disabled,
+  label, labelInfo, value, onChange, options, placeholder = 'Επιλογή…', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -292,7 +328,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase} id={`${idRef.current}-label`}>{label}</label>}
+      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }} id={`${idRef.current}-label`}>{label}{labelInfo}</label>}
       <div
         ref={triggerRef}
         role="combobox"
