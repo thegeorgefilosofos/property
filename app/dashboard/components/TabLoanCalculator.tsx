@@ -652,9 +652,17 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const typicalVarSpread = 1.5
   const variableRate = market.euribor_3m + (rateType==='variable'?R:typicalVarSpread)
   const varMonthly  = calcMonthly(LA,variableRate,Y)
+  // Γνήσια σύγκριση σταθερού/κυμαινόμενου: σε λειτουργία «κυμαινόμενου» το effRate
+  // ΕΙΝΑΙ ήδη Euribor+περιθώριο, άρα ταυτίζεται με το variableRate και η σύγκριση
+  // εκφυλίζεται· χρησιμοποιούμε αντιπροσωπευτικό σταθερό της αγοράς ως αναφορά.
+  const bankFixedMins = BANKS.map((b:any)=>Number(b.fixed_min)).filter((x:number)=>x>0)
+  const fixedRefRate = rateType==='variable' && bankFixedMins.length ? Math.min(...bankFixedMins) : effRate
+  const fixedRefMonthly = calcMonthly(LA,fixedRefRate,Y)
+  const varShownRate = rateType==='variable' ? effRate : variableRate
+  const varShownMonthly = rateType==='variable' ? monthly : varMonthly
   // Σωρευτικοί τόκοι με πραγματική τοκοχρεολυτική απόσβεση (όχι γραμμική αναλογία κεφαλαίου).
   const cumInterest = (ratePct:number,uptoYear:number)=>{const m=calcMonthly(LA,ratePct,Y);const rr=ratePct/100/12;let bal=LA,sum=0;for(let k=1;k<=uptoYear*12&&bal>0;k++){const i=rr===0?0:bal*rr;sum+=i;bal-=(m-i)}return Math.round(sum)}
-  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr} έτη`,Σταθερό:cumInterest(effRate,yr),Κυμαινόμενο:cumInterest(variableRate,yr)}))},[effRate,variableRate,LA,Y])
+  const fvChartData = useMemo(()=>{const pts=[3,5,7,10,15,20,25,30].filter(y=>y<=Y);return pts.map(yr=>({year:`${yr} έτη`,Σταθερό:cumInterest(fixedRefRate,yr),Κυμαινόμενο:cumInterest(varShownRate,yr)}))},[fixedRefRate,varShownRate,LA,Y])
   const scenChart = useMemo(()=>scenarios.map(s=>({name:s.label,Τόκοι:Math.round(calcMonthly(s.amount,s.rate,s.years)*s.years*12-s.amount)})),[scenarios])
 
   const extraSav = useMemo(()=>{
@@ -869,7 +877,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               {rateType==='variable'&&(
                 <div style={{marginTop:7,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
                   <p style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}><span title="Διατραπεζικό επιτόκιο ευρώ — βάση κυμαινόμενων δανείων">Euribor</span> {fmtPct(market.euribor_3m)} + {fmtPct(R)} = <strong>{fmtPct(effRate)}</strong></p>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>Αυτόματη ενημέρωση από ECB κάθε πρωί</p>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>Αυτόματη ενημέρωση από την ΕΚΤ κάθε πρωί</p>
                 </div>
               )}
             </div>
@@ -1054,8 +1062,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <Section title="Σταθερό ή κυμαινόμενο επιτόκιο" sub="Ανάλυση κόστους σε πραγματικό χρόνο" badge="Ζωντανά" defaultOpen>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
-            {label:'Σταθερό επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
-            {label:'Κυμαινόμενο επιτόκιο',rate:variableRate,m:varMonthly,pros:[varMonthly<monthly?'Σήμερα χαμηλότερη δόση από το σταθερό':'Χαμηλότερη δόση αν υποχωρήσει το Euribor','Ωφελείσαι αν πέσει το Euribor','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
+            {label:'Σταθερό επιτόκιο',rate:fixedRefRate,m:fixedRefMonthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν το Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
+            {label:'Κυμαινόμενο επιτόκιο',rate:varShownRate,m:varShownMonthly,pros:[varShownMonthly<fixedRefMonthly?'Σήμερα χαμηλότερη δόση από το σταθερό':'Χαμηλότερη δόση αν υποχωρήσει το Euribor','Ωφελείσαι αν πέσει το Euribor','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>{item.label}</p>
@@ -1071,9 +1079,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         </div>
         <div style={{padding:'10px 13px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:10,marginBottom:14}}>
           <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
-            {varMonthly<monthly
-              ? `Σήμερα το κυμαινόμενο έχει χαμηλότερη δόση κατά ${fmtEur(monthly-varMonthly)} τον μήνα, όμως η δόση μεταβάλλεται με το Euribor.`
-              : `Σήμερα το σταθερό έχει χαμηλότερη δόση κατά ${fmtEur(varMonthly-monthly)} τον μήνα και εξασφαλίζει σταθερότητα σε όλη τη διάρκεια.`}
+            {varShownMonthly<fixedRefMonthly
+              ? `Σήμερα το κυμαινόμενο έχει χαμηλότερη δόση κατά ${fmtEur(fixedRefMonthly-varShownMonthly)} τον μήνα, όμως η δόση μεταβάλλεται με το Euribor.`
+              : varShownMonthly>fixedRefMonthly
+              ? `Σήμερα το σταθερό έχει χαμηλότερη δόση κατά ${fmtEur(varShownMonthly-fixedRefMonthly)} τον μήνα και εξασφαλίζει σταθερότητα σε όλη τη διάρκεια.`
+              : 'Σήμερα οι δύο επιλογές έχουν παρόμοια δόση· το σταθερό προσφέρει σταθερότητα, το κυμαινόμενο ευελιξία.'}
           </p>
         </div>
         <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί τόκοι στη διάρκεια</p>
@@ -1388,8 +1398,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:8,marginBottom:14}}>
           {[
             {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας',hi:false},
-            {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή κλίμακα',hi:false},
-            {label:'Κτηματολόγιο και εγγραφή',value:fmtEur(totalCosts.landReg),sub:'0,475‰ δανείου',hi:false},
+            {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή αμοιβή',hi:false},
+            {label:'Κτηματολόγιο και εγγραφή',value:fmtEur(totalCosts.landReg),sub:'0,475% επί αξίας',hi:false},
             {label:'Δικηγόρος ελέγχου τίτλων',value:fmtEur(totalCosts.legal),sub:'Έλεγχος + παρουσία',hi:false},
             {label:'Αμοιβή μεσίτη',value:hasAgent?fmtEur(AGNT):'—',sub:hasAgent?`${agentPct}%`:'Ανενεργό',hi:false},
             {label:'Λοιπά',value:fmtEur(totalCosts.other),sub:'Φόρος ενεγγύησης',hi:false},
