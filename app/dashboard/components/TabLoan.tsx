@@ -17,6 +17,7 @@ import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
 import Glossary from './Glossary'
 import SpitiMouPanel from './SpitiMouPanel'
 import ApprovalPanel from './ApprovalPanel'
+import EsisScanPanel from './EsisScanPanel'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -810,6 +811,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
                 incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
                 firstHomeDefault={advType==='first_home'} fmtEur={fmtEur}
+              />
+            </MiniSection>
+
+            {/* ── Σαρωτής προσφοράς ESIS — αποκάλυψη πραγματικού κόστους ── */}
+            <MiniSection title="Σαρωτής προσφοράς ESIS" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>ΣΕΠΠΕ και κρυφά έξοδα</span>}>
+              <EsisScanPanel
+                defaultAmount={LA} defaultYears={Y}
+                benchmarkAprc={topRec?Math.round((topRec.effectiveRatePct+0.3)*100)/100:undefined}
+                fmtEur={fmtEur}
               />
             </MiniSection>
 
