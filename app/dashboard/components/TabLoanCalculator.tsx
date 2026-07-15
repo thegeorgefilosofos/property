@@ -1400,13 +1400,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div key={item.label}
               onMouseEnter={()=>setHoverCost(i)} onMouseLeave={()=>setHoverCost(null)}
               onTouchStart={()=>setHoverCost(i)} onTouchEnd={()=>setHoverCost(null)}
-              style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'13px 14px',borderRadius:12,background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderLeft:item.primary?'3px solid var(--accent)':undefined,transition:'border-color 0.15s, box-shadow 0.15s',
-              boxShadow:on?'0 2px 4px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 12px 26px -12px color-mix(in srgb, var(--text-primary) 28%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 8%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--text-primary) 22%, transparent)'}}>
+              style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderLeft:item.primary?'2px solid var(--accent)':undefined,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
+              boxShadow:on?'0 4px 14px -6px color-mix(in srgb, var(--text-primary) 26%, transparent)':'none'}}>
               <div style={{minWidth:0}}>
-                <p style={{fontSize:13,color:'var(--text-primary)',fontWeight:item.hi?600:500,fontFamily:"'Inter',sans-serif"}}>{item.label}</p>
+                <p style={{fontSize:12.5,color:'var(--text-primary)',fontWeight:item.hi?600:500,fontFamily:"'Inter',sans-serif"}}>{item.label}</p>
                 <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>{item.sub}</p>
               </div>
-              <span style={{fontSize:13.5,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:item.hi?700:600,marginLeft:12,whiteSpace:'nowrap' as const,transition:'color 0.15s'}}>{item.value}</span>
+              <span style={{fontSize:13,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:item.hi?700:600,marginLeft:10,whiteSpace:'nowrap' as const,transition:'color 0.15s'}}>{item.value}</span>
             </div>
             )
           })}
