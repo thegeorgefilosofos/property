@@ -15,6 +15,7 @@ import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
 import Glossary from './Glossary'
+import SpitiMouPanel from './SpitiMouPanel'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -180,6 +181,7 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
 interface CalcState {
   loanType:LoanType;borrowerType:BorrowerType;loanAmount:number;years:number
   rateType:RateType;effectiveRate:number;monthly:number;totalInterest:number;propertyValue:number
+  sqm?:number;incomeMonthly?:number;marital?:'single'|'married'|'single_parent';children?:number
 }
 
 export default function TabLoan({propertyId,userId,propertyValue,propertyRent,propertySqm,propertyYearBuilt,profileType='individual'}:{propertyId:string;userId:string;propertyValue?:number;propertyRent?:number;propertySqm?:number;propertyYearBuilt?:number;profileType?:'individual'|'professional'}) {
@@ -763,6 +765,18 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/></svg>
                 <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{insight}</p>
               </div>
+            )}
+
+            {/* ── Σπίτι μου ΙΙ, για σένα — όταν αφορά (πρώτη κατοικία ή νέος/οικογένεια) ── */}
+            {(advType==='first_home'||advBorr==='young'||advBorr==='family') && (
+              <MiniSection title="Σπίτι μου ΙΙ, για σένα" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>50% άτοκο</span>}>
+                <SpitiMouPanel
+                  amount={LA} propertyValue={cs.propertyValue} years={Y} bankRatePct={cs.effectiveRate}
+                  incomeMonthly={calcState.incomeMonthly} marital={calcState.marital} children={calcState.children}
+                  sqm={calcState.sqm ?? propertySqm} yearBuilt={propertyYearBuilt}
+                  banks={BANKS} euribor={euribor} fmtEur={fmtEur} fmtPct={fmtPct} onOpenCalculator={scrollToCalc}
+                />
+              </MiniSection>
             )}
 
             {/* ── Σύσταση καλύτερου δανείου — premium, πτυσσόμενη ── */}
