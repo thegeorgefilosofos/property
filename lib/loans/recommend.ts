@@ -29,6 +29,8 @@ export interface UserLoanNeeds {
 export interface BankInput {
   id: string
   name: string
+  bank_id?: string                // εναλλακτικό όνομα πεδίου από τον πίνακα bank_rates (live)
+  bank_name?: string              // εναλλακτικό όνομα πεδίου από τον πίνακα bank_rates (live)
   fixed_min: number               // χαμηλότερο σταθερό επιτόκιο (%)
   variable_spread_min: number     // ελάχιστο spread πάνω από Euribor (%)
   max_ltv: number                 // μέγιστο LTV (%)
@@ -228,8 +230,8 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     whyBits.push(`επιτόκιο ${effectiveRatePct.toFixed(2)}%`)
 
     return {
-      bankId: bank.id,
-      bankName: bank.name,
+      bankId: bank.id ?? bank.bank_id ?? '',
+      bankName: bank.name ?? bank.bank_name ?? '',
       rateType,
       nominalRatePct: Number(nominal.toFixed(2)),
       effectiveRatePct: Number(effectiveRatePct.toFixed(2)),

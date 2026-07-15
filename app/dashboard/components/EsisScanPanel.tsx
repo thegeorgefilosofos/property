@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { analyzeEsis, esisVerdictLabel, type EsisVerdict, type FlagKind } from '@/lib/loans/esis'
+import { analyzeEsis, esisVerdictLabel, type EsisVerdict } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
 // νούμερα) και αποκαλύπτεται το πραγματικό κόστος: ΣΕΠΠΕ έναντι ονομαστικού,
@@ -47,7 +47,6 @@ const V_STYLE: Record<EsisVerdict,{c:string}> = {
   fair:      { c:'var(--text-primary)' },
   expensive: { c:'var(--negative)' },
 }
-const FLAG_STROKE: Record<FlagKind,string> = { info:'var(--text-secondary)', warn:'var(--text-secondary)', bad:'var(--negative)' }
 
 export default function EsisScanPanel({
   defaultAmount, defaultYears, benchmarkAprc, fmtEur,
@@ -133,8 +132,8 @@ export default function EsisScanPanel({
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={e=>{ const f=e.target.files?.[0]; if(f) loadFile(f); e.currentTarget.value='' }}/>
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-        <p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55,maxWidth:420}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
+        <p style={{flex:1,minWidth:240,fontSize:12.5,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
         <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 15px',height:38,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily:font,fontWeight:600,cursor:scanning?'wait':'pointer',flexShrink:0}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
           {scanning?'Ανάλυση…':'Ανέβασε προσφορά'}
@@ -189,11 +188,6 @@ export default function EsisScanPanel({
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
             {res.flags.map((f,i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flexShrink:0,display:'inline-flex'}} aria-hidden="true">
-                  {f.kind==='info'
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE.info} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE[f.kind]} strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-                </span>
                 <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
                 <InfoDot text={f.detail}/>
               </div>
