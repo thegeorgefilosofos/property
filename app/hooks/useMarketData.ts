@@ -159,6 +159,36 @@ export function useBankRates() {
   return { banks, loading, verifiedAt }
 }
 
+// Ελέγχει αν ο συνδεδεμένος χρήστης ανήκει στη λίστα διαχειριστών (app_admins).
+// Η ίδια λίστα ελέγχεται και από την πολιτική RLS του bank_rates, ώστε UI και
+// βάση να συμφωνούν από μία και μόνη πηγή αλήθειας — χωρίς email στον κώδικα.
+export function useIsAdmin() {
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [checked, setChecked] = useState(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function check() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        const email = user?.email
+        if (email) {
+          const { data } = await supabase
+            .from('app_admins')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle()
+          setIsAdmin(!!data)
+        }
+      } catch {}
+      setChecked(true)
+    }
+    check()
+  }, [])
+
+  return { isAdmin, checked }
+}
+
 export function useLoanPrograms() {
   const [programs, setPrograms] = useState<LiveProgram[]>([])
   const [loading, setLoading] = useState(true)

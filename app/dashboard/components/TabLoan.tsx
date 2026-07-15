@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ExportButton } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDec, csvDate } from './exportCsv'
 import TabLoanCalculator from './TabLoanCalculator'
-import { useMarketRates, useBankRates, useLoanPrograms } from '../../hooks/useMarketData'
+import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
 import {
   BANKS_NORM, STATE_PROGRAMS as PROGRAMS_STATIC, BANKS_VERIFIED, RATES_DISCLAIMER,
   LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE,
@@ -18,6 +18,7 @@ import Glossary from './Glossary'
 import SpitiMouPanel from './SpitiMouPanel'
 import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
+import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
 
 // ── MD3 design tokens ──────────────────────────────────────────────────────────
@@ -259,6 +260,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const market      = useMarketRates()
   const {banks:liveBanks,loading:banksLoading,verifiedAt} = useBankRates()
   const {programs:livePrograms,loading:programsLoading}   = useLoanPrograms()
+  const {isAdmin} = useIsAdmin()
 
   const BANKS    = liveBanks.length    ? liveBanks    : BANKS_NORM
   const PROGRAMS = livePrograms.length ? livePrograms : PROGRAMS_STATIC
@@ -520,6 +522,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
       {openSec==='banks' && (<LensPanel title="Σύγκριση τραπεζών" subtitle={`${BANKS.length} τράπεζες · επιβεβαιωμένα ${banksUpdStr}${banksStale?' · χρήζουν επαλήθευσης':''}`}>
         {openSec==='banks'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {isAdmin && <BankRatesAdmin showToast={showToast} onSaved={()=>{}}/>}
           {banksStale&&(
             <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>

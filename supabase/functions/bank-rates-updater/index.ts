@@ -78,7 +78,17 @@ async function callAnthropic(): Promise<any[]> {
   return Array.isArray(parsed?.banks) ? parsed.banks : []
 }
 
-Deno.serve(async () => {
+// CORS ώστε να μπορεί να κληθεί και από τον browser (κουμπί διαχειριστή), εκτός του cron.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json' } })
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   try {
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set')
@@ -110,7 +120,7 @@ Deno.serve(async () => {
     // Αμυντικό: αν βρέθηκαν λίγες έγκυρες τράπεζες, ΜΗΝ γράψεις (κράτα τα υπάρχοντα).
     if (updates.length < 3) {
       console.log(`bank-rates-updater: only ${updates.length} valid banks — keeping existing data`)
-      return new Response(JSON.stringify({ ok: false, reason: 'insufficient_valid_rows', found: updates.length }), { headers: { 'content-type': 'application/json' } })
+      return json({ ok: false, reason: 'insufficient_valid_rows', found: updates.length })
     }
 
     const today = new Date().toISOString().slice(0, 10)
@@ -124,10 +134,10 @@ Deno.serve(async () => {
       else console.error(`update ${u.id}:`, error.message)
     }
     console.log(`bank-rates-updater: updated ${written}/${updates.length} banks (${today})`)
-    return new Response(JSON.stringify({ ok: true, updated: written, verified_at: today }), { headers: { 'content-type': 'application/json' } })
+    return json({ ok: true, updated: written, verified_at: today })
   } catch (e) {
     console.error('bank-rates-updater error:', (e as Error).message)
     // Κράτα τα υπάρχοντα δεδομένα σε οποιαδήποτε αποτυχία.
-    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), { status: 200, headers: { 'content-type': 'application/json' } })
+    return json({ ok: false, error: (e as Error).message })
   }
 })

@@ -744,6 +744,19 @@ create policy market_rates_read on public.market_rates for select using (true);
 create policy bank_rates_read on public.bank_rates for select using (true);
 create policy loan_programs_read on public.loan_programs for select using (true);
 grant select on public.market_rates, public.bank_rates, public.loan_programs, public.active_loan_programs to anon, authenticated;
+
+-- Διαχειριστές εφαρμογής + δικαίωμα εγγραφής στο bank_rates (γρήγορη διόρθωση από την εφαρμογή).
+create table if not exists public.app_admins (email text primary key, created_at timestamptz default now());
+alter table public.app_admins enable row level security;
+drop policy if exists app_admins_self on public.app_admins;
+create policy app_admins_self on public.app_admins for select to authenticated using (email = (auth.jwt() ->> 'email'));
+grant select on public.app_admins to authenticated;
+drop policy if exists bank_rates_admin_write on public.bank_rates;
+create policy bank_rates_admin_write on public.bank_rates for all to authenticated
+  using (exists (select 1 from public.app_admins a where a.email = (auth.jwt() ->> 'email')))
+  with check (exists (select 1 from public.app_admins a where a.email = (auth.jwt() ->> 'email')));
+grant insert, update, delete on public.bank_rates to authenticated;
+
 insert into public.market_rates
   (euribor_1m, euribor_3m, euribor_6m, euribor_12m, ecb_rate, ecb_dfl, bog_housing_new, bog_housing_stock, source_euribor, source_bog, rate_changed, updated_at)
 select 2.28, 2.324, 2.34, 2.40, 2.15, 2.00, 3.10, 3.50, 'euribor-rates.eu', 'Τράπεζα Ελλάδος', false, timestamptz '2026-06-30 00:00:00+00'
