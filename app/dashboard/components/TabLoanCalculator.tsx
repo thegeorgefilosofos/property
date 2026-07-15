@@ -1372,7 +1372,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div key={item.label}
               onMouseEnter={()=>setHoverCost(i)} onMouseLeave={()=>setHoverCost(null)}
               onTouchStart={()=>setHoverCost(i)} onTouchEnd={()=>setHoverCost(null)}
-              style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderLeft:item.primary?'2px solid var(--accent)':undefined,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
+              style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:'var(--bg-elevated)',border:`1px solid ${(on||item.primary)?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
               boxShadow:on?'0 4px 14px -6px color-mix(in srgb, var(--text-primary) 26%, transparent)':'none'}}>
               <div style={{minWidth:0}}>
                 <p style={{fontSize:12.5,color:'var(--text-primary)',fontWeight:item.hi?600:500,fontFamily:"'Inter',sans-serif"}}>{item.label}</p>
