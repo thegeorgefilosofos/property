@@ -785,13 +785,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 <div onMouseEnter={()=>setRecHover(true)} onMouseLeave={()=>setRecHover(false)}
                   onTouchStart={()=>setRecHover(true)} onTouchEnd={()=>setRecHover(false)}
                   style={{position:'relative',overflow:'hidden',borderRadius:16,padding:'18px 20px',marginBottom:12,
-                  background:'var(--bg-surface)',borderLeft:'3px solid var(--accent)',
-                  border:`1px solid ${recHover?'var(--border-default)':'var(--border-subtle)'}`,borderLeftWidth:3,borderLeftColor:'var(--accent)',
+                  background:'var(--bg-surface)',
+                  border:`1px solid ${recHover?'var(--border-default)':'var(--border-subtle)'}`,
                   boxShadow:recHover?'0 2px 4px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 12px 26px -14px color-mix(in srgb, var(--text-primary) 26%, transparent)':'0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent)',transition:'border-color 0.15s, box-shadow 0.15s'}}>
                   <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
                     <div style={{minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:6}}>
-                        <span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--accent)',color:'var(--accent-text)',fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:'0.02em'}}>Καλύτερη επιλογή</span>
+                        <span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:'0.02em'}}>Καλύτερη επιλογή</span>
                         {topRec.spitiMouApplied&&<span style={{fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                       </div>
                       <p style={{fontSize:19,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.02em',lineHeight:1.1}}>{topRec.bankName}</p>

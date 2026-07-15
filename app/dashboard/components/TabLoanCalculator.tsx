@@ -1319,7 +1319,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       </Section>
 
       <Section title="Απαραίτητα έγγραφα" sub={`${LOAN_TYPES[loanType].label} · ${propTypeLabel}`}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:14,alignItems:'start'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',gap:12,alignItems:'start'}}>
           <DocChecklist
             compact
             docs={isNewBuilding
@@ -1344,8 +1344,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                     </div>
                   ))}
                 </div>
-                <div style={{marginTop:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--accent)',borderRadius:10}}>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{BORROWER_PROFILES[borrower].tax_benefits}</p>
+                <div style={{marginTop:8,padding:'9px 11px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                  <p style={{fontSize:11.5,color:'var(--text-tertiary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>{BORROWER_PROFILES[borrower].tax_benefits}</p>
                 </div>
               </div>
             )
