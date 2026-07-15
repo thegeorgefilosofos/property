@@ -167,7 +167,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
           <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', fontFamily: font, letterSpacing: '-0.01em' }}>Ανάλυση από έγγραφο ή φωτογραφία</p>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: font, lineHeight: 1.5 }}>Ανέβασε τις επιθυμίες ενός υποψήφιου δανειολήπτη ή ένα υπάρχον δάνειο· το εργαλείο εξάγει τα στοιχεία και προτείνει.</p>
         </div>
-        <button onClick={() => inputRef.current?.click()} disabled={scanning} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: 40, borderRadius: 20, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontFamily: font, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
+        <button onClick={() => inputRef.current?.click()} disabled={scanning} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: 40, borderRadius: 18, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontFamily: font, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
           {scanning ? 'Ανάλυση…' : 'Ανέβασε αρχείο'}
         </button>
@@ -228,9 +228,9 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
           {needs && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: 38, borderRadius: 20, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 12.5, fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
-              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: 38, borderRadius: 20, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
-              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 14px', height: 38, borderRadius: 20, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 12.5, fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
+              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: 38, borderRadius: 18, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 12.5, fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
+              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: 38, borderRadius: 18, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 12.5, fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
+              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 14px', height: 38, borderRadius: 18, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 12.5, fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
             </div>
           )}
           <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: font }}>Ενδεικτική ανάλυση βάσει των στοιχείων του εγγράφου. Επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.</p>
