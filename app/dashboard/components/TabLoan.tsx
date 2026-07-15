@@ -820,7 +820,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               />
             </MiniSection>
 
-            {/* ── Σαρωτής προσφοράς ESIS — αποκάλυψη πραγματικού κόστους ── */}
+            {/* ── Ανάλυση προσφοράς ESIS — τεχνικό εργαλείο, μόνο σε λειτουργία επαγγελματία ── */}
+            {profile==='business' && (
             <MiniSection title="Ανάλυση προσφοράς ESIS" badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>Πραγματικό κόστος, ΣΕΠΠΕ</span>}>
               <EsisScanPanel
                 defaultAmount={LA} defaultYears={Y}
@@ -828,6 +829,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 fmtEur={fmtEur}
               />
             </MiniSection>
+            )}
 
             {/* ── Σύσταση καλύτερου δανείου — premium, πτυσσόμενη ── */}
             <MiniSection title="Σύσταση καλύτερου δανείου" defaultOpen meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>{fmtEur(LA)} / {Y} έτη</span>}>
