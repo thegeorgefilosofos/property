@@ -547,13 +547,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     <span style={{fontSize:14,fontWeight:600,fontFamily:"'Inter',sans-serif",color:(on||hoverBank===key)?'var(--accent)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',transition:'color 0.15s'}}>{bank.bank_name||bank.name}</span>
                     {bank.spiti_mou&&<span style={{flexShrink:0,fontSize:10,padding:'3px 9px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Σπίτι μου ΙΙ</span>}
                   </div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10,alignItems:'end'}}>
-                    {[['Σταθερό 5 ετών',cellRate(fixed5)],['Εκτίμηση δόσης',fmtEur(myM)],['Δάνειο προς αξία',bank.max_ltv?`${bank.max_ltv}%`:'—']].map(([k,v])=>(
-                      <div key={k} style={{minWidth:0}}>
-                        <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:5,lineHeight:1.3,minHeight:24}}>{k}</p>
-                        <p style={{fontSize:14.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:(!on&&hoverBank===key&&k==='Εκτίμηση δόσης')?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',transition:'color 0.15s'}}>{v}</p>
-                      </div>
-                    ))}
+                  <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12}}>
+                    <div style={{minWidth:0}}>
+                      <p style={{fontSize:20,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:(on||hoverBank===key)?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,letterSpacing:'-0.02em',whiteSpace:'nowrap',transition:'color 0.15s'}}>{cellRate(fixed5)==='—'?'—':`από ${cellRate(fixed5)}`}</p>
+                      <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>Σταθερό 5 ετών</p>
+                    </div>
+                    <div style={{textAlign:'right' as const,flexShrink:0}}>
+                      <p style={{fontSize:13.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,lineHeight:1}}>{fmtEur(myM)}</p>
+                      <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>δόση{bank.max_ltv?` · έως ${bank.max_ltv}%`:''}</p>
+                    </div>
                   </div>
                 </button>
               )
@@ -579,7 +581,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                     <button onClick={scrollToCalc} style={{padding:'0 16px',height:36,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily:"'Inter',sans-serif",cursor:'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
                   </div>
                 </div>
-                <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια ανά διάρκεια</p>
+                <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια «από», ανά διάρκεια</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 90px), 1fr))',gap:8,marginBottom:16}}>
                   {terms.map(([lab,k])=>(
                     <div key={k} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'10px 12px'}}>
@@ -642,7 +644,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               </div>
             </div>
             <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
-              {RATES_DISCLAIMER} Επιβεβαιωμένα {banksUpdStr}. →{' '}
+              Εμφανίζονται τα χαμηλότερα («από») επιτόκια ανά διάρκεια. {RATES_DISCLAIMER} Επιβεβαιωμένα {banksUpdStr}. →{' '}
               <a href="https://e-stegastiko.gr" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>e-stegastiko.gr</a>
             </p>
           </MiniSection>
@@ -806,7 +808,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             )}
 
             {/* ── Θα εγκριθώ; — διαδραστική εκτίμηση πιθανότητας έγκρισης ── */}
-            <MiniSection title="Θα εγκριθώ;" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>Εκτίμηση έγκρισης</span>}>
+            <MiniSection title="Θα εγκριθώ;" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>Εκτίμηση έγκρισης</span>}>
               <ApprovalPanel
                 amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
                 incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
@@ -815,7 +817,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             </MiniSection>
 
             {/* ── Σαρωτής προσφοράς ESIS — αποκάλυψη πραγματικού κόστους ── */}
-            <MiniSection title="Σαρωτής προσφοράς ESIS" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>ΣΕΠΠΕ και κρυφά έξοδα</span>}>
+            <MiniSection title="Σαρωτής προσφοράς ESIS" badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap' as const}}>ΣΕΠΠΕ και κρυφά έξοδα</span>}>
               <EsisScanPanel
                 defaultAmount={LA} defaultYears={Y}
                 benchmarkAprc={topRec?Math.round((topRec.effectiveRatePct+0.3)*100)/100:undefined}
