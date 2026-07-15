@@ -798,7 +798,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       </Section>
 
       {/* Property + Loan type */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,alignItems:'start'}}>
         <div style={cardStyle}>
           <SectionLabel label="Στοιχεία ακινήτου"/>
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
@@ -1061,7 +1061,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:14}}>
           {[
             {label:'Σταθερό επιτόκιο',rate:effRate,m:monthly,pros:['Γνωστή δόση, χωρίς εκπλήξεις','Προστασία από άνοδο Euribor','Ιδανικό αν Euribor αναμένεται να ανέβει'],cons:['Αρχικά υψηλότερο επιτόκιο','Ποινή πρόωρης αποπληρωμής'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
-            {label:'Κυμαινόμενο επιτόκιο',rate:variableRate,m:varMonthly,pros:['Σήμερα χαμηλότερο κόστος','Ωφελείσαι αν Euribor πέσει','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
+            {label:'Κυμαινόμενο επιτόκιο',rate:variableRate,m:varMonthly,pros:[varMonthly<monthly?'Σήμερα χαμηλότερη δόση από το σταθερό':'Χαμηλότερη δόση αν υποχωρήσει το Euribor','Ωφελείσαι αν πέσει το Euribor','Χωρίς ποινή πρόωρης αποπληρωμής'],cons:['Κίνδυνος ανόδου Euribor','Αβεβαιότητα δόσης'],c:'var(--text-primary)',bg:'var(--bg-surface)',border:'var(--border-subtle)'},
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily:"'Inter',sans-serif",marginBottom:12}}>{item.label}</p>
@@ -1074,6 +1074,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               {item.cons.map((c,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--text-tertiary)',flexShrink:0,fontWeight:600}}>−</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{c}</p></div>)}
             </div>
           ))}
+        </div>
+        <div style={{padding:'10px 13px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:10,marginBottom:14}}>
+          <p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
+            {varMonthly<monthly
+              ? `Σήμερα το κυμαινόμενο έχει χαμηλότερη δόση κατά ${fmtEur(monthly-varMonthly)} τον μήνα, όμως η δόση μεταβάλλεται με το Euribor.`
+              : `Σήμερα το σταθερό έχει χαμηλότερη δόση κατά ${fmtEur(varMonthly-monthly)} τον μήνα και εξασφαλίζει σταθερότητα σε όλη τη διάρκεια.`}
+          </p>
         </div>
         <p style={{...labelStyle,marginBottom:10}}>Σωρευτικοί τόκοι στη διάρκεια</p>
         <DualLine data={fvChartData} keyA="Σταθερό" keyB="Κυμαινόμενο" fmt={fmtEur}/>
@@ -1179,7 +1186,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         })()}
         {!aff.affordable
           ? <div style={{padding:'11px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--negative)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Η δόση υπερβαίνει το όριο κατά {fmtEur(aff.gapMonthly)} τον μήνα. Μείωσε το ποσό έως {fmtEur(aff.maxLoan)} ή αύξησε τη διάρκεια.</p></div>
-          : <div style={{padding:'11px 14px',background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--accent)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Η δόση χωράει άνετα στο όριο. Περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα, δηλαδή {fmtEur(aff.maxLoan-LA)} επιπλέον δανειοδότηση.</p></div>
+          : <div style={{padding:'11px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:10}}><p style={{fontSize:12.5,color:'var(--text-primary)',lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Η δόση καλύπτεται άνετα. Απομένει περιθώριο έως {fmtEur(aff.maxMonthly-aff.requestedMonthly)} τον μήνα, που αντιστοιχεί σε επιπλέον δάνειο έως {fmtEur(aff.maxLoan-LA)}.</p></div>
         }
       </Section>
         )
@@ -1312,7 +1319,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           </button>
         </div>
         {/* Κύλιση με κολλημένη κεφαλίδα· ομοιόμορφοι λευκοί αριθμοί, γαλάζιο μόνο στη γραμμή που εξετάζεις */}
-        <div style={{maxHeight:440,overflow:'auto',border:'1px solid var(--border-subtle)',borderRadius:12}}>
+        <div style={{maxHeight:268,overflow:'auto',border:'1px solid var(--border-subtle)',borderRadius:12}}>
           <table style={{width:'100%',minWidth:480,borderCollapse:'separate',borderSpacing:0,fontSize:12}}>
             <thead>
               <tr>
