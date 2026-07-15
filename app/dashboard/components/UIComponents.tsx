@@ -61,6 +61,7 @@ export function NumberInput({
 }: NumberInputProps) {
   const [focused, setFocused] = useState(false);
   const [local, setLocal] = useState(String(value ?? ''));
+  const inputId = useId();
 
   useEffect(() => {
     if (!focused) setLocal(String(value ?? ''));
@@ -108,7 +109,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{labelInfo}</label>}
+      {label && <label htmlFor={inputId} style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }}>{label}{labelInfo}</label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
@@ -138,6 +139,7 @@ export function NumberInput({
           }}>{prefix}</span>
         )}
         <input
+          id={inputId}
           type="text"
           inputMode="decimal"
           value={local}
@@ -202,9 +204,10 @@ interface CustomSelectProps {
 }
 
 export function CustomSelect({
-  label, value, onChange, options, placeholder = 'Επιλογή...', disabled,
+  label, value, onChange, options, placeholder = 'Επιλογή…', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   // Άνοιγμα προς τα πάνω όταν δεν χωράει από κάτω — καθαρό, επαγγελματικό,
@@ -300,8 +303,11 @@ export function CustomSelect({
         aria-disabled={disabled || undefined}
         aria-labelledby={label ? `${idRef.current}-label` : undefined}
         aria-label={label ? undefined : (selected?.label || placeholder)}
+        aria-activedescendant={open && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
         onClick={() => !disabled && (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={{
           ...mdInputBase,
           display: 'flex',
@@ -310,8 +316,8 @@ export function CustomSelect({
           gap: 8,
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
-          border: `1px solid ${fieldBorderColor(open)}`,
-          boxShadow: fieldRing(open),
+          border: `1px solid ${fieldBorderColor(open || focused)}`,
+          boxShadow: fieldRing(open || focused),
           padding: '10px 14px',
           userSelect: 'none',
         }}
@@ -359,6 +365,7 @@ export function CustomSelect({
             )}
             <div
               ref={el => { optRefs.current[i] = el; }}
+              id={`${baseId}-opt-${i}`}
               role="option"
               aria-selected={opt.value === value}
               onMouseEnter={() => { setHovered(opt.value); setActiveIndex(i); }}
@@ -414,6 +421,7 @@ interface DatePickerProps {
 
 export function DatePicker({ label, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [month, setMonth] = useState(() => value ? new Date(value).getMonth() : new Date().getMonth());
   const [year, setYear] = useState(() => value ? new Date(value).getFullYear() : new Date().getFullYear());
   const ref = useRef<HTMLDivElement>(null);
@@ -482,6 +490,8 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v); }
           else if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false); }
         }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={{
           ...mdInputBase,
           display: 'flex',
@@ -489,8 +499,8 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           justifyContent: 'space-between',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
-          border: `1px solid ${fieldBorderColor(open)}`,
-          boxShadow: fieldRing(open),
+          border: `1px solid ${fieldBorderColor(open || focused)}`,
+          boxShadow: fieldRing(open || focused),
           padding: '10px 14px',
           userSelect: 'none',
         }}
@@ -663,9 +673,10 @@ interface TextInputProps {
 
 export function TextInput({ label, value, onChange, placeholder, type='text', disabled, prefix, suffix }: TextInputProps) {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
   return (
     <div>
-      {label && <label style={mdLabelBase}>{label}</label>}
+      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}</label>}
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--bg-surface)',
@@ -683,6 +694,7 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
           </div>
         )}
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -720,10 +732,12 @@ export function Textarea({
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
   return (
     <div>
-      {label && <label style={mdLabelBase}>{label}</label>}
+      {label && <label htmlFor={inputId} style={mdLabelBase}>{label}</label>}
       <textarea
+        id={inputId}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}

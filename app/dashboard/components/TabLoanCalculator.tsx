@@ -31,7 +31,6 @@ const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperti
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block'}}/>
       <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{label}</p>
     </div>
     {right}
@@ -57,7 +56,7 @@ function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?
   const [open,setOpen] = useState(defaultOpen)
   return (
     <div style={{background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,overflow:'hidden'}}>
-      <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
         <div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <p style={{fontSize:14,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:600}}>{title}</p>
@@ -65,7 +64,7 @@ function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?
           </div>
           {sub&&<p style={{fontSize:12,color:'var(--text-secondary)',marginTop:3,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" aria-hidden="true" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {open&&<div style={{padding:'0 16px 16px'}}>{children}</div>}
     </div>
@@ -86,7 +85,7 @@ function AmortDonut({principal,interest}:{principal:number;interest:number}) {
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.6"/>
         </linearGradient>
         <filter id="donutShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--accent)" floodOpacity="0.25"/>
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--text-primary)" floodOpacity="0.15"/>
         </filter>
       </defs>
       <circle cx="68" cy="68" r={R} fill="none" stroke="var(--text-tertiary)" strokeOpacity="0.22" strokeWidth={sw}/>
@@ -136,7 +135,7 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/>
           <stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 78%, transparent)" stopOpacity="1"/>
         </linearGradient>
-        <filter id="barLift" x="-30%" y="-20%" width="160%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="var(--accent)" floodOpacity="0.18"/></filter>
+        <filter id="barLift" x="-30%" y="-20%" width="160%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="var(--text-primary)" floodOpacity="0.12"/></filter>
       </defs>
       {/* Γραμμές αναφοράς + ετικέτες αξόνων */}
       {grid.map((g,i)=>(
@@ -202,7 +201,7 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
 function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=620,H=200,padL=8,padR=18,padT=18,padB=28
+  const W=620,H=200,padL=8,padR=56,padT=18,padB=28
   const n=data.length
   if(n<2) return null
   const vals=data.flatMap(d=>[d[keyA],d[keyB]] as number[])
@@ -270,7 +269,7 @@ function DualLine({data,keyA,keyB,fmt}:{data:any[];keyA:string;keyB:string;fmt:(
 function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:number[];horizon:number;breakEvenYear?:number|null;fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=560,H=170,padL=6,padR=6,padT=14,padB=22, n=horizon+1
+  const W=560,H=170,padL=6,padR=52,padT=14,padB=22, n=horizon+1
   if(n<2) return null
   const maxV=Math.max(...buy,...rent,1)
   const minV=Math.min(...buy,0)
@@ -278,6 +277,7 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
   const Yv=(v:number)=>padT+(1-(v-minV)/(maxV-minV||1))*(H-padT-padB)
   const buyLine=buy.map((v,i)=>`${i===0?'M':'L'} ${X(i)} ${Yv(v)}`).join(' ')
   const rentLine=rent.map((v,i)=>`${i===0?'M':'L'} ${X(i)} ${Yv(v)}`).join(' ')
+  const grid=[0,0.5,1].map(f=>{const v=minV+(maxV-minV)*f;return{y:Yv(v),label:fmt(v)}})
   const locate=(clientX:number)=>{
     const el=wrapRef.current; if(!el)return
     const r=el.getBoundingClientRect()
@@ -291,6 +291,8 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση κόστους αγοράς και ενοικίασης, διαδραστικό">
+        {grid.map((g,i)=>(<g key={i}><line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+5} y={g.y+3} textAnchor="start" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{g.label}</text></g>))}
+        <line x1={padL} y1={H-padB} x2={W-padR} y2={H-padB} stroke="var(--border-default)" strokeWidth="1"/>
         <path d={rentLine} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="4 3" strokeLinejoin="round"/>
         <path d={buyLine} fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinejoin="round"/>
         {breakEvenYear&&hi==null&&<line x1={X(breakEvenYear)} y1={padT} x2={X(breakEvenYear)} y2={H-padB} stroke="var(--border-accent)" strokeWidth="1" strokeDasharray="3 3"/>}
@@ -299,7 +301,7 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
           <circle cx={X(hi)} cy={Yv(rent[hi])} r="3.5" fill="var(--text-tertiary)" stroke="var(--bg-surface)" strokeWidth="1.5"/>
           <circle cx={X(hi)} cy={Yv(buy[hi])} r="4.5" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2"/>
         </g>)}
-        {[0,Math.round(horizon/2),horizon].map(i=><text key={i} x={X(i)} y={H-6} textAnchor="middle" style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:hi===i?'var(--accent)':'var(--text-secondary)',fontWeight:hi===i?700:400}}>έτος {i}</text>)}
+        {[0,Math.round(horizon/2),horizon].map(i=><text key={i} x={X(i)} y={H-6} textAnchor={i===0?'start':i===horizon?'end':'middle'} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:hi===i?'var(--accent)':'var(--text-secondary)',fontWeight:hi===i?700:400}}>έτος {i}</text>)}
       </svg>
       {hi!=null&&(
         <div style={{position:'absolute',top:0,left:`${leftPct}%`,transform:'translateX(-50%)',pointerEvents:'none',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10,padding:'8px 11px',boxShadow:'var(--shadow-lg)',whiteSpace:'nowrap' as const,minWidth:150}}>
@@ -350,7 +352,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
         <defs>
           <linearGradient id="stressBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 76%, transparent)"/></linearGradient>
           <linearGradient id="stressOver" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--negative)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--negative) 74%, transparent)"/></linearGradient>
-          <filter id="stressLift" x="-40%" y="-20%" width="180%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="var(--accent)" floodOpacity="0.22"/></filter>
+          <filter id="stressLift" x="-40%" y="-20%" width="180%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="var(--text-primary)" floodOpacity="0.14"/></filter>
         </defs>
         {grid.map((gv,i)=>(<g key={i}><line x1={padL} y1={Y(gv)} x2={W-padR} y2={Y(gv)} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+6} y={Y(gv)+3} style={{fontSize:9,fontFamily:"'Inter',sans-serif",fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{fmt(gv)}</text></g>))}
         {stress.map((s,i)=>{
@@ -410,12 +412,12 @@ function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;
 }
 
 const PROPERTY_TYPES = [
-  {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα', notary_pct:0.013, stamp:0, vat_possible:false},
-  {value:'new_residence',label:'Νεόδμητη κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%',      notary_pct:0.015, stamp:0, vat_possible:true},
-  {value:'store',        label:'Κατάστημα / Γραφείο',   desc:'Επαγγελματική χρήση',                notary_pct:0.015, stamp:0.036, vat_possible:false},
-  {value:'warehouse',    label:'Αποθήκη / Βιομηχανικό', desc:'Βιομηχανική / αποθήκευση',          notary_pct:0.015, stamp:0.036, vat_possible:false},
-  {value:'land',         label:'Οικόπεδο / Γη',         desc:'Εντός ή εκτός σχεδίου',             notary_pct:0.012, stamp:0, vat_possible:false},
-  {value:'parking',      label:'Θέση στάθμευσης',       desc:'Αυτοτελής ή παράρτημα',             notary_pct:0.010, stamp:0, vat_possible:false},
+  {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα'},
+  {value:'new_residence',label:'Νεόδμητη κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%'},
+  {value:'store',        label:'Κατάστημα / Γραφείο',   desc:'Επαγγελματική χρήση'},
+  {value:'warehouse',    label:'Αποθήκη / Βιομηχανικό', desc:'Βιομηχανική / αποθήκευση'},
+  {value:'land',         label:'Οικόπεδο / Γη',         desc:'Εντός ή εκτός σχεδίου'},
+  {value:'parking',      label:'Θέση στάθμευσης',       desc:'Αυτοτελής ή παράρτημα'},
 ]
 
 function calcNotaryFees(propValue:number, propType:string):{notary:number;landReg:number;agent:number;legal:number;other:number;total:number;breakdown:string[]} {
@@ -436,7 +438,7 @@ function calcNotaryFees(propValue:number, propType:string):{notary:number;landRe
   const breakdown=[
     `Συμβολαιογραφικά αγοράς: ${fmtEur(notaryFee)}`,
     `Συμβολαιογραφικά υποθήκης: ${fmtEur(mortgageDeed)}`,
-    `Κτηματολόγιο (0,475‰): ${fmtEur(landReg)}`,
+    `Κτηματολόγιο (0,475%): ${fmtEur(landReg)}`,
     `Δικηγόρος ελέγχου τίτλων: ${fmtEur(legal)}`,
     isCommercial?`Τέλη χαρτοσήμου μίσθωσης (3,6%): ${fmtEur(propValue*0.036)}`:`Φόρος ενεγγύησης υποθήκης: ${fmtEur(mortgageTax)}`,
   ]
@@ -465,7 +467,7 @@ const AREA_OPTIONS = [
   {value:'attica_south_prime',label:'Αττική Νότια Α',description:'Γλυφάδα, Βούλα, Βουλιαγμένη'},
   {value:'attica_south_std',label:'Αττική Νότια Β',description:'Άλιμος, Ελληνικό, Αργυρούπολη'},
   {value:'attica_north_prime',label:'Αττική Βόρεια Α',description:'Κηφισιά, Εκάλη, Διόνυσος'},
-  {value:'attica_north_std',label:'Αττική Βόρεια Β',description:'Μαρούσι, Χαλάνδρι, Αγ. Παρασκευή'},
+  {value:'attica_north_std',label:'Αττική Βόρεια Β',description:'Μαρούσι, Χαλάνδρι, Αγία Παρασκευή'},
   {value:'attica_east',label:'Αττική Ανατολική',description:'Παλλήνη, Κορωπί, Σπάτα'},
   {value:'attica_west',label:'Αττική Δυτική',description:'Περιστέρι, Αιγάλεω, Ίλιον'},
   {value:'attica_piraeus_prime',label:'Πειραιάς Α',description:'Καστέλα, Φρεαττύδα'},
@@ -557,9 +559,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [saving,      setSaving]      = useState(false)
   const [activePreset,setActivePreset]= useState<string|null>(null)
   const [history,     setHistory]     = useState<CalcHistory[]>([])
-  const [, setAdvisorSync] = useState(false)
   // Ομοιόμορφοι αριθμοί: όλα λευκά, γαλάζιο μόνο όταν περνά ο κέρσορας/δάχτυλο.
   const [hoverKpi,  setHoverKpi]  = useState<number|null>(null)
+  const [hoverAct,  setHoverAct]  = useState<number|null>(null)
   const [hoverCap,  setHoverCap]  = useState<number|null>(null)
   const [hoverHist, setHoverHist] = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
@@ -605,7 +607,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const amort     = useMemo(()=>calcAmortization(LA,effRate,Y),[LA,effRate,Y])
 
   const notaryCosts = useMemo(()=>calcNotaryFees(PV,propType),[PV,propType])
-  const selectedPropType = PROPERTY_TYPES.find(p=>p.value===propType)||PROPERTY_TYPES[0]
   const fmaEx    = calcFmaExemption(marital,CH)
   const isNewBuilding = propType==='new_residence'
   const isCommercial  = propType==='store'||propType==='warehouse'
@@ -644,13 +645,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const refSav   = mSav*RY*12-XC
   const brkEven  = mSav>0?Math.ceil(XC/mSav):null
 
-  const maxLoan  = useMemo(()=>{
-    const maxM=INC*BORROWER_PROFILES[borrower].income_ratio
-    const r=effRate/100/12,n=Y*12
-    return r>0?maxM*(Math.pow(1+r,n)-1)/(r*Math.pow(1+r,n)):maxM*n
-  },[INC,borrower,effRate,Y])
-
-  const stress   = [{label:'Τρέχον',rate:effRate},{label:'+0,5%',rate:effRate+0.5},{label:'+1%',rate:effRate+1},{label:'+2%',rate:effRate+2},{label:'+3%',rate:effRate+3},{label:'6% συνολικό',rate:6}].map(s=>({...s,monthly:calcMonthly(LA,s.rate,Y)}))
+  const stress   =[{label:'Τρέχον',rate:effRate},{label:'+0,5%',rate:effRate+0.5},{label:'+1%',rate:effRate+1},{label:'+2%',rate:effRate+2},{label:'+3%',rate:effRate+3},{label:'6% συνολικό',rate:6}].filter(s=>s.label==='Τρέχον'||s.rate>effRate).map(s=>({...s,monthly:calcMonthly(LA,s.rate,Y)}))
   const amortChart = useMemo(()=>{const out=[];for(let y=1;y<=Math.min(Y,30);y++){const rows=amort.slice((y-1)*12,y*12);out.push({year:`${y}`,Κεφάλαιο:Math.round(rows.reduce((s,r)=>s+r.principal,0)),Τόκοι:Math.round(rows.reduce((s,r)=>s+r.interest,0))})}return out},[amort,Y])
   // Κυμαινόμενο = Euribor + ΠΕΡΙΘΩΡΙΟ (spread). Σε λειτουργία «σταθερού» το R είναι το ΠΛΗΡΕΣ
   // επιτόκιο, όχι spread — γι' αυτό χρησιμοποιούμε τυπικό περιθώριο αγοράς (πριν διπλομετρούσαμε).
@@ -671,7 +666,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   useMemo(()=>{
     onStateChange?.({loanType,borrowerType:borrower,loanAmount:LA,years:Y,rateType,effectiveRate:effRate,monthly,totalInterest:totalInt,propertyValue:PV,sqm:SQM,propType,area})
-    setAdvisorSync(true);setTimeout(()=>setAdvisorSync(false),1200)
     if(LA>0&&Y>0&&effRate>0){
       if(historyTimer.current)clearTimeout(historyTimer.current)
       historyTimer.current=setTimeout(()=>{setHistory(h=>[{id:Date.now().toString(),ts:new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),loanType,amount:LA,rate:effRate,years:Y,monthly},...h].slice(0,5))},800)

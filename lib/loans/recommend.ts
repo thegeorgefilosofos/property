@@ -210,7 +210,7 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
     const rateType: RateType = pref
 
     const useSpiti = !!bank.spiti_mou && spiti.eligible &&
-      (needs.purpose === 'first_home' || needs.purpose === 'purchase')
+      needs.purpose === 'first_home'
 
     let monthlyPayment: number, interest: number, effectiveRatePct: number
     if (useSpiti) {
