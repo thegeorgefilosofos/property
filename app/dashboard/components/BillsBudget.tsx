@@ -56,19 +56,27 @@ function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: num
   );
 }
 
-// Ράβδοι εξόδων ανά μήνα (μονόχρωμες, αποχρώσεις της βασικής παλέτας· ο τρέχων μήνας
-// τονίζεται με πιο σκούρα απόχρωση — όχι χρώμα). Καθαρό, σύντομο, minimal.
+// Ράβδοι εξόδων ανά μήνα — μονόχρωμες (αποχρώσεις της παλέτας), αλλά ζωντανές: στο
+// πέρασμα του κέρσορα η ράβδος φωτίζεται, σηκώνεται (3D) και εμφανίζει το ποσό σε γαλάζιο.
 function MonthBars({ data, activeYm }: { data: { ym: string; label: string; value: number }[]; activeYm: string }) {
+  const [hi, setHi] = useState<number | null>(null);
   const max = Math.max(1, ...data.map(d => d.value));
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 88 }}>
-      {data.map(d => {
-        const h = d.value > 0 ? Math.max(3, Math.round((d.value / max) * 70)) : 2;
-        const active = d.ym === activeYm;
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
+      {data.map((d, i) => {
+        const h = d.value > 0 ? Math.max(3, Math.round((d.value / max) * 68)) : 2;
+        const active = d.ym === activeYm, on = hi === i;
+        const shade = on ? 72 : active ? 52 : 20;
         return (
-          <div key={d.ym} title={`${d.label}: ${fe(d.value, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0 }}>
-            <div style={{ width: '100%', maxWidth: 24, height: h, borderRadius: 3, background: active ? 'color-mix(in srgb, var(--text-primary) 58%, transparent)' : 'color-mix(in srgb, var(--text-primary) 20%, transparent)', transition: 'height 0.4s ease' }} />
-            <span style={{ fontSize: 8.5, color: active ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: active ? 700 : 500 }}>{d.label}</span>
+          <div key={d.ym} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} onTouchStart={() => setHi(i)} onTouchEnd={() => setHi(null)}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'default' }}>
+            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', height: 78 }}>
+              {on && d.value > 0 && (
+                <div style={{ position: 'absolute', bottom: h + 7, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 6px 16px -6px color-mix(in srgb, var(--text-primary) 34%, transparent)', zIndex: 2 }}>{fe(d.value, 0)}</div>
+              )}
+              <div style={{ width: '100%', maxWidth: 24, height: h, borderRadius: 3, background: `color-mix(in srgb, var(--text-primary) ${shade}%, transparent)`, transform: on ? 'translateY(-2px)' : 'none', boxShadow: on ? '0 8px 16px -6px color-mix(in srgb, var(--text-primary) 46%, transparent)' : 'none', transition: 'height 0.4s ease, background 0.18s, transform 0.18s, box-shadow 0.18s' }} />
+            </div>
+            <span style={{ fontSize: 8.5, color: on || active ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
         );
       })}
@@ -76,8 +84,10 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
   );
 }
 
-// Δαχτυλίδι (donut) κατανομής ανά κατηγορία — μονόχρωμες αποχρώσεις + υπόμνημα.
+// Δαχτυλίδι (donut) κατανομής ανά κατηγορία — ζωντανό: το τόξο ή το υπόμνημα που δείχνει
+// ο κέρσορας «ανοίγει» (παχύτερο), φωτίζεται, και το κέντρο δείχνει την κατηγορία, ποσό και %.
 function Donut({ slices }: { slices: { label: string; value: number }[] }) {
+  const [hi, setHi] = useState<number | null>(null);
   const total = slices.reduce((s, x) => s + x.value, 0);
   if (total <= 0) return null;
   const sorted = slices.filter(s => s.value > 0).sort((a, b) => b.value - a.value);
@@ -89,30 +99,42 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
     segs = [...head, { label: 'Λοιπά', value: rest }];
   }
   const r = 42, sw = 15, C = 2 * Math.PI * r;
-  const shade = (i: number) => `color-mix(in srgb, var(--text-primary) ${Math.max(14, 80 - i * 12)}%, transparent)`;
+  const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--text-primary) ${Math.min(94, Math.max(14, 80 - i * 12) + (on ? 18 : 0))}%, transparent)`;
+  const active = hi != null ? segs[hi] : null;
   let off = 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-      <svg width="116" height="116" viewBox="0 0 116 116" style={{ flexShrink: 0 }} aria-hidden="true">
-        <g transform="rotate(-90 58 58)">
+      <svg width="120" height="120" viewBox="0 0 120 120" style={{ flexShrink: 0, overflow: 'visible' }}>
+        <g transform="rotate(-90 60 60)">
           {segs.map((s, i) => {
+            const on = hi === i;
             const len = (s.value / total) * C;
-            const el = <circle key={i} cx="58" cy="58" r={r} fill="none" stroke={shade(i)} strokeWidth={sw} strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)} />;
+            const el = (
+              <circle key={i} cx="60" cy="60" r={r} fill="none" stroke={shade(i, on)} strokeWidth={on ? sw + 4 : sw}
+                strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
+                onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
+                style={{ transition: 'stroke-width 0.18s ease, stroke 0.18s ease', cursor: 'default' }} />
+            );
             off += len;
             return el;
           })}
         </g>
-        <text x="58" y="54" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο</text>
-        <text x="58" y="69" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(total, 0)}</text>
+        <text x="60" y="55" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16) : 'Σύνολο'}</text>
+        <text x="60" y="70" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
+        {active && <text x="60" y="82" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 150 }}>
-        {segs.map((s, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontFamily: T.font.sans }}>
-            <span style={{ width: 9, height: 9, borderRadius: 2, background: shade(i), flexShrink: 0 }} />
-            <span style={{ flex: 1, minWidth: 0, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
-            <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{Math.round((s.value / total) * 100)}%</span>
-          </div>
-        ))}
+        {segs.map((s, i) => {
+          const on = hi === i;
+          return (
+            <div key={i} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontFamily: T.font.sans, padding: '2px 4px', margin: '0 -4px', borderRadius: 5, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: shade(i, on), flexShrink: 0, transition: 'background 0.15s' }} />
+              <span style={{ flex: 1, minWidth: 0, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{s.label}</span>
+              <span style={{ color: on ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: on ? 700 : 400, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -180,6 +202,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [delCatHover,  setDelCatHover]  = useState<string | null>(null);
   const [newCatName,   setNewCatName]   = useState('');
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
+  const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -950,15 +973,19 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           {secHdr('Αυτή την εβδομάδα', 'week', <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(weekTotalV, 0)}</span>)}
           {!collapsed.has('week') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {weekCats.map(c => (
-                <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {weekCats.map(c => {
+                const on = hoverWeek === c.label;
+                return (
+                <div key={c.label} onMouseEnter={() => setHoverWeek(c.label)} onMouseLeave={() => setHoverWeek(null)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 6px', margin: '0 -6px', borderRadius: T.radius.inner, background: on ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
                   <span style={{ width: 120, flexShrink: 0, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
                   <div style={{ flex: 1, height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)', borderRadius: 4, transition: 'width 0.5s ease' }} />
+                    <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: `color-mix(in srgb, var(--text-primary) ${on ? 52 : 30}%, transparent)`, borderRadius: 4, transition: 'width 0.5s ease, background 0.18s' }} />
                   </div>
-                  <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(c.value, 0)}</span>
+                  <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(c.value, 0)}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1133,8 +1160,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
           {secHdr('Εισαγωγή δεδομένων', 'import',
             <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση — οι δαπάνες μπαίνουν στον σωστό μήνα και κατηγορία." />)}
+          {/* Μόνο βασικές κατηγορίες: οι custom c_* δεν χαρτογραφούνται στο ιστορικό, θα έπεφταν στις «Λοιπές». */}
           {!collapsed.has('import') && (
-            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
+            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.filter(c => !c.key.startsWith('c_')).map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
           )}
         </div>
       )}
