@@ -12,7 +12,17 @@ import { reservePlan } from '@/lib/billing/budgetPro';
 // εισφορά που χρειάζεται και το ποσοστό κάλυψης. Google-minimal, μονόχρωμο, με
 // γαλάζιο μόνο στο πέρασμα του κέρσορα και επεξηγήσεις πίσω από ⓘ.
 
-interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string }
+interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string; bank?: string; apy?: number }
+
+// Λογαριασμοί αποταμίευσης με ευέλικτο (ημερήσιο) επιτόκιο — ενδεικτικά επιτόκια 2026,
+// επεξεργάσιμα από τον χρήστη. Το ποσό στον κουμπαρά «δουλεύει» και βγάζει τόκο.
+const BANK_PRESETS: { name: string; apy: number }[] = [
+  { name: 'Revolut', apy: 2.0 },
+  { name: 'Snappi', apy: 2.5 },
+  { name: 'Wealthyhood', apy: 3.25 },
+  { name: 'Credia Bank', apy: 2.75 },
+  { name: 'Εθνική (νέοι)', apy: 1.5 },
+];
 
 // Έξυπνη πρόταση κουμπαρά (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι) — υπολογισμένη από
 // τον γονέα με τους κανονικούς μηχανισμούς. Εμφανίζεται ως πρόταση ενός αγγίγματος.
@@ -137,6 +147,8 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   }, 0);
   // Δείκτης «κάλυψης»: πόσους μήνες κόστους καλύπτουν τα αποθεματικά (age-of-money style).
   const coverMonths = monthlyCommitment > 0 && totalSaved > 0 ? totalSaved / monthlyCommitment : 0;
+  // Ετήσιοι τόκοι που «δουλεύουν» τα αποθεματικά σε λογαριασμούς με ευέλικτο επιτόκιο.
+  const totalInterest = vaults.reduce((s, v) => s + (v.apy != null && v.apy > 0 ? (v.current || 0) * v.apy / 100 : 0), 0);
   // Προτάσεις που ΔΕΝ έχουν ήδη δημιουργηθεί: ταίριασμα με σταθερό κλειδί προέλευσης
   // (επιβιώνει σε μετονομασία) ή, ως εφεδρεία, με το κανονικοποιημένο όνομα.
   const openSuggestions = suggestions.filter(sg => !vaults.some(v => v.srcKey === sg.key || norm(v.name) === norm(sg.name)));
@@ -154,7 +166,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
         <span style={{ flex: 1 }}/>
         {vaults.length > 0 && (
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-            Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}
+            Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}{totalInterest > 0 ? ` · +${fe(totalInterest, 0)}/έτος τόκοι` : ''}
           </span>
         )}
         <button onClick={toggleShut} aria-label={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'} title={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'}
@@ -204,6 +216,27 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
                 <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
                 <div style={{ gridColumn: '1 / -1' }}><DatePicker label="Ημερομηνία-στόχος (προαιρετικό)" value={v.due || ''} onChange={val => update(v.id, { due: val })} /></div>
+
+                {/* Λογαριασμός αποταμίευσης με ευέλικτο επιτόκιο — δες πόσους τόκους κερδίζεις */}
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 12, marginTop: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 9, fontFamily: T.font.sans }}>
+                    Λογαριασμός αποταμίευσης
+                    <InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο (ημερήσιο) επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα ποσοστά είναι ενδεικτικά· προσάρμοσέ τα στη δική σου προσφορά." />
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 11 }}>
+                    {BANK_PRESETS.map(b => {
+                      const active = (v.bank || '').toLowerCase() === b.name.toLowerCase();
+                      return (
+                        <button key={b.name} type="button" onClick={() => update(v.id, { bank: b.name, apy: b.apy })}
+                          style={{ padding: '5px 11px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--border-accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent-dim)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'all 0.15s' }}>
+                          {b.name} <span style={{ fontFamily: T.font.num, opacity: 0.7 }}>{b.apy.toString().replace('.', ',')}%</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <TextInput label="Τράπεζα (προαιρετικό)" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Revolut" />
+                <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16, maxWidth: 520 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)}
@@ -246,6 +279,14 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                         ? <span style={{ color: 'var(--text-tertiary)' }}>απομένουν {fe(plan.remaining, 0)}</span>
                         : null}
               </div>
+              {v.apy != null && v.apy > 0 && (v.current || 0) > 0 && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? 'var(--accent)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.bank || 'Τόκοι'}</span>
+                  <span style={{ flex: 1 }}/>
+                  <span style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}>+{fe((v.current || 0) * v.apy / 100, 0)}/έτος</span>
+                </div>
+              )}
             </div>
           );
         })}

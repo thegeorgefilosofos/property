@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useId, ReactNode, Fragment } from 'react';
+import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 
@@ -700,9 +700,10 @@ interface TextInputProps {
   disabled?: boolean;
   prefix?: ReactNode;
   suffix?: ReactNode;
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function TextInput({ label, value, onChange, placeholder, type='text', disabled, prefix, suffix }: TextInputProps) {
+export function TextInput({ label, value, onChange, placeholder, type='text', disabled, prefix, suffix, onKeyDown }: TextInputProps) {
   const [focused, setFocused] = useState(false);
   const inputId = useId();
   return (
@@ -729,6 +730,7 @@ export function TextInput({ label, value, onChange, placeholder, type='text', di
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={disabled}
           onFocus={() => setFocused(true)}
