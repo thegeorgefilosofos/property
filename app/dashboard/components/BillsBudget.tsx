@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
-import { reservePlan } from '@/lib/billing/budgetPro';
+import { reservePlan, rolloverNext } from '@/lib/billing/budgetPro';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import BudgetVaults from './BudgetVaults';
@@ -268,6 +268,15 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // Τάση ανά κατηγορία (μόνο όταν υπάρχει ιστορικό).
   const catTrend     = (key: string) => periodTrend(actuals[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
 
+  // ── Rollover: αδιάθετο/υπέρβαση προηγούμενου μήνα μεταφέρεται στον τρέχοντα ──
+  // Μόνο όταν υπάρχει καταγεγραμμένη δραστηριότητα τον προηγ. μήνα (αλλιώς «κενός»
+  // μήνας θα έδειχνε ολόκληρο τον στόχο ως μεταφορά — παραπλανητικό).
+  const _prevYm       = _priorYms[0];
+  const hasPrevMonth  = _prevYm in monthTotals;
+  const carryIn       = hasPrevMonth ? rolloverNext(masterBudget, monthTotals[_prevYm] || 0).carryOut : 0;
+  const adjAvailable  = masterBudget + carryIn - actualTotal;
+  const _prevLabel    = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toLocaleDateString('el-GR', { month: 'long' });
+
   // ── «Ασφαλές διαθέσιμο» (Monzo Left to Spend / owner draw) ────────────────────
   // Δεσμευμένοι λογαριασμοί = ΠΡΑΓΜΑΤΙΚΟΙ πάγιοι λογαριασμοί του μήνα (καταγεγραμμένοι
   // + εκτιμήσεις παρόχων), όχι απλώς οι προεπιλεγμένοι στόχοι — αλλιώς εμφανίζεται
@@ -276,6 +285,45 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const monthlyCost    = committedBills + loanMonthly + vaultMonthly;
   const hasIncome      = income > 0;
   const isShortfall    = hasIncome && monthlyCost > income;
+
+  // ── Ειδοποιήσεις υπέρβασης (σύνδεση με το σύστημα υπενθυμίσεων) ──────────────
+  // Όταν ενεργό και υπάρχει υπέρβαση, δημιουργείται ΕΝΑ εκκρεμές γεγονός ημερολογίου
+  // (source 'budget') τον μήνα — το ημερήσιο cron το στέλνει email μέσω των προτιμήσεων
+  // ειδοποιήσεων του χρήστη. Όταν λυθεί η υπέρβαση ή απενεργοποιηθεί, καθαρίζεται.
+  const notifyOn  = budgets.notifyOverspend === 'true';
+  const overKey   = overBudget.map(c => c.key).sort().join(',');
+  useEffect(() => {
+    if (!propertyId || !userId || loading) return;
+    let cancelled = false;
+    (async () => {
+      const y = _now.getFullYear(), mo = _now.getMonth();
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      const mStart = `${y}-${p2(mo + 1)}-01`;
+      const mEnd   = `${y}-${p2(mo + 1)}-${new Date(y, mo + 1, 0).getDate()}`;
+      const { data: existing } = await supabase.from('calendar_events')
+        .select('id').eq('property_id', propertyId).eq('source', 'budget')
+        .gte('event_date', mStart).lte('event_date', mEnd).limit(1);
+      if (cancelled) return;
+      const existId = (existing?.[0] as { id?: string } | undefined)?.id;
+      if (notifyOn && overBudget.length > 0) {
+        const total = overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0);
+        const title = `Υπέρβαση προϋπολογισμού: ${overBudget.map(c => c.label).join(', ')}`;
+        if (existId) {
+          await supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', existId);
+        } else {
+          await supabase.from('calendar_events').insert({
+            property_id: propertyId, user_id: userId, title, category: 'financial',
+            event_date: `${y}-${p2(mo + 1)}-${p2(_now.getDate())}`, priority: 'high',
+            status: 'pending', source: 'budget', amount: Math.round(total), recurring: false,
+          });
+        }
+      } else if (existId) {
+        await supabase.from('calendar_events').delete().eq('id', existId);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, userId, loading, notifyOn, overKey]);
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -374,6 +422,12 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               </div>
             );
           })}
+          {notifyOn && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 2 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              Θα λάβεις υπενθύμιση μέσω email και στο Ημερολόγιο.
+            </div>
+          )}
         </div>
       )}
 
@@ -424,6 +478,17 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
               <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
               <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
             </div>
+            {hasPrevMonth && carryIn !== 0 && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                <InfoDot text="Το αδιάθετο υπόλοιπο του προηγούμενου μήνα μεταφέρεται μπροστά· η τυχόν υπέρβαση αφαιρείται. Έτσι ο προϋπολογισμός λειτουργεί σωρευτικά, όχι μηδενίζοντας κάθε μήνα." />
+                <span>
+                  Μεταφορά από {_prevLabel}:{' '}
+                  <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{fe(carryIn, 0)}</strong>
+                  {' · '}πραγματικά διαθέσιμα{' '}
+                  <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(adjAvailable, 0)}</strong>
+                </span>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -536,13 +601,26 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         </div>
 
         {editMode && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-            <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
-            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
+          <>
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+              <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
+              </div>
             </div>
-          </div>
+            {/* Ειδοποίηση υπέρβασης — σύνδεση με το σύστημα υπενθυμίσεων/email */}
+            <button onClick={() => updateBudget('notifyOverspend', notifyOn ? 'false' : 'true')}
+              style={{ width: '100%', marginTop: 12, display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--bg-elevated)', border: `1px solid ${notifyOn ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
+              <span style={{ position: 'relative', width: 38, height: 22, borderRadius: 11, background: notifyOn ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.2s' }}>
+                <span style={{ position: 'absolute', top: 2, left: notifyOn ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}/>
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>Ειδοποίηση σε υπέρβαση</span>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Email όταν μια κατηγορία ξεπεράσει τον στόχο — μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.</span>
+              </span>
+            </button>
+          </>
         )}
       </div>
     </div>
