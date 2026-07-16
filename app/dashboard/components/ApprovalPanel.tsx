@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory, type ApprovalVerdict } from '@/lib/loans/approval'
+import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
 import type { BorrowerType } from './TabLoanData'
 
 // «Θα εγκριθώ;» — διαδραστική εκτίμηση πιθανότητας έγκρισης. Καθαρό, μονόχρωμο·
@@ -32,14 +32,6 @@ function defaultEmployment(b?: BorrowerType): EmploymentType {
   return 'employee_permanent'
 }
 
-// Ουδέτερο κουτί· χρώμα (γαλάζιο θετικό / κόκκινο κινδύνου) ΜΟΝΟ στην ετυμηγορία
-// και τη μπάρα — όχι σε ολόκληρο το πλαίσιο.
-const V_STYLE: Record<ApprovalVerdict,{c:string}> = {
-  high:    { c:'var(--accent)' },
-  medium:  { c:'var(--text-primary)' },
-  low:     { c:'var(--text-secondary)' },
-  blocked: { c:'var(--negative)' },
-}
 
 export default function ApprovalPanel({
   amount, years, ratePct, propertyValue, incomeMonthly, borrowerType, firstHomeDefault, fmtEur,
@@ -49,6 +41,7 @@ export default function ApprovalPanel({
   fmtEur:(n:number)=>string;
 }) {
   const [hm,setHm] = useState<number|null>(null)
+  const [vh,setVh] = useState(false)
   const [age,setAge] = useState<string>('35')
   const [income,setIncome] = useState<string>(incomeMonthly && incomeMonthly>0 ? String(Math.round(incomeMonthly)) : '2000')
   // Ενιαία πηγή εισοδήματος: όταν αλλάζει το εισόδημα στον Υπολογιστή, συγχρονίζεται
@@ -65,7 +58,6 @@ export default function ApprovalPanel({
     incomeMonthly:Number(income)||0, existingMonthlyDebt:Number(existing)||0, amount, years, ratePct,
     propertyValue, age:Number(age)||0, firstHome, employment, credit, hasGuarantor:guarantor,
   })
-  const vs = V_STYLE[res.verdict]
 
   const dec = (n:number)=>String(n).replace('.',',')
   const metrics = [
@@ -90,14 +82,20 @@ export default function ApprovalPanel({
         <Toggle on={guarantor} onChange={setGuarantor} label="Υπάρχει εγγυητής ή συνοφειλέτης"/>
       </div>
 
-      {/* Ετυμηγορία — ουδέτερο κουτί, χρώμα μόνο στην ετυμηγορία και τη μπάρα */}
-      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
+      {/* Ετυμηγορία — ουδέτερο κουτί· λευκή/ομοιόμορφη, γαλάζια μόνο στο πέρασμα του
+          κέρσορα (το κόκκινο για πραγματικό κίνδυνο παραμένει πάντα). */}
+      {(()=>{ const blocked=res.verdict==='blocked'
+        const verdictColor = blocked?'var(--negative)':(vh?'var(--accent)':'var(--text-primary)')
+        const barColor = blocked?'var(--negative)':(vh?'var(--accent)':'var(--text-secondary)')
+        return (
+      <div onMouseEnter={()=>setVh(true)} onMouseLeave={()=>setVh(false)} onTouchStart={()=>setVh(true)} onTouchEnd={()=>setVh(false)}
+        style={{background:'var(--bg-surface)',border:`1px solid ${vh?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 18px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:12}}>
-          <p style={{fontSize:16,fontWeight:700,fontFamily:"'Inter',sans-serif",color:vs.c,letterSpacing:'-0.01em'}}>{verdictLabel(res.verdict)}</p>
+          <p style={{fontSize:16,fontWeight:700,fontFamily:"'Inter',sans-serif",color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s'}}>{verdictLabel(res.verdict)}</p>
           <p style={{fontSize:13,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
         </div>
         <div role="progressbar" aria-valuenow={res.score} aria-valuemin={0} aria-valuemax={100} aria-label={`Βαθμολογία έγκρισης ${res.score} στα 100`} style={{height:6,borderRadius:3,background:'color-mix(in srgb, var(--text-primary) 8%, transparent)',overflow:'hidden'}}>
-          <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:vs.c,transition:'width 0.3s'}}/>
+          <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:barColor,transition:'width 0.3s, background 0.15s'}}/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
           {metrics.map((m,i)=>(
@@ -109,6 +107,7 @@ export default function ApprovalPanel({
           ))}
         </div>
       </div>
+      )})()}
 
       {/* Ανάλυση κριτηρίων — μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ */}
       <div>
