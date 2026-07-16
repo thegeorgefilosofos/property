@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
-import { reservePlan, allocate } from '@/lib/billing/budgetPro';
+import { reservePlan } from '@/lib/billing/budgetPro';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import BudgetVaults from './BudgetVaults';
@@ -80,7 +80,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       common: 'common', koinoxrista: 'common',
       maintenance: 'maintenance', repair: 'maintenance',
     };
-    return m[cat?.toLowerCase()] ?? 'maintenance';
+    return m[cat?.toLowerCase()] ?? 'other';
   };
 
   const loadData = useCallback(async () => {
@@ -109,18 +109,22 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
         supabase.from('user_properties').select('rental_mode,target_rent').eq('id', propertyId).maybeSingle(),
         supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
-        supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id', propertyId),
+        supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
         supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', start).lte('check_in', `${y}-${m}-31`),
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
       ]);
       const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
-      // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων· μακροχρόνια → συμβατικό ενοίκιο (ή στόχος).
+      // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων του μήνα· μακροχρόνια → ενεργό
+      // ενοίκιο (ή στόχος). Ιδιοκατοίκηση/χωρίς mode → 0 (κανένα «φανταστικό» έσοδο).
       let inc = 0;
       if (rMode === 'short_term') {
         inc = (staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0)), 0);
-      } else {
-        const rentSum = (tenantsRes.data ?? []).reduce((s: number, t: any) => s + (Number(t.monthly_rent) || 0), 0);
+      } else if (rMode === 'long_term') {
+        // ΜΟΝΟ ενεργοί ενοικιαστές (όχι παλιοί/αποχωρήσαντες) — αλλιώς διπλασιάζεται το έσοδο.
+        const rentSum = (tenantsRes.data ?? [])
+          .filter((t: any) => t.status !== 'past' && !t.move_out_date)
+          .reduce((s: number, t: any) => s + (Number(t.monthly_rent) || 0), 0);
         inc = rentSum > 0 ? rentSum : (Number(propRes.data?.target_rent) || 0);
       }
       setIncome(Math.round(inc));
@@ -129,9 +133,13 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
         .reduce((s: number, l: any) => s + annuityMonthly(Number(l.amount) || 0, Number(l.rate) || 0, Number(l.years) || 0), 0);
       setLoanMonthly(Math.round(loanM));
-      // Μηνιαίες εισφορές κουμπαράδων.
+      // Μηνιαίες εισφορές κουμπαράδων — μόνο όσοι έχουν ΜΕΛΛΟΝΤΙΚΗ προθεσμία (mo>0)·
+      // ληξιπρόθεσμοι ή χωρίς προθεσμία δεν μετρώνται ως πάγια μηνιαία δέσμευση.
       const vArr = (vaultsRes.data?.data as { vaults?: { target: number; current: number; due?: string }[] } | null)?.vaults ?? [];
-      const vaultM = vArr.reduce((s, v) => s + reservePlan(Number(v.target) || 0, Number(v.current) || 0, monthsUntilDue(v.due)).requiredMonthly, 0);
+      const vaultM = vArr.reduce((s, v) => {
+        const mo = monthsUntilDue(v.due);
+        return v.due && mo > 0 ? s + reservePlan(Number(v.target) || 0, Number(v.current) || 0, mo).requiredMonthly : s;
+      }, 0);
       setVaultMonthly(Math.round(vaultM));
 
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
@@ -154,9 +162,11 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       }
 
       const billActuals: Record<string, number> = {};
+      // Καταγεγραμμένοι λογαριασμοί του μήνα. Άγνωστες κατηγορίες → «Λοιπές δαπάνες»
+      // (συνέπεια με τα έξοδα)· δεν χάνεται τίποτα από το σύνολο.
       (billsRes.data ?? []).forEach(b => {
         const key = mapCategory(b.category ?? '');
-        if (key !== 'other') billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
+        billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
       });
 
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
@@ -223,10 +233,16 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   };
 
   // ── Derived numbers ────────────────────────────────────────────────────────
-  const masterBudget  = parseFloat(budgets.total) || CATS.reduce((s, c) => s + c.default, 0);
+  // Τιμή στόχου με σεβασμό στο ρητό 0 (μηδενικός στόχος ≠ «χωρίς στόχο») — μόνο
+  // κενό/άκυρο πέφτει στην προεπιλογή.
+  const budgetVal = (raw: string | undefined, def: number) => {
+    const p = parseFloat(raw ?? '');
+    return raw != null && raw.trim() !== '' && !isNaN(p) ? p : def;
+  };
+  const catBudget     = (key: string) => budgetVal(budgets[key], CATS.find(c => c.key === key)!.default);
+  const masterBudget  = budgetVal(budgets.total, CATS.reduce((s, c) => s + c.default, 0));
   const actualTotal   = CATS.reduce((s, c) => s + (actuals[c.key] || 0), 0);
-  const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > (parseFloat(budgets[c.key]) || c.default));
-  const catBudget     = (key: string) => parseFloat(budgets[key]) || CATS.find(c => c.key === key)!.default;
+  const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > catBudget(c.key));
 
   // ── Πρόβλεψη τέλους μήνα, ετήσια εικόνα, τάση (καθαρά, από τον πυρήνα) ─────────
   const _now         = new Date();
@@ -253,12 +269,13 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const catTrend     = (key: string) => periodTrend(actuals[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
 
   // ── «Ασφαλές διαθέσιμο» (Monzo Left to Spend / owner draw) ────────────────────
-  // Δεσμευμένοι λογαριασμοί = πάγιες κατηγορίες (στόχος)· εκροές = δόση + κουμπαράδες.
-  const committedBills = FIXED_CATS.reduce((s, k) => s + catBudget(k), 0);
-  const alloc          = allocate({ income, committedBills, reserveContributions: vaultMonthly, loanPayment: loanMonthly });
+  // Δεσμευμένοι λογαριασμοί = ΠΡΑΓΜΑΤΙΚΟΙ πάγιοι λογαριασμοί του μήνα (καταγεγραμμένοι
+  // + εκτιμήσεις παρόχων), όχι απλώς οι προεπιλεγμένοι στόχοι — αλλιώς εμφανίζεται
+  // «φανταστικό» κόστος σε άδειο ακίνητο. Εκροές = δόση + εισφορές κουμπαράδων.
+  const committedBills = fixedToDate;
   const monthlyCost    = committedBills + loanMonthly + vaultMonthly;
   const hasIncome      = income > 0;
-  const isShortfall    = hasIncome && (committedBills + loanMonthly + vaultMonthly) > income;
+  const isShortfall    = hasIncome && monthlyCost > income;
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -345,7 +362,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {!editMode && overBudget.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {overBudget.map(cat => {
-            const budget = parseFloat(budgets[cat.key]) || cat.default;
+            const budget = catBudget(cat.key);
             const actual = actuals[cat.key] || 0;
             return (
               <div key={cat.key} style={{ background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -373,13 +390,16 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
         {([
-          { label: 'Στόχος / μήνα',    value: fe(masterBudget), color: 'var(--text-primary)' },
-          { label: 'Έως τώρα',          value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)' },
-          { label: 'Πρόβλεψη μήνα',     value: fe(forecastTotal), color: forecastTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)' },
-          { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)), color: 'var(--text-primary)' },
+          { label: 'Στόχος / μήνα',    value: fe(masterBudget), color: 'var(--text-primary)', info: '' },
+          { label: 'Έως τώρα',          value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)', info: 'Καταγεγραμμένοι λογαριασμοί και δαπάνες του μήνα, συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν ακόμη χρεωθεί.' },
+          { label: 'Πρόβλεψη μήνα',     value: fe(forecastTotal), color: forecastTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)', info: 'Προβολή τέλους μήνα: πάγιες κατηγορίες ως έχουν, μεταβλητές με βάση τον τρέχοντα ρυθμό δαπανών.' },
+          { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)), color: 'var(--text-primary)', info: '' },
         ] as const).map((k, i) => (
           <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{k.label}</span>
+              {k.info && <InfoDot text={k.info} />}
+            </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           </div>
         ))}
@@ -463,7 +483,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         {secHdr('Ανά Κατηγορία')}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {CATS.map(cat => {
-            const budget  = parseFloat(budgets[cat.key]) || cat.default;
+            const budget  = catBudget(cat.key);
             const actual  = actuals[cat.key] || 0;
             const pct     = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
             const isOver  = actual > budget && actual > 0;
@@ -520,7 +540,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + (parseFloat(budgets[c.key]) || c.default), 0), 0)}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
             </div>
           </div>
         )}

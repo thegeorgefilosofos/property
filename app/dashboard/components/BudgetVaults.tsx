@@ -78,7 +78,12 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
 
   const hasEnfiaVault = vaults.some(v => /ενφια|enfia/i.test(v.name));
   const totalSaved = vaults.reduce((s, v) => s + (v.current || 0), 0);
-  const totalMonthly = vaults.reduce((s, v) => s + reservePlan(v.target, v.current, monthsUntil(v.due)).requiredMonthly, 0);
+  // Μηνιαία εισφορά: μόνο κουμπαράδες με ΜΕΛΛΟΝΤΙΚΗ προθεσμία — χωρίς προθεσμία ή
+  // ληξιπρόθεσμοι δεν είναι πάγια μηνιαία δέσμευση (αλλιώς φαίνεται όλο το υπόλοιπο «/μήνα»).
+  const totalMonthly = vaults.reduce((s, v) => {
+    const mo = monthsUntil(v.due);
+    return v.due && mo > 0 ? s + reservePlan(v.target, v.current, mo).requiredMonthly : s;
+  }, 0);
 
   if (!loaded) return null;
 
@@ -107,9 +112,11 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
         {vaults.map(v => {
-          const plan = reservePlan(v.target, v.current, monthsUntil(v.due));
+          const mo = monthsUntil(v.due);
+          const plan = reservePlan(v.target, v.current, mo);
           const funded = plan.fundedPct;
           const done = funded >= 100;
+          const overdue = !!v.due && mo <= 0;
           const col = done ? 'var(--accent)' : 'var(--text-secondary)';
           const editing = editId === v.id;
           const on = hoverPct === v.id;
@@ -148,10 +155,18 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
               <div onMouseEnter={() => setHoverPct(v.id)} onMouseLeave={() => setHoverPct(null)} onTouchStart={() => setHoverPct(v.id)} onTouchEnd={() => setHoverPct(null)}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, fontFamily: T.font.sans }}>
                 <span style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.mono, transition: 'color 0.15s' }}>{funded}%</span>
-                {!done && plan.requiredMonthly > 0 && (
-                  <span style={{ color: 'var(--text-tertiary)' }}>{fe(plan.requiredMonthly, 0)}/μήνα{v.due ? ` έως ${monthLabel(v.due)}` : ''}</span>
-                )}
-                {done && <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>}
+                {done
+                  ? <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>
+                  : overdue
+                    // Ληξιπρόθεσμος: η προθεσμία πέρασε — χρειάζεται όλο το υπόλοιπο τώρα (γνήσιο ρίσκο).
+                    ? <span style={{ color: 'var(--negative)', fontWeight: 600 }}>απαιτούνται {fe(plan.remaining, 0)} τώρα</span>
+                    : v.due && plan.requiredMonthly > 0
+                      // Μελλοντική προθεσμία: μηνιαία εισφορά για να προλάβει.
+                      ? <span style={{ color: 'var(--text-tertiary)' }}>{fe(plan.requiredMonthly, 0)}/μήνα έως {monthLabel(v.due)}</span>
+                      : plan.remaining > 0
+                        // Χωρίς προθεσμία: ανοιχτός στόχος — δείξε τι απομένει, όχι «/μήνα».
+                        ? <span style={{ color: 'var(--text-tertiary)' }}>απομένουν {fe(plan.remaining, 0)}</span>
+                        : null}
               </div>
             </div>
           );
