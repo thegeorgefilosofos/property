@@ -34,8 +34,11 @@ interface Props { propertyId: string; userId: string; propContext: PropContext; 
 type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
 // Σύστημα αναγνώρισης αντικειμένου από φωτο (συσκευασία/ετικέτα/booklet/απόδειξη).
-const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οικιακού εξοπλισμού από φωτογραφία. Επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON:
-{"name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"","power_watts":""}
+const IMG_ITEM_SCAN_SYSTEM = `Είσαι σύστημα ανάγνωσης φωτογραφίας για διαχείριση ακινήτου. Αναγνώρισε ΤΙ δείχνει η φωτογραφία και επίστρεψε ΑΥΣΤΗΡΑ ΜΟΝΟ JSON.
+Αν είναι ΑΠΟΔΕΙΞΗ/ΛΟΓΑΡΙΑΣΜΟΣ/ΤΙΜΟΛΟΓΙΟ (δαπάνη — π.χ. ΔΕΗ, ΕΥΔΑΠ, τηλεπικοινωνίες, υδραυλικός, κοινόχρηστα):
+{"kind":"expense","description":"σύντομα τι αφορά (π.χ. «ΔΕΗ ρεύμα», «Υδραυλικός»)","amount":"ΤΕΛΙΚΟ πληρωτέο ποσό σε € (αριθμός)","date":"YYYY-MM-DD ημερομηνία παραστατικού/έκδοσης ή κενό"}
+Αν είναι ΑΝΤΙΚΕΙΜΕΝΟ/ΣΥΣΚΕΥΗ/ΕΞΟΠΛΙΣΜΟΣ:
+{"kind":"item","name":"","brand":"","model":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό"}
 Το name περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Άφησε κενά όσα δεν διακρίνονται. Χωρίς κείμενο εκτός JSON.`
 // Ελαφρύ ευρετήριο πελατών για να «βρίσκει» ο βοηθός από όνομα/τηλέφωνο/ΑΦΜ.
 type ClientLite = { id: string; name: string; phone: string; afm: string; vip: boolean };
@@ -381,7 +384,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'go') onNavigate(a.tab);
     else if (a.type === 'book') { bookAppointment(a.title, a.date, a.time); return; } // κρατά ανοιχτό το πάνελ για την επιβεβαίωση
     else if (a.type === 'client') { registerClient(a); return; }
-    else if (a.type === 'expense') { registerExpense(a.description, a.amount); return; }
+    else if (a.type === 'expense') { registerExpense(a.description, a.amount, a.date); return; }
     else if (a.type === 'vip') { toggleVip(a.who); return; }
     else if (a.type === 'checkin') { makeCheckinLink(a.who); return; }
     else if (a.type === 'contact') { registerContact(a.name, a.phone, a.role); return; }
@@ -475,19 +478,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
 
   // Καταχώρηση δαπάνης με μία φράση: η κατηγορία/ομάδα προκύπτει αυτόματα.
-  const registerExpense = async (description: string, amount: number) => {
+  const registerExpense = async (description: string, amount: number, date?: string) => {
     const { group, category, deductible } = classifyExpense(description);
+    const today = new Date().toISOString().split('T')[0];
+    // Έγκυρη ISO ημερομηνία (καθορίζει τον ΜΗΝΑ στον προϋπολογισμό)· αλλιώς σήμερα.
+    const useDate = date && !isNaN(new Date(date).getTime()) ? date : today;
+    const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+    const monthLbl = useDate !== today ? ` (${MON_GR[new Date(useDate).getMonth()]})` : '';
     try {
       await supabase.from('expenses').insert({
         property_id: propertyId, user_id: userId,
         description: description.slice(0, 120), amount,
         category, expense_group: group,
-        date: new Date().toISOString().split('T')[0],
+        date: useDate,
         paid_by: 'owner', payment_method: 'cash', paid: true,
       });
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε ο βοηθός να «ξέρει» τη νέα δαπάνη
       loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Θέλεις να την ανοίξω για να προσθέσεις απόδειξη ή ΦΠΑ;`, action: { type: 'go', tab: 'expenses' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'expenses' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τη δαπάνη τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Δαπάνες.' }]);
     }
@@ -824,7 +832,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     if (!file.type.startsWith('image/') || busy) return;
     if (file.size > 10 * 1024 * 1024) { setMsgs(m => [...m, { role: 'assistant', text: 'Η φωτογραφία είναι πολύ μεγάλη (>10MB). Δοκίμασε μικρότερη.' }]); return; }
     setErr('');
-    setMsgs(m => [...m, { role: 'user', text: 'Φωτογραφία αντικειμένου' }]);
+    setMsgs(m => [...m, { role: 'user', text: 'Φωτογραφία (απόδειξη/λογαριασμός ή αντικείμενο)' }]);
     setBusy(true);
     try {
       const b64: string | null = await new Promise(res => { const r = new FileReader(); r.onload = () => res((r.result as string).split(',')[1] || null); r.onerror = () => res(null); r.readAsDataURL(file); });
@@ -843,9 +851,27 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const txt: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || '{}';
       let d: Record<string, string> = {};
       try { d = JSON.parse(txt.replace(/```json?|```/g, '').trim()); } catch { /* ignore */ }
+
+      // ΔΑΠΑΝΗ (απόδειξη/λογαριασμός/τιμολόγιο) → πρόταση καταχώρησης στον προϋπολογισμό,
+      // με το σωστό ποσό, μήνα (ημερομηνία παραστατικού) και αυτόματη κατηγορία.
+      if (d.kind === 'expense') {
+        const amt = d.amount ? Math.round((parseFloat(String(d.amount).replace(/[^\d.,]/g, '').replace(',', '.')) || 0) * 100) / 100 : 0;
+        const desc = (d.description || 'Δαπάνη').slice(0, 120);
+        if (amt > 0) {
+          const dt = /^\d{4}-\d{2}-\d{2}$/.test(String(d.date)) && !isNaN(new Date(d.date).getTime()) ? d.date : undefined;
+          const action = { type: 'expense' as const, description: desc, amount: amt, ...(dt ? { date: dt } : {}) };
+          const MON = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+          const when = dt ? ` · ${MON[new Date(dt).getMonth()]}` : '';
+          setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα δαπάνη: ${desc} ${eur(amt)}${when}. Να την προσθέσω στον προϋπολογισμό; (μπορείς μετά να αλλάξεις κατηγορία/μήνα στις Δαπάνες)`, action }]);
+          setBusy(false); return;
+        }
+        setMsgs(m => [...m, { role: 'assistant', text: 'Είδα παραστατικό αλλά δεν διάβασα καθαρά το ποσό. Πες μου το ποσό ή δοκίμασε καθαρότερη λήψη.' }]);
+        setBusy(false); return;
+      }
+
       const CATS = ['Έπιπλα', 'Ηλεκτρικές Συσκευές', 'Ηλεκτρονικά', 'Υδραυλικά', 'Θέρμανση & Ψύξη', 'Φωτιστικά', 'Διακόσμηση', 'Λοιπά'];
       const name = (d.name || [d.brand, d.model].filter(Boolean).join(' ') || '').slice(0, 120);
-      if (!name) { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν κατάλαβα καθαρά το αντικείμενο. Δοκίμασε πιο κοντινή/καθαρή λήψη ή πες μου τι είναι.' }]); setBusy(false); return; }
+      if (!name) { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν κατάλαβα καθαρά τι δείχνει η φωτογραφία. Δοκίμασε πιο κοντινή/καθαρή λήψη ή πες μου τι είναι.' }]); setBusy(false); return; }
       const val = d.price ? Math.round(parseFloat(String(d.price).replace(/[^\d.]/g, '')) || 0) : 0;
       const category = d.category && CATS.includes(d.category) ? d.category : undefined;
       const action = { type: 'inventory' as const, name, category, value: val > 0 ? val : undefined, brand: d.brand || undefined, model: d.model || undefined };
@@ -1053,7 +1079,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               {/* Είσοδος */}
               <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid var(--border-subtle)', alignItems: 'center' }}>
                 <input ref={imgRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) askImage(f); e.currentTarget.value = ''; }} />
-                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία αντικειμένου" title="Φωτογράφισε ένα αντικείμενο για καταγραφή στην Απογραφή"
+                <button onClick={() => { if (!busy) imgRef.current?.click(); }} disabled={busy} aria-label="Φωτογραφία απόδειξης, λογαριασμού ή αντικειμένου" title="Φωτογράφισε απόδειξη/λογαριασμό (→ προϋπολογισμός) ή αντικείμενο (→ Απογραφή)"
                   style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3.2" /></svg>
                 </button>
