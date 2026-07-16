@@ -56,25 +56,30 @@ function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: num
   );
 }
 
-// Ράβδοι εξόδων ανά μήνα — μονόχρωμες (αποχρώσεις της παλέτας), αλλά ζωντανές: στο
-// πέρασμα του κέρσορα η ράβδος φωτίζεται, σηκώνεται (3D) και εμφανίζει το ποσό σε γαλάζιο.
+// Ράβδοι εξόδων ανά μήνα — premium: κάθε ράβδος έχει διακριτικό «κανάλι» (track), απαλή
+// κάθετη διαβάθμιση, στρογγυλεμένη κορυφή· στο πέρασμα του κέρσορα φωτίζεται, σηκώνεται
+// (3D lift + glow) και δείχνει το ποσό σε γαλάζιο. Μονόχρωμο — αποχρώσεις της παλέτας.
 function MonthBars({ data, activeYm }: { data: { ym: string; label: string; value: number }[]; activeYm: string }) {
   const [hi, setHi] = useState<number | null>(null);
   const max = Math.max(1, ...data.map(d => d.value));
+  const TRACK = 84;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: TRACK + 22 }}>
       {data.map((d, i) => {
-        const h = d.value > 0 ? Math.max(3, Math.round((d.value / max) * 68)) : 2;
+        const h = d.value > 0 ? Math.max(4, Math.round((d.value / max) * (TRACK - 8))) : 0;
         const active = d.ym === activeYm, on = hi === i;
-        const shade = on ? 72 : active ? 52 : 20;
+        const top = on ? 94 : active ? 68 : 40;
+        const bot = on ? 52 : active ? 34 : 16;
         return (
           <div key={d.ym} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} onTouchStart={() => setHi(i)} onTouchEnd={() => setHi(null)}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'default' }}>
-            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', height: 78 }}>
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'default' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 26, height: TRACK, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              {/* Κανάλι (track) — δίνει βάθος και κάνει τους «κενούς» μήνες σκόπιμους */}
+              <div style={{ position: 'absolute', inset: 0, borderRadius: 7, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 5%, transparent)' }} />
               {on && d.value > 0 && (
-                <div style={{ position: 'absolute', bottom: h + 7, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 6px 16px -6px color-mix(in srgb, var(--text-primary) 34%, transparent)', zIndex: 2 }}>{fe(d.value, 0)}</div>
+                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--text-primary) 40%, transparent)', zIndex: 3 }}>{fe(d.value, 0)}</div>
               )}
-              <div style={{ width: '100%', maxWidth: 24, height: h, borderRadius: 3, background: `color-mix(in srgb, var(--text-primary) ${shade}%, transparent)`, transform: on ? 'translateY(-2px)' : 'none', boxShadow: on ? '0 8px 16px -6px color-mix(in srgb, var(--text-primary) 46%, transparent)' : 'none', transition: 'height 0.4s ease, background 0.18s, transform 0.18s, box-shadow 0.18s' }} />
+              <div style={{ position: 'relative', width: '100%', height: Math.max(h, 3), borderRadius: '7px 7px 3px 3px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--text-primary) ${top}%, transparent), color-mix(in srgb, var(--text-primary) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 9%, transparent)', transform: on ? 'translateY(-3px)' : 'none', boxShadow: on ? '0 10px 22px -6px color-mix(in srgb, var(--text-primary) 50%, transparent)' : 'none', transition: 'height 0.55s cubic-bezier(0.22,1,0.36,1), background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }} />
             </div>
             <span style={{ fontSize: 8.5, color: on || active ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
@@ -84,8 +89,9 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
   );
 }
 
-// Δαχτυλίδι (donut) κατανομής ανά κατηγορία — ζωντανό: το τόξο ή το υπόμνημα που δείχνει
-// ο κέρσορας «ανοίγει» (παχύτερο), φωτίζεται, και το κέντρο δείχνει την κατηγορία, ποσό και %.
+// Δαχτυλίδι (donut) κατανομής — premium: απαλό «κανάλι», τόξα με στρογγυλά άκρα και μικρά
+// κενά, ζωντανή αντίδραση (το τόξο/υπόμνημα που δείχνει ο κέρσορας ανοίγει, φωτίζεται με
+// λάμψη) και κέντρο που δείχνει κατηγορία, ποσό και %. Μονόχρωμο, αποχρώσεις της παλέτας.
 function Donut({ slices }: { slices: { label: string; value: number }[] }) {
   const [hi, setHi] = useState<number | null>(null);
   const total = slices.reduce((s, x) => s + x.value, 0);
@@ -98,40 +104,45 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
     const rest = sorted.slice(MAX - 1).reduce((s, x) => s + x.value, 0);
     segs = [...head, { label: 'Λοιπά', value: rest }];
   }
-  const r = 42, sw = 15, C = 2 * Math.PI * r;
-  const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--text-primary) ${Math.min(94, Math.max(14, 80 - i * 12) + (on ? 18 : 0))}%, transparent)`;
+  const r = 46, sw = 13, C = 2 * Math.PI * r;
+  const GAP = segs.length > 1 ? 5 : 0;   // κενό μεταξύ τόξων (σε μονάδες περιμέτρου)
+  const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--text-primary) ${Math.min(96, Math.max(16, 82 - i * 12) + (on ? 16 : 0))}%, transparent)`;
   const active = hi != null ? segs[hi] : null;
   let off = 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-      <svg width="120" height="120" viewBox="0 0 120 120" style={{ flexShrink: 0, overflow: 'visible' }}>
-        <g transform="rotate(-90 60 60)">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+      <svg width="128" height="128" viewBox="0 0 128 128" style={{ flexShrink: 0, overflow: 'visible' }}>
+        {/* Κανάλι δαχτυλιδιού */}
+        <circle cx="64" cy="64" r={r} fill="none" stroke="color-mix(in srgb, var(--text-primary) 6%, transparent)" strokeWidth={sw} />
+        <g transform="rotate(-90 64 64)">
           {segs.map((s, i) => {
             const on = hi === i;
-            const len = (s.value / total) * C;
+            const raw = (s.value / total) * C;
+            const len = Math.max(0.5, raw - GAP);
             const el = (
-              <circle key={i} cx="60" cy="60" r={r} fill="none" stroke={shade(i, on)} strokeWidth={on ? sw + 4 : sw}
+              <circle key={i} cx="64" cy="64" r={r} fill="none" stroke={shade(i, on)} strokeWidth={on ? sw + 5 : sw} strokeLinecap="round"
                 strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
                 onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
-                style={{ transition: 'stroke-width 0.18s ease, stroke 0.18s ease', cursor: 'default' }} />
+                style={{ transition: 'stroke-width 0.2s ease, stroke 0.2s ease', cursor: 'default', filter: on ? 'drop-shadow(0 3px 7px color-mix(in srgb, var(--text-primary) 40%, transparent))' : 'none' }} />
             );
-            off += len;
+            off += raw;
             return el;
           })}
         </g>
-        <text x="60" y="55" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16) : 'Σύνολο'}</text>
-        <text x="60" y="70" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
-        {active && <text x="60" y="82" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
+        <text x="64" y="58" textAnchor="middle" style={{ fontSize: 8, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase() : 'ΣΥΝΟΛΟ'}</text>
+        <text x="64" y="74" textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
+        {active && <text x="64" y="87" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 150 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 150 }}>
         {segs.map((s, i) => {
           const on = hi === i;
           return (
             <div key={i} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontFamily: T.font.sans, padding: '2px 4px', margin: '0 -4px', borderRadius: 5, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
-              <span style={{ width: 9, height: 9, borderRadius: 2, background: shade(i, on), flexShrink: 0, transition: 'background 0.15s' }} />
+              style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11.5, fontFamily: T.font.sans, padding: '4px 8px', margin: '0 -8px', borderRadius: 7, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, boxShadow: on ? '0 2px 5px -1px color-mix(in srgb, var(--text-primary) 40%, transparent)' : 'none', transition: 'background 0.15s, box-shadow 0.15s' }} />
               <span style={{ flex: 1, minWidth: 0, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{s.label}</span>
-              <span style={{ color: on ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: on ? 700 : 400, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
+              <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 10.5 }}>{fe(s.value, 0)}</span>
+              <span style={{ width: 34, textAlign: 'right', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 700, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
             </div>
           );
         })}
@@ -181,6 +192,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [catMonth,     setCatMonth]     = useState<Record<string, Record<string, number>>>({});
   // Έσοδα + δεσμευμένες εκροές (δόση δανείου, εισφορές κουμπαράδων) για το «Ασφαλές διαθέσιμο».
   const [income,       setIncome]       = useState(0);
+  const [incomeYtd,    setIncomeYtd]    = useState(0);
   const [loanMonthly,  setLoanMonthly]  = useState(0);
   const [vaultMonthly, setVaultMonthly] = useState(0);
   const [rentalMode,   setRentalMode]   = useState<'long_term' | 'short_term' | ''>('');
@@ -288,6 +300,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         inc = rentSum > 0 ? rentSum : (Number(propRes.data?.target_rent) || 0);
       }
       setIncome(Math.round(inc));
+      // Έσοδα από την αρχή του έτους: βραχυχρόνια → πραγματικά καταλύματα YTD· μακροχρόνια
+      // → αναμενόμενο ενοίκιο × μήνες που πέρασαν (δεν καταγράφουμε εισπράξεις εδώ).
+      if (rMode === 'short_term') setIncomeYtd(Math.round(staysAll.reduce((s: number, st: any) => s + stayGross(st), 0)));
+      else if (rMode === 'long_term') setIncomeYtd(Math.round(inc * (now.getMonth() + 1)));
+      else setIncomeYtd(0);
       // Δόση δανείου: ζωντανός υπολογισμός από ενεργά δάνεια (όχι διπλομέτρηση).
       const loanM = (loansRes.data ?? [])
         .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
@@ -654,11 +671,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   }, [propertyId, userId, loading, notifyOn, overKey, overAmt]);
 
   // Κεφαλίδα ενότητας με προαιρετικό κουμπί ελαχιστοποίησης (chevron) και δεξί περιεχόμενο.
-  const secHdr = (label: string, key?: string, right?: React.ReactNode) => {
+  const secHdr = (label: string, key?: string, right?: React.ReactNode, info?: React.ReactNode) => {
     const shut = !!key && collapsed.has(key);
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
+        {info}
         <span style={{ flex: 1 }}/>
         {right}
         {key && (
@@ -764,6 +782,39 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)} — μείωσε εισφορές κουμπαράδων ή αναθεώρησε τους στόχους.</div>
                 )}
               </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Έσοδα / rent-roll — αναμενόμενα ή πραγματικά έσοδα ακινήτου (προσαρμόζεται στον τύπο μίσθωσης) */}
+      {!editMode && isCurMonth && income > 0 && (() => {
+        const isSTRmode = rentalMode === 'short_term';
+        const netFlow = income - monthlyCost;
+        return (
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+            {secHdr('Έσοδα', 'income', undefined,
+              <InfoDot text={isSTRmode
+                ? 'Πραγματικά έσοδα από τα καταλύματα: του μήνα, από την αρχή του έτους, διανυκτερεύσεις και μέση τιμή ανά βραδιά.'
+                : 'Αναμενόμενο ενοίκιο από τους ενεργούς ενοικιαστές: μηνιαίο, ετήσιο και η καθαρή ταμειακή ροή μετά τα μηνιαία κόστη του ακινήτου.'} />)}
+            {!collapsed.has('income') && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
+                {isSTRmode ? (
+                  <>
+                    <KPI label="Έσοδα μήνα" value={fe(income)} />
+                    <KPI label="Από την αρχή έτους" value={fe(incomeYtd)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
+                    <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
+                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? fe(Math.round(income / strNights)) : '—'} />
+                  </>
+                ) : (
+                  <>
+                    <KPI label="Μηνιαίο ενοίκιο" value={fe(income)} />
+                    <KPI label="Ετησίως" value={fe(income * 12)} />
+                    <KPI label="Αναμενόμενα φέτος" value={fe(incomeYtd)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
+                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${fe(Math.abs(netFlow))}`} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
+                  </>
+                )}
+              </div>
             )}
           </div>
         );
@@ -1009,10 +1060,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             {secHdr('Επαναλαμβανόμενες χρεώσεις', 'recurring',
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthlyTotal, 0)}/μήνα · {fe(annualTotal, 0)}/έτος</span>
-                <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίστηκαν αυτόματα από τις καταγεγραμμένες δαπάνες σου (ίδιος πάροχος να επαναλαμβάνεται σε πολλούς μήνες). Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος — για να βρεις «κρυφές» συνδρομές." />
-              </span>)}
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthlyTotal, 0)}/μήνα · {fe(annualTotal, 0)}/έτος</span>,
+              <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίστηκαν αυτόματα από τις καταγεγραμμένες δαπάνες σου (ίδιος πάροχος να επαναλαμβάνεται σε πολλούς μήνες). Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος — για να βρεις «κρυφές» συνδρομές." />)}
             {!collapsed.has('recurring') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {recurring.slice(0, 10).map(r => {
@@ -1158,7 +1207,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
       {!editMode && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
-          {secHdr('Εισαγωγή δεδομένων', 'import',
+          {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
             <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση — οι δαπάνες μπαίνουν στον σωστό μήνα και κατηγορία." />)}
           {/* Μόνο βασικές κατηγορίες: οι custom c_* δεν χαρτογραφούνται στο ιστορικό, θα έπεφταν στις «Λοιπές». */}
           {!collapsed.has('import') && (
