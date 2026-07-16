@@ -17,10 +17,19 @@ interface Vault { id: string; name: string; target: number; current: number; due
 interface Props { propertyId: string; userId?: string }
 
 const uid = () => `v_${Date.now().toString(36)}_${Math.round(Math.random() * 1e6).toString(36)}`;
+// Ληξιπρόθεσμο = η ημερομηνία-στόχος έχει περάσει (σύγκριση ΗΜΕΡΑΣ, όχι μόνο μήνα).
+const isOverdue = (due?: string): boolean => {
+  if (!due) return false;
+  const now = new Date();
+  return new Date(due) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+// Μήνες-παράθυρα εισφοράς μέχρι τον στόχο: 0 αν δεν υπάρχει/είναι ληξιπρόθεσμη
+// προθεσμία· τουλάχιστον 1 για μελλοντική προθεσμία (ακόμη κι αργότερα ΜΕΣΑ στον μήνα).
 const monthsUntil = (due?: string): number => {
-  if (!due) return 0;
+  if (!due || isOverdue(due)) return 0;
   const d = new Date(due), now = new Date();
-  return Math.max(0, (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()));
+  const m = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
+  return Math.max(1, m);
 };
 const monthLabel = (due?: string): string => {
   if (!due) return '';
@@ -36,35 +45,54 @@ const nextFeb = (): string => {
 export default function BudgetVaults({ propertyId, userId = '' }: Props) {
   const supabase = createClient();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef  = useRef(false);   // εκκρεμεί/μόλις έγινε δική μας εγγραφή → μη «πατάς» πάνω της με reload
+  const editRef   = useRef<string | null>(null);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [enfiaAnnual, setEnfiaAnnual] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [hoverPct, setHoverPct] = useState<string | null>(null);
+  editRef.current = editId;
 
   useEffect(() => {
     if (!propertyId) return;
+    let mounted = true;
+    const loadVaults = async () => {
+      const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle();
+      const arr = (data?.data as { vaults?: Vault[] } | null)?.vaults;
+      // Μη αντικαθιστάς ό,τι επεξεργάζεται ή μόλις έσωσε ο χρήστης (θα έχανε αλλαγές).
+      if (mounted && Array.isArray(arr) && editRef.current == null && !dirtyRef.current) setVaults(arr);
+    };
     (async () => {
       const [vRes, pRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
         supabase.from('user_properties').select('enfia').eq('id', propertyId).maybeSingle(),
       ]);
       const arr = (vRes.data?.data as { vaults?: Vault[] } | null)?.vaults;
-      if (Array.isArray(arr)) setVaults(arr);
+      if (mounted && Array.isArray(arr)) setVaults(arr);
       const enfia = parseFloat(String(pRes.data?.enfia ?? 0)) || 0;
-      setEnfiaAnnual(enfia);
-      setLoaded(true);
+      if (mounted) { setEnfiaAnnual(enfia); setLoaded(true); }
     })();
+    // Ζωντανή ενημέρωση: αν αλλάξει η ρύθμιση 'vaults' αλλού (π.χ. ο βοηθός φτιάξει
+    // κουμπαρά), ξαναδιάβασε — ώστε να μη «χαθεί» από παλιά εικόνα στη μνήμη.
+    const ch = supabase
+      .channel(`vaults_${propertyId}`)
+      .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills_settings', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadVaults(); })
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId]);
 
   const persist = useCallback((next: Vault[]) => {
     setVaults(next);
+    dirtyRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      supabase.from('bills_settings').upsert(
+    saveTimer.current = setTimeout(async () => {
+      await supabase.from('bills_settings').upsert(
         { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: next } },
         { onConflict: 'property_id,section' },
       );
+      // Άφησε λίγο περιθώριο ώστε να «καταλαγιάσει» το δικό μας realtime echo πριν επιτρέψεις reload.
+      setTimeout(() => { dirtyRef.current = false; }, 1200);
     }, 700);
   }, [propertyId, userId]);
 
@@ -116,7 +144,7 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
           const plan = reservePlan(v.target, v.current, mo);
           const funded = plan.fundedPct;
           const done = funded >= 100;
-          const overdue = !!v.due && mo <= 0;
+          const overdue = !done && isOverdue(v.due);
           const col = done ? 'var(--accent)' : 'var(--text-secondary)';
           const editing = editId === v.id;
           const on = hoverPct === v.id;

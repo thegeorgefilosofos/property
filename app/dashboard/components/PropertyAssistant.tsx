@@ -71,6 +71,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  // Κουμπιά ενεργειών που έχουν ήδη εκτελεστεί (ώστε ένα δεύτερο πάτημα να μη διπλοκαταχωρεί).
+  const [consumedActions, setConsumedActions] = useState<Set<number>>(() => new Set());
   const imgRef = useRef<HTMLInputElement>(null);   // λήψη/επιλογή φωτο αντικειμένου για αναγνώριση
   const [err, setErr] = useState('');
   const [ctxStr, setCtxStr] = useState('');
@@ -249,7 +251,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const monthsUntilDue = (due?: string): number => {
       if (!due) return 0;
       const d = new Date(due), nn = new Date();
-      return Math.max(0, (d.getFullYear() - nn.getFullYear()) * 12 + (d.getMonth() - nn.getMonth()));
+      if (new Date(due) < new Date(nn.getFullYear(), nn.getMonth(), nn.getDate())) return 0;
+      const mm = (d.getFullYear() - nn.getFullYear()) * 12 + (d.getMonth() - nn.getMonth());
+      return Math.max(1, mm);
     };
     const vaultSaved = vArr.reduce((s: number, v: any) => s + (Number(v.current) || 0), 0);
     const vaultTarget = vArr.reduce((s: number, v: any) => s + (Number(v.target) || 0), 0);
@@ -605,6 +609,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: [...existing, nv] } },
         { onConflict: 'property_id,section' },
       );
+      setCtxStr('');   // ακύρωσε την προσωρινή εικόνα ώστε ο βοηθός να ξαναδιαβάσει τα σύνολα κουμπαράδων
+      loadContext();
       const dueStr = a.due ? ` έως ${new Date(a.due).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}` : '';
       setMsgs(m => [...m, { role: 'assistant', text: `Τον έφτιαξα. Πρόσθεσα κουμπαρά «${nv.name}» με στόχο ${eur(a.target)}${dueStr} στον Προϋπολογισμό. Θα υπολογίζει πόσο να βάζεις κάθε μήνα. Θέλεις να τον δεις;`, action: { type: 'go', tab: 'finances' } }]);
     } catch {
@@ -796,7 +802,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // «εκτελούμε» αμέσως (ανάλυση επαφής) ώστε να προκύψει είτε κουμπί-σύνδεσμος
       // που ανοίγει το μέσο με ένα άγγιγμα, είτε ερώτηση/εναλλακτική αν λείπει κάτι.
       const isReach = action?.type === 'reach';
-      setMsgs(m => [...m, { role: 'assistant', text: clean, action: isReach ? undefined : action }]);
+      // Στη φωνή/hands-free η ενέργεια εκτελείται αυτόματα παρακάτω — μην αφήσεις και
+      // κουμπί (θα προκαλούσε διπλή καταχώρηση αν το πατούσε κι ο χρήστης).
+      const willAutoRun = !!action && !isReach && (viaVoice || handsFreeRef.current);
+      setMsgs(m => [...m, { role: 'assistant', text: clean, action: (isReach || willAutoRun) ? undefined : action }]);
       if (isReach) runAction(action, true);
       // Φωνητική απάντηση + εκτέλεση ενέργειας / συνέχιση συνομιλίας.
       if (viaVoice || handsFreeRef.current) {
@@ -1011,8 +1020,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       return (ract.channel === 'call' || ract.channel === 'email')
                         ? <a href={link.url} style={style}>{inner}</a>
                         : <button onClick={() => window.open(link.url!, '_blank')} style={style}>{inner}</button>;
-                    })() : (
-                      <button onClick={() => runAction(m.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    })() : (() => {
+                      const used = consumedActions.has(i);
+                      return (
+                      <button disabled={used} onClick={() => { if (used) return; setConsumedActions(s => new Set(s).add(i)); runAction(m.action); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${used ? 'var(--border-subtle)' : 'var(--accent)'}`, background: used ? 'var(--bg-elevated)' : 'var(--accent-dim)', color: used ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: used ? 'default' : 'pointer' }}>
                         {m.action.type === 'scan' ? 'Σκάναρε έγγραφο'
                           : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
                           : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}`
@@ -1027,7 +1038,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
-                    ))}
+                      ); })()
+                    )}
                   </div>
                 ))}
                 {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}

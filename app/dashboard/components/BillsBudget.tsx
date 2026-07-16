@@ -10,10 +10,14 @@ import { annuityMonthly } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import BudgetVaults from './BudgetVaults';
 
+// Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
+// ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
 const monthsUntilDue = (due?: string): number => {
   if (!due) return 0;
   const d = new Date(due), now = new Date();
-  return Math.max(0, (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()));
+  if (new Date(due) < new Date(now.getFullYear(), now.getMonth(), now.getDate())) return 0;
+  const m = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
+  return Math.max(1, m);
 };
 
 // Κατηγορίες που θεωρούνται «σταθερές» (πάγιοι λογαριασμοί, χρεώνονται ολόκληρο
@@ -90,8 +94,10 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const now   = new Date();
       const y     = now.getFullYear();
       const m     = String(now.getMonth() + 1).padStart(2, '0');
-      const start = `${y}-${m}-01`;
-      const end   = `${y}-${m}-${new Date(y, now.getMonth() + 1, 0).getDate()}T23:59:59`;
+      const start   = `${y}-${m}-01`;
+      const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+      const dateEnd = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;      // για στήλες τύπου date
+      const end     = `${dateEnd}T23:59:59`;                                 // για timestamptz (created_at)
       // Ιστορικό 13 μηνών (τρέχων + 12 πίσω) για πρόβλεψη/ετήσια εικόνα/τάσεις.
       const histStart = `${ymOf(new Date(y, now.getMonth() - 12, 1))}-01`;
 
@@ -101,7 +107,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
         // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
         // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
-        supabase.from('expenses').select('amount,date,bill_id,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', `${y}-${m}-31`),
+        supabase.from('expenses').select('amount,date,bill_id,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
         supabase.from('bills').select('category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
         supabase.from('expenses').select('amount,date,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
       ]);
@@ -111,7 +117,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         supabase.from('user_properties').select('rental_mode,target_rent').eq('id', propertyId).maybeSingle(),
         supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
-        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', start).lte('check_in', `${y}-${m}-31`),
+        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', start).lte('check_in', dateEnd),
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
       ]);
       const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
@@ -267,8 +273,10 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const annual       = annualSummary(masterBudget, ytdActual, _now.getMonth() + 1);
   // Τάση μήνα: τρέχον καταγεγραμμένο σύνολο έναντι μέσου όρου 3 προηγούμενων.
   const monthTrend   = periodTrend(monthTotals[_curYm] || 0, _priorYms.map(ym => monthTotals[ym] || 0));
-  // Τάση ανά κατηγορία (μόνο όταν υπάρχει ιστορικό).
-  const catTrend     = (key: string) => periodTrend(actuals[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
+  // Τάση ανά κατηγορία: ΚΑΤΑΓΕΓΡΑΜΜΕΝΟ τρέχον (όχι εκτιμήσεις παρόχων) έναντι
+  // καταγεγραμμένου ιστορικού — ίδια βάση με τη μηνιαία τάση, ώστε να μη βγαίνει
+  // ψεύτικο βελάκι από εκτίμηση σε πάγια κατηγορία που δεν έχει χρεωθεί ακόμη.
+  const catTrend     = (key: string) => periodTrend(catMonth[_curYm]?.[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
 
   // ── Rollover: αδιάθετο/υπέρβαση προηγούμενου μήνα μεταφέρεται στον τρέχοντα ──
   // Μόνο όταν υπάρχει καταγεγραμμένη δραστηριότητα τον προηγ. μήνα (αλλιώς «κενός»
@@ -276,7 +284,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const _prevYm       = _priorYms[0];
   const hasPrevMonth  = _prevYm in monthTotals;
   const carryIn       = hasPrevMonth ? rolloverNext(masterBudget, monthTotals[_prevYm] || 0).carryOut : 0;
-  const adjAvailable  = masterBudget + carryIn - actualTotal;
+  // «Πραγματικά διαθέσιμα» σε ΚΑΤΑΓΕΓΡΑΜΜΕΝΗ βάση και για τους δύο μήνες (η μεταφορά
+  // υπολογίζεται από καταγεγραμμένα σύνολα) — αποφεύγει ανάμειξη με εκτιμήσεις παρόχων.
+  const adjAvailable  = masterBudget + carryIn - (monthTotals[_curYm] || 0);
   const _prevLabel    = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toLocaleDateString('el-GR', { month: 'long' });
 
   // ── «Ασφαλές διαθέσιμο» (Monzo Left to Spend / owner draw) ────────────────────
@@ -294,6 +304,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // ειδοποιήσεων του χρήστη. Όταν λυθεί η υπέρβαση ή απενεργοποιηθεί, καθαρίζεται.
   const notifyOn  = budgets.notifyOverspend === 'true';
   const overKey   = overBudget.map(c => c.key).sort().join(',');
+  // Το μέγεθος της υπέρβασης μπαίνει στις εξαρτήσεις ώστε ένα ποσό που μεγαλώνει
+  // (ίδια κατηγορία) να ενημερώνει το αποθηκευμένο γεγονός, όχι μόνο η αλλαγή κατηγοριών.
+  const overAmt   = Math.round(overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0));
 
   // ── Waterfall εσόδου βραχυχρόνιας: μεικτό → καθαρό (persona: short_term) ──────
   // Παραδοχές (προμήθεια/διαχείριση/φόρος) επεξεργάσιμες· εκτίμηση, όχι λογιστική.
@@ -312,30 +325,33 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       const p2 = (n: number) => String(n).padStart(2, '0');
       const mStart = `${y}-${p2(mo + 1)}-01`;
       const mEnd   = `${y}-${p2(mo + 1)}-${new Date(y, mo + 1, 0).getDate()}`;
+      // Διαβάζουμε ΟΛΑ τα φετινομηνιάτικα 'budget' γεγονότα (όχι limit 1) ώστε τυχόν
+      // διπλότυπα από ταυτόχρονες εγγραφές να καθαρίζονται αντί να μένουν να στέλνουν email.
       const { data: existing } = await supabase.from('calendar_events')
         .select('id').eq('property_id', propertyId).eq('source', 'budget')
-        .gte('event_date', mStart).lte('event_date', mEnd).limit(1);
+        .gte('event_date', mStart).lte('event_date', mEnd).order('event_date');
       if (cancelled) return;
-      const existId = (existing?.[0] as { id?: string } | undefined)?.id;
+      const ids = (existing ?? []).map((e: any) => e.id as string).filter(Boolean);
       if (notifyOn && overBudget.length > 0) {
         const total = overBudget.reduce((s, c) => s + ((actuals[c.key] || 0) - catBudget(c.key)), 0);
         const title = `Υπέρβαση προϋπολογισμού: ${overBudget.map(c => c.label).join(', ')}`;
-        if (existId) {
-          await supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', existId);
-        } else {
+        if (ids.length > 0) {
+          await supabase.from('calendar_events').update({ title, amount: Math.round(total) }).eq('id', ids[0]);
+          if (ids.length > 1 && !cancelled) await supabase.from('calendar_events').delete().in('id', ids.slice(1));
+        } else if (!cancelled) {
           await supabase.from('calendar_events').insert({
             property_id: propertyId, user_id: userId, title, category: 'financial',
             event_date: `${y}-${p2(mo + 1)}-${p2(_now.getDate())}`, priority: 'high',
             status: 'pending', source: 'budget', amount: Math.round(total), recurring: false,
           });
         }
-      } else if (existId) {
-        await supabase.from('calendar_events').delete().eq('id', existId);
+      } else if (ids.length > 0) {
+        await supabase.from('calendar_events').delete().in('id', ids);
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyId, userId, loading, notifyOn, overKey]);
+  }, [propertyId, userId, loading, notifyOn, overKey, overAmt]);
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>

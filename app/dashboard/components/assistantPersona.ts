@@ -382,9 +382,10 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
   if (ex) {
     const parts = ex[1].split('|').map(s => s.trim()).filter(Boolean);
     const description = (parts.find(p => !/^[\d.,\s€]+$/.test(p)) || '').slice(0, 120);
-    // Το ποσό είναι το ΚΑΘΑΡΑ αριθμητικό μέρος (π.χ. «120», «120€») — όχι μια
-    // περιγραφή που τυχαίνει να έχει ψηφία (π.χ. «ΔΕΗ Q3», «ενοίκιο Μαρτίου 2024»).
-    const numRaw = parts.find(p => /^[\d.,\s€]+$/.test(p)) || [...parts].reverse().find(p => /\d/.test(p)) || '';
+    // Το ποσό είναι ΜΟΝΟ ένα καθαρά αριθμητικό μέρος (π.χ. «120», «120€», «120,50»).
+    // ΔΕΝ κατασκευάζουμε ποσό από περιγραφή που τυχαίνει να έχει ψηφία (π.χ. «ΔΕΗ Q3»,
+    // «ενοίκιο Μαρτίου 2024») — αλλιώς θα καταχωρούσαμε πλαστό ποσό (π.χ. 2024€).
+    const numRaw = parts.find(p => /^[\d.,\s€]+$/.test(p)) || '';
     const amount = parseFloat(numRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
     if (description && amount > 0 && isFinite(amount)) expense = { type: 'expense', description, amount: Math.round(amount * 100) / 100 };
   }
@@ -521,8 +522,11 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
     const name = (parts.find(p => !/^[\d.,\s€]+$/.test(p) && !/^\d{4}-\d{2}-\d{2}$/.test(p)) || '').slice(0, 60);
     const numRaw = parts.find(p => /^[\d.,\s€]+$/.test(p)) || '';
     const target = numRaw ? parseFloat(numRaw.replace(/[^\d.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.')) : NaN;
-    const dueM = vl[1].match(/\d{4}-\d{2}-\d{2}/);
-    if (name && isFinite(target) && target > 0) vault = { type: 'vault', name, target: Math.round(target), due: dueM ? dueM[0] : undefined };
+    // Προθεσμία ΜΟΝΟ από ξεχωριστό πεδίο που είναι ΑΚΡΙΒΩΣ ημερομηνία (όχι ημερομηνία
+    // μέσα στο όνομα) και ΜΟΝΟ αν είναι έγκυρη (το 2026-02-31 δεν «κυλάει» σε Μάρτιο).
+    const dueRaw = parts.find(p => /^\d{4}-\d{2}-\d{2}$/.test(p));
+    const due = dueRaw && !isNaN(new Date(dueRaw).getTime()) && new Date(dueRaw).toISOString().slice(0, 10) === dueRaw ? dueRaw : undefined;
+    if (name && isFinite(target) && target > 0) vault = { type: 'vault', name, target: Math.round(target), due };
   }
   // Καθάρισε ΚΑΘΕ [[...]] υπόλειμμα (ακόμη και άκυρο, π.χ. [[go:]] ή [[go:123]]).
   const clean = text.replace(/\[\[[^\]]*\]\]/g, '').replace(/\s{2,}/g, ' ').trim();

@@ -25,7 +25,9 @@ export interface ReservePlan { remaining: number; requiredMonthly: number; funde
 export function reservePlan(target: number, current: number, monthsToTarget: number): ReservePlan {
   const remaining = Math.max(0, (target || 0) - (current || 0))
   const requiredMonthly = monthsToTarget > 0 ? Math.ceil(remaining / monthsToTarget) : remaining
-  const fundedPct = target > 0 ? Math.min(100, Math.round(((current || 0) / target) * 100)) : 0
+  // Math.floor (όχι round): 99,5% δεν πρέπει να εμφανίζεται ως 100% «καλυμμένο» ενώ
+  // λείπουν χρήματα — 100% μόνο όταν πράγματι καλύφθηκε ο στόχος.
+  const fundedPct = target > 0 ? Math.min(100, Math.floor(((current || 0) / target) * 100)) : 0
   return { remaining: r0(remaining), requiredMonthly: r0(requiredMonthly), fundedPct }
 }
 
