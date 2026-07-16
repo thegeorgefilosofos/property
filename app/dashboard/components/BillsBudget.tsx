@@ -7,17 +7,21 @@ import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
-import { annuityMonthly } from '@/lib/loans/recommend';
+import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
+const parseLocalDate = (s: string): Date => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y || 1970, (m || 1) - 1, d || 1);   // τοπική ημερομηνία (όχι UTC) — χωρίς off-by-one στα όρια
+};
 const monthsUntilDue = (due?: string): number => {
   if (!due) return 0;
-  const d = new Date(due), now = new Date();
-  if (new Date(due) < new Date(now.getFullYear(), now.getMonth(), now.getDate())) return 0;
+  const d = parseLocalDate(due), now = new Date();
+  if (d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) return 0;
   const m = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
   return Math.max(1, m);
 };
@@ -228,22 +232,33 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const annualGross = rMode === 'short_term'
         ? (monthsElapsed > 0 ? Math.round(staysAll.reduce((s, st) => s + stayGross(st), 0) / monthsElapsed * 12) : 0)
         : rMode === 'long_term' ? Math.round(inc * 12) : 0;
-      const annualOpex = Math.round(Object.values(billActuals).reduce((s, v) => s + v, 0) * 12);
+      // Λειτουργικά έξοδα ετησιοποιημένα από ΚΑΤΑΓΕΓΡΑΜΜΕΝΟ YTD (ίδια βάση με τα έσοδα)
+      // — όχι ένας «μονός» μήνας × 12 που θα στρέβλωνε τον φόρο επιχείρησης από μια αιχμή.
+      const yStr2 = String(y) + '-';
+      const ytdOpexRec = Object.entries(mTotals).filter(([ym]) => ym.startsWith(yStr2)).reduce((s, [, v]) => s + v, 0);
+      const annualOpex = monthsElapsed > 0 && ytdOpexRec > 0
+        ? Math.round(ytdOpexRec / monthsElapsed * 12)
+        : Math.round(Object.values(billActuals).reduce((s, v) => s + v, 0) * 12);
+      // Τόκοι δανείου έτους 1 (εκπίπτουν για επιχείρηση) — από τα ενεργά δάνεια.
+      const loanInterestAnnual = (loansRes.data ?? [])
+        .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
+        .reduce((s: number, l: any) => s + interestForYear(Number(l.amount) || 0, Number(l.rate) || 0, Number(l.years) || 0, 1), 0);
       const regime: 'individual_longterm' | 'individual_shortterm' | 'business' =
         isPro ? 'business' : rMode === 'short_term' ? 'individual_shortterm' : 'individual_longterm';
-      let incomeTaxAnnual = 0, taxPerMonth = 0;
+      let taxTargetAnnual = 0, taxPerMonth = 0, taxIsBusiness = false;
       if (annualGross > 0) {
         const stmt = incomeStatement({
           regime, grossIncome: annualGross,
           otherCashExpenses: annualOpex,
-          ...(isPro ? { itemizedExpenses: annualOpex, loanInterest: 0 } : {}),
+          ...(isPro ? { itemizedExpenses: annualOpex, loanInterest: Math.round(loanInterestAnnual) } : {}),
           loanPrincipal: Math.round(loanM * 12),
         });
-        const prov = taxProvision(stmt, monthsElapsed);
-        incomeTaxAnnual = Math.round(stmt.incomeTax);
+        taxIsBusiness = isPro;
+        // Ιδιώτης: φόρος εισοδήματος. Επιχείρηση: φόρος + προκαταβολή (πραγματική ταμειακή
+        // ανάγκη 1ου έτους) — ώστε το αποθεματικό να μην υπολείπεται.
+        taxTargetAnnual = Math.round(stmt.incomeTax) + (isPro ? Math.round(stmt.advanceTax) : 0);
         const remain = Math.max(1, 12 - monthsElapsed + 1);
-        taxPerMonth = Math.ceil(incomeTaxAnnual / remain);
-        void prov;
+        taxPerMonth = Math.ceil(taxTargetAnnual / remain);
       }
       // Προτεινόμενα αποθεματικά (CapEx/κενές περίοδοι) με βάση ενοίκιο, αξία και παλαιότητα.
       const propValue = Number(propRes.data?.value) || 0;
@@ -255,7 +270,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       const sugg: VaultSuggestion[] = [];
       if (enfiaVal > 0) sugg.push({ key: 'enfia', name: 'ΕΝΦΙΑ', target: Math.round(enfiaVal), due: nextFeb(), hint: 'δόσεις έως Φεβρουάριο' });
-      if (incomeTaxAnnual > 0) sugg.push({ key: 'tax', name: 'Φόρος εισοδήματος', target: incomeTaxAnnual, hint: `~${taxPerMonth}/μήνα`, note: isPro ? 'Ξεχωριστά: ΕΦΚΑ, προκαταβολή, ΦΠΑ — δες τη Λογιστική' : 'Εκτίμηση με βάση τα ετησιοποιημένα έσοδα' });
+      if (taxTargetAnnual > 0) sugg.push({ key: 'tax', name: 'Φόρος εισοδήματος', target: taxTargetAnnual, hint: `~${taxPerMonth}/μήνα`, note: taxIsBusiness ? 'Περιλαμβάνει προκαταβολή. Ξεχωριστά: ΕΦΚΑ, ΦΠΑ — δες τη Λογιστική' : 'Εκτίμηση με βάση τα ετησιοποιημένα έσοδα' });
       if (rec.capExMonthly > 0) sugg.push({ key: 'capex', name: 'Συντήρηση και CapEx', target: rec.capExMonthly * 12, hint: `~${rec.capExMonthly}/μήνα` });
       if (rMode === 'short_term' && rec.vacancyMonthly > 0) sugg.push({ key: 'vacancy', name: 'Κενές περίοδοι', target: rec.vacancyMonthly * 12, hint: `~${rec.vacancyMonthly}/μήνα` });
       setSuggestions(sugg);
@@ -611,7 +626,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
-                <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
+                {/* Το «Απομένει» φαίνεται ήδη στο πλακίδιο «Διαθέσιμο» — εδώ μόνο η υπέρβαση. */}
+                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : ''}</span>
               </div>
               {rolloverOn && hasPrevMonth && carryIn !== 0 && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>

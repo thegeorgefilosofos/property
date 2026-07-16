@@ -12,7 +12,7 @@ import { reservePlan } from '@/lib/billing/budgetPro';
 // εισφορά που χρειάζεται και το ποσοστό κάλυψης. Google-minimal, μονόχρωμο, με
 // γαλάζιο μόνο στο πέρασμα του κέρσορα και επεξηγήσεις πίσω από ⓘ.
 
-interface Vault { id: string; name: string; target: number; current: number; due?: string }
+interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string }
 
 // Έξυπνη πρόταση κουμπαρά (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι) — υπολογισμένη από
 // τον γονέα με τους κανονικούς μηχανισμούς. Εμφανίζεται ως πρόταση ενός αγγίγματος.
@@ -27,31 +27,38 @@ interface Props {
 }
 
 const uid = () => `v_${Date.now().toString(36)}_${Math.round(Math.random() * 1e6).toString(36)}`;
+// Τοπική ημερομηνία από ISO (όχι UTC) — αλλιώς off-by-one στα όρια σε ζώνες πίσω από UTC.
+const parseLocal = (s: string): Date => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y || 1970, (m || 1) - 1, d || 1);
+};
 // Ληξιπρόθεσμο = η ημερομηνία-στόχος έχει περάσει (σύγκριση ΗΜΕΡΑΣ, όχι μόνο μήνα).
 const isOverdue = (due?: string): boolean => {
   if (!due) return false;
   const now = new Date();
-  return new Date(due) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return parseLocal(due) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
 };
 // Μήνες-παράθυρα εισφοράς μέχρι τον στόχο: 0 αν δεν υπάρχει/είναι ληξιπρόθεσμη
 // προθεσμία· τουλάχιστον 1 για μελλοντική προθεσμία (ακόμη κι αργότερα ΜΕΣΑ στον μήνα).
 const monthsUntil = (due?: string): number => {
   if (!due || isOverdue(due)) return 0;
-  const d = new Date(due), now = new Date();
+  const d = parseLocal(due), now = new Date();
   const m = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
   return Math.max(1, m);
 };
 const monthLabel = (due?: string): string => {
   if (!due) return '';
-  try { return new Date(due).toLocaleDateString('el-GR', { month: 'short', year: 'numeric' }); } catch { return ''; }
+  try { return parseLocal(due).toLocaleDateString('el-GR', { month: 'short', year: 'numeric' }); } catch { return ''; }
 };
 const norm = (s: string) => s.toLowerCase().replace(/[^a-zα-ω0-9]/gi, '');
 
 export default function BudgetVaults({ propertyId, userId = '', suggestions = [], monthlyCommitment = 0 }: Props) {
   const supabase = createClient();
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dirtyRef  = useRef(false);   // εκκρεμεί/μόλις έγινε δική μας εγγραφή → μη «πατάς» πάνω της με reload
-  const editRef   = useRef<string | null>(null);
+  const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);   // αποδέσμευση dirty μετά την εγγραφή
+  const dirtyRef   = useRef(false);   // εκκρεμεί/μόλις έγινε δική μας εγγραφή → μη «πατάς» πάνω της με reload
+  const editRef    = useRef<string | null>(null);
+  const deletedRef = useRef<Set<string>>(new Set());   // ρητά διαγραμμένοι (για merge-on-write)
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -87,20 +94,28 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
     setVaults(next);
     dirtyRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (clearTimer.current) clearTimeout(clearTimer.current);   // μόνο η ΤΕΛΕΥΤΑΙΑ εγγραφή αποδεσμεύει το dirty
     saveTimer.current = setTimeout(async () => {
+      // Merge-on-write: διάβασε την τρέχουσα DB εικόνα και κράτα κουμπαράδες που πρόσθεσε
+      // αλλού (π.χ. ο βοηθός/άλλη συσκευή) και ΔΕΝ υπάρχουν τοπικά — χωρίς να «αναστήσεις»
+      // όσους ο χρήστης διέγραψε ρητά. Έτσι η ολική εγγραφή δεν χάνει ξένες αλλαγές.
+      const { data: cur } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle();
+      const remote = ((cur?.data as { vaults?: Vault[] } | null)?.vaults ?? []) as Vault[];
+      const localIds = new Set(next.map(v => v.id));
+      const merged = [...next, ...remote.filter(rv => !localIds.has(rv.id) && !deletedRef.current.has(rv.id))];
       await supabase.from('bills_settings').upsert(
-        { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: next } },
+        { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: merged } },
         { onConflict: 'property_id,section' },
       );
       // Άφησε λίγο περιθώριο ώστε να «καταλαγιάσει» το δικό μας realtime echo πριν επιτρέψεις reload.
-      setTimeout(() => { dirtyRef.current = false; }, 1200);
+      clearTimer.current = setTimeout(() => { dirtyRef.current = false; }, 1200);
     }, 700);
   }, [propertyId, userId]);
 
   const update = (id: string, patch: Partial<Vault>) => persist(vaults.map(v => v.id === id ? { ...v, ...patch } : v));
-  const remove = (id: string) => { persist(vaults.filter(v => v.id !== id)); if (editId === id) setEditId(null); };
+  const remove = (id: string) => { deletedRef.current.add(id); persist(vaults.filter(v => v.id !== id)); if (editId === id) setEditId(null); };
   const addVault = (v?: Partial<Vault>) => {
-    const nv: Vault = { id: uid(), name: v?.name ?? '', target: v?.target ?? 0, current: v?.current ?? 0, due: v?.due };
+    const nv: Vault = { id: uid(), name: v?.name ?? '', target: v?.target ?? 0, current: v?.current ?? 0, due: v?.due, ...(v?.srcKey ? { srcKey: v.srcKey } : {}) };
     persist([...vaults, nv]);
     setEditId(nv.id);
   };
@@ -114,8 +129,9 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   }, 0);
   // Δείκτης «κάλυψης»: πόσους μήνες κόστους καλύπτουν τα αποθεματικά (age-of-money style).
   const coverMonths = monthlyCommitment > 0 && totalSaved > 0 ? totalSaved / monthlyCommitment : 0;
-  // Προτάσεις που ΔΕΝ έχουν ήδη δημιουργηθεί (ταίριασμα με βάση το όνομα).
-  const openSuggestions = suggestions.filter(sg => !vaults.some(v => norm(v.name) === norm(sg.name)));
+  // Προτάσεις που ΔΕΝ έχουν ήδη δημιουργηθεί: ταίριασμα με σταθερό κλειδί προέλευσης
+  // (επιβιώνει σε μετονομασία) ή, ως εφεδρεία, με το κανονικοποιημένο όνομα.
+  const openSuggestions = suggestions.filter(sg => !vaults.some(v => v.srcKey === sg.key || norm(v.name) === norm(sg.name)));
 
   if (!loaded) return null;
 
@@ -139,7 +155,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           {openSuggestions.map(sg => {
             const h = hoverSg === sg.key;
             return (
-            <button key={sg.key} title={sg.note || undefined} onClick={() => addVault({ name: sg.name, target: sg.target, due: sg.due })}
+            <button key={sg.key} title={sg.note || undefined} onClick={() => addVault({ name: sg.name, target: sg.target, due: sg.due, srcKey: sg.key })}
               onMouseEnter={() => setHoverSg(sg.key)} onMouseLeave={() => setHoverSg(null)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: h ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: `1px dashed ${h ? 'var(--border-accent)' : 'var(--border-default)'}`, borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, transition: 'background 0.15s, border-color 0.15s' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={h ? 'var(--accent)' : 'var(--text-tertiary)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
