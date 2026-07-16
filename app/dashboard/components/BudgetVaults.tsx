@@ -222,9 +222,9 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           const on = hoverPct === v.id;
 
           if (editing) return (
-            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 16, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 13, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px', maxWidth: 520 }}>
+            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 14, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 12px', maxWidth: 500 }}>
                 <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
                 <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
                 <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
@@ -245,8 +245,9 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                     else if (val === '__other') update(v.id, { bank: v.bank ?? '', apy: v.apy ?? 0 });
                     else { const b = BANK_RATES.find(x => x.name === val); update(v.id, { bank: val, apy: b?.apy }); }
                   };
+                  const yearly = (v.apy != null && v.apy > 0 && (v.current || 0) > 0) ? Math.round((v.current || 0) * v.apy / 100) : 0;
                   return (
-                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 2, display: 'grid', gridTemplateColumns: selectValue !== '' ? '1fr 1fr' : '1fr', gap: '12px 14px' }}>
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 11, marginTop: 1, display: 'grid', gridTemplateColumns: isOther ? '1fr 1fr' : '1fr', gap: '9px 12px' }}>
                       <div style={{ gridColumn: '1 / -1' }}>
                         <CustomSelect label="Λογαριασμός αποταμίευσης"
                           labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά/μεταβλητά (EUR, 2026) και εξαρτώνται από πρόγραμμα ή υπόλοιπο· επιβεβαίωσέ τα στην τράπεζα και προσάρμοσέ τα." />}
@@ -256,11 +257,12 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                       {selectValue !== '' && (
                         <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
                       )}
+                      {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
                     </div>
                   );
                 })()}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16, maxWidth: 520 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, maxWidth: 500 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)}
                   style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--text-primary)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s' }}>Έτοιμο</button>
                 <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}
@@ -269,18 +271,18 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
             </div>
           );
 
-          // Πλήρες πλακίδιο 3D: στο πέρασμα κέρσορα/δαχτύλου σηκώνεται και τα νούμερα γίνονται γαλάζια.
+          // Πλήρες πλακίδιο 3D & clickable: κλικ οπουδήποτε ανοίγει την επεξεργασία (μετονομασία,
+          // στόχος, ποσό, ημερομηνία, τράπεζα). Στο πέρασμα κέρσορα σηκώνεται και τα νούμερα γίνονται γαλάζια.
           return (
-            <div key={v.id}
+            <div key={v.id} role="button" tabIndex={0} aria-label={`Επεξεργασία: ${v.name || 'Κουμπαράς'}`}
+              onClick={() => setEditId(v.id)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditId(v.id); } }}
               onMouseEnter={() => setHoverPct(v.id)} onMouseLeave={() => setHoverPct(null)}
               onTouchStart={() => setHoverPct(v.id)} onTouchEnd={() => setHoverPct(null)}
-              style={{ ...card, cursor: 'default', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, transform: on ? 'translateY(-2px)' : 'none', boxShadow: on ? '0 8px 20px -10px color-mix(in srgb, var(--text-primary) 34%, transparent)' : 'none', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease' }}>
+              style={{ ...card, cursor: 'pointer', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, transform: on ? 'translateY(-2px)' : 'none', boxShadow: on ? '0 8px 20px -10px color-mix(in srgb, var(--text-primary) 34%, transparent)' : 'none', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name || 'Κουμπαράς'}</span>
                 {done && <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', padding: '2px 7px', borderRadius: T.radius.pill, fontFamily: T.font.sans, letterSpacing: '0.02em' }}>Καλυμμένο</span>}
-                <button onClick={() => setEditId(v.id)} aria-label="Επεξεργασία κουμπαρά" title="Επεξεργασία" style={{ background: 'none', border: 'none', cursor: 'pointer', color: on ? 'var(--accent)' : 'var(--text-tertiary)', padding: 6, margin: -4, display: 'flex', transition: 'color 0.15s' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(v.current || 0, 0)}</span>
