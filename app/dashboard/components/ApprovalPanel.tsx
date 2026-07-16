@@ -48,6 +48,7 @@ export default function ApprovalPanel({
   incomeMonthly?:number; borrowerType?:BorrowerType; firstHomeDefault?:boolean;
   fmtEur:(n:number)=>string;
 }) {
+  const [hm,setHm] = useState<number|null>(null)
   const [age,setAge] = useState<string>('35')
   const [income,setIncome] = useState<string>(incomeMonthly && incomeMonthly>0 ? String(Math.round(incomeMonthly)) : '2000')
   const [existing,setExisting] = useState<string>('0')
@@ -95,10 +96,10 @@ export default function ApprovalPanel({
           <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:vs.c,transition:'width 0.3s'}}/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
-          {metrics.map(m=>(
-            <div key={m.l}>
-              <p style={{fontSize:9.5,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{m.l}</p>
-              <p style={{fontSize:15.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':'var(--text-primary)'}}>{m.v}</p>
+          {metrics.map((m,i)=>(
+            <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>{m.l}</p>
+              <p style={{fontSize:15.5,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</p>
               <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>{m.sub}</p>
             </div>
           ))}

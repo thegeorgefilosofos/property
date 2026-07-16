@@ -54,6 +54,7 @@ export default function EsisScanPanel({
   defaultAmount?:number; defaultYears?:number; benchmarkAprc?:number; fmtEur:(n:number)=>string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [ht,setHt] = useState<number|null>(null)
   const [scanning,setScanning] = useState(false)
   const [error,setError] = useState('')
   const [scanned,setScanned] = useState(false)
@@ -150,8 +151,8 @@ export default function EsisScanPanel({
         <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
       )}
 
-      {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10}}>
+      {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
         <NumberInput label="Ποσό δανείου" value={amount} onChange={setAmount} suffix="€"/>
         <NumberInput label="Διάρκεια" value={years} onChange={setYears} suffix="έτη"/>
         <NumberInput label="Ονομαστικό επιτόκιο" value={nominal} onChange={setNominal} suffix="%" step={0.1}/>
@@ -169,10 +170,10 @@ export default function EsisScanPanel({
           {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες vs αγορά`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
-          {costTiles.map(t=>(
-            <div key={t.l}>
-              <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
-              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:t.hi?vs.c:'var(--text-primary)'}}>{t.v}</p>
+          {costTiles.map((t,i)=>(
+            <div key={t.l} onMouseEnter={()=>setHt(i)} onMouseLeave={()=>setHt(null)} onTouchStart={()=>setHt(i)} onTouchEnd={()=>setHt(null)}>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
+              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:t.hi?vs.c:ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
             </div>
           ))}
         </div>

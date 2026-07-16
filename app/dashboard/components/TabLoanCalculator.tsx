@@ -682,6 +682,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   function updScen(id:string,f:string,v:any){setScenarios(s=>s.map(x=>x.id===id?{...x,[f]:v}:x))}
   function delScen(id:string){setScenarios(s=>s.filter(x=>x.id!==id))}
   function applyScen(s:LoanScenario){setLoanAmount(String(s.amount));setRate(String(s.rateType==='variable'?s.rate-market.euribor_3m:s.rate));setYears(String(s.years));setRateType(s.rateType);setActivePreset(null)}
+  // Επαναφορά όλων των βασικών πεδίων στις προεπιλογές (χωρίς reload σελίδας).
+  function resetAll(){
+    setLoanAmount(initial?.loanAmount||'150000');setPropValue(initial?.propValue||'185000');setSqm(initial?.sqm||'80')
+    setPropType('residence');setArea('attica_center_std');setRate('3.50');setYears('25')
+    setRateType('fixed');setLoanType('purchase');setBorrower('individual')
+    setFixedPeriod('5');setBankId('');setCustomBank('');setNotes('');setExtraPay('0')
+    setHasAgent(false);setAgentPct('2');setActivePreset(null)
+    showToast('Επαναφορά στις προεπιλογές')
+  }
   async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName||'Μη καθορισμένη',loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM}τ.μ., ${areaLabel}${notes?`, ${notes}`:''}`});setSaving(false);showToast('Το δάνειο αποθηκεύτηκε')}
 
   // ── Ημερομηνία δόσης i (1..n) με βάση την έναρξη ──────────────────────────────
@@ -894,6 +903,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           {label:'Δόσεις → Ημερολόγιο',fn:async()=>{await onSaveToCalendar(monthly,Y,startDate,bankName);showToast('Οι δόσεις προστέθηκαν στο ημερολόγιο')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'Δόση → Δαπάνες',fn:async()=>{await onSaveToExpenses(monthly,bankName);showToast('Η δόση προστέθηκε στις δαπάνες')},disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
           {label:'+ Προσθήκη σεναρίου',fn:addScen,disabled:false,color:'var(--text-secondary)',bg:'var(--bg-elevated)',border:'var(--border-subtle)'},
+          {label:'Επαναφορά',fn:resetAll,disabled:false,color:'var(--text-tertiary)',bg:'transparent',border:'var(--border-subtle)'},
         ].map(a=>(
           <button key={a.label} onClick={a.fn} disabled={a.disabled} style={{display:'flex',alignItems:'center',gap:7,padding:'0 18px',height:36,background:a.bg,border:`1px solid ${a.border}`,borderRadius:18,cursor:a.disabled?'wait':'pointer',color:a.color,fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:500,transition:'all 0.15s',whiteSpace:'nowrap' as const}}>
             {a.label}
@@ -928,13 +938,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                       <td style={{padding:'9px 10px'}}>
                         <div style={{display:'flex',gap:3,alignItems:'center'}}>
                           {isEd
-                            ?<button onClick={()=>setEditingId(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',display:'flex',padding:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></button>
+                            ?<button onClick={()=>setEditingId(null)} aria-label="Αποθήκευση σεναρίου" title="Αποθήκευση" style={{background:'none',border:'none',cursor:'pointer',color:'var(--accent)',display:'flex',padding:8,margin:-4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></button>
                             :<>
-                              <button onClick={()=>setEditingId(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-secondary)',display:'flex',padding:4}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                              <button onClick={()=>setEditingId(s.id)} aria-label="Επεξεργασία σεναρίου" title="Επεξεργασία" style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-secondary)',display:'flex',padding:8,margin:-4}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                               <button onClick={()=>applyScen(s)} style={{background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:8,cursor:'pointer',color:'var(--accent)',display:'flex',alignItems:'center',gap:3,padding:'3px 7px',fontSize:11,fontFamily:"'Inter',sans-serif",fontWeight:500}}>Εφαρμογή</button>
                             </>
                           }
-                          <button onClick={()=>delScen(s.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--border-default)',display:'flex',padding:4}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+                          <button onClick={()=>delScen(s.id)} aria-label="Διαγραφή σεναρίου" title="Διαγραφή" style={{background:'none',border:'none',cursor:'pointer',color:'var(--border-default)',display:'flex',padding:8,margin:-4}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
                         </div>
                       </td>
                     </tr>
