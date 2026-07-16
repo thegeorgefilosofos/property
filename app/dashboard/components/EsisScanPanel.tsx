@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
-import { NumberInput, CustomSelect, Toggle } from './UIComponents'
-import { analyzeEsis, esisVerdictLabel, type EsisVerdict, type FlagKind } from '@/lib/loans/esis'
+import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
+import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
 // νούμερα) και αποκαλύπτεται το πραγματικό κόστος: ΣΕΠΠΕ έναντι ονομαστικού,
@@ -41,12 +41,6 @@ const RATE_OPTIONS = [
   { value:'mixed', label:'Μεικτό' },
 ]
 
-const V_STYLE: Record<EsisVerdict,{c:string;bg:string;bd:string}> = {
-  good:      { c:'var(--accent)',    bg:'var(--accent-dim)',   bd:'var(--border-accent)' },
-  fair:      { c:'var(--text-primary)', bg:'var(--bg-surface)', bd:'var(--border-default)' },
-  expensive: { c:'var(--negative)',  bg:'var(--negative-dim)', bd:'var(--negative-border)' },
-}
-const FLAG_STROKE: Record<FlagKind,string> = { info:'var(--text-secondary)', warn:'var(--text-secondary)', bad:'var(--negative)' }
 
 export default function EsisScanPanel({
   defaultAmount, defaultYears, benchmarkAprc, fmtEur,
@@ -54,6 +48,8 @@ export default function EsisScanPanel({
   defaultAmount?:number; defaultYears?:number; benchmarkAprc?:number; fmtEur:(n:number)=>string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [ht,setHt] = useState<number|null>(null)
+  const [vhE,setVhE] = useState(false)
   const [scanning,setScanning] = useState(false)
   const [error,setError] = useState('')
   const [scanned,setScanned] = useState(false)
@@ -118,11 +114,11 @@ export default function EsisScanPanel({
     insuranceMonthly:Number(insurance)||0, prepaymentPenalty:prepay,
     rateType:rateType as any, bank,
   }, benchmarkAprc!=null ? { benchmarkAprc } : undefined)
-  const vs = V_STYLE[res.verdict]
 
+  const dec = (n:number)=>String(n).replace('.',',')
   const costTiles = [
-    { l:'ΣΕΠΠΕ (πραγματικό)', v:`${res.aprc}%`, hi:true },
-    { l:'Ονομαστικό επιτόκιο', v:`${res.nominal}%`, hi:false },
+    { l:'ΣΕΠΠΕ (πραγματικό)', v:`${dec(res.aprc)}%`, hi:true },
+    { l:'Ονομαστικό επιτόκιο', v:`${dec(res.nominal)}%`, hi:false },
     { l:'Δόση', v:fmtEur(res.monthly), hi:false },
     { l:'Σύνολο τόκων', v:fmtEur(res.totalInterest), hi:false },
     { l:'Έξοδα', v:fmtEur(res.totalFees), hi:false },
@@ -132,8 +128,8 @@ export default function EsisScanPanel({
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={e=>{ const f=e.target.files?.[0]; if(f) loadFile(f); e.currentTarget.value='' }}/>
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-        <p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55,maxWidth:420}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
+        <p style={{flex:1,minWidth:240,fontSize:12.5,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
         <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 15px',height:38,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily:font,fontWeight:600,cursor:scanning?'wait':'pointer',flexShrink:0}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
           {scanning?'Ανάλυση…':'Ανέβασε προσφορά'}
@@ -149,8 +145,8 @@ export default function EsisScanPanel({
         <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
       )}
 
-      {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10}}>
+      {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',gap:10,opacity:scanning?0.5:1,pointerEvents:scanning?'none':'auto',transition:'opacity 0.2s'}} aria-busy={scanning}>
         <NumberInput label="Ποσό δανείου" value={amount} onChange={setAmount} suffix="€"/>
         <NumberInput label="Διάρκεια" value={years} onChange={setYears} suffix="έτη"/>
         <NumberInput label="Ονομαστικό επιτόκιο" value={nominal} onChange={setNominal} suffix="%" step={0.1}/>
@@ -161,21 +157,23 @@ export default function EsisScanPanel({
       </div>
       <Toggle on={prepay} onChange={setPrepay} label="Ρήτρα πρόωρης εξόφλησης"/>
 
-      {/* Ετυμηγορία */}
-      <div style={{background:vs.bg,border:`1px solid ${vs.bd}`,borderRadius:14,padding:'16px 18px'}}>
+      {/* Ετυμηγορία — ουδέτερο κουτί· λευκή/ομοιόμορφη, γαλάζια μόνο στο πέρασμα του
+          κέρσορα (το κόκκινο για ακριβή προσφορά παραμένει πάντα). */}
+      <div onMouseEnter={()=>setVhE(true)} onMouseLeave={()=>setVhE(false)} onTouchStart={()=>setVhE(true)} onTouchEnd={()=>setVhE(false)}
+        style={{background:'var(--bg-surface)',border:`1px solid ${vhE?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 18px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:14}}>
-          <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:vs.c,letterSpacing:'-0.01em'}}>{esisVerdictLabel(res.verdict)}</p>
-          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${res.vsMarketPct} μονάδες vs αγορά`}</p>}
+          <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:res.verdict==='expensive'?'var(--negative)':vhE?'var(--accent)':'var(--text-primary)',letterSpacing:'-0.01em',transition:'color 0.15s'}}>{esisVerdictLabel(res.verdict)}</p>
+          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες vs αγορά`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
-          {costTiles.map(t=>(
-            <div key={t.l}>
-              <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
-              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:t.hi?vs.c:'var(--text-primary)'}}>{t.v}</p>
+          {costTiles.map((t,i)=>(
+            <div key={t.l} onMouseEnter={()=>setHt(i)} onMouseLeave={()=>setHt(null)} onTouchStart={()=>setHt(i)} onTouchEnd={()=>setHt(null)}>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
+              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:(t.hi&&res.verdict==='expensive')?'var(--negative)':ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
             </div>
           ))}
         </div>
-        <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${vs.bd}`,display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
+        <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
           <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:font}}>Συνολικό κόστος πέραν κεφαλαίου</span>
           <span style={{fontSize:16,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)'}}>{fmtEur(res.totalCost)}</span>
         </div>
@@ -185,18 +183,11 @@ export default function EsisScanPanel({
       {res.flags.length>0 && (
         <div>
           <p style={{...labelStyle,marginBottom:10}}>Τι να προσέξεις</p>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
             {res.flags.map((f,i)=>(
-              <div key={i} style={{display:'flex',gap:11,padding:'10px 13px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flexShrink:0,marginTop:2}} aria-hidden="true">
-                  {f.kind==='info'
-                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE.info} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={FLAG_STROKE[f.kind]} strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-                </span>
-                <div style={{minWidth:0}}>
-                  <p style={{fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',marginBottom:2}}>{f.label}</p>
-                  <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily:font}}>{f.detail}</p>
-                </div>
+              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+                <InfoDot text={f.detail}/>
               </div>
             ))}
           </div>

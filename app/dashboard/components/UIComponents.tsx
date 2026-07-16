@@ -39,6 +39,44 @@ const mdLabelBase: React.CSSProperties = {
   marginBottom: 7,
 };
 
+// ── InfoDot: διακριτικό εικονίδιο «i» με tooltip στο πέρασμα του κέρσορα/δαχτύλου.
+// Κρύβει επεξηγήσεις/σημειώσεις πίσω από σύμβολο, ώστε τα πεδία να μένουν καθαρά
+// και μαζεμένα (όχι «σούπερ μάρκετ» με μόνιμα κατεβατά). Portal → δεν κόβεται.
+export function InfoDot({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false });
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r || typeof window === 'undefined') return;
+    const W = 260;
+    const left = Math.min(Math.max(8, r.left - 2), window.innerWidth - W - 8);
+    const up = r.bottom + 120 > window.innerHeight;
+    setPos({ top: up ? r.top - 8 : r.bottom + 8, left, up });
+    setOpen(true);
+  };
+  const hide = () => setOpen(false);
+  return (
+    <>
+      {/* Ορατή κουκκίδα 15px, αλλά περιοχή αφής ~32px (αρνητικά margins ώστε να μη μεγαλώνει η σειρά). */}
+      <button ref={ref} type="button" aria-label="Επεξήγηση"
+        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 0, marginTop: -9, marginBottom: -9, padding: 0, width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)' }}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
+        </span>
+      </button>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
+          <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.55 }}>{text}</p>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 // ─── Number Input ─────────────────────────────────────────────────────────────
 interface NumberInputProps {
   label?: string;
@@ -196,6 +234,7 @@ interface SelectOption {
 
 interface CustomSelectProps {
   label?: string;
+  labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
   options: SelectOption[];
@@ -204,7 +243,7 @@ interface CustomSelectProps {
 }
 
 export function CustomSelect({
-  label, value, onChange, options, placeholder = 'Επιλογή…', disabled,
+  label, labelInfo, value, onChange, options, placeholder = 'Επιλογή…', disabled,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -235,16 +274,8 @@ export function CustomSelect({
     if (open && activeIndex >= 0) optRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
 
-  // Αποφάσισε κατεύθυνση ανοίγματος με βάση τον διαθέσιμο χώρο.
-  useEffect(() => {
-    if (!open) return;
-    const el = triggerRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const below = window.innerHeight - r.bottom;
-    const needed = Math.min(264, options.length * 42 + 12) + 10;
-    setDropUp(below < needed && r.top > below);
-  }, [open, options.length]);
+  // Πάντα άνοιγμα προς τα κάτω — σταθερή, προβλέψιμη συμπεριφορά σε όλη την εφαρμογή.
+  useEffect(() => { setDropUp(false); }, [open, options.length]);
 
   const openList = (to?: number) => {
     setOpen(true);
@@ -292,7 +323,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={mdLabelBase} id={`${idRef.current}-label`}>{label}</label>}
+      {label && <label style={{ ...mdLabelBase, display: 'flex', alignItems: 'center' }} id={`${idRef.current}-label`}>{label}{labelInfo}</label>}
       <div
         ref={triggerRef}
         role="combobox"
@@ -433,10 +464,10 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   const reposition = () => {
     if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    const PANEL_H = 348, PANEL_W = 280;
-    const openUp = r.bottom + PANEL_H + 8 > window.innerHeight && r.top - PANEL_H - 8 > 0;
+    const PANEL_W = 280;
+    // Πάντα προς τα κάτω — σταθερή συμπεριφορά σε όλη την εφαρμογή.
     const left = Math.min(r.left, window.innerWidth - PANEL_W - 8);
-    setCoords({ top: openUp ? r.top - PANEL_H - 4 : r.bottom + 4, left: Math.max(8, left) });
+    setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
   };
 
   useEffect(() => {
