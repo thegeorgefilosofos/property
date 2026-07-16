@@ -212,8 +212,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   // Εφαρμογή επιτοκίου τράπεζας στον Υπολογιστή (μέσω του καναλιού «applied»· η
   // σφραγίδα έκδοσης εξασφαλίζει ότι εφαρμόζεται ακόμη κι αν ξαναπατηθεί η ίδια τιμή).
+  // Προσοχή: για ΚΥΜΑΙΝΟΜΕΝΟ, ο Υπολογιστής περιμένει το ΠΕΡΙΘΩΡΙΟ (spread), όχι το
+  // πλήρες επιτόκιο (effRate = Euribor + spread). Η σύσταση δίνει το πλήρες επιτόκιο,
+  // οπότε αφαιρούμε το Euribor ώστε να μη μετρηθεί δύο φορές (όπως κάνει και το applyScen).
   const applyBank = (rate:number, rt:RateType, bankName?:string)=>{
-    setAppliedLoan({ v: Date.now(), rate, rateType:rt })
+    const eur = market.euribor_3m || MARKET_FALLBACK.euribor_3m
+    const applyRate = rt==='variable' ? Math.max(0, Number((rate - eur).toFixed(2))) : rate
+    setAppliedLoan({ v: Date.now(), rate:applyRate, rateType:rt })
     if(bankName) showToast(`Εφαρμόστηκε το επιτόκιο: ${bankName}`)
     scrollToCalc()
   }
@@ -419,7 +424,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <button onClick={()=>deleteLoan(loan.id)} aria-label="Διαγραφή δανείου" title="Διαγραφή" style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-tertiary)',padding:8,margin:-4,display:'flex',borderRadius:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:8,marginBottom:12}}>
-              <KPI label="Ποσό" value={fmtEur(loan.amount)} color="var(--accent)"/>
+              <KPI label="Ποσό" value={fmtEur(loan.amount)}/>
               <KPI label="Επιτόκιο" value={fmtPct(loan.rate)} color="var(--text-primary)" sub={loan.rate_type==='variable'?'Κυμαινόμενο':'Σταθερό'}/>
               <KPI label="Δόση τον μήνα" value={fmtEur(m)} color="var(--text-primary)"/>
               <KPI label="Συνολικοί τόκοι" value={fmtEur(ti)} color="var(--text-primary)"/>

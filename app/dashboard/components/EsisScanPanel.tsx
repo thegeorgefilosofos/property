@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
-import { analyzeEsis, esisVerdictLabel, type EsisVerdict } from '@/lib/loans/esis'
+import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
 // Σαρωτής προσφοράς ESIS — ανεβάζεις το δελτίο της τράπεζας (ή πληκτρολογείς τα
 // νούμερα) και αποκαλύπτεται το πραγματικό κόστος: ΣΕΠΠΕ έναντι ονομαστικού,
@@ -41,12 +41,6 @@ const RATE_OPTIONS = [
   { value:'mixed', label:'Μεικτό' },
 ]
 
-// Ουδέτερο κουτί· χρώμα μόνο στην ετυμηγορία και τα κύρια νούμερα.
-const V_STYLE: Record<EsisVerdict,{c:string}> = {
-  good:      { c:'var(--accent)' },
-  fair:      { c:'var(--text-primary)' },
-  expensive: { c:'var(--negative)' },
-}
 
 export default function EsisScanPanel({
   defaultAmount, defaultYears, benchmarkAprc, fmtEur,
@@ -55,6 +49,7 @@ export default function EsisScanPanel({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [ht,setHt] = useState<number|null>(null)
+  const [vhE,setVhE] = useState(false)
   const [scanning,setScanning] = useState(false)
   const [error,setError] = useState('')
   const [scanned,setScanned] = useState(false)
@@ -119,7 +114,6 @@ export default function EsisScanPanel({
     insuranceMonthly:Number(insurance)||0, prepaymentPenalty:prepay,
     rateType:rateType as any, bank,
   }, benchmarkAprc!=null ? { benchmarkAprc } : undefined)
-  const vs = V_STYLE[res.verdict]
 
   const dec = (n:number)=>String(n).replace('.',',')
   const costTiles = [
@@ -163,17 +157,19 @@ export default function EsisScanPanel({
       </div>
       <Toggle on={prepay} onChange={setPrepay} label="Ρήτρα πρόωρης εξόφλησης"/>
 
-      {/* Ετυμηγορία — ουδέτερο κουτί, χρώμα μόνο στην ετυμηγορία και το ΣΕΠΠΕ */}
-      <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
+      {/* Ετυμηγορία — ουδέτερο κουτί· λευκή/ομοιόμορφη, γαλάζια μόνο στο πέρασμα του
+          κέρσορα (το κόκκινο για ακριβή προσφορά παραμένει πάντα). */}
+      <div onMouseEnter={()=>setVhE(true)} onMouseLeave={()=>setVhE(false)} onTouchStart={()=>setVhE(true)} onTouchEnd={()=>setVhE(false)}
+        style={{background:'var(--bg-surface)',border:`1px solid ${vhE?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 18px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:14}}>
-          <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:vs.c,letterSpacing:'-0.01em'}}>{esisVerdictLabel(res.verdict)}</p>
+          <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:res.verdict==='expensive'?'var(--negative)':vhE?'var(--accent)':'var(--text-primary)',letterSpacing:'-0.01em',transition:'color 0.15s'}}>{esisVerdictLabel(res.verdict)}</p>
           {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες vs αγορά`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
           {costTiles.map((t,i)=>(
             <div key={t.l} onMouseEnter={()=>setHt(i)} onMouseLeave={()=>setHt(null)} onTouchStart={()=>setHt(i)} onTouchEnd={()=>setHt(null)}>
               <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
-              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:t.hi?vs.c:ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
+              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:(t.hi&&res.verdict==='expensive')?'var(--negative)':ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
             </div>
           ))}
         </div>
