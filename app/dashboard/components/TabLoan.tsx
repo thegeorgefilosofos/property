@@ -87,13 +87,16 @@ function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:strin
 
 // Πτυσσόμενη υπο-ενότητα — premium, διακριτική· ο τίτλος και προαιρετικά
 // badges/meta μένουν ορατά, οι λεπτομέρειες ανοίγουν με κλικ (όχι ατέρμονες λίστες).
-function MiniSection({title,badges,meta,defaultOpen,order,children}:{title:string;badges?:React.ReactNode;meta?:React.ReactNode;defaultOpen?:boolean;order?:number;children:React.ReactNode}) {
+function MiniSection({title,badges,meta,defaultOpen,order,flat,children}:{title:string;badges?:React.ReactNode;meta?:React.ReactNode;defaultOpen?:boolean;order?:number;flat?:boolean;children:React.ReactNode}) {
   const [open,setOpen] = useState(!!defaultOpen)
+  // flat: χωρίς περίγραμμα/φόντο — για ένθετες ενότητες, ώστε να μη διπλασιάζεται το πλαίσιο.
   return (
-    <div style={{order,background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,overflow:'hidden',transition:'border-color 0.2s'}}>
-      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'15px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
+    <div style={flat
+      ? {order,borderTop:'1px solid var(--border-subtle)'}
+      : {order,background:'var(--bg-elevated)',border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,overflow:'hidden',transition:'border-color 0.2s'}}>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:flat?'13px 2px':'15px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,flexWrap:'wrap'}}>
-          <span style={{fontSize:14.5,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.01em'}}>{title}</span>
+          <span style={{fontSize:flat?13:14.5,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",letterSpacing:'-0.01em'}}>{title}</span>
           {badges}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
@@ -101,7 +104,7 @@ function MiniSection({title,badges,meta,defaultOpen,order,children}:{title:strin
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </button>
-      {open&&<div style={{padding:'0 18px 18px'}}>{children}</div>}
+      {open&&<div style={{padding:flat?'0 2px 6px':'0 18px 18px'}}>{children}</div>}
     </div>
   )
 }
@@ -407,13 +410,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <p style={{...labelStyle,marginBottom:9}}>Κατανομή μηνιαίας δόσης ανά δάνειο</p>
               <div style={{display:'flex',height:14,borderRadius:7,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:10}}>
                 {rows.map((r,i)=>(
-                  <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)} τον μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${100-i*14}%, var(--bg-elevated))`}}/>
+                  <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)} τον μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
                 ))}
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:6}}>
                 {rows.map((r,i)=>(
                   <div key={r.l.id} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <span style={{width:10,height:10,borderRadius:3,flexShrink:0,background:`color-mix(in srgb, var(--accent) ${100-i*14}%, var(--bg-elevated))`}}/>
+                    <span style={{width:10,height:10,borderRadius:3,flexShrink:0,background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
                     <span style={{fontSize:12.5,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.l.bank||'Δάνειο'}</span>
                     <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums'}}>{fmtPct(r.l.rate)}</span>
                     <span style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',fontWeight:600,minWidth:110,textAlign:'right' as const}}>{fmtEur(r.m)} τον μήνα</span>
@@ -449,7 +452,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
                 {loan.notes&&<p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{loan.notes}</p>}
               </div>
-              <button onClick={()=>deleteLoan(loan.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-tertiary)',padding:4,display:'flex',borderRadius:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              <button onClick={()=>deleteLoan(loan.id)} aria-label="Διαγραφή δανείου" title="Διαγραφή" style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-tertiary)',padding:8,margin:-4,display:'flex',borderRadius:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))',gap:8,marginBottom:12}}>
               <KPI label="Ποσό" value={fmtEur(loan.amount)} color="var(--accent)"/>
@@ -882,7 +885,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                 </div>
               </div>
               {otherRecs.length>0 && (
-                <MiniSection title={`Άλλες επιλογές (${otherRecs.length})`}>
+                <MiniSection flat title={`Άλλες επιλογές (${otherRecs.length})`}>
                   <div style={{display:'flex',flexDirection:'column',gap:7}}>
                     {otherRecs.map(r=>{
                       const on=otherHover===r.bankId
@@ -1284,10 +1287,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <EuriborArea data={EURIBOR_HISTORY}/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
               {[
-                {l:'Ιστορικό χαμηλό',v:'-0,55%',s:'2021'},
-                {l:'Ιστορικό υψηλό',v:'4,00%',s:'Οκτώβριος 2023'},
+                {l:'Ιστορικό χαμηλό',v:fmtPct(Math.min(...EURIBOR_HISTORY.map(p=>p.val))),s:'2021'},
+                {l:'Ιστορικό υψηλό',v:fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))),s:'Οκτώβριος 2023'},
                 {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:'σήμερα'},
-                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(4.0-market.euribor_3m)}`,s:'από το 2023'},
+                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))-market.euribor_3m)}`,s:'από το 2023'},
               ].map(item=>(
                 <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
                   <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
