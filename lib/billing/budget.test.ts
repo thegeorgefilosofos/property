@@ -119,6 +119,28 @@ function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed+
   ok('μέσο ποσό ΔΕΗ = 77', deh[0]?.avgAmount === 77)
 
   ok('κενή είσοδος → κενό', detectRecurring([]).length === 0)
+
+  // Regression: πλήρη/γενική ονόματα μηνών στην περιγραφή ΔΕΝ πρέπει να σπάνε την ομαδοποίηση.
+  const withMonths = detectRecurring([
+    { date: '2026-01-05', amount: 12.99, description: 'NETFLIX ΣΥΝΔΡΟΜΗ ΙΑΝΟΥΑΡΙΟΥ' },
+    { date: '2026-02-05', amount: 12.99, description: 'NETFLIX ΣΥΝΔΡΟΜΗ ΦΕΒΡΟΥΑΡΙΟΥ' },
+    { date: '2026-03-05', amount: 12.99, description: 'NETFLIX ΣΥΝΔΡΟΜΗ ΜΑΡΤΙΟΥ' },
+  ])
+  ok('ονόματα μηνών δεν σπάνε την ομάδα', withMonths.length === 1 && withMonths[0].cadence === 'monthly')
+  // Regression: description drift (MEMBERSHIP) δεν διχοτομεί τον έμπορο.
+  const drift = detectRecurring([
+    { date: '2026-01-10', amount: 9.99, description: 'SPOTIFY' },
+    { date: '2026-02-10', amount: 9.99, description: 'SPOTIFY MEMBERSHIP' },
+    { date: '2026-03-10', amount: 9.99, description: 'SPOTIFY' },
+  ])
+  ok('drift περιγραφής δεν διχοτομεί', drift.length === 1)
+
+  // Regression: χρέωση της 31ης → επόμενη αναμενόμενη ΔΕΝ πηδάει μήνα (σφιγμένο στο τέλος μήνα).
+  const eom = detectRecurring([
+    { date: '2025-12-31', amount: 20, description: 'GYM ΣΥΝΔΡΟΜΗ' },
+    { date: '2026-01-31', amount: 20, description: 'GYM ΣΥΝΔΡΟΜΗ' },
+  ])
+  ok('τέλος μήνα δεν πηδάει (Φεβ, όχι Μαρ)', eom[0]?.nextExpected === '2026-02-28')
 }
 
 console.log(`\nbudget.test: ${passed} passed, ${failed} failed`)

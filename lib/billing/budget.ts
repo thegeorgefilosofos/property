@@ -110,10 +110,17 @@ type Confidence = 'high' | 'medium' | 'low'
 // Γενικές/θορυβώδεις λέξεις & συντμήσεις μηνών που ΔΕΝ ταυτοποιούν έμπορο.
 const RECUR_STOP = new Set([
   'ΛΟΓΑΡΙΑΣΜΟΣ', 'ΛΟΓΑΡΙΑΣΜΟΥ', 'ΠΛΗΡΩΜΗ', 'ΠΛΗΡΩΜΕΣ', 'ΚΑΡΤΑΣ', 'ΚΑΡΤΑ', 'ΧΡΕΩΣΗ', 'ΕΞΟΦΛΗΣΗ',
-  'ΜΕΣΩ', 'ΕΝΤΟΛΗ', 'ΠΑΓΙΑ', 'ΣΥΝΔΡΟΜΗ', 'ΜΗΝΙΑΙΑ', 'ΤΡΑΠΕΖΑ', 'ΔΟΣΗ', 'WEB', 'BANKING', 'EBANKING',
-  'POS', 'ONLINE', 'PAYMENT', 'SUBSCRIPTION', 'MONTHLY', 'BILL', 'PURCHASE', 'ΑΓΟΡΑ',
+  'ΜΕΣΩ', 'ΕΝΤΟΛΗ', 'ΠΑΓΙΑ', 'ΣΥΝΔΡΟΜΗ', 'ΣΥΝΔΡΟΜΗΣ', 'ΜΗΝΙΑΙΑ', 'ΤΡΑΠΕΖΑ', 'ΔΟΣΗ', 'WEB', 'BANKING', 'EBANKING',
+  'POS', 'ONLINE', 'PAYMENT', 'SUBSCRIPTION', 'MONTHLY', 'BILL', 'PURCHASE', 'ΑΓΟΡΑ', 'MEMBERSHIP', 'RENEWAL',
+  // Συντμήσεις μηνών
   'ΙΑΝ', 'ΦΕΒ', 'ΜΑΡ', 'ΑΠΡ', 'ΜΑΙ', 'ΙΟΥΝ', 'ΙΟΥΛ', 'ΑΥΓ', 'ΣΕΠ', 'ΟΚΤ', 'ΝΟΕ', 'ΔΕΚ',
   'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  // Πλήρη ονόματα μηνών (ονομαστική + γενική· χωρίς τόνους/διαλυτικά αφού αφαιρούνται πρώτα)
+  'ΙΑΝΟΥΑΡΙΟΣ', 'ΙΑΝΟΥΑΡΙΟΥ', 'ΦΕΒΡΟΥΑΡΙΟΣ', 'ΦΕΒΡΟΥΑΡΙΟΥ', 'ΜΑΡΤΙΟΣ', 'ΜΑΡΤΙΟΥ',
+  'ΑΠΡΙΛΙΟΣ', 'ΑΠΡΙΛΙΟΥ', 'ΜΑΙΟΣ', 'ΜΑΙΟΥ', 'ΙΟΥΝΙΟΣ', 'ΙΟΥΝΙΟΥ', 'ΙΟΥΛΙΟΣ', 'ΙΟΥΛΙΟΥ',
+  'ΑΥΓΟΥΣΤΟΣ', 'ΑΥΓΟΥΣΤΟΥ', 'ΣΕΠΤΕΜΒΡΙΟΣ', 'ΣΕΠΤΕΜΒΡΙΟΥ', 'ΟΚΤΩΒΡΙΟΣ', 'ΟΚΤΩΒΡΙΟΥ',
+  'ΝΟΕΜΒΡΙΟΣ', 'ΝΟΕΜΒΡΙΟΥ', 'ΔΕΚΕΜΒΡΙΟΣ', 'ΔΕΚΕΜΒΡΙΟΥ',
+  'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
 ])
 
 // Ταυτότητα εμπόρου: αφαίρεση τόνων, κεφαλαία, κράτημα των 2 πιο διακριτικών λέξεων
@@ -137,7 +144,9 @@ const monthIndex = (iso: string): number => {
 }
 const addMonthsISO = (iso: string, n: number): string => {
   const [y, m, d] = iso.split('-').map(Number)
-  const dt = new Date(y || 1970, (m || 1) - 1 + n, d || 1)
+  // Σφιχτό στην τελευταία ημέρα του μήνα-στόχου — ώστε μια χρέωση της 31ης να μη «πηδάει» μήνα.
+  const len = new Date(y || 1970, (m || 1) - 1 + n + 1, 0).getDate()
+  const dt = new Date(y || 1970, (m || 1) - 1 + n, Math.min(d || 1, len))
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 const median = (xs: number[]): number => {
