@@ -49,9 +49,10 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
       if (isExcel) {
         const XLSX = await import('xlsx');
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: 'array' });
+        // cellDates: οι ημερομηνίες του Excel να διαβαστούν ως ημερομηνίες (όχι σειριακοί αριθμοί).
+        const wb = XLSX.read(buf, { type: 'array', cellDates: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        text = XLSX.utils.sheet_to_csv(sheet);
+        text = XLSX.utils.sheet_to_csv(sheet, { dateNF: 'yyyy-mm-dd' });
       } else {
         text = await file.text();
       }
@@ -74,7 +75,11 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
     if (!rows || !selectedCount) return;
     setBusy(true); setErr('');
     try {
-      const payload = rows.filter(r => r.selected).map(r => ({
+      // Ασφάλεια: μόνο γραμμές με έγκυρη ISO ημερομηνία φτάνουν στη βάση, ώστε μια «κακή»
+      // γραμμή (footer/περίεργη μορφή) να μη ρίχνει όλη την εισαγωγή.
+      const valid = rows.filter(r => r.selected && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+      if (!valid.length) { setErr('Καμία γραμμή με έγκυρη ημερομηνία για εισαγωγή.'); setBusy(false); return; }
+      const payload = valid.map(r => ({
         property_id: propertyId, user_id: userId || null,
         amount: r.amount, date: r.date, description: r.description.slice(0, 200),
         category: r.catKey, expense_group: r.catKey === 'maintenance' ? 'maintenance' : 'other',
@@ -125,7 +130,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
                     style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 5, border: `1.5px solid ${r.selected ? 'var(--accent)' : 'var(--border-default)'}`, background: r.selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     {r.selected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                   </button>
-                  <span style={{ width: 66, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{r.date.slice(8, 10)}/{r.date.slice(5, 7)}/{r.date.slice(2, 4)}</span>
+                  <span style={{ width: 66, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{/^\d{4}-\d{2}-\d{2}$/.test(r.date) ? `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}/${r.date.slice(2, 4)}` : '—'}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</span>
                   <div style={{ width: 168, flexShrink: 0 }}>
                     <CustomSelect value={r.catKey} onChange={v => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, catKey: v } : x))} options={catOptions} />

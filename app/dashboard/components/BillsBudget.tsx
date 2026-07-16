@@ -75,9 +75,9 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'default' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 26, height: H, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               {on && d.value > 0 && (
-                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-accent)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--accent) 45%, transparent)', zIndex: 3 }}>{fe(d.value, 0)}</div>
+                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', zIndex: 3 }}>{fe(d.value, 0)}</div>
               )}
-              <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transform: on ? 'translateY(-3px)' : 'none', boxShadow: on ? '0 10px 22px -6px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none', transition: 'height 0.55s cubic-bezier(0.22,1,0.36,1), background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }} />
+              <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transition: 'height 0.5s cubic-bezier(0.22,1,0.36,1), background 0.18s ease' }} />
             </div>
             <span style={{ fontSize: 8.5, color: on || active ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
@@ -118,10 +118,10 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
             const raw = (s.value / total) * C;
             const len = Math.max(0.5, raw - GAP);
             const el = (
-              <circle key={i} cx="64" cy="64" r={r} fill="none" stroke={shade(i, on)} strokeWidth={on ? sw + 5 : sw} strokeLinecap="round"
+              <circle key={i} cx="64" cy="64" r={r} fill="none" stroke={shade(i, on)} strokeWidth={sw} strokeLinecap="round"
                 strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
                 onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
-                style={{ transition: 'stroke-width 0.2s ease, stroke 0.2s ease', cursor: 'default', filter: on ? 'drop-shadow(0 3px 8px color-mix(in srgb, var(--accent) 50%, transparent))' : 'none' }} />
+                style={{ transition: 'stroke 0.18s ease', cursor: 'default' }} />
             );
             off += raw;
             return el;
@@ -137,7 +137,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
           return (
             <div key={i} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
               style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11.5, fontFamily: T.font.sans, padding: '4px 8px', margin: '0 -8px', borderRadius: 7, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, boxShadow: on ? '0 2px 6px -1px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none', transition: 'background 0.15s, box-shadow 0.15s' }} />
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, transition: 'background 0.15s' }} />
               <span style={{ flex: 1, minWidth: 0, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{s.label}</span>
               <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 10.5 }}>{fe(s.value, 0)}</span>
               <span style={{ width: 34, textAlign: 'right', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 700, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
@@ -317,6 +317,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }, 0);
       setVaultMonthly(Math.round(vaultM));
 
+      // Κλειδιά προσαρμοσμένων κατηγοριών (c_*): αν μια δαπάνη έχει αποθηκευτεί σε custom
+      // κατηγορία, την προσμετράμε εκεί (αλλιώς θα «έπεφτε» στις Λοιπές δαπάνες).
+      let customKeys = new Set<string>();
+      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) customKeys = new Set(arr.map((c: any) => String(c?.key)).filter(Boolean)); } catch { /* ignore */ }
+      const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : mapCategory(r); };
+
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
       // εγγραφές (όχι εκτιμήσεις από ρυθμίσεις), ώστε τάση/ετήσιο να είναι έντιμα.
       const mTotals: Record<string, number> = {};
@@ -327,7 +333,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
       };
       (histBillsRes.data ?? []).forEach((b: any) => addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0));
-      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? '')), e.amount || 0));
+      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), e.amount || 0));
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
 
@@ -341,7 +347,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // ── Εβδομαδιαίο εργαλείο: δαπάνες τρέχουσας εβδομάδας ανά κατηγορία ──
       const wk: Record<string, number> = {};
       (weekBillsRes.data ?? []).forEach((b: any) => { const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(b.amount) || 0); });
-      (weekExpRes.data ?? []).forEach((e: any) => { const k = e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
+      (weekExpRes.data ?? []).forEach((e: any) => { const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
       setWeekActuals(wk);
 
       if (budgetRes.data?.data) {
@@ -378,7 +384,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
       (expRes.data ?? []).forEach((e: any) => {
         const amt = e.amount || 0;
-        const k = e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? ''));
+        const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''));
         billActuals[k] = (billActuals[k] || 0) + amt;
       });
 
@@ -968,10 +974,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const ytdCol = ytdOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
         const trDir = monthTrend.direction;
         const shut = collapsed.has('annual');
+        const hasAnnualData = annual.ytdActual > 0 || Object.keys(monthTotals).length > 0;
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             {secHdr('Ετήσια εικόνα', 'annual')}
-            {!shut && (
+            {!shut && !hasAnnualData && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+                Μόλις καταγραφούν οι πρώτες δαπάνες, εδώ θα εμφανίζεται η προβολή τέλους έτους, η πορεία από την αρχή του έτους και η κατανομή ανά κατηγορία.
+              </div>
+            )}
+            {!shut && hasAnnualData && (
               <>
                 {/* Προβολή τέλους έτους — κύριος αριθμός */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -1031,7 +1043,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 6px', margin: '0 -6px', borderRadius: T.radius.inner, background: on ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
                   <span style={{ width: 120, flexShrink: 0, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
                   <div style={{ flex: 1, height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: `color-mix(in srgb, var(--accent) ${on ? 100 : 66}%, transparent)`, borderRadius: 4, boxShadow: on ? '0 0 12px -2px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none', transition: 'width 0.5s ease, background 0.18s, box-shadow 0.18s' }} />
+                    <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: `color-mix(in srgb, var(--accent) ${on ? 100 : 66}%, transparent)`, borderRadius: 4, transition: 'width 0.5s ease, background 0.18s' }} />
                   </div>
                   <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(c.value, 0)}</span>
                 </div>
@@ -1209,9 +1221,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
           {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
             <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση, ώστε οι δαπάνες να μπαίνουν στον σωστό μήνα και στη σωστή κατηγορία." />)}
-          {/* Μόνο βασικές κατηγορίες: οι custom c_* δεν χαρτογραφούνται στο ιστορικό, θα έπεφταν στις «Λοιπές». */}
           {!collapsed.has('import') && (
-            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.filter(c => !c.key.startsWith('c_')).map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
+            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
           )}
         </div>
       )}
