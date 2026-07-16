@@ -642,7 +642,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
   useMemo(()=>{
     onStateChange?.({loanType,borrowerType:borrower,loanAmount:LA,years:Y,rateType,effectiveRate:effRate,monthly,totalInterest:totalInt,propertyValue:PV,sqm:SQM,propType,area,incomeMonthly:INC,marital,children:Number(children)||0})
-  },[loanType,borrower,LA,Y,rateType,effRate,monthly,totalInt,PV])
+  },[loanType,borrower,LA,Y,rateType,effRate,monthly,totalInt,PV,SQM,propType,area,INC,marital,children])
 
   const bankName = bankId==='custom'?customBank:BANKS.find(b=>b.id===bankId)?.name||''
   const areaLabel = AREA_OPTIONS.find(a=>a.value===area)?.label||''
