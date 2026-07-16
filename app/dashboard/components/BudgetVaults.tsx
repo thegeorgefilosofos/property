@@ -29,7 +29,7 @@ const BANK_RATES: BankRate[] = [
   { name: 'Freedom24',      apy: 3.00, range: [2.50, 3.50], note: 'D-account EUR, συνδεδεμένο με EURIBOR' },
   { name: 'Wealthyhood',    apy: 2.00,                      note: 'Ευέλικτη αποταμίευση σε EUR' },
   { name: 'Snappi',         apy: 1.00,                      note: 'Ελληνική neobank — ελεύθερη ανάληψη' },
-  { name: 'Εθνική (νέοι)',  apy: 1.50,                      note: 'Πρόγραμμα νέων' },
+  { name: 'Εθνική (Next)',  apy: 1.50,                      note: 'Πρόγραμμα νέων' },
   { name: 'Credia Bank',    apy: 1.50,                      note: 'Αποταμιευτικός λογαριασμός' },
   { name: 'Eurobank',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
   { name: 'Πειραιώς',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
@@ -224,47 +224,42 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           if (editing) return (
             <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 14, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 12px', maxWidth: 500 }}>
-                <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
-                <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
-                <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
-                <div style={{ gridColumn: '1 / -1' }}><DatePicker label="Ημερομηνία-στόχος (προαιρετικό)" value={v.due || ''} onChange={val => update(v.id, { due: val })} /></div>
-
-                {/* Λογαριασμός αποταμίευσης με ευέλικτο επιτόκιο — δες πόσους τόκους κερδίζεις */}
-                {(() => {
-                  const knownBank = BANK_RATES.find(b => b.name === v.bank);
-                  const isOther = !knownBank && (v.apy != null || (v.bank ?? '') !== '');
-                  const selectValue = knownBank ? knownBank.name : (isOther ? '__other' : '');
-                  const bankOptions = [
-                    { value: '', label: 'Χωρίς αποταμιευτικό επιτόκιο' },
-                    ...BANK_RATES.map(b => ({ value: b.name, label: `${b.name} · ${rateLabel(b)}`, description: b.note })),
-                    { value: '__other', label: 'Άλλη τράπεζα (χειροκίνητα)' },
-                  ];
-                  const onBank = (val: string) => {
-                    if (val === '') update(v.id, { bank: undefined, apy: undefined });
-                    else if (val === '__other') update(v.id, { bank: v.bank ?? '', apy: v.apy ?? 0 });
-                    else { const b = BANK_RATES.find(x => x.name === val); update(v.id, { bank: val, apy: b?.apy }); }
-                  };
-                  const yearly = (v.apy != null && v.apy > 0 && (v.current || 0) > 0) ? Math.round((v.current || 0) * v.apy / 100) : 0;
-                  return (
-                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 11, marginTop: 1, display: 'grid', gridTemplateColumns: isOther ? '1fr 1fr' : '1fr', gap: '9px 12px' }}>
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <CustomSelect label="Λογαριασμός αποταμίευσης"
-                          labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά/μεταβλητά (EUR, 2026) και εξαρτώνται από πρόγραμμα ή υπόλοιπο· επιβεβαίωσέ τα στην τράπεζα και προσάρμοσέ τα." />}
-                          value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή τράπεζας…" />
-                      </div>
-                      {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
-                      {selectValue !== '' && (
-                        <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
-                      )}
-                      {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, maxWidth: 500 }}>
-                <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)}
-                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--text-primary)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s' }}>Έτοιμο</button>
+              {(() => {
+                const knownBank = BANK_RATES.find(b => b.name === v.bank);
+                const isOther = !knownBank && (v.apy != null || (v.bank ?? '') !== '');
+                const selectValue = knownBank ? knownBank.name : (isOther ? '__other' : '');
+                const bankOptions = [
+                  { value: '', label: 'Χωρίς αποταμιευτικό επιτόκιο' },
+                  ...BANK_RATES.map(b => ({ value: b.name, label: `${b.name} · ${rateLabel(b)}`, description: b.note })),
+                  { value: '__other', label: 'Άλλη τράπεζα (χειροκίνητα)' },
+                ];
+                const onBank = (val: string) => {
+                  if (val === '') update(v.id, { bank: undefined, apy: undefined });
+                  else if (val === '__other') update(v.id, { bank: v.bank ?? '', apy: v.apy ?? 0 });
+                  else { const b = BANK_RATES.find(x => x.name === val); update(v.id, { bank: val, apy: b?.apy }); }
+                };
+                const yearly = (v.apy != null && v.apy > 0 && (v.current || 0) > 0) ? Math.round((v.current || 0) * v.apy / 100) : 0;
+                // Compact 2-col: πεδία δίπλα-δίπλα ώστε το πλαίσιο να μένει χαμηλό και μαζεμένο.
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 10px', maxWidth: 460 }}>
+                    <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
+                    <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
+                    <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
+                    <DatePicker label="Ημ/νία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
+                    <CustomSelect label="Αποταμίευση"
+                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά/μεταβλητά (EUR, 2026) και εξαρτώνται από πρόγραμμα ή υπόλοιπο· επιβεβαίωσέ τα στην τράπεζα." />}
+                      value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή…" />
+                    {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
+                    {selectValue !== '' && (
+                      <NumberInput label="Επιτόκιο (ετ.)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
+                    )}
+                    {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
+                  </div>
+                );
+              })()}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, maxWidth: 460 }}>
+                <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)} onTouchStart={() => setDoneHover(true)} onTouchEnd={() => setDoneHover(false)}
+                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? '#fff' : 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
                 <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}
                   style={{ height: 36, padding: '0 12px', borderRadius: T.radius.btn, background: 'transparent', border: 'none', color: delHover ? 'var(--negative)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}>Διαγραφή</button>
               </div>
