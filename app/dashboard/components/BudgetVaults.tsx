@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { NumberInput, TextInput, DatePicker, InfoDot } from './UIComponents';
+import { NumberInput, TextInput, DatePicker, InfoDot, CustomSelect } from './UIComponents';
 import { T, fe } from '@/components/Theme';
 import { reservePlan } from '@/lib/billing/budgetPro';
 
@@ -14,15 +14,29 @@ import { reservePlan } from '@/lib/billing/budgetPro';
 
 interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string; bank?: string; apy?: number }
 
-// Λογαριασμοί αποταμίευσης με ευέλικτο (ημερήσιο) επιτόκιο — ενδεικτικά επιτόκια 2026,
-// επεξεργάσιμα από τον χρήστη. Το ποσό στον κουμπαρά «δουλεύει» και βγάζει τόκο.
-const BANK_PRESETS: { name: string; apy: number }[] = [
-  { name: 'Revolut', apy: 2.0 },
-  { name: 'Snappi', apy: 2.5 },
-  { name: 'Wealthyhood', apy: 3.25 },
-  { name: 'Credia Bank', apy: 2.75 },
-  { name: 'Εθνική (νέοι)', apy: 1.5 },
+// Λογαριασμοί αποταμίευσης με ευέλικτο (ημερήσιο/εβδομαδιαίο) επιτόκιο σε EUR, για
+// τράπεζες/νεοτράπεζες που δραστηριοποιούνται ή είναι προσβάσιμες από Ελλάδα.
+// Ενδεικτικά επιτόκια 2026 — όπου εξαρτώνται από πρόγραμμα (Standard→Premium/Metal)
+// δίνεται εύρος. Είναι ΜΕΤΑΒΛΗΤΑ και επεξεργάσιμα· ο χρήστης προσαρμόζει το δικό του.
+interface BankRate { name: string; apy: number; range?: [number, number]; note: string }
+const BANK_RATES: BankRate[] = [
+  { name: 'Revolut',        apy: 2.25, range: [2.00, 2.50], note: 'Instant Access σε EUR — ανάλογα με πλάνο' },
+  { name: 'Trading 212',    apy: 2.40,                      note: 'Επιτόκιο σε αδιάθετα μετρητά (EUR)' },
+  { name: 'Trade Republic', apy: 2.00,                      note: 'Επιτόκιο σε μετρητά, ημερήσιος υπολογισμός' },
+  { name: 'Lightyear',      apy: 2.50,                      note: 'Ευέλικτο EUR, ημερήσιος τόκος' },
+  { name: 'Bunq',           apy: 2.01, range: [1.51, 2.46], note: 'easySavings — ανάλογα με πλάνο' },
+  { name: 'N26',            apy: 2.00, range: [2.00, 2.26], note: 'Instant Savings — ανάλογα με πλάνο' },
+  { name: 'Freedom24',      apy: 3.00, range: [2.50, 3.50], note: 'D-account EUR, συνδεδεμένο με EURIBOR' },
+  { name: 'Wealthyhood',    apy: 2.00,                      note: 'Ευέλικτη αποταμίευση σε EUR' },
+  { name: 'Snappi',         apy: 1.00,                      note: 'Ελληνική neobank — ελεύθερη ανάληψη' },
+  { name: 'Εθνική (νέοι)',  apy: 1.50,                      note: 'Πρόγραμμα νέων' },
+  { name: 'Credia Bank',    apy: 1.50,                      note: 'Αποταμιευτικός λογαριασμός' },
+  { name: 'Eurobank',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
+  { name: 'Πειραιώς',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
+  { name: 'Alpha Bank',     apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
 ];
+const pct = (n: number) => n.toString().replace('.', ',') + '%';
+const rateLabel = (b: BankRate) => b.range ? `${pct(b.range[0])}–${pct(b.range[1])}` : pct(b.apy);
 
 // Έξυπνη πρόταση κουμπαρά (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι) — υπολογισμένη από
 // τον γονέα με τους κανονικούς μηχανισμούς. Εμφανίζεται ως πρόταση ενός αγγίγματος.
@@ -160,7 +174,6 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 12, paddingBottom: shut ? 0 : 9, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
-        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Κουμπαράδες</span>
         <InfoDot text="Εικονικοί κουμπαράδες για μελλοντικά έξοδα (ΕΝΦΙΑ, λέβητας, ανακαίνιση, κενές περίοδοι). Ορίζεις στόχο και ημερομηνία· υπολογίζεται πόσο πρέπει να βάζεις κάθε μήνα ώστε να είναι έτοιμος όταν χρειαστεί." />
         <span style={{ flex: 1 }}/>
@@ -218,25 +231,34 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 <div style={{ gridColumn: '1 / -1' }}><DatePicker label="Ημερομηνία-στόχος (προαιρετικό)" value={v.due || ''} onChange={val => update(v.id, { due: val })} /></div>
 
                 {/* Λογαριασμός αποταμίευσης με ευέλικτο επιτόκιο — δες πόσους τόκους κερδίζεις */}
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 12, marginTop: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 9, fontFamily: T.font.sans }}>
-                    Λογαριασμός αποταμίευσης
-                    <InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο (ημερήσιο) επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα ποσοστά είναι ενδεικτικά· προσάρμοσέ τα στη δική σου προσφορά." />
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 11 }}>
-                    {BANK_PRESETS.map(b => {
-                      const active = (v.bank || '').toLowerCase() === b.name.toLowerCase();
-                      return (
-                        <button key={b.name} type="button" onClick={() => update(v.id, { bank: b.name, apy: b.apy })}
-                          style={{ padding: '5px 11px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--border-accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent-dim)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'all 0.15s' }}>
-                          {b.name} <span style={{ fontFamily: T.font.num, opacity: 0.7 }}>{b.apy.toString().replace('.', ',')}%</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <TextInput label="Τράπεζα (προαιρετικό)" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Revolut" />
-                <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
+                {(() => {
+                  const knownBank = BANK_RATES.find(b => b.name === v.bank);
+                  const isOther = !knownBank && (v.apy != null || (v.bank ?? '') !== '');
+                  const selectValue = knownBank ? knownBank.name : (isOther ? '__other' : '');
+                  const bankOptions = [
+                    { value: '', label: 'Χωρίς αποταμιευτικό επιτόκιο' },
+                    ...BANK_RATES.map(b => ({ value: b.name, label: `${b.name} · ${rateLabel(b)}`, description: b.note })),
+                    { value: '__other', label: 'Άλλη τράπεζα (χειροκίνητα)' },
+                  ];
+                  const onBank = (val: string) => {
+                    if (val === '') update(v.id, { bank: undefined, apy: undefined });
+                    else if (val === '__other') update(v.id, { bank: v.bank ?? '', apy: v.apy ?? 0 });
+                    else { const b = BANK_RATES.find(x => x.name === val); update(v.id, { bank: val, apy: b?.apy }); }
+                  };
+                  return (
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 2, display: 'grid', gridTemplateColumns: selectValue !== '' ? '1fr 1fr' : '1fr', gap: '12px 14px' }}>
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <CustomSelect label="Λογαριασμός αποταμίευσης"
+                          labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά/μεταβλητά (EUR, 2026) και εξαρτώνται από πρόγραμμα ή υπόλοιπο· επιβεβαίωσέ τα στην τράπεζα και προσάρμοσέ τα." />}
+                          value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή τράπεζας…" />
+                      </div>
+                      {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
+                      {selectValue !== '' && (
+                        <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16, maxWidth: 520 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)}
@@ -268,7 +290,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 <div style={{ height: '100%', width: `${funded}%`, background: barCol, borderRadius: 3, transition: 'width 0.5s ease, background 0.15s' }}/>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, fontFamily: T.font.sans }}>
-                <span style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}>{funded}%</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{funded}%</span>
                 {done
                   ? <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>
                   : overdue
