@@ -11,6 +11,7 @@ import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
+import BudgetImport from './BudgetImport';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -198,7 +199,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       internet: 'internet', phone: 'internet', tv: 'internet',
       heating: 'heating', gas: 'heating',
       insurance: 'insurance', streaming: 'insurance',
-      taxes: 'services', enfia: 'services', municipal: 'services',
+      taxes: 'services', enfia: 'services', municipal: 'services', services: 'services',
       common: 'common', koinoxrista: 'common',
       maintenance: 'maintenance', repair: 'maintenance',
     };
@@ -228,7 +229,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
         // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
         // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
-        supabase.from('expenses').select('amount,date,bill_id,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
+        supabase.from('expenses').select('amount,date,bill_id,expense_group,category').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
         supabase.from('bills').select('category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
         supabase.from('expenses').select('amount,date,expense_group,description,category').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
         supabase.from('bills').select('category,amount').eq('property_id', propertyId).gte('created_at', `${weekStart}T00:00:00`),
@@ -288,7 +289,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
       };
       (histBillsRes.data ?? []).forEach((b: any) => addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0));
-      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : 'other', e.amount || 0));
+      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? '')), e.amount || 0));
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
 
@@ -339,8 +340,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
       (expRes.data ?? []).forEach((e: any) => {
         const amt = e.amount || 0;
-        if (e.expense_group === 'maintenance') billActuals.maintenance = (billActuals.maintenance || 0) + amt;
-        else billActuals.other = (billActuals.other || 0) + amt;
+        const k = e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? ''));
+        billActuals[k] = (billActuals[k] || 0) + amt;
       });
 
       setActuals(billActuals);
@@ -1127,6 +1128,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </>
         )}
       </div>
+
+      {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
+      {!editMode && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
+          {secHdr('Εισαγωγή δεδομένων', 'import',
+            <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση — οι δαπάνες μπαίνουν στον σωστό μήνα και κατηγορία." />)}
+          {!collapsed.has('import') && (
+            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
