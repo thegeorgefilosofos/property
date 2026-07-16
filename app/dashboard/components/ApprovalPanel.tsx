@@ -62,9 +62,10 @@ export default function ApprovalPanel({
   })
   const vs = V_STYLE[res.verdict]
 
+  const dec = (n:number)=>String(n).replace('.',',')
   const metrics = [
-    { l:'Δείκτης δόσης', v:`${res.dstiPct}%`, sub:`όριο ${res.dstiLimitPct}%`, over:res.dstiPct>res.dstiLimitPct },
-    { l:'Δάνειο προς αξία', v:`${res.ltvPct}%`, sub:`όριο ${res.maxLtv}%`, over:res.ltvPct>res.maxLtv },
+    { l:'Δείκτης δόσης', v:`${dec(res.dstiPct)}%`, sub:`όριο ${dec(res.dstiLimitPct)}%`, over:res.dstiPct>res.dstiLimitPct },
+    { l:'Δάνειο προς αξία', v:`${dec(res.ltvPct)}%`, sub:`όριο ${res.maxLtv}%`, over:res.ltvPct>res.maxLtv },
     { l:'Ηλικία στη λήξη', v:`${res.ageAtEnd}`, sub:'όριο 75', over:res.ageAtEnd>75 },
     { l:'Δόση', v:fmtEur(res.requestedMonthly), sub:'τον μήνα', over:false },
   ]

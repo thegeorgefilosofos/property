@@ -58,11 +58,14 @@ export function InfoDot({ text }: { text: string }) {
   const hide = () => setOpen(false);
   return (
     <>
+      {/* Ορατή κουκκίδα 15px, αλλά περιοχή αφής ~32px (αρνητικά margins ώστε να μη μεγαλώνει η σειρά). */}
       <button ref={ref} type="button" aria-label="Επεξήγηση"
         onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 6, padding: 0, width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 0, marginTop: -9, marginBottom: -9, padding: 0, width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)' }}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
+        </span>
       </button>
       {open && typeof document !== 'undefined' && createPortal(
         <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
