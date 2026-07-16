@@ -751,7 +751,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div onMouseEnter={() => setHeroHover(true)} onMouseLeave={() => setHeroHover(false)} onTouchStart={() => setHeroHover(true)} onTouchEnd={() => setHeroHover(false)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
-                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον δεσμευμένους λογαριασμούς, δόση δανείου και εισφορές αποθεματικών — η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον δεσμευμένους λογαριασμούς, δόση δανείου και μηνιαίες εισφορές κουμπαράδων. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των παγίων λογαριασμών, της δόσης δανείου και των εισφορών κουμπαράδων — τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
+                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των κουμπαράδων. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών, της δόσης του δανείου και των εισφορών των κουμπαράδων. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
                 </div>
                 <div style={{ fontSize: 30, fontWeight: 700, color: numCol, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{fe(val, 0)}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{hasIncome ? 'μετά από λογαριασμούς, δόση και κουμπαράδες' : 'λογαριασμοί, δόση και κουμπαράδες'}</div>
@@ -777,7 +777,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   ))}
                 </div>
                 {isShortfall && (
-                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)} — μείωσε εισφορές κουμπαράδων ή αναθεώρησε τους στόχους.</div>
+                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)}. Μείωσε τις εισφορές των κουμπαράδων ή αναθεώρησε τους στόχους.</div>
                 )}
               </>
             )}
@@ -831,7 +831,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
-              <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται προμήθεια πλατφόρμας, τέλος ανθεκτικότητας (ανά διανυκτέρευση), τυχόν διαχείριση και εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Εκτίμηση — οι παραδοχές αλλάζουν στην επεξεργασία." />
+              <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται η προμήθεια της πλατφόρμας, το τέλος ανθεκτικότητας (ανά διανυκτέρευση), η τυχόν διαχείριση και η εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Πρόκειται για εκτίμηση· μπορείς να προσαρμόσεις τις παραδοχές στην επεξεργασία." />
               {editMode && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>}
             </div>
 
@@ -905,7 +905,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-            Έχεις <strong style={{ color: 'var(--text-primary)' }}>{strPropCount} βραχυχρόνια ακίνητα</strong> — από 3 και πάνω η δραστηριότητα θεωρείται επιχειρηματική (ΦΠΑ, ΕΦΚΑ, προκαταβολή). Δες τη Λογιστική και σύμβουλο.
+            Έχεις <strong style={{ color: 'var(--text-primary)' }}>{strPropCount} βραχυχρόνια ακίνητα</strong>. Από 3 και πάνω, η δραστηριότητα θεωρείται επιχειρηματική και προκύπτουν υποχρεώσεις ΦΠΑ, ΕΦΚΑ και προκαταβολής φόρου. Συμβουλέψου τη Λογιστική και τον λογιστή σου.
           </span>
         </div>
       )}
@@ -1046,8 +1046,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {!editMode && isPro && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Επιχειρηματικές υποχρεώσεις</span>
-          <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Πέρα από τον φόρο εισοδήματος: <strong style={{ color: 'var(--text-secondary)' }}>ΕΦΚΑ</strong> (μηνιαία εισφορά), <strong style={{ color: 'var(--text-secondary)' }}>προκαταβολή φόρου</strong> και <strong style={{ color: 'var(--text-secondary)' }}>ΦΠΑ</strong> (αν παρέχεις υπηρεσίες). Ακριβή ποσά στη Λογιστική.
+          <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+            Εκτός από τον φόρο εισοδήματος, ως επιχείρηση βαρύνεσαι με τις μηνιαίες εισφορές <strong style={{ color: 'var(--text-secondary)' }}>ΕΦΚΑ</strong>, την <strong style={{ color: 'var(--text-secondary)' }}>προκαταβολή φόρου</strong> για την επόμενη χρήση και, εφόσον παρέχεις υπηρεσίες, τον <strong style={{ color: 'var(--text-secondary)' }}>ΦΠΑ</strong>. Τα ακριβή ποσά υπολογίζονται στη Λογιστική.
           </span>
         </div>
       )}
@@ -1061,7 +1061,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             {secHdr('Επαναλαμβανόμενες χρεώσεις', 'recurring',
               <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthlyTotal, 0)}/μήνα · {fe(annualTotal, 0)}/έτος</span>,
-              <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίστηκαν αυτόματα από τις καταγεγραμμένες δαπάνες σου (ίδιος πάροχος να επαναλαμβάνεται σε πολλούς μήνες). Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος — για να βρεις «κρυφές» συνδρομές." />)}
+              <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίζονται αυτόματα από τις καταγεγραμμένες δαπάνες σου, όταν ο ίδιος πάροχος επαναλαμβάνεται σε πολλούς μήνες. Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος, ώστε να εντοπίζεις εύκολα τις «κρυφές» συνδρομές." />)}
             {!collapsed.has('recurring') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {recurring.slice(0, 10).map(r => {
@@ -1111,7 +1111,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 onMouseEnter={() => !editMode && setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
                 style={{ borderRadius: T.radius.inner, padding: editMode ? 0 : '6px 8px', margin: editMode ? 0 : '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5 }}>
-                  <div style={{ width: 3, height: 26, borderRadius: 2, background: hov && !isOver ? 'var(--accent)' : col, flexShrink: 0, transition: 'background 0.15s' }}/>
+                  <div style={{ width: 3, height: 26, borderRadius: 2, background: editMode ? 'color-mix(in srgb, var(--text-primary) 34%, transparent)' : (hov && !isOver ? 'var(--accent)' : col), flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
                   {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
                   {!editMode && isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
@@ -1208,7 +1208,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {!editMode && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
           {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
-            <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση — οι δαπάνες μπαίνουν στον σωστό μήνα και κατηγορία." />)}
+            <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση, ώστε οι δαπάνες να μπαίνουν στον σωστό μήνα και στη σωστή κατηγορία." />)}
           {/* Μόνο βασικές κατηγορίες: οι custom c_* δεν χαρτογραφούνται στο ιστορικό, θα έπεφταν στις «Λοιπές». */}
           {!collapsed.has('import') && (
             <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.filter(c => !c.key.startsWith('c_')).map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
