@@ -101,6 +101,20 @@ function InlineLink({href,children}:{href:string;children:React.ReactNode}) {
   )
 }
 
+// Κουμπί-σύνδεσμος επίσημης πηγής: ουδέτερο, αποκτά γαλάζιο μόνο στο πέρασμα του
+// κέρσορα (ίδια λογική με τα υπόλοιπα· κανένα μόνιμο γαλάζιο).
+function SourceLinkPill({href,children}:{href:string;children:React.ReactNode}) {
+  const [h,setH] = useState(false)
+  return (
+    <a href={href} target="_blank" rel="noreferrer"
+      onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onFocus={()=>setH(true)} onBlur={()=>setH(false)}
+      style={{display:'inline-flex',alignItems:'center',gap:6,padding:'0 16px',height:36,borderRadius:18,
+        background:h?'var(--accent-dim)':'var(--bg-surface)',border:`1px solid ${h?'var(--border-accent)':'var(--border-subtle)'}`,
+        color:h?'var(--accent)':'var(--text-secondary)',fontSize:12.5,fontFamily:"'Inter',sans-serif",textDecoration:'none',fontWeight:600,
+        transition:'color 0.15s, background 0.15s, border-color 0.15s'}}>{children}</a>
+  )
+}
+
 // Τυποποιημένη κάρτα-σύνδεσμος για επίσημες πηγές: ενιαία στοίχιση, ήπιο βάθος,
 // τίτλος και εικονίδιο αποκτούν χρώμα μόνο στο hover. Καμία «λίστα σούπερ μάρκετ».
 function LinkCard({href,label,sub}:{href:string;label:string;sub?:string}) {
@@ -202,12 +216,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
   // Το προφίλ ακολουθεί την καθολική ρύθμιση της εφαρμογής (Ρυθμίσεις → τύπος
   // προφίλ). ΜΙΑ πηγή αλήθειας — χωρίς διπλό διακόπτη μέσα στην καρτέλα.
   const profile: 'individual'|'business' = profileType==='professional' ? 'business' : 'individual'
-  // Ιεραρχία ενοτήτων οδηγού ανά προφίλ, με βάση τη συχνότητα/σημασία για το
-  // κάθε κοινό. Ο ιδιώτης ξεκινά από τη διαδικασία και τις απορρίψεις· ο
-  // επαγγελματίας από την ανάλυση αγοράς (Euribor) και τις ειδικές κατηγορίες.
-  const guideOrder = profile==='business'
-    ? { process:5, rejections:3, categories:2, servicers:4, euribor:1, glossary:6, sources:7 }
-    : { process:1, rejections:2, categories:3, servicers:5, euribor:6, glossary:4, sources:7 }
+  // Οι ενότητες του οδηγού εμφανίζονται με τη σειρά που γράφονται (DOM = οπτική
+  // σειρά). Δεν χρησιμοποιούμε flex «order» — προκαλούσε ασυμφωνία DOM/διάταξης
+  // και το scroll «πηδούσε» προς τα πάνω κατά το άνοιγμα μιας ενότητας.
   const calcRef = useRef<HTMLDivElement>(null)
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
   // Εφαρμογή επιτοκίου τράπεζας στον Υπολογιστή (μέσω του καναλιού «applied»· η
@@ -704,7 +715,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:14}}>
                 {(prog.participating_banks||prog.banks||[]).map((b:string)=><span key={b} style={{fontSize:11,padding:'3px 9px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{b}</span>)}
               </div>
-              <a href={prog.url} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'0 16px',height:36,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:18,color:'var(--accent)',fontSize:12.5,fontFamily:"'Inter',sans-serif",textDecoration:'none',fontWeight:600}}>Επίσημη σελίδα προγράμματος →</a>
+              <SourceLinkPill href={prog.url}>Επίσημη σελίδα προγράμματος →</SourceLinkPill>
             </MiniSection>
             )
           })}
@@ -1142,14 +1153,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         {openSec==='guide'&&(
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           {/* Προσαρμοζόμενος τόνος ανά προφίλ — καθοδήγηση για ιδιώτες, ανάλυση για επαγγελματίες */}
-          <div style={{order:0,padding:'13px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
+          <div style={{padding:'13px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
             <p style={{fontSize:12.5,color:'var(--text-secondary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
               {profile==='business'
                 ? 'Τεχνική ανάλυση αγοράς, κριτηρίων και εργαλείων για επαγγελματίες και επιχειρήσεις. Ξεκίνα από το ιστορικό Euribor και τις ειδικές κατηγορίες. Για κάθε δεσμευτική απόφαση, διασταύρωσε με τράπεζα, λογιστή ή δικηγόρο.'
                 : 'Απλός οδηγός βήμα-βήμα για την πρώτη σου κατοικία ή επένδυση. Δες πρώτα «Πώς λειτουργεί» και «Γιατί απορρίπτεται μια αίτηση». Για πιο εξειδικευμένη ανάλυση, άλλαξε σε προφίλ «Επαγγελματίας» από τις Ρυθμίσεις.'}
             </p>
           </div>
-          <MiniSection order={guideOrder.process} title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen={profile!=='business'}>
+          <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen={profile!=='business'}>
             {[
               {step:1,title:'Προεπιλογή και προετοιμασία',time:'1–2 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Ελέγξτε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάντε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθετε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποιήστε πρώτα.',url:null},
               {step:2,title:'Συλλογή εγγράφων',time:'1–3 εβδομάδες',color:'var(--accent)',dim:'var(--accent-dim)',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζητήστε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιωθείτε ότι είναι ενημερωμένα.',url:null},
@@ -1174,19 +1185,74 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             ))}
           </MiniSection>
 
+
+          {/* Rejection reasons */}
+          <MiniSection title="Γιατί απορρίπτεται μια αίτηση">
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {[
+                {title:'Εγγραφή στον Τειρεσία',desc:'Μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών αρκεί. Τακτοποίησε οφειλές πριν την αίτηση.',url:'https://www.tiresias.gr'},
+                {title:'Χαμηλό εισόδημα ή υψηλός δείκτης δόσης',desc:'Όρια ΤτΕ: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους.',url:null},
+                {title:'Αυθαίρετα στο ακίνητο',desc:'Αλλαγές χωρίς άδεια (βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
+                {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα σε Ε9, εκκρεμείς κληρονομιές. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
+                {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:'https://www.aade.gr'},
+                {title:'Δείκτης δανείου προς αξία πάνω από 80–90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
+              ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((item,i,a)=>(
+                <CatRow key={item.title} title={item.title} desc={item.desc} url={item.url} linkLabel="έλεγχος" last={i===a.length-1}/>
+              ))}
+            </div>
+          </MiniSection>
+
+          {/* Special borrower categories — compact */}
+          <MiniSection title="Ειδικές κατηγορίες δανειοληπτών" defaultOpen={profile==='business'}>
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {[
+                {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
+                {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55–70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
+                {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:'https://www.aade.gr'},
+                {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
+              ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((cat,i,a)=>(
+                <CatRow key={cat.title} title={cat.title} desc={cat.desc} url={cat.url} linkLabel="περισσότερα" last={i===a.length-1}/>
+              ))}
+            </div>
+          </MiniSection>
+
+          {/* Euribor chart */}
+          <MiniSection defaultOpen={profile==='business'} title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10.5,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
+            <EuriborArea data={EURIBOR_HISTORY}/>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
+              {[
+                {l:'Ιστορικό χαμηλό',v:fmtPct(Math.min(...EURIBOR_HISTORY.map(p=>p.val))),s:'2021'},
+                {l:'Ιστορικό υψηλό',v:fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))),s:'Οκτώβριος 2023'},
+                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:'σήμερα'},
+                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))-market.euribor_3m)}`,s:'από το 2023'},
+              ].map(item=>(
+                <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
+                  <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
+                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{item.s}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif",marginTop:14}}>
+              Δάνεια που δόθηκαν το 2021 με Euribor -0,55% έχουν σήμερα πραγματικό επιτόκιο περίπου {fmtPct(market.euribor_3m+1.5)}. Η Ευρωπαϊκή Κεντρική Τράπεζα μείωσε το επιτόκιο 8 φορές από τον Ιούνιο 2024.
+            </p>
+          </MiniSection>
+
+          {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
           {/* ── Διαχειριστές (servicers) & κόκκινα δάνεια ── */}
-          <MiniSection order={guideOrder.servicers} title="Δάνεια σε διαχειριστές και κόκκινα δάνεια">
+          <MiniSection title="Δάνεια σε διαχειριστές και κόκκινα δάνεια">
             <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,fontFamily:"'Inter',sans-serif",marginBottom:16}}>{SERVICERS_GUIDE.intro}</p>
 
+            {/* Μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ (όχι κατεβατό). */}
             <p style={{...labelStyle,marginBottom:10}}>Τα δικαιώματά σου</p>
-            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:18}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',gap:6,marginBottom:18}}>
               {SERVICERS_GUIDE.rights.map(r=>(
-                <div key={r.t} style={{display:'flex',gap:12,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0,marginTop:2}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  <div>
-                    <p style={{fontSize:13,fontWeight:500,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>{r.d}</p>
-                  </div>
+                <div key={r.t} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{flexShrink:0}} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.t}</span>
+                  <InfoDot text={r.d}/>
                 </div>
               ))}
             </div>
@@ -1229,62 +1295,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Ενημερωτικές πληροφορίες με βάση το ισχύον πλαίσιο (Ιούλιος 2026), όχι νομική ή χρηματοοικονομική συμβουλή. Για την περίπτωσή σου συμβουλέψου δικηγόρο ή πιστοποιημένο σύμβουλο αναδιάρθρωσης.</p>
           </MiniSection>
 
-          {/* Rejection reasons */}
-          <MiniSection order={guideOrder.rejections} title="Γιατί απορρίπτεται μια αίτηση">
-            <div style={{display:'flex',flexDirection:'column'}}>
-              {[
-                {title:'Εγγραφή στον Τειρεσία',desc:'Μία ακάλυπτη επιταγή ή δόση με καθυστέρηση >90 ημερών αρκεί. Τακτοποίησε οφειλές πριν την αίτηση.',url:'https://www.tiresias.gr'},
-                {title:'Χαμηλό εισόδημα ή υψηλός δείκτης δόσης',desc:'Όρια ΤτΕ: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους.',url:null},
-                {title:'Αυθαίρετα στο ακίνητο',desc:'Αλλαγές χωρίς άδεια (βεράντα, πατάρι, αλλαγή χρήσης) μπλοκάρουν τη μεταβίβαση ή μειώνουν την εκτίμηση.',url:'https://www.ktimatologio.gr'},
-                {title:'Προβλήματα τίτλων',desc:'Ακαθόριστοι τίτλοι, αδήλωτα σε Ε9, εκκρεμείς κληρονομιές. Ο νομικός έλεγχος διαρκεί εβδομάδες.',url:null},
-                {title:'Χρέη σε ΔΟΥ ή ΕΦΚΑ',desc:'Απαιτείται φορολογική και ασφαλιστική ενημερότητα για υπογραφή συμβολαίου.',url:'https://www.aade.gr'},
-                {title:'Δείκτης δανείου προς αξία πάνω από 80–90%',desc:'Συνήθως έως 80% (κανονικό) ή 90% (Σπίτι μου ΙΙ). Χρειάζεσαι ίδια κεφάλαια για τη διαφορά και τα έξοδα.',url:null},
-              ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((item,i,a)=>(
-                <CatRow key={item.title} title={item.title} desc={item.desc} url={item.url} linkLabel="έλεγχος" last={i===a.length-1}/>
-              ))}
-            </div>
-          </MiniSection>
-
-          {/* Special borrower categories — compact */}
-          <MiniSection order={guideOrder.categories} title="Ειδικές κατηγορίες δανειοληπτών" defaultOpen={profile==='business'}>
-            <div style={{display:'flex',flexDirection:'column'}}>
-              {[
-                {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
-                {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55–70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
-                {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:'https://www.aade.gr'},
-                {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
-                {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},
-              ].sort((a,b)=>a.title.localeCompare(b.title,'el')).map((cat,i,a)=>(
-                <CatRow key={cat.title} title={cat.title} desc={cat.desc} url={cat.url} linkLabel="περισσότερα" last={i===a.length-1}/>
-              ))}
-            </div>
-          </MiniSection>
-
-          {/* Euribor chart */}
-          <MiniSection order={guideOrder.euribor} defaultOpen={profile==='business'} title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:10.5,color:'var(--accent)',textDecoration:'none',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
-            <EuriborArea data={EURIBOR_HISTORY}/>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
-              {[
-                {l:'Ιστορικό χαμηλό',v:fmtPct(Math.min(...EURIBOR_HISTORY.map(p=>p.val))),s:'2021'},
-                {l:'Ιστορικό υψηλό',v:fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))),s:'Οκτώβριος 2023'},
-                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:'σήμερα'},
-                {l:'Μείωση από το ανώτατο',v:`-${fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))-market.euribor_3m)}`,s:'από το 2023'},
-              ].map(item=>(
-                <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:6}}>{item.l}</p>
-                  <p style={{fontSize:17,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1}}>{item.v}</p>
-                  <p style={{fontSize:10.5,color:'var(--text-tertiary)',marginTop:4,fontFamily:"'Inter',sans-serif"}}>{item.s}</p>
-                </div>
-              ))}
-            </div>
-            <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:"'Inter',sans-serif",marginTop:14}}>
-              Δάνεια που δόθηκαν το 2021 με Euribor -0,55% έχουν σήμερα πραγματικό επιτόκιο περίπου {fmtPct(market.euribor_3m+1.5)}. Η Ευρωπαϊκή Κεντρική Τράπεζα μείωσε το επιτόκιο 8 φορές από τον Ιούνιο 2024.
-            </p>
-          </MiniSection>
-
-          {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
-          <MiniSection order={guideOrder.glossary} title="Γλωσσάρι όρων" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Πλήρες':'Βασικοί όροι'}</span>}>
+          <MiniSection title="Γλωσσάρι όρων" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{profile==='business'?'Πλήρες':'Βασικοί όροι'}</span>}>
             <Glossary items={[...GLOSSARY.filter(g=>profile==='business'||g.level==='basic')].sort((a,b)=>a.term.localeCompare(b.term,'el'))}/>
             {profile!=='business'&&(
               <p style={{fontSize:11.5,color:'var(--text-tertiary)',marginTop:14,lineHeight:1.55,fontFamily:"'Inter',sans-serif"}}>
@@ -1294,7 +1305,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
           </MiniSection>
 
           {/* Links */}
-          <MiniSection order={guideOrder.sources} title="Επίσημες πηγές">
+          <MiniSection title="Επίσημες πηγές">
             {[
               {category:'Κρατικά προγράμματα',links:[
                 {label:'Σπίτι μου ΙΙ · επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
