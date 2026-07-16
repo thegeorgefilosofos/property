@@ -37,6 +37,24 @@ const nextFeb = (): string => {
   return `${y}-02-28`;
 };
 
+// Μικρογράφημα τάσης 12 μηνών ανά κατηγορία (από το φορτωμένο ιστορικό). Το σημείο
+// του επιλεγμένου μήνα τονίζεται με γαλάζιο. Κρύβεται αν δεν υπάρχει καθόλου ιστορικό.
+function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: number }) {
+  const w = 54, h = 14, pad = 2;
+  if (values.every(v => !v)) return <span style={{ width: w, flexShrink: 0 }} aria-hidden="true" />;
+  const max = Math.max(1, ...values);
+  const n = values.length;
+  const x = (i: number) => n <= 1 ? pad : pad + (i * (w - 2 * pad)) / (n - 1);
+  const y = (v: number) => h - pad - (Math.max(0, v) / max) * (h - 2 * pad);
+  const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return (
+    <svg width={w} height={h} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="color-mix(in srgb, var(--text-primary) 28%, transparent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      {activeIndex >= 0 && <circle cx={x(activeIndex)} cy={y(values[activeIndex] || 0)} r="1.9" fill="var(--accent)" />}
+    </svg>
+  );
+}
+
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
   { key: 'electricity',  label: 'Ρεύμα',              default: 80  },
@@ -94,6 +112,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [rtOk,         setRtOk]         = useState(false);
   const [heroHover,    setHeroHover]    = useState(false);
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
+  // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
+  const [monthOffset,  setMonthOffset]  = useState(0);
 
   const mapCategory = (cat: string): CatKey | 'other' => {
     const m: Record<string, CatKey> = {
@@ -343,7 +363,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   };
   const catBudget     = (key: string) => budgetVal(budgets[key], CATS.find(c => c.key === key)!.default);
   const masterBudget  = budgetVal(budgets.total, CATS.reduce((s, c) => s + c.default, 0));
-  const actualTotal   = CATS.reduce((s, c) => s + (actuals[c.key] || 0), 0);
+  // Υπερβάσεις ΤΡΕΧΟΝΤΟΣ μήνα (για τις ειδοποιήσεις email) — η προβολή/αλλαγή μήνα
+  // χρησιμοποιεί ξεχωριστό displayOver, ώστε οι ειδοποιήσεις να μένουν στον τρέχοντα μήνα.
   const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > catBudget(c.key));
 
   // ── Πρόβλεψη τέλους μήνα, ετήσια εικόνα, τάση (καθαρά, από τον πυρήνα) ─────────
@@ -371,6 +392,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // καταγεγραμμένου ιστορικού — ίδια βάση με τη μηνιαία τάση, ώστε να μη βγαίνει
   // ψεύτικο βελάκι από εκτίμηση σε πάγια κατηγορία που δεν έχει χρεωθεί ακόμη.
   const catTrend     = (key: string) => periodTrend(catMonth[_curYm]?.[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
+  // Σειρά 12 μηνών (παλαιότερος → τρέχων) ανά κατηγορία, για το μικρογράφημα τάσης.
+  const _sparkYms    = Array.from({ length: 12 }, (_, i) => ymOf(new Date(_now.getFullYear(), _now.getMonth() - (11 - i), 1)));
+  const catSpark     = (key: string) => _sparkYms.map(ym => catMonth[ym]?.[key] || 0);
 
   // ── Rollover: αδιάθετο/υπέρβαση προηγούμενου μήνα μεταφέρεται στον τρέχοντα ──
   // Μόνο όταν υπάρχει καταγεγραμμένη δραστηριότητα τον προηγ. μήνα (αλλιώς «κενός»
@@ -385,6 +409,19 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // υπολογίζεται από καταγεγραμμένα σύνολα) — αποφεύγει ανάμειξη με εκτιμήσεις παρόχων.
   const adjAvailable  = masterBudget + carryIn - (monthTotals[_curYm] || 0);
   const _prevLabel    = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toLocaleDateString('el-GR', { month: 'long' });
+
+  // ── Επιλεγμένος μήνας προβολής (πλοήγηση) ────────────────────────────────────
+  // Τρέχων μήνας: ζωντανά actuals (με εκτιμήσεις + πρόβλεψη). Παλαιότερος: ΚΑΤΑΓΕΓΡΑΜΜΕΝΑ
+  // σύνολα ανά κατηγορία από το ήδη φορτωμένο 13μηνο ιστορικό — μηδέν νέα ερωτήματα.
+  const isCurMonth      = monthOffset === 0;
+  const viewDate        = new Date(_now.getFullYear(), _now.getMonth() + monthOffset, 1);
+  const viewYm          = ymOf(viewDate);
+  const viewActuals     = isCurMonth ? actuals : (catMonth[viewYm] || {});
+  const viewActualTotal = CATS.reduce((s, c) => s + (viewActuals[c.key] || 0), 0);
+  const viewMonthLabel  = viewDate.toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+  const displayOver     = CATS.filter(c => (viewActuals[c.key] || 0) > catBudget(c.key));
+  const canGoNewer      = monthOffset < 0;
+  const canGoOlder      = monthOffset > -12;
 
   // ── «Ασφαλές διαθέσιμο» (Monzo Left to Spend / owner draw) ────────────────────
   // Δεσμευμένοι λογαριασμοί = ΠΡΑΓΜΑΤΙΚΟΙ πάγιοι λογαριασμοί του μήνα (καταγεγραμμένοι
@@ -486,8 +523,21 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               Live
             </span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+            {!editMode && (
+              <button onClick={() => canGoOlder && setMonthOffset(o => o - 1)} disabled={!canGoOlder} aria-label="Προηγούμενος μήνας"
+                style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoOlder ? 'pointer' : 'default', color: canGoOlder ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+            )}
+            <span style={{ minWidth: 96, textAlign: !editMode ? 'center' : 'left', textTransform: 'capitalize' }}>{editMode ? new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' }) : viewMonthLabel}</span>
+            {!editMode && (
+              <button onClick={() => canGoNewer && setMonthOffset(o => o + 1)} disabled={!canGoNewer} aria-label="Επόμενος μήνας"
+                style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoNewer ? 'pointer' : 'default', color: canGoNewer ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            )}
+            {!isCurMonth && <button onClick={() => setMonthOffset(0)} style={{ marginLeft: 4, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 10, fontWeight: 600, borderRadius: T.radius.pill, padding: '2px 9px', fontFamily: T.font.sans }}>Τρέχων</button>}
             <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· {isPro ? 'Επιχείρηση' : 'Ιδιώτης'}</span>
             {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση...</span>}
           </div>
@@ -501,7 +551,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       </div>
 
       {/* «Ασφαλές διαθέσιμο» — έσοδα − δεσμευμένα − εισφορές (Monzo Left to Spend) */}
-      {!editMode && (hasIncome || monthlyCost > 0) && (() => {
+      {!editMode && isCurMonth && (hasIncome || monthlyCost > 0) && (() => {
         const safeRaw = income - monthlyCost;
         const val = hasIncome ? safeRaw : monthlyCost;
         const numCol = !hasIncome ? 'var(--text-primary)' : safeRaw < 0 ? 'var(--negative)' : heroHover ? 'var(--accent)' : 'var(--text-primary)';
@@ -547,7 +597,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       })()}
 
       {/* Waterfall εσόδου βραχυχρόνιας — από μεικτό σε καθαρό (μόνο short_term) */}
-      {isSTR && waterfall && (() => {
+      {isCurMonth && isSTR && waterfall && (() => {
         const rows = [
           { l: 'Μεικτό έσοδο', v: waterfall.gross, sub: false },
           { l: 'Προμήθεια πλατφόρμας', v: -waterfall.platformFee, sub: true },
@@ -595,11 +645,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       })()}
 
       {/* Over-budget alerts */}
-      {!editMode && overBudget.length > 0 && (
+      {!editMode && displayOver.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {overBudget.map(cat => {
+          {displayOver.map(cat => {
             const budget = catBudget(cat.key);
-            const actual = actuals[cat.key] || 0;
+            const actual = viewActuals[cat.key] || 0;
             return (
               <div key={cat.key} style={{ background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
@@ -610,7 +660,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               </div>
             );
           })}
-          {notifyOn && (
+          {notifyOn && isCurMonth && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, paddingLeft: 2 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
               Θα λάβεις υπενθύμιση μέσω email και στο Ημερολόγιο.
@@ -620,7 +670,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Προβλεπόμενη υπέρβαση — με τον τρέχοντα ρυθμό (προειδοποίηση, όχι ήδη υπέρβαση) */}
-      {!editMode && projectedOver.length > 0 && (
+      {!editMode && isCurMonth && projectedOver.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
@@ -643,13 +693,15 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
           <KPI label="Στόχος / μήνα" value={fe(masterBudget)} />
-          <KPI label="Έως τώρα" value={fe(actualTotal)} color={actualTotal > masterBudget ? 'var(--negative)' : undefined} title="Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη." />
-          <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} color={forecastTotal > masterBudget ? 'var(--negative)' : undefined} />
-          <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - actualTotal))} />
+          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal)} color={viewActualTotal > masterBudget ? 'var(--negative)' : undefined} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
+          {isCurMonth
+            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} color={forecastTotal > masterBudget ? 'var(--negative)' : undefined} />
+            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal))}`} color={viewActualTotal > masterBudget ? 'var(--negative)' : undefined} />}
+          <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - viewActualTotal))} />
         </div>
         {!editMode && (() => {
-          const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
-          const isOver = actualTotal > masterBudget;
+          const pct    = masterBudget > 0 ? Math.min((viewActualTotal / masterBudget) * 100, 100) : 0;
+          const isOver = viewActualTotal > masterBudget;
           const col    = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
           return (
             <>
@@ -659,9 +711,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
                 {/* Το «Απομένει» φαίνεται ήδη στο πλακίδιο «Διαθέσιμο» — εδώ μόνο η υπέρβαση. */}
-                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : ''}</span>
+                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(viewActualTotal - masterBudget)}` : ''}</span>
               </div>
-              {rolloverOn && hasPrevMonth && carryIn !== 0 && (
+              {isCurMonth && rolloverOn && hasPrevMonth && carryIn !== 0 && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
                   Μεταφορά από {_prevLabel}: <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{fe(carryIn, 0)}</strong>
                   {' · '}πραγματικά διαθέσιμα <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(adjAvailable, 0)}</strong>
@@ -755,10 +807,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
           {CATS.map(cat => {
             const budget  = catBudget(cat.key);
-            const actual  = actuals[cat.key] || 0;
+            const actual  = viewActuals[cat.key] || 0;
             const pct     = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
             const isOver  = actual > budget && actual > 0;
-            const projOver = !isOver && categoryStatus(budget, actual, catForecast(cat.key)) === 'projected_over';
+            const projOver = isCurMonth && !isOver && categoryStatus(budget, actual, catForecast(cat.key)) === 'projected_over';
             const isWarn  = !isOver && !projOver && pct > 80;
             const col     = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
             const tr      = catTrend(cat.key);
@@ -771,7 +823,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5 }}>
                   <div style={{ width: 3, height: 26, borderRadius: 2, background: hov && !isOver ? 'var(--accent)' : col, flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
-                  {!editMode && tr.avgPrior > 0 && tr.direction !== 'flat' && (
+                  {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
+                  {!editMode && isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
                     <span title={`Μέσος όρος τριμήνου: ${fe(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: tr.direction === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
