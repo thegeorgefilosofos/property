@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
-import { reservePlan, rolloverNext } from '@/lib/billing/budgetPro';
+import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight } from '@/lib/billing/budgetPro';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import BudgetVaults from './BudgetVaults';
@@ -64,6 +64,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const [loanMonthly,  setLoanMonthly]  = useState(0);
   const [vaultMonthly, setVaultMonthly] = useState(0);
   const [rentalMode,   setRentalMode]   = useState<'long_term' | 'short_term' | ''>('');
+  const [strNights,    setStrNights]    = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [editMode,     setEditMode]     = useState(false);
@@ -120,6 +121,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       let inc = 0;
       if (rMode === 'short_term') {
         inc = (staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0)), 0);
+        setStrNights((staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.nights) || 0), 0));
       } else if (rMode === 'long_term') {
         // ΜΟΝΟ ενεργοί ενοικιαστές (όχι παλιοί/αποχωρήσαντες) — αλλιώς διπλασιάζεται το έσοδο.
         const rentSum = (tenantsRes.data ?? [])
@@ -292,6 +294,16 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // ειδοποιήσεων του χρήστη. Όταν λυθεί η υπέρβαση ή απενεργοποιηθεί, καθαρίζεται.
   const notifyOn  = budgets.notifyOverspend === 'true';
   const overKey   = overBudget.map(c => c.key).sort().join(',');
+
+  // ── Waterfall εσόδου βραχυχρόνιας: μεικτό → καθαρό (persona: short_term) ──────
+  // Παραδοχές (προμήθεια/διαχείριση/φόρος) επεξεργάσιμες· εκτίμηση, όχι λογιστική.
+  const isSTR          = rentalMode === 'short_term';
+  const strPlatformPct = budgetVal(budgets.strPlatformPct, 15);
+  const strMgmtPct     = budgetVal(budgets.strMgmtPct, 0);
+  const strTaxPct      = budgetVal(budgets.strTaxPct, 15);
+  const waterfall      = isSTR && income > 0
+    ? strWaterfall({ gross: income, platformFeePct: strPlatformPct, nights: strNights, climateFeePerNight: climateFeePerNight(_now.getMonth() + 1), cleaningFee: 0, managementPct: strMgmtPct, incomeTaxPct: strTaxPct })
+    : null;
   useEffect(() => {
     if (!propertyId || !userId || loading) return;
     let cancelled = false;
@@ -400,6 +412,54 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                 {isShortfall && (
                   <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)} — μείωσε εισφορές κουμπαράδων ή αναθεώρησε τους στόχους.</div>
                 )}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Waterfall εσόδου βραχυχρόνιας — από μεικτό σε καθαρό (μόνο short_term) */}
+      {isSTR && waterfall && (() => {
+        const rows = [
+          { l: 'Μεικτό έσοδο', v: waterfall.gross, sub: false },
+          { l: 'Προμήθεια πλατφόρμας', v: -waterfall.platformFee, sub: true },
+          { l: 'Τέλος ανθεκτικότητας', v: -waterfall.climateFee, sub: true },
+          ...(waterfall.management > 0 ? [{ l: 'Διαχείριση', v: -waterfall.management, sub: true }] : []),
+          { l: 'Κράτηση φόρου (εκτίμηση)', v: -waterfall.taxReserve, sub: true },
+        ];
+        return (
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
+              <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται προμήθεια πλατφόρμας, τέλος ανθεκτικότητας (ανά διανυκτέρευση), τυχόν διαχείριση και εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Εκτίμηση — οι παραδοχές αλλάζουν στην επεξεργασία." />
+              {editMode && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>}
+            </div>
+
+            {editMode ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
+                <NumberInput label="Προμήθεια πλατφόρμας" value={budgets.strPlatformPct ?? '15'} onChange={v => updateBudget('strPlatformPct', v)} suffix="%" step={1} placeholder="15"/>
+                <NumberInput label="Διαχείριση / co-host" value={budgets.strMgmtPct ?? '0'} onChange={v => updateBudget('strMgmtPct', v)} suffix="%" step={1} placeholder="0"/>
+                <NumberInput label="Συντελεστής φόρου" value={budgets.strTaxPct ?? '15'} onChange={v => updateBudget('strTaxPct', v)} suffix="%" step={1} placeholder="15"/>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {rows.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, fontFamily: T.font.sans, color: r.sub ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: r.sub ? 400 : 600 }}>
+                      <span>{r.l}</span>
+                      <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: r.v < 0 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{r.v < 0 ? '−' : ''}{fe(Math.abs(r.v), 0)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Καθαρό</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterfall.net, 0)}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 12, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  <span>Καθαρό / διανυκτέρευση <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(waterfall.netPerNight, 0)}</strong></span>
+                  <span>Περιθώριο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{waterfall.marginPct}%</strong></span>
+                </div>
               </>
             )}
           </div>
