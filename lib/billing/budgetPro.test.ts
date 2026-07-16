@@ -24,6 +24,9 @@ const near = (a: number, b: number, e = 0.01) => Math.abs(a - b) <= e
   ok('πλήρως καλυμμένο → 0 μηνιαία, 100%', done.requiredMonthly === 0 && done.fundedPct === 100)
   const noTime = reservePlan(600, 0, 0)
   ok('χωρίς χρόνο → όλο το υπόλοιπο', noTime.requiredMonthly === 600)
+  // 99,5% ΔΕΝ πρέπει να στρογγυλοποιείται σε 100% «καλυμμένο» ενώ λείπει €1.
+  const almost = reservePlan(200, 199, 1)
+  ok('99,5% → 99% (floor), όχι 100%', almost.fundedPct === 99 && almost.remaining === 1)
 }
 
 // ── rolloverNext ─────────────────────────────────────────────────────────────
