@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
-import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves } from '@/lib/billing/budgetPro';
+import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
@@ -85,6 +85,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // Έξυπνες προτάσεις αποθεματικών/φόρου (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι),
   // υπολογισμένες με τους κανονικούς μηχανισμούς — περνούν στους κουμπαράδες.
   const [suggestions,  setSuggestions]  = useState<VaultSuggestion[]>([]);
+  // Απόδοση επένδυσης (μόνο επαγγελματίας) και πλήθος βραχυχρόνιων ακινήτων (μόνο ιδιώτης, όριο 3+).
+  const [invReturns,   setInvReturns]   = useState<{ noi: number; preTaxCashFlow: number; capRatePct: number; cashOnCashPct: number } | null>(null);
+  const [strPropCount, setStrPropCount] = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [editMode,     setEditMode]     = useState(false);
@@ -131,7 +134,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
-        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia').eq('id', propertyId).maybeSingle(),
+        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia,purchase_price').eq('id', propertyId).maybeSingle(),
         supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
@@ -270,14 +273,33 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       const sugg: VaultSuggestion[] = [];
       if (enfiaVal > 0) sugg.push({ key: 'enfia', name: 'ΕΝΦΙΑ', target: Math.round(enfiaVal), due: nextFeb(), hint: 'δόσεις έως Φεβρουάριο' });
-      if (taxTargetAnnual > 0) sugg.push({ key: 'tax', name: taxIsBusiness ? 'Φόρος και προκαταβολή' : 'Φόρος εισοδήματος', target: taxTargetAnnual, hint: `~${taxPerMonth}/μήνα`, note: taxIsBusiness ? 'Περιλαμβάνει προκαταβολή. Ξεχωριστά: ΕΦΚΑ, ΦΠΑ — δες τη Λογιστική' : 'Εκτίμηση με βάση τα ετησιοποιημένα έσοδα' });
+      if (taxTargetAnnual > 0) sugg.push({ key: 'tax', name: taxIsBusiness ? 'Φόρος και προκαταβολή' : 'Φόρος εισοδήματος', target: taxTargetAnnual, hint: `~${taxPerMonth}/μήνα`, note: taxIsBusiness ? 'Περιλαμβάνει προκαταβολή. Ξεχωριστά: ΕΦΚΑ, ΦΠΑ — δες τη Λογιστική' : 'Με τεκμαρτή έκπτωση 5% ενσωματωμένη (χάνεται με είσπραξη μετρητών από το 2026)' });
       if (rec.capExMonthly > 0) sugg.push({ key: 'capex', name: 'Συντήρηση και CapEx', target: rec.capExMonthly * 12, hint: `~${rec.capExMonthly}/μήνα` });
       if (rMode === 'short_term' && rec.vacancyMonthly > 0) sugg.push({ key: 'vacancy', name: 'Κενές περίοδοι', target: rec.vacancyMonthly * 12, hint: `~${rec.vacancyMonthly}/μήνα` });
       setSuggestions(sugg);
+
+      // ── Απόδοση επένδυσης (μόνο επαγγελματίας) — NOI/cap rate/cash-on-cash από τον πυρήνα ──
+      if (isPro && annualGross > 0 && (propValue > 0 || (Number(propRes.data?.purchase_price) || 0) > 0)) {
+        const purchase = Number(propRes.data?.purchase_price) || propValue;
+        const loanBalance = (loansRes.data ?? [])
+          .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
+          .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
+        const equity = Math.max(0, purchase - loanBalance);
+        setInvReturns(investmentReturns({ annualIncome: annualGross, annualOpEx: annualOpex, annualLoanPayment: Math.round(loanM * 12), purchasePrice: purchase, equityInvested: equity }));
+      } else {
+        setInvReturns(null);
+      }
+      // ── Όριο 3+ βραχυχρόνιων (μόνο ιδιώτης) — προειδοποίηση επιχειρηματικής δραστηριότητας ──
+      if (!isPro && userId) {
+        const { count } = await supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('rental_mode', 'short_term');
+        setStrPropCount(count || 0);
+      } else {
+        setStrPropCount(0);
+      }
     } catch (_) {}
     finally { setLoading(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyId, isPro]);
+  }, [propertyId, isPro, userId]);
 
   useEffect(() => {
     if (!propertyId) return;
@@ -607,6 +629,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         </div>
       )}
 
+      {/* Όριο 3+ βραχυχρόνιων (ΜΟΝΟ ιδιώτης) — νομικό κατώφλι επιχειρηματικής δραστηριότητας */}
+      {!editMode && !isPro && strPropCount >= 3 && (
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            Έχεις <strong style={{ color: 'var(--text-primary)' }}>{strPropCount} βραχυχρόνια ακίνητα</strong> — από 3 και πάνω η δραστηριότητα θεωρείται επιχειρηματική (ΦΠΑ, ΕΦΚΑ, προκαταβολή). Δες τη Λογιστική και σύμβουλο.
+          </span>
+        </div>
+      )}
+
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
@@ -686,6 +718,33 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </div>
         );
       })()}
+
+      {/* Απόδοση επένδυσης — ΜΟΝΟ επαγγελματίας (NOI/cap rate/cash-on-cash) */}
+      {!editMode && isPro && invReturns && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
+            <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
+            <KPI label="NOI / έτος" value={fe(invReturns.noi)} />
+            <KPI label="Ταμειακή ροή" value={fe(invReturns.preTaxCashFlow)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
+            <KPI label="Cap rate" value={`${invReturns.capRatePct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+            <KPI label="Cash-on-cash" value={`${invReturns.cashOnCashPct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+          </div>
+        </div>
+      )}
+
+      {/* Επιχειρηματικές υποχρεώσεις — ΜΟΝΟ επαγγελματίας (δεν αφορούν ιδιώτες) */}
+      {!editMode && isPro && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Επιχειρηματικές υποχρεώσεις</span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            Πέρα από τον φόρο εισοδήματος: <strong style={{ color: 'var(--text-secondary)' }}>ΕΦΚΑ</strong> (μηνιαία εισφορά), <strong style={{ color: 'var(--text-secondary)' }}>προκαταβολή φόρου</strong> και <strong style={{ color: 'var(--text-secondary)' }}>ΦΠΑ</strong> (αν παρέχεις υπηρεσίες). Ακριβή ποσά στη Λογιστική.
+          </span>
+        </div>
+      )}
 
       {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
       {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
