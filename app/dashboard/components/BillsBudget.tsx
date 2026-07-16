@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
-import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
+import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
+import BudgetImport from './BudgetImport';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -52,6 +53,68 @@ function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: num
       <polyline points={pts} fill="none" stroke="color-mix(in srgb, var(--text-primary) 28%, transparent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       {activeIndex >= 0 && <circle cx={x(activeIndex)} cy={y(values[activeIndex] || 0)} r="1.9" fill="var(--accent)" />}
     </svg>
+  );
+}
+
+// Ράβδοι εξόδων ανά μήνα (μονόχρωμες, αποχρώσεις της βασικής παλέτας· ο τρέχων μήνας
+// τονίζεται με πιο σκούρα απόχρωση — όχι χρώμα). Καθαρό, σύντομο, minimal.
+function MonthBars({ data, activeYm }: { data: { ym: string; label: string; value: number }[]; activeYm: string }) {
+  const max = Math.max(1, ...data.map(d => d.value));
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 88 }}>
+      {data.map(d => {
+        const h = d.value > 0 ? Math.max(3, Math.round((d.value / max) * 70)) : 2;
+        const active = d.ym === activeYm;
+        return (
+          <div key={d.ym} title={`${d.label}: ${fe(d.value, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 0 }}>
+            <div style={{ width: '100%', maxWidth: 24, height: h, borderRadius: 3, background: active ? 'color-mix(in srgb, var(--text-primary) 58%, transparent)' : 'color-mix(in srgb, var(--text-primary) 20%, transparent)', transition: 'height 0.4s ease' }} />
+            <span style={{ fontSize: 8.5, color: active ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: active ? 700 : 500 }}>{d.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Δαχτυλίδι (donut) κατανομής ανά κατηγορία — μονόχρωμες αποχρώσεις + υπόμνημα.
+function Donut({ slices }: { slices: { label: string; value: number }[] }) {
+  const total = slices.reduce((s, x) => s + x.value, 0);
+  if (total <= 0) return null;
+  const sorted = slices.filter(s => s.value > 0).sort((a, b) => b.value - a.value);
+  const MAX = 6;
+  let segs = sorted;
+  if (sorted.length > MAX) {
+    const head = sorted.slice(0, MAX - 1);
+    const rest = sorted.slice(MAX - 1).reduce((s, x) => s + x.value, 0);
+    segs = [...head, { label: 'Λοιπά', value: rest }];
+  }
+  const r = 42, sw = 15, C = 2 * Math.PI * r;
+  const shade = (i: number) => `color-mix(in srgb, var(--text-primary) ${Math.max(14, 80 - i * 12)}%, transparent)`;
+  let off = 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+      <svg width="116" height="116" viewBox="0 0 116 116" style={{ flexShrink: 0 }} aria-hidden="true">
+        <g transform="rotate(-90 58 58)">
+          {segs.map((s, i) => {
+            const len = (s.value / total) * C;
+            const el = <circle key={i} cx="58" cy="58" r={r} fill="none" stroke={shade(i)} strokeWidth={sw} strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)} />;
+            off += len;
+            return el;
+          })}
+        </g>
+        <text x="58" y="54" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σύνολο</text>
+        <text x="58" y="69" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(total, 0)}</text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 150 }}>
+        {segs.map((s, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontFamily: T.font.sans }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: shade(i), flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: 0, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
+            <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{Math.round((s.value / total) * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -103,6 +166,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // Έξυπνες προτάσεις αποθεματικών/φόρου (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι),
   // υπολογισμένες με τους κανονικούς μηχανισμούς — περνούν στους κουμπαράδες.
   const [suggestions,  setSuggestions]  = useState<VaultSuggestion[]>([]);
+  const [recurring,    setRecurring]    = useState<RecurringCharge[]>([]);
+  const [weekActuals,  setWeekActuals]  = useState<Record<string, number>>({});
   // Απόδοση επένδυσης (μόνο επαγγελματίας) και πλήθος βραχυχρόνιων ακινήτων (μόνο ιδιώτης, όριο 3+).
   const [invReturns,   setInvReturns]   = useState<{ noi: number; preTaxCashFlow: number; capRatePct: number; cashOnCashPct: number } | null>(null);
   const [strPropCount, setStrPropCount] = useState(0);
@@ -114,6 +179,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
   const [delCatHover,  setDelCatHover]  = useState<string | null>(null);
   const [newCatName,   setNewCatName]   = useState('');
+  const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -133,7 +199,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       internet: 'internet', phone: 'internet', tv: 'internet',
       heating: 'heating', gas: 'heating',
       insurance: 'insurance', streaming: 'insurance',
-      taxes: 'services', enfia: 'services', municipal: 'services',
+      taxes: 'services', enfia: 'services', municipal: 'services', services: 'services',
       common: 'common', koinoxrista: 'common',
       maintenance: 'maintenance', repair: 'maintenance',
     };
@@ -152,16 +218,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const end     = `${dateEnd}T23:59:59`;                                 // για timestamptz (created_at)
       // Ιστορικό 13 μηνών (τρέχων + 12 πίσω) για πρόβλεψη/ετήσια εικόνα/τάσεις.
       const histStart = `${ymOf(new Date(y, now.getMonth() - 12, 1))}-01`;
+      // Αρχή τρέχουσας εβδομάδας (Δευτέρα) — για το εβδομαδιαίο εργαλείο (σωστό και στα όρια μήνα).
+      const dow       = (now.getDay() + 6) % 7;   // Δευτέρα = 0
+      const weekStartD = new Date(y, now.getMonth(), now.getDate() - dow);
+      const weekStart  = `${weekStartD.getFullYear()}-${String(weekStartD.getMonth() + 1).padStart(2, '0')}-${String(weekStartD.getDate()).padStart(2, '0')}`;
 
-      const [budgetRes, billsRes, settRes, expRes, histBillsRes, histExpRes] = await Promise.all([
+      const [budgetRes, billsRes, settRes, expRes, histBillsRes, histExpRes, weekBillsRes, weekExpRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
         supabase.from('bills').select('category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
         // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
         // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
-        supabase.from('expenses').select('amount,date,bill_id,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
+        supabase.from('expenses').select('amount,date,bill_id,expense_group,category').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
         supabase.from('bills').select('category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
-        supabase.from('expenses').select('amount,date,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
+        supabase.from('expenses').select('amount,date,expense_group,description,category').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
+        supabase.from('bills').select('category,amount').eq('property_id', propertyId).gte('created_at', `${weekStart}T00:00:00`),
+        supabase.from('expenses').select('amount,category,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', weekStart),
       ]);
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
@@ -217,9 +289,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
       };
       (histBillsRes.data ?? []).forEach((b: any) => addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0));
-      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : 'other', e.amount || 0));
+      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? '')), e.amount || 0));
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
+
+      // ── Επαναλαμβανόμενες χρεώσεις / συνδρομές: ανάλυση 12μηνου ιστορικού δαπανών ──
+      // (καθαρός πυρήνας detectRecurring) — αναδεικνύει «κρυφές» συνδρομές και το ετήσιο βάρος τους.
+      const recurTxns = (histExpRes.data ?? [])
+        .filter((e: any) => (e.description ?? '').trim().length >= 3)
+        .map((e: any) => ({ date: String(e.date ?? '').slice(0, 10), amount: Number(e.amount) || 0, description: String(e.description ?? ''), category: mapCategory(String(e.category ?? '')) }));
+      setRecurring(detectRecurring(recurTxns));
+
+      // ── Εβδομαδιαίο εργαλείο: δαπάνες τρέχουσας εβδομάδας ανά κατηγορία ──
+      const wk: Record<string, number> = {};
+      (weekBillsRes.data ?? []).forEach((b: any) => { const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(b.amount) || 0); });
+      (weekExpRes.data ?? []).forEach((e: any) => { const k = e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
+      setWeekActuals(wk);
 
       if (budgetRes.data?.data) {
         const saved = budgetRes.data.data as Record<string, unknown>;
@@ -255,8 +340,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
       (expRes.data ?? []).forEach((e: any) => {
         const amt = e.amount || 0;
-        if (e.expense_group === 'maintenance') billActuals.maintenance = (billActuals.maintenance || 0) + amt;
-        else billActuals.other = (billActuals.other || 0) + amt;
+        const k = e.expense_group === 'maintenance' ? 'maintenance' : mapCategory(String(e.category ?? ''));
+        billActuals[k] = (billActuals[k] || 0) + amt;
       });
 
       setActuals(billActuals);
@@ -394,6 +479,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const persistCats = (patch: Record<string, string>) => { const next = { ...budgets, ...patch }; setBudgets(next); saveBudgets(next); };
   const addCategory = (label: string) => {
     const name = label.trim().slice(0, 40); if (!name) return;
+    // Κανένα διπλότυπο: αν υπάρχει ήδη ενεργή κατηγορία με το ίδιο όνομα, επανάφερε/άφησέ την.
+    const norm = (s: string) => s.trim().toLowerCase();
+    if (activeCats.some(c => norm(c.label) === norm(name))) return;
+    // Αν ταιριάζει με κρυμμένη βασική κατηγορία, απλώς επανάφερέ την (αντί για διπλότυπη custom).
+    const hiddenMatch = hiddenBaseCats.find(c => norm(c.label) === norm(name));
+    if (hiddenMatch) { restoreCategory(hiddenMatch.key); return; }
     const key = `c_${Date.now().toString(36)}`;
     persistCats({ __custom: JSON.stringify([...customCats.map(c => ({ key: c.key, label: c.label })), { key, label: name }]), [key]: '0' });
   };
@@ -431,6 +522,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // Σειρά 12 μηνών (παλαιότερος → τρέχων) ανά κατηγορία, για το μικρογράφημα τάσης.
   const _sparkYms    = Array.from({ length: 12 }, (_, i) => ymOf(new Date(_now.getFullYear(), _now.getMonth() - (11 - i), 1)));
   const catSpark     = (key: string) => _sparkYms.map(ym => catMonth[ym]?.[key] || 0);
+
+  // ── Ετήσιο εργαλείο: ράβδοι ανά μήνα (ημερολογιακό έτος) + κατανομή ανά κατηγορία (YTD) ──
+  const _curYear   = _now.getFullYear();
+  const _yPrefix   = `${_curYear}-`;
+  const yearBars   = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(_curYear, i, 1);
+    return { ym: ymOf(d), label: d.toLocaleDateString('el-GR', { month: 'short' }).replace('.', ''), value: monthTotals[ymOf(d)] || 0 };
+  });
+  const catYtd     = activeCats
+    .map(c => ({ label: c.label, value: Object.entries(catMonth).filter(([ym]) => ym.startsWith(_yPrefix)).reduce((s, [, m]) => s + (m[c.key] || 0), 0) }))
+    .filter(x => x.value > 0);
+
+  // ── Εβδομαδιαίο εργαλείο: δαπάνες αυτής της εβδομάδας ανά κατηγορία ──
+  const weekCats   = activeCats.map(c => ({ label: c.label, value: weekActuals[c.key] || 0 })).filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+  const weekTotalV = weekCats.reduce((s, x) => s + x.value, 0);
+  const weekMax    = Math.max(1, ...weekCats.map(c => c.value));
 
   // ── Rollover: αδιάθετο/υπέρβαση προηγούμενου μήνα μεταφέρεται στον τρέχοντα ──
   // Μόνο όταν υπάρχει καταγεγραμμένη δραστηριότητα τον προηγ. μήνα (αλλιώς «κενός»
@@ -528,7 +635,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     const shut = !!key && collapsed.has(key);
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
-        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
         <span style={{ flex: 1 }}/>
         {right}
@@ -652,7 +758,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
               <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται προμήθεια πλατφόρμας, τέλος ανθεκτικότητας (ανά διανυκτέρευση), τυχόν διαχείριση και εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Εκτίμηση — οι παραδοχές αλλάζουν στην επεξεργασία." />
               {editMode && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>}
@@ -737,10 +842,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
           <KPI label="Στόχος / μήνα" value={fe(masterBudget)} />
-          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal)} color={viewActualTotal > masterBudget ? 'var(--negative)' : undefined} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
+          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
           {isCurMonth
-            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} color={forecastTotal > masterBudget ? 'var(--negative)' : undefined} />
-            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal))}`} color={viewActualTotal > masterBudget ? 'var(--negative)' : undefined} />}
+            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} />
+            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal))}`} />}
           <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - viewActualTotal))} />
         </div>
         {!editMode && (() => {
@@ -753,7 +858,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width 0.6s ease' }}/>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
+                <span style={{ color: 'var(--text-tertiary)', fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
                 {/* Το «Απομένει» φαίνεται ήδη στο πλακίδιο «Διαθέσιμο» — εδώ μόνο η υπέρβαση. */}
                 <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(viewActualTotal - masterBudget)}` : ''}</span>
               </div>
@@ -772,7 +877,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {!editMode && isPro && invReturns && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
             <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
           </div>
@@ -822,11 +926,43 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     </span>
                   )}
                 </div>
+                {/* Ετήσιο εργαλείο: ράβδοι εξόδων ανά μήνα */}
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Έξοδα ανά μήνα</div>
+                  <MonthBars data={yearBars} activeYm={_curYm} />
+                </div>
+                {/* Ετήσιο εργαλείο: κατανομή δαπανών ανά κατηγορία */}
+                {catYtd.length > 0 && (
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Κατανομή ανά κατηγορία</div>
+                    <Donut slices={catYtd} />
+                  </div>
+                )}
               </>
             )}
           </div>
         );
       })()}
+
+      {/* Εβδομαδιαίο εργαλείο — δαπάνες αυτής της εβδομάδας ανά κατηγορία (μόνο τρέχων μήνας) */}
+      {!editMode && isCurMonth && weekTotalV > 0 && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+          {secHdr('Αυτή την εβδομάδα', 'week', <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(weekTotalV, 0)}</span>)}
+          {!collapsed.has('week') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {weekCats.map(c => (
+                <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 120, flexShrink: 0, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                  <div style={{ flex: 1, height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)', borderRadius: 4, transition: 'width 0.5s ease' }} />
+                  </div>
+                  <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(c.value, 0)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Επιχειρηματικές υποχρεώσεις — ΜΟΝΟ επαγγελματίας (δεν αφορούν ιδιώτες) */}
       {!editMode && isPro && (
@@ -837,6 +973,43 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </span>
         </div>
       )}
+
+      {/* Επαναλαμβανόμενες χρεώσεις / συνδρομές — ανάλυση 12μηνου ιστορικού δαπανών */}
+      {!editMode && recurring.length > 0 && (() => {
+        const monthlyTotal = recurring.reduce((s, r) => s + r.monthlyEquivalent, 0);
+        const annualTotal  = recurring.reduce((s, r) => s + r.annualCost, 0);
+        const cadLabel = (c: RecurringCharge['cadence']) => c === 'monthly' ? 'μηνιαία' : c === 'bimonthly' ? 'διμηνιαία' : c === 'quarterly' ? 'τριμηνιαία' : c === 'yearly' ? 'ετήσια' : 'ακανόνιστη';
+        return (
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+            {secHdr('Επαναλαμβανόμενες χρεώσεις', 'recurring',
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthlyTotal, 0)}/μήνα · {fe(annualTotal, 0)}/έτος</span>
+                <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίστηκαν αυτόματα από τις καταγεγραμμένες δαπάνες σου (ίδιος πάροχος να επαναλαμβάνεται σε πολλούς μήνες). Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος — για να βρεις «κρυφές» συνδρομές." />
+              </span>)}
+            {!collapsed.has('recurring') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {recurring.slice(0, 10).map(r => {
+                  const hov = hoverRec === r.key;
+                  return (
+                    <div key={r.key} onMouseEnter={() => setHoverRec(r.key)} onMouseLeave={() => setHoverRec(null)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px', margin: '0 -8px', borderRadius: T.radius.inner, background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
+                      <div style={{ width: 3, height: 24, borderRadius: 2, background: 'color-mix(in srgb, var(--text-primary) 26%, transparent)', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{cadLabel(r.cadence)} · επόμενη {parseLocalDate(r.nextExpected).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(r.monthlyEquivalent, 0)}<span style={{ fontSize: 9, fontWeight: 500, color: 'var(--text-tertiary)' }}>/μήνα</span></div>
+                        <div style={{ fontSize: 9.5, color: 'var(--text-tertiary)' }}>{fe(r.annualCost, 0)}/έτος</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
       {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
@@ -881,7 +1054,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       <button type="button" title="Αφαίρεση κατηγορίας"
                         onClick={() => removeCategory(cat.key)}
                         onMouseEnter={() => setDelCatHover(cat.key)} onMouseLeave={() => setDelCatHover(null)}
-                        style={{ width: 26, height: 26, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.inner, border: '1px solid ' + (delCatHover === cat.key ? 'var(--negative)' : 'var(--border-subtle)'), background: delCatHover === cat.key ? 'var(--negative-dim)' : 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }}>
+                        style={{ width: 26, height: 26, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.inner, border: '1px solid ' + (delCatHover === cat.key ? 'var(--border-default)' : 'var(--border-subtle)'), background: 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                       </button>
                     </div>
@@ -954,6 +1127,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </>
         )}
       </div>
+
+      {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
+      {!editMode && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
+          {secHdr('Εισαγωγή δεδομένων', 'import',
+            <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση — οι δαπάνες μπαίνουν στον σωστό μήνα και κατηγορία." />)}
+          {!collapsed.has('import') && (
+            <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
