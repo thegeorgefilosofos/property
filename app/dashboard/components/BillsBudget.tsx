@@ -5,7 +5,16 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
+import { reservePlan, allocate } from '@/lib/billing/budgetPro';
+import { annuityMonthly } from '@/lib/loans/recommend';
+import { InfoDot } from './UIComponents';
 import BudgetVaults from './BudgetVaults';
+
+const monthsUntilDue = (due?: string): number => {
+  if (!due) return 0;
+  const d = new Date(due), now = new Date();
+  return Math.max(0, (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()));
+};
 
 // Κατηγορίες που θεωρούνται «σταθερές» (πάγιοι λογαριασμοί, χρεώνονται ολόκληρο
 // τον μήνα) — δεν προβάλλονται γραμμικά. Οι υπόλοιπες συσσωρεύονται μέσα στον μήνα.
@@ -50,10 +59,16 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // εγγραφές (λογαριασμοί + λοιπές δαπάνες) — για πρόβλεψη, ετήσια εικόνα και τάσεις.
   const [monthTotals,  setMonthTotals]  = useState<Record<string, number>>({});
   const [catMonth,     setCatMonth]     = useState<Record<string, Record<string, number>>>({});
+  // Έσοδα + δεσμευμένες εκροές (δόση δανείου, εισφορές κουμπαράδων) για το «Ασφαλές διαθέσιμο».
+  const [income,       setIncome]       = useState(0);
+  const [loanMonthly,  setLoanMonthly]  = useState(0);
+  const [vaultMonthly, setVaultMonthly] = useState(0);
+  const [rentalMode,   setRentalMode]   = useState<'long_term' | 'short_term' | ''>('');
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [editMode,     setEditMode]     = useState(false);
   const [rtOk,         setRtOk]         = useState(false);
+  const [heroHover,    setHeroHover]    = useState(false);
 
   const mapCategory = (cat: string): CatKey | 'other' => {
     const m: Record<string, CatKey> = {
@@ -89,6 +104,35 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         supabase.from('bills').select('category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
         supabase.from('expenses').select('amount,date,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
       ]);
+
+      // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
+      const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
+        supabase.from('user_properties').select('rental_mode,target_rent').eq('id', propertyId).maybeSingle(),
+        supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
+        supabase.from('tenants').select('monthly_rent,lease_end').eq('property_id', propertyId),
+        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', start).lte('check_in', `${y}-${m}-31`),
+        supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
+      ]);
+      const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
+      setRentalMode(rMode);
+      // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων· μακροχρόνια → συμβατικό ενοίκιο (ή στόχος).
+      let inc = 0;
+      if (rMode === 'short_term') {
+        inc = (staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0)), 0);
+      } else {
+        const rentSum = (tenantsRes.data ?? []).reduce((s: number, t: any) => s + (Number(t.monthly_rent) || 0), 0);
+        inc = rentSum > 0 ? rentSum : (Number(propRes.data?.target_rent) || 0);
+      }
+      setIncome(Math.round(inc));
+      // Δόση δανείου: ζωντανός υπολογισμός από ενεργά δάνεια (όχι διπλομέτρηση).
+      const loanM = (loansRes.data ?? [])
+        .filter((l: any) => l.status !== 'inactive' && l.status !== 'closed')
+        .reduce((s: number, l: any) => s + annuityMonthly(Number(l.amount) || 0, Number(l.rate) || 0, Number(l.years) || 0), 0);
+      setLoanMonthly(Math.round(loanM));
+      // Μηνιαίες εισφορές κουμπαράδων.
+      const vArr = (vaultsRes.data?.data as { vaults?: { target: number; current: number; due?: string }[] } | null)?.vaults ?? [];
+      const vaultM = vArr.reduce((s, v) => s + reservePlan(Number(v.target) || 0, Number(v.current) || 0, monthsUntilDue(v.due)).requiredMonthly, 0);
+      setVaultMonthly(Math.round(vaultM));
 
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
       // εγγραφές (όχι εκτιμήσεις από ρυθμίσεις), ώστε τάση/ετήσιο να είναι έντιμα.
@@ -208,6 +252,14 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // Τάση ανά κατηγορία (μόνο όταν υπάρχει ιστορικό).
   const catTrend     = (key: string) => periodTrend(actuals[key] || 0, _priorYms.map(ym => catMonth[ym]?.[key] || 0));
 
+  // ── «Ασφαλές διαθέσιμο» (Monzo Left to Spend / owner draw) ────────────────────
+  // Δεσμευμένοι λογαριασμοί = πάγιες κατηγορίες (στόχος)· εκροές = δόση + κουμπαράδες.
+  const committedBills = FIXED_CATS.reduce((s, k) => s + catBudget(k), 0);
+  const alloc          = allocate({ income, committedBills, reserveContributions: vaultMonthly, loanPayment: loanMonthly });
+  const monthlyCost    = committedBills + loanMonthly + vaultMonthly;
+  const hasIncome      = income > 0;
+  const isShortfall    = hasIncome && (committedBills + loanMonthly + vaultMonthly) > income;
+
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
@@ -242,6 +294,52 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           </button>
         </div>
       </div>
+
+      {/* «Ασφαλές διαθέσιμο» — έσοδα − δεσμευμένα − εισφορές (Monzo Left to Spend) */}
+      {!editMode && (hasIncome || monthlyCost > 0) && (() => {
+        const safeRaw = income - monthlyCost;
+        const val = hasIncome ? safeRaw : monthlyCost;
+        const numCol = !hasIncome ? 'var(--text-primary)' : safeRaw < 0 ? 'var(--negative)' : heroHover ? 'var(--accent)' : 'var(--text-primary)';
+        const seg = (v: number) => income > 0 ? Math.max(0, Math.min(100, (v / income) * 100)) : 0;
+        return (
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div onMouseEnter={() => setHeroHover(true)} onMouseLeave={() => setHeroHover(false)} onTouchStart={() => setHeroHover(true)} onTouchEnd={() => setHeroHover(false)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{hasIncome ? 'Ασφαλές διαθέσιμο' : 'Μηνιαίο κόστος ακινήτου'}</span>
+                  <InfoDot text={hasIncome ? 'Έσοδα μείον δεσμευμένους λογαριασμούς, δόση δανείου και μηνιαίες εισφορές κουμπαράδων. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.' : 'Το άθροισμα των παγίων λογαριασμών, της δόσης δανείου και των εισφορών κουμπαράδων — τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
+                </div>
+                <div style={{ fontSize: 30, fontWeight: 700, color: numCol, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{fe(val, 0)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{hasIncome ? 'μετά από λογαριασμούς, δόση και κουμπαράδες' : 'λογαριασμοί, δόση και κουμπαράδες'}</div>
+              </div>
+            </div>
+            {hasIncome && (
+              <>
+                <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 16, marginBottom: 10, background: 'var(--bg-overlay)' }}>
+                  <div title="Λογαριασμοί" style={{ width: `${seg(committedBills)}%`, background: 'color-mix(in srgb, var(--text-primary) 32%, transparent)' }}/>
+                  <div title="Δόση δανείου" style={{ width: `${seg(loanMonthly)}%`, background: 'color-mix(in srgb, var(--text-primary) 20%, transparent)' }}/>
+                  <div title="Κουμπαράδες" style={{ width: `${seg(vaultMonthly)}%`, background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)' }}/>
+                  <div title="Διαθέσιμο" style={{ flex: 1, background: safeRaw < 0 ? 'var(--negative)' : 'var(--accent)' }}/>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 10.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                  {[
+                    { l: 'Έσοδα', v: income },
+                    { l: 'Λογαριασμοί', v: committedBills },
+                    { l: 'Δόση', v: loanMonthly },
+                    { l: 'Κουμπαράδες', v: vaultMonthly },
+                    { l: 'Διαθέσιμο', v: safeRaw },
+                  ].filter(x => x.v !== 0).map(x => (
+                    <span key={x.l} style={{ fontVariantNumeric: 'tabular-nums' }}>{x.l} <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.mono }}>{fe(x.v, 0)}</strong></span>
+                  ))}
+                </div>
+                {isShortfall && (
+                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)} — μείωσε εισφορές κουμπαράδων ή αναθεώρησε τους στόχους.</div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Over-budget alerts */}
       {!editMode && overBudget.length > 0 && (
