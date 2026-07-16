@@ -1175,7 +1175,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 </>
               )}
             </div>
-            {loanType==='first_home'&&PV<=fmaEx&&!isNewBuilding&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--accent)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:13,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*0.03)}</p></div>}
+            {loanType==='first_home'&&PV<=fmaEx&&!isNewBuilding&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:13,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*0.03)}</p></div>}
           </div>
           {loanType==='investment'&&(
             <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
