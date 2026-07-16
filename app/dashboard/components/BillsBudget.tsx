@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { NumberInput } from './UIComponents';
+import { NumberInput, TextInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
@@ -112,6 +112,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [rtOk,         setRtOk]         = useState(false);
   const [heroHover,    setHeroHover]    = useState(false);
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
+  const [delCatHover,  setDelCatHover]  = useState<string | null>(null);
+  const [newCatName,   setNewCatName]   = useState('');
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -371,11 +373,35 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     const p = parseFloat(raw ?? '');
     return raw != null && raw.trim() !== '' && !isNaN(p) ? p : def;
   };
-  const catBudget     = (key: string) => budgetVal(budgets[key], CATS.find(c => c.key === key)!.default);
-  const masterBudget  = budgetVal(budgets.total, CATS.reduce((s, c) => s + c.default, 0));
+  // ── Προσαρμόσιμες κατηγορίες: ο χρήστης κρύβει όσες δεν χρειάζεται και προσθέτει δικές του.
+  const parseArr = (s?: string): any[] => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const hiddenKeys: string[] = parseArr(budgets.__hidden).map(String);
+  const customCats: { key: string; label: string; default: number }[] = parseArr(budgets.__custom)
+    .filter((c: any) => c && c.key && c.label).map((c: any) => ({ key: String(c.key), label: String(c.label), default: 0 }));
+  const activeCats: { key: string; label: string; default: number }[] = [
+    ...CATS.filter(c => !hiddenKeys.includes(c.key)).map(c => ({ key: c.key as string, label: c.label as string, default: c.default as number })),
+    ...customCats,
+  ];
+  const hiddenBaseCats = CATS.filter(c => hiddenKeys.includes(c.key));
+  const catDefault    = (key: string) => activeCats.find(c => c.key === key)?.default ?? 0;
+  const catBudget     = (key: string) => budgetVal(budgets[key], catDefault(key));
+  const masterBudget  = budgetVal(budgets.total, activeCats.reduce((s, c) => s + c.default, 0));
   // Υπερβάσεις ΤΡΕΧΟΝΤΟΣ μήνα (για τις ειδοποιήσεις email) — η προβολή/αλλαγή μήνα
   // χρησιμοποιεί ξεχωριστό displayOver, ώστε οι ειδοποιήσεις να μένουν στον τρέχοντα μήνα.
-  const overBudget    = CATS.filter(c => (actuals[c.key] || 0) > catBudget(c.key));
+  const overBudget    = activeCats.filter(c => (actuals[c.key] || 0) > catBudget(c.key));
+
+  // Προσθήκη/απόκρυψη/επαναφορά κατηγορίας (αποθηκεύεται στις ρυθμίσεις budgets).
+  const persistCats = (patch: Record<string, string>) => { const next = { ...budgets, ...patch }; setBudgets(next); saveBudgets(next); };
+  const addCategory = (label: string) => {
+    const name = label.trim().slice(0, 40); if (!name) return;
+    const key = `c_${Date.now().toString(36)}`;
+    persistCats({ __custom: JSON.stringify([...customCats.map(c => ({ key: c.key, label: c.label })), { key, label: name }]), [key]: '0' });
+  };
+  const removeCategory = (key: string) => {
+    if (customCats.some(c => c.key === key)) persistCats({ __custom: JSON.stringify(customCats.filter(c => c.key !== key).map(c => ({ key: c.key, label: c.label }))) });
+    else persistCats({ __hidden: JSON.stringify([...hiddenKeys, key]) });
+  };
+  const restoreCategory = (key: string) => persistCats({ __hidden: JSON.stringify(hiddenKeys.filter(k => k !== key)) });
 
   // ── Πρόβλεψη τέλους μήνα, ετήσια εικόνα, τάση (καθαρά, από τον πυρήνα) ─────────
   const _now         = new Date();
@@ -390,7 +416,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const variableToDate = (actuals.maintenance || 0) + (actuals.other || 0);
   const forecastTotal  = forecastMonthEnd(fixedToDate, variableToDate, _day, _daysInMonth);
   // Κατηγορίες που, με τον τρέχοντα ρυθμό, θα ξεπεράσουν τον στόχο (χωρίς να είναι ήδη).
-  const projectedOver  = CATS.filter(c => categoryStatus(catBudget(c.key), actuals[c.key] || 0, catForecast(c.key)) === 'projected_over');
+  const projectedOver  = activeCats.filter(c => categoryStatus(catBudget(c.key), actuals[c.key] || 0, catForecast(c.key)) === 'projected_over');
 
   // Ετήσια: πραγματικά YTD από καταγεγραμμένες εγγραφές (bills + λοιπές δαπάνες).
   const _yStr        = String(_now.getFullYear()) + '-';
@@ -427,9 +453,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const viewDate        = new Date(_now.getFullYear(), _now.getMonth() + monthOffset, 1);
   const viewYm          = ymOf(viewDate);
   const viewActuals     = isCurMonth ? actuals : (catMonth[viewYm] || {});
-  const viewActualTotal = CATS.reduce((s, c) => s + (viewActuals[c.key] || 0), 0);
+  const viewActualTotal = activeCats.reduce((s, c) => s + (viewActuals[c.key] || 0), 0);
   const viewMonthLabel  = viewDate.toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
-  const displayOver     = CATS.filter(c => (viewActuals[c.key] || 0) > catBudget(c.key));
+  const displayOver     = activeCats.filter(c => (viewActuals[c.key] || 0) > catBudget(c.key));
   const canGoNewer      = monthOffset < 0;
   const canGoOlder      = monthOffset > -12;
 
@@ -540,10 +566,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
-            <span title="Ζωντανή ενημέρωση δεδομένων σε πραγματικό χρόνο" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--text-tertiary)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: rtOk ? 'var(--text-tertiary)' : 'var(--border-default)', display: 'inline-block' }}/>
-              Live
-            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
             {!editMode && (
@@ -824,7 +846,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         {secHdr('Ανά Κατηγορία', editMode ? undefined : 'cats')}
         {!(!editMode && collapsed.has('cats')) &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
-          {CATS.map(cat => {
+          {activeCats.map(cat => {
             const budget  = catBudget(cat.key);
             const actual  = viewActuals[cat.key] || 0;
             const pct     = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
@@ -852,8 +874,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <span style={{ flex: 1 }}/>
 
                   {editMode ? (
-                    <div style={{ width: 170 }}>
-                      <NumberInput label="" value={budgets[cat.key] ?? String(cat.default)} onChange={v => updateBudget(cat.key, v)} suffix="€ / μήνα" step={5} placeholder={String(cat.default)}/>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 170 }}>
+                        <NumberInput label="" value={budgets[cat.key] ?? String(cat.default)} onChange={v => updateBudget(cat.key, v)} suffix="€ / μήνα" step={5} placeholder={String(cat.default)}/>
+                      </div>
+                      <button type="button" title="Αφαίρεση κατηγορίας"
+                        onClick={() => removeCategory(cat.key)}
+                        onMouseEnter={() => setDelCatHover(cat.key)} onMouseLeave={() => setDelCatHover(null)}
+                        style={{ width: 26, height: 26, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.inner, border: '1px solid ' + (delCatHover === cat.key ? 'var(--negative)' : 'var(--border-subtle)'), background: delCatHover === cat.key ? 'var(--negative-dim)' : 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
@@ -883,11 +913,37 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
         {editMode && (
           <>
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+            {/* Προσθήκη νέας κατηγορίας */}
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="π.χ. Καθαριότητα, Ασφάλεια…"
+                  onKeyDown={e => { if (e.key === 'Enter' && newCatName.trim()) { addCategory(newCatName); setNewCatName(''); } }}/>
+              </div>
+              <button type="button" disabled={!newCatName.trim()}
+                onClick={() => { addCategory(newCatName); setNewCatName(''); }}
+                style={{ height: 38, padding: '0 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: newCatName.trim() ? 'color-mix(in srgb, var(--text-primary) 88%, transparent)' : 'var(--bg-elevated)', color: newCatName.trim() ? 'var(--bg-surface)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: newCatName.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                Προσθήκη
+              </button>
+            </div>
+            {hiddenBaseCats.length > 0 && (
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Επαναφορά:</span>
+                {hiddenBaseCats.map(c => (
+                  <button key={c.key} type="button" title="Επαναφορά κατηγορίας" onClick={() => restoreCategory(c.key)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px dashed var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: 14, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
               <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(activeCats.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
               </div>
             </div>
             {/* Ρυθμίσεις προϋπολογισμού — διακόπτες (email υπέρβασης, μεταφορά υπολοίπου) */}
