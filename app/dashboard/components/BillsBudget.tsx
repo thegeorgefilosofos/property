@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
+import BudgetVaults from './BudgetVaults';
 
 // Κατηγορίες που θεωρούνται «σταθερές» (πάγιοι λογαριασμοί, χρεώνονται ολόκληρο
 // τον μήνα) — δεν προβάλλονται γραμμικά. Οι υπόλοιπες συσσωρεύονται μέσα στον μήνα.
@@ -355,6 +356,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           </div>
         );
       })()}
+
+      {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
+      {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} />}
 
       {/* Category rows */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 }}>
