@@ -23,7 +23,7 @@ interface Props {
 
 type View = 'bills' | 'expenses' | 'budget';
 
-export default function TabFinances({ propertyId, userId, propertyName = '', propertyAddress = '' }: Props) {
+export default function TabFinances({ propertyId, userId, propertyName = '', propertyAddress = '', profileType = 'individual' }: Props) {
   const [view, setView] = useState<View>('bills');
   const segs: { k: View; label: string }[] = [
     { k: 'bills', label: 'Λογαριασμοί' },
@@ -46,7 +46,7 @@ export default function TabFinances({ propertyId, userId, propertyName = '', pro
       </div>
       {view === 'bills' && <TabBills propertyId={propertyId} userId={userId} propertyName={propertyName} propertyAddress={propertyAddress} />}
       {view === 'expenses' && <TabExpenses propertyId={propertyId} userId={userId} />}
-      {view === 'budget' && <BillsBudget propertyId={propertyId} userId={userId} />}
+      {view === 'budget' && <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>
   );
 }

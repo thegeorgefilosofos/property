@@ -5,10 +5,12 @@ import { createClient } from '@/lib/supabase/client';
 import { NumberInput } from './UIComponents';
 import { T, fe, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend } from '@/lib/billing/budget';
-import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight } from '@/lib/billing/budgetPro';
+import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves } from '@/lib/billing/budgetPro';
+import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
-import BudgetVaults from './BudgetVaults';
+import { KPI } from './LoanShared';
+import BudgetVaults, { VaultSuggestion } from './BudgetVaults';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -24,6 +26,12 @@ const monthsUntilDue = (due?: string): number => {
 // τον μήνα) — δεν προβάλλονται γραμμικά. Οι υπόλοιπες συσσωρεύονται μέσα στον μήνα.
 const FIXED_CATS = ['electricity', 'water', 'internet', 'heating', 'insurance', 'services', 'common'];
 const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+// Προτεινόμενη ημερομηνία-στόχος ΕΝΦΙΑ: τέλος Φεβρουαρίου (τελευταία δόση).
+const nextFeb = (): string => {
+  const now = new Date();
+  const y = now.getMonth() >= 1 ? now.getFullYear() + 1 : now.getFullYear();
+  return `${y}-02-28`;
+};
 
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
@@ -44,9 +52,10 @@ type CatKey = typeof CATS[number]['key'];
 // «Πληρώνει / Διαμοιρασμός» στη δαπάνη ή τον λογαριασμό) — ΕΝΑ μοντέλο σε όλη
 // την εφαρμογή. Ο προϋπολογισμός εδώ κρατά μόνο στόχους έναντι πραγματικών.
 
-interface Props { propertyId: string; userId?: string; }
+interface Props { propertyId: string; userId?: string; profileType?: 'individual' | 'professional'; }
 
-export default function BillsBudget({ propertyId, userId = '' }: Props) {
+export default function BillsBudget({ propertyId, userId = '', profileType = 'individual' }: Props) {
+  const isPro = profileType === 'professional';
   const supabase  = createClient();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,6 +78,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   const [vaultMonthly, setVaultMonthly] = useState(0);
   const [rentalMode,   setRentalMode]   = useState<'long_term' | 'short_term' | ''>('');
   const [strNights,    setStrNights]    = useState(0);
+  // Έξυπνες προτάσεις αποθεματικών/φόρου (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι),
+  // υπολογισμένες με τους κανονικούς μηχανισμούς — περνούν στους κουμπαράδες.
+  const [suggestions,  setSuggestions]  = useState<VaultSuggestion[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [editMode,     setEditMode]     = useState(false);
@@ -114,20 +126,25 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
       const [propRes, loansRes, tenantsRes, staysRes, vaultsRes] = await Promise.all([
-        supabase.from('user_properties').select('rental_mode,target_rent').eq('id', propertyId).maybeSingle(),
+        supabase.from('user_properties').select('rental_mode,target_rent,value,year_built,enfia').eq('id', propertyId).maybeSingle(),
         supabase.from('loans').select('amount,rate,years,status').eq('property_id', propertyId),
         supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
-        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', start).lte('check_in', dateEnd),
+        // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
+        // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
+        supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', `${y}-01-01`).lte('check_in', dateEnd),
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
       ]);
       const rMode = (propRes.data?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
+      const stayGross = (st: any) => Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0);
+      const staysAll  = (staysRes.data ?? []) as any[];
+      const staysMonth = staysAll.filter(st => String(st.check_in ?? '') >= start);
       // Έσοδα μήνα: βραχυχρόνια → άθροισμα καταλυμάτων του μήνα· μακροχρόνια → ενεργό
       // ενοίκιο (ή στόχος). Ιδιοκατοίκηση/χωρίς mode → 0 (κανένα «φανταστικό» έσοδο).
       let inc = 0;
       if (rMode === 'short_term') {
-        inc = (staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.total) || (Number(st.nights) || 0) * (Number(st.nightly_rate) || 0)), 0);
-        setStrNights((staysRes.data ?? []).reduce((s: number, st: any) => s + (Number(st.nights) || 0), 0));
+        inc = staysMonth.reduce((s: number, st: any) => s + stayGross(st), 0);
+        setStrNights(staysMonth.reduce((s: number, st: any) => s + (Number(st.nights) || 0), 0));
       } else if (rMode === 'long_term') {
         // ΜΟΝΟ ενεργοί ενοικιαστές (όχι παλιοί/αποχωρήσαντες) — αλλιώς διπλασιάζεται το έσοδο.
         const rentSum = (tenantsRes.data ?? [])
@@ -203,9 +220,48 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       });
 
       setActuals(billActuals);
+
+      // ── Έξυπνες προτάσεις αποθεματικών/φόρου (κανονικοί μηχανισμοί, χωρίς απόκλιση) ──
+      // Πρόβλεψη φόρου: ετησιοποιημένα μεικτά έσοδα → statement.ts → taxProvision.
+      const monthsElapsed = now.getMonth() + 1;
+      const annualGross = rMode === 'short_term'
+        ? (monthsElapsed > 0 ? Math.round(staysAll.reduce((s, st) => s + stayGross(st), 0) / monthsElapsed * 12) : 0)
+        : rMode === 'long_term' ? Math.round(inc * 12) : 0;
+      const annualOpex = Math.round(Object.values(billActuals).reduce((s, v) => s + v, 0) * 12);
+      const regime: 'individual_longterm' | 'individual_shortterm' | 'business' =
+        isPro ? 'business' : rMode === 'short_term' ? 'individual_shortterm' : 'individual_longterm';
+      let incomeTaxAnnual = 0, taxPerMonth = 0;
+      if (annualGross > 0) {
+        const stmt = incomeStatement({
+          regime, grossIncome: annualGross,
+          otherCashExpenses: annualOpex,
+          ...(isPro ? { itemizedExpenses: annualOpex, loanInterest: 0 } : {}),
+          loanPrincipal: Math.round(loanM * 12),
+        });
+        const prov = taxProvision(stmt, monthsElapsed);
+        incomeTaxAnnual = Math.round(stmt.incomeTax);
+        const remain = Math.max(1, 12 - monthsElapsed + 1);
+        taxPerMonth = Math.ceil(incomeTaxAnnual / remain);
+        void prov;
+      }
+      // Προτεινόμενα αποθεματικά (CapEx/κενές περίοδοι) με βάση ενοίκιο, αξία και παλαιότητα.
+      const propValue = Number(propRes.data?.value) || 0;
+      const yearBuilt = Number(propRes.data?.year_built) || 0;
+      const ageYears  = yearBuilt > 0 ? Math.max(0, y - yearBuilt) : 20;
+      const rentForReserve = rMode === 'short_term' ? Math.round(annualGross / 12) : Math.round(inc);
+      const rec = recommendedReserves(rentForReserve, propValue, ageYears);
+      const enfiaVal = Number(propRes.data?.enfia) || 0;
+
+      const sugg: VaultSuggestion[] = [];
+      if (enfiaVal > 0) sugg.push({ key: 'enfia', name: 'ΕΝΦΙΑ', target: Math.round(enfiaVal), due: nextFeb(), hint: 'δόσεις έως Φεβρουάριο' });
+      if (incomeTaxAnnual > 0) sugg.push({ key: 'tax', name: 'Φόρος εισοδήματος', target: incomeTaxAnnual, hint: `~${taxPerMonth}/μήνα`, note: isPro ? 'Ξεχωριστά: ΕΦΚΑ, προκαταβολή, ΦΠΑ — δες τη Λογιστική' : 'Εκτίμηση με βάση τα ετησιοποιημένα έσοδα' });
+      if (rec.capExMonthly > 0) sugg.push({ key: 'capex', name: 'Συντήρηση και CapEx', target: rec.capExMonthly * 12, hint: `~${rec.capExMonthly}/μήνα` });
+      if (rMode === 'short_term' && rec.vacancyMonthly > 0) sugg.push({ key: 'vacancy', name: 'Κενές περίοδοι', target: rec.vacancyMonthly * 12, hint: `~${rec.vacancyMonthly}/μήνα` });
+      setSuggestions(sugg);
     } catch (_) {}
     finally { setLoading(false); }
-  }, [propertyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, isPro]);
 
   useEffect(() => {
     if (!propertyId) return;
@@ -281,6 +337,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   // ── Rollover: αδιάθετο/υπέρβαση προηγούμενου μήνα μεταφέρεται στον τρέχοντα ──
   // Μόνο όταν υπάρχει καταγεγραμμένη δραστηριότητα τον προηγ. μήνα (αλλιώς «κενός»
   // μήνας θα έδειχνε ολόκληρο τον στόχο ως μεταφορά — παραπλανητικό).
+  // Το rollover είναι ΕΠΙΛΟΓΗ του χρήστη (όχι δεδομένο) — κάποιοι θέλουν κάθε μήνα
+  // «καθαρό» μηδενισμό, άλλοι σωρευτική μεταφορά. Ενεργοποιείται στους Στόχους.
+  const rolloverOn    = budgets.rollover === 'true';
   const _prevYm       = _priorYms[0];
   const hasPrevMonth  = _prevYm in monthTotals;
   const carryIn       = hasPrevMonth ? rolloverNext(masterBudget, monthTotals[_prevYm] || 0).carryOut : 0;
@@ -354,10 +413,24 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
   }, [propertyId, userId, loading, notifyOn, overKey, overAmt]);
 
   const secHdr = (label: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
     </div>
+  );
+
+  // Ενιαίος διακόπτης ρύθμισης (ίδιο idiom με τα toggles της εφαρμογής).
+  const settingToggle = (settingKey: string, on: boolean, title: string, desc: string) => (
+    <button onClick={() => updateBudget(settingKey, on ? 'false' : 'true')}
+      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--bg-elevated)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
+      <span style={{ position: 'relative', width: 38, height: 22, borderRadius: 11, background: on ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.2s' }}>
+        <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}/>
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+        <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</span>
+      </span>
+    </button>
   );
 
   if (loading) return <Spinner label="Φόρτωση…" />;
@@ -366,7 +439,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
@@ -377,6 +450,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             {new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}
+            <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· {isPro ? 'Επιχείρηση' : 'Ιδιώτης'}</span>
             {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση...</span>}
           </div>
         </div>
@@ -395,7 +469,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         const numCol = !hasIncome ? 'var(--text-primary)' : safeRaw < 0 ? 'var(--negative)' : heroHover ? 'var(--accent)' : 'var(--text-primary)';
         const seg = (v: number) => income > 0 ? Math.max(0, Math.min(100, (v / income) * 100)) : 0;
         return (
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div onMouseEnter={() => setHeroHover(true)} onMouseLeave={() => setHeroHover(false)} onTouchStart={() => setHeroHover(true)} onTouchEnd={() => setHeroHover(false)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
@@ -444,7 +518,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
           { l: 'Κράτηση φόρου (εκτίμηση)', v: -waterfall.taxReserve, sub: true },
         ];
         return (
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
@@ -517,57 +591,37 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         </div>
       )}
 
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-        {([
-          { label: 'Στόχος / μήνα',    value: fe(masterBudget), color: 'var(--text-primary)', info: '' },
-          { label: 'Έως τώρα',          value: fe(actualTotal),  color: actualTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)', info: 'Καταγεγραμμένοι λογαριασμοί και δαπάνες του μήνα, συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν ακόμη χρεωθεί.' },
-          { label: 'Πρόβλεψη μήνα',     value: fe(forecastTotal), color: forecastTotal > masterBudget ? 'var(--negative)' : 'var(--text-primary)', info: 'Προβολή τέλους μήνα: πάγιες κατηγορίες ως έχουν, μεταβλητές με βάση τον τρέχοντα ρυθμό δαπανών.' },
-          { label: 'Διαθέσιμο',         value: fe(Math.max(0, masterBudget - actualTotal)), color: 'var(--text-primary)', info: '' },
-        ] as const).map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{k.label}</span>
-              {k.info && <InfoDot text={k.info} />}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Master progress */}
-      {!editMode && (() => {
-        const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
-        const isOver = actualTotal > masterBudget;
-        const col    = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
-        return (
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-            {secHdr('Σύνολο Μήνα')}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-              <span>{fe(actualTotal)}</span>
-              <span style={{ color: 'var(--text-tertiary)' }}>/ {fe(masterBudget)}</span>
-            </div>
-            <div style={{ height: 10, background: 'var(--bg-overlay)', borderRadius: 5, overflow: 'hidden', marginBottom: 8 }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 5, transition: 'width 0.6s ease' }}/>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
-              <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
-            </div>
-            {hasPrevMonth && carryIn !== 0 && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                <InfoDot text="Το αδιάθετο υπόλοιπο του προηγούμενου μήνα μεταφέρεται μπροστά· η τυχόν υπέρβαση αφαιρείται. Έτσι ο προϋπολογισμός λειτουργεί σωρευτικά, όχι μηδενίζοντας κάθε μήνα." />
-                <span>
-                  Μεταφορά από {_prevLabel}:{' '}
-                  <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{fe(carryIn, 0)}</strong>
-                  {' · '}πραγματικά διαθέσιμα{' '}
-                  <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(adjAvailable, 0)}</strong>
-                </span>
+      {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
+          <KPI label="Στόχος / μήνα" value={fe(masterBudget)} />
+          <KPI label="Έως τώρα" value={fe(actualTotal)} color={actualTotal > masterBudget ? 'var(--negative)' : undefined} title="Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη." />
+          <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} color={forecastTotal > masterBudget ? 'var(--negative)' : undefined} />
+          <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - actualTotal))} />
+        </div>
+        {!editMode && (() => {
+          const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
+          const isOver = actualTotal > masterBudget;
+          const col    = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
+          return (
+            <>
+              <div style={{ height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginBottom: 7 }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 3, transition: 'width 0.6s ease' }}/>
               </div>
-            )}
-          </div>
-        );
-      })()}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                <span style={{ color: col, fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
+                <span>{isOver ? `Υπέρβαση ${fe(actualTotal - masterBudget)}` : `Απομένει ${fe(masterBudget - actualTotal)}`}</span>
+              </div>
+              {rolloverOn && hasPrevMonth && carryIn !== 0 && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                  Μεταφορά από {_prevLabel}: <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{fe(carryIn, 0)}</strong>
+                  {' · '}πραγματικά διαθέσιμα <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(adjAvailable, 0)}</strong>
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </div>
 
       {/* Ετήσια εικόνα — YTD και προβολή τέλους έτους από καταγεγραμμένες εγγραφές */}
       {!editMode && (() => {
@@ -576,7 +630,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         const ytdCol = ytdOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
         const trDir = monthTrend.direction;
         return (
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             {secHdr('Ετήσια εικόνα')}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 18 }}>
               {/* YTD */}
@@ -617,12 +671,12 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       })()}
 
       {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
-      {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} />}
+      {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
 
       {/* Category rows */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 }}>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
         {secHdr('Ανά Κατηγορία')}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
           {CATS.map(cat => {
             const budget  = catBudget(cat.key);
             const actual  = actuals[cat.key] || 0;
@@ -635,8 +689,8 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
 
             return (
               <div key={cat.key}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 6 }}>
-                  <div style={{ width: 3, height: 32, borderRadius: 2, background: col, flexShrink: 0 }}/>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5 }}>
+                  <div style={{ width: 3, height: 26, borderRadius: 2, background: col, flexShrink: 0 }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
                   {!editMode && tr.avgPrior > 0 && tr.direction !== 'flat' && (
                     <span title={`Μέσος όρος τριμήνου: ${fe(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.mono, color: tr.direction === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
@@ -685,17 +739,11 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                 <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(CATS.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
               </div>
             </div>
-            {/* Ειδοποίηση υπέρβασης — σύνδεση με το σύστημα υπενθυμίσεων/email */}
-            <button onClick={() => updateBudget('notifyOverspend', notifyOn ? 'false' : 'true')}
-              style={{ width: '100%', marginTop: 12, display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--bg-elevated)', border: `1px solid ${notifyOn ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
-              <span style={{ position: 'relative', width: 38, height: 22, borderRadius: 11, background: notifyOn ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.2s' }}>
-                <span style={{ position: 'absolute', top: 2, left: notifyOn ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}/>
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>Ειδοποίηση σε υπέρβαση</span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Email όταν μια κατηγορία ξεπεράσει τον στόχο — μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.</span>
-              </span>
-            </button>
+            {/* Ρυθμίσεις προϋπολογισμού — διακόπτες (email υπέρβασης, μεταφορά υπολοίπου) */}
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
+              {settingToggle('notifyOverspend', notifyOn, 'Ειδοποίηση σε υπέρβαση', 'Email όταν μια κατηγορία ξεπεράσει τον στόχο — μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.')}
+              {settingToggle('rollover', rolloverOn, 'Μεταφορά υπολοίπου', 'Το αδιάθετο ή η υπέρβαση του μήνα μεταφέρεται στον επόμενο, αντί για μηδενισμό κάθε μήνα.')}
+            </div>
           </>
         )}
       </div>

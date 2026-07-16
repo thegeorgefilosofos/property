@@ -14,7 +14,17 @@ import { reservePlan } from '@/lib/billing/budgetPro';
 
 interface Vault { id: string; name: string; target: number; current: number; due?: string }
 
-interface Props { propertyId: string; userId?: string }
+// Έξυπνη πρόταση κουμπαρά (ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι) — υπολογισμένη από
+// τον γονέα με τους κανονικούς μηχανισμούς. Εμφανίζεται ως πρόταση ενός αγγίγματος.
+export interface VaultSuggestion { key: string; name: string; target: number; due?: string; hint?: string; note?: string }
+
+interface Props {
+  propertyId: string;
+  userId?: string;
+  suggestions?: VaultSuggestion[];
+  // Μηνιαίο κόστος ακινήτου — για δείκτη «κάλυψης» (πόσους μήνες καλύπτουν τα αποθεματικά).
+  monthlyCommitment?: number;
+}
 
 const uid = () => `v_${Date.now().toString(36)}_${Math.round(Math.random() * 1e6).toString(36)}`;
 // Ληξιπρόθεσμο = η ημερομηνία-στόχος έχει περάσει (σύγκριση ΗΜΕΡΑΣ, όχι μόνο μήνα).
@@ -35,21 +45,15 @@ const monthLabel = (due?: string): string => {
   if (!due) return '';
   try { return new Date(due).toLocaleDateString('el-GR', { month: 'short', year: 'numeric' }); } catch { return ''; }
 };
-// Προτεινόμενη ημερομηνία-στόχος ΕΝΦΙΑ: τέλος Φεβρουαρίου (τελευταία δόση).
-const nextFeb = (): string => {
-  const now = new Date();
-  const y = now.getMonth() >= 1 ? now.getFullYear() + 1 : now.getFullYear();
-  return `${y}-02-28`;
-};
+const norm = (s: string) => s.toLowerCase().replace(/[^a-zα-ω0-9]/gi, '');
 
-export default function BudgetVaults({ propertyId, userId = '' }: Props) {
+export default function BudgetVaults({ propertyId, userId = '', suggestions = [], monthlyCommitment = 0 }: Props) {
   const supabase = createClient();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef  = useRef(false);   // εκκρεμεί/μόλις έγινε δική μας εγγραφή → μη «πατάς» πάνω της με reload
   const editRef   = useRef<string | null>(null);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
-  const [enfiaAnnual, setEnfiaAnnual] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [hoverPct, setHoverPct] = useState<string | null>(null);
   editRef.current = editId;
@@ -64,14 +68,10 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
       if (mounted && Array.isArray(arr) && editRef.current == null && !dirtyRef.current) setVaults(arr);
     };
     (async () => {
-      const [vRes, pRes] = await Promise.all([
-        supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
-        supabase.from('user_properties').select('enfia').eq('id', propertyId).maybeSingle(),
-      ]);
-      const arr = (vRes.data?.data as { vaults?: Vault[] } | null)?.vaults;
+      const { data } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle();
+      const arr = (data?.data as { vaults?: Vault[] } | null)?.vaults;
       if (mounted && Array.isArray(arr)) setVaults(arr);
-      const enfia = parseFloat(String(pRes.data?.enfia ?? 0)) || 0;
-      if (mounted) { setEnfiaAnnual(enfia); setLoaded(true); }
+      if (mounted) setLoaded(true);
     })();
     // Ζωντανή ενημέρωση: αν αλλάξει η ρύθμιση 'vaults' αλλού (π.χ. ο βοηθός φτιάξει
     // κουμπαρά), ξαναδιάβασε — ώστε να μη «χαθεί» από παλιά εικόνα στη μνήμη.
@@ -104,7 +104,6 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
     setEditId(nv.id);
   };
 
-  const hasEnfiaVault = vaults.some(v => /ενφια|enfia/i.test(v.name));
   const totalSaved = vaults.reduce((s, v) => s + (v.current || 0), 0);
   // Μηνιαία εισφορά: μόνο κουμπαράδες με ΜΕΛΛΟΝΤΙΚΗ προθεσμία — χωρίς προθεσμία ή
   // ληξιπρόθεσμοι δεν είναι πάγια μηνιαία δέσμευση (αλλιώς φαίνεται όλο το υπόλοιπο «/μήνα»).
@@ -112,30 +111,42 @@ export default function BudgetVaults({ propertyId, userId = '' }: Props) {
     const mo = monthsUntil(v.due);
     return v.due && mo > 0 ? s + reservePlan(v.target, v.current, mo).requiredMonthly : s;
   }, 0);
+  // Δείκτης «κάλυψης»: πόσους μήνες κόστους καλύπτουν τα αποθεματικά (age-of-money style).
+  const coverMonths = monthlyCommitment > 0 && totalSaved > 0 ? totalSaved / monthlyCommitment : 0;
+  // Προτάσεις που ΔΕΝ έχουν ήδη δημιουργηθεί (ταίριασμα με βάση το όνομα).
+  const openSuggestions = suggestions.filter(sg => !vaults.some(v => norm(v.name) === norm(sg.name)));
 
   if (!loaded) return null;
 
   const card: React.CSSProperties = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 16px' };
 
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Κουμπαράδες</span>
         <InfoDot text="Εικονικοί κουμπαράδες για μελλοντικά έξοδα (ΕΝΦΙΑ, λέβητας, ανακαίνιση, κενές περίοδοι). Ορίζεις στόχο και ημερομηνία· υπολογίζεται πόσο πρέπει να βάζεις κάθε μήνα ώστε να είναι έτοιμος όταν χρειαστεί." />
         {vaults.length > 0 && (
           <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
-            Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}
+            Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}
           </span>
         )}
       </div>
 
-      {/* Πρόταση κουμπαρά ΕΝΦΙΑ */}
-      {enfiaAnnual > 0 && !hasEnfiaVault && (
-        <button onClick={() => addVault({ name: 'ΕΝΦΙΑ', target: Math.round(enfiaAnnual), due: nextFeb() })}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', marginBottom: 12, background: 'var(--bg-elevated)', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>Δημιούργησε κουμπαρά <strong style={{ color: 'var(--text-primary)' }}>ΕΝΦΙΑ</strong> — στόχος {fe(enfiaAnnual, 0)} έως Φεβρουάριο, ~{fe(reservePlan(enfiaAnnual, 0, monthsUntil(nextFeb())).requiredMonthly, 0)}/μήνα</span>
-        </button>
+      {/* Έξυπνες προτάσεις — ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι· ένα άγγιγμα ο καθένας */}
+      {openSuggestions.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {openSuggestions.map(sg => (
+            <button key={sg.key} title={sg.note || undefined} onClick={() => addVault({ name: sg.name, target: sg.target, due: sg.due })}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: 'var(--bg-elevated)', border: '1px dashed var(--border-default)', borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{sg.name}</strong>
+                {'  '}<span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(sg.target, 0)}</span>
+                {sg.hint ? <span style={{ color: 'var(--text-tertiary)' }}>{'  '}· {sg.hint}</span> : null}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
