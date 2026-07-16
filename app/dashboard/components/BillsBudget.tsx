@@ -56,32 +56,30 @@ function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: num
   );
 }
 
-// Ράβδοι εξόδων ανά μήνα — premium: κάθε ράβδος έχει διακριτικό «κανάλι» (track), απαλή
-// κάθετη διαβάθμιση, στρογγυλεμένη κορυφή· στο πέρασμα του κέρσορα φωτίζεται, σηκώνεται
-// (3D lift + glow) και δείχνει το ποσό σε γαλάζιο. Μονόχρωμο — αποχρώσεις της παλέτας.
+// Ράβδοι εξόδων ανά μήνα — premium, στο ΓΑΛΑΖΙΟ της παλέτας μας (accent): απαλή κάθετη
+// διαβάθμιση, στρογγυλεμένη κορυφή, baseline· στο πέρασμα του κέρσορα φωτίζεται, σηκώνεται
+// (3D lift + glow) και δείχνει το ποσό. Οι κενοί μήνες μένουν διακριτικά «σβηστοί».
 function MonthBars({ data, activeYm }: { data: { ym: string; label: string; value: number }[]; activeYm: string }) {
   const [hi, setHi] = useState<number | null>(null);
   const max = Math.max(1, ...data.map(d => d.value));
-  const TRACK = 84;
+  const H = 84;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: TRACK + 22 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: H + 22, borderBottom: '1px solid var(--border-subtle)' }}>
       {data.map((d, i) => {
-        const h = d.value > 0 ? Math.max(4, Math.round((d.value / max) * (TRACK - 8))) : 0;
+        const h = d.value > 0 ? Math.max(4, Math.round((d.value / max) * (H - 6))) : 0;
         const active = d.ym === activeYm, on = hi === i;
-        const top = on ? 94 : active ? 68 : 40;
-        const bot = on ? 52 : active ? 34 : 16;
+        const top = on ? 100 : active ? 92 : 62;
+        const bot = on ? 66 : active ? 56 : 30;
         return (
           <div key={d.ym} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} onTouchStart={() => setHi(i)} onTouchEnd={() => setHi(null)}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'default' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 26, height: TRACK, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-              {/* Κανάλι (track) — δίνει βάθος και κάνει τους «κενούς» μήνες σκόπιμους */}
-              <div style={{ position: 'absolute', inset: 0, borderRadius: 7, background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--text-primary) 5%, transparent)' }} />
+            <div style={{ position: 'relative', width: '100%', maxWidth: 26, height: H, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               {on && d.value > 0 && (
-                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--text-primary) 40%, transparent)', zIndex: 3 }}>{fe(d.value, 0)}</div>
+                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-accent)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -6px color-mix(in srgb, var(--accent) 45%, transparent)', zIndex: 3 }}>{fe(d.value, 0)}</div>
               )}
-              <div style={{ position: 'relative', width: '100%', height: Math.max(h, 3), borderRadius: '7px 7px 3px 3px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--text-primary) ${top}%, transparent), color-mix(in srgb, var(--text-primary) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 9%, transparent)', transform: on ? 'translateY(-3px)' : 'none', boxShadow: on ? '0 10px 22px -6px color-mix(in srgb, var(--text-primary) 50%, transparent)' : 'none', transition: 'height 0.55s cubic-bezier(0.22,1,0.36,1), background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }} />
+              <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transform: on ? 'translateY(-3px)' : 'none', boxShadow: on ? '0 10px 22px -6px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none', transition: 'height 0.55s cubic-bezier(0.22,1,0.36,1), background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }} />
             </div>
-            <span style={{ fontSize: 8.5, color: on || active ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
+            <span style={{ fontSize: 8.5, color: on || active ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
         );
       })}
@@ -89,9 +87,9 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
   );
 }
 
-// Δαχτυλίδι (donut) κατανομής — premium: απαλό «κανάλι», τόξα με στρογγυλά άκρα και μικρά
-// κενά, ζωντανή αντίδραση (το τόξο/υπόμνημα που δείχνει ο κέρσορας ανοίγει, φωτίζεται με
-// λάμψη) και κέντρο που δείχνει κατηγορία, ποσό και %. Μονόχρωμο, αποχρώσεις της παλέτας.
+// Δαχτυλίδι (donut) κατανομής — premium, στο ΓΑΛΑΖΙΟ μας: τόξα σε αποχρώσεις accent με
+// στρογγυλά άκρα και μικρά κενά, ζωντανή αντίδραση (το τόξο/υπόμνημα που δείχνει ο
+// κέρσορας ανοίγει, φωτίζεται με λάμψη) και κέντρο που δείχνει κατηγορία, ποσό και %.
 function Donut({ slices }: { slices: { label: string; value: number }[] }) {
   const [hi, setHi] = useState<number | null>(null);
   const total = slices.reduce((s, x) => s + x.value, 0);
@@ -106,14 +104,14 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
   }
   const r = 46, sw = 13, C = 2 * Math.PI * r;
   const GAP = segs.length > 1 ? 5 : 0;   // κενό μεταξύ τόξων (σε μονάδες περιμέτρου)
-  const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--text-primary) ${Math.min(96, Math.max(16, 82 - i * 12) + (on ? 16 : 0))}%, transparent)`;
+  const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--accent) ${Math.min(100, Math.max(32, 94 - i * 13) + (on ? 6 : 0))}%, transparent)`;
   const active = hi != null ? segs[hi] : null;
   let off = 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
       <svg width="128" height="128" viewBox="0 0 128 128" style={{ flexShrink: 0, overflow: 'visible' }}>
         {/* Κανάλι δαχτυλιδιού */}
-        <circle cx="64" cy="64" r={r} fill="none" stroke="color-mix(in srgb, var(--text-primary) 6%, transparent)" strokeWidth={sw} />
+        <circle cx="64" cy="64" r={r} fill="none" stroke="color-mix(in srgb, var(--accent) 10%, transparent)" strokeWidth={sw} />
         <g transform="rotate(-90 64 64)">
           {segs.map((s, i) => {
             const on = hi === i;
@@ -123,7 +121,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
               <circle key={i} cx="64" cy="64" r={r} fill="none" stroke={shade(i, on)} strokeWidth={on ? sw + 5 : sw} strokeLinecap="round"
                 strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
                 onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
-                style={{ transition: 'stroke-width 0.2s ease, stroke 0.2s ease', cursor: 'default', filter: on ? 'drop-shadow(0 3px 7px color-mix(in srgb, var(--text-primary) 40%, transparent))' : 'none' }} />
+                style={{ transition: 'stroke-width 0.2s ease, stroke 0.2s ease', cursor: 'default', filter: on ? 'drop-shadow(0 3px 8px color-mix(in srgb, var(--accent) 50%, transparent))' : 'none' }} />
             );
             off += raw;
             return el;
@@ -139,7 +137,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
           return (
             <div key={i} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
               style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11.5, fontFamily: T.font.sans, padding: '4px 8px', margin: '0 -8px', borderRadius: 7, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, boxShadow: on ? '0 2px 5px -1px color-mix(in srgb, var(--text-primary) 40%, transparent)' : 'none', transition: 'background 0.15s, box-shadow 0.15s' }} />
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, boxShadow: on ? '0 2px 6px -1px color-mix(in srgb, var(--accent) 55%, transparent)' : 'none', transition: 'background 0.15s, box-shadow 0.15s' }} />
               <span style={{ flex: 1, minWidth: 0, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{s.label}</span>
               <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 10.5 }}>{fe(s.value, 0)}</span>
               <span style={{ width: 34, textAlign: 'right', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 700, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
@@ -730,7 +728,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             )}
             {!isCurMonth && <button onClick={() => setMonthOffset(0)} style={{ marginLeft: 4, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 10, fontWeight: 600, borderRadius: T.radius.pill, padding: '2px 9px', fontFamily: T.font.sans }}>Τρέχων</button>}
             <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· {isPro ? 'Επιχείρηση' : 'Ιδιώτης'}</span>
-            {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση...</span>}
+            {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση…</span>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -801,17 +799,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
                 {isSTRmode ? (
                   <>
-                    <KPI label="Έσοδα μήνα" value={fe(income)} />
-                    <KPI label="Από την αρχή έτους" value={fe(incomeYtd)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
+                    <KPI label="Έσοδα μήνα" value={fe(income, 0)} />
+                    <KPI label="Από την αρχή έτους" value={fe(incomeYtd, 0)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? fe(Math.round(income / strNights)) : '—'} />
+                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? fe(Math.round(income / strNights), 0) : '—'} />
                   </>
                 ) : (
                   <>
-                    <KPI label="Μηνιαίο ενοίκιο" value={fe(income)} />
-                    <KPI label="Ετησίως" value={fe(income * 12)} />
-                    <KPI label="Αναμενόμενα φέτος" value={fe(incomeYtd)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
-                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${fe(Math.abs(netFlow))}`} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
+                    <KPI label="Μηνιαίο ενοίκιο" value={fe(income, 0)} />
+                    <KPI label="Ετησίως" value={fe(income * 12, 0)} />
+                    <KPI label="Αναμενόμενα φέτος" value={fe(incomeYtd, 0)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
+                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${fe(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
                   </>
                 )}
               </div>
@@ -878,8 +876,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({fe(actual)} vs {fe(budget)})</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget, 0)}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({fe(actual, 0)} vs {fe(budget, 0)})</span>
               </div>
             );
           })}
@@ -915,11 +913,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
-          <KPI label="Στόχος / μήνα" value={fe(masterBudget)} />
-          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
+          <KPI label="Στόχος / μήνα" value={fe(masterBudget, 0)} />
+          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal, 0)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
           {isCurMonth
-            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal)} />
-            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal))}`} />}
+            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal, 0)} />
+            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal), 0)}`} />}
           <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - viewActualTotal))} />
         </div>
         {!editMode && (() => {
@@ -934,7 +932,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 <span style={{ color: 'var(--text-tertiary)', fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
                 {/* Το «Απομένει» φαίνεται ήδη στο πλακίδιο «Διαθέσιμο» — εδώ μόνο η υπέρβαση. */}
-                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(viewActualTotal - masterBudget)}` : ''}</span>
+                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(viewActualTotal - masterBudget, 0)}` : ''}</span>
               </div>
               {isCurMonth && rolloverOn && hasPrevMonth && carryIn !== 0 && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
@@ -955,8 +953,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
-            <KPI label="NOI / έτος" value={fe(invReturns.noi)} />
-            <KPI label="Ταμειακή ροή" value={fe(invReturns.preTaxCashFlow)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
+            <KPI label="NOI / έτος" value={fe(invReturns.noi, 0)} />
+            <KPI label="Ταμειακή ροή" value={fe(invReturns.preTaxCashFlow, 0)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
             <KPI label="Cap rate" value={`${invReturns.capRatePct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
             <KPI label="Cash-on-cash" value={`${invReturns.cashOnCashPct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
           </div>
