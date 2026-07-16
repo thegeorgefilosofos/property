@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Textarea, InfoDot } from './UIComponents'
+import { KPI, LensBar, cardStyle } from './LoanShared'
 import { downloadCsv, csvEur } from './exportCsv'
 import DocChecklist from './DocChecklist'
 import { escHtml } from '@/lib/reportBranding'
@@ -18,9 +19,6 @@ const labelStyle: React.CSSProperties = {
   letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif",
   display:'block',marginBottom:6,
 }
-const cardStyle: React.CSSProperties = {
-  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:16,
-}
 const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperties => ({
   padding:'0 14px',height:36,borderRadius:18,border:`1px solid ${active?accentColor:'var(--border-subtle)'}`,
   background:active?`${accentColor}14`:'none',color:active?accentColor:'var(--text-secondary)',
@@ -37,21 +35,6 @@ const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   </div>
 )
 
-// Ομοιόμορφο πλακίδιο μετρικής: η τιμή είναι λευκή και γίνεται γαλάζια μόνο όταν
-// περνά ο κέρσορας/δάχτυλο· αρνητικές τιμές μένουν κόκκινες. Ήπιο 3D στο hover.
-function KPI({label,value,color,sub,title}:{label:string;value:string;color?:string;sub?:string;title?:string}) {
-  const [h,setH]=useState(false)
-  const isNeg = color==='var(--negative)'
-  const isPos = color==='var(--accent)'
-  return (
-    <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
-      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,padding:'12px 14px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
-      <p title={title} style={{...labelStyle,marginBottom:6,cursor:title?'help':undefined}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:isNeg?'var(--negative)':(isPos||h)?'var(--accent)':'var(--text-primary)',fontWeight:700,transition:'color 0.15s'}}>{value}</p>
-      {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
-    </div>
-  )
-}
 
 function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?:string;children:React.ReactNode;defaultOpen?:boolean;badge?:string}) {
   const [open,setOpen] = useState(defaultOpen)
@@ -399,18 +382,6 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
 }
 
 // ── Lens switcher: εναλλάσσει ΕΝΑ δυναμικό πάνελ επί τόπου (όχι στοίβαγμα) ──
-function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
-  return (
-    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:4,overflowX:'auto'}}>
-      {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:11,padding:'9px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
-          color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
-          boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
-          transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>
-      )})}
-    </div>
-  )
-}
 
 const PROPERTY_TYPES = [
   {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα'},

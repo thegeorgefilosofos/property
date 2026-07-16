@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory, type ApprovalVerdict } from '@/lib/loans/approval'
 import type { BorrowerType } from './TabLoanData'
@@ -51,6 +51,10 @@ export default function ApprovalPanel({
   const [hm,setHm] = useState<number|null>(null)
   const [age,setAge] = useState<string>('35')
   const [income,setIncome] = useState<string>(incomeMonthly && incomeMonthly>0 ? String(Math.round(incomeMonthly)) : '2000')
+  // Ενιαία πηγή εισοδήματος: όταν αλλάζει το εισόδημα στον Υπολογιστή, συγχρονίζεται
+  // εδώ ώστε ο δείκτης δόσης (DSTI) να μη διαφωνεί σιωπηλά μεταξύ των δύο πάνελ.
+  // (Ο χρήστης μπορεί να το τροποποιήσει τοπικά για σενάρια «τι-αν».)
+  useEffect(()=>{ if(incomeMonthly && incomeMonthly>0) setIncome(String(Math.round(incomeMonthly))) },[incomeMonthly])
   const [existing,setExisting] = useState<string>('0')
   const [employment,setEmployment] = useState<EmploymentType>(defaultEmployment(borrowerType))
   const [credit,setCredit] = useState<CreditHistory>('clean')

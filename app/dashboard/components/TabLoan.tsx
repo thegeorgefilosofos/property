@@ -20,15 +20,8 @@ import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot } from './UIComponents'
+import { KPI, LensBar, labelStyle, cardStyle } from './LoanShared'
 
-// ── MD3 design tokens ──────────────────────────────────────────────────────────
-const labelStyle: React.CSSProperties = {
-  fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif",
-}
-const cardStyle: React.CSSProperties = {
-  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:16,
-}
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
 const fmtRateStr = (v:unknown):string => String(v ?? '').trim().replace(/\./g,',').replace(/\s*-\s*/g,'–')
@@ -38,36 +31,6 @@ const rateNum = (v:unknown):number|null => { const m = String(v ?? '').match(/-?
 const fmtRate2 = (n:number):string => n.toFixed(2).replace('.',',')
 // Κελί πίνακα/κάρτας: πάντα ενιαία μορφή «X,XX%» (επιτόκιο εκκίνησης).
 const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? '—' : `${fmtRate2(n)}%` }
-
-// Ομοιόμορφο πλακίδιο μετρικής: λευκή τιμή, γαλάζια μόνο στο hover· αρνητικές
-// τιμές κόκκινες. Ήπιο 3D στο πέρασμα του κέρσορα/δαχτύλου.
-function KPI({label,value,color,sub,title}:{label:string;value:string;color?:string;sub?:string;title?:string}) {
-  const [h,setH]=useState(false)
-  const isNeg = color==='var(--negative)'
-  const isPos = color==='var(--accent)'
-  return (
-    <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
-      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,padding:'12px 14px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
-      <p title={title} style={{...labelStyle,marginBottom:6}}>{label}</p>
-      <p style={{fontSize:16,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:isNeg?'var(--negative)':(isPos||h)?'var(--accent)':'var(--text-primary)',fontWeight:700,transition:'color 0.15s'}}>{value}</p>
-      {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
-    </div>
-  )
-}
-
-// ── Cockpit: εναλλαγή φακών επί τόπου (ένα πάνελ τη φορά, χωρίς στοίβαγμα) ──
-function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
-  return (
-    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:16,padding:4,overflowX:'auto'}}>
-      {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:12,padding:'9px 14px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
-          color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
-          boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
-          transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>
-      )})}
-    </div>
-  )
-}
 
 // Επικεφαλίδα ενεργού φακού — ο τίτλος τον οποίο το LensBar έχει επιλέξει.
 function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:string;right?:React.ReactNode;children:React.ReactNode}) {
@@ -785,6 +748,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
         const euribor = market.euribor_3m || MARKET_FALLBACK.euribor_3m
         const ranked = rankLoans(needs, BANKS as any, euribor)
         const spiti = spitiMouEligibility(needs)
+        // Το πλήρες πάνελ «Σπίτι μου ΙΙ» εμφανίζεται μόνο όταν αφορά· τότε αποφεύγουμε
+        // να επαναλάβουμε την ίδια πληροφορία στη σύνοψη πιο κάτω (ενιαία πηγή).
+        const spitiPanelShown = advType==='first_home'||advBorr==='young'||advBorr==='family'
         const bestRankIdx = ranked.findIndex(r=>r.eligible)
         let score=100; const issues:string[]=[]
         if(ltv>85){score-=20;issues.push('LTV')}
@@ -815,7 +781,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
             )}
 
             {/* ── Σπίτι μου ΙΙ, για σένα — όταν αφορά (πρώτη κατοικία ή νέος/οικογένεια) ── */}
-            {(advType==='first_home'||advBorr==='young'||advBorr==='family') && (
+            {spitiPanelShown && (
               <MiniSection title="Σπίτι μου ΙΙ, για σένα" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>50% άτοκο</span>}>
                 <SpitiMouPanel
                   amount={LA} propertyValue={cs.propertyValue} years={Y} bankRatePct={cs.effectiveRate}
@@ -878,12 +844,16 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                   </div>
                 </div>
               )}
+              {/* Σύνοψη «Σπίτι μου ΙΙ» — μόνο όταν ΔΕΝ δείχνεται το πλήρες πάνελ πιο πάνω
+                  (αποφυγή διπλής εμφάνισης της ίδιας πληροφορίας στη ροή πρώτης κατοικίας). */}
+              {!spitiPanelShown && (
               <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:otherRecs.length?12:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:`3px solid ${spiti.eligible?'var(--accent)':'var(--border-subtle)'}`,borderRadius:10}}>
                 <div style={{minWidth:0}}>
                   <p style={{fontSize:12.5,fontWeight:600,fontFamily:"'Inter',sans-serif",color:'var(--text-primary)'}}>Σπίτι μου ΙΙ: {spiti.eligible?'πιθανώς επιλέξιμο':'μη επιλέξιμο'} <span style={{color:'var(--text-secondary)',fontWeight:400}}>· {Math.round(spiti.interestFreeShare*100)}% άτοκο</span></p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5,marginTop:2,fontFamily:"'Inter',sans-serif"}}>{spiti.reasons.slice(0,3).join(' · ')}. Ενδεικτικό, επιβεβαίωσε στην πύλη.</p>
                 </div>
               </div>
+              )}
               {otherRecs.length>0 && (
                 <MiniSection flat title={`Άλλες επιλογές (${otherRecs.length})`}>
                   <div style={{display:'flex',flexDirection:'column',gap:7}}>
