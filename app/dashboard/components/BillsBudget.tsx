@@ -25,9 +25,9 @@ const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStar
 const CATS = [
   { key: 'electricity',  label: 'Ρεύμα',              default: 80  },
   { key: 'water',        label: 'Νερό',                default: 25  },
-  { key: 'internet',     label: 'Internet & Τηλεφωνία',default: 35  },
+  { key: 'internet',     label: 'Internet και τηλεφωνία',default: 35 },
   { key: 'heating',      label: 'Θέρμανση',            default: 60  },
-  { key: 'insurance',    label: 'Ασφάλεια & Συνδρομές',default: 30  },
+  { key: 'insurance',    label: 'Ασφάλεια και συνδρομές',default: 30 },
   { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
   { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
   { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
@@ -277,8 +277,8 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
-            <span title="Ζωντανή ενημέρωση δεδομένων σε πραγματικό χρόνο" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--positive)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: rtOk ? 'var(--positive)' : 'var(--border-default)', display: 'inline-block' }}/>
+            <span title="Ζωντανή ενημέρωση δεδομένων σε πραγματικό χρόνο" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: rtOk ? 'var(--text-tertiary)' : 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: rtOk ? 'var(--text-tertiary)' : 'var(--border-default)', display: 'inline-block' }}/>
               Live
             </span>
           </div>
@@ -289,7 +289,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setEditMode(v => !v)}
-            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'rgba(26,115,232,0.1)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'var(--accent-dim)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
             {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
           </button>
         </div>
@@ -348,7 +348,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             const budget = parseFloat(budgets[cat.key]) || cat.default;
             const actual = actuals[cat.key] || 0;
             return (
-              <div key={cat.key} style={{ background: 'rgba(197,34,31,0.05)', border: '1px solid rgba(197,34,31,0.2)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div key={cat.key} style={{ background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
@@ -389,7 +389,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {!editMode && (() => {
         const pct    = masterBudget > 0 ? Math.min((actualTotal / masterBudget) * 100, 100) : 0;
         const isOver = actualTotal > masterBudget;
-        const col    = isOver ? 'var(--negative)' : pct > 80 ? 'var(--warning)' : 'var(--accent)';
+        const col    = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
             {secHdr('Σύνολο Μήνα')}
@@ -412,7 +412,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
       {!editMode && (() => {
         const ytdPct = annual.ytdBudget > 0 ? Math.min((annual.ytdActual / annual.ytdBudget) * 100, 100) : 0;
         const ytdOver = annual.ytdActual > annual.ytdBudget;
-        const ytdCol = ytdOver ? 'var(--negative)' : ytdPct > 90 ? 'var(--warning)' : 'var(--accent)';
+        const ytdCol = ytdOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
         const trDir = monthTrend.direction;
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
@@ -437,7 +437,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 22, fontWeight: 700, color: annual.onTrack ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(annual.projectedYearEnd, 0)}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>στόχος {fe(annual.annualBudget, 0)}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 9px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'rgba(197,34,31,0.1)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'rgba(197,34,31,0.2)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 9px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
                 </div>
               </div>
             </div>
@@ -469,7 +469,7 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
             const isOver  = actual > budget && actual > 0;
             const projOver = !isOver && categoryStatus(budget, actual, catForecast(cat.key)) === 'projected_over';
             const isWarn  = !isOver && !projOver && pct > 80;
-            const col     = isOver ? 'var(--negative)' : (isWarn || projOver) ? 'var(--warning)' : 'var(--accent)';
+            const col     = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
             const tr      = catTrend(cat.key);
 
             return (
@@ -496,9 +496,9 @@ export default function BillsBudget({ propertyId, userId = '' }: Props) {
                         : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>/ {fe(budget, 0)}</span>
-                      {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'rgba(197,34,31,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>+{fe(actual - budget, 0)}</span>}
-                      {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>προβλ. υπέρβαση</span>}
-                      {isWarn && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warning)', background: 'rgba(242,153,0,0.1)', padding: '1px 8px', borderRadius: T.radius.pill }}>{pct.toFixed(0)}%</span>}
+                      {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'var(--negative-dim)', padding: '1px 8px', borderRadius: T.radius.pill }}>+{fe(actual - budget, 0)}</span>}
+                      {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '1px 8px', borderRadius: T.radius.pill }}>προβλ. υπέρβαση</span>}
+                      {isWarn && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '1px 8px', borderRadius: T.radius.pill }}>{pct.toFixed(0)}%</span>}
                     </div>
                   )}
                 </div>
