@@ -14,6 +14,7 @@ import { resolveRent, resolveValue, computeYields } from '@/lib/billing/property
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
 import { annuityMonthly } from '@/lib/loans/recommend';
+import { reservePlan } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
 import { clientStats, stayTotal, CLIENT_TYPE_LABELS, type ClientType } from '@/lib/clients/clients';
 import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynamicPricing';
@@ -234,6 +235,35 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       setPricingStr('Δεν έχει οριστεί βασική τιμή ούτε υπάρχει ιστορικό διαμονών. Για προτάσεις τιμής, ο χρήστης ορίζει βασική τιμή στην καρτέλα Τιμολόγηση.');
     }
 
+    // ── Προϋπολογισμός: μηνιαίος στόχος, κουμπαράδες, ειδοποίηση υπέρβασης ────────
+    // Ώστε ο βοηθός να απαντά «πόσο είναι ο στόχος;», «πώς πάνε οι κουμπαράδες;» και
+    // να μπορεί να φτιάχνει κουμπαρά με [[vault:]]. Πηγή: ίδιες ρυθμίσεις με την καρτέλα.
+    const [{ data: budgetSet }, { data: vaultSet }] = await Promise.all([
+      supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
+      supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle(),
+    ]);
+    const bData = (budgetSet?.data as Record<string, unknown> | null) || {};
+    const monthlyTarget = parseFloat(String(bData.total ?? '')) || 390;
+    const notifyOverspend = String(bData.notifyOverspend) === 'true';
+    const vArr = ((vaultSet?.data as { vaults?: any[] } | null)?.vaults) || [];
+    const monthsUntilDue = (due?: string): number => {
+      if (!due) return 0;
+      const d = new Date(due), nn = new Date();
+      return Math.max(0, (d.getFullYear() - nn.getFullYear()) * 12 + (d.getMonth() - nn.getMonth()));
+    };
+    const vaultSaved = vArr.reduce((s: number, v: any) => s + (Number(v.current) || 0), 0);
+    const vaultTarget = vArr.reduce((s: number, v: any) => s + (Number(v.target) || 0), 0);
+    const vaultMonthly = vArr.reduce((s: number, v: any) => {
+      const mo = monthsUntilDue(v.due);
+      return v.due && mo > 0 ? s + reservePlan(Number(v.target) || 0, Number(v.current) || 0, mo).requiredMonthly : s;
+    }, 0);
+    const budgetLine = [
+      `Προϋπολογισμός: μηνιαίος στόχος δαπανών ${eur(monthlyTarget)}. Ειδοποίηση υπέρβασης: ${notifyOverspend ? 'ενεργή (email μέσω προτιμήσεων ειδοποιήσεων)' : 'ανενεργή'}.`,
+      vArr.length
+        ? `Κουμπαράδες (${vArr.length}): μαζεμένα ${eur(vaultSaved)} από στόχο ${eur(vaultTarget)}${vaultMonthly > 0 ? `, απαιτούμενη μηνιαία εισφορά ${eur(vaultMonthly)}` : ''}. ${vArr.slice(0, 6).map((v: any) => `${v.name || 'κουμπαράς'} ${eur(Number(v.current) || 0)}/${eur(Number(v.target) || 0)}${v.due ? ` έως ${v.due}` : ''}`).join('; ')}`
+        : 'Κουμπαράδες: δεν έχει δημιουργηθεί κανένας ακόμη. Μπορείς να φτιάξεις (π.χ. ΕΝΦΙΑ, λέβητας, κενές περίοδοι) με [[vault: όνομα | στόχος | ΕΕΕΕ-ΜΜ-ΗΗ]].',
+    ].join(' ');
+
     const lines = [
       `Ακίνητο: ${propContext.name}${propContext.propType ? ` (${propContext.propType})` : ''}${propContext.address ? `, ${propContext.address}` : ''}`,
       propContext.sqm ? `Εμβαδόν: ${propContext.sqm} τ.μ.` : '',
@@ -251,6 +281,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       loanLine,
       hostingLine,
       accountingLine,
+      budgetLine,
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
       checklistLine,
       `Σήμερα είναι ${new Date(todayStr).toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${isWeekend(todayStr) ? ' (Σαββατοκύριακο)' : ''}${holidayName(todayStr) ? ` — αργία: ${holidayName(todayStr)}` : ''}.`,
@@ -354,6 +385,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'task') { addTask(a); return; }
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     else if (a.type === 'inventory') { registerInventory(a); return; }
+    else if (a.type === 'vault') { createVault(a); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -559,6 +591,24 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα στην Απογραφή: «${a.name}»${a.value ? ` (αξία ${a.value}€)` : ''}. Θέλεις να ανοίξω την Απογραφή για να προσθέσεις φωτογραφία, εγγύηση ή άλλες λεπτομέρειες;`, action: { type: 'go', tab: 'inventory' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταγράψω τώρα. Δοκίμασε από την καρτέλα Απογραφή.' }]);
+    }
+  };
+
+  // Δημιουργία κουμπαρά/αποθεματικού στον Προϋπολογισμό (από τον βοηθό, με φωνή/κείμενο).
+  // Συγχωνεύεται στη ρύθμιση bills_settings section 'vaults' — ίδιο μοντέλο με την καρτέλα.
+  const createVault = async (a: { name: string; target: number; due?: string }) => {
+    try {
+      const { data: cur } = await supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'vaults').maybeSingle();
+      const existing = ((cur?.data as { vaults?: any[] } | null)?.vaults) || [];
+      const nv = { id: `v_${Date.now().toString(36)}_${Math.round(Math.random() * 1e6).toString(36)}`, name: a.name.slice(0, 60), target: a.target, current: 0, ...(a.due ? { due: a.due } : {}) };
+      await supabase.from('bills_settings').upsert(
+        { property_id: propertyId, user_id: userId, section: 'vaults', data: { vaults: [...existing, nv] } },
+        { onConflict: 'property_id,section' },
+      );
+      const dueStr = a.due ? ` έως ${new Date(a.due).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' })}` : '';
+      setMsgs(m => [...m, { role: 'assistant', text: `Τον έφτιαξα. Πρόσθεσα κουμπαρά «${nv.name}» με στόχο ${eur(a.target)}${dueStr} στον Προϋπολογισμό. Θα υπολογίζει πόσο να βάζεις κάθε μήνα. Θέλεις να τον δεις;`, action: { type: 'go', tab: 'finances' } }]);
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να φτιάξω τον κουμπαρά τώρα. Δοκίμασε από τον Προϋπολογισμό.', action: { type: 'go', tab: 'finances' } }]);
     }
   };
 
@@ -973,6 +1023,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'paid' ? `Σήμανση πληρωμένο: ${m.action.description}`
                           : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : m.action.type === 'inventory' ? `Κατέγραψε: ${m.action.name}`
+                          : m.action.type === 'vault' ? `Φτιάξε κουμπαρά: ${m.action.name}`
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
