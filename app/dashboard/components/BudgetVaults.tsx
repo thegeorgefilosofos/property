@@ -64,7 +64,15 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   const [loaded, setLoaded] = useState(false);
   const [hoverPct, setHoverPct] = useState<string | null>(null);
   const [hoverSg, setHoverSg] = useState<string | null>(null);
+  const [shut, setShut] = useState(false);
+  const [doneHover, setDoneHover] = useState(false);
+  const [delHover, setDelHover] = useState(false);
   editRef.current = editId;
+
+  useEffect(() => {
+    try { setShut(localStorage.getItem(`vaults_shut_${propertyId}`) === '1'); } catch { /* ignore */ }
+  }, [propertyId]);
+  const toggleShut = () => setShut(s => { const n = !s; try { localStorage.setItem(`vaults_shut_${propertyId}`, n ? '1' : '0'); } catch { /* ignore */ } return n; });
 
   useEffect(() => {
     if (!propertyId) return;
@@ -139,16 +147,23 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 12, paddingBottom: shut ? 0 : 9, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Κουμπαράδες</span>
         <InfoDot text="Εικονικοί κουμπαράδες για μελλοντικά έξοδα (ΕΝΦΙΑ, λέβητας, ανακαίνιση, κενές περίοδοι). Ορίζεις στόχο και ημερομηνία· υπολογίζεται πόσο πρέπει να βάζεις κάθε μήνα ώστε να είναι έτοιμος όταν χρειαστεί." />
+        <span style={{ flex: 1 }}/>
         {vaults.length > 0 && (
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
             Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}
           </span>
         )}
+        <button onClick={toggleShut} aria-label={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'} title={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'}
+          style={{ display: 'flex', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4, margin: '-4px -4px -4px 0' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: shut ? 'rotate(-90deg)' : 'none', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
       </div>
 
+      {!shut && (<>
       {/* Έξυπνες προτάσεις — ΕΝΦΙΑ, φόρος, CapEx, κενές περίοδοι· ένα άγγιγμα ο καθένας */}
       {openSuggestions.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -182,16 +197,19 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           const on = hoverPct === v.id;
 
           if (editing) return (
-            <div key={v.id} style={{ ...card, gridColumn: '1 / -1' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, maxWidth: 660 }}>
-                <TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" />
+            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 16, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 13, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px', maxWidth: 520 }}>
+                <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
                 <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
                 <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
-                <DatePicker label="Έως (προαιρετικό)" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
+                <div style={{ gridColumn: '1 / -1' }}><DatePicker label="Ημερομηνία-στόχος (προαιρετικό)" value={v.due || ''} onChange={val => update(v.id, { due: val })} /></div>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={() => setEditId(null)} style={{ height: 34, padding: '0 16px', borderRadius: T.radius.btn, background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
-                <button onClick={() => remove(v.id)} style={{ height: 34, padding: '0 14px', borderRadius: T.radius.btn, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: 12.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer' }}>Διαγραφή</button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16, maxWidth: 520 }}>
+                <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)}
+                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--text-primary)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s' }}>Έτοιμο</button>
+                <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}
+                  style={{ height: 36, padding: '0 12px', borderRadius: T.radius.btn, background: 'transparent', border: 'none', color: delHover ? 'var(--negative)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}>Διαγραφή</button>
               </div>
             </div>
           );
@@ -240,6 +258,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           <span style={{ fontSize: 12, fontWeight: 500 }}>Νέος κουμπαράς</span>
         </button>
       </div>
+      </>)}
     </div>
   );
 }

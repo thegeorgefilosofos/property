@@ -114,6 +114,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
+  // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
+  const [collapsed,    setCollapsed]    = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try { const s = localStorage.getItem(`budget_collapsed_${propertyId}`); if (s) setCollapsed(new Set(JSON.parse(s))); } catch { /* ignore */ }
+  }, [propertyId]);
+  const toggleCollapse = (key: string) => setCollapsed(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key);
+    try { localStorage.setItem(`budget_collapsed_${propertyId}`, JSON.stringify([...n])); } catch { /* ignore */ }
+    return n;
+  });
 
   const mapCategory = (cat: string): CatKey | 'other' => {
     const m: Record<string, CatKey> = {
@@ -487,12 +497,24 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, userId, loading, notifyOn, overKey, overAmt]);
 
-  const secHdr = (label: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }}/>
-      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
-    </div>
-  );
+  // Κεφαλίδα ενότητας με προαιρετικό κουμπί ελαχιστοποίησης (chevron) και δεξί περιεχόμενο.
+  const secHdr = (label: string, key?: string, right?: React.ReactNode) => {
+    const shut = !!key && collapsed.has(key);
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
+        <span style={{ flex: 1 }}/>
+        {right}
+        {key && (
+          <button onClick={() => toggleCollapse(key)} aria-label={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'} title={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'}
+            style={{ display: 'flex', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4, margin: '-4px -4px -4px 0' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: shut ? 'rotate(-90deg)' : 'none', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // Ενιαίος διακόπτης ρύθμισης (ίδιο idiom με τα toggles της εφαρμογής).
   const settingToggle = (settingKey: string, on: boolean, title: string, desc: string) => (
@@ -747,42 +769,38 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const ytdOver = annual.ytdActual > annual.ytdBudget;
         const ytdCol = ytdOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
         const trDir = monthTrend.direction;
+        const shut = collapsed.has('annual');
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-            {secHdr('Ετήσια εικόνα')}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
-              {/* YTD */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                  <span style={{ fontFamily: T.font.sans }}>Από την αρχή του έτους</span>
-                  <span>{fe(annual.ytdActual, 0)} / {fe(annual.ytdBudget, 0)}</span>
+            {secHdr('Ετήσια εικόνα', 'annual')}
+            {!shut && (
+              <>
+                {/* Προβολή τέλους έτους — κύριος αριθμός */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: annual.onTrack ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{fe(annual.projectedYearEnd, 0)}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβολή τέλους έτους · στόχος <span style={{ fontFamily: T.font.num }}>{fe(annual.annualBudget, 0)}</span></span>
+                  <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
                 </div>
-                <div style={{ height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+                {/* YTD — από την αρχή του έτους */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+                  <span>Από την αρχή του έτους</span>
+                  <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(annual.ytdActual, 0)} <span style={{ color: 'var(--text-tertiary)' }}>/ {fe(annual.ytdBudget, 0)}</span></span>
+                </div>
+                <div style={{ height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden', marginBottom: 7 }}>
                   <div style={{ height: '100%', width: `${ytdPct}%`, background: ytdCol, borderRadius: 4, transition: 'width 0.6s ease' }}/>
                 </div>
-                <div style={{ fontSize: 10, color: annual.variance > 0 ? 'var(--negative)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  {annual.variance > 0 ? `Υπέρβαση ${fe(annual.variance, 0)} έναντι στόχου` : `Εντός στόχου κατά ${fe(-annual.variance, 0)}`}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  <span style={{ color: annual.variance > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>{annual.variance > 0 ? `Υπέρβαση ${fe(annual.variance, 0)} έναντι στόχου` : `Εντός στόχου κατά ${fe(-annual.variance, 0)}`}</span>
+                  {monthTrend.avgPrior > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: trDir === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                      {trDir === 'flat'
+                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: trDir === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
+                      {trDir === 'flat' ? 'σταθερά' : `${monthTrend.deltaPct > 0 ? '+' : ''}${monthTrend.deltaPct}% vs τρίμηνο`}
+                    </span>
+                  )}
                 </div>
-              </div>
-              {/* Προβολή τέλους έτους */}
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Προβολή τέλους έτους</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: annual.onTrack ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(annual.projectedYearEnd, 0)}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>στόχος {fe(annual.annualBudget, 0)}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 9px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
-                </div>
-              </div>
-            </div>
-            {monthTrend.avgPrior > 0 && (
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                <span style={{ display: 'inline-flex', color: trDir === 'up' ? 'var(--negative)' : trDir === 'down' ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
-                  {trDir === 'flat'
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: trDir === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
-                </span>
-                <span>Αυτός ο μήνας {fe(monthTotals[_curYm] || 0, 0)} · {trDir === 'flat' ? 'σταθερά' : `${monthTrend.deltaPct > 0 ? '+' : ''}${monthTrend.deltaPct}%`} έναντι μέσου όρου τριμήνου ({fe(monthTrend.avgPrior, 0)})</span>
-              </div>
+              </>
             )}
           </div>
         );
@@ -803,7 +821,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Category rows */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
-        {secHdr('Ανά Κατηγορία')}
+        {secHdr('Ανά Κατηγορία', editMode ? undefined : 'cats')}
+        {!(!editMode && collapsed.has('cats')) &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
           {CATS.map(cat => {
             const budget  = catBudget(cat.key);
@@ -860,7 +879,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               </div>
             );
           })}
-        </div>
+        </div>}
 
         {editMode && (
           <>
