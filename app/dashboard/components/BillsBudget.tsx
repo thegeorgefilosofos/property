@@ -1000,10 +1000,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     </span>
                   )}
                 </div>
-                {/* Ετήσιο εργαλείο: ράβδοι εξόδων ανά μήνα */}
+                {/* Ετήσιο εργαλείο: ράβδοι εξόδων ανά μήνα (με ήπια κατάσταση όταν δεν υπάρχει ιστορικό) */}
                 <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
                   <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Έξοδα ανά μήνα</div>
-                  <MonthBars data={yearBars} activeYm={_curYm} />
+                  {yearBars.some(b => b.value > 0)
+                    ? <MonthBars data={yearBars} activeYm={_curYm} />
+                    : <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '14px 0' }}>Μόλις καταγραφούν έξοδα, θα δεις εδώ την πορεία ανά μήνα.</div>}
                 </div>
                 {/* Ετήσιο εργαλείο: κατανομή δαπανών ανά κατηγορία */}
                 {catYtd.length > 0 && (
