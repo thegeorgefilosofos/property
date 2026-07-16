@@ -120,9 +120,10 @@ export default function EsisScanPanel({
   }, benchmarkAprc!=null ? { benchmarkAprc } : undefined)
   const vs = V_STYLE[res.verdict]
 
+  const dec = (n:number)=>String(n).replace('.',',')
   const costTiles = [
-    { l:'ΣΕΠΠΕ (πραγματικό)', v:`${res.aprc}%`, hi:true },
-    { l:'Ονομαστικό επιτόκιο', v:`${res.nominal}%`, hi:false },
+    { l:'ΣΕΠΠΕ (πραγματικό)', v:`${dec(res.aprc)}%`, hi:true },
+    { l:'Ονομαστικό επιτόκιο', v:`${dec(res.nominal)}%`, hi:false },
     { l:'Δόση', v:fmtEur(res.monthly), hi:false },
     { l:'Σύνολο τόκων', v:fmtEur(res.totalInterest), hi:false },
     { l:'Έξοδα', v:fmtEur(res.totalFees), hi:false },
@@ -165,7 +166,7 @@ export default function EsisScanPanel({
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:'16px 18px'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:14}}>
           <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:vs.c,letterSpacing:'-0.01em'}}>{esisVerdictLabel(res.verdict)}</p>
-          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${res.vsMarketPct} μονάδες vs αγορά`}</p>}
+          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες vs αγορά`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
           {costTiles.map(t=>(
