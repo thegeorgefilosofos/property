@@ -247,7 +247,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                     <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
                     <DatePicker label="Ημ/νία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
                     <CustomSelect label="Αποταμίευση"
-                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα — βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά/μεταβλητά (EUR, 2026) και εξαρτώνται από πρόγραμμα ή υπόλοιπο· επιβεβαίωσέ τα στην τράπεζα." />}
+                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα και βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
                       value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή…" />
                     {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
                     {selectValue !== '' && (
