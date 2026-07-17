@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { NumberInput, TextInput } from './UIComponents';
-import { T, feAuto, Spinner } from '@/components/Theme';
+import { TextInput } from './UIComponents';
+import { T, feAuto, fn, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
@@ -151,6 +151,65 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
   );
 }
 
+// ── Επιτόπου επεξεργασία αριθμού (κλικ στο νούμερο → το αλλάζεις) ─────────────
+// Δείχνει τη διαμορφωμένη τιμή· με κλικ γίνεται πεδίο, εστιάζει και επιλέγει το
+// κείμενο. Enter/έξοδος εστίασης αποθηκεύει, Esc ακυρώνει. Ίδιο idiom παντού.
+function InlineNumber({ raw, display, onCommit, width = 66, align = 'right', ariaLabel, big = false }: {
+  raw: string; display: string; onCommit: (v: string) => void; width?: number; align?: 'left' | 'right'; ariaLabel?: string; big?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [hov, setHov] = useState(false);
+  const ref = useRef<HTMLInputElement | null>(null);
+  useEffect(() => { if (editing) { ref.current?.focus(); ref.current?.select(); } }, [editing]);
+  if (editing) {
+    return (
+      <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        <input ref={ref} value={draft} inputMode="decimal" aria-label={ariaLabel}
+          onChange={e => setDraft(e.target.value.replace(/[^\d.,]/g, ''))}
+          onKeyDown={e => { if (e.key === 'Enter') { onCommit(draft.trim().replace(',', '.')); setEditing(false); } else if (e.key === 'Escape') setEditing(false); }}
+          onBlur={() => { onCommit(draft.trim().replace(',', '.')); setEditing(false); }}
+          style={{ width, height: big ? 30 : 22, padding: '0 6px', textAlign: align, borderRadius: 7, border: '1px solid var(--border-accent)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: big ? 18 : 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
+      </span>
+    );
+  }
+  return (
+    <button type="button" aria-label={ariaLabel}
+      onClick={e => { e.stopPropagation(); setDraft(raw ?? ''); setEditing(true); }}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'text', font: 'inherit', color: hov ? 'var(--accent)' : 'inherit', borderBottom: `1px dashed ${hov ? 'var(--border-accent)' : 'transparent'}`, transition: 'color 0.15s, border-color 0.15s', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+      {display}
+    </button>
+  );
+}
+
+// Επιτόπου επεξεργασία κειμένου (μετονομασία κατηγορίας).
+function InlineText({ value, onCommit, ariaLabel }: { value: string; onCommit: (v: string) => void; ariaLabel?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [hov, setHov] = useState(false);
+  const ref = useRef<HTMLInputElement | null>(null);
+  useEffect(() => { if (editing) { ref.current?.focus(); ref.current?.select(); } }, [editing]);
+  if (editing) {
+    return (
+      <input ref={ref} value={draft} aria-label={ariaLabel} maxLength={40}
+        onChange={e => setDraft(e.target.value)}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={e => { if (e.key === 'Enter') { const v = draft.trim(); if (v) onCommit(v); setEditing(false); } else if (e.key === 'Escape') setEditing(false); }}
+        onBlur={() => { const v = draft.trim(); if (v && v !== value) onCommit(v); setEditing(false); }}
+        style={{ width: 160, height: 24, padding: '0 7px', borderRadius: 7, border: '1px solid var(--border-accent)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, outline: 'none' }} />
+    );
+  }
+  return (
+    <button type="button" aria-label={ariaLabel}
+      onClick={e => { e.stopPropagation(); setDraft(value); setEditing(true); }}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'text', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)', borderBottom: `1px dashed ${hov ? 'var(--border-accent)' : 'transparent'}`, transition: 'border-color 0.15s' }}>
+      {value}
+    </button>
+  );
+}
+
 // ── Category definitions ──────────────────────────────────────────────────────
 const CATS = [
   { key: 'electricity',  label: 'Ρεύμα',              default: 80  },
@@ -219,7 +278,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [strPropCount, setStrPropCount] = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
-  const [editMode,     setEditMode]     = useState(false);
   const [rtOk,         setRtOk]         = useState(false);
   const [heroHover,    setHeroHover]    = useState(false);
   const [hoverCat,     setHoverCat]     = useState<string | null>(null);
@@ -228,6 +286,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
   const [exclAmtDraft, setExclAmtDraft] = useState<Record<string, string>>({});  // ό,τι πληκτρολογεί ο χρήστης στο μερικό ποσό εξαίρεσης
+  const [toast,        setToast]        = useState<{ msg: string; undo: () => void } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [addingCat,    setAddingCat]    = useState(false);   // εμφάνιση πεδίου «νέα κατηγορία» (inline)
+  const [showSettings, setShowSettings] = useState(false);   // εμφάνιση ρυθμίσεων προϋπολογισμού (inline)
+  const [demoBusy,     setDemoBusy]     = useState(false);   // δημιουργία/αφαίρεση δείγματος δεδομένων
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -342,6 +405,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const catLabels: Record<string, string> = {};
       CATS.forEach(c => { catLabels[c.key] = c.label; });
       try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
+      // Μετονομασίες (override) βασικών/custom κατηγοριών — για σωστές ετικέτες στην ανάλυση.
+      try { const o = JSON.parse(String((budgetRes.data?.data as { __labels?: string } | null)?.__labels ?? '{}')); if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v) catLabels[k] = String(v); }); } catch { /* ignore */ }
       const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : mapCategory(r); };
       const catLabelOf = (k: string): string => catLabels[k] ?? 'Λοιπές δαπάνες';
       // Εξαιρέσεις: δαπάνες/λογαριασμοί που ΔΕΝ μετράνε (ή μετράνε μερικώς) στον προϋπολογισμό.
@@ -558,10 +623,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // ── Προσαρμόσιμες κατηγορίες: ο χρήστης κρύβει όσες δεν χρειάζεται και προσθέτει δικές του.
   const parseArr = (s?: string): any[] => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
   const hiddenKeys: string[] = parseArr(budgets.__hidden).map(String);
+  // Μετονομασίες βασικών κατηγοριών (οι custom κρατούν το όνομά τους στο __custom).
+  const labelOverrides: Record<string, string> = (() => { try { const o = JSON.parse(budgets.__labels || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
   const customCats: { key: string; label: string; default: number }[] = parseArr(budgets.__custom)
-    .filter((c: any) => c && c.key && c.label).map((c: any) => ({ key: String(c.key), label: String(c.label), default: 0 }));
+    .filter((c: any) => c && c.key && c.label).map((c: any) => ({ key: String(c.key), label: labelOverrides[String(c.key)] ?? String(c.label), default: 0 }));
   const activeCats: { key: string; label: string; default: number }[] = [
-    ...CATS.filter(c => !hiddenKeys.includes(c.key)).map(c => ({ key: c.key as string, label: c.label as string, default: c.default as number })),
+    ...CATS.filter(c => !hiddenKeys.includes(c.key)).map(c => ({ key: c.key as string, label: labelOverrides[c.key] ?? (c.label as string), default: c.default as number })),
     ...customCats,
   ];
   const hiddenBaseCats = CATS.filter(c => hiddenKeys.includes(c.key));
@@ -574,6 +641,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
   // Προσθήκη/απόκρυψη/επαναφορά κατηγορίας (αποθηκεύεται στις ρυθμίσεις budgets).
   const persistCats = (patch: Record<string, string>) => { const next = { ...budgets, ...patch }; setBudgets(next); saveBudgets(next); };
+  // Διακριτικό toast με «Αναίρεση» για σιωπηλές/μη αναστρέψιμες ενέργειες (διαγραφή, εξαίρεση).
+  const showToast = (msg: string, undo: () => void) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ msg, undo });
+    toastTimer.current = setTimeout(() => setToast(null), 6000);
+  };
   const addCategory = (label: string) => {
     const name = label.trim().slice(0, 40); if (!name) return;
     // Κανένα διπλότυπο: αν υπάρχει ήδη ενεργή κατηγορία με το ίδιο όνομα, επανάφερε/άφησέ την.
@@ -586,10 +659,58 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     persistCats({ __custom: JSON.stringify([...customCats.map(c => ({ key: c.key, label: c.label })), { key, label: name }]), [key]: '0' });
   };
   const removeCategory = (key: string) => {
+    const label = activeCats.find(c => c.key === key)?.label ?? 'Κατηγορία';
+    const snapHidden = budgets.__hidden, snapCustom = budgets.__custom;   // στιγμιότυπο για αναίρεση
     if (customCats.some(c => c.key === key)) persistCats({ __custom: JSON.stringify(customCats.filter(c => c.key !== key).map(c => ({ key: c.key, label: c.label }))) });
     else persistCats({ __hidden: JSON.stringify([...hiddenKeys, key]) });
+    showToast(`Η κατηγορία «${label}» αφαιρέθηκε`, () => persistCats({ __hidden: snapHidden ?? '[]', __custom: snapCustom ?? '[]' }));
   };
   const restoreCategory = (key: string) => persistCats({ __hidden: JSON.stringify(hiddenKeys.filter(k => k !== key)) });
+
+  // ── «Δείξε μου»: δείγμα μήνα ώστε ένας άδειος προϋπολογισμός να ζωντανέψει σε δευτερόλεπτα ──
+  // Καταχωρεί ρεαλιστικές δείγμα-δαπάνες του τρέχοντος μήνα (με σωστές κατηγορίες) και κρατά
+  // τα id τους στο __demo, ώστε να αφαιρούνται με ένα άγγιγμα. Σαφώς επισημασμένο ως δείγμα.
+  const demoIds: string[] = (() => { try { const a = JSON.parse(budgets.__demo || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch { return []; } })();
+  const seedDemo = async () => {
+    if (!propertyId || demoBusy) return;
+    setDemoBusy(true);
+    try {
+      const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      const dim = new Date(y, mo + 1, 0).getDate();
+      const day = (d: number) => `${y}-${p2(mo + 1)}-${p2(Math.min(d, now.getDate(), dim))}`;
+      const samples = [
+        { d: 8,  desc: 'ΔΕΗ',                 amount: 78.40, category: 'electricity', grp: 'other' },
+        { d: 12, desc: 'ΕΥΔΑΠ',               amount: 21.30, category: 'water',       grp: 'other' },
+        { d: 5,  desc: 'Vodafone',            amount: 34.90, category: 'internet',    grp: 'other' },
+        { d: 15, desc: 'Φυσικό αέριο',        amount: 46.00, category: 'heating',     grp: 'other' },
+        { d: 10, desc: 'Κοινόχρηστα',         amount: 40.00, category: 'common',      grp: 'other' },
+        { d: 3,  desc: 'Ασφάλεια κατοικίας',  amount: 18.50, category: 'insurance',   grp: 'other' },
+        { d: 18, desc: 'Υδραυλικός',          amount: 60.00, category: 'maintenance', grp: 'maintenance' },
+        { d: 20, desc: 'Είδη καθαριότητας',   amount: 25.00, category: 'other',       grp: 'other' },
+      ];
+      const payload = samples.map(s => ({ property_id: propertyId, user_id: userId || null, amount: s.amount, date: day(s.d), description: s.desc, category: s.category, expense_group: s.grp, bill_id: null }));
+      const { data, error } = await supabase.from('expenses').insert(payload).select('id');
+      if (!error && data) persistCats({ __demo: JSON.stringify(data.map((r: any) => String(r.id))) });
+      await loadData();
+    } finally { setDemoBusy(false); }
+  };
+  const removeDemo = async () => {
+    if (!propertyId || demoBusy || demoIds.length === 0) return;
+    setDemoBusy(true);
+    try {
+      await supabase.from('expenses').delete().in('id', demoIds);
+      persistCats({ __demo: '[]' });
+      await loadData();
+    } finally { setDemoBusy(false); }
+  };
+
+  // Μετονομασία κατηγορίας: custom → ενημέρωση __custom· βασική → override στο __labels.
+  const renameCategory = (key: string, label: string) => {
+    const name = label.trim().slice(0, 40); if (!name) return;
+    if (customCats.some(c => c.key === key)) persistCats({ __custom: JSON.stringify(customCats.map(c => c.key === key ? { key: c.key, label: name } : { key: c.key, label: c.label })) });
+    else persistCats({ __labels: JSON.stringify({ ...labelOverrides, [key]: name }) });
+  };
 
   // ── Εξαιρέσεις: όσα δεν θέλεις να μετρούν (ολικά ή μερικά) στα στατιστικά/προϋπολογισμό ──
   const excludedMap: Record<string, ExclRule> = (() => { try { const o = JSON.parse(budgets.__excluded || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
@@ -693,6 +814,34 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const hasIncome      = income > 0;
   const isShortfall    = hasIncome && monthlyCost > income;
 
+  // ── Έξυπνες παρατηρήσεις: 2–3 προτάσεις που «μιλούν» πάνω από τα γραφήματα ──
+  // Καθαρά από τα δεδομένα, με προτεραιότητα: υπέρβαση → τάση → πρόβλεψη → μεγαλύτερη
+  // δαπάνη → διαθέσιμο. Ουδέτερο ύφος, σωστά ελληνικά, χωρίς διακοσμητικό χρώμα.
+  const insights: string[] = (() => {
+    if (!isCurMonth) return [];
+    const out: string[] = [];
+    const totalActual = activeCats.reduce((s, c) => s + (actuals[c.key] || 0), 0);
+    if (overBudget.length > 0) {
+      const top = [...overBudget].sort((a, b) => ((actuals[b.key] || 0) - catBudget(b.key)) - ((actuals[a.key] || 0) - catBudget(a.key)))[0];
+      out.push(`Η κατηγορία «${top.label}» έχει ξεπεράσει τον στόχο κατά ${feAuto((actuals[top.key] || 0) - catBudget(top.key), 0)}.`);
+    } else if (projectedOver.length > 0) {
+      out.push(`Με τον τρέχοντα ρυθμό, η «${projectedOver[0].label}» θα ξεπεράσει τον στόχο πριν το τέλος του μήνα.`);
+    }
+    if (monthTrend.avgPrior > 0 && Math.abs(monthTrend.deltaPct) >= 8) {
+      out.push(`Ο μήνας τρέχει ${Math.abs(monthTrend.deltaPct)}% ${monthTrend.direction === 'up' ? 'πάνω από' : 'κάτω από'} τον μέσο όρο του τριμήνου.`);
+    }
+    if (totalActual > 0 && masterBudget > 0 && out.length < 3) {
+      const diff = forecastTotal - masterBudget;
+      out.push(diff > 5
+        ? `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal, 0)} — ${feAuto(diff, 0)} πάνω από τον στόχο.`
+        : `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal, 0)} — εντός στόχου κατά ${feAuto(Math.max(0, -diff), 0)}.`);
+    }
+    const biggest = activeCats.map(c => ({ label: c.label, v: actuals[c.key] || 0 })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)[0];
+    if (biggest && out.length < 3) out.push(`Η μεγαλύτερη δαπάνη του μήνα είναι η «${biggest.label}» με ${feAuto(biggest.v, 0)}.`);
+    if (hasIncome && income - monthlyCost >= 0 && out.length < 3) out.push(`Μετά τα πάγια, σου μένουν ${feAuto(income - monthlyCost, 0)} διαθέσιμα αυτόν τον μήνα.`);
+    return out.slice(0, 3);
+  })();
+
   // ── Ειδοποιήσεις υπέρβασης (σύνδεση με το σύστημα υπενθυμίσεων) ──────────────
   // Όταν ενεργό και υπάρχει υπέρβαση, δημιουργείται ΕΝΑ εκκρεμές γεγονός ημερολογίου
   // (source 'budget') τον μήνα — το ημερήσιο cron το στέλνει email μέσω των προτιμήσεων
@@ -793,34 +942,50 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Προϋπολογισμός</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
-            {!editMode && (
-              <button onClick={() => canGoOlder && setMonthOffset(o => o - 1)} disabled={!canGoOlder} aria-label="Προηγούμενος μήνας"
-                style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoOlder ? 'pointer' : 'default', color: canGoOlder ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-            )}
-            <span style={{ minWidth: 96, textAlign: !editMode ? 'center' : 'left', textTransform: 'capitalize' }}>{editMode ? new Date().toLocaleDateString('el-GR', { month: 'long', year: 'numeric' }) : viewMonthLabel}</span>
-            {!editMode && (
-              <button onClick={() => canGoNewer && setMonthOffset(o => o + 1)} disabled={!canGoNewer} aria-label="Επόμενος μήνας"
-                style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoNewer ? 'pointer' : 'default', color: canGoNewer ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            )}
+            <button onClick={() => canGoOlder && setMonthOffset(o => o - 1)} disabled={!canGoOlder} aria-label="Προηγούμενος μήνας"
+              style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoOlder ? 'pointer' : 'default', color: canGoOlder ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span style={{ minWidth: 96, textAlign: 'center', textTransform: 'capitalize' }}>{viewMonthLabel}</span>
+            <button onClick={() => canGoNewer && setMonthOffset(o => o + 1)} disabled={!canGoNewer} aria-label="Επόμενος μήνας"
+              style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoNewer ? 'pointer' : 'default', color: canGoNewer ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
             {!isCurMonth && <button onClick={() => setMonthOffset(0)} style={{ marginLeft: 4, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 10, fontWeight: 600, borderRadius: T.radius.pill, padding: '2px 9px', fontFamily: T.font.sans }}>Τρέχων</button>}
             <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· {isPro ? 'Επιχείρηση' : 'Ιδιώτης'}</span>
             {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση…</span>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setEditMode(v => !v)}
-            style={{ padding: '7px 16px', fontSize: 11, fontWeight: 600, borderRadius: T.radius.btn, border: `1px solid ${editMode ? 'var(--accent)' : 'var(--border-default)'}`, background: editMode ? 'var(--accent-dim)' : 'transparent', color: editMode ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
-            {editMode ? 'Αποθήκευση' : 'Ορισμός Στόχων'}
-          </button>
-        </div>
       </div>
 
+      {/* «Δείξε μου» — δείγμα μήνα όταν ο προϋπολογισμός είναι άδειος */}
+      {isCurMonth && demoIds.length === 0 && monthItems.length === 0 && Object.keys(monthTotals).length === 0 && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px dashed var(--border-default)', borderRadius: T.radius.card, padding: 16, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Δες πώς λειτουργεί σε 10 δευτερόλεπτα</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Θα προσθέσουμε ένα δείγμα δαπανών του μήνα, ώστε να ζωντανέψουν τα γραφήματα και οι κατηγορίες. Τα αφαιρείς με ένα άγγιγμα όποτε θες.</div>
+          </div>
+          <button type="button" onClick={seedDemo} disabled={demoBusy}
+            style={{ height: 38, padding: '0 18px', flexShrink: 0, borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: demoBusy ? 'default' : 'pointer', transition: 'all 0.15s' }}>
+            {demoBusy ? 'Δημιουργία…' : 'Δείξε μου'}
+          </button>
+        </div>
+      )}
+
+      {/* Ενεργό δείγμα — διακριτική επισήμανση + αφαίρεση */}
+      {demoIds.length > 0 && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εμφανίζονται δείγματα δεδομένων για επίδειξη.</span>
+          <button type="button" onClick={removeDemo} disabled={demoBusy}
+            style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: demoBusy ? 'default' : 'pointer', padding: 0, flexShrink: 0 }}>
+            {demoBusy ? 'Αφαίρεση…' : 'Αφαίρεση δείγματος'}
+          </button>
+        </div>
+      )}
+
       {/* «Ασφαλές διαθέσιμο» — έσοδα − δεσμευμένα − εισφορές (Monzo Left to Spend) */}
-      {!editMode && isCurMonth && (hasIncome || monthlyCost > 0) && (() => {
+      {isCurMonth && (hasIncome || monthlyCost > 0) && (() => {
         const safeRaw = income - monthlyCost;
         const val = hasIncome ? safeRaw : monthlyCost;
         const numCol = !hasIncome ? 'var(--text-primary)' : safeRaw < 0 ? 'var(--negative)' : heroHover ? 'var(--accent)' : 'var(--text-primary)';
@@ -866,7 +1031,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       })()}
 
       {/* Έσοδα / rent-roll — αναμενόμενα ή πραγματικά έσοδα ακινήτου (προσαρμόζεται στον τύπο μίσθωσης) */}
-      {!editMode && isCurMonth && income > 0 && (() => {
+      {isCurMonth && income > 0 && (() => {
         const isSTRmode = rentalMode === 'short_term';
         const netFlow = income - monthlyCost;
         return (
@@ -912,41 +1077,37 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
               <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται η προμήθεια της πλατφόρμας, το τέλος ανθεκτικότητας (ανά διανυκτέρευση), η τυχόν διαχείριση και η εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Πρόκειται για εκτίμηση· μπορείς να προσαρμόσεις τις παραδοχές στην επεξεργασία." />
-              {editMode && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>}
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>
             </div>
 
-            {editMode ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
-                <NumberInput label="Προμήθεια πλατφόρμας" value={budgets.strPlatformPct ?? '15'} onChange={v => updateBudget('strPlatformPct', v)} suffix="%" step={1} placeholder="15"/>
-                <NumberInput label="Διαχείριση / co-host" value={budgets.strMgmtPct ?? '0'} onChange={v => updateBudget('strMgmtPct', v)} suffix="%" step={1} placeholder="0"/>
-                <NumberInput label="Συντελεστής φόρου" value={budgets.strTaxPct ?? '15'} onChange={v => updateBudget('strTaxPct', v)} suffix="%" step={1} placeholder="15"/>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {rows.map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, fontFamily: T.font.sans, color: r.sub ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: r.sub ? 400 : 600 }}>
+                  <span>{r.l}</span>
+                  <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: r.v < 0 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{r.v < 0 ? '−' : ''}{feAuto(Math.abs(r.v), 0)}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Καθαρό</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(waterfall.net, 0)}</span>
               </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {rows.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, fontFamily: T.font.sans, color: r.sub ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: r.sub ? 400 : 600 }}>
-                      <span>{r.l}</span>
-                      <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: r.v < 0 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{r.v < 0 ? '−' : ''}{feAuto(Math.abs(r.v), 0)}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Καθαρό</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(waterfall.net, 0)}</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 12, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  <span>Καθαρό / διανυκτέρευση <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{feAuto(waterfall.netPerNight, 0)}</strong></span>
-                  <span>Περιθώριο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{waterfall.marginPct}%</strong></span>
-                </div>
-              </>
-            )}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 12, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+              <span>Καθαρό / διανυκτέρευση <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{feAuto(waterfall.netPerNight, 0)}</strong></span>
+              <span>Περιθώριο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{waterfall.marginPct}%</strong></span>
+            </div>
+            {/* Παραδοχές — επιτόπου επεξεργασία (κλικ στο ποσοστό) */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+              <span>Προμήθεια πλατφόρμας <InfoDot text="Το ποσοστό προμήθειας της πλατφόρμας κράτησης (π.χ. Airbnb, Booking) επί του μεικτού εσόδου." /> <InlineNumber raw={budgets.strPlatformPct ?? '15'} display={`${fn(strPlatformPct, 0)}%`} onCommit={v => updateBudget('strPlatformPct', v)} width={44} ariaLabel="Προμήθεια πλατφόρμας %" /></span>
+              <span>Διαχείριση <InlineNumber raw={budgets.strMgmtPct ?? '0'} display={`${fn(strMgmtPct, 0)}%`} onCommit={v => updateBudget('strMgmtPct', v)} width={44} ariaLabel="Διαχείριση %" /></span>
+              <span>Συντελεστής φόρου <InlineNumber raw={budgets.strTaxPct ?? '15'} display={`${fn(strTaxPct, 0)}%`} onCommit={v => updateBudget('strTaxPct', v)} width={44} ariaLabel="Συντελεστής φόρου %" /></span>
+            </div>
           </div>
         );
       })()}
 
       {/* Over-budget alerts */}
-      {!editMode && displayOver.length > 0 && (
+      {displayOver.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {displayOver.map(cat => {
             const budget = catBudget(cat.key);
@@ -971,7 +1132,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Προβλεπόμενη υπέρβαση — με τον τρέχοντα ρυθμό (προειδοποίηση, όχι ήδη υπέρβαση) */}
-      {!editMode && isCurMonth && projectedOver.length > 0 && (
+      {isCurMonth && projectedOver.length > 0 && (
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M23 6l-9.5 9.5-5-5L1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
@@ -981,7 +1142,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Όριο 3+ βραχυχρόνιων (ΜΟΝΟ ιδιώτης) — νομικό κατώφλι επιχειρηματικής δραστηριότητας */}
-      {!editMode && !isPro && strPropCount >= 3 && (
+      {!isPro && strPropCount >= 3 && (
         <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
@@ -992,7 +1153,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: 12 }}>
           <KPI label="Στόχος / μήνα" value={feAuto(masterBudget, 0)} />
           <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={feAuto(viewActualTotal, 0)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
           {isCurMonth
@@ -1000,7 +1161,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${feAuto(Math.abs(masterBudget - viewActualTotal), 0)}`} />}
           <KPI label="Διαθέσιμο" value={feAuto(Math.max(0, masterBudget - viewActualTotal))} />
         </div>
-        {!editMode && (() => {
+        {(() => {
           const pct    = masterBudget > 0 ? Math.min((viewActualTotal / masterBudget) * 100, 100) : 0;
           const isOver = viewActualTotal > masterBudget;
           const col    = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
@@ -1026,7 +1187,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       </div>
 
       {/* Απόδοση επένδυσης — ΜΟΝΟ επαγγελματίας (NOI/cap rate/cash-on-cash), δίπλα στα βασικά νούμερα */}
-      {!editMode && isPro && invReturns && (
+      {isPro && invReturns && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
@@ -1041,8 +1202,26 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         </div>
       )}
 
+      {/* Παρατηρήσεις — 2–3 έξυπνες προτάσεις πάνω από τα γραφήματα */}
+      {isCurMonth && insights.length > 0 && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Παρατηρήσεις</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {insights.map((t, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'color-mix(in srgb, var(--text-primary) 40%, transparent)', flexShrink: 0, marginTop: 7 }} />
+                <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Ετήσια εικόνα — YTD και προβολή τέλους έτους από καταγεγραμμένες εγγραφές */}
-      {!editMode && (() => {
+      {(() => {
         const ytdPct = annual.ytdBudget > 0 ? Math.min((annual.ytdActual / annual.ytdBudget) * 100, 100) : 0;
         const ytdOver = annual.ytdActual > annual.ytdBudget;
         const ytdCol = ytdOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
@@ -1105,7 +1284,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       })()}
 
       {/* Εβδομαδιαίο εργαλείο — δαπάνες αυτής της εβδομάδας ανά κατηγορία (μόνο τρέχων μήνας) */}
-      {!editMode && isCurMonth && weekTotalV > 0 && (
+      {isCurMonth && weekTotalV > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           {secHdr('Αυτή την εβδομάδα', 'week', <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(weekTotalV, 0)}</span>)}
           {!collapsed.has('week') && (
@@ -1129,7 +1308,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Επιχειρηματικές υποχρεώσεις — ΜΟΝΟ επαγγελματίας (δεν αφορούν ιδιώτες) */}
-      {!editMode && isPro && (
+      {isPro && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Επιχειρηματικές υποχρεώσεις</span>
           <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
@@ -1139,7 +1318,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Επαναλαμβανόμενες χρεώσεις / συνδρομές — ανάλυση 12μηνου ιστορικού δαπανών */}
-      {!editMode && recurring.length > 0 && (() => {
+      {recurring.length > 0 && (() => {
         const monthlyTotal = recurring.reduce((s, r) => s + r.monthlyEquivalent, 0);
         const annualTotal  = recurring.reduce((s, r) => s + r.annualCost, 0);
         const cadLabel = (c: RecurringCharge['cadence']) => c === 'monthly' ? 'μηνιαία' : c === 'bimonthly' ? 'διμηνιαία' : c === 'quarterly' ? 'τριμηνιαία' : c === 'yearly' ? 'ετήσια' : 'ακανόνιστη';
@@ -1174,13 +1353,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       })()}
 
       {/* Κουμπαράδες / αποθεματικά (sinking funds) */}
-      {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
+      {<BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
 
       {/* Category rows */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-        {secHdr('Ανά Κατηγορία', editMode ? undefined : 'cats')}
-        {!(!editMode && collapsed.has('cats')) &&
-        <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
+        {secHdr('Ανά Κατηγορία', 'cats', undefined,
+          <InfoDot text="Κάθε κατηγορία δείχνει τι έχεις ξοδέψει έναντι του στόχου. Κάνε κλικ στον στόχο για να τον αλλάξεις επιτόπου, ή στο όνομα για μετονομασία. Οι στόχοι αποθηκεύονται αυτόματα." />)}
+        {!(collapsed.has('cats')) &&
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {activeCats.map(cat => {
             const budget  = catBudget(cat.key);
             const actual  = viewActuals[cat.key] || 0;
@@ -1193,20 +1373,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const col     = 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
             const tr      = catTrend(cat.key);
 
-            const hov = !editMode && hoverCat === cat.key;
+            const hov = hoverCat === cat.key;
             const bdItems = isCurMonth ? (catBreakdown[cat.key] || []) : [];
-            const hasBd = !editMode && bdItems.length > 0;
+            const hasBd = bdItems.length > 0;
             const openCat = openCats.has(cat.key);
             const toggleCat = () => setOpenCats(s => { const n = new Set(s); n.has(cat.key) ? n.delete(cat.key) : n.add(cat.key); return n; });
             return (
               <div key={cat.key}
-                onMouseEnter={() => !editMode && setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
-                style={{ borderRadius: T.radius.inner, padding: editMode ? 0 : '6px 8px', margin: editMode ? 0 : '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
-                <div onClick={hasBd ? toggleCat : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5, cursor: hasBd ? 'pointer' : 'default' }}>
-                  <div style={{ width: 3, height: 26, borderRadius: 2, background: editMode ? 'color-mix(in srgb, var(--text-primary) 34%, transparent)' : (hov ? 'var(--accent)' : col), flexShrink: 0, transition: 'background 0.15s' }}/>
-                  <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
-                  {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
-                  {!editMode && isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
+                onMouseEnter={() => setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
+                style={{ borderRadius: T.radius.inner, padding: '6px 8px', margin: '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
+                <div onClick={hasBd ? toggleCat : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, cursor: hasBd ? 'pointer' : 'default' }}>
+                  <div style={{ width: 3, height: 26, borderRadius: 2, background: hov ? 'var(--accent)' : col, flexShrink: 0, transition: 'background 0.15s' }}/>
+                  <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}><InlineText value={cat.label} onCommit={v => renameCategory(cat.key, v)} ariaLabel={`Μετονομασία «${cat.label}»`} /></span>
+                  {<span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
+                  {isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
                     <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-tertiary)' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
@@ -1214,36 +1394,30 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   )}
                   <span style={{ flex: 1 }}/>
 
-                  {editMode ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 170 }}>
-                        <NumberInput label="" value={budgets[cat.key] ?? String(cat.default)} onChange={v => updateBudget(cat.key, v)} suffix="€ / μήνα" step={5} placeholder={String(cat.default)}/>
-                      </div>
-                      <button type="button" title="Αφαίρεση κατηγορίας"
-                        onClick={() => removeCategory(cat.key)}
-                        onMouseEnter={() => setDelCatHover(cat.key)} onMouseLeave={() => setDelCatHover(null)}
-                        style={{ width: 26, height: 26, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.inner, border: '1px solid ' + (delCatHover === cat.key ? 'var(--border-default)' : 'var(--border-subtle)'), background: 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                      {actual > 0
-                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(actual, 0)}</span>
-                        : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                      }
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ {feAuto(budget, 0)}</span>
-                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 40%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>}
-                      {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
-                      {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    {actual > 0
+                      ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(actual, 0)}</span>
+                      : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
+                    }
+                    {/* Στόχος — κλικ για επιτόπου αλλαγή */}
+                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ <InlineNumber raw={budgets[cat.key] ?? String(cat.default)} display={feAuto(budget, 0)} onCommit={v => updateBudget(cat.key, v)} width={58} ariaLabel={`Στόχος «${cat.label}»`} /></span>
+                    {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 40%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>}
+                    {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
+                    {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
+                  </div>
+                  {/* Αφαίρεση κατηγορίας — εμφανίζεται στο πέρασμα του κέρσορα */}
+                  <button type="button" title="Αφαίρεση κατηγορίας" aria-label={`Αφαίρεση «${cat.label}»`}
+                    onClick={e => { e.stopPropagation(); removeCategory(cat.key); }}
+                    onMouseEnter={() => setDelCatHover(cat.key)} onMouseLeave={() => setDelCatHover(null)}
+                    style={{ width: 22, height: 22, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'opacity 0.15s, color 0.15s', padding: 0, opacity: hov ? 1 : 0, pointerEvents: hov ? 'auto' : 'none' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                   {hasBd && (
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={hov ? 'var(--accent)' : 'var(--text-tertiary)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: openCat ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s, stroke 0.15s' }} aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                   )}
                 </div>
 
-                {!editMode && (
+                {(
                   <div style={{ marginLeft: 13 }}>
                     <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: hov ? 'var(--accent)' : col, borderRadius: 2, transition: 'width 0.5s ease, background 0.15s' }}/>
@@ -1270,52 +1444,69 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           })}
         </div>}
 
-        {editMode && (
-          <>
-            {/* Προσθήκη νέας κατηγορίας */}
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="π.χ. Καθαριότητα, Ασφάλεια…"
-                  onKeyDown={e => { if (e.key === 'Enter' && newCatName.trim()) { addCategory(newCatName); setNewCatName(''); } }}/>
+        {!collapsed.has('cats') && (() => {
+          const sumCats = activeCats.reduce((s, c) => s + catBudget(c.key), 0);
+          const linkBtn = (label: string, on: boolean, onClick: () => void) => (
+            <button type="button" onClick={onClick}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = on ? 'var(--accent)' : 'var(--text-secondary)'; }}>
+              {label}
+            </button>
+          );
+          return (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+              {/* Σύνολο + ενέργειες (χωρίς λειτουργία επεξεργασίας — όλα επιτόπου) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontSize: 11.5, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
+                <span>Μηνιαίος στόχος <InlineNumber raw={budgets.total ?? String(Math.round(masterBudget))} display={feAuto(masterBudget, 0)} onCommit={v => updateBudget('total', v)} width={70} ariaLabel="Συνολικός μηνιαίος στόχος" /></span>
+                <span style={{ color: 'var(--text-tertiary)' }}>Άθροισμα κατηγοριών <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>{feAuto(sumCats, 0)}</strong></span>
+                <span style={{ flex: 1 }} />
+                {linkBtn(addingCat ? 'Κλείσιμο' : '+ Προσθήκη κατηγορίας', addingCat, () => setAddingCat(v => !v))}
+                {linkBtn('Ρυθμίσεις', showSettings, () => setShowSettings(v => !v))}
               </div>
-              <button type="button" disabled={!newCatName.trim()}
-                onClick={() => { addCategory(newCatName); setNewCatName(''); }}
-                style={{ height: 38, padding: '0 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: newCatName.trim() ? 'color-mix(in srgb, var(--text-primary) 88%, transparent)' : 'var(--bg-elevated)', color: newCatName.trim() ? 'var(--bg-surface)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: newCatName.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                Προσθήκη
-              </button>
-            </div>
-            {hiddenBaseCats.length > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Επαναφορά:</span>
-                {hiddenBaseCats.map(c => (
-                  <button key={c.key} type="button" title="Επαναφορά κατηγορίας" onClick={() => restoreCategory(c.key)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px dashed var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    {c.label}
+
+              {addingCat && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="π.χ. Καθαριότητα, Φύλαξη…"
+                      onKeyDown={e => { if (e.key === 'Enter' && newCatName.trim()) { addCategory(newCatName); setNewCatName(''); } }}/>
+                  </div>
+                  <button type="button" disabled={!newCatName.trim()}
+                    onClick={() => { addCategory(newCatName); setNewCatName(''); }}
+                    style={{ height: 38, padding: '0 16px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: newCatName.trim() ? 'color-mix(in srgb, var(--text-primary) 88%, transparent)' : 'var(--bg-elevated)', color: newCatName.trim() ? 'var(--bg-surface)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: newCatName.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                    Προσθήκη
                   </button>
-                ))}
-              </div>
-            )}
-            <div style={{ marginTop: 14, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-              <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(activeCats.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
-              </div>
+                </div>
+              )}
+
+              {hiddenBaseCats.length > 0 && (
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Επαναφορά</span>
+                  {hiddenBaseCats.map(c => (
+                    <button key={c.key} type="button" title="Επαναφορά κατηγορίας" onClick={() => restoreCategory(c.key)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px dashed var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      {labelOverrides[c.key] ?? c.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showSettings && (
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
+                  {settingToggle('notifyOverspend', notifyOn, 'Ειδοποίηση σε υπέρβαση', 'Email όταν μια κατηγορία ξεπεράσει τον στόχο — μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.')}
+                  {settingToggle('rollover', rolloverOn, 'Μεταφορά υπολοίπου', 'Το αδιάθετο ή η υπέρβαση του μήνα μεταφέρεται στον επόμενο, αντί για μηδενισμό κάθε μήνα.')}
+                </div>
+              )}
             </div>
-            {/* Ρυθμίσεις προϋπολογισμού — διακόπτες (email υπέρβασης, μεταφορά υπολοίπου) */}
-            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
-              {settingToggle('notifyOverspend', notifyOn, 'Ειδοποίηση σε υπέρβαση', 'Email όταν μια κατηγορία ξεπεράσει τον στόχο — μέσω των προτιμήσεων ειδοποιήσεων και του Ημερολογίου.')}
-              {settingToggle('rollover', rolloverOn, 'Μεταφορά υπολοίπου', 'Το αδιάθετο ή η υπέρβαση του μήνα μεταφέρεται στον επόμενο, αντί για μηδενισμό κάθε μήνα.')}
-            </div>
-          </>
-        )}
+          );
+        })()}
       </div>
 
       {/* Εξαιρέσεις: όσα δεν θέλεις να μετρούν στα στατιστικά/προϋπολογισμό (τα πληρώνει άλλος ή απλώς εκτός) */}
-      {!editMode && isCurMonth && monthItems.length > 0 && (
+      {isCurMonth && monthItems.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           {secHdr('Εξαιρέσεις', 'exclusions',
             excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{excludedCount} εκτός</span> : undefined,
@@ -1341,7 +1532,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       </span>
                       {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε */}
                       <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
-                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { excludeItem(it.id); } }}
+                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); showToast(`Εξαιρέθηκε «${it.label}»`, () => persistCats({ __excluded: snap ?? '{}' })); } }}
                         style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: isEx ? 'var(--border-default)' : 'var(--accent)', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s' }}>
                         <span style={{ position: 'absolute', top: 2, left: isEx ? 2 : 18, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
                       </button>
@@ -1400,13 +1591,28 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       )}
 
       {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
-      {!editMode && (
+      {(
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginTop: 12 }}>
           {secHdr('Εισαγωγή δεδομένων', 'import', undefined,
             <InfoDot text="Ανέβασε τραπεζικό αντίγραφο ή λίστα εξόδων (CSV ή Excel) και το εργαλείο αναγνωρίζει αυτόματα ημερομηνία, ποσό και κατηγορία. Ελέγχεις και διορθώνεις πριν την καταχώρηση, ώστε οι δαπάνες να μπαίνουν στον σωστό μήνα και στη σωστή κατηγορία." />)}
           {!collapsed.has('import') && (
             <BudgetImport propertyId={propertyId} userId={userId} cats={activeCats.map(c => ({ key: c.key, label: c.label }))} onImported={loadData} />
           )}
+        </div>
+      )}
+
+      {/* Διακριτικό toast «Αναίρεση» — για διαγραφή κατηγορίας ή εξαίρεση */}
+      {toast && (
+        <div style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '11px 14px 11px 16px', borderRadius: 12, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', boxShadow: '0 8px 28px rgba(0,0,0,0.28)', fontFamily: T.font.sans, maxWidth: 'calc(100vw - 32px)' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toast.msg}</span>
+          <button type="button" onClick={() => { toast.undo(); if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}
+            style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 12.5, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+            Αναίρεση
+          </button>
+          <button type="button" aria-label="Κλείσιμο" onClick={() => { if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}
+            style={{ display: 'inline-flex', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 2, margin: '-2px -4px -2px 0', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       )}
     </div>
