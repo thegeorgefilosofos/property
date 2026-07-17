@@ -77,8 +77,8 @@ export default function LandingCalculator() {
 
       {/* Αριστερά: τα δικά σου νούμερα */}
       <div className="calc-panel" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <Control label="Μηνιαίο ενοίκιο" hint="Το μεικτό μηνιαίο μίσθωμα" value={rent} set={setRent} min={200} max={5000} step={10} format={eur} />
-        <Control label="Αξία ακινήτου" hint="Τρέχουσα εμπορική αξία, για τον υπολογισμό απόδοσης" value={value} set={setValue} min={30000} max={800000} step={5000} format={eur} />
+        <Control label="Μηνιαίο ενοίκιο" hint="Το μεικτό μηνιαίο μίσθωμα" value={rent} set={setRent} min={100} max={5000} step={10} format={eur} />
+        <Control label="Αξία ακινήτου" hint="Τρέχουσα εμπορική αξία, για τον υπολογισμό απόδοσης" value={value} set={setValue} min={2000} max={1000000} step={1000} format={eur} />
         <Control label="Ετήσιες δαπάνες" hint="ΕΝΦΙΑ, ασφάλεια, συντήρηση, κοινόχρηστα ιδιοκτήτη" value={costs} set={setCosts} min={0} max={10000} step={100} format={eur} />
 
         {/* Πού πέφτεις στην κλίμακα ενοικίων 2026 */}
