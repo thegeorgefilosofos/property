@@ -142,7 +142,7 @@ export default function LoginPage() {
           </form>
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 24, lineHeight: 1.6 }}>
-            Συνεχίζοντας αποδέχεσαι τους{' '}
+            Συνεχίζοντας, αποδέχεσαι τους{' '}
             <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Όρους Χρήσης</Link>{' '}και την{' '}
             <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Πολιτική Απορρήτου</Link>.
           </p>

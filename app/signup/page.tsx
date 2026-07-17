@@ -34,7 +34,7 @@ export default function SignupPage() {
   const [resent, setResent] = useState(false)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
-    : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος (τουλάχιστον 8 χαρακτήρες).'
+    : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
     : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
     : /valid email/i.test(m) ? 'Το email δεν φαίνεται έγκυρο.'
     : m
@@ -100,7 +100,7 @@ export default function SignupPage() {
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside
-        headline="Ξεκίνα σήμερα,"
+        headline="Ξεκίνα τώρα,"
         accent="σε λίγα δευτερόλεπτα."
         sub="Δημιούργησε λογαριασμό και βάλε το πρώτο σου ακίνητο σε τάξη με μία φωτογραφία. Ο βοηθός αναλαμβάνει τα υπόλοιπα."
       />
