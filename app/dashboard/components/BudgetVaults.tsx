@@ -288,7 +288,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                     <div style={grp}>Προθεσμία και τράπεζα</div>
                     <DatePicker label="Ημερομηνία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
                     <CustomSelect label="Αποταμίευση"
-                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα και βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
+                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν αδρανή και βλέπεις πόσους τόκους κερδίζεις τον χρόνο — έτσι αντισταθμίζεις και την απώλεια αγοραστικής δύναμης από τον πληθωρισμό. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
                       value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή…" />
                     {selectValue !== '' && (
                       <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
