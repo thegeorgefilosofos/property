@@ -18,13 +18,13 @@ export default function AlreadySignedIn({
         Έχεις ήδη συνδεθεί
       </h2>
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px' }}>
-        Ο λογαριασμός <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> είναι ενεργός σε αυτή τη συσκευή. Μπορείς να συνεχίσεις στον πίνακα ελέγχου{mode === 'signup'
+        Ο λογαριασμός <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> είναι ενεργός σε αυτή τη συσκευή. Μπορείς να συνεχίσεις στον πίνακά σου{mode === 'signup'
           ? ' ή, αν θέλεις, να αποσυνδεθείς για να δημιουργήσεις νέο λογαριασμό'
           : ' ή να αποσυνδεθείς για να συνδεθείς με άλλον λογαριασμό'}.
       </p>
 
       <Link href="/dashboard" style={{ display: 'block', textAlign: 'center', padding: '13px', background: 'var(--accent)', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-        Μετάβαση στον πίνακα →
+        Άνοιξε τον πίνακά σου →
       </Link>
 
       <button onClick={onSignOut} disabled={signingOut} style={{ width: '100%', marginTop: 12, padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, fontFamily: 'inherit' }}>
