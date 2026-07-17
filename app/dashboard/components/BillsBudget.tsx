@@ -1160,12 +1160,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const budget = catBudget(cat.key);
             const actual = viewActuals[cat.key] || 0;
             return (
-              <div key={cat.key} style={{ background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
+              <div key={cat.key} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'color-mix(in srgb, var(--negative) 55%, transparent)', flexShrink: 0 }}/>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({feAuto(actual, 0)} vs {feAuto(budget, 0)})</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'color-mix(in srgb, var(--negative) 70%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({feAuto(actual, 0)} έναντι {feAuto(budget, 0)})</span>
               </div>
             );
           })}
@@ -1330,11 +1330,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                   <span style={{ color: annual.variance > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>{annual.variance > 0 ? `Υπέρβαση ${feAuto(annual.variance, 0)} έναντι στόχου` : `Εντός στόχου κατά ${feAuto(-annual.variance, 0)}`}</span>
                   {monthTrend.avgPrior > 0 && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: trDir === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--text-tertiary)' }}>
                       {trDir === 'flat'
                         ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: trDir === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
-                      {trDir === 'flat' ? 'σταθερά' : `${monthTrend.deltaPct > 0 ? '+' : ''}${monthTrend.deltaPct}% vs τρίμηνο`}
+                      {trDir === 'flat' ? 'σταθερά' : `${monthTrend.deltaPct > 0 ? '+' : ''}${monthTrend.deltaPct}% έναντι τριμήνου`}
                     </span>
                   )}
                 </div>
