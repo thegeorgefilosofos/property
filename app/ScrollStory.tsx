@@ -18,7 +18,7 @@ const ACTS = [
     key: 'scan',
     over: '01 · Σάρωση',
     h: 'Δεν πληκτρολογείς. Φωτογραφίζεις.',
-    p: 'Λογαριασμός ρεύματος, κοινόχρηστα, μισθωτήριο, ασφαλιστήριο. Το φωτογραφίζεις και ο βοηθός διαβάζει ποσό, πάροχο, προθεσμία και κατανάλωση, και τα καταχωρίζει στο σωστό ακίνητο.',
+    p: 'Λογαριασμός ρεύματος, κοινόχρηστα, μισθωτήριο, ασφαλιστήριο. Το φωτογραφίζεις και ο βοηθός διαβάζει ποσό, πάροχο, προθεσμία και κατανάλωση, και τα καταχωρεί στο σωστό ακίνητο.',
     b: ['Κάθε έγγραφο βρίσκει μόνο του τη θέση του', 'Η προθεσμία μπαίνει αυτόματα στις υπενθυμίσεις', 'Η κατανάλωση τροφοδοτεί τις συγκρίσεις παρόχων'],
     Panel: PanelScan,
   },
@@ -48,11 +48,20 @@ export default function ScrollStory() {
     const root = stepsRef.current
     if (!root) return
     const steps = Array.from(root.querySelectorAll<HTMLElement>('[data-idx]'))
+    // Σε κάθε διέλευση ορίου, το ενεργό βήμα υπολογίζεται από τη γεωμετρία (ποιο
+    // βήμα βρίσκεται στο μέσο της οθόνης) και όχι μόνο από το entry του event.
+    // Έτσι η κατάσταση αυτοδιορθώνεται και στην ανάποδη κύλιση, χωρίς κολλήματα.
     const io = new IntersectionObserver(
-      entries => {
-        for (const e of entries) {
-          if (e.isIntersecting) setActive(Number((e.target as HTMLElement).dataset.idx))
-        }
+      () => {
+        const mid = window.innerHeight / 2
+        let best = 0
+        let bestDist = Infinity
+        steps.forEach((s, i) => {
+          const r = s.getBoundingClientRect()
+          const d = r.top <= mid && r.bottom >= mid ? -1 : Math.abs(r.top + r.height / 2 - mid)
+          if (d < bestDist) { bestDist = d; best = i }
+        })
+        setActive(best)
       },
       { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
     )
@@ -61,7 +70,9 @@ export default function ScrollStory() {
   }, [])
 
   const goTo = (i: number) => {
-    stepsRef.current?.querySelector<HTMLElement>(`[data-idx="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setActive(i)
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    stepsRef.current?.querySelector<HTMLElement>(`[data-idx="${i}"]`)?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' })
   }
 
   return (
@@ -70,7 +81,10 @@ export default function ScrollStory() {
       <style>{`
         .story-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(28px, 4vw, 64px); align-items: start; }
         .story-stick { position: sticky; top: clamp(72px, 12vh, 120px); }
-        .story-frame { position: relative; height: clamp(400px, 52vh, 500px); border-radius: 18px; background: var(--bg-surface); border: 1px solid var(--border-default); overflow: hidden; box-shadow: 0 24px 70px -32px rgba(0,0,0,.35), 0 0 120px -50px color-mix(in srgb, var(--accent) 55%, transparent); }
+        .story-frame { position: relative; height: clamp(400px, 52vh, 500px); border-radius: 18px; background: var(--bg-surface); border: 1px solid var(--border-default); overflow: hidden; box-shadow: 0 24px 70px -32px rgba(0,0,0,.35), 0 0 120px -50px color-mix(in srgb, var(--accent) 55%, transparent); container-type: inline-size; }
+        .story-panel-inline { container-type: inline-size; }
+        /* Σε στενό πλαίσιο (όχι στενή οθόνη), το πλευρικό μενού του πίνακα δεν χωρά. */
+        @container (max-width: 470px) { .lp-rail { display: none; } }
         .story-panel { position: absolute; inset: 0; padding: clamp(18px, 2.4vw, 30px); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(14px) scale(.985); transition: opacity .5s cubic-bezier(.2,0,0,1), transform .5s cubic-bezier(.2,0,0,1); pointer-events: none; }
         .story-panel.on { opacity: 1; transform: none; pointer-events: auto; }
         .story-panel > * { width: 100%; max-width: 480px; }
@@ -95,8 +109,8 @@ export default function ScrollStory() {
       `}</style>
 
       {/* Αριστερά: το καρφωμένο προϊόν που αλλάζει πράξη */}
-      <div className="story-stick" aria-hidden="true">
-        <div className="story-frame">
+      <div className="story-stick">
+        <div className="story-frame" aria-hidden="true">
           {ACTS.map((a, i) => (
             <div key={a.key} className={`story-panel${i === active ? ' on' : ''}`}>
               <div><a.Panel /></div>
