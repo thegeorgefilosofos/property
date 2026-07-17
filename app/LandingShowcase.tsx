@@ -126,7 +126,7 @@ function PanelDashboard() {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος εδώ, γλιτώνεις 184 € τον χρόνο.
+            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184 € τον χρόνο.
           </div>
         </div>
       </div>
@@ -186,7 +186,7 @@ function PanelAssistant() {
         </div>
         <div className="lp-pop" style={{ animationDelay: '.9s', alignSelf: 'flex-start' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>
-            Πήγαινε: Δαπάνες
+            Μετάβαση: Δαπάνες
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </span>
         </div>
