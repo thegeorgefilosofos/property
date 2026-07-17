@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, InfoDot, CustomSelect } from './UIComponents';
 import { T, fe } from '@/components/Theme';
-import { reservePlan } from '@/lib/billing/budgetPro';
+import { reservePlan, savingsSchedule } from '@/lib/billing/budgetPro';
 
 // ── Κουμπαράδες / Αποθεματικά (sinking funds) ─────────────────────────────────
 // Εικονικοί κουμπαράδες ανά ακίνητο: ΕΝΦΙΑ, λέβητας, κενές περίοδοι, ανακαίνιση.
@@ -12,7 +12,7 @@ import { reservePlan } from '@/lib/billing/budgetPro';
 // εισφορά που χρειάζεται και το ποσοστό κάλυψης. Google-minimal, μονόχρωμο, με
 // γαλάζιο μόνο στο πέρασμα του κέρσορα και επεξηγήσεις πίσω από ⓘ.
 
-interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string; bank?: string; apy?: number }
+interface Vault { id: string; name: string; target: number; current: number; due?: string; srcKey?: string; bank?: string; apy?: number; planAmount?: number; planDay?: number }
 
 // Λογαριασμοί αποταμίευσης με ευέλικτο (ημερήσιο/εβδομαδιαίο) επιτόκιο σε EUR, για
 // τράπεζες/νεοτράπεζες που δραστηριοποιούνται ή είναι προσβάσιμες από Ελλάδα.
@@ -74,6 +74,10 @@ const monthLabel = (due?: string): string => {
   if (!due) return '';
   try { return parseLocal(due).toLocaleDateString('el-GR', { month: 'short', year: 'numeric' }); } catch { return ''; }
 };
+const fullDate = (iso?: string): string => {
+  if (!iso) return '';
+  try { return parseLocal(iso).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return ''; }
+};
 const norm = (s: string) => s.toLowerCase().replace(/[^a-zα-ω0-9]/gi, '');
 
 export default function BudgetVaults({ propertyId, userId = '', suggestions = [], monthlyCommitment = 0 }: Props) {
@@ -91,6 +95,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   const [shut, setShut] = useState(false);
   const [doneHover, setDoneHover] = useState(false);
   const [delHover, setDelHover] = useState(false);
+  const [planHover, setPlanHover] = useState(false);
   editRef.current = editId;
 
   useEffect(() => {
@@ -254,6 +259,36 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                       <NumberInput label="Επιτόκιο (ετ.)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
                     )}
                     {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
+
+                    {/* Πρόγραμμα αποταμίευσης: βάζω Χ κάθε μήνα (ημέρα Υ) και βλέπω ζωντανά πότε πιάνω τον στόχο */}
+                    <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '9px 12px', borderTop: '1px solid var(--border-subtle)', paddingTop: 11, marginTop: 1 }}>
+                      <NumberInput label="Προσθέτω κάθε μήνα" value={v.planAmount != null ? String(v.planAmount) : ''} onChange={val => update(v.id, { planAmount: val.trim() === '' ? undefined : (parseFloat(val) || 0) })} suffix="€" step={10} placeholder="0" />
+                      <NumberInput label="Ημέρα του μήνα" value={v.planDay != null ? String(v.planDay) : ''} onChange={val => update(v.id, { planDay: val.trim() === '' ? undefined : Math.min(28, Math.max(1, parseInt(val) || 1)) })} step={1} placeholder="1" />
+                    </div>
+                    {(() => {
+                      if (!(v.planAmount && v.planAmount > 0)) return null;
+                      const now = new Date();
+                      const sc = savingsSchedule(v.target || 0, v.current || 0, v.planAmount, v.planDay || 1, { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() });
+                      if (!sc) return null;
+                      const on = planHover;
+                      return (
+                        <div onMouseEnter={() => setPlanHover(true)} onMouseLeave={() => setPlanHover(false)} onTouchStart={() => setPlanHover(true)} onTouchEnd={() => setPlanHover(false)}
+                          style={{ gridColumn: '1 / -1', background: 'var(--bg-surface)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '11px 13px', transition: 'border-color 0.15s', cursor: 'default' }}>
+                          {sc.reached ? (
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ο στόχος έχει ήδη καλυφθεί.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                                Θα πιάσεις τον στόχο τον <strong style={{ color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fullDate(sc.goalDate)}</strong>, σε <strong style={{ color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.contributionsToGoal}</strong> προσθήκες.
+                              </div>
+                              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                                Επόμενη προσθήκη σε <strong style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.daysToNext}</strong> {sc.daysToNext === 1 ? 'ημέρα' : 'ημέρες'} ({fullDate(sc.nextDate)}).
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}

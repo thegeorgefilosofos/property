@@ -1,7 +1,7 @@
 // Τεστ για τον προχωρημένο πυρήνα προϋπολογισμού (lib/billing/budgetPro.ts)
 import {
   safeToDistribute, reservePlan, rolloverNext, strWaterfall, investmentReturns,
-  recommendedReserves, climateFeePerNight, strTaxRegime, allocate,
+  recommendedReserves, climateFeePerNight, strTaxRegime, allocate, savingsSchedule,
 } from './budgetPro'
 
 let passed = 0, failed = 0
@@ -97,6 +97,29 @@ const near = (a: number, b: number, e = 0.01) => Math.abs(a - b) <= e
   const neg = allocate({ income: 500, committedBills: 400, reserveContributions: 100, loanPayment: 200 })
   ok('safe δεν πέφτει κάτω από 0', neg.safe === 0)
   ok('ανατεθειμένο κόβεται στο 100%', neg.assignedPct === 100)
+}
+
+// ── savingsSchedule (πρόγραμμα αποταμίευσης «βάζω Χ κάθε μήνα») ───────────────
+{
+  // Στόχος 1000, έχω 200, βάζω 100 στις 10 κάθε μήνα, σήμερα 3/1/2026.
+  const s = savingsSchedule(1000, 200, 100, 10, { y: 2026, m: 1, d: 3 })!
+  ok('8 προσθήκες ακόμη (800/100)', s.contributionsToGoal === 8)
+  ok('επόμενη προσθήκη 2026-01-10', s.nextDate === '2026-01-10')
+  ok('7 ημέρες μέχρι την επόμενη', s.daysToNext === 7)
+  ok('στόχος 8η προσθήκη → 2026-08-10', s.goalDate === '2026-08-10')
+  ok('δεν έχει καλυφθεί', s.reached === false)
+
+  // Αν σήμερα > ημέρα, η επόμενη προσθήκη πάει επόμενο μήνα.
+  const s2 = savingsSchedule(500, 0, 250, 5, { y: 2026, m: 3, d: 20 })!
+  ok('επόμενη προσθήκη επόμενου μήνα', s2.nextDate === '2026-04-05')
+  ok('2 προσθήκες → στόχος 2026-05-05', s2.contributionsToGoal === 2 && s2.goalDate === '2026-05-05')
+
+  // Ήδη καλυμμένος.
+  const done = savingsSchedule(300, 300, 50, 10, { y: 2026, m: 1, d: 1 })!
+  ok('καλυμμένος → reached', done.reached === true && done.contributionsToGoal === 0)
+
+  // Χωρίς ποσό προσθήκης → δεν μπορεί να προβλέψει.
+  ok('χωρίς ποσό → null', savingsSchedule(1000, 0, 0, 10, { y: 2026, m: 1, d: 1 }) === null)
 }
 
 console.log(`\nbudgetPro.test: ${passed} passed, ${failed} failed`)
