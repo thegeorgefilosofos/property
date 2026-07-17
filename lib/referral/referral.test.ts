@@ -2,7 +2,7 @@
 import {
   referralCode, referralLink, isValidReferral, isSelfOrDuplicate, normalizePhone,
   withinMonthlyCap, monthlyCapFor, isActivated, referrerRewardFor, refereeReward,
-  countActiveSlots, effectiveMaxProperties, canAddWithReferrals,
+  countActiveSlots, daysUntilExpiry, effectiveMaxProperties, canAddWithReferrals,
   MAX_ACTIVE_SLOTS, MONTHLY_CAP_DEFAULT, MONTHLY_CAP_AGENCY, REFEREE_TRIAL_MONTHS,
 } from './referral';
 
@@ -42,14 +42,17 @@ ok(isActivated({ propertiesAdded: 1, documentsScanned: 0 }) === false, 'χωρί
 
 // ── Ανταμοιβή: πίνακας προφίλ × τι έφερε ──
 const fr = referrerRewardFor('free', 'free', 0, 0);
-ok(fr.kind === 'slot' && fr.slots === 1 && fr.months === 1, 'δωρεάν → φίλο: +θέση 1 μήνα (προσωρινή)');
-ok(referrerRewardFor('free', 'agency', 0, 0).kind === 'free_month', 'δωρεάν → επαγγελματία: μήνας Ιδιοκτήτη');
+ok(fr.kind === 'slot' && fr.slots === 1 && fr.months === 1, 'δωρεάν → δωρεάν φίλο: +θέση 1 μήνα (προσωρινή)');
+ok(referrerRewardFor('free', 'owner', 0, 0).kind === 'free_month', 'δωρεάν → φίλο που έγινε Ιδιοκτήτης: μήνας Ιδιοκτήτη');
+ok(referrerRewardFor('free', 'agency', 0, 0).kind === 'free_month', 'δωρεάν → φίλο επαγγελματία: μήνας Ιδιοκτήτη');
 const or = referrerRewardFor('owner', 'free', 0, 0);
-ok(or.kind === 'free_month' && or.months === 1, 'ιδιοκτήτης → φίλο: 1 μήνας');
-const op = referrerRewardFor('owner', 'agency', 0, 0);
-ok(op.kind === 'free_month' && op.months === 2, 'ιδιοκτήτης → επαγγελματία: 2 μήνες (μπόνους)');
-const ap = referrerRewardFor('agency', 'agency', 0, 0);
-ok(ap.kind === 'free_month' && ap.months === 2, 'επαγγελματίας → επαγγελματία: 2 μήνες');
+ok(or.kind === 'free_month' && or.months === 1, 'ιδιοκτήτης → δωρεάν φίλο: 1 μήνας');
+const op = referrerRewardFor('owner', 'owner', 0, 0);
+ok(op.kind === 'free_month' && op.months === 2, 'ιδιοκτήτης → φίλο που έγινε Ιδιοκτήτης: 2 μήνες (μπόνους)');
+const oa = referrerRewardFor('owner', 'agency', 0, 0);
+ok(oa.kind === 'free_month' && oa.months === 2, 'ιδιοκτήτης → φίλο επαγγελματία: 2 μήνες');
+const ap = referrerRewardFor('agency', 'owner', 0, 0);
+ok(ap.kind === 'free_month' && ap.months === 2, 'επαγγελματίας → φίλο συνδρομητή: 2 μήνες');
 ok(referrerRewardFor('free', 'free', MAX_ACTIVE_SLOTS, 0).kind === 'none', 'δωρεάν με γεμάτες θέσεις → none');
 ok(referrerRewardFor('free', 'free', 0, MONTHLY_CAP_DEFAULT).kind === 'none', 'πάνω από πλαφόν → none');
 ok(referrerRewardFor('agency', 'free', 0, MONTHLY_CAP_DEFAULT + 3).kind === 'free_month', 'επαγγελματίας ακόμη ανταμείβεται πάνω από το κοινό πλαφόν');
@@ -61,6 +64,8 @@ ok(refereeReward().months === REFEREE_TRIAL_MONTHS, 'φίλος → 2 μήνες
 const grants = [{ expiresAt: '2026-01-01T00:00:00Z' }, { expiresAt: '2027-01-01T00:00:00Z' }, { expiresAt: null }];
 ok(countActiveSlots(grants, '2026-06-01T00:00:00Z') === 2, 'μετράει μόνο ενεργές (1 ληγμένη)');
 ok(countActiveSlots(grants, '2028-06-01T00:00:00Z') === 1, 'μόνο η μόνιμη μένει');
+ok(daysUntilExpiry('2026-01-20T00:00:00Z', '2026-01-01T00:00:00Z') === 19, 'λήγει σε 19 ημέρες');
+ok(daysUntilExpiry('2026-01-01T00:00:00Z', '2026-01-20T00:00:00Z') === 0, 'ληγμένη → 0 ημέρες');
 
 // ── Πραγματικό όριο & προσθήκη ──
 ok(effectiveMaxProperties('free', 0) === 1, 'δωρεάν βάση 1');

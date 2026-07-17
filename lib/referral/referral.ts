@@ -32,8 +32,8 @@ import { normalizePlan, planLimit, type PlanId } from '../billing/plans';
 // ── Παράμετροι προγράμματος (Φάση 1· αναπροσαρμόζονται με δεδομένα) ──────────
 export const REFEREE_TRIAL_MONTHS = 2;   // δώρο στον νέο χρήστη
 export const SLOT_REWARD_MONTHS = 1;     // διάρκεια της κερδισμένης θέσης (δωρεάν)
-export const PAID_REWARD_MONTHS = 1;     // βασικό δώρο μήνα (πληρωμένος)
-export const PRO_REFEREE_BONUS_MONTHS = 1; // μπόνους όταν ο φίλος γίνεται επαγγελματίας
+export const PAID_REWARD_MONTHS = 1;         // βασικό δώρο μήνα (πληρωμένος)
+export const PAID_REFEREE_BONUS_MONTHS = 1;  // μπόνους όταν ο φίλος γίνεται συνδρομητής (Ιδιοκτήτης/Επαγγελματίας)
 export const MAX_ACTIVE_SLOTS = 3;       // πλαφόν ΕΝΕΡΓΩΝ κερδισμένων θέσεων
 export const MONTHLY_CAP_DEFAULT = 5;    // ανταμοιβές/μήνα (δωρεάν/ιδιοκτήτης)
 export const MONTHLY_CAP_AGENCY = 20;    // ανταμοιβές/μήνα (επαγγελματίας)
@@ -111,15 +111,17 @@ export function referrerRewardFor(
 ): ReferrerReward {
   if (!withinMonthlyCap(referrerPlan, rewardsThisMonth)) return { kind: 'none', reason: 'cap_reached' };
   const rp: PlanId = normalizePlan(referrerPlan);
-  const broughtPro = normalizePlan(refereePlan) === 'agency';
+  const rp2: PlanId = normalizePlan(refereePlan);
+  const paidReferee = rp2 === 'owner' || rp2 === 'agency';   // ο φίλος έγινε συνδρομητής
 
   if (rp === 'free') {
-    if (broughtPro) return { kind: 'free_month', months: PAID_REWARD_MONTHS };  // έφερε επαγγελματία → δοκιμή Ιδιοκτήτη
+    // Έφερε πληρωμένο χρήστη → μήνας Ιδιοκτήτη· αλλιώς προσωρινή θέση ακινήτου.
+    if (paidReferee) return { kind: 'free_month', months: PAID_REWARD_MONTHS };
     if (activeSlots >= MAX_ACTIVE_SLOTS) return { kind: 'none', reason: 'slots_maxed' };
     return { kind: 'slot', slots: 1, months: SLOT_REWARD_MONTHS };
   }
-  // Πληρωμένοι (owner/agency): μήνες, με μπόνους αν έφεραν επαγγελματία.
-  return { kind: 'free_month', months: PAID_REWARD_MONTHS + (broughtPro ? PRO_REFEREE_BONUS_MONTHS : 0) };
+  // Πληρωμένοι (owner/agency): 1 μήνας ανά φίλο, 2 αν ο φίλος έγινε συνδρομητής.
+  return { kind: 'free_month', months: PAID_REWARD_MONTHS + (paidReferee ? PAID_REFEREE_BONUS_MONTHS : 0) };
 }
 
 /** Το δώρο του νέου χρήστη: δοκιμή δυνατοτήτων «Ιδιοκτήτη». */
@@ -137,6 +139,13 @@ export function countActiveSlots(grants: { expiresAt: string | null }[], nowIso:
     if (Date.parse(g.expiresAt) > now) n++;
   }
   return n;
+}
+
+/** Μέρες μέχρι τη λήξη μιας κερδισμένης θέσης (0 αν έληξε). Τροφοδοτεί το
+ *  κουτάκι αντίστροφης μέτρησης «Λήγει σε X ημέρες» που εθίζει σε νέα πρόσκληση. */
+export function daysUntilExpiry(expiresAt: string, nowIso: string): number {
+  const ms = Date.parse(expiresAt) - Date.parse(nowIso);
+  return ms <= 0 ? 0 : Math.ceil(ms / 86_400_000);
 }
 
 export function effectiveMaxProperties(planId: string | null | undefined, activeSlots: number): number {
