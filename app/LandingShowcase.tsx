@@ -19,6 +19,19 @@ export default function LandingShowcase() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Διακριτικό 3D: το πλαίσιο γέρνει ελάχιστα προς τον κέρσορα (έως 3,5°) και
+  // επανέρχεται απαλά. Ανενεργό όταν ο χρήστης προτιμά μειωμένη κίνηση.
+  const tiltRef = useRef<HTMLDivElement | null>(null);
+  const noMotion = useRef(false);
+  useEffect(() => { try { noMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { /* ignore */ } }, []);
+  const onTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (noMotion.current || !tiltRef.current) return;
+    const r = tiltRef.current.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    tiltRef.current.style.transform = `perspective(1400px) rotateX(${(-y * 3.5).toFixed(2)}deg) rotateY(${(x * 4).toFixed(2)}deg)`;
+  };
+  const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)'; };
 
   useEffect(() => {
     if (paused) return;
@@ -43,7 +56,15 @@ export default function LandingShowcase() {
             .lp-mockup { animation: lpTilt linear both; animation-timeline: view(); animation-range: entry 2% cover 40%; }
           }
         }
+        /* Ζωντανή αντίδραση στο πέρασμα του κέρσορα ή του δαχτύλου: τα στοιχεία
+           των πάνελ «απαντούν» διακριτικά. Φίλτρο και ανύψωση μόνο, καμία λάμψη. */
+        .lp-live { transition: filter .18s ease, transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s ease; }
+        .lp-live:hover { filter: brightness(1.13); transform: translateY(-1.5px); box-shadow: 0 4px 14px -6px rgba(16,24,40,.22); }
+        .lp-vbar { transition: filter .18s ease; }
+        .lp-vbar:hover { filter: brightness(1.4) saturate(1.15); }
+        @media (prefers-reduced-motion: reduce) { .lp-live, .lp-vbar { transition: none; } .lp-live:hover { transform: none; } }
       `}</style>
+      <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
       <div className="lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
         style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 18, overflow: 'hidden' }}>
         {/* chrome */}
@@ -65,6 +86,7 @@ export default function LandingShowcase() {
             {active === 2 && <PanelAssistant />}
           </div>
         </div>
+      </div>
       </div>
 
       {/* tab pills */}
@@ -96,7 +118,7 @@ function PanelDashboard() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>Property OS</div>
         </div>
         {['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'].map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 9, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: i === 0 ? 700 : 500 }}>
+          <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 9, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 12.5, fontWeight: i === 0 ? 700 : 500 }}>
             <span style={{ width: 6, height: 6, borderRadius: 2, background: i === 0 ? 'var(--text-secondary)' : 'var(--border-strong)' }} />{r}
           </div>
         ))}
@@ -104,7 +126,7 @@ function PanelDashboard() {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {kpis.map(([l, v], i) => (
-            <div key={i} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px' }}>
+            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px' }}>
               <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{l}</div>
               <div style={{ fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
             </div>
@@ -117,16 +139,16 @@ function PanelDashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px, 1.2vw, 9px)', height: 92 }}>
             {months.map((m, i) => (
-              <div key={i} className="lp-grow" style={{ animationDelay: `${i * 0.04}s`, flex: 1, height: `${m}%`, borderRadius: '4px 4px 0 0', background: i === months.length - 1 ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 34%, transparent)' }} />
+              <div key={i} className="lp-grow lp-vbar" style={{ animationDelay: `${i * 0.04}s`, flex: 1, height: `${m}%`, borderRadius: '4px 4px 0 0', background: i === months.length - 1 ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 34%, transparent)' }} />
             ))}
           </div>
         </div>
-        <div className="lp-hide-xs" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)', borderRadius: 12, padding: '12px 14px' }}>
+        <div className="lp-hide-xs lp-live" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)', borderRadius: 12, padding: '12px 14px' }}>
           <div style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος εδώ, γλιτώνεις 184 € τον χρόνο.
+            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184 € τον χρόνο.
           </div>
         </div>
       </div>
@@ -140,7 +162,7 @@ function PanelScan() {
   const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', 'Αρχείο'];
   return (
     <div style={{ maxWidth: 440, margin: '0 auto', textAlign: 'left' }}>
-      <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
+      <div className="lp-live" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
         <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em' }}>Ρεύμα</div>
@@ -160,7 +182,7 @@ function PanelScan() {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {filed.map((t, i) => (
-          <span key={i} className="lp-pop" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px' }}>{check}{t}</span>
+          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px' }}>{check}{t}</span>
         ))}
       </div>
     </div>
@@ -180,13 +202,13 @@ function PanelAssistant() {
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--positive)' }} />
       </div>
       <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div className="lp-pop" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
-        <div className="lp-pop" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '88%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
-          Φέτος <strong>1.240 €</strong> σε ρεύμα, 18% πάνω από πέρσι. Το ένα ακίνητο τα τρώει όλα. Να σε πάω να δεις;
+        <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
+        <div className="lp-pop lp-live" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '90%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
+          Φέτος ξόδεψες <strong>1.240 €</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
         </div>
         <div className="lp-pop" style={{ animationDelay: '.9s', alignSelf: 'flex-start' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>
-            Πήγαινε: Δαπάνες
+          <span className="lp-live" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>
+            Μετάβαση: Σύγκριση ρεύματος
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </span>
         </div>

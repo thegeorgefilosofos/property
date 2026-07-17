@@ -15,14 +15,14 @@ const Check = () => (
 )
 
 const PILLARS = [
-  { label: 'Μία φωτογραφία, όλα καταχωρημένα', text: 'Τράβα λογαριασμό, συμβόλαιο ή ασφάλεια. Το διαβάζει και μπαίνει μόνο του στη σωστή θέση.' },
+  { label: 'Μία φωτογραφία, όλα καταχωρημένα', text: 'Φωτογράφισε λογαριασμό, συμβόλαιο ή ασφαλιστήριο. Το διαβάζει και το βάζει στη σωστή θέση.' },
   { label: 'Βοηθός με φωνή που ξέρει το ακίνητό σου', text: 'Ρώτα στα ελληνικά, με κείμενο ή με τη φωνή σου. Απαντά με τα δικά σου νούμερα και σε καθοδηγεί.' },
   { label: 'Τα οικονομικά σου, ξεκάθαρα', text: 'Έσοδα, δαπάνες, απόδοση, ρεύμα και φορολογία 2026, σε μία οθόνη.' },
 ]
 
 export default function AuthAside({
-  headline = 'Το ακίνητό σου,',
-  accent = 'υπό έλεγχο σαν επαγγελματίας.',
+  headline = 'Διαχειρίσου το ακίνητό σου',
+  accent = 'σαν επαγγελματίας.',
   sub = 'Για κάθε ιδιοκτήτη, από ένα σπίτι μέχρι ολόκληρο χαρτοφυλάκιο. Αποδόσεις, δαπάνες, ρεύμα και φορολογία, χωρίς να ανοίγεις άλλη εφαρμογή.',
 }: {
   headline?: string
@@ -61,7 +61,7 @@ export default function AuthAside({
 
       {/* pricing footnote */}
       <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700, margin: 0 }}>Το πρώτο ακίνητο δωρεάν, για πάντα</p>
+        <p style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700, margin: 0 }}>Το πρώτο ακίνητο δωρεάν για πάντα</p>
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>Χωρίς κάρτα</p>
       </div>
     </div>
