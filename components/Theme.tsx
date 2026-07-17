@@ -86,6 +86,11 @@ export function Spinner({ size = 22, label }: { size?: number; label?: string })
 export const fe = (n: number, d = 2) =>
   `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
 
+/// Ευρώ με «έξυπνα» δεκαδικά: ακέραιο ποσό → χωρίς δεκαδικά (751 €), ποσό με λεπτά →
+// δύο δεκαδικά (19,25 €). Το δεύτερο όρισμα αγνοείται (για εύκολη αντικατάσταση του fe).
+export const feAuto = (n: number, _d?: number) =>
+  `${(Math.round((n || 0) * 100) / 100).toLocaleString('el-GR', Number.isInteger(Math.round((n || 0) * 100) / 100) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+
 // Ακέραιοι/αριθμοί χωρίς σύμβολο νομίσματος
 export const fn = (n: number, d = 0) =>
   n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d });
