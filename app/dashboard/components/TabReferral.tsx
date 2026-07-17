@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  referralCode, referralLink,
+  referralCode, referralLink, daysUntilExpiry,
   REFEREE_TRIAL_MONTHS, SLOT_REWARD_MONTHS, PAID_REWARD_MONTHS,
-  PRO_REFEREE_BONUS_MONTHS, MONTHLY_CAP_AGENCY, MONTHLY_CAP_DEFAULT,
+  PAID_REFEREE_BONUS_MONTHS, MONTHLY_CAP_AGENCY, MONTHLY_CAP_DEFAULT,
 } from '@/lib/referral/referral';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -21,12 +21,14 @@ function Icon({ d, size = 18, color = 'currentColor' }: { d: string; size?: numb
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p, i) => <path key={i} d={p} />)}</svg>;
 }
 
-export default function TabReferral({ userId, plan, profileType }: {
+export default function TabReferral({ userId, plan, profileType, activeSlots = [] }: {
   userId: string; plan: string; profileType: 'individual' | 'professional';
+  activeSlots?: { expiresAt: string }[];  // κερδισμένες θέσεις με λήξη (από τον πίνακα referrals)
 }) {
   const [origin, setOrigin] = useState('https://property-os.gr');
   const [copied, setCopied] = useState(false);
-  useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
+  const [nowIso, setNowIso] = useState('');
+  useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } setNowIso(new Date().toISOString()); }, []);
 
   const code = useMemo(() => referralCode(userId), [userId]);
   const link = useMemo(() => referralLink(origin, userId), [origin, userId]);
@@ -47,17 +49,20 @@ export default function TabReferral({ userId, plan, profileType }: {
 
   // Ανταμοιβές, από τους πραγματικούς κανόνες (lib/referral).
   const youGet = isPro
-    ? `${PAID_REWARD_MONTHS} μήνας Επαγγελματία δωρεάν για κάθε πελάτη που ξεκινά, ${PAID_REWARD_MONTHS + PRO_REFEREE_BONUS_MONTHS} αν φέρεις άλλον επαγγελματία. Έως ${MONTHLY_CAP_AGENCY} τον μήνα.`
+    ? `${PAID_REWARD_MONTHS} μήνας Επαγγελματία δωρεάν για κάθε ενεργό πελάτη, ${PAID_REWARD_MONTHS + PAID_REFEREE_BONUS_MONTHS} αν γίνει κι αυτός συνδρομητής. Έως ${MONTHLY_CAP_AGENCY} τον μήνα.`
     : plan === 'free'
-      ? `+1 ακίνητο για ${SLOT_REWARD_MONTHS} μήνα, για κάθε φίλο που ξεκινά. Αν φέρεις επαγγελματία, κερδίζεις έναν μήνα Ιδιοκτήτη δωρεάν. Έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`
-      : `${PAID_REWARD_MONTHS} μήνας Ιδιοκτήτη δωρεάν ανά φίλο, ${PAID_REWARD_MONTHS + PRO_REFEREE_BONUS_MONTHS} αν είναι επαγγελματίας. Έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`;
+      ? `+1 ακίνητο για ${SLOT_REWARD_MONTHS} μήνα, για κάθε φίλο που ξεκινά. Αν ο φίλος γίνει Ιδιοκτήτης, κερδίζεις έναν μήνα Ιδιοκτήτη δωρεάν. Έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`
+      : `${PAID_REWARD_MONTHS} μήνας Ιδιοκτήτη δωρεάν ανά φίλο, ${PAID_REWARD_MONTHS + PAID_REFEREE_BONUS_MONTHS} αν ο φίλος γίνει κι αυτός Ιδιοκτήτης. Έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`;
   const friendGets = `${REFEREE_TRIAL_MONTHS} μήνες δυνατοτήτων Ιδιοκτήτη δωρεάν, από την πρώτη μέρα.`;
+
+  // Κερδισμένες θέσεις με αντίστροφη μέτρηση: εθίζει σε νέα πρόσκληση πριν λήξουν.
+  const slotsView = nowIso ? activeSlots.map(s => ({ days: daysUntilExpiry(s.expiresAt, nowIso) })).filter(s => s.days > 0).sort((a, b) => a.days - b.days) : [];
 
   return (
     <div style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Κεφαλίδα, ανά προφίλ */}
       <div>
-        <div style={{ ...eyebrow, color: 'var(--accent)', marginBottom: 10 }}>{isPro ? 'Πρόγραμμα Συνεργατών' : 'Προσκάλεσε & Κέρδισε'}</div>
+        <div style={{ ...eyebrow, color: 'var(--accent)', marginBottom: 10 }}>{isPro ? 'Πρόγραμμα Συνεργατών' : 'Πρόγραμμα Πρόσκλησης'}</div>
         <h2 style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 8px', color: 'var(--text-primary)' }}>
           {isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}
         </h2>
@@ -92,6 +97,25 @@ export default function TabReferral({ userId, plan, profileType }: {
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 12 }}>Κωδικός: <strong style={{ color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>{code}</strong></div>
       </div>
+
+      {/* Κερδισμένες θέσεις με αντίστροφη μέτρηση — κίνητρο να μη λήξουν */}
+      {slotsView.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {slotsView.map((s, i) => {
+            const urgent = s.days <= 7;
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: urgent ? 'color-mix(in srgb, var(--negative) 8%, var(--bg-surface))' : 'color-mix(in srgb, var(--accent) 7%, var(--bg-surface))', border: `1px solid ${urgent ? 'color-mix(in srgb, var(--negative) 30%, transparent)' : 'color-mix(in srgb, var(--accent) 24%, transparent)'}`, borderRadius: 14, padding: '14px 16px' }}>
+                <Icon d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" size={20} color={urgent ? 'var(--negative)' : 'var(--accent)'} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>Δωρεάν θέση ακινήτου · Λήγει σε {s.days} {s.days === 1 ? 'ημέρα' : 'ημέρες'}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 2 }}>Προσκάλεσε άλλον έναν ιδιοκτήτη για να την κρατήσεις ζωντανή.</div>
+                </div>
+                <span style={{ fontSize: 20, fontWeight: 700, color: urgent ? 'var(--negative)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>{s.days}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Τι κερδίζει ο καθένας */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>

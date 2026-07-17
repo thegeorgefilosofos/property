@@ -100,7 +100,7 @@ const NAV_ITEMS = [
   { id:'contacts',   label:'Επαφές' },
   { id:'roi',        label:'Αποδόσεις' },
   { id:'comparison', label:'Σύγκριση ακινήτων' },
-  { id:'referral',   label:'Προσκάλεσε & Κέρδισε' },
+  { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
@@ -1021,7 +1021,7 @@ export default function Dashboard() {
               {open && group.ids.filter(id => (id!=='comparison' || properties.length>=2) && (id!=='portfolio' || profileType==='professional')).map(id => { const badge=getBadge(id); return (
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
-                  <span className="sidebar-item-label">{NAV_LABEL[id]}</span>
+                  <span className="sidebar-item-label">{id==='referral' && profileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
                   {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
                 </button>
               );})}
