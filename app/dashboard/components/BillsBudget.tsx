@@ -842,6 +842,40 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     return out.slice(0, 3);
   })();
 
+  // ── Προδραστικές προτάσεις: actionable, με ένα άγγιγμα εφαρμογή ──────────────
+  // Ευθυγράμμιση στόχων με το πραγματικό μοτίβο των τελευταίων μηνών (ανέβασμα/μείωση)
+  // και ευθυγράμμιση συνολικού στόχου με το άθροισμα κατηγοριών. Οι απορρίψεις θυμούνται
+  // (__dismissed) ώστε να μην ενοχλούν ξανά. Η εφαρμογή δείχνει toast «Αναίρεση».
+  const dismissedSug: string[] = (() => { try { const a = JSON.parse(budgets.__dismissed || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch { return []; } })();
+  const dismissSuggestion = (key: string) => persistCats({ __dismissed: JSON.stringify([...dismissedSug, key].slice(-60)) });
+  const applyTarget = (k: string, val: number, msg: string) => { const prev = budgets[k]; updateBudget(k, String(val)); showToast(msg, () => updateBudget(k, prev ?? '')); };
+  const targetSuggestions: { key: string; text: string; apply: () => void }[] = (() => {
+    if (!isCurMonth) return [];
+    const out: { key: string; text: string; apply: () => void }[] = [];
+    const round5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
+    activeCats.forEach(c => {
+      const target = catBudget(c.key);
+      const hist = _priorYms.map(ym => catMonth[ym]?.[c.key]).filter((v): v is number => typeof v === 'number' && v > 0);
+      if (hist.length < 2 || target <= 0) return;
+      const avg = Math.round(hist.reduce((s, v) => s + v, 0) / hist.length);
+      if (avg > target * 1.2) {
+        const sv = round5(avg);
+        const key = `raise:${c.key}:${sv}`;
+        if (sv !== target && !dismissedSug.includes(key)) out.push({ key, text: `Η «${c.label}» ξεπερνά συστηματικά τον στόχο (μέσος όρος ${feAuto(avg, 0)} τους τελευταίους μήνες). Να ανεβάσω τον στόχο στα ${feAuto(sv, 0)};`, apply: () => applyTarget(c.key, sv, `Ο στόχος της «${c.label}» ενημερώθηκε`) });
+      } else if (avg < target * 0.6) {
+        const sv = round5(avg);
+        const key = `lower:${c.key}:${sv}`;
+        if (sv !== target && !dismissedSug.includes(key)) out.push({ key, text: `Η «${c.label}» μένει σταθερά κάτω από τον στόχο (μέσος όρος ${feAuto(avg, 0)}). Να μειώσω τον στόχο στα ${feAuto(sv, 0)} για πιο ρεαλιστικό προϋπολογισμό;`, apply: () => applyTarget(c.key, sv, `Ο στόχος της «${c.label}» ενημερώθηκε`) });
+      }
+    });
+    const sumCats = activeCats.reduce((s, c) => s + catBudget(c.key), 0);
+    if (sumCats > 0 && Math.abs(sumCats - masterBudget) > Math.max(20, masterBudget * 0.1)) {
+      const key = `total:${Math.round(sumCats)}`;
+      if (!dismissedSug.includes(key)) out.push({ key, text: `Ο συνολικός μηνιαίος στόχος (${feAuto(masterBudget, 0)}) διαφέρει από το άθροισμα των κατηγοριών (${feAuto(sumCats, 0)}). Να τους ευθυγραμμίσω;`, apply: () => applyTarget('total', Math.round(sumCats), 'Ο συνολικός στόχος ευθυγραμμίστηκε') });
+    }
+    return out.slice(0, 3);
+  })();
+
   // ── Ειδοποιήσεις υπέρβασης (σύνδεση με το σύστημα υπενθυμίσεων) ──────────────
   // Όταν ενεργό και υπάρχει υπέρβαση, δημιουργείται ΕΝΑ εκκρεμές γεγονός ημερολογίου
   // (source 'budget') τον μήνα — το ημερήσιο cron το στέλνει email μέσω των προτιμήσεων
@@ -1198,6 +1232,34 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <KPI label="Ταμειακή ροή" value={feAuto(invReturns.preTaxCashFlow, 0)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
             <KPI label="Cap rate" value={`${invReturns.capRatePct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
             <KPI label="Cash-on-cash" value={`${invReturns.cashOnCashPct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+          </div>
+        </div>
+      )}
+
+      {/* Προτάσεις — προδραστικές, actionable (εφαρμογή με ένα άγγιγμα) */}
+      {isCurMonth && targetSuggestions.length > 0 && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Προτάσεις</span>
+            <InfoDot text="Προτάσεις που προκύπτουν από το πραγματικό μοτίβο των δαπανών σου. Εφαρμόζεις με ένα άγγιγμα (με δυνατότητα αναίρεσης) ή τις απορρίπτεις για να μην ξαναεμφανιστούν." />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {targetSuggestions.map(s => (
+              <div key={s.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{s.text}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <button type="button" onClick={s.apply}
+                    style={{ height: 28, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 11.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+                    Εφαρμογή
+                  </button>
+                  <button type="button" aria-label="Απόρριψη" title="Απόρριψη" onClick={() => dismissSuggestion(s.key)}
+                    style={{ display: 'inline-flex', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 3, margin: '-3px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
