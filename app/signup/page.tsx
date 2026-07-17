@@ -100,9 +100,9 @@ export default function SignupPage() {
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside
-        headline="Ξεκίνα σήμερα."
-        accent="Δωρεάν, χωρίς κάρτα."
-        sub="Δημιούργησε λογαριασμό σε λίγα δευτερόλεπτα. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο όταν έχεις περισσότερα να διαχειριστείς."
+        headline="Ξεκίνα σήμερα,"
+        accent="σε λίγα δευτερόλεπτα."
+        sub="Δημιούργησε λογαριασμό και βάλε το πρώτο σου ακίνητο σε τάξη με μία φωτογραφία. Ο βοηθός αναλαμβάνει τα υπόλοιπα."
       />
 
       {/* RIGHT, form */}
@@ -126,7 +126,7 @@ export default function SignupPage() {
           ) : (
             <>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Δημιουργία λογαριασμού</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
+              <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
                 Έχεις ήδη λογαριασμό;{' '}
                 <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Σύνδεση</Link>
               </p>
@@ -183,15 +183,6 @@ export default function SignupPage() {
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν →'}
                 </button>
               </form>
-
-              <div style={{ marginTop: 20, padding: 16, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Χωρίς χρέωση σήμερα</span>
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>Δεν χρειάζεται κάρτα για να ξεκινήσεις. Το πρώτο σου ακίνητο μένει δωρεάν για πάντα, πληρώνεις μόνο όταν έχεις περισσότερα να διαχειριστείς.</p>
-              </div>
-
             </>
           )}
         </div>

@@ -31,6 +31,40 @@ export function reservePlan(target: number, current: number, monthsToTarget: num
   return { remaining: r0(remaining), requiredMonthly: r0(requiredMonthly), fundedPct }
 }
 
+// ── A6b · Πρόγραμμα αποταμίευσης: βάζω Χ κάθε μήνα (ημέρα Υ) — πότε πιάνω τον στόχο ──
+// Η αντίστροφη λογική του reservePlan: αντί για «πόσο τον μήνα μέχρι μια ημερομηνία»,
+// εδώ ο χρήστης ορίζει το ποσό ανά προσθήκη και μαθαίνει ΠΟΤΕ θα καλυφθεί ο στόχος και
+// πότε είναι η επόμενη προσθήκη. Καθαρή (pure): το «σήμερα» δίνεται από τη UI.
+export interface SavingsSchedule {
+  reached: boolean
+  contributionsToGoal: number   // πόσες προσθήκες ακόμη
+  nextDate: string              // ISO επόμενης προσθήκης
+  daysToNext: number
+  goalDate: string              // ISO ημερομηνία επίτευξης στόχου
+}
+const isoOf = (dt: Date): string =>
+  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+
+export function savingsSchedule(
+  target: number, current: number, perContribution: number, dayOfMonth: number,
+  from: { y: number; m: number; d: number },
+): SavingsSchedule | null {
+  const fromDate = new Date(from.y, (from.m || 1) - 1, from.d || 1)
+  const remaining = Math.max(0, (target || 0) - (current || 0))
+  if (remaining <= 0) return { reached: true, contributionsToGoal: 0, nextDate: isoOf(fromDate), daysToNext: 0, goalDate: isoOf(fromDate) }
+  if (!(perContribution > 0)) return null
+  const day = Math.min(31, Math.max(1, Math.round(dayOfMonth || 1)))
+  // Επόμενη προσθήκη: αν σήμερα ≤ ημέρα → αυτόν τον μήνα, αλλιώς τον επόμενο.
+  const nextDate = from.d <= day
+    ? new Date(from.y, (from.m || 1) - 1, day)
+    : new Date(from.y, (from.m || 1), day)
+  const contributionsToGoal = Math.ceil(remaining / perContribution)
+  // Ο στόχος καλύπτεται στην τελευταία προσθήκη = επόμενη + (πλήθος − 1) μήνες.
+  const goalDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + (contributionsToGoal - 1), day)
+  const daysToNext = Math.max(0, Math.round((nextDate.getTime() - fromDate.getTime()) / 86400000))
+  return { reached: false, contributionsToGoal, nextDate: isoOf(nextDate), daysToNext, goalDate: isoOf(goalDate) }
+}
+
 // ── B4 · Rollover: αδιάθετο μεταφέρεται μπροστά· υπέρβαση μειώνει την επόμενη ──
 export interface Rollover { available: number; carryOut: number }
 export function rolloverNext(budget: number, actual: number, carryIn = 0): Rollover {
