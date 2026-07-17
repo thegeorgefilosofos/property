@@ -65,10 +65,10 @@ const FAQ = [
 ];
 
 const STATS = [
-  { n: '11', l: 'πάροχοι ρεύματος συγκρίνονται αυτόματα' },
-  { n: '2026', l: 'φορολογική κλίμακα, ενσωματωμένη' },
-  { n: 'Μία', l: 'φωτογραφία για κάθε καταχώρηση' },
-  { n: 'EU', l: 'δεδομένα, κρυπτογραφημένα' },
+  { n: '11+', l: 'πάροχοι ρεύματος και τιμολόγια, σε ζωντανή σύγκριση' },
+  { n: '2026', l: 'φορολογία και νομοθεσία, πάντα στην ισχύουσα έκδοση' },
+  { n: 'Δάνεια', l: 'τράπεζες, επιτόκια και προγράμματα όπως «Σπίτι μου ΙΙ» και «Ανακαινίζω-Νοικιάζω»' },
+  { n: 'EU', l: 'δεδομένα κρυπτογραφημένα, συμβατά με τον GDPR' },
 ];
 
 const SECURITY = [
@@ -313,12 +313,14 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(56px, 8vw, 96px)' }}>
-        <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 20, padding: 'clamp(40px, 6vw, 68px)', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(26px, 4.4vw, 42px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 14px' }}>Το ακίνητό σου, υπό έλεγχο</h2>
-          <p style={{ fontSize: 16, color: MUTED, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>Μία φωτογραφία και το πρώτο σου ακίνητο μπαίνει σε τάξη. Δωρεάν, χωρίς δέσμευση.</p>
-          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '15px 34px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Δημιούργησε τον λογαριασμό σου →'}</Link>
+      {/* ── Final CTA, συμπαγές ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 80px)' }}>
+        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(24px, 3.5vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 'clamp(16px, 3vw, 32px)', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 8px' }}>Το ακίνητό σου, υπό έλεγχο</h2>
+            <p style={{ fontSize: 14.5, color: MUTED, margin: 0, lineHeight: 1.55, maxWidth: 520 }}>Μία φωτογραφία και το πρώτο σου ακίνητο μπαίνει σε τάξη. Δωρεάν, χωρίς δέσμευση.</p>
+          </div>
+          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100, whiteSpace: 'nowrap', justifySelf: 'start' }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
         </div>
       </section>
 
