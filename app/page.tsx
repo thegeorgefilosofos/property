@@ -54,11 +54,14 @@ const FEATURES = [
 ];
 
 const FAQ = [
-  { q: 'Πώς δουλεύει η σάρωση με φωτογραφία;', a: 'Βγάζεις φωτογραφία ή ανεβάζεις ένα PDF: λογαριασμό, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Το διαβάζει, καταλαβαίνει τι είναι και το καταχωρεί αυτόματα στο σωστό σημείο: λογαριασμοί, δαπάνες, ημερολόγιο, ενοικιαστής. Εσύ επιβεβαιώνεις και διορθώνεις οτιδήποτε με ένα άγγιγμα.' },
-  { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου. Του δίνεις όνομα και φωνή όπως θέλεις, απαντά με βάση τα δικά σου δεδομένα και, για ό,τι χρειάζεται νομική ή λογιστική γνώμη, σε παραπέμπει στον κατάλληλο επαγγελματία.' },
-  { q: 'Σε ποιους απευθύνεται;', a: 'Σε ιδιοκτήτες ακινήτων κάθε τύπου στην Ελλάδα (κατοικία, επαγγελματικός χώρος, αποθήκη ή οικόπεδο), αλλά και σε μεσιτικά γραφεία και διαχειριστές. Είτε έχεις ένα διαμέρισμα είτε ολόκληρο χαρτοφυλάκιο, προσαρμόζεται σε σένα.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο είναι δωρεάν για πάντα, με όλες τις δυνατότητες. Για περισσότερα, το πλάνο Ιδιοκτήτης είναι 6,90 € τον μήνα (ή 59 € τον χρόνο) για έως 15 ακίνητα. Για επαγγελματίες, το πλάνο Επαγγελματίας είναι 19 € τον μήνα με απεριόριστα ακίνητα και ομάδα.' },
-  { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα, με κρυπτογραφημένη σύνδεση και απομόνωση ανά χρήστη. Τα δεδομένα σου δεν χρησιμοποιούνται για εκπαίδευση μοντέλων και είμαστε συμβατοί με τον GDPR.' },
+  { q: 'Πώς δουλεύει η σάρωση με φωτογραφία;', a: 'Βγάζεις φωτογραφία ή ανεβάζεις ένα PDF: λογαριασμό, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Το σύστημα το διαβάζει, καταλαβαίνει τι είναι και το καταχωρεί αυτόματα στο σωστό σημείο: λογαριασμοί, δαπάνες, ημερολόγιο, ενοικιαστής, αρχείο. Εσύ βλέπεις τι κατάλαβε, επιβεβαιώνεις και διορθώνεις οτιδήποτε με ένα άγγιγμα. Τίποτα δεν καταχωρείται οριστικά χωρίς τον έλεγχό σου.' },
+  { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου, και σου απαντά με ανθρώπινη φωνή. Του δίνεις όνομα και φωνή όπως θέλεις. Απαντά πάντα με βάση τα δικά σου δεδομένα: τα ακίνητα, τις δαπάνες, τις μισθώσεις και τις προθεσμίες σου. Για ό,τι χρειάζεται νομική ή λογιστική γνώμη, σε παραπέμπει στον κατάλληλο επαγγελματία.' },
+  { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα που θέλει να έχει τον έλεγχο όπως ένας επαγγελματίας: από τον ιδιώτη με ένα διαμέρισμα μέχρι τον επαγγελματία με ολόκληρο χαρτοφυλάκιο, μεσιτικά γραφεία και διαχειριστές. Καλύπτει κάθε τύπο ακινήτου: κατοικία, επαγγελματικό χώρο, αποθήκη, οικόπεδο.' },
+  { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Σε κρατά διαρκώς ενημερωμένο για τις υποχρεώσεις, τις προθεσμίες και τις ευκαιρίες σου, ώστε να πηγαίνεις στον λογιστή σου προετοιμασμένος, με τα στοιχεία έτοιμα για εξαγωγή. Οι υπολογισμοί είναι υποστηρικτικοί: για δεσμευτικές αποφάσεις ισχύει πάντα η γνώμη του επαγγελματία σου.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο είναι δωρεάν για πάντα, με όλες τις δυνατότητες και χωρίς κάρτα. Για περισσότερα ακίνητα, το πλάνο Ιδιοκτήτης κοστίζει 6,90 € τον μήνα (ή 59 € τον χρόνο) για έως 15 ακίνητα. Το πλάνο Επαγγελματίας κοστίζει 19 € τον μήνα (ή 190 € τον χρόνο) με απεριόριστα ακίνητα και ομάδα. Αλλάζεις ή ακυρώνεις όποτε θέλεις· οι τιμές περιλαμβάνουν ΦΠΑ.' },
+  { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι, και το παίρνουμε σοβαρά. Κάθε μεταφορά γίνεται μέσα από κρυπτογραφημένη σύνδεση και κάθε χρήστης βλέπει αποκλειστικά τα δικά του δεδομένα, με απομόνωση σε επίπεδο βάσης. Τα έγγραφα και τα νούμερά σου δεν χρησιμοποιούνται ποτέ για εκπαίδευση μοντέλων. Τα δεδομένα αποθηκεύονται σε ευρωπαϊκά κέντρα δεδομένων, σύμφωνα με τον GDPR και τον ελληνικό νόμο 4624/2019. Στην Πολιτική Απορρήτου θα βρεις αναλυτικά τι συλλέγουμε, γιατί και ποια δικαιώματα έχεις.' },
+  { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Μπορείς να τα εξάγεις ανά πάσα στιγμή μέσα από την εφαρμογή και να διαγράψεις τον λογαριασμό σου όποτε θέλεις. Μετά τη διαγραφή, τα δεδομένα σου διαγράφονται οριστικά μέσα σε 30 ημέρες, εκτός από όσα οφείλουμε να τηρήσουμε βάσει νόμου, όπως τα φορολογικά παραστατικά.' },
+  { q: 'Δουλεύει στο κινητό;', a: 'Ναι, παντού. Η εφαρμογή προσαρμόζεται πλήρως σε κινητό, tablet και υπολογιστή. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου: φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
 ];
 
 const STATS = [
@@ -102,6 +105,20 @@ export default async function Landing() {
         details.lp-faq[open] { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
         details.lp-faq summary::-webkit-details-marker { display: none; }
         details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+        /* Αύρα βάθους στο hero: δύο μεγάλες, θολές κηλίδες στο γαλάζιο της παλέτας
+           που μετακινούνται αργά. Δίνει ζωή και βάθος χωρίς θόρυβο· μία απόχρωση μόνο. */
+        .lp-aurora { position: absolute; inset: -14% -18% auto; height: 115%; z-index: 0; pointer-events: none; }
+        .lp-aurora::before, .lp-aurora::after { content: ''; position: absolute; width: min(58vw, 760px); aspect-ratio: 1; border-radius: 50%; filter: blur(90px); background: radial-gradient(circle, var(--accent), transparent 64%); }
+        .lp-aurora::before { top: -6%; left: -6%; opacity: .13; animation: lpDrift 28s ease-in-out infinite alternate; }
+        .lp-aurora::after { top: 10%; right: -10%; opacity: .09; animation: lpDrift 36s ease-in-out -9s infinite alternate-reverse; }
+        @keyframes lpDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(5vw, 4vh, 0) scale(1.14); } }
+        /* Εναλλασσόμενη λέξη στον τίτλο: μία κάθε τρία δευτερόλεπτα, απαλή άνοδος. */
+        .lp-rotor { display: inline-grid; justify-items: center; color: var(--accent); }
+        .lp-rotor > span { grid-area: 1 / 1; opacity: 0; white-space: nowrap; animation: lpRotor 12s cubic-bezier(.2, 0, 0, 1) infinite; }
+        .lp-rotor > span:nth-child(2) { animation-delay: 3s; }
+        .lp-rotor > span:nth-child(3) { animation-delay: 6s; }
+        .lp-rotor > span:nth-child(4) { animation-delay: 9s; }
+        @keyframes lpRotor { 0% { opacity: 0; transform: translateY(16px); } 4% { opacity: 1; transform: none; } 23% { opacity: 1; transform: none; } 27% { opacity: 0; transform: translateY(-16px); } 100% { opacity: 0; } }
         @keyframes lpUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         .lp-rise { animation: lpUp .6s cubic-bezier(.2,0,0,1) both; }
         .lp-rise-2 { animation: lpUp .6s cubic-bezier(.2,0,0,1) .06s both; }
@@ -115,7 +132,12 @@ export default async function Landing() {
         }
         @media (max-width: 760px) { .lp-split { grid-template-columns: 1fr !important; } }
         @media (max-width: 520px) { .lp-hide-xs { display: none !important; } }
-        @media (prefers-reduced-motion: reduce) { .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; }
+          .lp-aurora::before, .lp-aurora::after { animation: none !important; }
+          .lp-rotor > span { animation: none !important; }
+          .lp-rotor > span:first-child { opacity: 1; }
+        }
       `}</style>
 
       <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
@@ -140,12 +162,21 @@ export default async function Landing() {
 
       {/* ── Hero ── */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(56px, 8vw, 96px)', paddingBottom: 'clamp(16px, 3vw, 32px)', textAlign: 'center' }}>
-        <h1 className="lp-rise" style={{ fontSize: 'clamp(36px, 6.8vw, 66px)', fontWeight: 680, letterSpacing: '-0.04em', lineHeight: 1.03, margin: '0 auto 22px', maxWidth: 880, color: TEXT }}>
-          Βγάλε μία φωτογραφία.<br />
-          <span style={{ color: MUTED }}>Όλα τα υπόλοιπα, τακτοποιημένα.</span>
+        <div className="lp-aurora" aria-hidden="true" />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+        <h1 className="lp-rise" style={{ fontSize: 'clamp(36px, 6.8vw, 66px)', fontWeight: 680, letterSpacing: '-0.04em', lineHeight: 1.06, margin: '0 auto 22px', maxWidth: 920, color: TEXT }}>
+          Φωτογραφίζεις{' '}
+          <span className="lp-rotor">
+            <span>τον λογαριασμό.</span>
+            <span>το μισθωτήριο.</span>
+            <span>το ασφαλιστήριο.</span>
+            <span>τον ΕΝΦΙΑ.</span>
+          </span>
+          <br />
+          <span style={{ color: MUTED }}>Το Property OS κάνει τα υπόλοιπα.</span>
         </h1>
         <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>
-          Λογαριασμοί, συμβόλαια και ασφάλειες μπαίνουν στη θέση τους με μία φωτογραφία. Ο βοηθός σου απαντά στα ελληνικά, με τα δικά σου νούμερα. Εσύ έχεις τον πλήρη έλεγχο, από ένα σπίτι μέχρι ολόκληρο χαρτοφυλάκιο.
+          Ο πρώτος βοηθός ακινήτων που μιλάει και σκέφτεται ελληνικά. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του, πάντα με τα δικά σου νούμερα. Εσύ αποφασίζεις.
         </p>
         <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           {loggedIn ? (
@@ -158,6 +189,7 @@ export default async function Landing() {
         <div className="lp-rise-4" style={{ marginTop: 16, fontSize: 12.5, color: FAINT }}>Χωρίς κάρτα · Το πρώτο ακίνητο δωρεάν για πάντα · Συμβατό με GDPR</div>
 
         <LandingShowcase />
+        </div>
       </section>
 
       {/* ── Proof band: μετρήσιμα, πραγματικά (χωρίς ψεύτικα «νούμερα χρηστών») ── */}

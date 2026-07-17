@@ -71,11 +71,19 @@ export default function SignupPage() {
     e.preventDefault()
     setError(''); setLoading(true)
     const supabase = createClient()
+    // Αποδεικτικό συγκατάθεσης (GDPR, αρχή λογοδοσίας): καταγράφουμε στο προφίλ
+    // του χρήστη ΠΟΤΕ αποδέχθηκε τους Όρους και την Πολιτική και ΠΟΙΑ έκδοσή τους,
+    // ώστε η αποδοχή να είναι αποδείξιμη και να ζητηθεί εκ νέου αν αλλάξουν ουσιωδώς.
     const { error } = await supabase.auth.signUp({
       email, password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { full_name: fullName.trim(), ...(refCode ? { referred_by: refCode } : {}) },
+        data: {
+          full_name: fullName.trim(),
+          consent_terms_accepted_at: new Date().toISOString(),
+          consent_policy_version: '2026-07',
+          ...(refCode ? { referred_by: refCode } : {}),
+        },
       },
     })
     if (error) { setError(error.message); setLoading(false) }
