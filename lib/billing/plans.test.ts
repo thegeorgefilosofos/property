@@ -26,7 +26,7 @@ ok(planForCount(7) === 'agency', 'count 7 → agency');
 
 ok(annualPerMonth('owner') < PLANS.owner.priceMonthly, 'annual cheaper per month than monthly');
 ok(PLANS.owner.priceMonthly === 5.9 && PLANS.owner.priceAnnual === 49, 'owner prices');
-ok(PLANS.agency.priceMonthly === 19, 'agency price');
+ok(PLANS.agency.priceMonthly === 18.9, 'agency price');
 
 console.log(`\nbilling/plans.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);

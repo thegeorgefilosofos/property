@@ -536,7 +536,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-secondary)' }}/>
                   <span style={{ fontSize:12,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Για περισσότερα: Ιδιοκτήτης 5,90 € τον μήνα (έως έξι ακίνητα) ή Επαγγελματίας 19 € τον μήνα (απεριόριστα, με ομαδική διαχείριση).</div>
+                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Για περισσότερα: Ιδιοκτήτης 5,90 € τον μήνα (έως έξι ακίνητα) ή Επαγγελματίας 18,90 € τον μήνα (απεριόριστα, με ομαδική διαχείριση).</div>
               </div>
               <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
             </div>

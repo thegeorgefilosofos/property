@@ -37,7 +37,7 @@ const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke
 // ── Πάνελ: Ο πίνακάς σου ─────────────────────────────────────────────────────
 export function PanelDashboard() {
   const months = [42, 55, 48, 61, 52, 70, 66, 78, 60, 84, 72, 90];
-  const kpis = [['Καθαρή απόδοση', '4,8%'], ['Έσοδα / μήνα', '1.250 €'], ['Πληρότητα', '92%']];
+  const kpis = [['Καθαρή απόδοση', '4,8%'], ['Μηνιαία έσοδα', '1.250 €'], ['Πληρότητα', '92%']];
   return (
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>

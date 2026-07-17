@@ -8,6 +8,7 @@ import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
 import TabPricing   from './components/TabPricing';
 import TabSettings  from './components/TabSettings';
+import TabReferral  from './components/TabReferral';
 import TabTenant    from './components/TabTenant';
 import TabLoan      from './components/TabLoan';
 import TabAccounting from './components/TabAccounting';
@@ -99,6 +100,7 @@ const NAV_ITEMS = [
   { id:'contacts',   label:'Επαφές' },
   { id:'roi',        label:'Αποδόσεις' },
   { id:'comparison', label:'Σύγκριση ακινήτων' },
+  { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
   { id:'settings',   label:'Ρυθμίσεις' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
@@ -123,6 +125,7 @@ const NAV_ICON: Record<string,string> = {
   documents: 'M4 4h6l2 3h8v13H4z',
   clients:   'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 0 0 0-8 4 4 0 0 0 0 8z|M23 21v-2a4 4 0 0 0-3-3.87|M16 3.13a4 4 0 0 1 0 7.75',
   settings:  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.4h5l.3-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z',
+  referral:  'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2|M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M19 8v6|M22 11h-6',
 };
 
 // Ομαδοποιημένη πλοήγηση, λιγότερο «σουπερμάρκετ», πιο ξεκάθαρη λογική.
@@ -136,6 +139,7 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Μίσθωση',             ids: ['tenant','clients','pricing'] },
   { label: 'Εργαλεία',            ids: ['inventory','documents','checklist','contacts'] },
   { label: 'Συγκριτική Ανάλυση',  ids: ['roi','comparison'] },
+  { label: '',                    ids: ['referral'] },
   { label: '',                    ids: ['settings'] },
 ];
 
@@ -1017,7 +1021,7 @@ export default function Dashboard() {
               {open && group.ids.filter(id => (id!=='comparison' || properties.length>=2) && (id!=='portfolio' || profileType==='professional')).map(id => { const badge=getBadge(id); return (
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
-                  <span className="sidebar-item-label">{NAV_LABEL[id]}</span>
+                  <span className="sidebar-item-label">{id==='referral' && profileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
                   {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
                 </button>
               );})}
@@ -1150,6 +1154,7 @@ export default function Dashboard() {
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
               {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={profileType}/>}
+              {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={profileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={profileType} onProfileChange={setProfileType}/>}
             </div>
           </>
