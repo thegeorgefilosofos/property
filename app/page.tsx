@@ -45,7 +45,7 @@ const FAQ = [
   { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου, και σου απαντά με ανθρώπινη φωνή. Του δίνεις όνομα και φωνή όπως θέλεις. Απαντά πάντα με βάση τα δικά σου δεδομένα: τα ακίνητα, τις δαπάνες, τις μισθώσεις και τις προθεσμίες σου. Για ό,τι χρειάζεται νομική ή λογιστική γνώμη, σε παραπέμπει στον κατάλληλο επαγγελματία.' },
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα που θέλει να έχει τον έλεγχο όπως ένας επαγγελματίας: από τον ιδιώτη με ένα διαμέρισμα μέχρι τον επαγγελματία με ολόκληρο χαρτοφυλάκιο, μεσιτικά γραφεία και διαχειριστές. Καλύπτει κάθε τύπο ακινήτου: κατοικία, επαγγελματικό χώρο, αποθήκη, οικόπεδο.' },
   { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Σε κρατά διαρκώς ενημερωμένο για τις υποχρεώσεις, τις προθεσμίες και τις ευκαιρίες σου, ώστε να πηγαίνεις στον λογιστή σου προετοιμασμένος, με τα στοιχεία έτοιμα για εξαγωγή. Οι υπολογισμοί είναι υποστηρικτικοί: για δεσμευτικές αποφάσεις συμβουλεύσου πάντα έναν επαγγελματία σύμβουλο.' },
-  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο δεν σου κοστίζει ποτέ τίποτα: όλες οι δυνατότητες, χωρίς κάρτα. Για περισσότερα ακίνητα, το πλάνο Ιδιοκτήτης κοστίζει 6,90 € τον μήνα (ή 59 € τον χρόνο) για έως 15 ακίνητα. Το πλάνο Επαγγελματίας κοστίζει 19 € τον μήνα (ή 190 € τον χρόνο) με απεριόριστα ακίνητα και ομάδα. Αλλάζεις ή ακυρώνεις όποτε θέλεις· οι τιμές περιλαμβάνουν ΦΠΑ.' },
+  { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο δεν σου κοστίζει ποτέ τίποτα: όλες οι δυνατότητες, χωρίς κάρτα. Για περισσότερα ακίνητα, το πλάνο Ιδιοκτήτης κοστίζει 5,90 € τον μήνα (ή 49 € τον χρόνο, έκπτωση 31%) για έως 6 ακίνητα. Το πλάνο Επαγγελματίας κοστίζει 19 € τον μήνα (ή 149 € τον χρόνο, έκπτωση 35%) με απεριόριστα ακίνητα και ομαδική διαχείριση. Αλλάζεις ή ακυρώνεις όποτε θέλεις· οι τιμές περιλαμβάνουν ΦΠΑ.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Το παίρνουμε πιο σοβαρά από οτιδήποτε άλλο. Κάθε μεταφορά γίνεται μέσα από κρυπτογραφημένη σύνδεση και κάθε χρήστης βλέπει αποκλειστικά τα δικά του δεδομένα, με απομόνωση σε επίπεδο βάσης. Τα έγγραφα και τα νούμερά σου δεν χρησιμοποιούνται ποτέ για εκπαίδευση μοντέλων. Τα δεδομένα αποθηκεύονται σε ευρωπαϊκά κέντρα δεδομένων, σύμφωνα με τον GDPR και τον ελληνικό νόμο 4624/2019. Στην Πολιτική Απορρήτου θα βρεις αναλυτικά τι συλλέγουμε, γιατί και ποια δικαιώματα έχεις.' },
   { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Μπορείς να τα εξάγεις ανά πάσα στιγμή μέσα από την εφαρμογή και να διαγράψεις τον λογαριασμό σου όποτε θέλεις. Μετά τη διαγραφή, τα δεδομένα σου διαγράφονται οριστικά μέσα σε 30 ημέρες, εκτός από όσα οφείλουμε να τηρήσουμε βάσει νόμου, όπως τα φορολογικά παραστατικά.' },
   { q: 'Δουλεύει στο κινητό;', a: 'Παντού. Η εφαρμογή προσαρμόζεται πλήρως σε κινητό, tablet και υπολογιστή. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου: φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
@@ -319,35 +319,37 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(44px, 7vw, 84px)' }}>
-        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο μένει δωρεάν για πάντα. Από εκεί και πέρα, μια δίκαιη τιμή που την καλύπτει η αξία που παίρνεις." />
+        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο δωρεάν, για πάντα. Αναβαθμίζεις μόνο όταν μεγαλώνει το χαρτοφυλάκιό σου." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
           {/* Δωρεάν */}
           <PlanCard
-            name="Δωρεάν" nameColor={TEXT} sub="Για τον ιδιοκτήτη με ένα ακίνητο"
+            name="Δωρεάν" nameColor={TEXT} sub="Για τον ιδιοκτήτη με το πρώτο του ακίνητο"
             price="0 €" per="για πάντα" note="Χωρίς κάρτα, χωρίς λήξη"
-            items={['1 ακίνητο, οποιουδήποτε τύπου', 'Σάρωση με φωτογραφία και βοηθός με φωνή', 'Αποδόσεις, δαπάνες, ενέργεια, φορολογία', 'Υπενθυμίσεις πριν από κάθε προθεσμία']}
+            items={['1 ακίνητο, οποιουδήποτε τύπου', 'Σάρωση με φωτογραφία και βοηθός με φωνή', 'Αποδόσεις, δαπάνες, ενέργεια και φορολογία 2026', 'Υπενθυμίσεις πριν από κάθε προθεσμία']}
             cta="Ξεκίνα δωρεάν" ctaGhost featured={false}
           />
 
           {/* Ιδιοκτήτης */}
           <PlanCard
-            name="Ιδιοκτήτης" nameColor={ACCENT} sub="Για χαρτοφυλάκιο, ενοικιαστές και βραχυχρόνια"
-            price="6,90 €" per="τον μήνα" note={<>ή <strong style={{ color: TEXT }}>59 € τον χρόνο</strong>, έκπτωση 29%</>}
-            items={['Έως 15 ακίνητα, όλων των τύπων', 'Όλα όσα έχει το δωρεάν πλάνο, χωρίς όρια', 'Συγκρίσεις μεταξύ των ακινήτων σου', 'Εξαγωγή φορολογικών στοιχείων για τον λογιστή', 'Προτεραιότητα στη σάρωση και στον βοηθό']}
+            name="Ιδιοκτήτης" nameColor={ACCENT} sub="Για ιδιοκτήτες με χαρτοφυλάκιο, ενοικιαστές και βραχυχρόνια"
+            price="5,90 €" per="τον μήνα" note={<>ή <strong style={{ color: TEXT }}>49 € τον χρόνο</strong></>} discount="−31%"
+            inherits="Όλα του Δωρεάν, χωρίς όρια, και επιπλέον:"
+            items={['Έως 6 ακίνητα, όλων των τύπων', 'Συγκρίσεις παρόχων και αποδόσεων μεταξύ των ακινήτων σου', 'Διαχείριση ενοικιαστών και εισπράξεων', 'Εξαγωγή φορολογικών στοιχείων (Ε2) για τον λογιστή', 'Προτεραιότητα στη σάρωση και στον βοηθό']}
             cta="Ξεκίνα δωρεάν →" featured
           />
 
           {/* Επαγγελματίας */}
           <PlanCard
-            name="Επαγγελματίας" nameColor={TEXT} sub="Για μεσιτικά, διαχειριστές και λογιστές"
-            price="19 €" per="τον μήνα" note={<>ή <strong style={{ color: TEXT }}>190 € τον χρόνο</strong>, δύο μήνες δώρο</>}
-            items={['Απεριόριστα ακίνητα', 'Πολλοί χρήστες στην ίδια ομάδα', 'Αναφορές με τη δική σου επωνυμία', 'Υποστήριξη κατά προτεραιότητα']}
+            name="Επαγγελματίας" nameColor={TEXT} sub="Για μεσιτικά, διαχειριστές και λογιστές με ομάδα"
+            price="19 €" per="τον μήνα" note={<>ή <strong style={{ color: TEXT }}>149 € τον χρόνο</strong></>} discount="−35%"
+            inherits="Όλα του Ιδιοκτήτη, και επιπλέον:"
+            items={['Απεριόριστα ακίνητα', 'Ομαδική διαχείριση: πολλοί χρήστες, ρόλοι και δικαιώματα', 'Αναφορές και έγγραφα με τη δική σου επωνυμία', 'Πελατολόγιο και υποψήφιοι πελάτες (CRM)', 'Υποστήριξη κατά προτεραιότητα']}
             cta="Ξεκίνα δωρεάν →" ctaGhost featured={false}
           />
         </div>
         <p style={{ textAlign: 'center', fontSize: 12.5, color: FAINT, margin: '22px auto 0', maxWidth: 540, lineHeight: 1.6 }}>
-          Αλλάζεις πλάνο όποτε θέλεις, χωρίς δέσμευση. Οι τιμές περιλαμβάνουν ΦΠΑ.
+          Πληρώνεις μόνο για τα ακίνητα που διαχειρίζεσαι. Αλλάζεις ή ακυρώνεις όποτε θέλεις, χωρίς δέσμευση. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -433,19 +435,24 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
   );
 }
 
-function PlanCard({ name, nameColor, sub, price, per, note, items, cta, ctaGhost, featured }: {
-  name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
+function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, items, cta, ctaGhost, featured }: {
+  name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
-    <div className="lp-card" style={{ background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column' }}>
+    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 2.6vw, 30px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
+      {featured && <span style={{ position: 'absolute', top: 18, right: 18, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '4px 10px' }}>Δημοφιλέστερο</span>}
       <div style={{ fontSize: 13, fontWeight: 700, color: nameColor, marginBottom: 4 }}>{name}</div>
       <div style={{ fontSize: 12, color: FAINT, marginBottom: 18, minHeight: 32 }}>{sub}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
         <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(32px, 4.4vw, 40px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT }}>{price}</span>
         <span style={{ fontSize: 15, color: MUTED }}>{per}</span>
       </div>
-      <div style={{ fontSize: 13, color: FAINT, minHeight: 20 }}>{note}</div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', margin: '22px 0 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 22, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, color: FAINT }}>{note}</span>
+        {discount && <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--positive)', background: 'color-mix(in srgb, var(--positive) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--positive) 32%, transparent)', borderRadius: 100, padding: '2px 9px', fontVariantNumeric: 'tabular-nums' }}>{discount}</span>}
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', margin: '20px 0 24px' }}>
+        {inherits && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 2 }}>{inherits}</div>}
         {items.map((t, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
