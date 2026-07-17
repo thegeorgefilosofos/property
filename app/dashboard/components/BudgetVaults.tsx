@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, InfoDot, CustomSelect } from './UIComponents';
-import { T, fe } from '@/components/Theme';
+import { T, feAuto } from '@/components/Theme';
 import { reservePlan, savingsSchedule } from '@/lib/billing/budgetPro';
 
 // ── Κουμπαράδες / Αποθεματικά (sinking funds) ─────────────────────────────────
@@ -185,7 +185,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
         <span style={{ flex: 1 }}/>
         {vaults.length > 0 && (
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-            Σύνολο {fe(totalSaved, 0)}{totalMonthly > 0 ? ` · ${fe(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}{totalInterest > 0 ? ` · +${fe(totalInterest, 0)}/έτος τόκοι` : ''}
+            Σύνολο {feAuto(totalSaved, 0)}{totalMonthly > 0 ? ` · ${feAuto(totalMonthly, 0)}/μήνα` : ''}{coverMonths >= 0.5 ? ` · ~${coverMonths.toFixed(coverMonths >= 10 ? 0 : 1)} μήνες κάλυψη` : ''}{totalInterest > 0 ? ` · +${feAuto(totalInterest, 0)}/έτος τόκοι` : ''}
           </span>
         )}
         <button onClick={toggleShut} aria-label={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'} title={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'}
@@ -207,7 +207,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={h ? 'var(--accent)' : 'var(--text-tertiary)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 <strong style={{ color: h ? 'var(--accent)' : 'var(--text-primary)', fontWeight: 600, transition: 'color 0.15s' }}>{sg.name}</strong>
-                {'  '}<span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(sg.target, 0)}</span>
+                {'  '}<span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(sg.target, 0)}</span>
                 {sg.hint ? <span style={{ color: 'var(--text-tertiary)' }}>{'  '}· {sg.hint}</span> : null}
               </span>
             </button>
@@ -291,7 +291,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                       <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
                     )}
                     {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
-                    {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
+                    {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{feAuto(yearly, 0)}</strong> / έτος</div>}
                   </div>
                 );
               })()}
@@ -318,8 +318,8 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 {done && <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', padding: '2px 7px', borderRadius: T.radius.pill, fontFamily: T.font.sans, letterSpacing: '0.02em' }}>Καλυμμένο</span>}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(v.current || 0, 0)}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>/ {fe(v.target || 0, 0)}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(v.current || 0, 0)}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>/ {feAuto(v.target || 0, 0)}</span>
               </div>
               <div style={{ height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
                 <div style={{ height: '100%', width: `${funded}%`, background: barCol, borderRadius: 3, transition: 'width 0.5s ease, background 0.15s' }}/>
@@ -329,11 +329,11 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 {done
                   ? <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>
                   : overdue
-                    ? <span style={{ color: 'var(--negative)', fontWeight: 600 }}>απαιτούνται {fe(plan.remaining, 0)} τώρα</span>
+                    ? <span style={{ color: 'var(--negative)', fontWeight: 600 }}>απαιτούνται {feAuto(plan.remaining, 0)} τώρα</span>
                     : v.due && plan.requiredMonthly > 0
-                      ? <span style={{ color: 'var(--text-tertiary)' }}>{fe(plan.requiredMonthly, 0)}/μήνα έως {monthLabel(v.due)}</span>
+                      ? <span style={{ color: 'var(--text-tertiary)' }}>{feAuto(plan.requiredMonthly, 0)}/μήνα έως {monthLabel(v.due)}</span>
                       : plan.remaining > 0
-                        ? <span style={{ color: 'var(--text-tertiary)' }}>απομένουν {fe(plan.remaining, 0)}</span>
+                        ? <span style={{ color: 'var(--text-tertiary)' }}>απομένουν {feAuto(plan.remaining, 0)}</span>
                         : null}
               </div>
               {v.apy != null && v.apy > 0 && (v.current || 0) > 0 && (
@@ -341,7 +341,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? 'var(--accent)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.bank || 'Τόκοι'}</span>
                   <span style={{ flex: 1 }}/>
-                  <span style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}>+{fe((v.current || 0) * v.apy / 100, 0)}/έτος</span>
+                  <span style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}>+{feAuto((v.current || 0) * v.apy / 100, 0)}/έτος</span>
                 </div>
               )}
             </div>

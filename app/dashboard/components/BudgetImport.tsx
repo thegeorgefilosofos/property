@@ -93,7 +93,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
   };
 
   const reset = () => { setRows(null); setErr(''); setFileName(''); };
-  const fmt = (n: number) => n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
+  const fmt = (n: number) => { const r = Math.round((n || 0) * 100) / 100; const d = Number.isInteger(r) ? 0 : 2; return r.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' €'; };
 
   return (
     <div>

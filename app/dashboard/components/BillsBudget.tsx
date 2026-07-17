@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput } from './UIComponents';
-import { T, fe, Spinner } from '@/components/Theme';
+import { T, feAuto, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
@@ -75,7 +75,7 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'default' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 26, height: H, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
               {on && d.value > 0 && (
-                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', zIndex: 3 }}>{fe(d.value, 0)}</div>
+                <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 7, padding: '3px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', zIndex: 3 }}>{feAuto(d.value, 0)}</div>
               )}
               <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transition: 'height 0.5s cubic-bezier(0.22,1,0.36,1), background 0.18s ease' }} />
             </div>
@@ -128,7 +128,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
           })}
         </g>
         <text x="76" y="70" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : 'ΣΥΝΟΛΟ'}</text>
-        <text x="76" y="87" textAnchor="middle" style={{ fontSize: 17, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
+        <text x="76" y="87" textAnchor="middle" style={{ fontSize: 17, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{feAuto(active ? active.value : total, 0)}</text>
         {active && <text x="76" y="101" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 150 }}>
@@ -139,7 +139,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
               style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11.5, fontFamily: T.font.sans, padding: '4px 8px', margin: '0 -8px', borderRadius: 7, background: on ? 'var(--bg-elevated)' : 'transparent', cursor: 'default', transition: 'background 0.15s' }}>
               <span style={{ width: 10, height: 10, borderRadius: 3, background: shade(i, on), flexShrink: 0, transition: 'background 0.15s' }} />
               <span style={{ flex: 1, minWidth: 0, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>{s.label}</span>
-              <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 10.5 }}>{fe(s.value, 0)}</span>
+              <span style={{ color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 10.5 }}>{feAuto(s.value, 0)}</span>
               <span style={{ width: 34, textAlign: 'right', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 700, transition: 'color 0.15s' }}>{Math.round((s.value / total) * 100)}%</span>
             </div>
           );
@@ -800,7 +800,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
                   <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των κουμπαράδων. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών, της δόσης του δανείου και των εισφορών των κουμπαράδων. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
                 </div>
-                <div style={{ fontSize: 30, fontWeight: 700, color: numCol, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{fe(val, 0)}</div>
+                <div style={{ fontSize: 30, fontWeight: 700, color: numCol, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{feAuto(val, 0)}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{hasIncome ? 'μετά από λογαριασμούς, δόση και κουμπαράδες' : 'λογαριασμοί, δόση και κουμπαράδες'}</div>
               </div>
             </div>
@@ -820,11 +820,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     { l: 'Κουμπαράδες', v: vaultMonthly },
                     { l: 'Διαθέσιμο', v: safeRaw },
                   ].filter(x => x.v !== 0).map(x => (
-                    <span key={x.l} style={{ fontVariantNumeric: 'tabular-nums' }}>{x.l} <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{fe(x.v, 0)}</strong></span>
+                    <span key={x.l} style={{ fontVariantNumeric: 'tabular-nums' }}>{x.l} <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{feAuto(x.v, 0)}</strong></span>
                   ))}
                 </div>
                 {isShortfall && (
-                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {fe(monthlyCost - income, 0)}. Μείωσε τις εισφορές των κουμπαράδων ή αναθεώρησε τους στόχους.</div>
+                  <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--negative)', fontFamily: T.font.sans }}>Τα δεσμευμένα έξοδα ξεπερνούν τα έσοδα κατά {feAuto(monthlyCost - income, 0)}. Μείωσε τις εισφορές των κουμπαράδων ή αναθεώρησε τους στόχους.</div>
                 )}
               </>
             )}
@@ -846,17 +846,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
                 {isSTRmode ? (
                   <>
-                    <KPI label="Έσοδα μήνα" value={fe(income, 0)} />
-                    <KPI label="Από την αρχή έτους" value={fe(incomeYtd, 0)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
+                    <KPI label="Έσοδα μήνα" value={feAuto(income, 0)} />
+                    <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd, 0)} title="Πραγματικά έσοδα καταλυμάτων από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? fe(Math.round(income / strNights), 0) : '—'} />
+                    <KPI label="Μέση τιμή / βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights), 0) : '—'} />
                   </>
                 ) : (
                   <>
-                    <KPI label="Μηνιαίο ενοίκιο" value={fe(income, 0)} />
-                    <KPI label="Ετησίως" value={fe(income * 12, 0)} />
-                    <KPI label="Αναμενόμενα φέτος" value={fe(incomeYtd, 0)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
-                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${fe(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
+                    <KPI label="Μηνιαίο ενοίκιο" value={feAuto(income, 0)} />
+                    <KPI label="Ετησίως" value={feAuto(income * 12, 0)} />
+                    <KPI label="Αναμενόμενα φέτος" value={feAuto(incomeYtd, 0)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
+                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow), 0)}`} color={netFlow < 0 ? 'var(--negative)' : undefined} title="Έσοδα μείον μηνιαία κόστη (λογαριασμοί, δόση, κουμπαράδες)." />
                   </>
                 )}
               </div>
@@ -894,16 +894,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   {rows.map((r, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12.5, fontFamily: T.font.sans, color: r.sub ? 'var(--text-secondary)' : 'var(--text-primary)', fontWeight: r.sub ? 400 : 600 }}>
                       <span>{r.l}</span>
-                      <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: r.v < 0 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{r.v < 0 ? '−' : ''}{fe(Math.abs(r.v), 0)}</span>
+                      <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: r.v < 0 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{r.v < 0 ? '−' : ''}{feAuto(Math.abs(r.v), 0)}</span>
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Καθαρό</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterfall.net, 0)}</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(waterfall.net, 0)}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 12, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  <span>Καθαρό / διανυκτέρευση <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(waterfall.netPerNight, 0)}</strong></span>
+                  <span>Καθαρό / διανυκτέρευση <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{feAuto(waterfall.netPerNight, 0)}</strong></span>
                   <span>Περιθώριο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{waterfall.marginPct}%</strong></span>
                 </div>
               </>
@@ -923,8 +923,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--negative)', flexShrink: 0 }}/>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget, 0)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({fe(actual, 0)} vs {fe(budget, 0)})</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({feAuto(actual, 0)} vs {feAuto(budget, 0)})</span>
               </div>
             );
           })}
@@ -960,12 +960,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: editMode ? 0 : 12 }}>
-          <KPI label="Στόχος / μήνα" value={fe(masterBudget, 0)} />
-          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={fe(viewActualTotal, 0)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
+          <KPI label="Στόχος / μήνα" value={feAuto(masterBudget, 0)} />
+          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={feAuto(viewActualTotal, 0)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
           {isCurMonth
-            ? <KPI label="Πρόβλεψη μήνα" value={fe(forecastTotal, 0)} />
-            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${fe(Math.abs(masterBudget - viewActualTotal), 0)}`} />}
-          <KPI label="Διαθέσιμο" value={fe(Math.max(0, masterBudget - viewActualTotal))} />
+            ? <KPI label="Πρόβλεψη μήνα" value={feAuto(forecastTotal, 0)} />
+            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${feAuto(Math.abs(masterBudget - viewActualTotal), 0)}`} />}
+          <KPI label="Διαθέσιμο" value={feAuto(Math.max(0, masterBudget - viewActualTotal))} />
         </div>
         {!editMode && (() => {
           const pct    = masterBudget > 0 ? Math.min((viewActualTotal / masterBudget) * 100, 100) : 0;
@@ -979,12 +979,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 <span style={{ color: 'var(--text-tertiary)', fontWeight: 700 }}>{pct.toFixed(0)}% χρησιμοποιήθηκε</span>
                 {/* Το «Απομένει» φαίνεται ήδη στο πλακίδιο «Διαθέσιμο» — εδώ μόνο η υπέρβαση. */}
-                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${fe(viewActualTotal - masterBudget, 0)}` : ''}</span>
+                <span style={{ color: isOver ? 'var(--negative)' : 'var(--text-tertiary)' }}>{isOver ? `Υπέρβαση ${feAuto(viewActualTotal - masterBudget, 0)}` : ''}</span>
               </div>
               {isCurMonth && rolloverOn && hasPrevMonth && carryIn !== 0 && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                  Μεταφορά από {_prevLabel}: <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{fe(carryIn, 0)}</strong>
-                  {' · '}πραγματικά διαθέσιμα <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(adjAvailable, 0)}</strong>
+                  Μεταφορά από {_prevLabel}: <strong style={{ color: carryIn > 0 ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{feAuto(carryIn, 0)}</strong>
+                  {' · '}πραγματικά διαθέσιμα <strong style={{ color: adjAvailable < 0 ? 'var(--negative)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(adjAvailable, 0)}</strong>
                 </div>
               )}
             </>
@@ -1000,8 +1000,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
-            <KPI label="NOI / έτος" value={fe(invReturns.noi, 0)} />
-            <KPI label="Ταμειακή ροή" value={fe(invReturns.preTaxCashFlow, 0)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
+            <KPI label="NOI / έτος" value={feAuto(invReturns.noi, 0)} />
+            <KPI label="Ταμειακή ροή" value={feAuto(invReturns.preTaxCashFlow, 0)} color={invReturns.preTaxCashFlow < 0 ? 'var(--negative)' : undefined} />
             <KPI label="Cap rate" value={`${invReturns.capRatePct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
             <KPI label="Cash-on-cash" value={`${invReturns.cashOnCashPct.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
           </div>
@@ -1028,20 +1028,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <>
                 {/* Προβολή τέλους έτους — κύριος αριθμός */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                  <span style={{ fontSize: 26, fontWeight: 700, color: annual.onTrack ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{fe(annual.projectedYearEnd, 0)}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβολή τέλους έτους · στόχος <span style={{ fontFamily: T.font.num }}>{fe(annual.annualBudget, 0)}</span></span>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: annual.onTrack ? 'var(--text-primary)' : 'var(--negative)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{feAuto(annual.projectedYearEnd, 0)}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβολή τέλους έτους · στόχος <span style={{ fontFamily: T.font.num }}>{feAuto(annual.annualBudget, 0)}</span></span>
                   <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
                 </div>
                 {/* YTD — από την αρχή του έτους */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
                   <span>Από την αρχή του έτους</span>
-                  <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(annual.ytdActual, 0)} <span style={{ color: 'var(--text-tertiary)' }}>/ {fe(annual.ytdBudget, 0)}</span></span>
+                  <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(annual.ytdActual, 0)} <span style={{ color: 'var(--text-tertiary)' }}>/ {feAuto(annual.ytdBudget, 0)}</span></span>
                 </div>
                 <div style={{ height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden', marginBottom: 7 }}>
                   <div style={{ height: '100%', width: `${ytdPct}%`, background: ytdCol, borderRadius: 4, transition: 'width 0.6s ease' }}/>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  <span style={{ color: annual.variance > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>{annual.variance > 0 ? `Υπέρβαση ${fe(annual.variance, 0)} έναντι στόχου` : `Εντός στόχου κατά ${fe(-annual.variance, 0)}`}</span>
+                  <span style={{ color: annual.variance > 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>{annual.variance > 0 ? `Υπέρβαση ${feAuto(annual.variance, 0)} έναντι στόχου` : `Εντός στόχου κατά ${feAuto(-annual.variance, 0)}`}</span>
                   {monthTrend.avgPrior > 0 && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: trDir === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
                       {trDir === 'flat'
@@ -1074,7 +1074,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Εβδομαδιαίο εργαλείο — δαπάνες αυτής της εβδομάδας ανά κατηγορία (μόνο τρέχων μήνας) */}
       {!editMode && isCurMonth && weekTotalV > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-          {secHdr('Αυτή την εβδομάδα', 'week', <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(weekTotalV, 0)}</span>)}
+          {secHdr('Αυτή την εβδομάδα', 'week', <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(weekTotalV, 0)}</span>)}
           {!collapsed.has('week') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {weekCats.map(c => {
@@ -1086,7 +1086,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <div style={{ flex: 1, height: 8, background: 'var(--bg-overlay)', borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${(c.value / weekMax) * 100}%`, background: `color-mix(in srgb, var(--accent) ${on ? 100 : 66}%, transparent)`, borderRadius: 4, transition: 'width 0.5s ease, background 0.18s' }} />
                   </div>
-                  <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(c.value, 0)}</span>
+                  <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(c.value, 0)}</span>
                 </div>
                 );
               })}
@@ -1113,7 +1113,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             {secHdr('Επαναλαμβανόμενες χρεώσεις', 'recurring',
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthlyTotal, 0)}/μήνα · {fe(annualTotal, 0)}/έτος</span>,
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(monthlyTotal, 0)}/μήνα · {feAuto(annualTotal, 0)}/έτος</span>,
               <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίζονται αυτόματα από τις καταγεγραμμένες δαπάνες σου, όταν ο ίδιος πάροχος επαναλαμβάνεται σε πολλούς μήνες. Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος, ώστε να εντοπίζεις εύκολα τις «κρυφές» συνδρομές." />)}
             {!collapsed.has('recurring') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1128,8 +1128,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{cadLabel(r.cadence)} · επόμενη {parseLocalDate(r.nextExpected).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</div>
                       </div>
                       <div style={{ textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(r.monthlyEquivalent, 0)}<span style={{ fontSize: 9, fontWeight: 500, color: 'var(--text-tertiary)' }}>/μήνα</span></div>
-                        <div style={{ fontSize: 9.5, color: 'var(--text-tertiary)' }}>{fe(r.annualCost, 0)}/έτος</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(r.monthlyEquivalent, 0)}<span style={{ fontSize: 9, fontWeight: 500, color: 'var(--text-tertiary)' }}>/μήνα</span></div>
+                        <div style={{ fontSize: 9.5, color: 'var(--text-tertiary)' }}>{feAuto(r.annualCost, 0)}/έτος</div>
                       </div>
                     </div>
                   );
@@ -1144,7 +1144,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {!editMode && <BudgetVaults propertyId={propertyId} userId={userId} suggestions={suggestions} monthlyCommitment={monthlyCost} />}
 
       {/* Category rows */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
         {secHdr('Ανά Κατηγορία', editMode ? undefined : 'cats')}
         {!(!editMode && collapsed.has('cats')) &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: editMode ? 12 : 9 }}>
@@ -1172,7 +1172,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
                   {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
                   {!editMode && isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
-                    <span title={`Μέσος όρος τριμήνου: ${fe(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: tr.direction === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                    <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: tr.direction === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
                     </span>
@@ -1194,11 +1194,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   ) : (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
                       {actual > 0
-                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(actual, 0)}</span>
+                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(actual, 0)}</span>
                         : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ {fe(budget, 0)}</span>
-                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 78%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget, 0)}</span>}
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ {feAuto(budget, 0)}</span>
+                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 78%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>}
                       {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
                       {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
                     </div>
@@ -1225,7 +1225,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
                         {!it.paid && <span style={{ fontSize: 9.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκκρεμεί</span>}
                         {it.date && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{parseLocalDate(it.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</span>}
-                        <span style={{ width: 58, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(it.amount, 0)}</span>
+                        <span style={{ width: 58, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(it.amount, 0)}</span>
                       </div>
                     ))}
                   </div>
@@ -1267,7 +1267,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <NumberInput label="Συνολικός Μηνιαίος Στόχος (€)" value={budgets.total ?? '390'} onChange={v => updateBudget('total', v)} suffix="€ / μήνα" step={10} placeholder="390"/>
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '14px 16px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Άθροισμα κατηγοριών</div>
-                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(activeCats.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(activeCats.reduce((s, c) => s + catBudget(c.key), 0), 0)}</div>
               </div>
             </div>
             {/* Ρυθμίσεις προϋπολογισμού — διακόπτες (email υπέρβασης, μεταφορά υπολοίπου) */}
@@ -1279,43 +1279,43 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         )}
       </div>
 
-      {/* Εξαιρέσεις: δαπάνες/λογαριασμοί που πληρώνει άλλος και δεν μετρούν στον προϋπολογισμό */}
+      {/* Εξαιρέσεις: όσα δεν θέλεις να μετρούν στα στατιστικά/προϋπολογισμό (τα πληρώνει άλλος ή απλώς εκτός) */}
       {!editMode && isCurMonth && monthItems.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           {secHdr('Εξαιρέσεις', 'exclusions',
-            excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{excludedCount} εκτός προϋπολογισμού</span> : undefined,
-            <InfoDot text="Εξαίρεσε μια δαπάνη ή έναν λογαριασμό που θα πληρώσει κάποιος άλλος (οικογένεια, ενοικιαστής, ασφαλιστική) ώστε να μη μετρά στα στατιστικά και στον προϋπολογισμό. Μπορείς να σημειώσεις ποιος πληρώνει." />)}
+            excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{excludedCount} εκτός</span> : undefined,
+            <InfoDot text="Απενεργοποίησε όσα δεν θέλεις να μετρούν στα στατιστικά και στον προϋπολογισμό — είτε γιατί τα πληρώνει κάποιος άλλος, είτε επειδή απλώς δεν θες να προσμετρώνται. Προαιρετικά σημειώνεις τον λόγο." />)}
           {!collapsed.has('exclusions') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {monthItems.map(it => {
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {monthItems.map((it, idx) => {
                 const ex = excludedMap[it.id];
                 const isEx = !!ex;
-                const picking = exclOpen === it.id;
                 return (
-                  <div key={it.id} style={{ display: 'flex', flexDirection: 'column', gap: picking ? 8 : 0, padding: '8px', margin: '0 -8px', borderRadius: T.radius.inner, background: isEx || picking ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isEx ? 'line-through' : 'none' }}>{it.label}</span>
-                      {isEx && ex?.payer && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>πληρώνει: {ex.payer}</span>}
-                      <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(it.amount, 0)}</span>
-                      {isEx ? (
-                        <button type="button" onClick={() => unexcludeItem(it.id)} title="Επαναφορά στον προϋπολογισμό"
-                          style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, padding: '2px 4px' }}>Επαναφορά</button>
-                      ) : (
-                        <button type="button" onClick={() => setExclOpen(picking ? null : it.id)}
-                          style={{ border: '1px solid ' + (picking ? 'var(--border-accent)' : 'var(--border-subtle)'), background: 'transparent', color: picking ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}>Εξαίρεση</button>
-                      )}
+                  <div key={it.id} style={{ padding: '11px 0', borderTop: idx === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{feAuto(it.amount, 0)}</span>
+                      {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε */}
+                      <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
+                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclOpen(null); } else { excludeItem(it.id, ''); setExclOpen(it.id); } }}
+                        style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: isEx ? 'var(--border-default)' : 'var(--accent)', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s' }}>
+                        <span style={{ position: 'absolute', top: 2, left: isEx ? 2 : 18, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
+                      </button>
                     </div>
-                    {picking && !isEx && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingLeft: 2 }}>
-                        <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ποιος πληρώνει;</span>
-                        {PAYERS.map(p => (
-                          <button key={p} type="button" onClick={() => { excludeItem(it.id, p); setExclOpen(null); }}
-                            style={{ border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '4px 11px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
-                            {p}
-                          </button>
-                        ))}
+                    {isEx && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
+                        <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginRight: 2 }}>Λόγος</span>
+                        {PAYERS.map(p => {
+                          const sel = ex?.payer === p;
+                          return (
+                            <button key={p} type="button" onClick={() => excludeItem(it.id, sel ? '' : p)}
+                              style={{ border: `1px solid ${sel ? 'var(--border-accent)' : 'var(--border-subtle)'}`, background: sel ? 'var(--accent-dim)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}
+                              onMouseEnter={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; } }}
+                              onMouseLeave={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
+                              {p}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
