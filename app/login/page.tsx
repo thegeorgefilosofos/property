@@ -89,9 +89,8 @@ export default function LoginPage() {
           {sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
           ) : (<>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px', fontFamily: "'Inter',sans-serif" }}>Σύνδεση</p>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>Καλώς όρισες ξανά</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 28px', lineHeight: 1.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h2>
+          <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.5 }}>
             Δεν έχεις λογαριασμό;{' '}
             <Link href="/signup" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Εγγραφή δωρεάν</Link>
           </p>
