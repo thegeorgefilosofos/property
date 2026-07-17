@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
+import ScrollStory from './ScrollStory';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία → αυτόματη
@@ -28,21 +29,6 @@ const TEXT = 'var(--text-primary)';
 const MUTED = 'var(--text-secondary)';
 const FAINT = 'var(--text-tertiary)';
 const LINE = 'var(--border-subtle)';
-
-const DIFF = [
-  {
-    tag: 'Σάρωση', h: 'Δεν πληκτρολογείς. Φωτογραφίζεις.',
-    icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-    p: 'Λογαριασμός, μισθωτήριο, ασφαλιστήριο ή ΕΝΦΙΑ. Μία λήψη και καταχωρείται εκεί που πρέπει.',
-    b: ['Διαβάζει ποσά, ημερομηνίες και πάροχο', 'Ενημερώνει δαπάνες, ημερολόγιο και αρχείο μαζί', 'Ό,τι θέλεις το διορθώνεις με ένα άγγιγμα'],
-  },
-  {
-    tag: 'Βοηθός', h: 'Μιλάει και σκέφτεται ελληνικά.',
-    icon: 'M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z',
-    p: 'Ρωτάς με τη φωνή σου, όπως θα ρωτούσες έναν συνεργάτη. Ξέρει τα νούμερα του ακινήτου σου, και ξέρει πότε να σε στείλει στον λογιστή ή στον δικηγόρο σου.',
-    b: ['Ρωτάς «τι εκκρεμεί;» και απαντά με τα δικά σου στοιχεία', 'Μιλάει με ανθρώπινη φωνή, στα ελληνικά', 'Σε οδηγεί κατευθείαν στη σωστή οθόνη'],
-  },
-];
 
 const FEATURES = [
   { t: 'Σύγκριση ρεύματος και ασφάλειας', d: 'Συγκρίνεις τα τιμολόγια όλων των παρόχων και τις ασφάλειες ακινήτου, και βλέπεις πόσα γλιτώνεις πριν αποφασίσεις.', i: 'M3 12h4l3 8 4-16 3 8h4' },
@@ -95,7 +81,7 @@ export default async function Landing() {
   const loggedIn = !!user;
 
   return (
-    <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'hidden', position: 'relative' }}>
+    <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
 
       <style>{`
         .lp-skip { position: absolute; left: -9999px; top: 10px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); font-size: 14px; font-weight: 600; text-decoration: none; }
@@ -236,24 +222,11 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* ── Differentiators: τα δύο μοναδικά ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 5vw, 64px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
-        <SectionHead over="Γιατί εμάς" title="Δύο πράγματα που δεν κάνει καμία άλλη εφαρμογή" sub="Μία φωτογραφία τα καταχωρεί όλα και ένας βοηθός που μιλάει ελληνικά σού τα εξηγεί." />
-        <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          {DIFF.map((c, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 3vw, 32px)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(c.icon)}</div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT }}>{c.tag}</span>
-              </div>
-              <h3 style={{ fontSize: 'clamp(20px, 2.5vw, 25px)', fontWeight: 680, letterSpacing: '-0.025em', lineHeight: 1.15, margin: '0 0 12px' }}>{c.h}</h3>
-              <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{c.p}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {c.b.map((t, j) => <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, color: TEXT, lineHeight: 1.45 }}>{check}{t}</div>)}
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
+             ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
+      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 5vw, 64px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
+        <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις. Πλήρης έλεγχος." sub="Φωτογραφίζεις, ρωτάς, αποφασίζεις. Τίποτα άλλο." />
+        <ScrollStory />
       </section>
 
       {/* ── Capabilities ── */}
