@@ -224,8 +224,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
   const [collapsed,    setCollapsed]    = useState<Set<string>>(new Set());
+  // Προεπιλογή: όλες οι ενότητες κλειστές (μαζεμένες) — ο χρήστης ανοίγει ό,τι θέλει.
   useEffect(() => {
-    try { const s = localStorage.getItem(`budget_collapsed_${propertyId}`); if (s) setCollapsed(new Set(JSON.parse(s))); } catch { /* ignore */ }
+    try {
+      const s = localStorage.getItem(`budget_collapsed_${propertyId}`);
+      setCollapsed(new Set(s ? JSON.parse(s) : ['annual', 'week', 'recurring', 'income', 'exclusions', 'import', 'cats']));
+    } catch { setCollapsed(new Set(['annual', 'week', 'recurring', 'income', 'exclusions', 'import', 'cats'])); }
   }, [propertyId]);
   const toggleCollapse = (key: string) => setCollapsed(prev => {
     const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key);

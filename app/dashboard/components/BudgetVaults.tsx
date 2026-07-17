@@ -99,7 +99,8 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
   editRef.current = editId;
 
   useEffect(() => {
-    try { setShut(localStorage.getItem(`vaults_shut_${propertyId}`) === '1'); } catch { /* ignore */ }
+    // Προεπιλογή: κλειστό (μαζεμένο) — ο χρήστης το ανοίγει αν το χρειάζεται.
+    try { const v = localStorage.getItem(`vaults_shut_${propertyId}`); setShut(v == null ? true : v === '1'); } catch { setShut(true); }
   }, [propertyId]);
   const toggleShut = () => setShut(s => { const n = !s; try { localStorage.setItem(`vaults_shut_${propertyId}`, n ? '1' : '0'); } catch { /* ignore */ } return n; });
 
@@ -244,51 +245,53 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                   else { const b = BANK_RATES.find(x => x.name === val); update(v.id, { bank: val, apy: b?.apy }); }
                 };
                 const yearly = (v.apy != null && v.apy > 0 && (v.current || 0) > 0) ? Math.round((v.current || 0) * v.apy / 100) : 0;
-                // Compact 2-col: πεδία δίπλα-δίπλα ώστε το πλαίσιο να μένει χαμηλό και μαζεμένο.
+                // Σταθερές 2 στήλες ώστε τα πεδία (ημερολόγιο, dropdown τραπεζών) να έχουν
+                // αρκετό πλάτος και να ανοίγουν σωστά· ορθολογική σειρά με βάση την εμπειρία χρήσης.
+                const now = new Date();
+                const sc = (v.planAmount && v.planAmount > 0)
+                  ? savingsSchedule(v.target || 0, v.current || 0, v.planAmount, v.planDay || 1, { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() })
+                  : null;
+                const grp: React.CSSProperties = { gridColumn: '1 / -1', fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans, marginTop: 4 };
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '9px 12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 12px' }}>
+                    {/* 1. Βασικά */}
                     <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
                     <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
                     <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
-                    <DatePicker label="Ημ/νία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
+
+                    {/* 2. Πρόγραμμα: πόσο βάζω κάθε μήνα και πότε πιάνω τον στόχο */}
+                    <div style={grp}>Μηνιαίο πρόγραμμα</div>
+                    <NumberInput label="Προσθέτω κάθε μήνα" value={v.planAmount != null ? String(v.planAmount) : ''} onChange={val => update(v.id, { planAmount: val.trim() === '' ? undefined : (parseFloat(val) || 0) })} suffix="€" step={10} placeholder="0" />
+                    <NumberInput label="Ημέρα του μήνα" value={v.planDay != null ? String(v.planDay) : ''} onChange={val => update(v.id, { planDay: val.trim() === '' ? undefined : Math.min(31, Math.max(1, parseInt(val) || 1)) })} step={1} placeholder="1" />
+                    {sc && (
+                      <div onMouseEnter={() => setPlanHover(true)} onMouseLeave={() => setPlanHover(false)} onTouchStart={() => setPlanHover(true)} onTouchEnd={() => setPlanHover(false)}
+                        style={{ gridColumn: '1 / -1', background: 'var(--bg-surface)', border: `1px solid ${planHover ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '11px 13px', transition: 'border-color 0.15s', cursor: 'default' }}>
+                        {sc.reached ? (
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ο στόχος έχει ήδη καλυφθεί.</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                              Θα πιάσεις τον στόχο τον <strong style={{ color: planHover ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fullDate(sc.goalDate)}</strong>, σε <strong style={{ color: planHover ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.contributionsToGoal}</strong> προσθήκες.
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                              Επόμενη προσθήκη σε <strong style={{ color: planHover ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.daysToNext}</strong> {sc.daysToNext === 1 ? 'ημέρα' : 'ημέρες'} ({fullDate(sc.nextDate)}).
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 3. Προθεσμία & αποταμιευτικός λογαριασμός */}
+                    <div style={grp}>Προθεσμία και τράπεζα</div>
+                    <DatePicker label="Ημερομηνία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
                     <CustomSelect label="Αποταμίευση"
                       labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν άεργα και βλέπεις πόσους τόκους κερδίζεις τον χρόνο. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
                       value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή…" />
-                    {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
                     {selectValue !== '' && (
-                      <NumberInput label="Επιτόκιο (ετ.)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
+                      <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
                     )}
+                    {isOther && <TextInput label="Όνομα τράπεζας" value={v.bank || ''} onChange={val => update(v.id, { bank: val })} placeholder="π.χ. Raisin" />}
                     {yearly > 0 && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκτιμώμενοι τόκοι: <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>+{fe(yearly, 0)}</strong> / έτος</div>}
-
-                    {/* Πρόγραμμα αποταμίευσης: βάζω Χ κάθε μήνα (ημέρα Υ) και βλέπω ζωντανά πότε πιάνω τον στόχο */}
-                    <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '9px 12px', borderTop: '1px solid var(--border-subtle)', paddingTop: 11, marginTop: 1 }}>
-                      <NumberInput label="Προσθέτω κάθε μήνα" value={v.planAmount != null ? String(v.planAmount) : ''} onChange={val => update(v.id, { planAmount: val.trim() === '' ? undefined : (parseFloat(val) || 0) })} suffix="€" step={10} placeholder="0" />
-                      <NumberInput label="Ημέρα του μήνα" value={v.planDay != null ? String(v.planDay) : ''} onChange={val => update(v.id, { planDay: val.trim() === '' ? undefined : Math.min(28, Math.max(1, parseInt(val) || 1)) })} step={1} placeholder="1" />
-                    </div>
-                    {(() => {
-                      if (!(v.planAmount && v.planAmount > 0)) return null;
-                      const now = new Date();
-                      const sc = savingsSchedule(v.target || 0, v.current || 0, v.planAmount, v.planDay || 1, { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() });
-                      if (!sc) return null;
-                      const on = planHover;
-                      return (
-                        <div onMouseEnter={() => setPlanHover(true)} onMouseLeave={() => setPlanHover(false)} onTouchStart={() => setPlanHover(true)} onTouchEnd={() => setPlanHover(false)}
-                          style={{ gridColumn: '1 / -1', background: 'var(--bg-surface)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '11px 13px', transition: 'border-color 0.15s', cursor: 'default' }}>
-                          {sc.reached ? (
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ο στόχος έχει ήδη καλυφθεί.</div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                                Θα πιάσεις τον στόχο τον <strong style={{ color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fullDate(sc.goalDate)}</strong>, σε <strong style={{ color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.contributionsToGoal}</strong> προσθήκες.
-                              </div>
-                              <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                                Επόμενη προσθήκη σε <strong style={{ color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.num, transition: 'color 0.15s' }}>{sc.daysToNext}</strong> {sc.daysToNext === 1 ? 'ημέρα' : 'ημέρες'} ({fullDate(sc.nextDate)}).
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
                   </div>
                 );
               })()}
