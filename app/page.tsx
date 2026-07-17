@@ -33,39 +33,24 @@ const DIFF = [
   {
     tag: 'Σάρωση', h: 'Δεν πληκτρολογείς. Φωτογραφίζεις.',
     icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-    p: 'Λογαριασμός, μισθωτήριο, ασφαλιστήριο ή ΕΝΦΙΑ. Μία φωτογραφία και μπαίνει μόνο του εκεί που πρέπει.',
-    b: ['Διαβάζει ποσά, ημερομηνίες και πάροχο', 'Ενημερώνει δαπάνες, ημερολόγιο και αρχείο μαζί', 'Έκανε λάθος; Το διορθώνεις με ένα άγγιγμα'],
+    p: 'Λογαριασμός, μισθωτήριο, ασφαλιστήριο ή ΕΝΦΙΑ. Μία φωτογραφία και καταχωρείται εκεί που πρέπει.',
+    b: ['Διαβάζει ποσά, ημερομηνίες και πάροχο', 'Ενημερώνει δαπάνες, ημερολόγιο και αρχείο μαζί', 'Ό,τι θέλεις το διορθώνεις με ένα άγγιγμα'],
   },
   {
-    tag: 'Βοηθός', h: 'Ρώτα όπως θα ρωτούσες έναν φίλο.',
+    tag: 'Βοηθός', h: 'Μιλάει και σκέφτεται ελληνικά.',
     icon: 'M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z',
-    p: 'Ένας βοηθός με όνομα και φωνή που διαλέγεις εσύ. Ξέρει τα νούμερά σου και για κάθε σοβαρό σε στέλνει στον σωστό επαγγελματία.',
-    b: ['«Τι εκκρεμεί;» και απαντά με τα δικά σου στοιχεία', 'Του μιλάς, σου απαντά με ανθρώπινη φωνή', 'Σε πάει με ένα άγγιγμα εκεί που θέλεις'],
+    p: 'Ρωτάς με τη φωνή σου, όπως θα ρωτούσες έναν συνεργάτη. Ξέρει τα νούμερα του ακινήτου σου και για κάθε δεσμευτικό θέμα σε παραπέμπει στον σωστό επαγγελματία.',
+    b: ['Ρωτάς «τι εκκρεμεί;» και απαντά με τα δικά σου στοιχεία', 'Σου απαντά με ανθρώπινη φωνή, στα ελληνικά', 'Σε πάει με ένα άγγιγμα εκεί που θέλεις'],
   },
-];
-
-const BEFORE = [
-  'Υπολογιστικά φύλλα για έσοδα και έξοδα',
-  'Σημειώσεις στο κινητό για λήξεις και πληρωμές',
-  'Ξεχωριστά αρχεία για κάθε ακίνητο',
-  'Ο λογιστής για κάθε φορολογική απορία',
-  'Φάκελοι με λογαριασμούς και συμβόλαια',
-];
-const AFTER = [
-  'Όλα τα οικονομικά, ζωντανά σε μία οθόνη',
-  'Ειδοποίηση πριν από κάθε λήξη και πληρωμή',
-  'Όλα τα ακίνητά σου, μαζί',
-  'Φορολογία 2026 και έτοιμο Ε2 για τον λογιστή',
-  'Κάθε έγγραφο, μία φωτογραφία μακριά',
 ];
 
 const FEATURES = [
-  { t: 'Πλήρης οικονομική εικόνα', d: 'Τι αποδίδει κάθε ακίνητο σε πραγματικό χρόνο, καθαρά μετά από φόρους, έξοδα και αποσβέσεις.', i: 'M3 12h4l3 8 4-16 3 8h4' },
-  { t: 'Φορολογία 2026', d: 'Φόρος εισοδήματος με την ισχύουσα κλίμακα και έτοιμη εξαγωγή για τον λογιστή σου.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
-  { t: 'Διαχείριση ενοικιαστή', d: 'Συμβόλαιο, ιστορικό πληρωμών, εγγύηση και υπενθυμίσεις λήξης, σε ένα σημείο.', i: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87' },
-  { t: 'Δάνειο και αγορά', d: 'Πίνακες χρεολυσίων, αντοχή στο επιτόκιο και έξοδα μεταβίβασης, πριν υπογράψεις.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
-  { t: 'Ημερολόγιο και υπενθυμίσεις', d: 'Πληρωμές, λήξεις, ΕΝΦΙΑ και συντηρήσεις. Το ξέρεις πριν λήξει, όχι μετά.', i: 'M3 5h18v16H3zM3 9h18M8 3v4M16 3v4' },
-  { t: 'Αρχείο και τεκμηρίωση', d: 'Έγγραφα, εγγυήσεις, ΠΕΑ και φωτογραφίες, οργανωμένα και πάντα προσβάσιμα.', i: 'M4 4h6l2 2h8v12H4zM4 10h16' },
+  { t: 'Σύγκριση ρεύματος και ασφάλειας', d: 'Συγκρίνεις τα τιμολόγια όλων των παρόχων και τις ασφάλειες ακινήτου, και βλέπεις πόσα γλιτώνεις πριν αποφασίσεις.', i: 'M3 12h4l3 8 4-16 3 8h4' },
+  { t: 'Έξυπνη χρηματοδότηση', d: 'Ανάλυση στεγαστικού, δόσεις, επιτόκια και έξοδα μεταβίβασης, ώστε να επιλέγεις την πιο αποδοτική λύση για κάθε τύπο ακινήτου.', i: 'M3 21h18M5 21V7l8-4v18M19 21V11l-6-4' },
+  { t: 'Προϋπολογισμός και αποδόσεις', d: 'Καταγράφεις δαπάνες, ορίζεις στόχους και βλέπεις σε πραγματικό χρόνο τι σου αποδίδει καθαρά κάθε ακίνητο.', i: 'M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7' },
+  { t: 'Μίσθωση με σιγουριά', d: 'Καθοδήγηση για βραχυχρόνια ή μακροχρόνια μίσθωση, με πραγματικά νούμερα, είτε σκέφτεσαι να μισθώσεις είτε το έχεις ήδη κάνει.', i: 'M3 21h18M5 21V7l8-4v18M13 9h6v12M9 9h.01M9 13h.01M9 17h.01' },
+  { t: 'Φορολογική ενημέρωση', d: 'Γνωρίζεις ανά πάσα στιγμή τις υποχρεώσεις και τις ευκαιρίες σου με τη φορολογία του 2026. Δεν αντικαθιστά τον λογιστή σου, σε κρατά όμως πάντα ενημερωμένο.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
+  { t: 'Όλα σε ένα σημείο', d: 'Έγγραφα, ημερολόγιο, υπενθυμίσεις και αρχείο, οργανωμένα και κρυπτογραφημένα. Χωρίς άγχος, χωρίς σκόρπιους φακέλους.', i: 'M4 4h6l2 2h8v12H4zM4 10h16' },
 ];
 
 const FAQ = [
@@ -159,8 +144,8 @@ export default async function Landing() {
           Βγάλε μία φωτογραφία.<br />
           <span style={{ color: MUTED }}>Όλα τα υπόλοιπα, τακτοποιημένα.</span>
         </h1>
-        <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 640, margin: '0 auto 30px' }}>
-          Το ακίνητό σου υπό έλεγχο σαν επαγγελματίας — είτε έχεις ένα σπίτι είτε ολόκληρο χαρτοφυλάκιο. Μία φωτογραφία τα καταχωρεί όλα και ο βοηθός σού απαντά με τα δικά σου νούμερα.
+        <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>
+          Λογαριασμοί, συμβόλαια και ασφάλειες μπαίνουν στη θέση τους με μία φωτογραφία. Ο βοηθός σου απαντά στα ελληνικά, με τα δικά σου νούμερα. Εσύ έχεις τον πλήρη έλεγχο του ακινήτου σου, από ένα σπίτι μέχρι ολόκληρο χαρτοφυλάκιο.
         </p>
         <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           {loggedIn ? (
@@ -189,7 +174,7 @@ export default async function Landing() {
 
       {/* ── Differentiators: τα δύο μοναδικά ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 5vw, 64px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
-        <SectionHead over="Γιατί εμάς" title="Δύο πράγματα που δεν κάνει καμία άλλη εφαρμογή" sub="Μία φωτογραφία τα καταχωρεί όλα· ένας βοηθός με φωνή σού τα εξηγεί. Καμία πληκτρολόγηση, καμία περιπλοκή." />
+        <SectionHead over="Γιατί εμάς" title="Δύο πράγματα που δεν κάνει καμία άλλη εφαρμογή" sub="Μία φωτογραφία τα καταχωρεί όλα και ένας βοηθός που μιλάει ελληνικά σού τα εξηγεί." />
         <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {DIFF.map((c, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 3vw, 32px)' }}>
@@ -207,62 +192,9 @@ export default async function Landing() {
         </div>
       </section>
 
-      {/* ── Αντικαθιστά ό,τι χρησιμοποιείς σήμερα (category framing) ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(40px, 6vw, 72px)' }}>
-        <SectionHead over="Αντί για δέκα εργαλεία" title="Ένα app στη θέση όλων" sub="Το χάος της διαχείρισης, μαζεμένο σε ένα καθαρό σημείο." />
-        <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 3vw, 30px)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: FAINT, marginBottom: 18 }}>Σήμερα</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-              {BEFORE.map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, fontSize: 14, color: FAINT, lineHeight: 1.45 }}>
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }}><path d="M5 12h14" /></svg>
-                  {t}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ background: PANEL, border: `1.5px solid color-mix(in srgb, var(--accent) 45%, transparent)`, borderRadius: 18, padding: 'clamp(22px, 3vw, 30px)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-              <div style={{ width: 20, height: 20, borderRadius: 6, background: ACCENT, color: 'var(--accent-text)', fontWeight: 800, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ACCENT }}>Με το Property OS</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-              {AFTER.map((t, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, fontSize: 14, color: TEXT, lineHeight: 1.45, fontWeight: 500 }}>{check}{t}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Energy: πραγματικά λεφτά ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(40px, 6vw, 72px)' }}>
-        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.025em', lineHeight: 1.15, margin: '0 0 12px' }}>Το φθηνότερο ρεύμα για κάθε ακίνητο</h3>
-            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>
-              Βάζεις την κατανάλωσή σου και συγκρίνουμε αυτόματα τα τιμολόγια της αγοράς — σταθερά, δυναμικά, πράσινα. Σου δείχνουμε ακριβώς πόσα γλιτώνεις αν αλλάξεις πάροχο.
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {[['Σταθερό τιμολόγιο', 'Πάγια τιμή', '142 €', false], ['Δυναμικό τιμολόγιο', 'Το φθηνότερο για σένα', '128 €', true], ['Πράσινο τιμολόγιο', 'Πάγια τιμή', '135 €', false]].map(([n, b, p, best], i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: BG, border: `1px solid ${best ? 'color-mix(in srgb, var(--accent) 45%, transparent)' : LINE}`, borderRadius: 12, padding: '13px 16px' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{n as string}</div>
-                  <div style={{ fontSize: 11.5, color: best ? ACCENT : FAINT, marginTop: 2, fontWeight: best ? 700 : 400 }}>{b as string}</div>
-                </div>
-                <div style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', fontSize: 17, fontWeight: 800, color: best ? ACCENT : TEXT }}>{p as string}</div>
-              </div>
-            ))}
-            <div style={{ fontSize: 12, color: FAINT, textAlign: 'right', marginTop: 2 }}>Εκτίμηση για 350 kWh τον μήνα</div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Capabilities ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
-        <SectionHead over="Δυνατότητες" title="Ό,τι χρειάζεται ένας Έλληνας ιδιοκτήτης" sub="Όλα σε ένα σημείο — όχι δέκα εφαρμογές και υπολογιστικά φύλλα." />
+        <SectionHead over="Δυνατότητες" title="Ό,τι χρειάζεται το ακίνητό σου" sub="Από τον λογαριασμό ρεύματος μέχρι τη φορολογική δήλωση, με τη σειρά που τα χρειάζεσαι." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
           {FEATURES.map((f, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 26 }}>
