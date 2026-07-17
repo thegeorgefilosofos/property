@@ -48,10 +48,12 @@ function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: num
   const x = (i: number) => n <= 1 ? pad : pad + (i * (w - 2 * pad)) / (n - 1);
   const y = (v: number) => h - pad - (Math.max(0, v) / max) * (h - 2 * pad);
   const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  // Καθαρή μονόχρωμη μικρογραφία τάσης — χωρίς έγχρωμη «κουκκίδα», ώστε οι γραμμές
+  // των κατηγοριών να μένουν ομοιόμορφες και διακριτικές (καμία διακοσμητική χρώση).
+  void activeIndex;
   return (
     <svg width={w} height={h} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="color-mix(in srgb, var(--text-primary) 28%, transparent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      {activeIndex >= 0 && <circle cx={x(activeIndex)} cy={y(values[activeIndex] || 0)} r="1.9" fill="var(--accent)" />}
+      <polyline points={pts} fill="none" stroke="color-mix(in srgb, var(--text-primary) 26%, transparent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -172,6 +174,10 @@ const PAYERS = ['Οικογένεια', 'Ενοικιαστής', 'Ασφαλι�
 // την εφαρμογή. Ο προϋπολογισμός εδώ κρατά μόνο στόχους έναντι πραγματικών.
 
 interface MonthItem { id: string; kind: 'bill' | 'expense'; label: string; amount: number; catKey: string }
+// Κανόνας εξαίρεσης ανά εγγραφή: προαιρετικός λόγος (payer/note) και προαιρετικό
+// μερικό ποσό (amount). Χωρίς amount → εξαιρείται όλη η εγγραφή· με amount →
+// εξαιρείται μόνο αυτό το μέρος (π.χ. το κομμάτι που πλήρωσε κάποιος άλλος).
+interface ExclRule { payer?: string; note?: string; amount?: number }
 
 interface Props { propertyId: string; userId?: string; profileType?: 'individual' | 'professional'; }
 
@@ -221,7 +227,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [newCatName,   setNewCatName]   = useState('');
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
-  const [exclOpen,     setExclOpen]     = useState<string | null>(null);   // ποιο στοιχείο επιλέγει «ποιος πληρώνει»
+  const [exclAmtDraft, setExclAmtDraft] = useState<Record<string, string>>({});  // ό,τι πληκτρολογεί ο χρήστης στο μερικό ποσό εξαίρεσης
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -338,10 +344,19 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
       const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : mapCategory(r); };
       const catLabelOf = (k: string): string => catLabels[k] ?? 'Λοιπές δαπάνες';
-      // Εξαιρέσεις: δαπάνες/λογαριασμοί που ΔΕΝ μετράνε στον προϋπολογισμό (τα πληρώνει άλλος).
-      let excluded: Record<string, { payer?: string }> = {};
+      // Εξαιρέσεις: δαπάνες/λογαριασμοί που ΔΕΝ μετράνε (ή μετράνε μερικώς) στον προϋπολογισμό.
+      // Χωρίς 'amount' → εξαιρείται ΟΛΟ το ποσό· με 'amount' → εξαιρείται μόνο αυτό το μέρος
+      // (π.χ. πλήρωσε 50 € ο ενοικιαστής και 50 € εγώ → εξαιρώ 50 €, μετρούν 50 €).
+      let excluded: Record<string, ExclRule> = {};
       try { const o = JSON.parse(String((budgetRes.data?.data as { __excluded?: string } | null)?.__excluded ?? '{}')); if (o && typeof o === 'object') excluded = o; } catch { /* ignore */ }
-      const isExcl = (id: any): boolean => id != null && Object.prototype.hasOwnProperty.call(excluded, String(id));
+      const exclAmt = (id: any, full: number): number => {
+        const e = id != null ? excluded[String(id)] : undefined;
+        if (!e) return 0;
+        const a = e.amount;
+        return typeof a === 'number' && isFinite(a) && a >= 0 ? Math.min(a, Math.max(0, full)) : Math.max(0, full);
+      };
+      // Το ποσό που ΟΝΤΩΣ μετρά στον προϋπολογισμό (ολικό μείον το εξαιρούμενο μέρος).
+      const counted = (id: any, full: number): number => Math.max(0, (full || 0) - exclAmt(id, full || 0));
 
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
       // εγγραφές (όχι εκτιμήσεις από ρυθμίσεις), ώστε τάση/ετήσιο να είναι έντιμα.
@@ -352,8 +367,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         mTotals[ym] = (mTotals[ym] ?? 0) + amt;
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
       };
-      (histBillsRes.data ?? []).forEach((b: any) => { if (isExcl(b.id)) return; addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0); });
-      (histExpRes.data ?? []).forEach((e: any) => { if (isExcl(e.id)) return; addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), e.amount || 0); });
+      (histBillsRes.data ?? []).forEach((b: any) => { const amt = counted(b.id, b.amount || 0); if (amt <= 0) return; addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), amt); });
+      (histExpRes.data ?? []).forEach((e: any) => { const amt = counted(e.id, e.amount || 0); if (amt <= 0) return; addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), amt); });
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
 
@@ -366,8 +381,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Εβδομαδιαίο εργαλείο: δαπάνες τρέχουσας εβδομάδας ανά κατηγορία ──
       const wk: Record<string, number> = {};
-      (weekBillsRes.data ?? []).forEach((b: any) => { if (isExcl(b.id)) return; const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(b.amount) || 0); });
-      (weekExpRes.data ?? []).forEach((e: any) => { if (isExcl(e.id)) return; const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
+      (weekBillsRes.data ?? []).forEach((b: any) => { const amt = counted(b.id, Number(b.amount) || 0); if (amt <= 0) return; const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + amt; });
+      (weekExpRes.data ?? []).forEach((e: any) => { const amt = counted(e.id, Number(e.amount) || 0); if (amt <= 0) return; const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + amt; });
       setWeekActuals(wk);
 
       if (budgetRes.data?.data) {
@@ -385,10 +400,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       (billsRes.data ?? []).forEach((b: any) => {
         const key = mapCategory(b.category ?? '');
         const label = catLabelOf(key);
-        if (b.id != null) items.push({ id: String(b.id), kind: 'bill', label, amount: Number(b.amount) || 0, catKey: key });
-        if (isExcl(b.id)) return;
-        billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
-        (bd[key] ??= []).push({ label: String(b.name ?? '').trim() || label, amount: Number(b.amount) || 0, date: String(b.due_date ?? b.created_at ?? '').slice(0, 10), paid: !!b.paid, kind: 'bill' });
+        const full = Number(b.amount) || 0;
+        if (b.id != null) items.push({ id: String(b.id), kind: 'bill', label, amount: full, catKey: key });
+        const amt = counted(b.id, full);
+        if (amt <= 0) return;
+        billActuals[key] = (billActuals[key] ?? 0) + amt;
+        (bd[key] ??= []).push({ label: String(b.name ?? '').trim() || label, amount: amt, date: String(b.due_date ?? b.created_at ?? '').slice(0, 10), paid: !!b.paid, kind: 'bill' });
       });
 
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
@@ -411,11 +428,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // Έξοδα εκτός λογαριασμών του μήνα: η συντήρηση πάει στη «Συντήρηση»,
       // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
       (expRes.data ?? []).forEach((e: any) => {
-        const amt = e.amount || 0;
+        const full = e.amount || 0;
         const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''));
         const label = String(e.description ?? '').trim() || catLabelOf(k);
-        if (e.id != null) items.push({ id: String(e.id), kind: 'expense', label, amount: amt, catKey: k });
-        if (isExcl(e.id)) return;
+        if (e.id != null) items.push({ id: String(e.id), kind: 'expense', label, amount: full, catKey: k });
+        const amt = counted(e.id, full);
+        if (amt <= 0) return;
         billActuals[k] = (billActuals[k] || 0) + amt;
         (bd[k] ??= []).push({ label, amount: amt, date: String(e.date ?? '').slice(0, 10), paid: true, kind: 'expense' });
       });
@@ -573,11 +591,26 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   };
   const restoreCategory = (key: string) => persistCats({ __hidden: JSON.stringify(hiddenKeys.filter(k => k !== key)) });
 
-  // ── Εξαιρέσεις: δαπάνες/λογαριασμοί που πληρώνει άλλος και δεν μετρούν στον προϋπολογισμό ──
-  const excludedMap: Record<string, { payer?: string }> = (() => { try { const o = JSON.parse(budgets.__excluded || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
+  // ── Εξαιρέσεις: όσα δεν θέλεις να μετρούν (ολικά ή μερικά) στα στατιστικά/προϋπολογισμό ──
+  const excludedMap: Record<string, ExclRule> = (() => { try { const o = JSON.parse(budgets.__excluded || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
   const excludedCount = Object.keys(excludedMap).length;
-  const excludeItem = (id: string, payer: string) => persistCats({ __excluded: JSON.stringify({ ...excludedMap, [id]: { payer } }) });
+  const excludeItem = (id: string) => persistCats({ __excluded: JSON.stringify({ ...excludedMap, [id]: excludedMap[id] || {} }) });
   const unexcludeItem = (id: string) => { const n = { ...excludedMap }; delete n[id]; persistCats({ __excluded: JSON.stringify(n) }); };
+  // Ενημέρωση ενός πεδίου του κανόνα (λόγος/σημείωση/μερικό ποσό)· κενά πεδία καθαρίζονται
+  // ώστε το αποθηκευμένο JSON να μένει λιτό.
+  const patchExcl = (id: string, patch: ExclRule) => {
+    const next: ExclRule = { ...(excludedMap[id] || {}), ...patch };
+    if (!next.payer) delete next.payer;
+    if (!next.note || !next.note.trim()) delete next.note;
+    if (next.amount == null || !(next.amount > 0)) delete next.amount;
+    persistCats({ __excluded: JSON.stringify({ ...excludedMap, [id]: next }) });
+  };
+  // Εξαιρούμενο/μετρούμενο μέρος μιας εγγραφής (για ζωντανή εμφάνιση στη λίστα εξαιρέσεων).
+  const exclAmountOf = (id: string, full: number): number => {
+    const e = excludedMap[id]; if (!e) return 0;
+    const a = e.amount;
+    return typeof a === 'number' && isFinite(a) && a >= 0 ? Math.min(a, Math.max(0, full)) : Math.max(0, full);
+  };
 
   // ── Πρόβλεψη τέλους μήνα, ετήσια εικόνα, τάση (καθαρά, από τον πυρήνα) ─────────
   const _now         = new Date();
@@ -1155,7 +1188,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const isOver  = actual > budget && actual > 0;
             const projOver = isCurMonth && !isOver && categoryStatus(budget, actual, catForecast(cat.key)) === 'projected_over';
             const isWarn  = !isOver && !projOver && pct > 80;
-            const col     = isOver ? 'color-mix(in srgb, var(--negative) 52%, transparent)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
+            // Ομοιόμορφες, μονόχρωμες ράβδοι για ΟΛΕΣ τις κατηγορίες — καμία κόκκινη
+            // ράβδος στην υπέρβαση· το «πόσο πάνω» λέγεται διακριτικά με μικρό αριθμό.
+            const col     = 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
             const tr      = catTrend(cat.key);
 
             const hov = !editMode && hoverCat === cat.key;
@@ -1168,11 +1203,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 onMouseEnter={() => !editMode && setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
                 style={{ borderRadius: T.radius.inner, padding: editMode ? 0 : '6px 8px', margin: editMode ? 0 : '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
                 <div onClick={hasBd ? toggleCat : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5, cursor: hasBd ? 'pointer' : 'default' }}>
-                  <div style={{ width: 3, height: 26, borderRadius: 2, background: editMode ? 'color-mix(in srgb, var(--text-primary) 34%, transparent)' : (hov && !isOver ? 'var(--accent)' : col), flexShrink: 0, transition: 'background 0.15s' }}/>
+                  <div style={{ width: 3, height: 26, borderRadius: 2, background: editMode ? 'color-mix(in srgb, var(--text-primary) 34%, transparent)' : (hov ? 'var(--accent)' : col), flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
                   {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
                   {!editMode && isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
-                    <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: tr.direction === 'up' ? 'var(--negative)' : 'var(--text-tertiary)' }}>
+                    <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior, 0)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-tertiary)' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
                     </span>
@@ -1198,7 +1233,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ {feAuto(budget, 0)}</span>
-                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 78%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>}
+                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 40%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget, 0)}</span>}
                       {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
                       {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
                     </div>
@@ -1211,7 +1246,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 {!editMode && (
                   <div style={{ marginLeft: 13 }}>
                     <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: hov && !isOver ? 'var(--accent)' : col, borderRadius: 2, transition: 'width 0.5s ease, background 0.15s' }}/>
+                      <div style={{ height: '100%', width: `${pct}%`, background: hov ? 'var(--accent)' : col, borderRadius: 2, transition: 'width 0.5s ease, background 0.15s' }}/>
                     </div>
                   </div>
                 )}
@@ -1284,38 +1319,76 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           {secHdr('Εξαιρέσεις', 'exclusions',
             excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{excludedCount} εκτός</span> : undefined,
-            <InfoDot text="Απενεργοποίησε όσα δεν θέλεις να μετρούν στα στατιστικά και στον προϋπολογισμό — είτε γιατί τα πληρώνει κάποιος άλλος, είτε επειδή απλώς δεν θες να προσμετρώνται. Προαιρετικά σημειώνεις τον λόγο." />)}
+            <InfoDot text="Απενεργοποίησε όσα δεν θέλεις να μετρούν στα στατιστικά και στον προϋπολογισμό — είτε γιατί τα πληρώνει κάποιος άλλος, είτε επειδή απλώς δεν θες να προσμετρώνται. Μπορείς να εξαιρέσεις ολόκληρη την εγγραφή ή μόνο ένα μέρος του ποσού (π.χ. το μισό το πλήρωσε άλλος) και προαιρετικά να σημειώσεις τον λόγο." />)}
           {!collapsed.has('exclusions') && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {monthItems.map((it, idx) => {
                 const ex = excludedMap[it.id];
                 const isEx = !!ex;
+                const full = it.amount;
+                const excl = exclAmountOf(it.id, full);            // πόσο εξαιρείται
+                const cnt  = Math.max(0, full - excl);             // πόσο μετρά
+                const partial = isEx && ex?.amount != null && ex.amount > 0 && ex.amount < full;
+                const amtVal = exclAmtDraft[it.id] ?? (ex?.amount != null ? String(ex.amount) : '');
                 return (
                   <div key={it.id} style={{ padding: '11px 0', borderTop: idx === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{feAuto(it.amount, 0)}</span>
+                      {/* Ποσό: συνολικό· όταν εξαιρείται μερικώς, δείχνουμε διακριτικά πόσο μετρά */}
+                      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: isEx && !partial ? 'line-through' : 'none', textDecorationColor: 'var(--border-default)' }}>{feAuto(full)}</span>
+                        {partial && <span style={{ fontSize: 9.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>μετρά {feAuto(cnt)}</span>}
+                      </span>
                       {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε */}
                       <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
-                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclOpen(null); } else { excludeItem(it.id, ''); setExclOpen(it.id); } }}
+                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { excludeItem(it.id); } }}
                         style={{ position: 'relative', width: 36, height: 20, borderRadius: 10, background: isEx ? 'var(--border-default)' : 'var(--accent)', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s' }}>
                         <span style={{ position: 'absolute', top: 2, left: isEx ? 2 : 18, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
                       </button>
                     </div>
                     {isEx && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
-                        <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginRight: 2 }}>Λόγος</span>
-                        {PAYERS.map(p => {
-                          const sel = ex?.payer === p;
-                          return (
-                            <button key={p} type="button" onClick={() => excludeItem(it.id, sel ? '' : p)}
-                              style={{ border: `1px solid ${sel ? 'var(--border-accent)' : 'var(--border-subtle)'}`, background: sel ? 'var(--accent-dim)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}
-                              onMouseEnter={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; } }}
-                              onMouseLeave={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
-                              {p}
-                            </button>
-                          );
-                        })}
+                      <div style={{ marginTop: 10, padding: '12px 13px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, display: 'flex', flexDirection: 'column', gap: 11 }}>
+                        {/* Λόγος: γρήγορες επιλογές (προαιρετικό) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ width: 74, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Λόγος</span>
+                          {PAYERS.map(p => {
+                            const sel = ex?.payer === p;
+                            return (
+                              <button key={p} type="button" onClick={() => patchExcl(it.id, { payer: sel ? '' : p })}
+                                style={{ border: `1px solid ${sel ? 'var(--border-accent)' : 'var(--border-subtle)'}`, background: sel ? 'var(--accent-dim)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}
+                                onMouseEnter={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; } }}
+                                onMouseLeave={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
+                                {p}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Μερική εξαίρεση: πόσο από το ποσό να εξαιρεθεί (κενό = όλο) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ width: 74, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εξαιρείται</span>
+                          <div style={{ position: 'relative', width: 108 }}>
+                            <input inputMode="decimal" value={amtVal}
+                              onChange={e => { const raw = e.target.value.replace(/[^\d.,]/g, ''); setExclAmtDraft(d => ({ ...d, [it.id]: raw })); const n = parseFloat(raw.replace(',', '.')); patchExcl(it.id, { amount: isFinite(n) && n > 0 ? n : undefined }); }}
+                              placeholder={`όλο (${feAuto(full)})`}
+                              style={{ width: '100%', height: 30, padding: '0 22px 0 10px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none', transition: 'border-color 0.15s' }}
+                              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
+                              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
+                            <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none' }}>€</span>
+                          </div>
+                          <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                            {partial ? <>από {feAuto(full)} · μετρά <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{feAuto(cnt)}</span></> : 'όλη η εγγραφή εξαιρείται'}
+                          </span>
+                        </div>
+                        {/* Σημείωση: ελεύθερο κείμενο (προαιρετικό) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 74, flexShrink: 0, fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σημείωση</span>
+                          <input type="text" value={ex?.note ?? ''} maxLength={120}
+                            onChange={e => patchExcl(it.id, { note: e.target.value })}
+                            placeholder="π.χ. το μισό το πλήρωσε ο συγκάτοικος"
+                            style={{ flex: 1, minWidth: 0, height: 30, padding: '0 10px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}
+                            onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
+                            onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
+                        </div>
                       </div>
                     )}
                   </div>
