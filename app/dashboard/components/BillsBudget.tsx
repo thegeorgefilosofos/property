@@ -127,7 +127,7 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
             return el;
           })}
         </g>
-        <text x="76" y="70" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase() : 'ΣΥΝΟΛΟ'}</text>
+        <text x="76" y="70" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : 'ΣΥΝΟΛΟ'}</text>
         <text x="76" y="87" textAnchor="middle" style={{ fontSize: 17, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
         {active && <text x="76" y="101" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
@@ -164,9 +164,14 @@ const CATS = [
 
 type CatKey = typeof CATS[number]['key'];
 
+// Ποιος πληρώνει μια δαπάνη που εξαιρείται από τον προϋπολογισμό.
+const PAYERS = ['Οικογένεια', 'Ενοικιαστής', 'Ασφαλιστική', 'Άλλος'] as const;
+
 // Ο διαμοιρασμός δαπανών/λογαριασμών γίνεται πλέον ΑΝΑ ΕΓΓΡΑΦΗ (πεδίο
 // «Πληρώνει / Διαμοιρασμός» στη δαπάνη ή τον λογαριασμό) — ΕΝΑ μοντέλο σε όλη
 // την εφαρμογή. Ο προϋπολογισμός εδώ κρατά μόνο στόχους έναντι πραγματικών.
+
+interface MonthItem { id: string; kind: 'bill' | 'expense'; label: string; amount: number; catKey: string }
 
 interface Props { propertyId: string; userId?: string; profileType?: 'individual' | 'professional'; }
 
@@ -200,6 +205,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [suggestions,  setSuggestions]  = useState<VaultSuggestion[]>([]);
   const [recurring,    setRecurring]    = useState<RecurringCharge[]>([]);
   const [weekActuals,  setWeekActuals]  = useState<Record<string, number>>({});
+  const [monthItems,   setMonthItems]   = useState<MonthItem[]>([]);
   // Απόδοση επένδυσης (μόνο επαγγελματίας) και πλήθος βραχυχρόνιων ακινήτων (μόνο ιδιώτης, όριο 3+).
   const [invReturns,   setInvReturns]   = useState<{ noi: number; preTaxCashFlow: number; capRatePct: number; cashOnCashPct: number } | null>(null);
   const [strPropCount, setStrPropCount] = useState(0);
@@ -213,6 +219,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [newCatName,   setNewCatName]   = useState('');
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
+  const [exclOpen,     setExclOpen]     = useState<string | null>(null);   // ποιο στοιχείο επιλέγει «ποιος πληρώνει»
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
   // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
@@ -258,15 +265,15 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       const [budgetRes, billsRes, settRes, expRes, histBillsRes, histExpRes, weekBillsRes, weekExpRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
-        supabase.from('bills').select('category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
+        supabase.from('bills').select('id,category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
         // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
         // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
-        supabase.from('expenses').select('amount,date,bill_id,expense_group,category').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
-        supabase.from('bills').select('category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
-        supabase.from('expenses').select('amount,date,expense_group,description,category').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
-        supabase.from('bills').select('category,amount').eq('property_id', propertyId).gte('created_at', `${weekStart}T00:00:00`),
-        supabase.from('expenses').select('amount,category,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', weekStart),
+        supabase.from('expenses').select('id,amount,date,bill_id,expense_group,category,description').eq('property_id', propertyId).is('bill_id', null).gte('date', start).lte('date', dateEnd),
+        supabase.from('bills').select('id,category,amount,created_at').eq('property_id', propertyId).gte('created_at', histStart),
+        supabase.from('expenses').select('id,amount,date,expense_group,description,category').eq('property_id', propertyId).is('bill_id', null).gte('date', histStart),
+        supabase.from('bills').select('id,category,amount').eq('property_id', propertyId).gte('created_at', `${weekStart}T00:00:00`),
+        supabase.from('expenses').select('id,amount,category,expense_group').eq('property_id', propertyId).is('bill_id', null).gte('date', weekStart),
       ]);
 
       // ── Έσοδα + δεσμευμένες εκροές (για το «Ασφαλές διαθέσιμο») ──
@@ -320,8 +327,15 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // Κλειδιά προσαρμοσμένων κατηγοριών (c_*): αν μια δαπάνη έχει αποθηκευτεί σε custom
       // κατηγορία, την προσμετράμε εκεί (αλλιώς θα «έπεφτε» στις Λοιπές δαπάνες).
       let customKeys = new Set<string>();
-      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) customKeys = new Set(arr.map((c: any) => String(c?.key)).filter(Boolean)); } catch { /* ignore */ }
+      const catLabels: Record<string, string> = {};
+      CATS.forEach(c => { catLabels[c.key] = c.label; });
+      try { const arr = JSON.parse(String((budgetRes.data?.data as { __custom?: string } | null)?.__custom ?? '[]')); if (Array.isArray(arr)) arr.forEach((c: any) => { if (c?.key) { customKeys.add(String(c.key)); if (c?.label) catLabels[String(c.key)] = String(c.label); } }); } catch { /* ignore */ }
       const catOf = (raw: string): string => { const r = String(raw ?? ''); return customKeys.has(r) ? r : mapCategory(r); };
+      const catLabelOf = (k: string): string => catLabels[k] ?? 'Λοιπές δαπάνες';
+      // Εξαιρέσεις: δαπάνες/λογαριασμοί που ΔΕΝ μετράνε στον προϋπολογισμό (τα πληρώνει άλλος).
+      let excluded: Record<string, { payer?: string }> = {};
+      try { const o = JSON.parse(String((budgetRes.data?.data as { __excluded?: string } | null)?.__excluded ?? '{}')); if (o && typeof o === 'object') excluded = o; } catch { /* ignore */ }
+      const isExcl = (id: any): boolean => id != null && Object.prototype.hasOwnProperty.call(excluded, String(id));
 
       // Ιστορικά σύνολα ανά μήνα και ανά μήνα/κατηγορία — καθαρά από καταγεγραμμένες
       // εγγραφές (όχι εκτιμήσεις από ρυθμίσεις), ώστε τάση/ετήσιο να είναι έντιμα.
@@ -332,8 +346,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         mTotals[ym] = (mTotals[ym] ?? 0) + amt;
         (cMonth[ym] ??= {})[key] = (cMonth[ym][key] ?? 0) + amt;
       };
-      (histBillsRes.data ?? []).forEach((b: any) => addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0));
-      (histExpRes.data ?? []).forEach((e: any) => addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), e.amount || 0));
+      (histBillsRes.data ?? []).forEach((b: any) => { if (isExcl(b.id)) return; addHist(String(b.created_at ?? '').slice(0, 7), mapCategory(b.category ?? ''), b.amount || 0); });
+      (histExpRes.data ?? []).forEach((e: any) => { if (isExcl(e.id)) return; addHist(String(e.date ?? '').slice(0, 7), e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')), e.amount || 0); });
       setMonthTotals(mTotals);
       setCatMonth(cMonth);
 
@@ -346,8 +360,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       // ── Εβδομαδιαίο εργαλείο: δαπάνες τρέχουσας εβδομάδας ανά κατηγορία ──
       const wk: Record<string, number> = {};
-      (weekBillsRes.data ?? []).forEach((b: any) => { const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(b.amount) || 0); });
-      (weekExpRes.data ?? []).forEach((e: any) => { const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
+      (weekBillsRes.data ?? []).forEach((b: any) => { if (isExcl(b.id)) return; const k = mapCategory(String(b.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(b.amount) || 0); });
+      (weekExpRes.data ?? []).forEach((e: any) => { if (isExcl(e.id)) return; const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? '')); wk[k] = (wk[k] ?? 0) + (Number(e.amount) || 0); });
       setWeekActuals(wk);
 
       if (budgetRes.data?.data) {
@@ -356,10 +370,15 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
 
       const billActuals: Record<string, number> = {};
+      // Στοιχεία του μήνα (λογαριασμοί + λοιπές δαπάνες) με id/ποσό/κατηγορία, για τη διαχείριση εξαιρέσεων.
+      const items: MonthItem[] = [];
       // Καταγεγραμμένοι λογαριασμοί του μήνα. Άγνωστες κατηγορίες → «Λοιπές δαπάνες»
-      // (συνέπεια με τα έξοδα)· δεν χάνεται τίποτα από το σύνολο.
-      (billsRes.data ?? []).forEach(b => {
+      // (συνέπεια με τα έξοδα)· δεν χάνεται τίποτα από το σύνολο. Εξαιρέσεις δεν μετρώνται.
+      (billsRes.data ?? []).forEach((b: any) => {
         const key = mapCategory(b.category ?? '');
+        const label = catLabelOf(key);
+        if (b.id != null) items.push({ id: String(b.id), kind: 'bill', label, amount: Number(b.amount) || 0, catKey: key });
+        if (isExcl(b.id)) return;
         billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
       });
 
@@ -385,10 +404,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       (expRes.data ?? []).forEach((e: any) => {
         const amt = e.amount || 0;
         const k = e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''));
+        const label = String(e.description ?? '').trim() || catLabelOf(k);
+        if (e.id != null) items.push({ id: String(e.id), kind: 'expense', label, amount: amt, catKey: k });
+        if (isExcl(e.id)) return;
         billActuals[k] = (billActuals[k] || 0) + amt;
       });
 
       setActuals(billActuals);
+      setMonthItems(items.sort((a, b) => b.amount - a.amount));
 
       // ── Έξυπνες προτάσεις αποθεματικών/φόρου (κανονικοί μηχανισμοί, χωρίς απόκλιση) ──
       // Πρόβλεψη φόρου: ετησιοποιημένα μεικτά έσοδα → statement.ts → taxProvision.
@@ -537,6 +560,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     else persistCats({ __hidden: JSON.stringify([...hiddenKeys, key]) });
   };
   const restoreCategory = (key: string) => persistCats({ __hidden: JSON.stringify(hiddenKeys.filter(k => k !== key)) });
+
+  // ── Εξαιρέσεις: δαπάνες/λογαριασμοί που πληρώνει άλλος και δεν μετρούν στον προϋπολογισμό ──
+  const excludedMap: Record<string, { payer?: string }> = (() => { try { const o = JSON.parse(budgets.__excluded || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })();
+  const excludedCount = Object.keys(excludedMap).length;
+  const excludeItem = (id: string, payer: string) => persistCats({ __excluded: JSON.stringify({ ...excludedMap, [id]: { payer } }) });
+  const unexcludeItem = (id: string) => { const n = { ...excludedMap }; delete n[id]; persistCats({ __excluded: JSON.stringify(n) }); };
 
   // ── Πρόβλεψη τέλους μήνα, ετήσια εικόνα, τάση (καθαρά, από τον πυρήνα) ─────────
   const _now         = new Date();
@@ -1215,6 +1244,53 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           </>
         )}
       </div>
+
+      {/* Εξαιρέσεις: δαπάνες/λογαριασμοί που πληρώνει άλλος και δεν μετρούν στον προϋπολογισμό */}
+      {!editMode && isCurMonth && monthItems.length > 0 && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+          {secHdr('Εξαιρέσεις', 'exclusions',
+            excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{excludedCount} εκτός προϋπολογισμού</span> : undefined,
+            <InfoDot text="Εξαίρεσε μια δαπάνη ή έναν λογαριασμό που θα πληρώσει κάποιος άλλος (οικογένεια, ενοικιαστής, ασφαλιστική) ώστε να μη μετρά στα στατιστικά και στον προϋπολογισμό. Μπορείς να σημειώσεις ποιος πληρώνει." />)}
+          {!collapsed.has('exclusions') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {monthItems.map(it => {
+                const ex = excludedMap[it.id];
+                const isEx = !!ex;
+                const picking = exclOpen === it.id;
+                return (
+                  <div key={it.id} style={{ display: 'flex', flexDirection: 'column', gap: picking ? 8 : 0, padding: '8px', margin: '0 -8px', borderRadius: T.radius.inner, background: isEx || picking ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500, color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: isEx ? 'line-through' : 'none' }}>{it.label}</span>
+                      {isEx && ex?.payer && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>πληρώνει: {ex.payer}</span>}
+                      <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{fe(it.amount, 0)}</span>
+                      {isEx ? (
+                        <button type="button" onClick={() => unexcludeItem(it.id)} title="Επαναφορά στον προϋπολογισμό"
+                          style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, padding: '2px 4px' }}>Επαναφορά</button>
+                      ) : (
+                        <button type="button" onClick={() => setExclOpen(picking ? null : it.id)}
+                          style={{ border: '1px solid ' + (picking ? 'var(--border-accent)' : 'var(--border-subtle)'), background: 'transparent', color: picking ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}>Εξαίρεση</button>
+                      )}
+                    </div>
+                    {picking && !isEx && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingLeft: 2 }}>
+                        <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ποιος πληρώνει;</span>
+                        {PAYERS.map(p => (
+                          <button key={p} type="button" onClick={() => { excludeItem(it.id, p); setExclOpen(null); }}
+                            style={{ border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11.5, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '4px 11px', borderRadius: T.radius.pill, transition: 'all 0.15s' }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Μαζική εισαγωγή δαπανών από αρχείο (CSV / Excel) — σωστή κατηγορία & μήνας */}
       {!editMode && (
