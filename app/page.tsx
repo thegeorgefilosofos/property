@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
+import LandingCalculator from './LandingCalculator';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Landing. Χτισμένη γύρω από τα δύο μοναδικά μας: (1) μία φωτογραφία → αυτόματη
@@ -82,7 +83,7 @@ export default async function Landing() {
   const loggedIn = !!user;
 
   return (
-    <div className="lp-root" style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
+    <div className="lp-root" style={{ color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
 
       <style>{`
         /* Η landing είναι πάντα σκοτεινή, ανεξάρτητα από το θέμα της εφαρμογής:
@@ -105,6 +106,17 @@ export default async function Landing() {
           --accent-text: #0a2647;
           --positive: #52c79e;
           --negative: #e58c84;
+          /* Ένα συνεχόμενο, κινηματογραφικό μπλε-μαύρο «διάστημα» από πάνω μέχρι
+             κάτω. Οι απαλές γαλάζιες κηλίδες μένουν καρφωμένες στην οθόνη
+             (background-attachment: fixed), οπότε καθώς κυλάς νιώθεις ότι
+             ταξιδεύεις μέσα σε έναν χώρο, όχι ότι σκρολάρεις μια σελίδα. */
+          background:
+            radial-gradient(1100px 760px at 50% -2%, rgba(26,115,232,.13), transparent 60%),
+            radial-gradient(900px 720px at 92% 20%, rgba(26,115,232,.07), transparent 55%),
+            radial-gradient(820px 640px at 6% 74%, rgba(138,180,248,.06), transparent 60%),
+            linear-gradient(180deg, #080d16 0%, #0a1120 52%, #070b12 100%);
+          background-attachment: fixed;
+          background-repeat: no-repeat;
         }
         .lp-skip { position: absolute; left: -9999px; top: 10px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); font-size: 14px; font-weight: 600; text-decoration: none; }
         .lp-skip:focus { left: 12px; outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -128,7 +140,9 @@ export default async function Landing() {
         @media (max-width: 860px) { .lp-faq-grid { grid-template-columns: 1fr !important; } }
         /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
-        .lp-hero { background: linear-gradient(180deg, #070b12 0%, #0a0f18 60%, #0b101a 100%); color: #fff; border-bottom: 1px solid rgba(255,255,255,.06); }
+        /* Το hero δεν έχει δικό του φόντο πια: μοιράζεται το ενιαίο μπλε-μαύρο
+           της σελίδας, ώστε να μην υπάρχει καμία ραφή από πάνω μέχρι κάτω. */
+        .lp-hero { background: transparent; color: #fff; border-bottom: none; }
         .lp-hero .lp-aurora::before { opacity: .22; }
         .lp-hero .lp-aurora::after { opacity: .15; }
         .lp-hero .lp-rotor { color: #8ab4f8; }
@@ -213,7 +227,7 @@ export default async function Landing() {
             <span style={{ color: 'rgba(255,255,255,.52)' }}>Το Property OS κάνει τα υπόλοιπα.</span>
           </h1>
           <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: 'rgba(255,255,255,.66)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' }}>
-            Ο απόλυτος βοηθός ακινήτων, φτιαγμένος για τα ελληνικά δεδομένα. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Εσύ έχεις τον απόλυτο έλεγχο και αποφασίζεις κάθε στιγμή με δεδομένα, όχι στο περίπου.
+            Ο βοηθός ακινήτων που σκέφτεται στα ελληνικά, με τα δικά σου νούμερα. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Τις αποφάσεις τις κρατάς εσύ, πάντα με δεδομένα.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
@@ -269,6 +283,12 @@ export default async function Landing() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── Ζωντανό εργαλείο απόδοσης: αξία επιτόπου, με τον αληθινό μας μηχανισμό ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+        <SectionHead over="Δες το μόνος σου" title="Πόσο σου αποδίδει πραγματικά;" sub="Βάλε τα νούμερα του ακινήτου σου. Τρέχει ο ίδιος μηχανισμός με την εφαρμογή, με τη φορολογία ενοικίων του 2026, εδώ και τώρα." />
+        <LandingCalculator />
       </section>
 
       {/* ── Security & trust ── */}
@@ -335,7 +355,6 @@ export default async function Landing() {
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
         <div className="lp-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.4fr', gap: 'clamp(24px, 5vw, 72px)', alignItems: 'start' }}>
           <div>
-            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Απορίες</div>
             <h2 style={{ fontSize: 'clamp(24px, 3.8vw, 37px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.13, margin: '0 0 14px' }}>Συχνές ερωτήσεις</h2>
             <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, maxWidth: 340 }}>Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν, με ειλικρινείς απαντήσεις.</p>
           </div>
