@@ -19,6 +19,19 @@ export default function LandingShowcase() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Διακριτικό 3D: το πλαίσιο γέρνει ελάχιστα προς τον κέρσορα (έως 3,5°) και
+  // επανέρχεται απαλά. Ανενεργό όταν ο χρήστης προτιμά μειωμένη κίνηση.
+  const tiltRef = useRef<HTMLDivElement | null>(null);
+  const noMotion = useRef(false);
+  useEffect(() => { try { noMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { /* ignore */ } }, []);
+  const onTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (noMotion.current || !tiltRef.current) return;
+    const r = tiltRef.current.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    tiltRef.current.style.transform = `perspective(1400px) rotateX(${(-y * 3.5).toFixed(2)}deg) rotateY(${(x * 4).toFixed(2)}deg)`;
+  };
+  const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)'; };
 
   useEffect(() => {
     if (paused) return;
@@ -44,6 +57,7 @@ export default function LandingShowcase() {
           }
         }
       `}</style>
+      <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
       <div className="lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
         style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 18, overflow: 'hidden' }}>
         {/* chrome */}
@@ -65,6 +79,7 @@ export default function LandingShowcase() {
             {active === 2 && <PanelAssistant />}
           </div>
         </div>
+      </div>
       </div>
 
       {/* tab pills */}
