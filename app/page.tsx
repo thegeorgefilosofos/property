@@ -61,7 +61,19 @@ const FAQ = [
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι. Κάθε χρήστης βλέπει μόνο τα δικά του δεδομένα, με κρυπτογραφημένη σύνδεση και απομόνωση ανά χρήστη. Τα δεδομένα σου δεν χρησιμοποιούνται για εκπαίδευση μοντέλων και είμαστε συμβατοί με τον GDPR.' },
 ];
 
-const TRUST = ['11 πάροχοι ρεύματος', 'Φορολογική κλίμακα 2026', 'Χωρίς εκπαίδευση μοντέλων', 'Δεδομένα σε EU', 'Κρυπτογραφημένη σύνδεση'];
+const STATS = [
+  { n: '11', l: 'πάροχοι ρεύματος συγκρίνονται αυτόματα' },
+  { n: '2026', l: 'φορολογική κλίμακα, ενσωματωμένη' },
+  { n: 'Μία', l: 'φωτογραφία για κάθε καταχώρηση' },
+  { n: 'EU', l: 'δεδομένα, κρυπτογραφημένα' },
+];
+
+const SECURITY = [
+  { t: 'Κρυπτογραφημένη σύνδεση', d: 'Κάθε μεταφορά δεδομένων προστατεύεται από άκρο σε άκρο.', i: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4' },
+  { t: 'Απομόνωση ανά χρήστη', d: 'Βλέπεις μόνο τα δικά σου δεδομένα. Κανείς άλλος δεν έχει πρόσβαση.', i: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z' },
+  { t: 'Καμία εκπαίδευση μοντέλων', d: 'Τα έγγραφα και οι αριθμοί σου δεν τροφοδοτούν κανένα μοντέλο.', i: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z' },
+  { t: 'Δεδομένα σε EU · GDPR', d: 'Αποθήκευση σε ευρωπαϊκά κέντρα, πλήρως συμβατή με τον GDPR.', i: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20' },
+];
 
 const wrap: React.CSSProperties = { maxWidth: 1140, margin: '0 auto', padding: '0 clamp(20px, 5vw, 48px)' };
 const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
@@ -148,14 +160,14 @@ export default async function Landing() {
         <LandingShowcase />
       </section>
 
-      {/* ── Trust strip ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(20px, 3vw, 32px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, color: FAINT, lineHeight: 1.6 }}>
-          {TRUST.map((t, i) => (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 20 }}>
-              {i > 0 && <span aria-hidden style={{ opacity: 0.4 }}>·</span>}
-              <span>{t}</span>
-            </span>
+      {/* ── Proof band: μετρήσιμα, πραγματικά (χωρίς ψεύτικα «νούμερα χρηστών») ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(20px, 3vw, 34px)', paddingBottom: 'clamp(28px, 4vw, 48px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 1, background: LINE, border: `1px solid ${LINE}`, borderRadius: 18, overflow: 'hidden' }}>
+          {STATS.map((s, i) => (
+            <div key={i} style={{ padding: 'clamp(20px, 3vw, 26px) 22px', textAlign: 'center', background: PANEL }}>
+              <div style={{ fontSize: 'clamp(24px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1, marginBottom: 8, fontVariantNumeric: 'tabular-nums' }}>{s.n}</div>
+              <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.45 }}>{s.l}</div>
+            </div>
           ))}
         </div>
       </section>
@@ -218,8 +230,34 @@ export default async function Landing() {
         </div>
       </section>
 
+      {/* ── Security & trust ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 'clamp(24px, 3vw, 40px)', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Ασφάλεια</div>
+            <h3 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 12px' }}>Τα δεδομένα σου είναι δικά σου</h3>
+            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>
+              Οι λογαριασμοί, τα συμβόλαια και οι αριθμοί σου είναι από τα πιο ευαίσθητα δεδομένα που έχεις. Τα αντιμετωπίζουμε ανάλογα.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
+            {SECURITY.map((s, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{s.i.split('M').filter(Boolean).map((p, j) => <path key={j} d={'M' + p} />)}</svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 680, color: TEXT, marginBottom: 3, letterSpacing: '-0.01em' }}>{s.t}</div>
+                  <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.5 }}>{s.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(44px, 7vw, 84px) clamp(20px, 5vw, 48px)' }}>
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(44px, 7vw, 84px)' }}>
         <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο όταν αξίζει." sub="Το πρώτο ακίνητο δωρεάν για πάντα. Από εκεί και πάνω, μια τιμή που την καλύπτουν όσα σου δείχνουμε να γλιτώσεις." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
@@ -280,16 +318,31 @@ export default async function Landing() {
 
       {/* ── Footer ── */}
       <footer style={{ borderTop: `1px solid ${LINE}`, position: 'relative', zIndex: 1 }}>
-        <div style={{ ...wrap, padding: '28px clamp(20px, 5vw, 48px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 22, height: 22, borderRadius: 7, background: ACCENT, color: 'var(--accent-text)', fontWeight: 800, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
-            <span style={{ fontSize: 13, color: MUTED }}>Property OS · {new Date().getFullYear()}</span>
+        <div style={{ ...wrap, padding: 'clamp(32px, 5vw, 48px) clamp(20px, 5vw, 48px)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
+            <div style={{ maxWidth: 320 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: ACCENT, color: 'var(--accent-text)', fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
+                <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
+              </div>
+              <p style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, margin: 0 }}>Το ακίνητό σου, υπό έλεγχο. Χτισμένο στην Ελλάδα, για Έλληνες ιδιοκτήτες και επαγγελματίες.</p>
+            </div>
+            <div style={{ display: 'flex', gap: 'clamp(28px, 6vw, 64px)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: FAINT, marginBottom: 2 }}>Προϊόν</span>
+                <Link href="/signup" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13.5 }}>Ξεκίνα δωρεάν</Link>
+                <Link href="/login" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13.5 }}>Σύνδεση</Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: FAINT, marginBottom: 2 }}>Νομικά</span>
+                <Link href="/privacy" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13.5 }}>Απόρρητο</Link>
+                <Link href="/terms" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13.5 }}>Όροι Χρήσης</Link>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <Link href="/login" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13 }}>Σύνδεση</Link>
-            <Link href="/signup" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13 }}>Εγγραφή</Link>
-            <Link href="/privacy" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13 }}>Απόρρητο</Link>
-            <Link href="/terms" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 13 }}>Όροι</Link>
+          <div style={{ paddingTop: 20, borderTop: `1px solid ${LINE}`, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12.5, color: FAINT }}>
+            <span>© {new Date().getFullYear()} Property OS</span>
+            <span>Δεδομένα σε EU · Συμβατό με GDPR</span>
           </div>
         </div>
       </footer>
