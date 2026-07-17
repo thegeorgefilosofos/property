@@ -89,10 +89,10 @@ export default function LoginPage() {
           {sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
           ) : (<>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h2>
-          <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.5 }}>
             Δεν έχεις λογαριασμό;{' '}
-            <Link href="/signup" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Εγγραφή δωρεάν</Link>
+            <Link href="/signup" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Εγγραφή δωρεάν</Link>
           </p>
 
           <button type="button" onClick={signInWithGoogle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -105,7 +105,7 @@ export default function LoginPage() {
             <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label htmlFor="login-email" style={label}>Email</label>
               <input id="login-email" name="email" autoComplete="email" type="email" value={email} required onChange={e => setEmail(e.target.value)} placeholder="onoma@email.com" style={field}
@@ -115,7 +115,7 @@ export default function LoginPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <label htmlFor="login-password" style={{ ...label, marginBottom: 0 }}>Κωδικός</label>
-                <Link href="/reset-password" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>Ξέχασες τον κωδικό;</Link>
+                <Link href="/reset-password" className="lp-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>Ξέχασες τον κωδικό;</Link>
               </div>
               <div style={{ position: 'relative' }}>
                 <input id="login-password" name="password" autoComplete="current-password" type={show ? 'text' : 'password'} value={password} required onChange={e => setPassword(e.target.value)} placeholder="Ο κωδικός σου" style={{ ...field, paddingRight: 48 }}
@@ -131,7 +131,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>
+              <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--negative)' }}>
                 {trans(error)}
               </div>
             )}
@@ -143,8 +143,8 @@ export default function LoginPage() {
 
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 24, lineHeight: 1.6 }}>
             Συνεχίζοντας, αποδέχεσαι τους{' '}
-            <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Όρους Χρήσης</Link>{' '}και την{' '}
-            <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Πολιτική Απορρήτου</Link>.
+            <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Όρους Χρήσης</Link>{' '}και την{' '}
+            <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Πολιτική Απορρήτου</Link>.
           </p>
           </>)}
         </div>

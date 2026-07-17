@@ -1852,3 +1852,7 @@ summary::marker { content: ""; }
   from { stroke-dashoffset: 16; }
   to   { stroke-dashoffset: 0; }
 }
+
+/* ── Ενιαίο hover συνδέσμων (landing και auth): ήπια μετάβαση προς το accent ── */
+a.lp-link { transition: color 0.15s ease, filter 0.15s ease; }
+a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }

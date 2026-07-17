@@ -14,7 +14,7 @@ export default function AlreadySignedIn({
 }) {
   return (
     <div>
-      <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>
+      <h2 style={{ fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>
         Έχεις ήδη συνδεθεί
       </h2>
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px' }}>
@@ -27,7 +27,7 @@ export default function AlreadySignedIn({
         Μετάβαση στον πίνακα →
       </Link>
 
-      <button onClick={onSignOut} disabled={signingOut} style={{ width: '100%', marginTop: 12, padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, fontFamily: 'inherit' }}>
+      <button onClick={onSignOut} disabled={signingOut} style={{ width: '100%', marginTop: 12, padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-secondary)', fontSize: 15, fontWeight: 600, cursor: signingOut ? 'not-allowed' : 'pointer', opacity: signingOut ? 0.6 : 1, fontFamily: 'inherit' }}>
         {signingOut
           ? 'Αποσύνδεση…'
           : mode === 'signup' ? 'Αποσύνδεση και δημιουργία νέου λογαριασμού' : 'Αποσύνδεση και αλλαγή λογαριασμού'}
