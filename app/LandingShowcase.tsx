@@ -63,6 +63,9 @@ export default function LandingShowcase() {
         .lp-vbar { transition: filter .18s ease; }
         .lp-vbar:hover { filter: brightness(1.4) saturate(1.15); }
         @media (prefers-reduced-motion: reduce) { .lp-live, .lp-vbar { transition: none; } .lp-live:hover { transform: none; } }
+        /* Μέσα στο σκοτεινό hero, το mockup φωτίζεται σαν έκθεμα: απαλή γαλάζια
+           λάμψη πίσω του, ώστε το προϊόν να είναι το φωτεινότερο σημείο της σκηνής. */
+        .lp-hero .lp-mockup { box-shadow: 0 1px 2px rgba(2,6,18,.5), 0 24px 48px -12px rgba(2,6,18,.6), 0 0 140px -16px rgba(26,115,232,.45); border-color: rgba(255,255,255,.14); }
       `}</style>
       <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
       <div className="lp-mockup" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
