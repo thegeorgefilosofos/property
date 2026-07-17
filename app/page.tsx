@@ -319,7 +319,7 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(44px, 7vw, 84px)' }}>
-        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο όταν αξίζει." sub="Μια συνδρομή που τη βγάζουν όσα γλιτώνεις από τις συγκρίσεις." />
+        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Μείνε επειδή αξίζει." sub="Το πρώτο ακίνητο μένει δωρεάν για πάντα. Από εκεί και πέρα, μια δίκαιη τιμή που την καλύπτει η αξία που παίρνεις." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
           {/* Δωρεάν */}
