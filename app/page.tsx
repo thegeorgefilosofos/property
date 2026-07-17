@@ -44,6 +44,21 @@ const DIFF = [
   },
 ];
 
+const BEFORE = [
+  'Υπολογιστικά φύλλα για έσοδα και έξοδα',
+  'Σημειώσεις στο κινητό για λήξεις και πληρωμές',
+  'Ξεχωριστά αρχεία για κάθε ακίνητο',
+  'Ο λογιστής για κάθε φορολογική απορία',
+  'Φάκελοι με λογαριασμούς και συμβόλαια',
+];
+const AFTER = [
+  'Όλα τα οικονομικά, ζωντανά σε μία οθόνη',
+  'Ειδοποίηση πριν από κάθε λήξη και πληρωμή',
+  'Όλα τα ακίνητά σου, μαζί',
+  'Φορολογία 2026 και έτοιμο Ε2 για τον λογιστή',
+  'Κάθε έγγραφο, μία φωτογραφία μακριά',
+];
+
 const FEATURES = [
   { t: 'Πλήρης οικονομική εικόνα', d: 'Τι αποδίδει κάθε ακίνητο σε πραγματικό χρόνο, καθαρά μετά από φόρους, έξοδα και αποσβέσεις.', i: 'M3 12h4l3 8 4-16 3 8h4' },
   { t: 'Φορολογία 2026', d: 'Φόρος εισοδήματος με την ισχύουσα κλίμακα και έτοιμη εξαγωγή για τον λογιστή σου.', i: 'M9 7h6M9 11h6M9 15h4M5 3h14v18l-3-2-2 2-2-2-2 2-3-2z' },
@@ -189,6 +204,35 @@ export default async function Landing() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Αντικαθιστά ό,τι χρησιμοποιείς σήμερα (category framing) ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(40px, 6vw, 72px)' }}>
+        <SectionHead over="Αντί για δέκα εργαλεία" title="Ένα app στη θέση όλων" sub="Το χάος της διαχείρισης, μαζεμένο σε ένα καθαρό σημείο." />
+        <div className="lp-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ background: BG, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 3vw, 30px)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: FAINT, marginBottom: 18 }}>Σήμερα</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              {BEFORE.map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, fontSize: 14, color: FAINT, lineHeight: 1.45 }}>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2, opacity: 0.7 }}><path d="M5 12h14" /></svg>
+                  {t}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: PANEL, border: `1.5px solid color-mix(in srgb, var(--accent) 45%, transparent)`, borderRadius: 18, padding: 'clamp(22px, 3vw, 30px)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+              <div style={{ width: 20, height: 20, borderRadius: 6, background: ACCENT, color: 'var(--accent-text)', fontWeight: 800, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>P</div>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ACCENT }}>Με το Property OS</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              {AFTER.map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, fontSize: 14, color: TEXT, lineHeight: 1.45, fontWeight: 500 }}>{check}{t}</div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
