@@ -64,6 +64,13 @@ const FAQ = [
   { q: 'Δουλεύει στο κινητό;', a: 'Ναι, παντού. Η εφαρμογή προσαρμόζεται πλήρως σε κινητό, tablet και υπολογιστή. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου: φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
 ];
 
+// Ταινία δυνατοτήτων στο κάτω άκρο του hero: διαρκής, ήρεμη κίνηση (παύση στο hover).
+const TICKER = [
+  'Σάρωση εγγράφων', 'Σύγκριση 11+ παρόχων ρεύματος', 'Φορολογία 2026', '«Σπίτι μου ΙΙ»',
+  '«Ανακαινίζω-Νοικιάζω»', 'Βοηθός με ελληνική φωνή', 'Αποδόσεις σε πραγματικό χρόνο',
+  'Ε2 έτοιμο για τον λογιστή', 'Δεδομένα σε EU · GDPR',
+];
+
 const STATS = [
   { n: '11+', l: 'πάροχοι ρεύματος, με όλα τα τιμολόγιά τους σε ζωντανή σύγκριση' },
   { n: '2026', l: 'φορολογία και νομοθεσία, πάντα στην ισχύουσα έκδοση' },
@@ -105,6 +112,21 @@ export default async function Landing() {
         details.lp-faq[open] { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
         details.lp-faq summary::-webkit-details-marker { display: none; }
         details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+        /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
+           Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
+        .lp-hero { background: linear-gradient(180deg, #070b12 0%, #0a0f18 60%, #0b101a 100%); color: #fff; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .lp-hero .lp-aurora::before { opacity: .22; }
+        .lp-hero .lp-aurora::after { opacity: .15; }
+        .lp-hero .lp-rotor { color: #8ab4f8; }
+        .lp-hero button[role="tab"] { color: rgba(255,255,255,.62) !important; border-color: rgba(255,255,255,.16) !important; }
+        .lp-hero button[role="tab"][aria-selected="true"] { color: #8ab4f8 !important; border-color: rgba(138,180,248,.5) !important; background: rgba(138,180,248,.1) !important; }
+        /* Ticker: αδιάκοπη οριζόντια ροή δυνατοτήτων, παύση στο πέρασμα του κέρσορα. */
+        .lp-ticker { overflow: hidden; border-top: 1px solid rgba(255,255,255,.07); padding: 15px 0; position: relative; z-index: 1; }
+        .lp-ticker-track { display: inline-flex; white-space: nowrap; animation: lpTicker 38s linear infinite; will-change: transform; }
+        .lp-ticker-track > span { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.38); }
+        .lp-ticker-track .lp-dot { margin: 0 22px; color: rgba(255,255,255,.2); }
+        .lp-ticker:hover .lp-ticker-track { animation-play-state: paused; }
+        @keyframes lpTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         /* Αύρα βάθους στο hero: δύο μεγάλες, θολές κηλίδες στο γαλάζιο της παλέτας
            που μετακινούνται αργά. Δίνει ζωή και βάθος χωρίς θόρυβο· μία απόχρωση μόνο. */
         .lp-aurora { position: absolute; inset: -14% -18% auto; height: 115%; z-index: 0; pointer-events: none; }
@@ -137,6 +159,7 @@ export default async function Landing() {
           .lp-aurora::before, .lp-aurora::after { animation: none !important; }
           .lp-rotor > span { animation: none !important; }
           .lp-rotor > span:first-child { opacity: 1; }
+          .lp-ticker-track { animation: none !important; }
         }
       `}</style>
 
@@ -160,35 +183,44 @@ export default async function Landing() {
 
       <main id="main">
 
-      {/* ── Hero ── */}
-      <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(56px, 8vw, 96px)', paddingBottom: 'clamp(16px, 3vw, 32px)', textAlign: 'center' }}>
+      {/* ── Hero: κινηματογραφικό, πάντα σκοτεινό, με το προϊόν φωτισμένο σαν έκθεμα ── */}
+      <section className="lp-hero" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="lp-aurora" aria-hidden="true" />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-        <h1 className="lp-rise" style={{ fontSize: 'clamp(36px, 6.8vw, 66px)', fontWeight: 680, letterSpacing: '-0.04em', lineHeight: 1.06, margin: '0 auto 22px', maxWidth: 920, color: TEXT }}>
-          Φωτογραφίζεις{' '}
-          <span className="lp-rotor">
-            <span>τον λογαριασμό.</span>
-            <span>το μισθωτήριο.</span>
-            <span>το ασφαλιστήριο.</span>
-            <span>τον ΕΝΦΙΑ.</span>
-          </span>
-          <br />
-          <span style={{ color: MUTED }}>Το Property OS κάνει τα υπόλοιπα.</span>
-        </h1>
-        <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: MUTED, lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>
-          Ο πρώτος βοηθός ακινήτων φτιαγμένος για τα ελληνικά δεδομένα: τα δικά σου. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Εσύ αποφασίζεις.
-        </p>
-        <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {loggedIn ? (
-            <Link href="/dashboard" className="lp-cta" style={{ background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
-          ) : (<>
-            <Link href="/signup" className="lp-cta" style={{ background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
-            <Link href="/login" className="lp-ghost" style={{ background: 'transparent', color: TEXT, textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: `1px solid ${LINE}` }}>Έχω λογαριασμό</Link>
-          </>)}
-        </div>
-        <div className="lp-rise-4" style={{ marginTop: 16, fontSize: 12.5, color: FAINT }}>Χωρίς κάρτα · Το πρώτο ακίνητο πάντα δωρεάν · Συμβατό με τον GDPR</div>
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(64px, 9vw, 112px)', paddingBottom: 'clamp(48px, 7vw, 84px)', textAlign: 'center' }}>
+          <h1 className="lp-rise" style={{ fontSize: 'clamp(38px, 7.2vw, 78px)', fontWeight: 680, letterSpacing: '-0.04em', lineHeight: 1.05, margin: '0 auto 24px', maxWidth: 1000, color: '#fff' }}>
+            Φωτογραφίζεις{' '}
+            <span className="lp-rotor">
+              <span>τον λογαριασμό.</span>
+              <span>το μισθωτήριο.</span>
+              <span>το ασφαλιστήριο.</span>
+              <span>τον ΕΝΦΙΑ.</span>
+            </span>
+            <br />
+            <span style={{ color: 'rgba(255,255,255,.52)' }}>Το Property OS κάνει τα υπόλοιπα.</span>
+          </h1>
+          <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: 'rgba(255,255,255,.66)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' }}>
+            Ο πρώτος βοηθός ακινήτων φτιαγμένος για τα ελληνικά δεδομένα: τα δικά σου. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Εσύ αποφασίζεις.
+          </p>
+          <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {loggedIn ? (
+              <Link href="/dashboard" className="lp-cta" style={{ background: '#1a73e8', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου →</Link>
+            ) : (<>
+              <Link href="/signup" className="lp-cta" style={{ background: '#1a73e8', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα δωρεάν →</Link>
+              <Link href="/login" style={{ background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid rgba(255,255,255,.22)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
+            </>)}
+          </div>
+          <div className="lp-rise-4" style={{ marginTop: 18, fontSize: 12.5, color: 'rgba(255,255,255,.45)' }}>Χωρίς κάρτα · Το πρώτο ακίνητο πάντα δωρεάν · Συμβατό με τον GDPR</div>
 
-        <LandingShowcase />
+          <LandingShowcase />
+        </div>
+
+        {/* Ταινία δυνατοτήτων: το κάτω άκρο του hero ρέει διαρκώς, ήρεμα */}
+        <div className="lp-ticker" aria-hidden="true">
+          <div className="lp-ticker-track">
+            {[...TICKER, ...TICKER].map((t, i) => (
+              <span key={i}>{t}<span className="lp-dot">•</span></span>
+            ))}
+          </div>
         </div>
       </section>
 
