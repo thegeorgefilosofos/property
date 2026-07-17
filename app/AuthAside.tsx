@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 const Check = () => (
-  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M20 6 9 17l-5-5" />
   </svg>
 )
@@ -30,17 +30,17 @@ export default function AuthAside({
   sub?: string
 }) {
   return (
-    <div className="auth-aside" style={{ width: '45%', minWidth: 400, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', padding: '44px 52px', overflowY: 'auto', fontFamily: "'Inter',sans-serif" }}>
+    <div className="auth-aside" style={{ width: '45%', minWidth: 400, background: 'var(--bg-elevated)', borderRight: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', padding: '48px 48px', overflowY: 'auto', fontFamily: "'Inter',sans-serif" }}>
 
       {/* logo lockup */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontSize: 16, fontWeight: 800 }}>P</div>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontSize: 15, fontWeight: 800 }}>P</div>
         <span style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
       </div>
 
       {/* headline + sub */}
       <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.12, margin: '0 0 18px', color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 18px', color: 'var(--text-primary)' }}>
           {headline}<br /><span style={{ color: 'var(--accent)' }}>{accent}</span>
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, maxWidth: 380 }}>{sub}</p>
@@ -52,15 +52,15 @@ export default function AuthAside({
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 1fr', gap: 14, alignItems: 'start' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}><Check /></span>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '0.01em' }}>{p.label}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>{p.text}</p>
+              <p style={{ fontSize: 13.5, fontWeight: 680, color: 'var(--text-primary)', margin: '0 0 4px', letterSpacing: '-0.01em' }}>{p.label}</p>
+              <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.6 }}>{p.text}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* pricing footnote */}
-      <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700, margin: 0 }}>Το πρώτο ακίνητο δωρεάν για πάντα</p>
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>Χωρίς κάρτα</p>
       </div>
