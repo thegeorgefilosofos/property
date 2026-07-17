@@ -15,15 +15,15 @@ const Check = () => (
 )
 
 const PILLARS = [
-  { label: 'Μία φωτογραφία, όλα καταχωρημένα', text: 'Τράβα λογαριασμό, συμβόλαιο ή ασφάλεια. Ο βοηθός τα διαβάζει και τα καταχωρεί μόνα τους στη σωστή θέση.' },
+  { label: 'Μία φωτογραφία, όλα καταχωρημένα', text: 'Τράβα λογαριασμό, συμβόλαιο ή ασφάλεια. Το διαβάζει και μπαίνει μόνο του στη σωστή θέση.' },
   { label: 'Βοηθός με φωνή που ξέρει το ακίνητό σου', text: 'Ρώτα στα ελληνικά, με κείμενο ή με τη φωνή σου. Απαντά με τα δικά σου νούμερα και σε καθοδηγεί.' },
-  { label: 'Τα οικονομικά σου, ξεκάθαρα', text: 'Έσοδα, δαπάνες, απόδοση, ρεύμα και φορολογία 2026, όλα ενημερωμένα σε μία οθόνη.' },
+  { label: 'Τα οικονομικά σου, ξεκάθαρα', text: 'Έσοδα, δαπάνες, απόδοση, ρεύμα και φορολογία 2026, σε μία οθόνη.' },
 ]
 
 export default function AuthAside({
-  headline = 'Το ακίνητό σου.',
-  accent = 'Καθαρά, σε ένα σημείο.',
-  sub = 'Η πλατφόρμα που δίνει στους Έλληνες ιδιοκτήτες πλήρη εικόνα του ακινήτου τους. Αποδόσεις, δαπάνες, ρεύμα και φορολογία, όλα οργανωμένα χωρίς να ανοίγεις άλλη εφαρμογή.',
+  headline = 'Το ακίνητό σου,',
+  accent = 'υπό έλεγχο σαν επαγγελματίας.',
+  sub = 'Για κάθε ιδιοκτήτη — από ένα σπίτι μέχρι ολόκληρο χαρτοφυλάκιο. Αποδόσεις, δαπάνες, ρεύμα και φορολογία, χωρίς να ανοίγεις άλλη εφαρμογή.',
 }: {
   headline?: string
   accent?: string
@@ -35,13 +35,12 @@ export default function AuthAside({
       {/* logo lockup */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
         <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)', fontSize: 16, fontWeight: 800 }}>P</div>
-        <span style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Property OS</span>
-        <span style={{ fontSize: 10, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 6, padding: '2px 8px', letterSpacing: '0.06em', fontWeight: 700 }}>BETA</span>
+        <span style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
       </div>
 
       {/* headline + sub */}
       <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 'clamp(28px, 3vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 18px', color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.12, margin: '0 0 18px', color: 'var(--text-primary)' }}>
           {headline}<br /><span style={{ color: 'var(--accent)' }}>{accent}</span>
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, maxWidth: 380 }}>{sub}</p>
