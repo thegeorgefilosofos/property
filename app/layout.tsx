@@ -9,14 +9,19 @@ export const metadata: Metadata = {
   description: "Premium real estate management for Greek investors",
 };
 
-// Prevent flash of wrong theme, runs before React hydration
+// Prevent flash of wrong theme, runs before React hydration.
+// Πρέπει να διαβάζει ΑΚΡΙΒΩΣ τα ίδια κλειδιά και το ίδιο default με τον
+// ThemeProvider (pos_mode για dark/light, pos_theme για την παλέτα, default
+// 'dark'/'midnight'), αλλιώς το pre-paint διαφέρει από το post-hydration και
+// εμφανίζεται στιγμιαία λάθος θέμα.
 const themeInitScript = `
 (function() {
   try {
-    var saved = localStorage.getItem('pos-theme');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var isDark = saved ? saved === 'dark' : prefersDark;
-    document.documentElement.setAttribute('data-mode', isDark ? 'dark' : 'light');
+    var mode  = localStorage.getItem('pos_mode')  || 'dark';
+    var theme = localStorage.getItem('pos_theme') || 'midnight';
+    var el = document.documentElement;
+    el.setAttribute('data-mode',  mode === 'light' ? 'light' : 'dark');
+    el.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
 `;
