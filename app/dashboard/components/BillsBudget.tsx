@@ -206,6 +206,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [recurring,    setRecurring]    = useState<RecurringCharge[]>([]);
   const [weekActuals,  setWeekActuals]  = useState<Record<string, number>>({});
   const [monthItems,   setMonthItems]   = useState<MonthItem[]>([]);
+  const [catBreakdown, setCatBreakdown] = useState<Record<string, { label: string; amount: number; date: string; paid: boolean; kind: 'bill' | 'expense' }[]>>({});
+  const [openCats,     setOpenCats]     = useState<Set<string>>(new Set());
   // Απόδοση επένδυσης (μόνο επαγγελματίας) και πλήθος βραχυχρόνιων ακινήτων (μόνο ιδιώτης, όριο 3+).
   const [invReturns,   setInvReturns]   = useState<{ noi: number; preTaxCashFlow: number; capRatePct: number; cashOnCashPct: number } | null>(null);
   const [strPropCount, setStrPropCount] = useState(0);
@@ -269,7 +271,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       const [budgetRes, billsRes, settRes, expRes, histBillsRes, histExpRes, weekBillsRes, weekExpRes] = await Promise.all([
         supabase.from('bills_settings').select('data').eq('property_id', propertyId).eq('section', 'budgets').maybeSingle(),
-        supabase.from('bills').select('id,category,amount,paid').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
+        supabase.from('bills').select('id,name,category,amount,paid,due_date,created_at').eq('property_id', propertyId).gte('created_at', start).lte('created_at', end),
         supabase.from('bills_settings').select('section,data').eq('property_id', propertyId).in('section', ['providers','insurance','services','common']),
         // Λοιπές δαπάνες: έξοδα του μήνα που ΔΕΝ προέρχονται από λογαριασμό
         // (bill_id null), ώστε να μη διπλομετρηθούν οι λογαριασμοί.
@@ -376,6 +378,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const billActuals: Record<string, number> = {};
       // Στοιχεία του μήνα (λογαριασμοί + λοιπές δαπάνες) με id/ποσό/κατηγορία, για τη διαχείριση εξαιρέσεων.
       const items: MonthItem[] = [];
+      // Ανάλυση ανά κατηγορία: οι επιμέρους πληρωμές (πάροχος/περιγραφή, ποσό, ημερομηνία).
+      const bd: Record<string, { label: string; amount: number; date: string; paid: boolean; kind: 'bill' | 'expense' }[]> = {};
       // Καταγεγραμμένοι λογαριασμοί του μήνα. Άγνωστες κατηγορίες → «Λοιπές δαπάνες»
       // (συνέπεια με τα έξοδα)· δεν χάνεται τίποτα από το σύνολο. Εξαιρέσεις δεν μετρώνται.
       (billsRes.data ?? []).forEach((b: any) => {
@@ -384,6 +388,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         if (b.id != null) items.push({ id: String(b.id), kind: 'bill', label, amount: Number(b.amount) || 0, catKey: key });
         if (isExcl(b.id)) return;
         billActuals[key] = (billActuals[key] ?? 0) + (b.amount ?? 0);
+        (bd[key] ??= []).push({ label: String(b.name ?? '').trim() || label, amount: Number(b.amount) || 0, date: String(b.due_date ?? b.created_at ?? '').slice(0, 10), paid: !!b.paid, kind: 'bill' });
       });
 
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
@@ -412,10 +417,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         if (e.id != null) items.push({ id: String(e.id), kind: 'expense', label, amount: amt, catKey: k });
         if (isExcl(e.id)) return;
         billActuals[k] = (billActuals[k] || 0) + amt;
+        (bd[k] ??= []).push({ label, amount: amt, date: String(e.date ?? '').slice(0, 10), paid: true, kind: 'expense' });
       });
 
+      Object.values(bd).forEach(list => list.sort((a, b) => (a.date < b.date ? 1 : -1)));
       setActuals(billActuals);
       setMonthItems(items.sort((a, b) => b.amount - a.amount));
+      setCatBreakdown(bd);
 
       // ── Έξυπνες προτάσεις αποθεματικών/φόρου (κανονικοί μηχανισμοί, χωρίς απόκλιση) ──
       // Πρόβλεψη φόρου: ετησιοποιημένα μεικτά έσοδα → statement.ts → taxProvision.
@@ -1151,11 +1159,15 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const tr      = catTrend(cat.key);
 
             const hov = !editMode && hoverCat === cat.key;
+            const bdItems = isCurMonth ? (catBreakdown[cat.key] || []) : [];
+            const hasBd = !editMode && bdItems.length > 0;
+            const openCat = openCats.has(cat.key);
+            const toggleCat = () => setOpenCats(s => { const n = new Set(s); n.has(cat.key) ? n.delete(cat.key) : n.add(cat.key); return n; });
             return (
               <div key={cat.key}
                 onMouseEnter={() => !editMode && setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
                 style={{ borderRadius: T.radius.inner, padding: editMode ? 0 : '6px 8px', margin: editMode ? 0 : '0 -8px', background: hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5 }}>
+                <div onClick={hasBd ? toggleCat : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: editMode ? 10 : 5, cursor: hasBd ? 'pointer' : 'default' }}>
                   <div style={{ width: 3, height: 26, borderRadius: 2, background: editMode ? 'color-mix(in srgb, var(--text-primary) 34%, transparent)' : (hov && !isOver ? 'var(--accent)' : col), flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span style={{ fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{cat.label}</span>
                   {!editMode && <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
@@ -1191,6 +1203,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
                     </div>
                   )}
+                  {hasBd && (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={hov ? 'var(--accent)' : 'var(--text-tertiary)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: openCat ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s, stroke 0.15s' }} aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  )}
                 </div>
 
                 {!editMode && (
@@ -1198,6 +1213,21 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: hov && !isOver ? 'var(--accent)' : col, borderRadius: 2, transition: 'width 0.5s ease, background 0.15s' }}/>
                     </div>
+                  </div>
+                )}
+
+                {/* Ανάλυση κατηγορίας: πάροχος/περιγραφή, ποσό και ημερομηνία της κάθε πληρωμής */}
+                {hasBd && openCat && (
+                  <div style={{ marginLeft: 13, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {bdItems.map((it, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 8px', margin: '0 -8px', borderRadius: T.radius.inner }}>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: it.paid ? 'color-mix(in srgb, var(--text-primary) 40%, transparent)' : 'var(--border-default)', flexShrink: 0 }} />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+                        {!it.paid && <span style={{ fontSize: 9.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκκρεμεί</span>}
+                        {it.date && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{parseLocalDate(it.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</span>}
+                        <span style={{ width: 58, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(it.amount, 0)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
