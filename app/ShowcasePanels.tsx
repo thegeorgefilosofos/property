@@ -37,7 +37,7 @@ const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke
 // ── Πάνελ: Ο πίνακάς σου ─────────────────────────────────────────────────────
 export function PanelDashboard() {
   const months = [42, 55, 48, 61, 52, 70, 66, 78, 60, 84, 72, 90];
-  const kpis = [['Καθαρή απόδοση', '4,8%'], ['Έσοδα / μήνα', '1.250 €'], ['Πληρότητα', '92%']];
+  const kpis = [['Καθαρή απόδοση', '4,8%'], ['Έσοδα / μήνα', '1.250 €'], ['Πληρότητα', '92%']];
   return (
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -95,7 +95,7 @@ export function PanelScan() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
-        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
+        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημ. λήξης', '10/08/2026']].map(([l, v], i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif", fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
@@ -131,7 +131,7 @@ export function PanelAssistant() {
       <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
         <div className="lp-pop lp-live" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '90%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
-          Φέτος ξόδεψες <strong>1.240 €</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
+          Φέτος ξόδεψες <strong>1.240&nbsp;€</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
         </div>
         <div className="lp-pop" style={{ animationDelay: '.9s', alignSelf: 'flex-start' }}>
           <span className="lp-live" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>

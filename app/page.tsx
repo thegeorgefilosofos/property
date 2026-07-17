@@ -43,7 +43,7 @@ const FAQ = [
   { q: 'Πώς δουλεύει η σάρωση με φωτογραφία;', a: 'Βγάζεις φωτογραφία ή ανεβάζεις ένα PDF: λογαριασμό, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ. Το σύστημα το διαβάζει, καταλαβαίνει τι είναι και το καταχωρεί αυτόματα στο σωστό σημείο: λογαριασμοί, δαπάνες, ημερολόγιο, ενοικιαστής, αρχείο. Εσύ βλέπεις τι κατάλαβε, επιβεβαιώνεις και διορθώνεις οτιδήποτε με ένα άγγιγμα. Τίποτα δεν καταχωρείται οριστικά χωρίς τον έλεγχό σου.' },
   { q: 'Ο βοηθός καταλαβαίνει και μιλάει ελληνικά;', a: 'Ναι. Μιλάει φυσικά ελληνικά, με κείμενο ή με τη φωνή σου, και σου απαντά με ανθρώπινη φωνή. Του δίνεις όνομα και φωνή όπως θέλεις. Απαντά πάντα με βάση τα δικά σου δεδομένα: τα ακίνητα, τις δαπάνες, τις μισθώσεις και τις προθεσμίες σου. Για ό,τι χρειάζεται νομική ή λογιστική γνώμη, σε παραπέμπει στον κατάλληλο επαγγελματία.' },
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα που θέλει να έχει τον έλεγχο όπως ένας επαγγελματίας: από τον ιδιώτη με ένα διαμέρισμα μέχρι τον επαγγελματία με ολόκληρο χαρτοφυλάκιο, μεσιτικά γραφεία και διαχειριστές. Καλύπτει κάθε τύπο ακινήτου: κατοικία, επαγγελματικό χώρο, αποθήκη, οικόπεδο.' },
-  { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Σε κρατά διαρκώς ενημερωμένο για τις υποχρεώσεις, τις προθεσμίες και τις ευκαιρίες σου, ώστε να πηγαίνεις στον λογιστή σου προετοιμασμένος, με τα στοιχεία έτοιμα για εξαγωγή. Οι υπολογισμοί είναι υποστηρικτικοί: για δεσμευτικές αποφάσεις ισχύει πάντα η γνώμη του επαγγελματία σου.' },
+  { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Σε κρατά διαρκώς ενημερωμένο για τις υποχρεώσεις, τις προθεσμίες και τις ευκαιρίες σου, ώστε να πηγαίνεις στον λογιστή σου προετοιμασμένος, με τα στοιχεία έτοιμα για εξαγωγή. Οι υπολογισμοί είναι υποστηρικτικοί: για δεσμευτικές αποφάσεις συμβουλεύσου πάντα έναν επαγγελματία σύμβουλο.' },
   { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο δεν σου κοστίζει ποτέ τίποτα: όλες οι δυνατότητες, χωρίς κάρτα. Για περισσότερα ακίνητα, το πλάνο Ιδιοκτήτης κοστίζει 6,90 € τον μήνα (ή 59 € τον χρόνο) για έως 15 ακίνητα. Το πλάνο Επαγγελματίας κοστίζει 19 € τον μήνα (ή 190 € τον χρόνο) με απεριόριστα ακίνητα και ομάδα. Αλλάζεις ή ακυρώνεις όποτε θέλεις· οι τιμές περιλαμβάνουν ΦΠΑ.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Το παίρνουμε πιο σοβαρά από οτιδήποτε άλλο. Κάθε μεταφορά γίνεται μέσα από κρυπτογραφημένη σύνδεση και κάθε χρήστης βλέπει αποκλειστικά τα δικά του δεδομένα, με απομόνωση σε επίπεδο βάσης. Τα έγγραφα και τα νούμερά σου δεν χρησιμοποιούνται ποτέ για εκπαίδευση μοντέλων. Τα δεδομένα αποθηκεύονται σε ευρωπαϊκά κέντρα δεδομένων, σύμφωνα με τον GDPR και τον ελληνικό νόμο 4624/2019. Στην Πολιτική Απορρήτου θα βρεις αναλυτικά τι συλλέγουμε, γιατί και ποια δικαιώματα έχεις.' },
   { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Μπορείς να τα εξάγεις ανά πάσα στιγμή μέσα από την εφαρμογή και να διαγράψεις τον λογαριασμό σου όποτε θέλεις. Μετά τη διαγραφή, τα δεδομένα σου διαγράφονται οριστικά μέσα σε 30 ημέρες, εκτός από όσα οφείλουμε να τηρήσουμε βάσει νόμου, όπως τα φορολογικά παραστατικά.' },
@@ -82,15 +82,40 @@ export default async function Landing() {
   const loggedIn = !!user;
 
   return (
-    <div style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
+    <div className="lp-root" style={{ background: BG, color: TEXT, minHeight: '100vh', fontFamily: "'Inter',-apple-system,sans-serif", overflowX: 'clip', position: 'relative' }}>
 
       <style>{`
+        /* Η landing είναι πάντα σκοτεινή, ανεξάρτητα από το θέμα της εφαρμογής:
+           μία κινηματογραφική, ενιαία παλέτα από βαθύ ναυτικό μπλε. Ξαναγράφουμε
+           τα design tokens μόνο σε αυτό το υποδέντρο, ώστε κάθε ενότητα, κάρτα και
+           πάνελ να ακολουθεί χωρίς να αγγίξουμε το καθένα χωριστά. Τα διαδραστικά
+           χρώματα (accent, θετικό, κείμενο πάνω σε accent) κρατούν τις τιμές του
+           σκοτεινού θέματος της εφαρμογής, για απόλυτη συνέπεια με το προϊόν. */
+        .lp-root {
+          --bg-base: #070b12;
+          --bg-surface: #0e1622;
+          --bg-elevated: #16202f;
+          --text-primary: #eef2f7;
+          --text-secondary: #a7b2c2;
+          --text-tertiary: #7c899b;
+          --border-subtle: rgba(255,255,255,.07);
+          --border-default: rgba(255,255,255,.12);
+          --border-strong: rgba(255,255,255,.24);
+          --accent: #8ab4f8;
+          --accent-text: #0a2647;
+          --positive: #52c79e;
+          --negative: #e58c84;
+        }
         .lp-skip { position: absolute; left: -9999px; top: 10px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); font-size: 14px; font-weight: 600; text-decoration: none; }
         .lp-skip:focus { left: 12px; outline: 2px solid var(--accent); outline-offset: 2px; }
         .lp-card { transition: transform .22s cubic-bezier(.2,0,0,1), box-shadow .22s cubic-bezier(.2,0,0,1), border-color .22s; }
-        .lp-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgba(16,24,40,.18); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+        .lp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px -20px rgba(0,0,0,.6); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
         .lp-cta { transition: transform .15s, filter .15s; }
         .lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        /* Ενιαία κύρια ενέργεια σε όλη τη σελίδα: το ζωντανό γαλάζιο της μάρκας
+           (#1a73e8) με λευκό κείμενο. Το ανοιχτό accent (#8ab4f8) μένει μόνο για
+           τονισμούς, συνδέσμους και ενεργές καταστάσεις. Δύο ρόλοι, δύο αποχρώσεις. */
+        .lp-primary { background: #1a73e8 !important; color: #fff !important; }
         .lp-ghost { transition: border-color .15s, background .15s, color .15s; }
         .lp-ghost:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--accent); }
         .lp-link { transition: color .15s; }
@@ -162,10 +187,10 @@ export default async function Landing() {
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
           </div>
           {loggedIn ? (
-            <Link href="/dashboard" className="lp-cta" style={{ background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς μου →</Link>
+            <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς μου →</Link>
           ) : (<>
             <Link href="/login" className="lp-link lp-hide-xs" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 12px' }}>Σύνδεση</Link>
-            <Link href="/signup" className="lp-cta" style={{ background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
+            <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ξεκίνα δωρεάν</Link>
           </>)}
         </nav>
       </header>
@@ -188,7 +213,7 @@ export default async function Landing() {
             <span style={{ color: 'rgba(255,255,255,.52)' }}>Το Property OS κάνει τα υπόλοιπα.</span>
           </h1>
           <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: 'rgba(255,255,255,.66)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' }}>
-            Ο πρώτος βοηθός ακινήτων φτιαγμένος για τα ελληνικά δεδομένα: τα δικά σου. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Εσύ αποφασίζεις.
+            Ο απόλυτος βοηθός ακινήτων, φτιαγμένος για τα ελληνικά δεδομένα. Καταχωρεί, υπολογίζει, συγκρίνει και σου απαντά με τη φωνή του. Εσύ έχεις τον απόλυτο έλεγχο και αποφασίζεις κάθε στιγμή με δεδομένα, όχι στο περίπου.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
@@ -406,7 +431,7 @@ function PlanCard({ name, nameColor, sub, price, per, note, items, cta, ctaGhost
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 14, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
-      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : ACCENT, color: ctaGhost ? TEXT : 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : '#1a73e8', color: ctaGhost ? TEXT : '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
     </div>
   );
 }
