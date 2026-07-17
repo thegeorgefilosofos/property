@@ -6,7 +6,7 @@ import { TextInput } from './UIComponents';
 import { T, feAuto, fn, Spinner } from '@/components/Theme';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { reservePlan, rolloverNext, strWaterfall, climateFeePerNight, recommendedReserves, investmentReturns } from '@/lib/billing/budgetPro';
-import { incomeStatement, taxProvision } from '@/lib/accounting/statement';
+import { incomeStatement } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
@@ -473,22 +473,30 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         (bd[key] ??= []).push({ label: String(b.name ?? '').trim() || label, amount: amt, date: String(b.due_date ?? b.created_at ?? '').slice(0, 10), paid: !!b.paid, kind: 'bill' });
       });
 
+      // Κατηγορίες με ΚΑΤΑΓΕΓΡΑΜΜΕΝΗ εγγραφή τον μήνα (ανεξάρτητα από εξαίρεση/ποσό):
+      // αν ο χρήστης κατέγραψε π.χ. τον λογαριασμό Internet και μετά τον εξαίρεσε, ΔΕΝ
+      // θέλει την εκτίμηση του παρόχου να τον ξαναβάζει — γι' αυτό ελέγχουμε «καταγράφηκε;»
+      // και όχι το (μηδενισμένο από την εξαίρεση) billActuals.
+      const recorded = new Set<string>();
+      (billsRes.data ?? []).forEach((b: any) => recorded.add(mapCategory(b.category ?? '')));
+      (expRes.data ?? []).forEach((e: any) => recorded.add(e.expense_group === 'maintenance' ? 'maintenance' : catOf(String(e.category ?? ''))));
+
       const getSett = (sec: string) => settRes.data?.find(x => x.section === sec)?.data as Record<string, unknown> | undefined;
       const prov = getSett('providers');
       if (prov) {
-        if (!billActuals.internet) billActuals.internet = (parseFloat(String(prov.internetPrice)) || 0) + (prov.hasTV ? parseFloat(String(prov.tvPrice)) || 0 : 0);
-        if (!billActuals.water)    billActuals.water    = prov.waterBiMonthly ? (parseFloat(String(prov.waterBiMonthly)) || 0) / (parseInt(String(prov.waterPeriodMonths)) || 2) : parseFloat(String(prov.waterMonthly)) || 0;
-        if (!billActuals.heating)  billActuals.heating  = parseFloat(String(prov.heatingMonthly)) || 0;
+        if (!recorded.has('internet')) billActuals.internet = (parseFloat(String(prov.internetPrice)) || 0) + (prov.hasTV ? parseFloat(String(prov.tvPrice)) || 0 : 0);
+        if (!recorded.has('water'))    billActuals.water    = prov.waterBiMonthly ? (parseFloat(String(prov.waterBiMonthly)) || 0) / (parseInt(String(prov.waterPeriodMonths)) || 2) : parseFloat(String(prov.waterMonthly)) || 0;
+        if (!recorded.has('heating'))  billActuals.heating  = parseFloat(String(prov.heatingMonthly)) || 0;
       }
       const svc = getSett('services');
-      if (svc && !billActuals.services) {
+      if (svc && !recorded.has('services')) {
         const enfia = parseFloat(String(svc.enfiaAnnual)) / 12 || parseFloat(String(svc.enfiaMonthly)) || 0;
         const hist  = Array.isArray(svc.dimotikaHistory) ? svc.dimotikaHistory as string[] : [];
         const valid = hist.filter(v => parseFloat(v) > 0);
         billActuals.services = enfia + (valid.length ? valid.reduce((s, v) => s + parseFloat(v), 0) / valid.length : 0);
       }
       const ins = getSett('insurance');
-      if (ins && !billActuals.insurance) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
+      if (ins && !recorded.has('insurance')) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
 
       // Έξοδα εκτός λογαριασμών του μήνα: η συντήρηση πάει στη «Συντήρηση»,
       // τα υπόλοιπα στις «Λοιπές δαπάνες» (πιο έντιμη ανάλυση από ένα ενιαίο νούμερο).
@@ -994,7 +1002,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* «Δείξε μου» — δείγμα μήνα όταν ο προϋπολογισμός είναι άδειος */}
       {isCurMonth && demoIds.length === 0 && monthItems.length === 0 && Object.keys(monthTotals).length === 0 && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px dashed var(--border-default)', borderRadius: T.radius.card, padding: 16, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div className="budget-rise" style={{ background: 'var(--bg-surface)', border: '1px dashed var(--border-default)', borderRadius: T.radius.card, padding: 16, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Δες πώς λειτουργεί σε 10 δευτερόλεπτα</div>
             <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Θα προσθέσουμε ένα δείγμα δαπανών του μήνα, ώστε να ζωντανέψουν τα γραφήματα και οι κατηγορίες. Τα αφαιρείς με ένα άγγιγμα όποτε θες.</div>
@@ -1008,7 +1016,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Ενεργό δείγμα — διακριτική επισήμανση + αφαίρεση */}
       {demoIds.length > 0 && (
-        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="budget-rise" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Εμφανίζονται δείγματα δεδομένων για επίδειξη.</span>
           <button type="button" onClick={removeDemo} disabled={demoBusy}
@@ -1238,7 +1246,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Προτάσεις — προδραστικές, actionable (εφαρμογή με ένα άγγιγμα) */}
       {isCurMonth && targetSuggestions.length > 0 && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+        <div className="budget-rise" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Προτάσεις</span>
@@ -1266,7 +1274,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Παρατηρήσεις — 2–3 έξυπνες προτάσεις πάνω από τα γραφήματα */}
       {isCurMonth && insights.length > 0 && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+        <div className="budget-rise" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Παρατηρήσεις</span>
@@ -1665,7 +1673,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Διακριτικό toast «Αναίρεση» — για διαγραφή κατηγορίας ή εξαίρεση */}
       {toast && (
-        <div style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '11px 14px 11px 16px', borderRadius: 12, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', boxShadow: '0 8px 28px rgba(0,0,0,0.28)', fontFamily: T.font.sans, maxWidth: 'calc(100vw - 32px)' }}>
+        <div className="budget-toast-in" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '11px 14px 11px 16px', borderRadius: 12, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', boxShadow: '0 8px 28px rgba(0,0,0,0.28)', fontFamily: T.font.sans, maxWidth: 'calc(100vw - 32px)' }}>
           <span style={{ fontSize: 12.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toast.msg}</span>
           <button type="button" onClick={() => { toast.undo(); if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}
             style={{ border: 'none', background: 'transparent', color: 'var(--accent)', fontSize: 12.5, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', padding: 0, flexShrink: 0 }}>
