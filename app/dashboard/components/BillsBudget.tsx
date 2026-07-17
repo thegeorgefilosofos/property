@@ -939,20 +939,25 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, userId, loading, notifyOn, overKey, overAmt]);
 
-  // Κεφαλίδα ενότητας με προαιρετικό κουμπί ελαχιστοποίησης (chevron) και δεξί περιεχόμενο.
+  // Κεφαλίδα ενότητας — ΟΛΗ η γραμμή είναι clickable (άνοιγμα/κλείσιμο), όχι μόνο το βελάκι.
+  // Το ⓘ σταματά τη διάδοση ώστε να δείχνει επεξήγηση χωρίς να κλείνει την ενότητα.
   const secHdr = (label: string, key?: string, right?: React.ReactNode, info?: React.ReactNode) => {
     const shut = !!key && collapsed.has(key);
+    const clickable = !!key;
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)' }}>
+      <div
+        onClick={clickable ? () => toggleCollapse(key!) : undefined}
+        onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(key!); } } : undefined}
+        role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} aria-expanded={clickable ? !shut : undefined}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: shut ? 0 : 13, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)', cursor: clickable ? 'pointer' : 'default', userSelect: 'none' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>{label}</span>
-        {info}
+        {info && <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}>{info}</span>}
         <span style={{ flex: 1 }}/>
         {right}
         {key && (
-          <button onClick={() => toggleCollapse(key)} aria-label={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'} title={shut ? 'Άνοιγμα' : 'Ελαχιστοποίηση'}
-            style={{ display: 'flex', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4, margin: '-4px -4px -4px 0' }}>
+          <span aria-hidden="true" style={{ display: 'flex', color: 'var(--text-tertiary)', padding: 4, margin: '-4px -4px -4px 0' }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: shut ? 'rotate(-90deg)' : 'none', transition: 'transform 0.18s' }}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
+          </span>
         )}
       </div>
     );
