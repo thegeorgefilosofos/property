@@ -53,7 +53,7 @@ export function savingsSchedule(
   const remaining = Math.max(0, (target || 0) - (current || 0))
   if (remaining <= 0) return { reached: true, contributionsToGoal: 0, nextDate: isoOf(fromDate), daysToNext: 0, goalDate: isoOf(fromDate) }
   if (!(perContribution > 0)) return null
-  const day = Math.min(28, Math.max(1, Math.round(dayOfMonth || 1)))
+  const day = Math.min(31, Math.max(1, Math.round(dayOfMonth || 1)))
   // Επόμενη προσθήκη: αν σήμερα ≤ ημέρα → αυτόν τον μήνα, αλλιώς τον επόμενο.
   const nextDate = from.d <= day
     ? new Date(from.y, (from.m || 1) - 1, day)
