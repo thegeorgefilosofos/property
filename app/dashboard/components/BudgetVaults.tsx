@@ -241,7 +241,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 const yearly = (v.apy != null && v.apy > 0 && (v.current || 0) > 0) ? Math.round((v.current || 0) * v.apy / 100) : 0;
                 // Compact 2-col: πεδία δίπλα-δίπλα ώστε το πλαίσιο να μένει χαμηλό και μαζεμένο.
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px 10px', maxWidth: 460 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '9px 12px' }}>
                     <div style={{ gridColumn: '1 / -1' }}><TextInput label="Όνομα" value={v.name} onChange={val => update(v.id, { name: val })} placeholder="π.χ. Λέβητας" /></div>
                     <NumberInput label="Στόχος" value={String(v.target || '')} onChange={val => update(v.id, { target: parseFloat(val) || 0 })} suffix="€" step={50} />
                     <NumberInput label="Έχω μαζέψει" value={String(v.current || '')} onChange={val => update(v.id, { current: parseFloat(val) || 0 })} suffix="€" step={20} />
@@ -257,7 +257,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                   </div>
                 );
               })()}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, maxWidth: 460 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)} onTouchStart={() => setDoneHover(true)} onTouchEnd={() => setDoneHover(false)}
                   style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? '#fff' : 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
                 <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}

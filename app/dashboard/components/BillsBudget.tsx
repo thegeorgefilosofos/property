@@ -102,23 +102,23 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
     const rest = sorted.slice(MAX - 1).reduce((s, x) => s + x.value, 0);
     segs = [...head, { label: 'Λοιπά', value: rest }];
   }
-  const r = 46, sw = 13, C = 2 * Math.PI * r;
-  const GAP = segs.length > 1 ? 5 : 0;   // κενό μεταξύ τόξων (σε μονάδες περιμέτρου)
+  const r = 56, sw = 14, C = 2 * Math.PI * r;
+  const GAP = segs.length > 1 ? 6 : 0;   // κενό μεταξύ τόξων (σε μονάδες περιμέτρου)
   const shade = (i: number, on: boolean) => `color-mix(in srgb, var(--accent) ${Math.min(100, Math.max(32, 94 - i * 13) + (on ? 6 : 0))}%, transparent)`;
   const active = hi != null ? segs[hi] : null;
   let off = 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-      <svg width="128" height="128" viewBox="0 0 128 128" style={{ flexShrink: 0, overflow: 'visible' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 26, flexWrap: 'wrap' }}>
+      <svg width="152" height="152" viewBox="0 0 152 152" style={{ flexShrink: 0, overflow: 'visible' }}>
         {/* Κανάλι δαχτυλιδιού */}
-        <circle cx="64" cy="64" r={r} fill="none" stroke="color-mix(in srgb, var(--accent) 10%, transparent)" strokeWidth={sw} />
-        <g transform="rotate(-90 64 64)">
+        <circle cx="76" cy="76" r={r} fill="none" stroke="color-mix(in srgb, var(--accent) 10%, transparent)" strokeWidth={sw} />
+        <g transform="rotate(-90 76 76)">
           {segs.map((s, i) => {
             const on = hi === i;
             const raw = (s.value / total) * C;
             const len = Math.max(0.5, raw - GAP);
             const el = (
-              <circle key={i} cx="64" cy="64" r={r} fill="none" stroke={shade(i, on)} strokeWidth={sw} strokeLinecap="round"
+              <circle key={i} cx="76" cy="76" r={r} fill="none" stroke={shade(i, on)} strokeWidth={sw} strokeLinecap="round"
                 strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={(-off).toFixed(2)}
                 onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
                 style={{ transition: 'stroke 0.18s ease', cursor: 'default' }} />
@@ -127,9 +127,9 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
             return el;
           })}
         </g>
-        <text x="64" y="58" textAnchor="middle" style={{ fontSize: 8, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase() : 'ΣΥΝΟΛΟ'}</text>
-        <text x="64" y="74" textAnchor="middle" style={{ fontSize: 15, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
-        {active && <text x="64" y="87" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
+        <text x="76" y="70" textAnchor="middle" style={{ fontSize: 8.5, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase() : 'ΣΥΝΟΛΟ'}</text>
+        <text x="76" y="87" textAnchor="middle" style={{ fontSize: 17, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{fe(active ? active.value : total, 0)}</text>
+        {active && <text x="76" y="101" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 150 }}>
         {segs.map((s, i) => {
@@ -1114,7 +1114,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const isOver  = actual > budget && actual > 0;
             const projOver = isCurMonth && !isOver && categoryStatus(budget, actual, catForecast(cat.key)) === 'projected_over';
             const isWarn  = !isOver && !projOver && pct > 80;
-            const col     = isOver ? 'var(--negative)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
+            const col     = isOver ? 'color-mix(in srgb, var(--negative) 52%, transparent)' : 'color-mix(in srgb, var(--text-primary) 34%, transparent)';
             const tr      = catTrend(cat.key);
 
             const hov = !editMode && hoverCat === cat.key;
@@ -1149,13 +1149,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   ) : (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
                       {actual > 0
-                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isOver ? 'var(--negative)' : hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(actual, 0)}</span>
+                        ? <span style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{fe(actual, 0)}</span>
                         : <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
                       }
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ {fe(budget, 0)}</span>
-                      {isOver && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--negative)', background: 'var(--negative-dim)', padding: '1px 8px', borderRadius: T.radius.pill }}>+{fe(actual - budget, 0)}</span>}
-                      {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '1px 8px', borderRadius: T.radius.pill }}>προβλ. υπέρβαση</span>}
-                      {isWarn && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '1px 8px', borderRadius: T.radius.pill }}>{pct.toFixed(0)}%</span>}
+                      {isOver && <span title="Υπέρβαση του στόχου" style={{ fontSize: 9.5, fontWeight: 600, color: 'color-mix(in srgb, var(--negative) 78%, var(--text-tertiary))', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{fe(actual - budget, 0)}</span>}
+                      {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
+                      {isWarn && <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct.toFixed(0)}%</span>}
                     </div>
                   )}
                 </div>
