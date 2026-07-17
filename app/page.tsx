@@ -45,9 +45,10 @@ const FAQ = [
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα που θέλει να έχει τον έλεγχο όπως ένας επαγγελματίας: από τον ιδιώτη με ένα διαμέρισμα μέχρι τον επαγγελματία με ολόκληρο χαρτοφυλάκιο, μεσιτικά γραφεία και διαχειριστές. Καλύπτει κάθε τύπο ακινήτου: κατοικία, επαγγελματικό χώρο, αποθήκη, οικόπεδο.' },
   { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Σε κρατά διαρκώς ενημερωμένο για τις υποχρεώσεις, τις προθεσμίες και τις ευκαιρίες σου, ώστε να πηγαίνεις στον λογιστή σου προετοιμασμένος, με τα στοιχεία έτοιμα για εξαγωγή. Οι υπολογισμοί είναι υποστηρικτικοί: για δεσμευτικές αποφάσεις ισχύει πάντα η γνώμη του επαγγελματία σου.' },
   { q: 'Πόσο κοστίζει;', a: 'Το πρώτο ακίνητο δεν σου κοστίζει ποτέ τίποτα: όλες οι δυνατότητες, χωρίς κάρτα. Για περισσότερα ακίνητα, το πλάνο Ιδιοκτήτης κοστίζει 6,90 € τον μήνα (ή 59 € τον χρόνο) για έως 15 ακίνητα. Το πλάνο Επαγγελματίας κοστίζει 19 € τον μήνα (ή 190 € τον χρόνο) με απεριόριστα ακίνητα και ομάδα. Αλλάζεις ή ακυρώνεις όποτε θέλεις· οι τιμές περιλαμβάνουν ΦΠΑ.' },
-  { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Ναι, και το παίρνουμε σοβαρά. Κάθε μεταφορά γίνεται μέσα από κρυπτογραφημένη σύνδεση και κάθε χρήστης βλέπει αποκλειστικά τα δικά του δεδομένα, με απομόνωση σε επίπεδο βάσης. Τα έγγραφα και τα νούμερά σου δεν χρησιμοποιούνται ποτέ για εκπαίδευση μοντέλων. Τα δεδομένα αποθηκεύονται σε ευρωπαϊκά κέντρα δεδομένων, σύμφωνα με τον GDPR και τον ελληνικό νόμο 4624/2019. Στην Πολιτική Απορρήτου θα βρεις αναλυτικά τι συλλέγουμε, γιατί και ποια δικαιώματα έχεις.' },
+  { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Το παίρνουμε πιο σοβαρά από οτιδήποτε άλλο. Κάθε μεταφορά γίνεται μέσα από κρυπτογραφημένη σύνδεση και κάθε χρήστης βλέπει αποκλειστικά τα δικά του δεδομένα, με απομόνωση σε επίπεδο βάσης. Τα έγγραφα και τα νούμερά σου δεν χρησιμοποιούνται ποτέ για εκπαίδευση μοντέλων. Τα δεδομένα αποθηκεύονται σε ευρωπαϊκά κέντρα δεδομένων, σύμφωνα με τον GDPR και τον ελληνικό νόμο 4624/2019. Στην Πολιτική Απορρήτου θα βρεις αναλυτικά τι συλλέγουμε, γιατί και ποια δικαιώματα έχεις.' },
   { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Μπορείς να τα εξάγεις ανά πάσα στιγμή μέσα από την εφαρμογή και να διαγράψεις τον λογαριασμό σου όποτε θέλεις. Μετά τη διαγραφή, τα δεδομένα σου διαγράφονται οριστικά μέσα σε 30 ημέρες, εκτός από όσα οφείλουμε να τηρήσουμε βάσει νόμου, όπως τα φορολογικά παραστατικά.' },
-  { q: 'Δουλεύει στο κινητό;', a: 'Ναι, παντού. Η εφαρμογή προσαρμόζεται πλήρως σε κινητό, tablet και υπολογιστή. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου: φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
+  { q: 'Δουλεύει στο κινητό;', a: 'Παντού. Η εφαρμογή προσαρμόζεται πλήρως σε κινητό, tablet και υπολογιστή. Η σάρωση δουλεύει ιδανικά με την κάμερα του κινητού σου: φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν φτάσεις σπίτι.' },
+  { q: 'Πόσο γρήγορα ξεκινάω;', a: 'Η εγγραφή θέλει λιγότερο από ένα λεπτό, με Google ή με email. Προσθέτεις το πρώτο σου ακίνητο με λίγα βασικά στοιχεία και η εικόνα του συμπληρώνεται σιγά σιγά, με κάθε έγγραφο που περνάς μέσα. Αν θέλεις να δεις πρώτα πώς λειτουργεί, υπάρχουν έτοιμα δεδομένα επίδειξης για να εξερευνήσεις ελεύθερα, πριν βάλεις τα δικά σου.' },
 ];
 
 // Ταινία δυνατοτήτων στο κάτω άκρο του hero: διαρκής, ήρεμη κίνηση (παύση στο hover).
@@ -94,10 +95,12 @@ export default async function Landing() {
         .lp-ghost:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--accent); }
         .lp-link { transition: color .15s; }
         .lp-link:hover { color: var(--accent) !important; }
-        details.lp-faq { transition: border-color .18s, background .18s; }
-        details.lp-faq[open] { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+        details.lp-faq summary { transition: color .18s; }
+        details.lp-faq summary:hover { color: var(--accent); }
+        details.lp-faq[open] summary { color: var(--accent); }
         details.lp-faq summary::-webkit-details-marker { display: none; }
         details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+        @media (max-width: 860px) { .lp-faq-grid { grid-template-columns: 1fr !important; } }
         /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
         .lp-hero { background: linear-gradient(180deg, #070b12 0%, #0a0f18 60%, #0b101a 100%); color: #fff; border-bottom: 1px solid rgba(255,255,255,.06); }
@@ -225,7 +228,7 @@ export default async function Landing() {
       {/* ── Scrollytelling: το προϊόν μένει sticky και αλλάζει πράξη όσο διαβάζεις.
              ΠΡΟΣΟΧΗ: χωρίς lp-reveal εδώ (transform στον πρόγονο σπάει το sticky). */}
       <section style={{ ...wrap, position: 'relative', zIndex: 1, paddingTop: 'clamp(36px, 5vw, 64px)', paddingBottom: 'clamp(24px, 4vw, 44px)' }}>
-        <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις. Πλήρης έλεγχος." sub="Φωτογραφίζεις, ρωτάς, αποφασίζεις. Τίποτα άλλο." />
+        <SectionHead over="Πώς δουλεύει" title="Τρεις κινήσεις. Πλήρης έλεγχος." />
         <ScrollStory />
       </section>
 
@@ -271,7 +274,7 @@ export default async function Landing() {
 
       {/* ── Pricing ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, padding: 'clamp(20px, 3vw, 32px) clamp(20px, 5vw, 48px) clamp(44px, 7vw, 84px)' }}>
-        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο όταν αξίζει." sub="Το πρώτο ακίνητο δωρεάν για πάντα. Από εκεί και πάνω, μια τιμή που την καλύπτουν όσα γλιτώνεις." />
+        <SectionHead over="Τιμολόγηση" title="Ξεκίνα δωρεάν. Πλήρωσε μόνο όταν αξίζει." sub="Μια συνδρομή που τη βγάζουν όσα γλιτώνεις από τις συγκρίσεις." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, maxWidth: 1040, margin: '0 auto', alignItems: 'stretch' }}>
 
           {/* Δωρεάν */}
@@ -303,33 +306,44 @@ export default async function Landing() {
         </p>
       </section>
 
-      {/* ── FAQ ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
-        <SectionHead over="Απορίες" title="Συχνές ερωτήσεις" />
-        <div style={{ maxWidth: 748, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {FAQ.map((f, i) => (
-            <details key={i} className="lp-faq" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: '2px 20px' }}>
-              <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '16px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
-              </summary>
-              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.7, margin: '0 0 18px' }}>{f.a}</p>
-            </details>
-          ))}
+      {/* ── FAQ: δίστηλο, λιτή λίστα με λεπτές διαχωριστικές γραμμές ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
+        <div className="lp-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.4fr', gap: 'clamp(24px, 5vw, 72px)', alignItems: 'start' }}>
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Απορίες</div>
+            <h2 style={{ fontSize: 'clamp(24px, 3.8vw, 37px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.13, margin: '0 0 14px' }}>Συχνές ερωτήσεις</h2>
+            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, maxWidth: 340 }}>Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν, με ειλικρινείς απαντήσεις.</p>
+          </div>
+          <div style={{ borderBottom: `1px solid ${LINE}` }}>
+            {FAQ.map((f, i) => (
+              <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
+                <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, fontWeight: 400, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
+                </summary>
+                <p style={{ fontSize: 14.5, color: MUTED, lineHeight: 1.7, margin: '0 0 22px', maxWidth: 620 }}>{f.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── Final CTA, συμπαγές ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 80px)' }}>
-        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(24px, 3.5vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 'clamp(16px, 3vw, 32px)', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 8px' }}>Το ακίνητό σου, υπό έλεγχο</h2>
-            <p style={{ fontSize: 15, color: MUTED, margin: 0, lineHeight: 1.6, maxWidth: 520 }}>Φωτογράφισε το πρώτο έγγραφο και το ακίνητό σου μπαίνει σε τάξη. Δωρεάν, χωρίς δέσμευση.</p>
-          </div>
-          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: ACCENT, color: 'var(--accent-text)', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100, whiteSpace: 'nowrap', justifySelf: 'start' }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
+      {/* ── Final CTA: σκοτεινό κλείσιμο, καθρέφτης του hero ── */}
+      <section className="lp-hero lp-reveal" style={{ position: 'relative', overflow: 'hidden', borderBottom: 'none' }}>
+        <div className="lp-aurora" aria-hidden="true" />
+        <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: 'clamp(56px, 8vw, 100px)', paddingBottom: 'clamp(56px, 8vw, 100px)' }}>
+          <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.08, margin: '0 auto 16px', maxWidth: 720, color: '#fff' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
+          <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'rgba(255,255,255,.62)', lineHeight: 1.6, maxWidth: 480, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο έγγραφο και δες το να μπαίνει σε τάξη. Δωρεάν, χωρίς δέσμευση.</p>
+          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta" style={{ display: 'inline-block', background: '#1a73e8', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου →' : 'Ξεκίνα δωρεάν →'}</Link>
         </div>
       </section>
 
       </main>
+
+      {/* Δομημένα δεδομένα FAQ για τις μηχανές αναζήτησης (rich results) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'FAQPage',
+        mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+      }) }} />
 
       {/* ── Footer ── */}
       <footer style={{ borderTop: `1px solid ${LINE}`, position: 'relative', zIndex: 1 }}>

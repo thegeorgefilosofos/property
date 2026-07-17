@@ -1856,3 +1856,10 @@ summary::marker { content: ""; }
 /* ── Ενιαίο hover συνδέσμων (landing και auth): ήπια μετάβαση προς το accent ── */
 a.lp-link { transition: color 0.15s ease, filter 0.15s ease; }
 a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
+
+/* ── Ενιαία hover κουμπιών στις οθόνες auth: ghost προς accent, primary πιο φωτεινό ── */
+.auth-hov { transition: border-color 0.15s ease, background 0.15s ease; }
+.auth-hov:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important; background: color-mix(in srgb, var(--accent) 5%, transparent) !important; }
+.auth-cta { transition: filter 0.15s ease, transform 0.15s ease; }
+.auth-cta:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) { .auth-cta:hover:not(:disabled) { transform: none; } }
