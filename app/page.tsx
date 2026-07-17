@@ -227,7 +227,7 @@ export default async function Landing() {
             <span style={{ color: 'rgba(255,255,255,.52)' }}>Το Property OS κάνει τα υπόλοιπα.</span>
           </h1>
           <p className="lp-rise-2" style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: 'rgba(255,255,255,.66)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' }}>
-            Επεξεργάζεται τα δικά σου δεδομένα. Καταχωρεί, υπολογίζει, συγκρίνει και απαντά με τη φωνή στα ελληνικά. Αποφασίζεις εσύ.
+            Καταχωρεί, υπολογίζει, συγκρίνει τα δικά σου δεδομένα. Απαντά στα ελληνικά. Αποφασίζεις εσύ.
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
