@@ -1730,6 +1730,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Ήπιος «ζωντανός» παλμός για τη μοναδική ένδειξη τρέχουσας χρήσης (χαμηλή ένταση, όχι θόρυβος). */
 @keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.78); } }
 .live-dot { animation: livePulse 2.4s ease-in-out infinite; }
+/* Διακριτική είσοδος καρτών προϋπολογισμού — απαλό fade + μικρή ανύψωση, χωρίς αναπήδηση/λάμψη. */
+@keyframes budgetRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.budget-rise { animation: budgetRise 0.28s cubic-bezier(0.2, 0, 0, 1) both; }
+/* Είσοδος του toast «Αναίρεση»: ανεβαίνει απαλά, μένει κεντραρισμένο (translateX -50%). */
+@keyframes budgetToastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.budget-toast-in { animation: budgetToastIn 0.24s cubic-bezier(0.2, 0, 0, 1) both; }
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-overlay) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;
