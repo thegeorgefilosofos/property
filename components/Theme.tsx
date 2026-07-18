@@ -189,31 +189,44 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 // & λάμψη. Καθαρά, χωρίς color noise, στο ίδιο design system με το app.
 export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner' | 'agency' | 'partner'; showLabel?: boolean; size?: number }) {
   const cfg = {
-    owner:   { label: 'Ιδιώτης',       ring: 'var(--border-default)', bg: 'transparent',      ic: 'var(--text-secondary)', text: 'var(--text-secondary)' },
-    agency:  { label: 'Επαγγελματίας',  ring: 'var(--accent-border)',  bg: 'var(--accent-dim)', ic: 'var(--accent)',          text: 'var(--accent)' },
-    partner: { label: 'Συνεργάτης',     ring: 'var(--accent)',         bg: '',                  ic: 'var(--accent-text)',     text: 'var(--accent)' },
+    owner:   { label: 'Ιδιώτης',      ring: 'var(--border-default)', ic: 'var(--text-secondary)', text: 'var(--text-secondary)' },
+    agency:  { label: 'Επαγγελματίας', ring: 'var(--accent-border)',  ic: 'var(--accent)',          text: 'var(--accent)' },
+    partner: { label: 'Συνεργάτης',    ring: 'var(--accent)',         ic: 'var(--accent-text)',     text: 'var(--accent)' },
   }[tier];
   const isPartner = tier === 'partner';
+  // Χτυπημένο «νόμισμα/σφραγίδα»: βάση με λεπτή εσωτερική στεφάνη + top sheen.
+  const bg =
+    tier === 'partner' ? 'radial-gradient(120% 90% at 50% -8%, rgba(255,255,255,.34), transparent 55%), radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 46%, color-mix(in srgb, var(--accent) 52%, #0c1f3a) 100%)'
+    : tier === 'agency' ? 'radial-gradient(110% 80% at 50% -10%, rgba(255,255,255,.16), transparent 55%), var(--accent-dim)'
+    : 'radial-gradient(110% 80% at 50% -12%, rgba(255,255,255,.55), transparent 52%), var(--surface-sunken)';
+  const shadow =
+    tier === 'partner' ? 'inset 0 0 0 1.5px color-mix(in srgb, var(--accent-text) 32%, transparent), inset 0 2px 5px color-mix(in srgb, #ffffff 26%, transparent), inset 0 -3px 6px color-mix(in srgb, #0c1f3a 22%, transparent), 0 10px 26px -8px color-mix(in srgb, var(--accent) 62%, transparent)'
+    : tier === 'agency' ? 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent), inset 0 1px 1px rgba(255,255,255,.14), 0 3px 8px -5px color-mix(in srgb, var(--accent) 45%, transparent)'
+    : 'inset 0 0 0 1px rgba(255,255,255,.5), inset 0 1px 2px rgba(16,24,40,.07), 0 2px 5px -3px rgba(16,24,40,.18)';
+  const gl = size * (isPartner ? 0.58 : 0.5);
   const glyphs: Record<string, string> = {
-    owner:  'M3 10.5 12 3l9 7.5|M5 9.5V20h14V9.5|M10 20v-5h4v5',
-    agency: 'M4 21V7l7-4 7 4v14|M4 21h16|M8.5 11h1m-1 4h1m5-4h1m-1 4h1',
+    owner:  'M4 11 12 4l8 7|M6 9.5V20h12V9.5|M10 20v-5h4v5',
+    agency: 'M4 21V7l7-4 7 4v14|M3 21h18|M8.5 11h1m-1 4h1m5-4h1m-1 4h1',
   };
   const medallion = (
     <span style={{
-      width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      background: isPartner ? 'radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 45%, color-mix(in srgb, var(--accent) 55%, #10233f) 100%)' : cfg.bg,
-      border: `1.5px solid ${cfg.ring}`,
-      boxShadow: isPartner
-        ? 'var(--highlight-inset-strong), 0 8px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent)'
-        : 'var(--highlight-inset)',
+      position: 'relative', width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      background: bg, border: `1.5px solid ${cfg.ring}`, boxShadow: shadow,
     }}>
       {isPartner ? (
-        <svg width={size * 0.56} height={size * 0.56} viewBox="0 0 24 24" fill="none">
-          <path d="M12 3.2l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 21.2l-4.7 2.47.9-5.23-3.8-3.7 5.25-.76z" fill="var(--accent-text)" />
-          <circle cx="18.2" cy="5.8" r="1.05" fill="var(--accent-text)" opacity="0.9" />
+        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 1px 1px color-mix(in srgb, #0c1f3a 34%, transparent))' }}>
+          {/* διακριτικές ακτίνες μεταλλίου */}
+          <g stroke="var(--accent-text)" strokeWidth="1" strokeLinecap="round" opacity="0.32">
+            {Array.from({ length: 12 }).map((_, i) => {
+              const a = (i * 30 * Math.PI) / 180;
+              return <line key={i} x1={12 + 9.4 * Math.cos(a)} y1={12 + 9.4 * Math.sin(a)} x2={12 + 10.6 * Math.cos(a)} y2={12 + 10.6 * Math.sin(a)} />;
+            })}
+          </g>
+          <path d="M12 4l2.16 4.38 4.84.7-3.5 3.42.83 4.82L12 19.02 7.67 17.3l.83-4.82L5 9.06l4.84-.7z" fill="var(--accent-text)" />
+          <circle cx="17.6" cy="6.4" r="0.95" fill="var(--accent-text)" opacity="0.92" />
         </svg>
       ) : (
-        <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
           {glyphs[tier].split('|').map((d, i) => <path key={i} d={d} />)}
         </svg>
       )}
