@@ -4,6 +4,10 @@ import {
   withinMonthlyCap, monthlyCapFor, isActivated, referrerRewardFor, refereeReward,
   countActiveSlots, daysUntilExpiry, effectiveMaxProperties, canAddWithReferrals,
   MAX_ACTIVE_SLOTS, MONTHLY_CAP_DEFAULT, MONTHLY_CAP_AGENCY, REFEREE_TRIAL_MONTHS,
+  qualifiesMonthlyBonus, monthlyProgress, milestoneBonusOptions,
+  currentStreak, isPartner, streakProgress, partnerCommission, partnerCommissionFromSubs,
+  MONTHLY_MILESTONE, STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
+  MILESTONE_BONUS_CASH, MILESTONE_BONUS_MONTHS,
 } from './referral';
 
 let p = 0, f = 0;
@@ -75,6 +79,36 @@ ok(effectiveMaxProperties('owner', 1) === 7, 'ιδιοκτήτης 6 +1 = 7');
 ok(effectiveMaxProperties('agency', 5) === Infinity, 'επαγγελματίας απεριόριστος');
 ok(canAddWithReferrals('free', 2, 2) === true, 'δωρεάν +2 θέσεις, 2 ακίνητα → 3ο επιτρεπτό');
 ok(canAddWithReferrals('free', 2, 3) === false, 'δωρεάν +2 θέσεις, 3 ακίνητα → όχι');
+
+// ── Επίπεδο 1: μηνιαίο milestone «5 του μήνα» ──
+ok(qualifiesMonthlyBonus(MONTHLY_MILESTONE) === true, 'milestone στο 5 → μπόνους');
+ok(qualifiesMonthlyBonus(MONTHLY_MILESTONE - 1) === false, 'milestone στο 4 → όχι ακόμη');
+const mp = monthlyProgress(3);
+ok(mp.count === 3 && mp.target === 5 && mp.remaining === 2 && mp.reached === false, 'πρόοδος 3/5, λείπουν 2');
+ok(Math.round(mp.pct) === 60, 'πρόοδος 60%');
+ok(monthlyProgress(7).reached === true && monthlyProgress(7).remaining === 0, 'πάνω από 5 → επιτεύχθηκε');
+const opts = milestoneBonusOptions();
+ok(opts.some(o => o.kind === 'cash' && o.amount === MILESTONE_BONUS_CASH), 'επιλογή μετρητών 25€');
+ok(opts.some(o => o.kind === 'months' && o.months === MILESTONE_BONUS_MONTHS), 'επιλογή 6 μηνών');
+
+// ── Επίπεδο 2: streak & Συνεργάτης ──
+ok(currentStreak([5, 5, 5]) === 3, 'σερί 3 μηνών');
+ok(currentStreak([5, 2, 5, 6]) === 2, 'σερί μετρά μόνο τα τελευταία συνεχόμενα');
+ok(currentStreak([6, 6, 3]) === 0, 'σπασμένο σερί στον τελευταίο μήνα → 0');
+ok(currentStreak([]) === 0, 'κενό ιστορικό → 0');
+ok(isPartner([5, 5, 5]) === true, 'τρεις σερί → Συνεργάτης');
+ok(isPartner([5, 5, 4]) === false, 'δύο σερί → όχι ακόμη');
+ok(isPartner([9, 9, 9, 9]) === true, 'τέσσερις σερί → Συνεργάτης');
+const sp2 = streakProgress([5, 5]);
+ok(sp2.current === 2 && sp2.target === STREAK_TARGET_MONTHS && sp2.reached === false, 'πρόοδος σερί 2/3');
+ok(streakProgress([5, 5, 5, 5]).current === STREAK_TARGET_MONTHS, 'πρόοδος σερί κόβεται στο target');
+
+// ── Προμήθεια Συνεργάτη ──
+ok(partnerCommission(100) === 20, 'προμήθεια 20% στα 100€');
+ok(partnerCommission(-50) === 0, 'αρνητικά έσοδα → 0 προμήθεια');
+ok(Math.abs(partnerCommission(18.9) - 3.78) < 1e-9, 'προμήθεια σε 18,90€');
+ok(partnerCommissionFromSubs([5.9, 18.9, 5.9]) === PARTNER_COMMISSION_RATE * (5.9 + 18.9 + 5.9), 'προμήθεια από λίστα συνδρομών');
+ok(partnerCommissionFromSubs([5.9, -3, 18.9]) === PARTNER_COMMISSION_RATE * (5.9 + 18.9), 'αγνοεί μη-θετικά');
 
 console.log(`\nreferral/referral.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);

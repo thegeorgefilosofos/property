@@ -10,7 +10,6 @@ import { downloadCsv } from './exportCsv';
 import { runE2Export } from './e2Export';
 import Billing from './Billing';
 import ReportBranding from './ReportBranding';
-import Referral from './Referral';
 
 // ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
 const FMA_RATE = 0.03;
@@ -557,7 +556,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <AccountantLink userId={userId} />
           <MarketDataSharing userId={userId} />
           <IntegrationsCard />
-          <Referral userId={userId} />
           <DeleteAccountCard />
         </div>
       )}
