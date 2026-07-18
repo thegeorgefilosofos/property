@@ -195,14 +195,20 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
   }[tier];
   const isPartner = tier === 'partner';
   // Χτυπημένο «νόμισμα/σφραγίδα»: βάση με λεπτή εσωτερική στεφάνη + top sheen.
+  // Χτυπημένο νόμισμα και για τα τρία: ακτινικό «μεταλλικό» σώμα + ανάγλυφο (φως
+  // πάνω / σκιά κάτω) + στεφάνη. Κοινή οικογένεια, αυξανόμενος πλούτος ως τον Συνεργάτη.
   const bg =
     tier === 'partner' ? 'radial-gradient(120% 90% at 50% -8%, rgba(255,255,255,.34), transparent 55%), radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 46%, color-mix(in srgb, var(--accent) 52%, #0c1f3a) 100%)'
-    : tier === 'agency' ? 'radial-gradient(110% 80% at 50% -10%, rgba(255,255,255,.16), transparent 55%), var(--accent-dim)'
-    : 'radial-gradient(110% 80% at 50% -12%, rgba(255,255,255,.55), transparent 52%), var(--surface-sunken)';
+    : tier === 'agency' ? 'radial-gradient(115% 85% at 50% -10%, rgba(255,255,255,.22), transparent 55%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--accent-dim) 60%, #ffffff) 0%, var(--accent-dim) 54%, color-mix(in srgb, var(--accent) 22%, var(--accent-dim)) 100%)'
+    : 'radial-gradient(115% 85% at 50% -12%, rgba(255,255,255,.5), transparent 52%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--surface-raised) 82%, #ffffff) 0%, var(--surface-sunken) 58%, color-mix(in srgb, var(--surface-sunken) 84%, #0c1f3a) 100%)';
   const shadow =
     tier === 'partner' ? 'inset 0 0 0 1.5px color-mix(in srgb, var(--accent-text) 32%, transparent), inset 0 2px 5px color-mix(in srgb, #ffffff 26%, transparent), inset 0 -3px 6px color-mix(in srgb, #0c1f3a 22%, transparent), 0 10px 26px -8px color-mix(in srgb, var(--accent) 62%, transparent)'
-    : tier === 'agency' ? 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent), inset 0 1px 1px rgba(255,255,255,.14), 0 3px 8px -5px color-mix(in srgb, var(--accent) 45%, transparent)'
-    : 'inset 0 0 0 1px rgba(255,255,255,.5), inset 0 1px 2px rgba(16,24,40,.07), 0 2px 5px -3px rgba(16,24,40,.18)';
+    : tier === 'agency' ? 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px color-mix(in srgb, var(--accent) 20%, transparent), 0 5px 12px -6px color-mix(in srgb, var(--accent) 44%, transparent)'
+    : 'inset 0 0 0 1px rgba(255,255,255,.5), inset 0 2px 3px rgba(255,255,255,.42), inset 0 -3px 5px rgba(16,24,40,.12), 0 3px 8px -4px rgba(16,24,40,.24)';
+  const groove =
+    tier === 'partner' ? 'color-mix(in srgb, var(--accent-text) 24%, transparent)'
+    : tier === 'agency' ? 'color-mix(in srgb, var(--accent) 22%, transparent)'
+    : 'rgba(16,24,40,.10)';
   const gl = size * (isPartner ? 0.58 : 0.5);
   const glyphs: Record<string, string> = {
     owner:  'M4 11 12 4l8 7|M6 9.5V20h12V9.5|M10 20v-5h4v5',
@@ -213,6 +219,7 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
       position: 'relative', width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       background: bg, border: `1.5px solid ${cfg.ring}`, boxShadow: shadow,
     }}>
+      <span aria-hidden style={{ position: 'absolute', inset: Math.max(3, Math.round(size * 0.15)), borderRadius: '50%', border: `1px solid ${groove}`, pointerEvents: 'none' }} />
       {isPartner ? (
         <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 1px 1px color-mix(in srgb, #0c1f3a 34%, transparent))' }}>
           {/* διακριτικές ακτίνες μεταλλίου */}
@@ -226,7 +233,7 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
           <circle cx="17.6" cy="6.4" r="0.95" fill="var(--accent-text)" opacity="0.92" />
         </svg>
       ) : (
-        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 1px 0.5px rgba(255,255,255,.45))' }}>
           {glyphs[tier].split('|').map((d, i) => <path key={i} d={d} />)}
         </svg>
       )}

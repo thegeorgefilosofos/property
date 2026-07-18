@@ -272,7 +272,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     const st = claim[kind] || 'idle';
     const dleft = daysLeftInMonth();
     return (
-      <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible' }}>
+      <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
         {celebrate[kind] && <Confetti />}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{ ...TT.h2 }}>{title}</span>
