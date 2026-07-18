@@ -153,6 +153,7 @@ export default async function Landing() {
         details.lp-faq[open] summary { color: var(--accent); }
         details.lp-faq summary::-webkit-details-marker { display: none; }
         details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+        @media (max-width: 860px) { .lp-faq-grid { grid-template-columns: 1fr !important; align-items: start !important; } }
         /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
         /* Το hero δεν έχει δικό του φόντο πια: μοιράζεται το ενιαίο μπλε-μαύρο
@@ -393,18 +394,24 @@ export default async function Landing() {
         </p>
       </section>
 
-      {/* ── FAQ: κεντραρισμένη κεφαλίδα (όπως όλες οι ενότητες) + λιτή λίστα ── */}
+      {/* ── FAQ: κεφαλίδα στο πλάι, κάθετα κεντραρισμένη στη μέση των ερωτήσεων ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
-        <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις στις πιο συχνές απορίες." />
-        <div style={{ maxWidth: 760, margin: '0 auto', borderBottom: `1px solid ${LINE}` }}>
-          {FAQ.map((f, i) => (
-            <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
-              <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, fontWeight: 400, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
-              </summary>
-              <p style={{ fontSize: 14.5, color: MUTED, lineHeight: 1.7, margin: '0 0 22px' }}>{f.a}</p>
-            </details>
-          ))}
+        <div className="lp-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.4fr', gap: 'clamp(24px, 5vw, 72px)', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 12 }}>Συχνές ερωτήσεις</div>
+            <h2 style={{ fontSize: 'clamp(24px, 3.8vw, 37px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.13, margin: '0 0 14px' }}>Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν</h2>
+            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, maxWidth: 340 }}>Ειλικρινείς απαντήσεις στις πιο συχνές απορίες.</p>
+          </div>
+          <div style={{ borderBottom: `1px solid ${LINE}` }}>
+            {FAQ.map((f, i) => (
+              <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
+                <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, fontWeight: 400, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
+                </summary>
+                <p style={{ fontSize: 14.5, color: MUTED, lineHeight: 1.7, margin: '0 0 22px', maxWidth: 620 }}>{f.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
