@@ -155,7 +155,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν φίλο ιδιοκτήτη, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο φίλος σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
@@ -179,6 +179,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       .ref-cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
       .ref-linkbox { transition: border-color .16s ${T.ease.standard}; }
       .ref-linkbox:hover { border-color: var(--accent-border); }
+      .ref-lift { transition: transform .18s ${T.ease.standard}, box-shadow .18s, border-color .18s; }
+      .ref-lift:hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--accent-border); }
       @keyframes ref-pop { 0% { transform: translate(-50%, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.35); opacity: 0; } }
       @keyframes ref-rise { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
       .ref-rise { animation: ref-rise .5s ${T.ease.decel} both; }
@@ -191,7 +193,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     const pr = progress(count, target);
     const st = claim[kind] || 'idle';
     return (
-      <div style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible' }}>
+      <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible' }}>
         {celebrate[kind] && <Confetti />}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{ ...TT.h2 }}>{title}</span>
@@ -334,31 +336,31 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         <>
           <div style={{ ...TT.label, marginBottom: 12 }}>Τι κερδίζετε σε κάθε πρόσκληση</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
-            <div style={{ ...card, padding: PAD }}>
+            <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
+                <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--accent)" />
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτης`}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, με κάθε φίλο που ξεκινά.` : 'με κάθε φίλο που ξεκινά. Πιστώνεται αυτόματα στη συνδρομή σου.'}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, για κάθε φίλο που φέρνεις.` : 'για κάθε φίλο που φέρνεις. Πιστώνεται αυτόματα στη συνδρομή σου.'}</div>
             </div>
-            <div style={{ ...card, padding: PAD }}>
+            <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+1 ακίνητο</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες, από την πρώτη κιόλας μέρα. Κι αν επιλέξει το πλάνο Ιδιώτης, κερδίζει {REFEREE_OWNER_MONTHS} ολόκληρους μήνες δωρεάν.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.months} μήνες δωρεάν</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>με ένα επιπλέον ακίνητο, από την πρώτη κιόλας μέρα. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει άλλους {REFEREE_OWNER_MONTHS}.</div>
             </div>
           </div>
 
           <div style={{ ...TT.label, marginBottom: 12 }}>Έξτρα μπόνους</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
-            <div style={{ ...card, padding: PAD }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="ref-lift" style={{ ...card, padding: PAD }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 22 }}>
                 <span style={{ ...TT.h2 }}>Φέρε έναν Επαγγελματία</span>
-                {(stats?.m_pro ?? 0) >= 1 ? <Badge tone="positive">Το πέτυχες</Badge> : <span style={{ ...TT.caption }}>μπόνους</span>}
+                {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτης</div>
               <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που έφερες γίνει Επαγγελματίας. Κι εκείνος παίρνει {REFEREE_AGENCY_MONTHS} μήνα Επαγγελματία δώρο.</div>
