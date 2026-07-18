@@ -286,6 +286,23 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         </div>
       )}
 
+      {/* ── Τα κέρδη σου με μια ματιά (μόλις υπάρχει δραστηριότητα) ── */}
+      {!coldStart && stats && stats.invites > 0 && (
+        <div className="ref-rise" style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 160%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 'clamp(16px, 3vw, 28px)', flexWrap: 'wrap' }}>
+          <TierBadge tier={myTier} showLabel={false} size={48} />
+          {([
+            ['Προσκλήσεις', stats.invites, false],
+            ['Ενεργοποιήθηκαν', stats.activated, true],
+            [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
+          ] as [string, number, boolean][]).map(([l, v, hi], i) => (
+            <div key={i} style={{ minWidth: 88 }}>
+              <div style={{ ...TT.kpi, fontSize: 26, color: hi ? 'var(--accent)' : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
+              <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {isPro ? (
         /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — milestones συνδρομητών + Συνεργάτης ═══ */
         <>
@@ -350,7 +367,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{friendBase.months} μήνες δωρεάν</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>με ένα επιπλέον ακίνητο, από την πρώτη κιόλας μέρα. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει άλλους {REFEREE_OWNER_MONTHS}.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>με ένα επιπλέον ακίνητο, από την πρώτη κιόλας μέρα. Κι αν γίνει συνδρομητής Ιδιώτης, κερδίζει άλλους {REFEREE_OWNER_MONTHS} μήνες.</div>
             </div>
           </div>
 
@@ -382,17 +399,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             </div>
             <div style={{ ...TT.h2, fontSize: 13 }}>{st.t}</div>
             <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{st.d}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Κατάσταση προσκλήσεων ── */}
-      <div style={{ ...TT.label, marginBottom: 12 }}>Οι προσκλήσεις σου</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 14 }}>
-        {[['Προσκλήσεις', stats?.invites ?? 0], ['Ενεργοποιήθηκαν', stats?.activated ?? 0], [isPro ? 'Συνδρομητές (μήνας)' : 'Νέοι (μήνας)', isPro ? (stats?.m_paid ?? 0) : (stats?.m_indiv ?? 0)]].map(([l, v], i) => (
-          <div key={i} className="kpi-card">
-            <div className="kpi-label">{l}</div>
-            <div className="kpi-value"><CountUp value={Number(v)} /></div>
           </div>
         ))}
       </div>
