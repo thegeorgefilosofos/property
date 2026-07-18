@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadCsv, csvDate } from './exportCsv';
+import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, TierBadge } from '@/components/Theme';
 import {
   referralCode, referralLink, progress,
@@ -177,6 +178,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [msgCopied, setMsgCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const qrCloseRef = useRef<HTMLButtonElement>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   // QR modal: Escape για κλείσιμο, αρχική εστίαση, επαναφορά εστίασης.
   useEffect(() => {
     if (!qrOpen) return;
@@ -198,6 +200,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const code = useMemo(() => referralCode(userId), [userId]);
   const link = useMemo(() => referralLink(origin, userId), [origin, userId]);
   const isPro = profileType === 'professional';
+  // QR κώδικας συνδέσμου: σχεδιάζεται τοπικά στη συσκευή όταν ανοίξει το modal.
+  useEffect(() => {
+    if (qrOpen && qrCanvasRef.current) drawQrToCanvas(qrCanvasRef.current, link, { size: 200 });
+  }, [qrOpen, link]);
 
   useEffect(() => {
     if (!userId) return;
@@ -414,7 +420,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <div style={{ ...TT.h2, marginBottom: 4 }}>Σάρωσε για να προσκαλέσεις</div>
             <div style={{ ...TT.bodySm, marginBottom: 16 }}>Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό.</div>
             <div style={{ background: '#fff', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=6&data=${encodeURIComponent(link)}`} width={200} height={200} alt="Κωδικός QR" style={{ display: 'block' }} />
+              <canvas ref={qrCanvasRef} role="img" aria-label="Κωδικός QR πρόσκλησης" style={{ display: 'block' }} />
             </div>
             <button ref={qrCloseRef} onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: 40, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
           </div>
