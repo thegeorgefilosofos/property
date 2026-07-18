@@ -36,6 +36,10 @@ const CHIP: React.CSSProperties = {
   background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
   fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
 };
+// Επικεφαλίδα ενότητας: πραγματικό <h2> (σημασιολογία + πλοήγηση αναγνώστη οθόνης).
+function SectionLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <h2 style={{ ...TT.label, margin: '0 0 12px', ...style }}>{children}</h2>;
+}
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -258,7 +262,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       @keyframes ref-pop { 0% { transform: translate(-50%, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.35); opacity: 0; } }
       @keyframes ref-rise { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
       .ref-rise { animation: ref-rise .5s ${T.ease.decel} both; }
-      @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover { transform: none; } .ref-rise { animation: none; } }
+      @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover, .ref-lift:hover { transform: none; } .ref-rise { animation: none; } }
     `}</style>
   );
 
@@ -291,11 +295,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
         )}
         {pr.reached && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} aria-live="polite">
             {st === 'done'
-              ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
+              ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
               : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
-            {st === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
+            {st === 'error' && <div role="alert" style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
           </div>
         )}
       </div>
@@ -397,7 +401,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
       {/* ── Σύνδεσμος πρόσκλησης (focal, elevated) ── */}
       <div style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', padding: 'clamp(18px, 2.4vw, 26px)', marginBottom: T.sp.xl }}>
-        <div style={{ ...TT.label, marginBottom: 12 }}>Ο προσωπικός σου σύνδεσμος</div>
+        <SectionLabel>Ο προσωπικός σου σύνδεσμος</SectionLabel>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="ref-linkbox" style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '11px 14px', minHeight: 44, boxSizing: 'border-box', boxShadow: 'var(--well-inset)' }}>
             <Ic d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" s={15} c="var(--text-tertiary)" />
@@ -465,14 +469,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {isPro ? (
         /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — milestones συνδρομητών + Συνεργάτης ═══ */
         <>
-          <div style={{ ...TT.label, marginBottom: 12 }}>Οι στόχοι του μήνα</div>
+          <SectionLabel>Οι στόχοι του μήνα</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} />
             <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${PRO_FREE_BONUS_MONTHS} μήνα Επαγγελματία`} />
           </div>
 
           {/* Συνεργάτης */}
-          <div style={{ ...TT.label, marginBottom: 12 }}>Ιδιότητα Συνεργάτη</div>
+          <SectionLabel>Ιδιότητα Συνεργάτη</SectionLabel>
           <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
@@ -510,7 +514,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       ) : (
         /* ═══ ΙΔΙΩΤΗΣ — αξία ανά φίλο + μηνιαίο μπόνους όγκου ═══ */
         <>
-          <div style={{ ...TT.label, marginBottom: 12 }}>Τι κερδίζετε σε κάθε πρόσκληση</div>
+          <SectionLabel>Τι κερδίζετε σε κάθε πρόσκληση</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -530,7 +534,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             </div>
           </div>
 
-          <div style={{ ...TT.label, marginBottom: 12 }}>Επιπλέον μπόνους</div>
+          <SectionLabel>Επιπλέον μπόνους</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
@@ -548,7 +552,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       )}
 
       {/* ── Πώς λειτουργεί: τρία βήματα ── */}
-      <div style={{ ...TT.label, marginBottom: 12 }}>Πώς λειτουργεί</div>
+      <SectionLabel>Πώς λειτουργεί</SectionLabel>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
         {steps.map((st, i) => (
           <div key={i} className="ref-step" style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -566,7 +570,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {list.length > 0 && (
         <div style={{ marginBottom: T.sp.xl }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-            <div style={{ ...TT.label }}>Οι προσκλήσεις σου</div>
+            <SectionLabel style={{ margin: 0 }}>Οι προσκλήσεις σου</SectionLabel>
             <div style={{ ...TT.caption }}>{list.filter(r => r.activated_at).length} από {list.length} ενεργοποιήθηκαν</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -596,7 +600,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {/* ── Τα δώρα σου (ιστορικό ανταμοιβών) ── */}
       {rewards.length > 0 && (
         <div style={{ marginBottom: T.sp.xl }}>
-          <div style={{ ...TT.label, marginBottom: 12 }}>Τα δώρα σου</div>
+          <SectionLabel>Τα δώρα σου</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rewards.map((r, i) => {
               const granted = r.status === 'granted';
