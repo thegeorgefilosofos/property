@@ -564,6 +564,14 @@ begin
 end; $$;
 grant execute on function public.claim_referral_bonus(text, text) to authenticated;
 
+create or replace function public.get_referral_social_proof()
+returns int language sql security definer set search_path = public as $$
+  select count(distinct referrer_user_id)::int from referrals
+   where referrer_user_id is not null
+     and date_trunc('month', created_at) = date_trunc('month', now());
+$$;
+grant execute on function public.get_referral_social_proof() to authenticated;
+
 
 -- ─── 20260705160000_rent_comparables.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
