@@ -31,11 +31,51 @@ const card: React.CSSProperties = {
 };
 const PAD = T.sp.xl;
 
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Μετρητής που «τρέχει» από το 0 στην τιμή (ease-out cubic).
+function useCountUp(target: number, ms = 750) {
+  const [n, setN] = useState(target);
+  useEffect(() => {
+    if (reducedMotion()) { setN(target); return; }
+    let raf = 0, start = 0;
+    const tick = (t: number) => {
+      if (!start) start = t;
+      const p = Math.min(1, (t - start) / ms);
+      setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    setN(0); raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return n;
+}
+function CountUp({ value }: { value: number }) { return <>{useCountUp(value)}</>; }
+
+// Μπάρα που γεμίζει από το 0 στο mount, με ομαλή καμπύλη.
 function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
+  const [w, setW] = useState(0);
+  useEffect(() => { if (reducedMotion()) { setW(pct); return; } const id = requestAnimationFrame(() => setW(pct)); return () => cancelAnimationFrame(id); }, [pct]);
   return (
     <div style={{ height: 8, background: 'var(--ring-track)', borderRadius: 100, overflow: 'hidden' }}>
-      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, pct))}%`, background: tone, borderRadius: 100, transition: `width 0.4s ${T.ease.standard}` }} />
+      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, w))}%`, background: tone, borderRadius: 100, transition: `width 0.65s ${T.ease.emphasized}` }} />
     </div>
+  );
+}
+
+// Διακριτικό «confetti» στη στιγμή της νίκης (μία ριπή, εδώ επιτρέπεται χρώμα).
+function Confetti() {
+  const dots = Array.from({ length: 16 }, (_, i) => {
+    const a = (i / 16) * Math.PI * 2;
+    const dist = 42 + (i % 4) * 13;
+    return { dx: Math.cos(a) * dist, dy: Math.sin(a) * dist - 8, c: i % 3 === 0 ? 'var(--positive)' : i % 3 === 1 ? 'var(--accent)' : 'var(--warning)', round: i % 2 === 0 };
+  });
+  return (
+    <span aria-hidden style={{ position: 'absolute', left: '50%', top: 6, width: 0, height: 0, pointerEvents: 'none' }}>
+      {dots.map((d, i) => (
+        <span key={i} style={{ position: 'absolute', width: 7, height: 7, borderRadius: d.round ? '50%' : 1, background: d.c, ['--dx' as string]: `${d.dx}px`, ['--dy' as string]: `${d.dy}px`, animation: `ref-pop .9s cubic-bezier(.2,.6,.2,1) forwards` } as React.CSSProperties} />
+      ))}
+    </span>
   );
 }
 
@@ -51,7 +91,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [origin, setOrigin] = useState('https://property-os.gr');
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState<Overview | null>(null);
+  const [social, setSocial] = useState(0);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
+  const [celebrate, setCelebrate] = useState<Record<string, boolean>>({});
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
 
   const code = useMemo(() => referralCode(userId), [userId]);
@@ -65,7 +107,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     (async () => {
       try {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
-        const { data } = await supabase.rpc('get_referral_overview', { p_code: code });
+        const [{ data }, { data: sp }] = await Promise.all([
+          supabase.rpc('get_referral_overview', { p_code: code }),
+          supabase.rpc('get_referral_social_proof'),
+        ]);
+        if (alive && typeof sp === 'number') setSocial(sp);
         if (alive && data) setStats({
           invites: Number(data.invites) || 0, activated: Number(data.activated) || 0,
           m_pro: Number(data.m_pro) || 0, m_indiv: Number(data.m_indiv) || 0,
@@ -78,8 +124,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   }, [userId, code]);
 
   const invite = isPro
-    ? `Σου προτείνω το Property OS: οργανώνει τα οικονομικά κάθε ακινήτου και σου δίνει έτοιμα στοιχεία για τη δήλωση. Πρώτο ακίνητο δωρεάν, με ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`
-    : `Οργανώνω το ακίνητό μου με το Property OS: σάρωση λογαριασμών, φορολογία, αποδόσεις, όλα σε ένα. Πρώτο ακίνητο δωρεάν και ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο με τον σύνδεσμό μου: ${link}`;
+    ? `Σου προτείνω το Property OS για τα ακίνητα των πελατών σου. Οργανώνει τα οικονομικά και δίνει έτοιμα στοιχεία για τη δήλωση. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`
+    : `Οργανώνω το ακίνητό μου με το Property OS και μου έλυσε τα χέρια. Σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
@@ -88,7 +134,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     try {
       const supabase = createClient();
       const { data } = await supabase.rpc('claim_referral_bonus', { p_code: code, p_kind: kind });
-      setClaim(c => ({ ...c, [kind]: data && (data as { ok?: boolean }).ok ? 'done' : 'error' }));
+      const ok = data && (data as { ok?: boolean }).ok;
+      setClaim(c => ({ ...c, [kind]: ok ? 'done' : 'error' }));
+      if (ok && !reducedMotion()) { setCelebrate(c => ({ ...c, [kind]: true })); setTimeout(() => setCelebrate(c => ({ ...c, [kind]: false })), 1000); }
     } catch { setClaim(c => ({ ...c, [kind]: 'error' })); }
   };
 
@@ -102,12 +150,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο πελάτης σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Κερδίζεις δωρεάν μήνες, μπόνους και — με σταθερότητα — προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
+        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Κερδίζεις δωρεάν μήνες, μπόνους και, με σταθερότητα, δική σου προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν φίλο ιδιοκτήτη, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο φίλος σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο, εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
@@ -131,7 +179,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       .ref-cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
       .ref-linkbox { transition: border-color .16s ${T.ease.standard}; }
       .ref-linkbox:hover { border-color: var(--accent-border); }
-      @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover { transform: none; } }
+      @keyframes ref-pop { 0% { transform: translate(-50%, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.35); opacity: 0; } }
+      @keyframes ref-rise { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+      .ref-rise { animation: ref-rise .5s ${T.ease.decel} both; }
+      @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover { transform: none; } .ref-rise { animation: none; } }
     `}</style>
   );
 
@@ -140,25 +191,28 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     const pr = progress(count, target);
     const st = claim[kind] || 'idle';
     return (
-      <div style={{ ...card, padding: PAD }}>
+      <div style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible' }}>
+        {celebrate[kind] && <Confetti />}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{ ...TT.h2 }}>{title}</span>
-          <span style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : 'var(--accent)' }}>{pr.count}<span style={{ ...TT.caption }}> / {target}</span></span>
+          <span style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : 'var(--accent)' }}><CountUp value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
         </div>
         <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
         <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
           {pr.reached
-            ? `Το κατάφερες! Κέρδισες ${reward}.`
+            ? `Μπράβο, το πέτυχες. Κέρδισες ${reward}.`
             : pr.count === 0
-              ? `Φέρε ${target} και κερδίζεις ${reward}.`
-              : `Σου ${pr.remaining === 1 ? 'λείπει' : 'λείπουν'} ${pr.remaining} ακόμη για ${reward}.`}
+              ? `Φέρε ${target} μέσα στον μήνα και κερδίζεις ${reward}.`
+              : pr.remaining === 1
+                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν.`
+                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε δυνατά.`}
         </p>
         {pr.reached && (
           <div style={{ marginTop: 12 }}>
             {st === 'done'
-              ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Καταχωρήθηκε — πιστώνεται στη συνδρομή σου.</span>
-              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Διεκδίκησε το δώρο'}</button>}
-            {st === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι πήγε στραβά. Δοκίμασε ξανά.</div>}
+              ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
+              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Παρ’ το δώρο σου'}</button>}
+            {st === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
           </div>
         )}
       </div>
@@ -178,14 +232,20 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
-            ? 'Κάθε ιδιοκτήτης-πελάτης που φέρνεις οργανώνεται και σου δίνει έτοιμα στοιχεία, ενώ εσύ κερδίζεις δωρεάν μήνες και — με σταθερότητα — γίνεσαι Συνεργάτης με προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
-            : 'Βοήθησέ τον να βάλει το ακίνητό του σε τάξη. Κάθε φίλος που ξεκινά χαρίζει έναν μήνα σε σένα και δώρο σε εκείνον.'}
+            ? 'Κάθε ιδιοκτήτης που φέρνεις οργανώνεται και σου δίνει έτοιμα στοιχεία. Εσύ κερδίζεις δωρεάν μήνες και, με σταθερότητα, γίνεσαι Συνεργάτης με δική σου προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
+            : 'Δείξε του πώς να βάλει το ακίνητό του σε τάξη. Με κάθε φίλο που ξεκινά, κερδίζετε και οι δύο.'}
         </p>
+        {social >= 8 && (
+          <div className="ref-rise" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '7px 12px', borderRadius: T.radius.pill, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
+            <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M20 21v-2a4 4 0 0 0-3-3.87|M4 21v-2a4 4 0 0 1 3-3.87|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M16 3.13a4 4 0 0 1 0 7.75" s={15} /></span>
+            <span style={{ ...TT.bodySm, color: 'var(--accent)', fontWeight: 600 }}>{social.toLocaleString('el-GR')} ιδιοκτήτες κάλεσαν φίλο αυτόν τον μήνα</span>
+          </div>
+        )}
       </div>
 
       {/* ── Σύνδεσμος πρόσκλησης (focal, elevated) ── */}
       <div style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', padding: 'clamp(18px, 2.4vw, 26px)', marginBottom: T.sp.xl }}>
-        <div style={{ ...TT.label, marginBottom: 12 }}>Ο σύνδεσμός σου</div>
+        <div style={{ ...TT.label, marginBottom: 12 }}>Ο προσωπικός σου σύνδεσμος</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="ref-linkbox" style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '11px 14px', minHeight: 44, boxSizing: 'border-box', boxShadow: 'var(--well-inset)' }}>
             <Ic d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" s={15} c="var(--text-tertiary)" />
@@ -210,6 +270,20 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         </div>
       </div>
 
+      {/* ── Cold-start: προτροπή πρώτης πρόσκλησης ── */}
+      {coldStart && (
+        <div className="ref-rise" style={{ ...card, borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 170%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ width: 40, height: 40, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Ic d="M22 2 11 13|M22 2 15 22l-4-9-9-4z" s={20} />
+          </span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ ...TT.h2, fontSize: 14 }}>Κάνε την πρώτη σου πρόσκληση</div>
+            <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε έναν φίλο ιδιοκτήτη και ξεκίνα να κερδίζεις από σήμερα.</div>
+          </div>
+          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: 40, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
+        </div>
+      )}
+
       {isPro ? (
         /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — milestones συνδρομητών + Συνεργάτης ═══ */
         <>
@@ -227,7 +301,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <TierBadge tier="partner" showLabel={false} size={56} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης Property OS</span>
-                  <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα · οι παροχές σου:</span>
+                  <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα. Να τι απολαμβάνεις:</span>
                 </div>
               </div>
             ) : (
@@ -239,14 +313,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
             {!partner && (
               <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
-                Πιάσε τους {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνεσαι επίσημος Συνεργάτης. Οι παροχές:
+                Φέρε {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνεσαι επίσημος Συνεργάτης. Να τι κερδίζεις:
               </p>
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
               {[
-                `${PARTNER_COMMISSION_RATE * 100}% επαναλαμβανόμενη προμήθεια στις συνδρομές που φέρνεις`,
-                `Κάθε μήνας που πιάνεις τον στόχο, ο επόμενος δωρεάν Επαγγελματίας`,
-                'Σήμα Συνεργάτη & προτεραιότητα στην επικοινωνία και την εξυπηρέτηση',
+                `${PARTNER_COMMISSION_RATE * 100}% προμήθεια σε κάθε συνδρομή που φέρνεις, κάθε μήνα`,
+                'Κάθε μήνα που πιάνεις τον στόχο, ο επόμενος είναι δωρεάν',
+                'Σήμα Συνεργάτη και προτεραιότητα στην εξυπηρέτηση',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
@@ -266,7 +340,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτης`}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, για κάθε φίλο που ξεκινά.` : 'για κάθε φίλο που ξεκινά. Πιστώνεται στη συνδρομή σου.'}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, με κάθε φίλο που ξεκινά.` : 'με κάθε φίλο που ξεκινά. Πιστώνεται αυτόματα στη συνδρομή σου.'}</div>
             </div>
             <div style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -274,7 +348,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+1 ακίνητο</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες από την πρώτη μέρα. Αν επιλέξει Ιδιώτης, κερδίζει {REFEREE_OWNER_MONTHS} μήνες δωρεάν.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες, από την πρώτη κιόλας μέρα. Κι αν επιλέξει το πλάνο Ιδιώτης, κερδίζει {REFEREE_OWNER_MONTHS} ολόκληρους μήνες δωρεάν.</div>
             </div>
           </div>
 
@@ -287,7 +361,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 {(stats?.m_pro ?? 0) >= 1 ? <Badge tone="positive">Το πέτυχες</Badge> : <span style={{ ...TT.caption }}>μπόνους</span>}
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτης</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, όταν κάποιος που φέρνεις γίνει Επαγγελματίας — κι εκείνος παίρνει {REFEREE_AGENCY_MONTHS} μήνα Επαγγελματία δώρο.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που έφερες γίνει Επαγγελματίας. Κι εκείνος παίρνει {REFEREE_AGENCY_MONTHS} μήνα Επαγγελματία δώρο.</div>
             </div>
             {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
             <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτης`} />
@@ -316,14 +390,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         {[['Προσκλήσεις', stats?.invites ?? 0], ['Ενεργοποιήθηκαν', stats?.activated ?? 0], [isPro ? 'Συνδρομητές (μήνας)' : 'Νέοι (μήνας)', isPro ? (stats?.m_paid ?? 0) : (stats?.m_indiv ?? 0)]].map(([l, v], i) => (
           <div key={i} className="kpi-card">
             <div className="kpi-label">{l}</div>
-            <div className="kpi-value">{v}</div>
+            <div className="kpi-value"><CountUp value={Number(v)} /></div>
           </div>
         ))}
       </div>
 
       <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
-        {coldStart ? 'Μόλις ενεργοποιηθεί ο πρώτος σου, η πρόοδος ξεκινά να μετρά. ' : ''}
-        Κάθε ανταμοιβή κλειδώνει όταν ο {isPro ? 'πελάτης' : 'φίλος'} σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο — έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
+        Κάθε ανταμοιβή κλειδώνει μόλις ο {isPro ? 'πελάτης' : 'φίλος'} σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
         {isPro ? ' Για τη φορολογική μεταχείριση της προμήθειας, ρώτησε τον λογιστή σου.' : ''}
       </p>
     </div>
