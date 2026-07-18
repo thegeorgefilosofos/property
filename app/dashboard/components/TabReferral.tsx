@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, TT, Badge, TierBadge } from '@/components/Theme';
 import {
@@ -46,7 +46,7 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
 // Πόσες ημέρες απομένουν ως το τέλος του τρέχοντος μήνα (για επείγουσα ώθηση).
 const daysLeftInMonth = () => {
   const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1); // αρχή επόμενου μήνα
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
 };
 
@@ -154,6 +154,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [copied, setCopied] = useState(false);
   const [msgCopied, setMsgCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const qrCloseRef = useRef<HTMLButtonElement>(null);
+  // QR modal: Escape για κλείσιμο, αρχική εστίαση, επαναφορά εστίασης.
+  useEffect(() => {
+    if (!qrOpen) return;
+    const prev = document.activeElement as HTMLElement | null;
+    qrCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setQrOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
+  }, [qrOpen]);
   const [stats, setStats] = useState<Overview | null>(null);
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -295,7 +305,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
         )}
         {pr.reached && (
-          <div style={{ marginTop: 12 }} aria-live="polite">
+          <div style={{ marginTop: 12 }}>
             {st === 'done'
               ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
               : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
@@ -374,7 +384,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <div style={{ background: '#fff', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=6&data=${encodeURIComponent(link)}`} width={200} height={200} alt="Κωδικός QR" style={{ display: 'block' }} />
             </div>
-            <button onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: 40, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
+            <button ref={qrCloseRef} onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: 40, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
           </div>
         </div>
       )}
