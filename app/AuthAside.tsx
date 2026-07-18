@@ -45,9 +45,11 @@ export default function AuthAside({
 
       {/* headline + sub */}
       <div style={{ position: 'relative', marginBottom: 40 }}>
-        <h1 style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 18px', color: '#fff' }}>
+        {/* Διακοσμητική marketing επικεφαλίδα (όχι page heading): το h1 της σελίδας
+            είναι η φόρμα δεξιά, ώστε να υπάρχει έγκυρο h1 και όταν το aside κρύβεται σε κινητό. */}
+        <div style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 18px', color: '#fff' }}>
           {headline}<br /><span style={{ color: '#8ab4f8' }}>{accent}</span>
-        </h1>
+        </div>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,.62)', lineHeight: 1.7, margin: 0, maxWidth: 380 }}>{sub}</p>
       </div>
 

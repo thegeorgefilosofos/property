@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
     opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit',
   }
   const eye = (
-    <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
+    <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {show
         ? <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
   )
 
   const errBox = error && (
-    <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+    <div role="alert" style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--negative)' }}>{error}</div>
   )
 
   // Τυποποιημένες επικεφαλίδες/υποκείμενα, ίδια ακριβώς με Σύνδεση/Εγγραφή.
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
 
           {mode === 'request' && (
             <>
-              <h2 style={h2s}>Επαναφορά κωδικού</h2>
+              <h1 style={h2s}>Επαναφορά κωδικού</h1>
               <p style={subs}>Δώσε το email σου και θα σου στείλουμε έναν σύνδεσμο για να ορίσεις νέο κωδικό.</p>
               <form onSubmit={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -134,9 +134,9 @@ export default function ResetPasswordPage() {
           )}
 
           {mode === 'sent' && (
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center' }} role="status">
               {mailIcon}
-              <h2 style={h2s}>Έλεγξε το email σου</h2>
+              <h1 style={h2s}>Έλεγξε το email σου</h1>
               <p style={subs}>Αν υπάρχει λογαριασμός με αυτό το email, θα λάβεις σύνδεσμο επαναφοράς. Δες και τον φάκελο ανεπιθύμητων.</p>
               <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>← Επιστροφή στη σύνδεση</Link>
             </div>
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
 
           {mode === 'update' && (
             <>
-              <h2 style={h2s}>Όρισε νέο κωδικό</h2>
+              <h1 style={h2s}>Όρισε νέο κωδικό</h1>
               <p style={subs}>Διάλεξε έναν ισχυρό κωδικό, τουλάχιστον 8 χαρακτήρες.</p>
               <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -167,9 +167,9 @@ export default function ResetPasswordPage() {
           )}
 
           {mode === 'done' && (
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center' }} role="status">
               {successIcon}
-              <h2 style={h2s}>Ο κωδικός άλλαξε</h2>
+              <h1 style={h2s}>Ο κωδικός άλλαξε</h1>
               <p style={subs}>Μπορείς τώρα να συνδεθείς με τον νέο σου κωδικό.</p>
               <button onClick={() => router.push('/dashboard')} style={btn}>Μετάβαση στον πίνακα →</button>
             </div>
