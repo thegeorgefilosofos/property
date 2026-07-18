@@ -33,7 +33,7 @@ export default function TabFinances({ propertyId, userId, propertyName = '', pro
   return (
     <div>
       {/* Ενιαία, ήσυχη εναλλαγή ενοτήτων (ίδιο idiom με τα view toggles της εφαρμογής) */}
-      <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, overflow: 'hidden', marginBottom: 18 }}>
+      <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, overflow: 'hidden', marginBottom: T.sp.lg }}>
         {segs.map(s => {
           const on = view === s.k;
           return (
