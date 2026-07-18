@@ -14,9 +14,9 @@ export default function AlreadySignedIn({
 }) {
   return (
     <div>
-      <h2 style={{ fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>
+      <h1 style={{ fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }}>
         Έχεις ήδη συνδεθεί
-      </h2>
+      </h1>
       <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 28px' }}>
         Ο λογαριασμός <strong style={{ color: 'var(--text-primary)' }}>{email}</strong> είναι ενεργός σε αυτή τη συσκευή. Μπορείς να συνεχίσεις στον πίνακά σου{mode === 'signup'
           ? ' ή, αν θέλεις, να αποσυνδεθείς για να δημιουργήσεις νέο λογαριασμό'
