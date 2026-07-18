@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
-import { T, fe, PageTitle, InfoBanner, Btn, Badge } from '@/components/Theme';
+import { T, fe, PageTitle, InfoBanner, Btn, Badge, TierBadge } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import { runE2Export } from './e2Export';
@@ -189,6 +189,8 @@ function IntegrationsCard() {
 // Επιλογή τύπου προφίλ (Ιδιώτης / Επαγγελματίας) — οδηγεί το interface.
 function ProfileTypeCard({ userId, value, onChange }: { userId: string; value: 'individual'|'professional'; onChange: (v: 'individual'|'professional') => void }) {
   const supabase = createClient();
+  const [partner, setPartner] = useState(false);
+  useEffect(() => { supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle().then(({ data }) => setPartner(!!data)); }, [userId]);
   const set = async (v: 'individual'|'professional') => {
     if (v === value) return;
     onChange(v);
@@ -200,8 +202,11 @@ function ProfileTypeCard({ userId, value, onChange }: { userId: string; value: '
   ];
   return (
     <div className="card" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Τύπος προφίλ</div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+        <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Τύπος προφίλ</div>
+        <TierBadge tier={partner ? 'partner' : (value === 'professional' ? 'agency' : 'owner')} />
+      </div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης Property OS.' : ''}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
         {OPTS.map(o => {
           const on = value === o.v;
