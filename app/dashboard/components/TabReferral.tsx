@@ -153,13 +153,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const steps = isPro
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο πελάτης σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Κερδίζεις δωρεάν μήνες, μπόνους και, με σταθερότητα, δική σου προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Δωρεάν μήνες και μπόνους από την αρχή. Όσο διατηρείς ρυθμό, εξασφαλίζεις επαναλαμβανόμενη μηνιαία προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτη.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
@@ -210,16 +210,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           {pr.reached
             ? `Μπράβο, το πέτυχες. Κέρδισες ${reward}.`
             : pr.count === 0
-              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα και κερδίζεις ${reward}.`
+              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα και κέρδισε ${reward}.`
               : pr.remaining === 1
-                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν.`
-                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε δυνατά.`}
+                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν τον στόχο.`
+                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε.`}
         </p>
         {pr.reached && (
           <div style={{ marginTop: 12 }}>
             {st === 'done'
               ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
-              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Παρ’ το δώρο σου'}</button>}
+              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Πάρ’ το δώρο σου'}</button>}
             {st === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι δεν πήγε καλά. Δοκίμασε ξανά.</div>}
           </div>
         )}
@@ -237,10 +237,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div style={{ ...TT.label, color: 'var(--accent)' }}>{isPro ? 'PropertyOS · Πρόγραμμα Συνεργατών' : 'PropertyOS · Πρόγραμμα Πρόσκλησης'}</div>
           <TierBadge tier={myTier} />
         </div>
-        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
+        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Προσκάλεσε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
-            ? 'Κάθε ιδιοκτήτης που φέρνεις οργανώνεται και σου δίνει έτοιμα στοιχεία. Εσύ κερδίζεις δωρεάν μήνες και, με σταθερότητα, γίνεσαι Συνεργάτης με δική σου προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
+            ? 'Κάθε ιδιοκτήτης που προσκαλείς οργανώνεται και σου δίνει έτοιμα στοιχεία. Εσύ κερδίζεις δωρεάν μήνες και, με σταθερή απόδοση, γίνεσαι Συνεργάτης με δική σου προμήθεια. Η πλέον αποδοτική πηγή εισοδήματος για λογιστές, μεσίτες και διαχειριστές ακινήτων.'
             : 'Δείξε του πώς να βάλει το ακίνητό του σε τάξη. Με κάθε ιδιοκτήτη που ξεκινά, κερδίζετε και οι δύο.'}
         </p>
         {social >= 8 && (
@@ -286,7 +286,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </span>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ ...TT.h2, fontSize: 14 }}>Κάνε την πρώτη σου πρόσκληση</div>
-            <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε έναν ιδιοκτήτη ακινήτου και ξεκίνα να κερδίζεις από σήμερα.</div>
+            <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε {isPro ? 'έναν πελάτη-ιδιοκτήτη' : 'έναν ιδιοκτήτη ακινήτου'} και ξεκίνα να κερδίζεις από σήμερα.</div>
           </div>
           <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: 40, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
         </div>
@@ -338,7 +338,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
             {!partner && (
               <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
-                Φέρε {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνεσαι επίσημος Συνεργάτης. Να τι κερδίζεις:
+                Φτάσε τους {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνε επίσημος Συνεργάτης. Να τι κερδίζεις:
               </p>
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
@@ -364,7 +364,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτης`}</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτη`}</div>
               <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, για κάθε φίλο που προσκαλείς.` : 'για κάθε φίλο που προσκαλείς. Πιστώνεται αυτόματα στη συνδρομή σου.'}</div>
             </div>
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
@@ -377,7 +377,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             </div>
           </div>
 
-          <div style={{ ...TT.label, marginBottom: 12 }}>Έξτρα μπόνους</div>
+          <div style={{ ...TT.label, marginBottom: 12 }}>Επιπλέον μπόνους</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
             {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
@@ -385,11 +385,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.h2 }}>Προσκάλεσε έναν Επαγγελματία</span>
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτης</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Κι εκείνος παίρνει τον δεύτερο μήνα Επαγγελματία δώρο.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτη</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Κι εκείνος παίρνει δώρο τον δεύτερο μήνα ως Επαγγελματίας.</div>
             </div>
             {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
-            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτης`} />
+            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτη`} />
           </div>
         </>
       )}
@@ -436,7 +436,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       )}
 
       <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
-        Κάθε ανταμοιβή κλειδώνει μόλις ο νέος ιδιοκτήτης σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
+        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
         {isPro ? ' Για τη φορολογική μεταχείριση της προμήθειας, ρώτησε τον λογιστή σου.' : ''}
       </p>
     </div>
