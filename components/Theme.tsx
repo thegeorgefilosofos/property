@@ -215,11 +215,16 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
     agency: 'M4 21V7l7-4 7 4v14|M3 21h18|M8.5 11h1m-1 4h1m5-4h1m-1 4h1',
   };
   const medallion = (
-    <span style={{
+    <span className="tier-medallion" style={{
       position: 'relative', width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       background: bg, border: `1.5px solid ${cfg.ring}`, boxShadow: shadow,
     }}>
       <span aria-hidden style={{ position: 'absolute', inset: Math.max(3, Math.round(size * 0.15)), borderRadius: '50%', border: `1px solid ${groove}`, pointerEvents: 'none' }} />
+      {isPartner && (
+        <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden', pointerEvents: 'none' }}>
+          <span className="tier-sheen" style={{ position: 'absolute', top: '-20%', bottom: '-20%', left: 0, width: '38%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent)' }} />
+        </span>
+      )}
       {isPartner ? (
         <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 1px 1px color-mix(in srgb, #0c1f3a 34%, transparent))' }}>
           {/* διακριτικές ακτίνες μεταλλίου */}
