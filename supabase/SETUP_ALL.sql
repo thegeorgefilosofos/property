@@ -594,6 +594,51 @@ returns int language sql security definer set search_path = public as $$
 $$;
 grant execute on function public.get_referral_social_proof() to authenticated;
 
+-- ─── 20260718130000_referral_reward_ledger.sql ───
+-- Καταγράφει την ανά-σύσταση υπόσχεση του Ιδιώτη στο ledger (pending), ώστε το
+-- «Τα δώρα σου» να λέει την αλήθεια. Idempotent, όχι read-path.
+create unique index if not exists referral_rewards_referral_reason_uidx
+  on public.referral_rewards (user_id, referral_id, reason)
+  where referral_id is not null;
+
+create or replace function public.reconcile_referral_rewards(p_code text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_owner  uuid;
+  v_ptype  text;
+  v_paying boolean;
+begin
+  select user_id into v_owner from referral_codes where code = p_code;
+  if v_owner is null or v_owner <> auth.uid() then return; end if;
+
+  select coalesce(profile_type, 'individual'),
+         coalesce(plan, '') in ('monthly', 'annual')
+    into v_ptype, v_paying
+    from billing_profiles where user_id = v_owner;
+  v_ptype  := coalesce(v_ptype, 'individual');
+  v_paying := coalesce(v_paying, false);
+
+  if v_ptype = 'professional' then return; end if;
+
+  insert into referral_rewards (user_id, referral_id, kind, months, tier, reason, status)
+  select v_owner, r.id,
+         case when v_paying then 'months' else 'slot' end,
+         1, 'owner', 'per_referral', 'pending'
+    from referrals r
+   where r.referrer_user_id = v_owner and r.activated_at is not null
+  on conflict (user_id, referral_id, reason) where referral_id is not null do nothing;
+
+  insert into referral_rewards (user_id, referral_id, kind, months, tier, reason, status)
+  select v_owner, r.id, 'months', 2, 'owner', 'per_referral_pro', 'pending'
+    from referrals r
+    join billing_profiles bp on bp.user_id = r.referred_user_id
+   where r.referrer_user_id = v_owner and r.activated_at is not null
+     and coalesce(bp.profile_type, 'individual') = 'professional'
+  on conflict (user_id, referral_id, reason) where referral_id is not null do nothing;
+end;
+$$;
+grant execute on function public.reconcile_referral_rewards(text) to authenticated;
+
 
 -- ─── 20260705160000_rent_comparables.sql ───
 -- ─────────────────────────────────────────────────────────────────────────

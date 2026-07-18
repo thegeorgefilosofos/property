@@ -84,7 +84,7 @@ type Overview = {
   m_pro: number; m_indiv: number; m_paid: number; m_free: number;
   streak: number; partner: boolean;
 };
-type Reward = { months: number; tier: string; reason: string; status: string; created_at: string };
+type Reward = { kind: string; months: number; tier: string; reason: string; status: string; created_at: string };
 
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
@@ -109,10 +109,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     (async () => {
       try {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
+        // Καταγράφει την ανά-σύσταση αξία στο ledger (idempotent) πριν το διαβάσουμε.
+        await supabase.rpc('reconcile_referral_rewards', { p_code: code });
         const [{ data }, { data: sp }, { data: rw }] = await Promise.all([
           supabase.rpc('get_referral_overview', { p_code: code }),
           supabase.rpc('get_referral_social_proof'),
-          supabase.from('referral_rewards').select('months,tier,reason,status,created_at').order('created_at', { ascending: false }),
+          supabase.from('referral_rewards').select('kind,months,tier,reason,status,created_at').order('created_at', { ascending: false }),
         ]);
         if (alive && typeof sp === 'number') setSocial(sp);
         if (alive && Array.isArray(rw)) setRewards(rw as Reward[]);
@@ -418,14 +420,18 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {rewards.map((r, i) => {
               const granted = r.status === 'granted';
               const tierLabel = r.tier === 'agency' ? 'Επαγγελματία' : 'Ιδιώτη';
-              const reasonLabel = ({ indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', per_referral: 'Ανά σύσταση', partner: 'Ιδιότητα Συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
+              const monthsWord = r.months === 1 ? 'μήνας' : 'μήνες';
+              const title = r.kind === 'slot'
+                ? `1 δωρεάν ακίνητο για ${r.months === 1 ? 'έναν μήνα' : `${r.months} μήνες`}`
+                : `${r.months} ${monthsWord} ${tierLabel} δωρεάν`;
+              const reasonLabel = ({ per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία', indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα Συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
               return (
                 <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
                   <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Ic d="M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z" s={19} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ ...TT.h2, fontSize: 13 }}>{r.months} {r.months === 1 ? 'μήνας' : 'μήνες'} {tierLabel} δωρεάν</div>
+                    <div style={{ ...TT.h2, fontSize: 13 }}>{title}</div>
                     <div style={{ ...TT.bodySm, marginTop: 2 }}>{reasonLabel}</div>
                   </div>
                   <Badge tone={granted ? 'positive' : 'warning'}>{granted ? 'Ενεργό' : 'Σε εκκρεμότητα'}</Badge>
