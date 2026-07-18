@@ -1863,3 +1863,14 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 .auth-cta { transition: filter 0.15s ease, transform 0.15s ease; }
 .auth-cta:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { .auth-cta:hover:not(:disabled) { transform: none; } }
+
+/* Λάμψη «κατόπτρου» που διατρέχει το μετάλλιο Συνεργάτη στο hover (διακριτικά). */
+.tier-sheen { opacity: 0; }
+@keyframes tier-sheen {
+  0%   { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  16%  { opacity: 1; }
+  84%  { opacity: 1; }
+  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+}
+.tier-medallion:hover .tier-sheen { animation: tier-sheen 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { .tier-medallion:hover .tier-sheen { animation: none; } }

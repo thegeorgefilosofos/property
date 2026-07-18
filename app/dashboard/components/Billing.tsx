@@ -49,9 +49,11 @@ export default function Billing({ userId }: { userId: string }) {
 
   const save = async () => {
     setSaving(true); setSaved(false);
-    const { error } = await supabase.from('billing_profiles').upsert(
-      { ...d, user_id: userId, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }
-    );
+    // Το plan/billing_cycle ορίζονται ΜΟΝΟ από τη χρέωση (Stripe), όχι από τον client·
+    // δεν τα στέλνουμε ώστε η αποθήκευση στοιχείων να μη φαίνεται ότι αλλάζει πλάνο.
+    const payload: Record<string, unknown> = { ...d, user_id: userId, updated_at: new Date().toISOString() };
+    delete payload.plan; delete payload.billing_cycle;
+    const { error } = await supabase.from('billing_profiles').upsert(payload, { onConflict: 'user_id' });
     setSaving(false);
     if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
     else alert('Σφάλμα αποθήκευσης: ' + error.message);

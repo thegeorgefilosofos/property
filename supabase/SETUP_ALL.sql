@@ -174,6 +174,27 @@ create policy "own_billing_profile" on public.billing_profiles for all
   using      (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- Κλείδωμα του plan: μόνο το billing (service_role) το ορίζει — ο χρήστης δεν
+-- μπορεί να αυτοανακηρυχθεί «συνδρομητής» (plan='monthly') και να φουσκώσει τα
+-- referral milestones/streak/προμήθεια. Το profile_type μένει επιλογή του χρήστη.
+create or replace function public.lock_billing_plan()
+returns trigger language plpgsql as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    if tg_op = 'INSERT' then
+      new.plan := 'free';
+    elsif new.plan is distinct from old.plan then
+      new.plan := old.plan;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists lock_billing_plan_trg on public.billing_profiles;
+create trigger lock_billing_plan_trg
+  before insert or update on public.billing_profiles
+  for each row execute function public.lock_billing_plan();
+
 
 -- ─── 20260705120000_tenant_portal.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
@@ -398,10 +419,11 @@ create table if not exists public.referrals (
   unique (referred_user_id)
 );
 alter table public.referrals enable row level security;
--- Ο νέος χρήστης καταχωρεί ΜΟΝΟ τη δική του παραπομπή.
+-- ΑΣΦΑΛΕΙΑ: καμία απευθείας εγγραφή παραπομπής από τον client. Η παλιά policy
+-- INSERT επέτρεπε «σφυρηλάτηση» ενεργοποιημένης παραπομπής (αυθαίρετο
+-- referrer_user_id/activated_at) παρακάμπτοντας τα guards. Πλέον οι παραπομπές
+-- γράφονται ΜΟΝΟ μέσω των SECURITY DEFINER RPC (redeem_referral / mark_referral_activated).
 drop policy if exists "insert_own_referral" on public.referrals;
-create policy "insert_own_referral" on public.referrals for insert
-  with check (referred_user_id = auth.uid());
 
 -- RPC: πλήθος παραπομπών — μόνο ο κάτοχος του κωδικού το βλέπει.
 create or replace function public.get_referral_stats(p_code text)
@@ -571,6 +593,109 @@ returns int language sql security definer set search_path = public as $$
      and date_trunc('month', created_at) = date_trunc('month', now());
 $$;
 grant execute on function public.get_referral_social_proof() to authenticated;
+
+-- ─── 20260718130000_referral_reward_ledger.sql ───
+-- Καταγράφει την ανά-σύσταση υπόσχεση του Ιδιώτη στο ledger (pending), ώστε το
+-- «Τα δώρα σου» να λέει την αλήθεια. Idempotent, όχι read-path.
+create unique index if not exists referral_rewards_referral_reason_uidx
+  on public.referral_rewards (user_id, referral_id, reason)
+  where referral_id is not null;
+
+create or replace function public.reconcile_referral_rewards(p_code text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_owner  uuid;
+  v_ptype  text;
+  v_paying boolean;
+begin
+  select user_id into v_owner from referral_codes where code = p_code;
+  if v_owner is null or v_owner <> auth.uid() then return; end if;
+
+  select coalesce(profile_type, 'individual'),
+         coalesce(plan, '') in ('monthly', 'annual')
+    into v_ptype, v_paying
+    from billing_profiles where user_id = v_owner;
+  v_ptype  := coalesce(v_ptype, 'individual');
+  v_paying := coalesce(v_paying, false);
+
+  if v_ptype = 'professional' then return; end if;
+
+  insert into referral_rewards (user_id, referral_id, kind, months, tier, reason, status)
+  select v_owner, r.id,
+         case when v_paying then 'months' else 'slot' end,
+         1, 'owner', 'per_referral', 'pending'
+    from referrals r
+   where r.referrer_user_id = v_owner and r.activated_at is not null
+  on conflict (user_id, referral_id, reason) where referral_id is not null do nothing;
+
+  insert into referral_rewards (user_id, referral_id, kind, months, tier, reason, status)
+  select v_owner, r.id, 'months', 2, 'owner', 'per_referral_pro', 'pending'
+    from referrals r
+    join billing_profiles bp on bp.user_id = r.referred_user_id
+   where r.referrer_user_id = v_owner and r.activated_at is not null
+     and coalesce(bp.profile_type, 'individual') = 'professional'
+  on conflict (user_id, referral_id, reason) where referral_id is not null do nothing;
+end;
+$$;
+grant execute on function public.reconcile_referral_rewards(text) to authenticated;
+
+-- ─── 20260718140000_referral_list.sql ───
+-- Λίστα προσκεκλημένων ανά στάδιο (privacy-safe, χωρίς στοιχεία ταυτότητας).
+create or replace function public.get_referral_list(p_code text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_owner uuid; v_rows json;
+begin
+  select user_id into v_owner from referral_codes where code = p_code;
+  if v_owner is null or v_owner <> auth.uid() then return json_build_array(); end if;
+
+  select coalesce(json_agg(t order by t.created_at desc), json_build_array())
+    into v_rows
+    from (
+      select r.created_at,
+             r.activated_at,
+             (coalesce(bp.plan, '') in ('monthly', 'annual'))            as is_subscriber,
+             (coalesce(bp.profile_type, 'individual') = 'professional')  as is_professional
+        from referrals r
+        left join billing_profiles bp on bp.user_id = r.referred_user_id
+       where r.referrer_user_id = v_owner
+    ) t;
+
+  return v_rows;
+end;
+$$;
+grant execute on function public.get_referral_list(text) to authenticated;
+
+-- ─── 20260718150000_referral_standing.sql ───
+-- Διακριτική κατάταξη (κορυφαίο X%), όχι πίνακας. Θετική-μόνο κοινωνική απόδειξη.
+create or replace function public.get_referral_standing()
+returns int language plpgsql security definer set search_path = public stable as $$
+declare v_me int; v_total int; v_below int; v_top int;
+begin
+  select count(*) into v_me from referrals
+   where referrer_user_id = auth.uid() and activated_at is not null
+     and date_trunc('month', activated_at) = date_trunc('month', now());
+  if v_me < 1 then return 0; end if;
+
+  select count(*) into v_total from (
+    select referrer_user_id from referrals
+     where activated_at is not null
+       and date_trunc('month', activated_at) = date_trunc('month', now())
+     group by referrer_user_id) t;
+  if v_total < 5 then return 0; end if;
+
+  select count(*) into v_below from (
+    select referrer_user_id from referrals
+     where activated_at is not null
+       and date_trunc('month', activated_at) = date_trunc('month', now())
+     group by referrer_user_id
+    having count(*) < v_me) t;
+
+  v_top := greatest(1, round(100.0 * (v_total - v_below) / v_total)::int);
+  if v_top > 50 then return 0; end if;
+  return v_top;
+end;
+$$;
+grant execute on function public.get_referral_standing() to authenticated;
 
 
 -- ─── 20260705160000_rent_comparables.sql ───
@@ -1253,14 +1378,40 @@ alter table public.notification_preferences add column if not exists dunning_ena
 alter table public.notification_preferences add column if not exists dunning_every_days integer default 7;
 alter table public.notification_preferences add column if not exists dunning_max        integer default 3;
 
+-- ── maintenance-photos: ασφάλεια πρόσβασης ────────────────────────────────
+-- Οι φωτογραφίες βλάβης ανεβαίνουν από την πύλη (ανώνυμος με token) σε φάκελο
+-- ίσο με το token. Το bucket παραμένει «δημόσιο» ώστε ο ιδιοκτήτης να τις βλέπει
+-- με μη-μαντεύσιμο capability URL (ίδιο μοντέλο ασφαλείας με τα tokens της πύλης),
+-- ΑΛΛΑ κλείνουμε δύο τρύπες: (α) κανένας ανώνυμος δεν μπορεί πλέον να απαριθμήσει
+-- ή να κατεβάσει μαζικά τις φωτογραφίες άλλων (καταργείται η ανώνυμη ανάγνωση API),
+-- (β) το ανέβασμα επιτρέπεται ΜΟΝΟ σε φάκελο ενεργού token πύλης (τέλος στο dumping).
+
+-- Helpers (security definer): ελέγχουν το token χωρίς ο ανώνυμος να «βλέπει» τον πίνακα.
+create or replace function public.is_active_portal_token(p_token text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists(select 1 from portal_links where token = p_token and active);
+$$;
+grant execute on function public.is_active_portal_token(text) to anon, authenticated;
+
+create or replace function public.owns_portal_token(p_token text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists(select 1 from portal_links where token = p_token and user_id = auth.uid());
+$$;
+grant execute on function public.owns_portal_token(text) to authenticated;
+
 insert into storage.buckets (id, name, public) values ('maintenance-photos', 'maintenance-photos', true)
   on conflict (id) do nothing;
+
+-- Ανέβασμα: μόνο κάτω από φάκελο = token ΕΝΕΡΓΗΣ πύλης.
 drop policy if exists "maint_photos_insert" on storage.objects;
 create policy "maint_photos_insert" on storage.objects for insert to anon, authenticated
-  with check (bucket_id = 'maintenance-photos');
+  with check (bucket_id = 'maintenance-photos' and public.is_active_portal_token((storage.foldername(name))[1]));
+
+-- Ανάγνωση μέσω API: ΜΟΝΟ ο ιδιοκτήτης του token. Η ανώνυμη ανάγνωση/απαρίθμηση καταργείται.
 drop policy if exists "maint_photos_read" on storage.objects;
-create policy "maint_photos_read" on storage.objects for select to anon, authenticated
-  using (bucket_id = 'maintenance-photos');
+drop policy if exists "maint_photos_read_owner" on storage.objects;
+create policy "maint_photos_read_owner" on storage.objects for select to authenticated
+  using (bucket_id = 'maintenance-photos' and public.owns_portal_token((storage.foldername(name))[1]));
 
 create or replace function public.portal_meta(p_token text)
 returns json language plpgsql security definer set search_path = public as $$
