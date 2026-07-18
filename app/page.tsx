@@ -79,7 +79,7 @@ const REFERRAL = [
     tag: 'Ιδιώτες', t: 'Πρόγραμμα Πρόσκλησης',
     i: 'M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 4.5 12 7 12 7zM12 7s3-5 5.5-2.5S12 7 12 7z',
     d: 'Δείξε σε έναν ιδιοκτήτη πώς να βάλει το ακίνητό του σε τάξη. Με κάθε φίλο που ξεκινά, κερδίζετε και οι δύο.',
-    items: ['Ο νέος ιδιοκτήτης κερδίζει δύο μήνες δώρο για παραπάνω ακίνητα', 'Εσύ κερδίζεις δωρεάν μήνες, αυτόματα στη συνδρομή σου'],
+    items: ['Ο νέος ιδιοκτήτης κερδίζει δύο μήνες δώρο για ένα ή παραπάνω ακίνητα', 'Εσύ κερδίζεις δωρεάν μήνες, αυτόματα στη συνδρομή σου'],
   },
   {
     tag: 'Επαγγελματίες', t: 'Πρόγραμμα Συνεργατών',
@@ -153,7 +153,6 @@ export default async function Landing() {
         details.lp-faq[open] summary { color: var(--accent); }
         details.lp-faq summary::-webkit-details-marker { display: none; }
         details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
-        @media (max-width: 860px) { .lp-faq-grid { grid-template-columns: 1fr !important; } }
         /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
         /* Το hero δεν έχει δικό του φόντο πια: μοιράζεται το ενιαίο μπλε-μαύρο
@@ -390,27 +389,22 @@ export default async function Landing() {
           ))}
         </div>
         <p style={{ textAlign: 'center', fontSize: 12.5, color: FAINT, margin: '22px auto 0', maxWidth: 560, lineHeight: 1.6 }}>
-          Το πρώτο ακίνητο μένει πάντα δωρεάν. Οι δωρεάν μήνες αφορούν τη συνδρομή για παραπάνω ακίνητα.
+          Το πρώτο ακίνητο μένει πάντα δωρεάν. Οι δωρεάν μήνες αφορούν τη συνδρομή, για ένα ή παραπάνω ακίνητα.
         </p>
       </section>
 
-      {/* ── FAQ: δίστηλο, λιτή λίστα με λεπτές διαχωριστικές γραμμές ── */}
+      {/* ── FAQ: κεντραρισμένη κεφαλίδα (όπως όλες οι ενότητες) + λιτή λίστα ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
-        <div className="lp-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.4fr', gap: 'clamp(24px, 5vw, 72px)', alignItems: 'start' }}>
-          <div>
-            <h2 style={{ fontSize: 'clamp(24px, 3.8vw, 37px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.13, margin: '0 0 14px' }}>Συχνές ερωτήσεις</h2>
-            <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0, maxWidth: 340 }}>Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν, με ειλικρινείς απαντήσεις.</p>
-          </div>
-          <div style={{ borderBottom: `1px solid ${LINE}` }}>
-            {FAQ.map((f, i) => (
-              <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
-                <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                  {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, fontWeight: 400, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
-                </summary>
-                <p style={{ fontSize: 14.5, color: MUTED, lineHeight: 1.7, margin: '0 0 22px', maxWidth: 620 }}>{f.a}</p>
-              </details>
-            ))}
-          </div>
+        <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις στις πιο συχνές απορίες των ιδιοκτητών." />
+        <div style={{ maxWidth: 760, margin: '0 auto', borderBottom: `1px solid ${LINE}` }}>
+          {FAQ.map((f, i) => (
+            <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>
+              <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '19px 0', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                {f.q}<span className="lp-plus" style={{ color: ACCENT, fontSize: 22, fontWeight: 400, lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
+              </summary>
+              <p style={{ fontSize: 14.5, color: MUTED, lineHeight: 1.7, margin: '0 0 22px' }}>{f.a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
