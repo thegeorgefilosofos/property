@@ -5,7 +5,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { inferRole } from '@/lib/contacts/roles'
 import { Phone, Mail, X, Search, Globe, MapPin, Clock, FileText, Star, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Scale, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, ChevronDown, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Upload, Check, Minus } from 'lucide-react'
 import { DatePicker } from './UIComponents'
-import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fn, fe, Spinner, ExportButton, type KPIItem } from '@/components/Theme'
 import { downloadCsv } from './exportCsv'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 
@@ -42,7 +42,7 @@ type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
 const iStyle: React.CSSProperties = {
-  width: '100%', height: 42, padding: '10px 14px', borderRadius: T.radius.inner,
+  width: '100%', height: 40, padding: '10px 16px', borderRadius: 4,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, outline: 'none',
   fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -189,10 +189,10 @@ const ROLE_SELECT_OPTIONS = GROUPS.flatMap(g => [
 const PRESET_TAGS = ['Αξιόπιστος', 'VIP', 'Ακριβός', 'Γρήγορος', 'Προτεινόμενος', 'Προσοχή', 'Εκκρεμεί πληρωμή', 'Συνεργάτης', 'Επείγον', 'Σταθερός']
 const REMINDER_LABELS: Record<number, string> = { 0: 'Καμία', 7: '7 ημέρες', 14: '14 ημέρες', 30: '30 ημέρες', 60: '60 ημέρες', 90: '90 ημέρες' }
 const STATUS_OPTIONS = [
-  { value: 'active',      label: 'Ενεργός',       color: 'var(--positive)', bg: 'rgba(52,199,89,0.12)',  dot: 'var(--positive)' },
-  { value: 'pending',     label: 'Σε αναμονή',    color: 'var(--warning)', bg: 'rgba(245,158,11,0.12)', dot: 'var(--warning)' },
+  { value: 'active',      label: 'Ενεργός',       color: 'var(--positive)', bg: 'var(--positive-soft)',  dot: 'var(--positive)' },
+  { value: 'pending',     label: 'Σε αναμονή',    color: 'var(--warning)', bg: 'var(--warning-soft)', dot: 'var(--warning)' },
   { value: 'inactive',    label: 'Ανενεργός',     color: 'var(--text-tertiary)', bg: 'var(--bg-elevated)', dot: 'var(--text-tertiary)' },
-  { value: 'problematic', label: 'Προβληματικός', color: 'var(--negative)', bg: 'rgba(255,59,48,0.12)',  dot: 'var(--negative)' },
+  { value: 'problematic', label: 'Προβληματικός', color: 'var(--negative)', bg: 'var(--negative-soft)',  dot: 'var(--negative)' },
 ]
 
 // ─── Serialize / Parse ────────────────────────────────────────────────────────
@@ -502,7 +502,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
           {loading ? <Spinner label="Φόρτωση…" /> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 24 }}>
-                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? totalExpenses.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' }) : '—', color: 'var(--text-primary)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
+                {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : '—', color: 'var(--text-primary)' }, { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '—', color: 'var(--text-primary)' }].map(s => (
                   <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
@@ -1012,7 +1012,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
           {extra.avatar_url ? <img src={extra.avatar_url} alt="" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-border)', flexShrink: 0 }} />
             : <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--accent-soft)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={20} />}</div>}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans, marginBottom: 1 }}>{contact.full_name}</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans, marginBottom: 1 }}>{contact.full_name}</div>
             <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}><GroupIcon size={11} style={{ flexShrink: 0 }} />{meta.label || contact.role}</div>
             {extra.specialty && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{extra.specialty}</div>}
           </div>
@@ -1145,12 +1145,12 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
               ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-border)', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', flexShrink: 0 }} />
               : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '3px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: 'var(--accent)', boxShadow: '0 6px 18px rgba(0,0,0,0.22)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>{contact.full_name}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
               <div style={{ fontSize: 12.5, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <StatusBadge status={extra.status || 'active'} />
                 {(extra.rating || 0) > 0 && <StarRating value={extra.rating || 0} />}
-                {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent-text)', fontWeight: 700 }}>Προτιμώμενη</span>}
+                {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
               </div>
             </div>
           </div>
@@ -1170,7 +1170,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
             <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{exp.total.toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}</div>
               </div>
               <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
@@ -1213,7 +1213,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           {(extra.tags || []).length > 0 && (
             <Section title="Ετικέτες">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent-text)' }}>{t}</span>)}
+                {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '3px 10px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
               </div>
             </Section>
           )}
@@ -1583,7 +1583,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     { label: 'Ενοικιαστές', value: fn(tenantsCount), tone: 'neutral' },
     { label: 'Τεχνικοί & Μάστορες', value: fn(technicalCount), tone: 'neutral' },
     { label: 'Πάροχοι Ρεύματος & Internet', value: fn(providersCount) },
-    { label: 'Προτιμώμενες', value: fn(preferred.length), tone: preferred.length > 0 ? 'accent' : 'neutral' },
+    { label: 'Προτιμώμενες', value: fn(preferred.length), tone: 'neutral' },
   ]
   const initials = form.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase()
   const detail = detailId ? (contacts.find(c => c.id === detailId) || null) : null   // ζωντανό (ανανεώνεται μετά από edit/refresh)
@@ -1890,7 +1890,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                         <div><FL>Ιστοσελίδα</FL><Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" /></div>
-                        <div><FL>Ωράριο</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Δευτέρα–Παρασκευή 09:00–17:00" /></div>
+                        <div><FL>Ωράριο</FL><Inp value={form.extra.schedule || ''} onChange={v => setExtra('schedule', v)} placeholder="Δευτέρα-Παρασκευή 09:00-17:00" /></div>
                       </div>
                       <div><FL>Διεύθυνση γραφείου</FL><AddressAutocomplete value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Πληκτρολόγησε και διάλεξε από τις προτάσεις…" /></div>
                     </div>
@@ -1945,7 +1945,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </>
                 )}
               </div>
-              {error && <div style={{ marginTop: 14, background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: T.radius.inner, padding: '11px 16px', color: 'var(--negative)', fontSize: 13 }}>{error}</div>}
+              {error && <div style={{ marginTop: 14, background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '11px 16px', color: 'var(--negative)', fontSize: 13 }}>{error}</div>}
             </div>
 
             <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 12 }}>
@@ -1961,7 +1961,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {deleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, border: '1px solid var(--border-subtle)', textAlign: 'center', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
             </div>
             <h3 style={{ color: 'var(--text-primary)', margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Διαγραφή Επαφής;</h3>
@@ -2003,7 +2003,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         onShowHistory={() => setHistoryContact(detail)}
         onShowQR={() => setQrContact(detail)} refreshKey={dossierRefresh} />}
       {quickExpense && <QuickExpenseModal contact={quickExpense} propertyId={propertyId} userId={userId} onClose={() => setQuickExpense(null)} onSaved={() => { showToast('Δαπάνη αποθηκεύτηκε'); setDossierRefresh(x => x + 1) }} />}
-      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); showToast('Ραντεβού προστέθηκε — καταχωρήθηκε και στην επαφή') }} />}
+      {quickCalendar && <QuickCalendarModal contact={quickCalendar} propertyId={propertyId} userId={userId} onClose={() => setQuickCalendar(null)} onSaved={(date) => { linkAppointmentToContact(quickCalendar, date); showToast('Ραντεβού προστέθηκε, καταχωρήθηκε και στην επαφή') }} />}
       {historyContact && <HistoryModal contact={historyContact} propertyId={propertyId} onClose={() => setHistoryContact(null)} />}
       {qrContact && <QRCodeModal contact={qrContact} onClose={() => setQrContact(null)} />}
     </div>

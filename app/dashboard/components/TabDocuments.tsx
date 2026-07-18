@@ -259,7 +259,7 @@ const FolderGlyph = ({ k, size = 22 }: { k: FolderKey; size?: number }) => {
     photos:     <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-4 4 3 3-2 4 3"/></>,
     other:      <><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></>,
   };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">{p[k]}</svg>;
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">{p[k]}</svg>;
 };
 // Εικονίδιο υποφακέλου (πάροχος ή έτος) — ΕΝΑ σημείο αλήθειας αντί για διπλό inline SVG.
 const SubfolderGlyph = ({ mode, size = 20 }: { mode: 'provider' | 'date'; size?: number }) => (
@@ -306,7 +306,7 @@ function BulkBtn({ icon, label, onClick, disabled, danger }: { icon: React.React
   const active = hov && !disabled;
   return (
     <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
         border: `1px solid ${active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'}`,
         background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
         color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
@@ -715,7 +715,7 @@ export default function TabDocuments({
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       {!embedded && (
         <PageTitle title="Αρχείο"
-          sub="Ένας οργανωμένος ψηφιακός φάκελος — συμβόλαια, έγγραφα, φόροι, λογαριασμοί, πάροχοι, εγγυήσεις, τιμολόγια και φωτογραφίες, αυτόματα ταξινομημένα ώστε να τα βρίσκεις με 2 κλικ"
+          sub="Ένας οργανωμένος ψηφιακός φάκελος: συμβόλαια, έγγραφα, φόροι, λογαριασμοί, πάροχοι, εγγυήσεις, τιμολόγια και φωτογραφίες, αυτόματα ταξινομημένα ώστε να τα βρίσκεις με 2 κλικ"
           right={headerActions}/>
       )}
 
@@ -733,7 +733,7 @@ export default function TabDocuments({
       {/* ── Κάρτα ανεβάσματος ──────────────────────────────────────────── */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί — αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
+          <SecHdr label="Αρχειοθέτηση νέου αρχείου" sub={uploadMin ? undefined : 'Σύρε ή επίλεξε πολλά αρχεία μαζί, αναγνωρίζονται και τοποθετούνται αυτόματα στον σωστό φάκελο'}
             right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
               {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
             </button>}/>
@@ -870,7 +870,7 @@ export default function TabDocuments({
             <BulkBtn icon={<IconMoveFolder/>} label="Μετακίνηση" onClick={() => selDocs.length && setMoveItems(selDocs)} disabled={!selDocs.length}/>
             <BulkBtn icon={<IconTrash/>} label="Διαγραφή" onClick={bulkDelete} disabled={!selRaw.length} danger/>
           </div>
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Άκυρο</button>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: T.radius.btn, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}><IconX/>Άκυρο</button>
         </div>
       )}
 
@@ -1196,7 +1196,7 @@ function MoveModal({ count, onCancel, onMove }: { count: number; onCancel: () =>
   const [cat, setCat] = useState(DOC_CATEGORIES[0]);
   return (
     <ModalShell title={count > 1 ? `Μετακίνηση ${count} αρχείων` : 'Μετακίνηση σε φάκελο'}
-      sub="Διάλεξε κατηγορία — ο φάκελος ενημερώνεται αυτόματα." onCancel={onCancel} onConfirm={() => onMove(cat)} confirmLabel="Μετακίνηση">
+      sub="Διάλεξε κατηγορία, ο φάκελος ενημερώνεται αυτόματα." onCancel={onCancel} onConfirm={() => onMove(cat)} confirmLabel="Μετακίνηση">
       <CustomSelect label="Κατηγορία" value={cat} onChange={setCat}
         options={DOC_CATEGORIES.map(c => ({ value: c, label: `${c}  →  ${FOLDER_LABEL[folderForDoc(c)]}` }))}/>
     </ModalShell>
