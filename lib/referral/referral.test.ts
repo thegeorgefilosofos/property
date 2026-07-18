@@ -2,7 +2,9 @@
 import {
   referralCode, referralLink, isValidReferral, isSelfOrDuplicate, normalizePhone,
   isActivated, REFEREE_TRIAL_MONTHS,
-  individualReferralReward, INDIV_PER_REFERRAL_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  individualReferrerReward, refereeWelcome,
+  FREE_REFERRER_SLOT_MONTHS, OWNER_REFERRER_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
   progress, currentStreak, isPartner, streakProgress,
@@ -39,14 +41,23 @@ ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerPhone: '69711111
 ok(isActivated({ propertiesAdded: 1, documentsScanned: 1 }) === true, 'ενεργοποιήθηκε');
 ok(isActivated({ propertiesAdded: 1, documentsScanned: 0 }) === false, 'χωρίς σάρωση → όχι');
 
-// ── Πρόγραμμα Ιδιώτη: ανταμοιβή ανά σύσταση ──
-const ri = individualReferralReward('free');
-ok(ri.selfMonths === INDIV_PER_REFERRAL_MONTHS && ri.selfMonths === 1, 'ιδιώτης φέρνει δωρεάν → +1 μήνας σε σένα');
-ok(ri.refereeMonths === REFEREE_TRIAL_MONTHS, 'ο νέος → δώρο καλωσορίσματος');
-ok(individualReferralReward('owner').selfMonths === 1, 'ιδιώτης φέρνει ιδιώτη → +1 μήνας');
-ok(individualReferralReward('agency').selfMonths === INDIV_PRO_BONUS_MONTHS, 'ιδιώτης φέρνει Επαγγελματία → +2 μήνες');
-ok(individualReferralReward('agency').selfMonths === 2, 'μπόνους επαγγελματία = 2 μήνες');
+// ── Πρόγραμμα Ιδιώτη: ανταμοιβή ανά σύσταση (συστήνων) ──
+const free2free = individualReferrerReward(false, 'free');
+ok(free2free.isSlot && free2free.months === FREE_REFERRER_SLOT_MONTHS && free2free.months === 1, 'δωρεάν→δωρεάν: εσύ +1 ακίνητο για 1 μήνα');
+const own2free = individualReferrerReward(true, 'free');
+ok(!own2free.isSlot && own2free.months === OWNER_REFERRER_MONTHS && own2free.months === 1, 'Ιδιώτης→δωρεάν: εσύ +1 μήνας Ιδιώτης');
+const any2pro = individualReferrerReward(false, 'agency');
+ok(!any2pro.isSlot && any2pro.months === INDIV_PRO_BONUS_MONTHS && any2pro.months === 2, 'νέος γίνεται Επαγγελματίας → εσύ +2 μήνες Ιδιώτης');
+ok(individualReferrerReward(true, 'agency').months === 2, 'ίδιο και για Ιδιώτη συστήνοντα');
 ok(INDIV_VOLUME_TARGET === 5 && INDIV_VOLUME_BONUS_MONTHS === 1, '5 νέοι ιδιώτες/μήνα → +1 μήνας');
+
+// ── Πρόγραμμα Ιδιώτη: δώρο νέου χρήστη ανά επιλογή πλάνου ──
+const wFree = refereeWelcome('free');
+ok(wFree.isSlot && wFree.months === REFEREE_FREE_SLOT_MONTHS && wFree.months === 2, 'νέος δωρεάν: +1 ακίνητο για 2 μήνες');
+ok(refereeWelcome('owner').months === REFEREE_OWNER_MONTHS && refereeWelcome('owner').months === 2 && !refereeWelcome('owner').isSlot, 'νέος στο Ιδιώτης: 2 μήνες δωρεάν');
+const wPro = refereeWelcome('agency');
+ok(wPro.months === REFEREE_AGENCY_MONTHS && wPro.months === 1 && wPro.tier === 'agency', 'νέος Επαγγελματίας: 1 μήνας Επαγγελματία');
+ok(REFEREE_TRIAL_MONTHS === 2, 'δώρο καλωσορίσματος στο invite = 2 μήνες');
 
 // ── Πρόγραμμα Επαγγελματία: milestones ──
 ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 2, '5 συνδρομητές/μήνα → 2 μήνες Επαγγελματία');

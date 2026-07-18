@@ -183,6 +183,54 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   );
 }
 
+// ═══ TierBadge, εμβλήματα ιδιότητας (Ιδιώτης / Επαγγελματίας / Συνεργάτης) ══
+// Premium, minimal, μονοχρωματικά (accent + ουδέτερα): η διαφοροποίηση γίνεται
+// με σχήμα, βάρος, elevation και —μόνο για τον Συνεργάτη— διακριτικό gradient
+// & λάμψη. Καθαρά, χωρίς color noise, στο ίδιο design system με το app.
+export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner' | 'agency' | 'partner'; showLabel?: boolean; size?: number }) {
+  const cfg = {
+    owner:   { label: 'Ιδιώτης',       ring: 'var(--border-default)', bg: 'transparent',      ic: 'var(--text-secondary)', text: 'var(--text-secondary)' },
+    agency:  { label: 'Επαγγελματίας',  ring: 'var(--accent-border)',  bg: 'var(--accent-dim)', ic: 'var(--accent)',          text: 'var(--accent)' },
+    partner: { label: 'Συνεργάτης',     ring: 'var(--accent)',         bg: '',                  ic: 'var(--accent-text)',     text: 'var(--accent)' },
+  }[tier];
+  const isPartner = tier === 'partner';
+  const glyphs: Record<string, string> = {
+    owner:  'M3 10.5 12 3l9 7.5|M5 9.5V20h14V9.5|M10 20v-5h4v5',
+    agency: 'M4 21V7l7-4 7 4v14|M4 21h16|M8.5 11h1m-1 4h1m5-4h1m-1 4h1',
+  };
+  const medallion = (
+    <span style={{
+      width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      background: isPartner ? 'radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 45%, color-mix(in srgb, var(--accent) 55%, #10233f) 100%)' : cfg.bg,
+      border: `1.5px solid ${cfg.ring}`,
+      boxShadow: isPartner
+        ? 'var(--highlight-inset-strong), 0 8px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent)'
+        : 'var(--highlight-inset)',
+    }}>
+      {isPartner ? (
+        <svg width={size * 0.56} height={size * 0.56} viewBox="0 0 24 24" fill="none">
+          <path d="M12 3.2l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 21.2l-4.7 2.47.9-5.23-3.8-3.7 5.25-.76z" fill="var(--accent-text)" />
+          <circle cx="18.2" cy="5.8" r="1.05" fill="var(--accent-text)" opacity="0.9" />
+        </svg>
+      ) : (
+        <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          {glyphs[tier].split('|').map((d, i) => <path key={i} d={d} />)}
+        </svg>
+      )}
+    </span>
+  );
+  if (!showLabel) return medallion;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      {medallion}
+      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιότητα</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: cfg.text, fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>{cfg.label}</span>
+      </span>
+    </span>
+  );
+}
+
 // ═══ InfoBanner, η γραμμή ειδοποίησης με την τελεία (dot) των Bills ═══════
 export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
