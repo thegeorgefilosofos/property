@@ -1253,14 +1253,40 @@ alter table public.notification_preferences add column if not exists dunning_ena
 alter table public.notification_preferences add column if not exists dunning_every_days integer default 7;
 alter table public.notification_preferences add column if not exists dunning_max        integer default 3;
 
+-- ── maintenance-photos: ασφάλεια πρόσβασης ────────────────────────────────
+-- Οι φωτογραφίες βλάβης ανεβαίνουν από την πύλη (ανώνυμος με token) σε φάκελο
+-- ίσο με το token. Το bucket παραμένει «δημόσιο» ώστε ο ιδιοκτήτης να τις βλέπει
+-- με μη-μαντεύσιμο capability URL (ίδιο μοντέλο ασφαλείας με τα tokens της πύλης),
+-- ΑΛΛΑ κλείνουμε δύο τρύπες: (α) κανένας ανώνυμος δεν μπορεί πλέον να απαριθμήσει
+-- ή να κατεβάσει μαζικά τις φωτογραφίες άλλων (καταργείται η ανώνυμη ανάγνωση API),
+-- (β) το ανέβασμα επιτρέπεται ΜΟΝΟ σε φάκελο ενεργού token πύλης (τέλος στο dumping).
+
+-- Helpers (security definer): ελέγχουν το token χωρίς ο ανώνυμος να «βλέπει» τον πίνακα.
+create or replace function public.is_active_portal_token(p_token text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists(select 1 from portal_links where token = p_token and active);
+$$;
+grant execute on function public.is_active_portal_token(text) to anon, authenticated;
+
+create or replace function public.owns_portal_token(p_token text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists(select 1 from portal_links where token = p_token and user_id = auth.uid());
+$$;
+grant execute on function public.owns_portal_token(text) to authenticated;
+
 insert into storage.buckets (id, name, public) values ('maintenance-photos', 'maintenance-photos', true)
   on conflict (id) do nothing;
+
+-- Ανέβασμα: μόνο κάτω από φάκελο = token ΕΝΕΡΓΗΣ πύλης.
 drop policy if exists "maint_photos_insert" on storage.objects;
 create policy "maint_photos_insert" on storage.objects for insert to anon, authenticated
-  with check (bucket_id = 'maintenance-photos');
+  with check (bucket_id = 'maintenance-photos' and public.is_active_portal_token((storage.foldername(name))[1]));
+
+-- Ανάγνωση μέσω API: ΜΟΝΟ ο ιδιοκτήτης του token. Η ανώνυμη ανάγνωση/απαρίθμηση καταργείται.
 drop policy if exists "maint_photos_read" on storage.objects;
-create policy "maint_photos_read" on storage.objects for select to anon, authenticated
-  using (bucket_id = 'maintenance-photos');
+drop policy if exists "maint_photos_read_owner" on storage.objects;
+create policy "maint_photos_read_owner" on storage.objects for select to authenticated
+  using (bucket_id = 'maintenance-photos' and public.owns_portal_token((storage.foldername(name))[1]));
 
 create or replace function public.portal_meta(p_token text)
 returns json language plpgsql security definer set search_path = public as $$
