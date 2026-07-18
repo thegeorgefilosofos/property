@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { downloadCsv, csvDate } from './exportCsv';
 import { T, TT, Badge, TierBadge } from '@/components/Theme';
 import {
   referralCode, referralLink, progress,
@@ -166,7 +167,7 @@ type Overview = {
   streak: number; partner: boolean;
 };
 type Reward = { kind: string; months: number; tier: string; reason: string; status: string; created_at: string };
-type Referee = { created_at: string; activated_at: string | null; is_subscriber: boolean; is_professional: boolean };
+type Referee = { created_at: string; activated_at: string | null };
 
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
@@ -235,6 +236,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
+  // GDPR φορητότητα (Άρθ. 15/20): εξαγωγή των δικών σου δεδομένων σύστασης σε CSV.
+  const exportMyData = () => {
+    const rows: (string | number | null)[][] = [];
+    list.forEach(rf => rows.push(['Πρόσκληση', csvDate(rf.created_at), rf.activated_at ? 'Ενεργοποιήθηκε' : 'Εκκρεμεί ενεργοποίηση', rf.activated_at ? csvDate(rf.activated_at) : '']));
+    rewards.forEach(r => rows.push(['Ανταμοιβή', csvDate(r.created_at), r.status === 'granted' ? 'Ενεργό' : 'Σε εκκρεμότητα', `${r.months} μήνες · ${r.reason}`]));
+    downloadCsv(`propertyos-referral-${code}`, ['Κατηγορία', 'Ημερομηνία', 'Κατάσταση', 'Λεπτομέρεια'], rows);
+  };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
   const doClaim = async (kind: string) => {
     setClaim(c => ({ ...c, [kind]: 'saving' }));
@@ -632,10 +640,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {list.map((rf, i) => {
-              const stage = rf.is_professional ? 'Έγινε Επαγγελματίας'
-                : rf.is_subscriber ? 'Έγινε συνδρομητής'
-                : rf.activated_at ? 'Ενεργοποιήθηκε'
-                : 'Εκκρεμεί ενεργοποίηση';
+              const stage = rf.activated_at ? 'Ενεργοποιήθηκε' : 'Εκκρεμεί ενεργοποίηση';
               const pending = !rf.activated_at;
               const when = new Date(rf.created_at).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
               return (
@@ -688,6 +693,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο στο PropertyOS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
         {isPro ? ' Για τη φορολογική μεταχείριση της προμήθειας, ρώτησε τον λογιστή σου.' : ''}
       </p>
+
+      {(list.length > 0 || rewards.length > 0) && (
+        <button onClick={exportMyData} className="ref-chip" style={{ ...CHIP, marginTop: 14, cursor: 'pointer', fontFamily: T.font.sans }}>
+          <Ic d="M12 3v12|M7 10l5 5 5-5|M5 21h14" s={15} c="var(--text-tertiary)" />Εξαγωγή των δεδομένων μου (CSV)
+        </button>
+      )}
     </div>
   );
 }
