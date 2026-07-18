@@ -395,7 +395,7 @@ export default async function Landing() {
 
       {/* ── FAQ: κεντραρισμένη κεφαλίδα (όπως όλες οι ενότητες) + λιτή λίστα ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(48px, 7vw, 92px)' }}>
-        <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις στις πιο συχνές απορίες των ιδιοκτητών." />
+        <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις στις πιο συχνές απορίες." />
         <div style={{ maxWidth: 760, margin: '0 auto', borderBottom: `1px solid ${LINE}` }}>
           {FAQ.map((f, i) => (
             <details key={i} className="lp-faq" style={{ borderTop: `1px solid ${LINE}` }}>

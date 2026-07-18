@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
     opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit',
   }
   const eye = (
-    <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
+    <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {show
         ? <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -82,12 +82,21 @@ export default function ResetPasswordPage() {
   )
 
   const errBox = error && (
-    <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+    <div role="alert" style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--negative)' }}>{error}</div>
   )
 
+  // Τυποποιημένες επικεφαλίδες/υποκείμενα, ίδια ακριβώς με Σύνδεση/Εγγραφή.
+  const h2s: React.CSSProperties = { fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }
+  const subs: React.CSSProperties = { fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.6 }
+
+  const mailIcon = (
+    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--accent)' }}>
+      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 6 12 13 2 6" /></svg>
+    </div>
+  )
   const successIcon = (
-    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
-      <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--positive)' }}>
+      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
     </div>
   )
 
@@ -98,7 +107,7 @@ export default function ResetPasswordPage() {
       <AuthAside
         headline="Επαναφορά πρόσβασης."
         accent="Σε ένα λεπτό."
-        sub="Δώσε το email σου και θα σου στείλουμε έναν ασφαλή σύνδεσμο για να ορίσεις νέο κωδικό. Τα δεδομένα σου παραμένουν στη θέση τους."
+        sub="Ξέχασες τον κωδικό σου; Δεν πειράζει. Σε ένα λεπτό ορίζεις καινούριο και τα δεδομένα σου παραμένουν ακριβώς εκεί που τα άφησες."
       />
 
       {/* RIGHT, form */}
@@ -107,8 +116,8 @@ export default function ResetPasswordPage() {
 
           {mode === 'request' && (
             <>
-              <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Επαναφορά κωδικού</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 28px', lineHeight: 1.6 }}>Δώσε το email σου και θα σου στείλουμε έναν σύνδεσμο για να ορίσεις νέο κωδικό.</p>
+              <h1 style={h2s}>Επαναφορά κωδικού</h1>
+              <p style={subs}>Δώσε το email σου και θα σου στείλουμε έναν σύνδεσμο για να ορίσεις νέο κωδικό.</p>
               <form onSubmit={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label htmlFor="rp-email" style={label}>Email</label>
@@ -119,29 +128,29 @@ export default function ResetPasswordPage() {
                 <button type="submit" disabled={loading} style={btn}>{loading ? 'Αποστολή…' : 'Στείλε σύνδεσμο →'}</button>
               </form>
               <p style={{ fontSize: 13, marginTop: 22 }}>
-                <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>← Επιστροφή στη σύνδεση</Link>
+                <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>← Επιστροφή στη σύνδεση</Link>
               </p>
             </>
           )}
 
           {mode === 'sent' && (
-            <>
-              {successIcon}
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Έλεγξε το email σου</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.6 }}>Αν υπάρχει λογαριασμός με αυτό το email, θα λάβεις σύνδεσμο επαναφοράς. Δες και τον φάκελο ανεπιθύμητων.</p>
-              <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>← Επιστροφή στη σύνδεση</Link>
-            </>
+            <div style={{ textAlign: 'center' }} role="status">
+              {mailIcon}
+              <h1 style={h2s}>Έλεγξε το email σου</h1>
+              <p style={subs}>Αν υπάρχει λογαριασμός με αυτό το email, θα λάβεις σύνδεσμο επαναφοράς. Δες και τον φάκελο ανεπιθύμητων.</p>
+              <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>← Επιστροφή στη σύνδεση</Link>
+            </div>
           )}
 
           {mode === 'update' && (
             <>
-              <h2 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Όρισε νέο κωδικό</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 28px', lineHeight: 1.6 }}>Διάλεξε έναν ισχυρό κωδικό, τουλάχιστον 8 χαρακτήρες.</p>
+              <h1 style={h2s}>Όρισε νέο κωδικό</h1>
+              <p style={subs}>Διάλεξε έναν ισχυρό κωδικό, τουλάχιστον 8 χαρακτήρες.</p>
               <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label htmlFor="rp-password" style={label}>Νέος κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" style={{ ...field, paddingRight: 46 }}
+                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" style={{ ...field, paddingRight: 48 }}
                       onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                     {eye}
                   </div>
@@ -158,12 +167,12 @@ export default function ResetPasswordPage() {
           )}
 
           {mode === 'done' && (
-            <>
+            <div style={{ textAlign: 'center' }} role="status">
               {successIcon}
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Ο κωδικός άλλαξε</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.6 }}>Μπορείς τώρα να συνδεθείς με τον νέο σου κωδικό.</p>
+              <h1 style={h2s}>Ο κωδικός άλλαξε</h1>
+              <p style={subs}>Μπορείς τώρα να συνδεθείς με τον νέο σου κωδικό.</p>
               <button onClick={() => router.push('/dashboard')} style={btn}>Μετάβαση στον πίνακα →</button>
-            </>
+            </div>
           )}
         </div>
       </div>
