@@ -174,6 +174,27 @@ create policy "own_billing_profile" on public.billing_profiles for all
   using      (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- Κλείδωμα του plan: μόνο το billing (service_role) το ορίζει — ο χρήστης δεν
+-- μπορεί να αυτοανακηρυχθεί «συνδρομητής» (plan='monthly') και να φουσκώσει τα
+-- referral milestones/streak/προμήθεια. Το profile_type μένει επιλογή του χρήστη.
+create or replace function public.lock_billing_plan()
+returns trigger language plpgsql as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    if tg_op = 'INSERT' then
+      new.plan := 'free';
+    elsif new.plan is distinct from old.plan then
+      new.plan := old.plan;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists lock_billing_plan_trg on public.billing_profiles;
+create trigger lock_billing_plan_trg
+  before insert or update on public.billing_profiles
+  for each row execute function public.lock_billing_plan();
+
 
 -- ─── 20260705120000_tenant_portal.sql ───
 -- ─────────────────────────────────────────────────────────────────────────
@@ -398,10 +419,11 @@ create table if not exists public.referrals (
   unique (referred_user_id)
 );
 alter table public.referrals enable row level security;
--- Ο νέος χρήστης καταχωρεί ΜΟΝΟ τη δική του παραπομπή.
+-- ΑΣΦΑΛΕΙΑ: καμία απευθείας εγγραφή παραπομπής από τον client. Η παλιά policy
+-- INSERT επέτρεπε «σφυρηλάτηση» ενεργοποιημένης παραπομπής (αυθαίρετο
+-- referrer_user_id/activated_at) παρακάμπτοντας τα guards. Πλέον οι παραπομπές
+-- γράφονται ΜΟΝΟ μέσω των SECURITY DEFINER RPC (redeem_referral / mark_referral_activated).
 drop policy if exists "insert_own_referral" on public.referrals;
-create policy "insert_own_referral" on public.referrals for insert
-  with check (referred_user_id = auth.uid());
 
 -- RPC: πλήθος παραπομπών — μόνο ο κάτοχος του κωδικού το βλέπει.
 create or replace function public.get_referral_stats(p_code text)
