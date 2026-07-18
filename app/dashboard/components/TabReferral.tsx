@@ -84,6 +84,7 @@ type Overview = {
   m_pro: number; m_indiv: number; m_paid: number; m_free: number;
   streak: number; partner: boolean;
 };
+type Reward = { months: number; tier: string; reason: string; status: string; created_at: string };
 
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
@@ -92,6 +93,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState<Overview | null>(null);
   const [social, setSocial] = useState(0);
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
   const [celebrate, setCelebrate] = useState<Record<string, boolean>>({});
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
@@ -107,11 +109,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     (async () => {
       try {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
-        const [{ data }, { data: sp }] = await Promise.all([
+        const [{ data }, { data: sp }, { data: rw }] = await Promise.all([
           supabase.rpc('get_referral_overview', { p_code: code }),
           supabase.rpc('get_referral_social_proof'),
+          supabase.from('referral_rewards').select('months,tier,reason,status,created_at').order('created_at', { ascending: false }),
         ]);
         if (alive && typeof sp === 'number') setSocial(sp);
+        if (alive && Array.isArray(rw)) setRewards(rw as Reward[]);
         if (alive && data) setStats({
           invites: Number(data.invites) || 0, activated: Number(data.activated) || 0,
           m_pro: Number(data.m_pro) || 0, m_indiv: Number(data.m_indiv) || 0,
@@ -402,6 +406,32 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
         ))}
       </div>
+
+      {/* ── Τα δώρα σου (ιστορικό ανταμοιβών) ── */}
+      {rewards.length > 0 && (
+        <div style={{ marginBottom: T.sp.xl }}>
+          <div style={{ ...TT.label, marginBottom: 12 }}>Τα δώρα σου</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rewards.map((r, i) => {
+              const granted = r.status === 'granted';
+              const tierLabel = r.tier === 'agency' ? 'Επαγγελματία' : 'Ιδιώτη';
+              const reasonLabel = ({ indiv_volume: '5 νέοι μέσα στον μήνα', pro_paid: '5 συνδρομητές μέσα στον μήνα', pro_free: '10 δωρεάν χρήστες μέσα στον μήνα', milestone: 'Μηνιαίο μπόνους', per_referral: 'Ανά σύσταση', partner: 'Ιδιότητα Συνεργάτη' } as Record<string, string>)[r.reason] || 'Μπόνους';
+              return (
+                <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Ic d="M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z" s={19} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ ...TT.h2, fontSize: 13 }}>{r.months} {r.months === 1 ? 'μήνας' : 'μήνες'} {tierLabel} δωρεάν</div>
+                    <div style={{ ...TT.bodySm, marginTop: 2 }}>{reasonLabel}</div>
+                  </div>
+                  <Badge tone={granted ? 'positive' : 'warning'}>{granted ? 'Ενεργό' : 'Σε εκκρεμότητα'}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
         Κάθε ανταμοιβή κλειδώνει μόλις ο {isPro ? 'πελάτης' : 'φίλος'} σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
