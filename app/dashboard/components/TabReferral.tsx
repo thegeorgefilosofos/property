@@ -187,6 +187,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       .ref-lift:hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--accent-border); }
       .ref-kpi-hover { color: var(--text-primary); transition: color .16s ${T.ease.standard}; }
       .ref-lift:hover .ref-kpi-hover { color: var(--accent); }
+      .ref-hover-accent:hover .ref-kpi-hover { color: var(--accent); }
       @keyframes ref-pop { 0% { transform: translate(-50%, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.35); opacity: 0; } }
       @keyframes ref-rise { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
       .ref-rise { animation: ref-rise .5s ${T.ease.decel} both; }
@@ -294,7 +295,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
       {/* ── Τα κέρδη σου με μια ματιά (μόλις υπάρχει δραστηριότητα) ── */}
       {!coldStart && stats && stats.invites > 0 && (
-        <div className="ref-rise" style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 160%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 'clamp(16px, 3vw, 28px)', flexWrap: 'wrap' }}>
+        <div className="ref-rise ref-hover-accent" style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 160%)', padding: PAD, marginBottom: T.sp.xl, display: 'flex', alignItems: 'center', gap: 'clamp(16px, 3vw, 28px)', flexWrap: 'wrap' }}>
           <TierBadge tier={myTier} showLabel={false} size={48} />
           {([
             ['Προσκλήσεις', stats.invites, false],
@@ -302,7 +303,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
           ] as [string, number, boolean][]).map(([l, v, hi], i) => (
             <div key={i} style={{ minWidth: 88 }}>
-              <div style={{ ...TT.kpi, fontSize: 26, color: hi ? 'var(--accent)' : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
+              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
@@ -320,7 +321,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
           {/* Συνεργάτης */}
           <div style={{ ...TT.label, marginBottom: 12 }}>Ιδιότητα Συνεργάτη</div>
-          <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
+          <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <TierBadge tier="partner" showLabel={false} size={56} />
@@ -332,7 +333,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης PropertyOS</span>
-              <span style={{ ...TT.kpi, color: 'var(--accent)' }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
+              <span className="ref-kpi-hover" style={{ ...TT.kpi }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
             </div>
             )}
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
