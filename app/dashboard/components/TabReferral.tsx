@@ -46,6 +46,49 @@ const daysLeftInMonth = () => {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
 };
 
+// ── Κάρτα προόδου (brag artifact): σχεδίαση σε canvas για κοινοποίηση ──
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outer: number, inner: number, fill: string) {
+  let rot = -Math.PI / 2; const step = Math.PI / spikes;
+  ctx.beginPath(); ctx.moveTo(cx, cy - outer);
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer); rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * inner, cy + Math.sin(rot) * inner); rot += step;
+  }
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+}
+function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(138,180,248,0.45)'; ctx.shadowBlur = 70;
+  const g = ctx.createRadialGradient(cx - r * 0.32, cy - r * 0.32, r * 0.1, cx, cy, r);
+  g.addColorStop(0, '#d6e4fc'); g.addColorStop(0.55, '#8ab4f8'); g.addColorStop(1, '#3f66bf');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath(); ctx.arc(cx, cy, r - 9, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(10,26,50,0.35)'; ctx.lineWidth = 4;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * (r - 24), cy + Math.sin(a) * (r - 24));
+    ctx.lineTo(cx + Math.cos(a) * (r - 42), cy + Math.sin(a) * (r - 42));
+    ctx.stroke();
+  }
+  drawStar(ctx, cx, cy, 5, r * 0.44, r * 0.18, '#0a2647');
+}
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+  let cy = y;
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const w of para.split(' ')) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line, x, cy); cy += lineHeight; line = w; }
+      else line = test;
+    }
+    if (line) { ctx.fillText(line, x, cy); cy += lineHeight; }
+  }
+  return cy;
+}
+
 // Μετρητής που «τρέχει» από το 0 στην τιμή (ease-out cubic).
 function useCountUp(target: number, ms = 750) {
   const [n, setN] = useState(() => reducedMotion() ? target : 0);
@@ -259,6 +302,60 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     );
   };
 
+  // Κάρτα προόδου: σχεδίαση premium PNG και κοινοποίηση (ή λήψη ως εφεδρεία).
+  const shareProof = async () => {
+    try {
+      const W = 1080, H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#0b1c36'); bg.addColorStop(1, '#081327');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      const glow = ctx.createRadialGradient(W / 2, 360, 40, W / 2, 360, 640);
+      glow.addColorStop(0, 'rgba(138,180,248,0.20)'); glow.addColorStop(1, 'rgba(138,180,248,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = `700 36px ${T.font.sans}`;
+      ctx.fillText('PropertyOS', W / 2, 132);
+      drawCoin(ctx, W / 2, 388, 150);
+      const activated = stats?.activated ?? 0;
+      const headline = partner ? 'Συνεργάτης\nPropertyOS'
+        : activated > 0 ? `${activated} ${activated === 1 ? 'ιδιοκτήτης ξεκίνησε' : 'ιδιοκτήτες ξεκίνησαν'}\nμαζί μου στο PropertyOS`
+        : 'Οργάνωσε το\nακίνητό σου';
+      ctx.fillStyle = '#ffffff'; ctx.font = `800 70px ${T.font.sans}`;
+      const afterH = wrapText(ctx, headline, W / 2, 700, W - 150, 86);
+      ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = `500 34px ${T.font.sans}`;
+      wrapText(ctx, 'Λογαριασμοί, φόροι και αποδόσεις, όλα σε ένα.', W / 2, afterH + 26, W - 210, 46);
+      const chipW = 470, chipH = 92, chipX = (W - chipW) / 2, chipY = 1118, rr = 46;
+      ctx.fillStyle = 'rgba(138,180,248,0.16)';
+      ctx.beginPath();
+      ctx.moveTo(chipX + rr, chipY);
+      ctx.arcTo(chipX + chipW, chipY, chipX + chipW, chipY + chipH, rr);
+      ctx.arcTo(chipX + chipW, chipY + chipH, chipX, chipY + chipH, rr);
+      ctx.arcTo(chipX, chipY + chipH, chipX, chipY, rr);
+      ctx.arcTo(chipX, chipY, chipX + chipW, chipY, rr);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#cfe0fb'; ctx.font = `700 38px ${T.font.sans}`;
+      ctx.fillText('Κωδικός ' + code, W / 2, chipY + 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = `500 28px ${T.font.sans}`;
+      ctx.fillText('property-os.gr', W / 2, 1272);
+
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
+      if (!blob) return;
+      const file = new File([blob], 'propertyos.png', { type: 'image/png' });
+      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean; share?: (d: { files?: File[]; text?: string }) => Promise<void> };
+      if (nav.canShare?.({ files: [file] }) && nav.share) {
+        try { await nav.share({ files: [file], text: invite }); return; } catch { /* πέρασε στη λήψη */ }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'propertyos.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch { /* ignore */ }
+  };
+
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
       {styleBlock}
@@ -359,6 +456,9 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
+          <button onClick={shareProof} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} />Κάρτα προόδου
+          </button>
         </div>
       )}
 
