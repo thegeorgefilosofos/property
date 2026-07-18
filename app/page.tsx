@@ -379,7 +379,7 @@ export default async function Landing() {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(r.i)}</div>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: ACCENT }}>{r.tag}</span>
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.015em' }}>{r.t}</h3>
+              <h3 style={{ fontSize: 16.5, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.015em' }}>{r.t}</h3>
               <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{r.d}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                 {r.items.map((t, j) => (

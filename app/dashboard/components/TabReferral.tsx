@@ -105,22 +105,30 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 // κάθε KPI της καρτέλας.
 function CountUp({ value }: { value: number }) {
   const target = Math.max(0, Math.round(Number(value) || 0));
-  const [rolled, setRolled] = useState(() => reducedMotion());
+  // rolled ξεκινά false ΚΑΙ στον server ΚΑΙ στον client (καμία ασυμφωνία hydration).
+  const [rolled, setRolled] = useState(false);
   useEffect(() => {
     if (reducedMotion()) { setRolled(true); return; }
     const id = requestAnimationFrame(() => setRolled(true));
     return () => cancelAnimationFrame(id);
   }, []);
   const digits = String(target).split('').map(Number);
+  const rm = reducedMotion();
+  // Ένας αόρατος πραγματικός αριθμός δίνει τη σωστή γραμμή βάσης (το overflow:hidden
+  // των κυλιόμενων ψηφίων συνθέτει baseline στο κάτω άκρο και θα «σήκωνε» τα ψηφία).
+  // Τα κυλιόμενα ψηφία τοποθετούνται απόλυτα από πάνω, ευθυγραμμισμένα με tabular-nums.
   return (
-    <span aria-label={String(target)} style={{ display: 'inline-flex', fontVariantNumeric: 'tabular-nums', lineHeight: 1, verticalAlign: 'baseline' }}>
-      {digits.map((d, i) => (
-        <span key={`${digits.length}-${i}`} aria-hidden style={{ display: 'inline-block', height: '1em', overflow: 'hidden' }}>
-          <span style={{ display: 'block', lineHeight: 1, transform: `translateY(-${rolled ? d : 0}em)`, transition: reducedMotion() ? 'none' : 'transform 1.05s cubic-bezier(.16,1,.3,1)', transitionDelay: reducedMotion() ? '0ms' : `${i * 55}ms` }}>
-            {Array.from({ length: 10 }, (_, n) => <span key={n} style={{ display: 'block', height: '1em', lineHeight: 1 }}>{n}</span>)}
+    <span role="img" aria-label={String(target)} style={{ position: 'relative', display: 'inline-block', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+      <span aria-hidden style={{ visibility: 'hidden' }}>{target}</span>
+      <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+        {digits.map((d, i) => (
+          <span key={`${digits.length}-${i}`} style={{ flex: '0 0 1ch', width: '1ch', height: '1em', overflow: 'hidden' }}>
+            <span style={{ display: 'block', transform: `translateY(-${rolled ? d : 0}em)`, transition: rm ? 'none' : 'transform 1.05s cubic-bezier(.16,1,.3,1)', transitionDelay: rm ? '0ms' : `${i * 55}ms` }}>
+              {Array.from({ length: 10 }, (_, n) => <span key={n} style={{ display: 'block', height: '1em', textAlign: 'center' }}>{n}</span>)}
+            </span>
           </span>
-        </span>
-      ))}
+        ))}
+      </span>
     </span>
   );
 }
@@ -422,7 +430,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {standing > 0 && (
               <div className="ref-rise" style={PILL}>
                 <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6" s={15} /></span>
-                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>Είσαι στο κορυφαίο {standing}% των {isPro ? 'συνεργατών' : 'ιδιοκτητών'} που προσκαλούν αυτόν τον μήνα</span>
+                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>Είσαι στο κορυφαίο {standing}% όσων προσκαλούν αυτόν τον μήνα</span>
               </div>
             )}
             {social >= 8 && (
@@ -553,7 +561,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <div style={{ marginTop: 16, display: 'flex', gap: 9, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
                   <span style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }}><Ic d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z|M12 9v4|M12 17h.01" s={15} /></span>
                   <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    {d === 1 ? 'Ο μήνας κλείνει αύριο.' : `Ο μήνας κλείνει σε ${d} ημέρες.`} {r === 1 ? 'Σου λείπει ένας συνδρομητής' : `Σου λείπουν ${r} συνδρομητές`} {partner ? 'για να εξασφαλίσεις τον δωρεάν μήνα.' : 'για να κρατήσεις το σερί σου.'}
+                    {d === 1 ? 'Ο μήνας κλείνει αύριο.' : `Ο μήνας κλείνει σε ${d} ημέρες.`} {r === 1 ? 'Σου λείπει ένας συνδρομητής' : `Σου λείπουν ${r} συνδρομητές`} {partner ? 'για να εξασφαλίσεις τον δωρεάν μήνα.' : 'για να διατηρήσεις τους συνεχόμενους μήνες σου.'}
                   </span>
                 </div>
               );
