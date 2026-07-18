@@ -121,7 +121,7 @@ body {
 
   /* Accent: το γαλάζιο (Google blue). ΜΙΑ τιμή· dim/soft/border/hover
      παράγονται από αυτό ώστε να μη ξαναδιαφωνήσουν ποτέ. */
-  --accent:        #1a73e8;   /* γαλάζιο (light) */
+  --accent:        #1a6ae8;   /* γαλάζιο (light) — AA (≥4.5:1) και ως κείμενο-σύνδεσμος πάνω στο off-white --bg-base */
   --accent-dim:    color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-hover:  #1765cc;
   --accent-text:   #ffffff;
@@ -154,7 +154,7 @@ body {
 
   --text-primary:   #202124;   /* Google exact */
   --text-secondary: #5f6368;
-  --text-tertiary:  #70757a;   /* πιο ανοιχτό: αληθινή 3η βαθμίδα, WCAG AA ~4.6:1 */
+  --text-tertiary:  #6b7075;   /* 3η βαθμίδα, WCAG AA (≥4.5:1) και πάνω στο off-white --bg-base, όχι μόνο σε λευκό */
   --text-inverse:   #ffffff;
 
   --border-subtle:  #e8eaed;   /* Google exact divider */
