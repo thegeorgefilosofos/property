@@ -21,8 +21,6 @@
 // server-side. Καθαρές, ντετερμινιστικές συναρτήσεις: καμία εξωτερική εξάρτηση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { normalizePlan } from '../billing/plans';
-
 // ── Ενεργοποίηση ────────────────────────────────────────────────────────────
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
@@ -78,18 +76,39 @@ export function isActivated(state: { propertiesAdded: number; documentsScanned: 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΠΡΟΓΡΑΜΜΑ ΙΔΙΩΤΗ
+// ΠΡΟΓΡΑΜΜΑ ΙΔΙΩΤΗ — ανά ΠΛΑΝΟ ΣΥΣΤΗΝΟΝΤΑ και ΤΙ ΕΓΙΝΕ ο νέος
+// ─────────────────────────────────────────────────────────────────────────
+//  Συστήνων ΔΩΡΕΑΝ, νέος δωρεάν:     εσύ +1 ακίνητο για 1 μήνα · νέος +1 ακίνητο για 2 μήνες
+//  Συστήνων ΙΔΙΩΤΗΣ, νέος δωρεάν:    εσύ +1 μήνας Ιδιώτης      · νέος +1 ακίνητο για 2 μήνες
+//  Νέος μπαίνει στο ΙΔΙΩΤΗΣ:          νέος 2 μήνες Ιδιώτης δωρεάν
+//  Νέος γίνεται ΕΠΑΓΓΕΛΜΑΤΙΑΣ:        εσύ +2 μήνες Ιδιώτης      · νέος 1 μήνας Επαγγελματία
+//  Όγκος: 5 νέοι ιδιώτες μέσα στον μήνα → +1 επιπλέον μήνας Ιδιώτης
 // ═══════════════════════════════════════════════════════════════════════════
-export const INDIV_PER_REFERRAL_MONTHS = 1;   // +1 μήνας Ιδιώτης ανά ενεργή σύσταση
-export const INDIV_PRO_BONUS_MONTHS = 2;      // αν ο νέος γίνει Επαγγελματίας
-export const INDIV_VOLUME_TARGET = 5;         // 5 νέοι ιδιώτες/δωρεάν τον μήνα
+export const FREE_REFERRER_SLOT_MONTHS = 1;   // δωρεάν συστήνων: +1 ακίνητο για 1 μήνα
+export const OWNER_REFERRER_MONTHS = 1;       // Ιδιώτης συστήνων: +1 μήνας Ιδιώτης
+export const INDIV_PRO_BONUS_MONTHS = 2;      // αν ο νέος γίνει Επαγγελματίας → +2 μήνες Ιδιώτης
+export const INDIV_VOLUME_TARGET = 5;         // 5 νέοι ιδιώτες μέσα στον μήνα
 export const INDIV_VOLUME_BONUS_MONTHS = 1;   // → +1 μήνας Ιδιώτης
+// Δώρο νέου χρήστη, ανά επιλογή πλάνου
+export const REFEREE_FREE_SLOT_MONTHS = 2;    // μένει δωρεάν: +1 ακίνητο για 2 μήνες
+export const REFEREE_OWNER_MONTHS = 2;        // μπαίνει Ιδιώτης: 2 μήνες δωρεάν
+export const REFEREE_AGENCY_MONTHS = 1;       // γίνεται Επαγγελματίας: 1 μήνας δωρεάν
 
-/** Ανταμοιβή ιδιώτη ανά σύσταση, ανά πλάνο του νέου χρήστη. */
-export function individualReferralReward(refereePlan: string | null | undefined): { selfMonths: number; refereeMonths: number } {
-  return normalizePlan(refereePlan) === 'agency'
-    ? { selfMonths: INDIV_PRO_BONUS_MONTHS, refereeMonths: REFEREE_TRIAL_MONTHS }
-    : { selfMonths: INDIV_PER_REFERRAL_MONTHS, refereeMonths: REFEREE_TRIAL_MONTHS };
+export type Outcome = 'free' | 'owner' | 'agency';
+export type SideReward = { months: number; isSlot: boolean; tier: 'owner' | 'agency' };
+
+/** Τι κερδίζει ο ΣΥΣΤΗΝΩΝ (ανά δικό του πλάνο + τι έγινε ο νέος). */
+export function individualReferrerReward(referrerPaying: boolean, outcome: Outcome): SideReward {
+  if (outcome === 'agency') return { months: INDIV_PRO_BONUS_MONTHS, isSlot: false, tier: 'owner' };
+  if (!referrerPaying)      return { months: FREE_REFERRER_SLOT_MONTHS, isSlot: true, tier: 'owner' };
+  return { months: OWNER_REFERRER_MONTHS, isSlot: false, tier: 'owner' };
+}
+
+/** Τι κερδίζει ο ΝΕΟΣ χρήστης (ανά επιλογή πλάνου). */
+export function refereeWelcome(outcome: Outcome): SideReward {
+  if (outcome === 'agency') return { months: REFEREE_AGENCY_MONTHS, isSlot: false, tier: 'agency' };
+  if (outcome === 'owner')  return { months: REFEREE_OWNER_MONTHS, isSlot: false, tier: 'owner' };
+  return { months: REFEREE_FREE_SLOT_MONTHS, isSlot: true, tier: 'owner' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, Badge } from '@/components/Theme';
+import { T, TT, Badge, TierBadge } from '@/components/Theme';
 import {
   referralCode, referralLink, progress,
-  REFEREE_TRIAL_MONTHS, INDIV_PER_REFERRAL_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  individualReferrerReward, refereeWelcome,
+  REFEREE_FREE_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS, REFEREE_AGENCY_MONTHS, REFEREE_OWNER_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
-  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE, PARTNER_MONTHLY_FREE_MONTHS,
+  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
 } from '@/lib/referral/referral';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -44,7 +45,7 @@ type Overview = {
   streak: number; partner: boolean;
 };
 
-export default function TabReferral({ userId, profileType }: {
+export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
 }) {
   const [origin, setOrigin] = useState('https://property-os.gr');
@@ -77,8 +78,8 @@ export default function TabReferral({ userId, profileType }: {
   }, [userId, code]);
 
   const invite = isPro
-    ? `Σου προτείνω το Property OS: οργανώνει τα οικονομικά κάθε ακινήτου και σου δίνει έτοιμα στοιχεία για τη δήλωση. Πρώτο ακίνητο δωρεάν, με ${REFEREE_TRIAL_MONTHS} μήνες δώρο: ${link}`
-    : `Οργανώνω το ακίνητό μου με το Property OS: σάρωση λογαριασμών, φορολογία, αποδόσεις, όλα σε ένα. Πρώτο ακίνητο δωρεάν και ${REFEREE_TRIAL_MONTHS} μήνες δώρο με τον σύνδεσμό μου: ${link}`;
+    ? `Σου προτείνω το Property OS: οργανώνει τα οικονομικά κάθε ακινήτου και σου δίνει έτοιμα στοιχεία για τη δήλωση. Πρώτο ακίνητο δωρεάν, με ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`
+    : `Οργανώνω το ακίνητό μου με το Property OS: σάρωση λογαριασμών, φορολογία, αποδόσεις, όλα σε ένα. Πρώτο ακίνητο δωρεάν και ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο με τον σύνδεσμό μου: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
@@ -106,13 +107,17 @@ export default function TabReferral({ userId, profileType }: {
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν φίλο ιδιοκτήτη, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο φίλος σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_TRIAL_MONTHS} μήνες δώρο, εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο, εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
   const coldStart = !!stats && stats.invites === 0;
+  const referrerPaying = plan === 'monthly' || plan === 'annual';
+  const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
+  const friendBase = refereeWelcome('free');                          // τι κερδίζει ο φίλος (μένει δωρεάν)
+  const myTier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : (isPro ? 'agency' : 'owner');
   const styleBlock = (
     <style>{`
       .ref-chip { transition: border-color .16s ${T.ease.standard}, background .16s, color .16s, transform .16s; }
@@ -166,7 +171,10 @@ export default function TabReferral({ userId, profileType }: {
 
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
-        <div style={{ ...TT.label, color: 'var(--accent)', marginBottom: 8 }}>{isPro ? 'Πρόγραμμα Συνεργατών' : 'Πρόγραμμα Πρόσκλησης'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+          <div style={{ ...TT.label, color: 'var(--accent)' }}>{isPro ? 'Πρόγραμμα Συνεργατών' : 'Πρόγραμμα Πρόσκλησης'}</div>
+          <TierBadge tier={myTier} />
+        </div>
         <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
@@ -213,13 +221,21 @@ export default function TabReferral({ userId, profileType }: {
 
           {/* Συνεργάτης */}
           <div style={{ ...TT.label, marginBottom: 12 }}>Ιδιότητα Συνεργάτη</div>
-          <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)' } : {}) }}>
+          <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
+            {partner ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <TierBadge tier="partner" showLabel={false} size={56} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης Property OS</span>
+                  <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα · οι παροχές σου:</span>
+                </div>
+              </div>
+            ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ ...TT.h2, color: partner ? 'var(--accent)' : undefined }}>{partner ? 'Είσαι Συνεργάτης Property OS' : 'Γίνε Συνεργάτης Property OS'}</span>
-              {partner
-                ? <Badge tone="accent">Ενεργός</Badge>
-                : <span style={{ ...TT.kpi, color: 'var(--accent)' }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>}
+              <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης Property OS</span>
+              <span style={{ ...TT.kpi, color: 'var(--accent)' }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
             </div>
+            )}
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
             {!partner && (
               <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
@@ -249,16 +265,16 @@ export default function TabReferral({ userId, profileType }: {
                 <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PER_REFERRAL_MONTHS} μήνας Ιδιώτης</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για κάθε φίλο που ξεκινά. Πιστώνεται αυτόματα στη συνδρομή σου.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${youBase.months} μήνας Ιδιώτης`}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot ? `δωρεάν για ${youBase.months} μήνα, για κάθε φίλο που ξεκινά.` : 'για κάθε φίλο που ξεκινά. Πιστώνεται στη συνδρομή σου.'}</div>
             </div>
             <div style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{REFEREE_TRIAL_MONTHS} μήνες δώρο</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δυνατότητες Ιδιοκτήτη δωρεάν, από την πρώτη μέρα.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+1 ακίνητο</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δωρεάν για {friendBase.months} μήνες από την πρώτη μέρα. Αν επιλέξει Ιδιώτης, κερδίζει {REFEREE_OWNER_MONTHS} μήνες δωρεάν.</div>
             </div>
           </div>
 
@@ -270,8 +286,8 @@ export default function TabReferral({ userId, profileType }: {
                 <span style={{ ...TT.h2 }}>Φέρε έναν Επαγγελματία</span>
                 {(stats?.m_pro ?? 0) >= 1 ? <Badge tone="positive">Το πέτυχες</Badge> : <span style={{ ...TT.caption }}>μπόνους</span>}
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>Ιδιώτης δωρεάν, όταν κάποιος που φέρνεις γίνει Επαγγελματίας.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες Ιδιώτης</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, όταν κάποιος που φέρνεις γίνει Επαγγελματίας — κι εκείνος παίρνει {REFEREE_AGENCY_MONTHS} μήνα Επαγγελματία δώρο.</div>
             </div>
             {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
             <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτης`} />
