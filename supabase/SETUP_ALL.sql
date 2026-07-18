@@ -497,6 +497,7 @@ begin
                 and date_trunc('month', rr.activated_at) = gs.m), 0) as cnt
       from generate_series(date_trunc('month', now()) - interval '1 month',
              date_trunc('month', now()) - interval '12 months', interval '-1 month') as gs(m)
+      order by gs.m desc
   loop
     if r.cnt >= 5 then v_streak := v_streak + 1; else exit; end if;
   end loop;
