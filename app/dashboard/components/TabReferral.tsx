@@ -3,21 +3,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, TT, Badge } from '@/components/Theme';
 import {
-  referralCode, referralLink, daysUntilExpiry,
-  REFEREE_TRIAL_MONTHS, PAID_REWARD_MONTHS, PAID_REFEREE_BONUS_MONTHS,
-  MONTHLY_CAP_AGENCY, MONTHLY_CAP_DEFAULT, MAX_ACTIVE_SLOTS,
-  MONTHLY_MILESTONE, MILESTONE_BONUS_MONTHS,
-  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
+  referralCode, referralLink, progress,
+  REFEREE_TRIAL_MONTHS, INDIV_PER_REFERRAL_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
+  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE, PARTNER_MONTHLY_FREE_MONTHS,
 } from '@/lib/referral/referral';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TabReferral — «Πρόγραμμα Συνεργατών» (επαγγελματίας) / «Πρόγραμμα Πρόσκλησης»
-// (ιδιώτης). Χτισμένο στο design system του app (T/TT tokens, surface-raised +
-// elevation για βάθος, ΕΝΑ accent-γαλάζιο κυρίως στο hover). Τρία επίπεδα:
-// (0) αξία-για-αξία ανά σύσταση, (1) μηνιαίο milestone «Οι 5 του μήνα» με μπάρα
-// προόδου, (2) ιδιότητα «Συνεργάτης». Persona-differentiated. Οικονομικά win-win:
-// όλες οι ανταμοιβές είναι αξία προϊόντος (μηδενικό οριακό κόστος), ενεργοποίηση
-// επαληθευμένη server-side, τίποτα δεν πληρώνεται αυτόματα.
+// TabReferral — δύο ΞΕΧΩΡΙΣΤΑ προγράμματα ανά προφίλ:
+//  • Ιδιώτης  → «Πρόγραμμα Πρόσκλησης»  (κοινωνικό, αξία ανά φίλο)
+//  • Επαγγελματίας → «Πρόγραμμα Συνεργατών» (εισόδημα: milestones συνδρομητών +
+//    ιδιότητα Συνεργάτη με προμήθεια). Καθένας βλέπει ΜΟΝΟ ό,τι τον αφορά.
+// Design system του app (T/TT tokens, elevation για βάθος, ένα accent στο hover).
 // ═══════════════════════════════════════════════════════════════════════════
 
 const Ic = ({ d, s = 18, c = 'currentColor', sw = 1.8 }: { d: string; s?: number; c?: string; sw?: number }) => (
@@ -30,7 +28,7 @@ const card: React.CSSProperties = {
   background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
   borderRadius: T.radius.card, boxShadow: 'var(--highlight-inset), var(--elev-1)',
 };
-const PAD = T.sp.xl; // ενιαίο padding καρτών
+const PAD = T.sp.xl;
 
 function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
   return (
@@ -40,24 +38,25 @@ function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
   );
 }
 
-export default function TabReferral({ userId, plan, profileType, activeSlots = [], activatedThisMonth = 0 }: {
-  userId: string; plan: string; profileType: 'individual' | 'professional';
-  activeSlots?: { expiresAt: string }[];
-  activatedThisMonth?: number;      // fallback πριν φορτώσουν τα δεδομένα
+type Overview = {
+  invites: number; activated: number;
+  m_pro: number; m_indiv: number; m_paid: number; m_free: number;
+  streak: number; partner: boolean;
+};
+
+export default function TabReferral({ userId, profileType }: {
+  userId: string; plan?: string; profileType: 'individual' | 'professional';
 }) {
   const [origin, setOrigin] = useState('https://property-os.gr');
   const [copied, setCopied] = useState(false);
-  const [nowIso, setNowIso] = useState('');
-  const [claim, setClaim] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
-  const [stats, setStats] = useState<{ invites: number; activated: number; this_month: number; streak: number; partner: boolean; rewards: number } | null>(null);
-  useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } setNowIso(new Date().toISOString()); }, []);
+  const [stats, setStats] = useState<Overview | null>(null);
+  const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
+  useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
 
   const code = useMemo(() => referralCode(userId), [userId]);
   const link = useMemo(() => referralLink(origin, userId), [origin, userId]);
   const isPro = profileType === 'professional';
 
-  // Καταχώρησε τον ντετερμινιστικό κωδικό ώστε οι σύνδεσμοι να είναι εξαργυρώσιμοι,
-  // και τράβα τους πραγματικούς αριθμούς (προσκλήσεις/ενεργοποιήσεις/σερί/partner).
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
@@ -65,37 +64,31 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
     (async () => {
       try {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
-        const [{ data }, { count: rewards }] = await Promise.all([
-          supabase.rpc('get_referral_overview', { p_code: code }),
-          supabase.from('referral_rewards').select('id', { count: 'exact', head: true }),
-        ]);
+        const { data } = await supabase.rpc('get_referral_overview', { p_code: code });
         if (alive && data) setStats({
-          invites: Number(data.invites) || 0,
-          activated: Number(data.activated) || 0,
-          this_month: Number(data.this_month) || 0,
-          streak: Number(data.streak) || 0,
-          partner: !!data.partner,
-          rewards: rewards || 0,
+          invites: Number(data.invites) || 0, activated: Number(data.activated) || 0,
+          m_pro: Number(data.m_pro) || 0, m_indiv: Number(data.m_indiv) || 0,
+          m_paid: Number(data.m_paid) || 0, m_free: Number(data.m_free) || 0,
+          streak: Number(data.streak) || 0, partner: !!data.partner,
         });
-      } catch { /* η καρτέλα δουλεύει και χωρίς σύνδεση: δείχνει μηδενική πρόοδο */ }
+      } catch { /* δουλεύει και χωρίς σύνδεση: δείχνει μηδενική πρόοδο */ }
     })();
     return () => { alive = false; };
   }, [userId, code]);
 
   const invite = isPro
-    ? `Σου στέλνω το Property OS για να έχεις τα οικονομικά του ακινήτου σου οργανωμένα και έτοιμα. Το πρώτο ακίνητο δωρεάν, με ${REFEREE_TRIAL_MONTHS} μήνες δώρο: ${link}`
-    : `Οργανώνω το ακίνητό μου με το Property OS: σάρωση λογαριασμών, φορολογία, αποδόσεις, όλα σε ένα. Το πρώτο ακίνητο δωρεάν και ${REFEREE_TRIAL_MONTHS} μήνες δώρο με τον σύνδεσμό μου: ${link}`;
+    ? `Σου προτείνω το Property OS: οργανώνει τα οικονομικά κάθε ακινήτου και σου δίνει έτοιμα στοιχεία για τη δήλωση. Πρώτο ακίνητο δωρεάν, με ${REFEREE_TRIAL_MONTHS} μήνες δώρο: ${link}`
+    : `Οργανώνω το ακίνητό μου με το Property OS: σάρωση λογαριασμών, φορολογία, αποδόσεις, όλα σε ένα. Πρώτο ακίνητο δωρεάν και ${REFEREE_TRIAL_MONTHS} μήνες δώρο με τον σύνδεσμό μου: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
-
-  const doClaim = async () => {
-    setClaim('saving');
+  const doClaim = async (kind: string) => {
+    setClaim(c => ({ ...c, [kind]: 'saving' }));
     try {
       const supabase = createClient();
-      const { data } = await supabase.rpc('claim_monthly_bonus', { p_code: code });
-      setClaim(data && (data as { ok?: boolean }).ok ? 'done' : 'error');
-    } catch { setClaim('error'); }
+      const { data } = await supabase.rpc('claim_referral_bonus', { p_code: code, p_kind: kind });
+      setClaim(c => ({ ...c, [kind]: data && (data as { ok?: boolean }).ok ? 'done' : 'error' }));
+    } catch { setClaim(c => ({ ...c, [kind]: 'error' })); }
   };
 
   const shares = [
@@ -104,51 +97,72 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
     { label: 'Telegram', href: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(invite)}`, d: 'M21 4 3 11l5 2 2 6 3-4 5 4z' },
   ];
 
-  // Ανταμοιβή ανά σύσταση — από τους πραγματικούς κανόνες (αξία προϊόντος).
-  const paid = isPro || plan !== 'free';
-  const youMonths = PAID_REWARD_MONTHS;
-  const youHeadline = paid ? `+${youMonths} ${youMonths === 1 ? 'μήνας' : 'μήνες'}` : '+1 ακίνητο';
-  const youDetail = isPro
-    ? `Επαγγελματία δωρεάν για κάθε ενεργό πελάτη, ${PAID_REWARD_MONTHS + PAID_REFEREE_BONUS_MONTHS} αν γίνει κι αυτός συνδρομητής. Πιστώνεται στη συνδρομή σου, έως ${MONTHLY_CAP_AGENCY} τον μήνα.`
-    : plan === 'free'
-      ? `για κάθε φίλο που ξεκινά, έως ${MAX_ACTIVE_SLOTS} ενεργές θέσεις μαζί. Αν ο φίλος γίνει Ιδιοκτήτης, κερδίζεις έναν μήνα Ιδιοκτήτη δωρεάν. Έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`
-      : `Ιδιοκτήτη δωρεάν ανά φίλο, ${PAID_REWARD_MONTHS + PAID_REFEREE_BONUS_MONTHS} αν ο φίλος γίνει κι αυτός Ιδιοκτήτης. Πιστώνεται στη συνδρομή σου, έως ${MONTHLY_CAP_DEFAULT} τον μήνα.`;
+  const steps = isPro
+    ? [
+        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
+        { n: '2', t: 'Ο πελάτης σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Χτίζεις εισόδημα', d: 'Κερδίζεις δωρεάν μήνες, μπόνους και — με σταθερότητα — προμήθεια.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
+      ]
+    : [
+        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν φίλο ιδιοκτήτη, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
+        { n: '2', t: 'Ο φίλος σου ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_TRIAL_MONTHS} μήνες δώρο, εσύ έναν μήνα Ιδιώτης.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+      ];
 
-  const steps = [
-    { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: `Σε έναν ${isPro ? 'πελάτη' : 'φίλο'} ιδιοκτήτη, όπου σε βολεύει.`, d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-    { n: '2', t: `Ο ${isPro ? 'πελάτης' : 'φίλος'} σου ξεκινά`, d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-    { n: '3', t: 'Κερδίζετε και οι δύο', d: `Εκείνος παίρνει ${REFEREE_TRIAL_MONTHS} μήνες δώρο, εσύ την ανταμοιβή σου.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
-  ];
-
-  const slotsView = nowIso ? activeSlots.map(s => ({ days: daysUntilExpiry(s.expiresAt, nowIso) })).filter(s => s.days > 0).sort((a, b) => a.days - b.days) : [];
-  const thisMonth = stats?.this_month ?? activatedThisMonth;
-  const mCount = Math.max(0, Math.floor(thisMonth));
-  const mReached = mCount >= MONTHLY_MILESTONE;
-  const mRemaining = Math.max(0, MONTHLY_MILESTONE - mCount);
-  const mPct = Math.min(100, (mCount / MONTHLY_MILESTONE) * 100);
+  const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
-  const partner = stats?.partner ?? false;
-  const coldStart = !!stats && mCount === 0 && streak === 0 && (stats.invites === 0);
+  const coldStart = !!stats && stats.invites === 0;
+  const styleBlock = (
+    <style>{`
+      .ref-chip { transition: border-color .16s ${T.ease.standard}, background .16s, color .16s, transform .16s; }
+      .ref-chip:hover { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); transform: translateY(-1px); }
+      .ref-chip:hover svg { stroke: var(--accent); }
+      .ref-step { transition: transform .18s ${T.ease.standard}, box-shadow .18s, border-color .18s; }
+      .ref-step:hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--accent-border); }
+      .ref-step:hover .ref-step-ic { color: var(--accent); }
+      .ref-step:hover .ref-step-n { background: var(--accent-dim); color: var(--accent); }
+      .ref-cta { transition: filter .15s, transform .15s; }
+      .ref-cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
+      .ref-linkbox { transition: border-color .16s ${T.ease.standard}; }
+      .ref-linkbox:hover { border-color: var(--accent-border); }
+      @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover { transform: none; } }
+    `}</style>
+  );
 
-  const sectionGap = T.sp.xl;
+  // ── Κάρτα μηνιαίου milestone με μπάρα + διεκδίκηση ──
+  const Milestone = ({ title, count, target, kind, reward }: { title: string; count: number; target: number; kind: string; reward: string }) => {
+    const pr = progress(count, target);
+    const st = claim[kind] || 'idle';
+    return (
+      <div style={{ ...card, padding: PAD }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ ...TT.h2 }}>{title}</span>
+          <span style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : 'var(--accent)' }}>{pr.count}<span style={{ ...TT.caption }}> / {target}</span></span>
+        </div>
+        <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
+        <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
+          {pr.reached
+            ? `Το κατάφερες! Κέρδισες ${reward}.`
+            : pr.count === 0
+              ? `Φέρε ${target} και κερδίζεις ${reward}.`
+              : `Σου ${pr.remaining === 1 ? 'λείπει' : 'λείπουν'} ${pr.remaining} ακόμη για ${reward}.`}
+        </p>
+        {pr.reached && (
+          <div style={{ marginTop: 12 }}>
+            {st === 'done'
+              ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Καταχωρήθηκε — πιστώνεται στη συνδρομή σου.</span>
+              : <button onClick={() => doClaim(kind)} disabled={st === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: st === 'saving' ? 'default' : 'pointer', opacity: st === 'saving' ? 0.6 : 1 }}>{st === 'saving' ? 'Καταχώρηση…' : 'Διεκδίκησε το δώρο'}</button>}
+            {st === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι πήγε στραβά. Δοκίμασε ξανά.</div>}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
-      <style>{`
-        .ref-chip { transition: border-color .16s ${T.ease.standard}, background .16s, color .16s, transform .16s; }
-        .ref-chip:hover { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); transform: translateY(-1px); }
-        .ref-chip:hover svg { stroke: var(--accent); }
-        .ref-step { transition: transform .18s ${T.ease.standard}, box-shadow .18s, border-color .18s; }
-        .ref-step:hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--accent-border); }
-        .ref-step:hover .ref-step-ic { color: var(--accent); }
-        .ref-step:hover .ref-step-n { background: var(--accent-dim); color: var(--accent); }
-        .ref-cta { transition: filter .15s, transform .15s; }
-        .ref-cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
-        .ref-linkbox { transition: border-color .16s ${T.ease.standard}; }
-        .ref-linkbox:hover { border-color: var(--accent-border); }
-        @media (prefers-reduced-motion: reduce) { .ref-chip:hover, .ref-step:hover, .ref-cta:hover { transform: none; } }
-      `}</style>
+      {styleBlock}
 
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
@@ -156,13 +170,13 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
         <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
-            ? 'Κάθε ιδιοκτήτης-πελάτης που φέρνεις οργανώνεται και σου δίνει έτοιμα στοιχεία, ενώ εσύ κερδίζεις δωρεάν μήνες και χτίζεις προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
-            : 'Βοήθησέ τον να βάλει το ακίνητό του σε τάξη. Κάθε φίλος που ξεκινά κερδίζει δώρο, το ίδιο κι εσύ.'}
+            ? 'Κάθε ιδιοκτήτης-πελάτης που φέρνεις οργανώνεται και σου δίνει έτοιμα στοιχεία, ενώ εσύ κερδίζεις δωρεάν μήνες και — με σταθερότητα — γίνεσαι Συνεργάτης με προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
+            : 'Βοήθησέ τον να βάλει το ακίνητό του σε τάξη. Κάθε φίλος που ξεκινά χαρίζει έναν μήνα σε σένα και δώρο σε εκείνον.'}
         </p>
       </div>
 
       {/* ── Σύνδεσμος πρόσκλησης (focal, elevated) ── */}
-      <div style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', padding: 'clamp(18px, 2.4vw, 26px)', marginBottom: sectionGap }}>
+      <div style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', padding: 'clamp(18px, 2.4vw, 26px)', marginBottom: T.sp.xl }}>
         <div style={{ ...TT.label, marginBottom: 12 }}>Ο σύνδεσμός σου</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="ref-linkbox" style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '11px 14px', minHeight: 44, boxSizing: 'border-box', boxShadow: 'var(--well-inset)' }}>
@@ -188,114 +202,86 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
         </div>
       </div>
 
-      {/* ── Η πρόοδός σου: μηνιαίο milestone + δρόμος για Συνεργάτη ── */}
-      {!coldStart && <div style={{ ...TT.label, marginBottom: 12 }}>Η πρόοδός σου</div>}
-      {coldStart ? (
-        <div style={{ ...card, padding: PAD, marginBottom: sectionGap, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'var(--text-tertiary)' }}><Ic d="M13 2 3 14h9l-1 8 10-12h-9z" s={18} /></span>
-          <span style={{ ...TT.bodySm }}>Μόλις φέρεις τον πρώτο σου ιδιοκτήτη, εδώ θα βλέπεις την πρόοδό σου προς το μηνιαίο μπόνους και την ιδιότητα Συνεργάτη.</span>
-        </div>
-      ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: sectionGap }}>
-
-        {/* Μηνιαίο milestone «Οι 5 του μήνα» */}
-        <div style={{ ...card, padding: PAD }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ ...TT.h2 }}>Οι 5 του μήνα</span>
-            <span style={{ ...TT.kpi, color: mReached ? 'var(--positive)' : 'var(--accent)' }}>{mCount}<span style={{ ...TT.caption }}> / {MONTHLY_MILESTONE}</span></span>
+      {isPro ? (
+        /* ═══ ΕΠΑΓΓΕΛΜΑΤΙΑΣ — milestones συνδρομητών + Συνεργάτης ═══ */
+        <>
+          <div style={{ ...TT.label, marginBottom: 12 }}>Οι στόχοι του μήνα</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+            <Milestone title="Συνδρομητές" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward={`${PRO_PAID_BONUS_MONTHS} μήνες Επαγγελματία`} />
+            <Milestone title="Δωρεάν χρήστες" count={stats?.m_free ?? 0} target={PRO_FREE_TARGET} kind="pro_free" reward={`${PRO_FREE_BONUS_MONTHS} μήνα Επαγγελματία`} />
           </div>
-          <Bar pct={mPct} tone={mReached ? 'var(--positive)' : 'var(--accent)'} />
-          <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
-            {mReached
-              ? `Το κατάφερες! Κέρδισες ${MILESTONE_BONUS_MONTHS} μήνες Επαγγελματία δωρεάν.`
-              : mCount === 0
-                ? `Φέρε ${MONTHLY_MILESTONE} ενεργές συστάσεις αυτόν τον μήνα και κερδίζεις ${MILESTONE_BONUS_MONTHS} μήνες Επαγγελματία δωρεάν.`
-                : `Φέρε ${mRemaining} ${mRemaining === 1 ? 'ακόμη ενεργή σύσταση' : 'ακόμη ενεργές συστάσεις'} και κερδίζεις ${MILESTONE_BONUS_MONTHS} μήνες Επαγγελματία δωρεάν.`}
-          </p>
-          {mReached && (
-            <div style={{ marginTop: 12 }}>
-              {claim === 'done'
-                ? <span style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Καταχωρήθηκε — θα εφαρμοστεί στη συνδρομή σου.</span>
-                : <button onClick={doClaim} disabled={claim === 'saving'} className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: claim === 'saving' ? 'default' : 'pointer', opacity: claim === 'saving' ? 0.6 : 1 }}>{claim === 'saving' ? 'Καταχώρηση…' : `Διεκδίκησε ${MILESTONE_BONUS_MONTHS} μήνες`}</button>}
-              {claim === 'error' && <div style={{ ...TT.caption, color: 'var(--warning)', marginTop: 8 }}>Κάτι πήγε στραβά. Δοκίμασε ξανά.</div>}
+
+          {/* Συνεργάτης */}
+          <div style={{ ...TT.label, marginBottom: 12 }}>Ιδιότητα Συνεργάτη</div>
+          <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)' } : {}) }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ ...TT.h2, color: partner ? 'var(--accent)' : undefined }}>{partner ? 'Είσαι Συνεργάτης Property OS' : 'Γίνε Συνεργάτης Property OS'}</span>
+              {partner
+                ? <Badge tone="accent">Ενεργός</Badge>
+                : <span style={{ ...TT.kpi, color: 'var(--accent)' }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>}
             </div>
-          )}
-        </div>
-
-        {/* Δρόμος για Συνεργάτη (streak 3 ολοκληρωμένων μηνών) */}
-        <div style={{ ...card, padding: PAD, ...(partner ? { borderColor: 'var(--accent-border)' } : {}) }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ ...TT.h2, color: partner ? 'var(--accent)' : undefined }}>{partner ? 'Είσαι Συνεργάτης' : 'Γίνε Συνεργάτης'}</span>
-            {partner
-              ? <Badge tone="accent">Ενεργός</Badge>
-              : <span style={{ ...TT.kpi, color: 'var(--accent)' }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>}
-          </div>
-          {partner ? (
-            <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, paddingLeft: 0, listStyle: 'none' }}>
-              {[`${PARTNER_COMMISSION_RATE * 100}% προμήθεια στις συνδρομές που φέρνεις`, 'Μόνιμο δωρεάν Επαγγελματίας', 'Σήμα Συνεργάτη & προτεραιότητα υποστήριξης'].map((t, i) => (
+            {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
+            {!partner && (
+              <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
+                Πιάσε τους {PRO_PAID_TARGET} συνδρομητές για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνεσαι επίσημος Συνεργάτης. Οι παροχές:
+              </p>
+            )}
+            <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
+              {[
+                `${PARTNER_COMMISSION_RATE * 100}% επαναλαμβανόμενη προμήθεια στις συνδρομές που φέρνεις`,
+                `Κάθε μήνας που πιάνεις τον στόχο, ο επόμενος δωρεάν Επαγγελματίας`,
+                'Σήμα Συνεργάτη & προτεραιότητα στην επικοινωνία και την εξυπηρέτηση',
+              ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
+                  <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
                 </li>
               ))}
             </ul>
-          ) : (
-            <>
-              <Bar pct={streakPct} />
-              <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
-                Πέτυχε το milestone για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνεσαι επίσημος Συνεργάτης: επαναλαμβανόμενη προμήθεια {PARTNER_COMMISSION_RATE * 100}% στις συνδρομές που φέρνεις, μόνιμο δωρεάν Επαγγελματίας, σήμα και προτεραιότητα.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* ── Κερδισμένες θέσεις με αντίστροφη μέτρηση ── */}
-      {slotsView.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: sectionGap }}>
-          {slotsView.map((s, i) => {
-            const urgent = s.days <= 7;
-            const tone = urgent ? 'var(--warning)' : 'var(--accent)';
-            return (
-              <div key={i} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderColor: `color-mix(in srgb, ${tone} 30%, transparent)` }}>
-                <div style={{ width: 36, height: 36, borderRadius: T.radius.inner, background: `color-mix(in srgb, ${tone} 12%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Ic d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" s={18} c={tone} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ ...TT.h2, fontSize: 13 }}>Δωρεάν θέση ακινήτου · Λήγει σε {s.days} {s.days === 1 ? 'ημέρα' : 'ημέρες'}</div>
-                  <div style={{ ...TT.bodySm, marginTop: 2 }}>Προσκάλεσε άλλον έναν ιδιοκτήτη για να την κρατήσεις ζωντανή.</div>
-                </div>
-                <span style={{ ...TT.kpi, color: tone }}>{s.days}</span>
+          </div>
+        </>
+      ) : (
+        /* ═══ ΙΔΙΩΤΗΣ — αξία ανά φίλο + μηνιαίο μπόνους όγκου ═══ */
+        <>
+          <div style={{ ...TT.label, marginBottom: 12 }}>Τι κερδίζετε σε κάθε πρόσκληση</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+            <div style={{ ...card, padding: PAD }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
+                <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PER_REFERRAL_MONTHS} μήνας Ιδιώτης</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για κάθε φίλο που ξεκινά. Πιστώνεται αυτόματα στη συνδρομή σου.</div>
+            </div>
+            <div style={{ ...card, padding: PAD }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
+                <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
+              </div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{REFEREE_TRIAL_MONTHS} μήνες δώρο</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δυνατότητες Ιδιοκτήτη δωρεάν, από την πρώτη μέρα.</div>
+            </div>
+          </div>
 
-      {/* ── Οι ανταμοιβές: εσύ | ο φίλος/πελάτης σου (συμμετρικά, ουδέτερα) ── */}
-      <div style={{ ...TT.label, marginBottom: 12 }}>Ανταμοιβή ανά σύσταση</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: sectionGap }}>
-        <div style={{ ...card, padding: PAD }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
-            <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
+          <div style={{ ...TT.label, marginBottom: 12 }}>Έξτρα μπόνους</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+            {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
+            <div style={{ ...card, padding: PAD }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ ...TT.h2 }}>Φέρε έναν Επαγγελματία</span>
+                {(stats?.m_pro ?? 0) >= 1 ? <Badge tone="positive">Το πέτυχες</Badge> : <span style={{ ...TT.caption }}>μπόνους</span>}
+              </div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{INDIV_PRO_BONUS_MONTHS} μήνες</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>Ιδιώτης δωρεάν, όταν κάποιος που φέρνεις γίνει Επαγγελματίας.</div>
+            </div>
+            {/* Μπόνους όγκου: 5 νέοι τον μήνα */}
+            <Milestone title="5 νέοι τον μήνα" count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${INDIV_VOLUME_BONUS_MONTHS} επιπλέον μήνα Ιδιώτης`} />
           </div>
-          <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youHeadline}</div>
-          <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youDetail}</div>
-        </div>
-        <div style={{ ...card, padding: PAD }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
-            <span style={{ ...TT.label }}>{isPro ? 'Ο πελάτης σου' : 'Ο φίλος σου'} κερδίζει</span>
-          </div>
-          <div style={{ ...TT.displaySm, marginBottom: 6 }}>{REFEREE_TRIAL_MONTHS} μήνες</div>
-          <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>δυνατότητες Ιδιοκτήτη δωρεάν, από την πρώτη μέρα.</div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* ── Πώς λειτουργεί: τρία βήματα ── */}
       <div style={{ ...TT.label, marginBottom: 12 }}>Πώς λειτουργεί</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: sectionGap }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
         {steps.map((st, i) => (
           <div key={i} className="ref-step" style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -311,7 +297,7 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
       {/* ── Κατάσταση προσκλήσεων ── */}
       <div style={{ ...TT.label, marginBottom: 12 }}>Οι προσκλήσεις σου</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 14 }}>
-        {[['Προσκλήσεις', stats?.invites ?? 0], ['Ενεργοποιήθηκαν', stats?.activated ?? 0], ['Ανταμοιβές', stats?.rewards ?? 0]].map(([l, v], i) => (
+        {[['Προσκλήσεις', stats?.invites ?? 0], ['Ενεργοποιήθηκαν', stats?.activated ?? 0], [isPro ? 'Συνδρομητές (μήνας)' : 'Νέοι (μήνας)', isPro ? (stats?.m_paid ?? 0) : (stats?.m_indiv ?? 0)]].map(([l, v], i) => (
           <div key={i} className="kpi-card">
             <div className="kpi-label">{l}</div>
             <div className="kpi-value">{v}</div>
@@ -320,7 +306,9 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
       </div>
 
       <p style={{ ...TT.caption, lineHeight: 1.6, maxWidth: 640 }}>
-        Η ανταμοιβή κλειδώνει όταν ο {isPro ? 'πελάτης' : 'φίλος'} σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις, χωρίς κόστος για κανέναν.
+        {coldStart ? 'Μόλις ενεργοποιηθεί ο πρώτος σου, η πρόοδος ξεκινά να μετρά. ' : ''}
+        Κάθε ανταμοιβή κλειδώνει όταν ο {isPro ? 'πελάτης' : 'φίλος'} σου προσθέσει ακίνητο και σαρώσει το πρώτο του έγγραφο — έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
+        {isPro ? ' Για τη φορολογική μεταχείριση της προμήθειας, ρώτησε τον λογιστή σου.' : ''}
       </p>
     </div>
   );

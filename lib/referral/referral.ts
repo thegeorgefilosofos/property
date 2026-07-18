@@ -1,51 +1,32 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Referral — ΜΙΑ πηγή αλήθειας για το πρόγραμμα παραπομπών «ιδιοκτήτες φέρνουν
-// ιδιοκτήτες». Μοντέλο αξίας-για-αξία (τύπου Dropbox), ΟΧΙ μετρητά: σχεδόν
-// μηδενικό οριακό κόστος, μη ζημιογόνο, χτίζει property culture.
+// Referral — ΜΙΑ πηγή αλήθειας για το πρόγραμμα παραπομπών. Δύο ΞΕΧΩΡΙΣΤΑ
+// προγράμματα ανά προφίλ, ώστε ο καθένας να βλέπει ό,τι τον αφορά:
 //
-// Υβριδικός κανόνας ανταμοιβής, ανά ΠΡΟΦΙΛ προσκαλούντος και ΤΙ έφερε:
-//   • Δωρεάν χρήστης → φίλο (δωρεάν/ιδιώτη):  +1 θέση ακινήτου για 1 μήνα
-//                    → φίλο επαγγελματία:      1 μήνας «Ιδιοκτήτη» δωρεάν
-//   • Ιδιοκτήτης (paid) → φίλο:                1 μήνας δωρεάν
-//                       → φίλο επαγγελματία:    2 μήνες (μπόνους υψηλής αξίας)
-//   • Επαγγελματίας → φίλο:                     1 μήνας δωρεάν
-//                    → φίλο επαγγελματία:        2 μήνες
-//     Οι επαγγελματίες έχουν πολύ υψηλότερο μηνιαίο πλαφόν, ώστε το πρόγραμμα
-//     να είναι ιδιαίτερα δελεαστικό (φέρνουν πολλούς πελάτες-ιδιοκτήτες).
-//   • Ο φίλος που έρχεται → πάντα 2 μήνες δυνατοτήτων «Ιδιοκτήτη» δωρεάν.
+// ΙΔΙΩΤΗΣ / ΔΩΡΕΑΝ («Πρόγραμμα Πρόσκλησης» — μόνο σε ιδιώτες):
+//   • Ανά ενεργή σύσταση: +1 μήνας Ιδιώτης σε σένα, δώρο καλωσορίσματος στον νέο.
+//   • Αν φέρεις κάποιον που γίνεται Επαγγελματίας: +2 μήνες Ιδιώτης.
+//   • 5 νέοι ιδιώτες/δωρεάν μέσα στον μήνα: +1 επιπλέον μήνας Ιδιώτης.
 //
-// Η θέση του δωρεάν χρήστη είναι ΠΡΟΣΩΡΙΝΗ (λήγει), όχι μόνιμη· έτσι το κίνητρο
-// μένει ζωντανό και δεν «τρώει» το πληρωμένο tier.
+// ΕΠΑΓΓΕΛΜΑΤΙΑΣ («Πρόγραμμα Συνεργατών» — μόνο σε επαγγελματίες):
+//   • 5 ΣΥΝΔΡΟΜΗΤΕΣ (Ιδιώτης/Επαγγελματίας) μέσα στον μήνα: +2 μήνες Επαγγελματία.
+//   • 10 δωρεάν χρήστες μέσα στον μήνα: +1 μήνας Επαγγελματία.
+//   • ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ (σερί): 5 συνδρομητές για 3 συνεχόμενους μήνες →
+//       – 20% επαναλαμβανόμενη προμήθεια στις συνδρομές που φέρνει
+//       – κάθε μήνας που πιάνει τον στόχο → ο επόμενος μήνας δωρεάν Επαγγελματίας
+//       – σήμα Συνεργάτη + προτεραιότητα στην επικοινωνία & εξυπηρέτηση
 //
-// Ασφαλιστικές δικλείδες (μη ζημιογόνο, μη gameable):
-//   • Ανταμοιβή ΜΟΝΟ στην ΕΝΕΡΓΟΠΟΙΗΣΗ (ακίνητο + 1 σάρωση), όχι στην εγγραφή.
-//   • Μηνιαίο πλαφόν ανά προφίλ. Μπλοκ αυτο-παραπομπής με id, email, ΤΗΛΕΦΩΝΟ
-//     και κοινή συσκευή.
-//
-// Καθαρές, ντετερμινιστικές συναρτήσεις: καμία εξωτερική εξάρτηση/αποθήκευση,
-// τίποτα τυχαίο. Η ανίχνευση ενεργοποίησης και η εγγραφή στη βάση γίνονται στο
-// app· εδώ ζει μόνο η λογική/οι κανόνες.
+// Ασφάλεια / οικονομικά: όλα ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ (μηδενικό οριακό κόστος, όχι μετρητά)·
+// τα «πληρωμένα» milestones μετρούν μόνο ΣΥΝΔΡΟΜΗΤΕΣ (αυτοχρηματοδοτούνται)· η
+// ανταμοιβή κλειδώνει ΜΟΝΟ στην ΕΝΕΡΓΟΠΟΙΗΣΗ (ακίνητο + 1 σάρωση), επαληθευμένη
+// server-side. Καθαρές, ντετερμινιστικές συναρτήσεις: καμία εξωτερική εξάρτηση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { normalizePlan, planLimit, type PlanId } from '../billing/plans';
+import { normalizePlan } from '../billing/plans';
 
-// ── Παράμετροι προγράμματος (Φάση 1· αναπροσαρμόζονται με δεδομένα) ──────────
-export const REFEREE_TRIAL_MONTHS = 2;   // δώρο στον νέο χρήστη
-export const SLOT_REWARD_MONTHS = 1;     // διάρκεια της κερδισμένης θέσης (δωρεάν)
-export const PAID_REWARD_MONTHS = 1;         // βασικό δώρο μήνα (πληρωμένος)
-export const PAID_REFEREE_BONUS_MONTHS = 1;  // μπόνους όταν ο φίλος γίνεται συνδρομητής (Ιδιοκτήτης/Επαγγελματίας)
-export const MAX_ACTIVE_SLOTS = 3;       // πλαφόν ΕΝΕΡΓΩΝ κερδισμένων θέσεων
-export const MONTHLY_CAP_DEFAULT = 5;    // ανταμοιβές/μήνα (δωρεάν/ιδιοκτήτης)
-export const MONTHLY_CAP_AGENCY = 20;    // ανταμοιβές/μήνα (επαγγελματίας)
+// ── Ενεργοποίηση ────────────────────────────────────────────────────────────
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
-
-export type ReferralStatus = 'pending' | 'activated' | 'rewarded' | 'blocked';
-
-export type ReferrerReward =
-  | { kind: 'slot'; slots: number; months: number }
-  | { kind: 'free_month'; months: number }
-  | { kind: 'none'; reason: 'cap_reached' | 'slots_maxed' };
+export const REFEREE_TRIAL_MONTHS = 2;   // δώρο καλωσορίσματος στον νέο χρήστη
 
 // ── Κωδικός & σύνδεσμος πρόσκλησης ──────────────────────────────────────────
 function fnv1a(str: string): number {
@@ -91,140 +72,71 @@ export function isValidReferral(referrerId: string, refereeId: string, refereeIs
   return !!referrerId && !!refereeId && referrerId !== refereeId && refereeIsNew;
 }
 
-// ── Πλαφόν μήνα ανά προφίλ ──────────────────────────────────────────────────
-export function monthlyCapFor(planId: string | null | undefined): number {
-  return normalizePlan(planId) === 'agency' ? MONTHLY_CAP_AGENCY : MONTHLY_CAP_DEFAULT;
-}
-export function withinMonthlyCap(planId: string | null | undefined, rewardsThisMonth: number): boolean {
-  return rewardsThisMonth < monthlyCapFor(planId);
-}
-
-// ── Ενεργοποίηση: η ανταμοιβή «κλειδώνει» μόνο εδώ ──────────────────────────
+/** Η σύσταση «κλειδώνει» μόνο εδώ: ο νέος πρόσθεσε ακίνητο & σάρωσε έγγραφο. */
 export function isActivated(state: { propertiesAdded: number; documentsScanned: number }): boolean {
   return state.propertiesAdded >= ACTIVATION_MIN_PROPERTIES && state.documentsScanned >= ACTIVATION_MIN_DOCUMENTS;
 }
 
-// ── Ανταμοιβή προσκαλούντος: πίνακας (προφίλ προσκαλούντος × τι έφερε) ───────
-export function referrerRewardFor(
-  referrerPlan: string | null | undefined,
-  refereePlan: string | null | undefined,
-  activeSlots: number,
-  rewardsThisMonth: number,
-): ReferrerReward {
-  if (!withinMonthlyCap(referrerPlan, rewardsThisMonth)) return { kind: 'none', reason: 'cap_reached' };
-  const rp: PlanId = normalizePlan(referrerPlan);
-  const rp2: PlanId = normalizePlan(refereePlan);
-  const paidReferee = rp2 === 'owner' || rp2 === 'agency';   // ο φίλος έγινε συνδρομητής
+// ═══════════════════════════════════════════════════════════════════════════
+// ΠΡΟΓΡΑΜΜΑ ΙΔΙΩΤΗ
+// ═══════════════════════════════════════════════════════════════════════════
+export const INDIV_PER_REFERRAL_MONTHS = 1;   // +1 μήνας Ιδιώτης ανά ενεργή σύσταση
+export const INDIV_PRO_BONUS_MONTHS = 2;      // αν ο νέος γίνει Επαγγελματίας
+export const INDIV_VOLUME_TARGET = 5;         // 5 νέοι ιδιώτες/δωρεάν τον μήνα
+export const INDIV_VOLUME_BONUS_MONTHS = 1;   // → +1 μήνας Ιδιώτης
 
-  if (rp === 'free') {
-    // Έφερε πληρωμένο χρήστη → μήνας Ιδιοκτήτη· αλλιώς προσωρινή θέση ακινήτου.
-    if (paidReferee) return { kind: 'free_month', months: PAID_REWARD_MONTHS };
-    if (activeSlots >= MAX_ACTIVE_SLOTS) return { kind: 'none', reason: 'slots_maxed' };
-    return { kind: 'slot', slots: 1, months: SLOT_REWARD_MONTHS };
-  }
-  // Πληρωμένοι (owner/agency): 1 μήνας ανά φίλο, 2 αν ο φίλος έγινε συνδρομητής.
-  return { kind: 'free_month', months: PAID_REWARD_MONTHS + (paidReferee ? PAID_REFEREE_BONUS_MONTHS : 0) };
+/** Ανταμοιβή ιδιώτη ανά σύσταση, ανά πλάνο του νέου χρήστη. */
+export function individualReferralReward(refereePlan: string | null | undefined): { selfMonths: number; refereeMonths: number } {
+  return normalizePlan(refereePlan) === 'agency'
+    ? { selfMonths: INDIV_PRO_BONUS_MONTHS, refereeMonths: REFEREE_TRIAL_MONTHS }
+    : { selfMonths: INDIV_PER_REFERRAL_MONTHS, refereeMonths: REFEREE_TRIAL_MONTHS };
 }
 
-/** Το δώρο του νέου χρήστη: δοκιμή δυνατοτήτων «Ιδιοκτήτη». */
-export function refereeReward(): { kind: 'free_month'; months: number } {
-  return { kind: 'free_month', months: REFEREE_TRIAL_MONTHS };
+// ═══════════════════════════════════════════════════════════════════════════
+// ΠΡΟΓΡΑΜΜΑ ΕΠΑΓΓΕΛΜΑΤΙΑ
+// ═══════════════════════════════════════════════════════════════════════════
+export const PRO_PAID_TARGET = 5;             // 5 συνδρομητές/μήνα
+export const PRO_PAID_BONUS_MONTHS = 2;       // → 2 μήνες Επαγγελματία
+export const PRO_FREE_TARGET = 10;            // 10 δωρεάν χρήστες/μήνα
+export const PRO_FREE_BONUS_MONTHS = 1;       // → 1 μήνας Επαγγελματία
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ (σερί επαγγελματία στους συνδρομητές)
+// ═══════════════════════════════════════════════════════════════════════════
+export const STREAK_TARGET_MONTHS = 3;        // συνεχόμενοι μήνες με PRO_PAID_TARGET συνδρομητές
+export const PARTNER_COMMISSION_RATE = 0.20;  // % επί των συνδρομών που φέρνει
+export const PARTNER_MONTHLY_FREE_MONTHS = 1; // κάθε επιτυχημένος μήνας → επόμενος δωρεάν
+
+/** Γενική πρόοδος «X/target» για τις μπάρες. */
+export function progress(count: number, target: number): { count: number; target: number; remaining: number; reached: boolean; pct: number } {
+  const c = Math.max(0, Math.floor(count || 0));
+  const t = Math.max(1, target);
+  return { count: c, target: t, remaining: Math.max(0, t - c), reached: c >= t, pct: Math.min(100, (c / t) * 100) };
 }
 
-// ── Ενεργές θέσεις (με λήξη) & πραγματικό όριο ακινήτων ─────────────────────
-/** Πόσες κερδισμένες θέσεις είναι ακόμη ενεργές (μη ληγμένες) τη δεδομένη στιγμή. */
-export function countActiveSlots(grants: { expiresAt: string | null }[], nowIso: string): number {
-  const now = Date.parse(nowIso);
+/** Τρέχον σερί: συνεχόμενοι ΤΕΛΕΥΤΑΙΟΙ μήνες με ≥ PRO_PAID_TARGET ΣΥΝΔΡΟΜΗΤΕΣ.
+ *  paidMonthlyCounts: συνδρομητές-συστάσεις ανά μήνα, από παλιότερο → πιο πρόσφατο. */
+export function currentStreak(paidMonthlyCounts: number[]): number {
   let n = 0;
-  for (const g of grants) {
-    if (g.expiresAt === null) { n++; continue; }        // μόνιμη (legacy)
-    if (Date.parse(g.expiresAt) > now) n++;
-  }
-  return n;
-}
-
-/** Μέρες μέχρι τη λήξη μιας κερδισμένης θέσης (0 αν έληξε). Τροφοδοτεί το
- *  κουτάκι αντίστροφης μέτρησης «Λήγει σε X ημέρες» που εθίζει σε νέα πρόσκληση. */
-export function daysUntilExpiry(expiresAt: string, nowIso: string): number {
-  const ms = Date.parse(expiresAt) - Date.parse(nowIso);
-  return ms <= 0 ? 0 : Math.ceil(ms / 86_400_000);
-}
-
-export function effectiveMaxProperties(planId: string | null | undefined, activeSlots: number): number {
-  const base = planLimit(planId);
-  if (!isFinite(base)) return Infinity;
-  return base + Math.max(0, Math.min(activeSlots, MAX_ACTIVE_SLOTS));
-}
-
-/** Μπορεί να προσθέσει ακόμη ένα ακίνητο, λαμβάνοντας υπόψη ΕΝΕΡΓΕΣ θέσεις. */
-export function canAddWithReferrals(planId: string | null | undefined, activeSlots: number, currentCount: number): boolean {
-  return currentCount < effectiveMaxProperties(planId, activeSlots);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ΕΠΙΠΕΔΟ 1 — «Οι 5 του μήνα» (μηνιαίο milestone με μπόνους)
-// ─────────────────────────────────────────────────────────────────────────
-// Αντιγράφει τη μηχανική Revolut/Wise: μπάρα προόδου «X/5» που εθίζει, και
-// ένα ουσιαστικό μπόνους όταν φτάσεις τις 5 ΕΝΕΡΓΕΣ συστάσεις μέσα σε έναν
-// ημερολογιακό μήνα. Οικονομικά: 5 ενεργοποιημένοι χρήστες = εξαιρετικά φθηνό
-// CAC (πολύ κάτω από κάθε διαφήμιση), αφού είναι ήδη πραγματικοί, ενεργοί.
-// Το μπόνους είναι ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ (μήνες Επαγγελματία), ΟΧΙ μετρητά: μηδενικό
-// οριακό κόστος για την Property OS, δεν «μυρίζει» κουπόνι σούπερ-μάρκετ, και
-// δεν δημιουργεί ταμειακή έκθεση/φοροτεχνικό βάρος σε ιδιώτες. Κερδίζουν και οι
-// δύο: ο συστήνων παίρνει το κορυφαίο πλάνο δωρεάν, εμείς πραγματικούς χρήστες.
-// ═══════════════════════════════════════════════════════════════════════════
-export const MONTHLY_MILESTONE = 5;          // ενεργές συστάσεις/μήνα για μπόνους
-export const MILESTONE_BONUS_MONTHS = 6;     // μήνες Επαγγελματία δωρεάν (αξία προϊόντος)
-
-export function qualifiesMonthlyBonus(activatedThisMonth: number): boolean {
-  return activatedThisMonth >= MONTHLY_MILESTONE;
-}
-
-/** Πρόοδος προς το μηνιαίο μπόνους (για την μπάρα «X/5»). */
-export function monthlyProgress(activatedThisMonth: number): { count: number; target: number; remaining: number; reached: boolean; pct: number } {
-  const count = Math.max(0, Math.floor(activatedThisMonth));
-  const remaining = Math.max(0, MONTHLY_MILESTONE - count);
-  return { count, target: MONTHLY_MILESTONE, remaining, reached: count >= MONTHLY_MILESTONE, pct: Math.min(100, (count / MONTHLY_MILESTONE) * 100) };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ΕΠΙΠΕΔΟ 2 — «Συνεργάτης Property OS» (streak 3 μηνών → status + προμήθεια)
-// ─────────────────────────────────────────────────────────────────────────
-// Όποιος πετύχει το milestone (5+) για 3 ΣΥΝΕΧΟΜΕΝΟΥΣ μήνες γίνεται επίσημος
-// Συνεργάτης. ΟΧΙ κουπόνι (θα ήταν φθηνιάρικο) αλλά πραγματική συνεργασία:
-// επαναλαμβανόμενη προμήθεια από όσα πληρώνουν οι συστάσεις του (αυτοχρηματο-
-// δοτείται, ποτέ ζημιά), μόνιμο δωρεάν Επαγγελματίας όσο είναι ενεργός, σήμα
-// και προτεραιότητα. Ιδανικό για λογιστές/μεσίτες — το κανάλι με τη μεγαλύτερη
-// μόχλευση για οργανική ανάπτυξη με μικρό κόστος.
-// ═══════════════════════════════════════════════════════════════════════════
-export const STREAK_TARGET_MONTHS = 3;        // συνεχόμενοι μήνες με milestone
-export const PARTNER_COMMISSION_RATE = 0.20;  // % επί των εσόδων των συστάσεων
-export const PARTNER_COMMISSION_MONTHS = 12;  // διάρκεια προμήθειας ανά σύσταση
-
-/** Τρέχον σερί: συνεχόμενοι ΤΕΛΕΥΤΑΙΟΙ μήνες με ≥ milestone ενεργοποιήσεις.
- *  monthlyCounts: πίνακας ενεργοποιήσεων ανά μήνα, από παλιότερο → πιο πρόσφατο. */
-export function currentStreak(monthlyCounts: number[]): number {
-  let n = 0;
-  for (let i = monthlyCounts.length - 1; i >= 0; i--) {
-    if ((monthlyCounts[i] || 0) >= MONTHLY_MILESTONE) n++;
+  for (let i = paidMonthlyCounts.length - 1; i >= 0; i--) {
+    if ((paidMonthlyCounts[i] || 0) >= PRO_PAID_TARGET) n++;
     else break;
   }
   return n;
 }
 
-export function isPartner(monthlyCounts: number[]): boolean {
-  return currentStreak(monthlyCounts) >= STREAK_TARGET_MONTHS;
+export function isPartner(paidMonthlyCounts: number[]): boolean {
+  return currentStreak(paidMonthlyCounts) >= STREAK_TARGET_MONTHS;
 }
 
 /** Πρόοδος προς την ιδιότητα Συνεργάτη (για την μπάρα «X/3 μήνες»). */
-export function streakProgress(monthlyCounts: number[]): { current: number; target: number; reached: boolean; pct: number } {
-  const streak = currentStreak(monthlyCounts);
+export function streakProgress(paidMonthlyCounts: number[]): { current: number; target: number; reached: boolean; pct: number } {
+  const streak = currentStreak(paidMonthlyCounts);
   const current = Math.min(streak, STREAK_TARGET_MONTHS);
   return { current, target: STREAK_TARGET_MONTHS, reached: streak >= STREAK_TARGET_MONTHS, pct: Math.min(100, (current / STREAK_TARGET_MONTHS) * 100) };
 }
 
-/** Μηνιαία προμήθεια Συνεργάτη επί των εσόδων που παρήγαγαν οι ενεργές του
- *  συστάσεις (μόνο όσες βρίσκονται ακόμη εντός του παραθύρου προμήθειας). */
+/** Μηνιαία προμήθεια Συνεργάτη (20%) επί των συνδρομών που φέρνει. */
 export function partnerCommission(referredMonthlyRevenue: number): number {
   return Math.max(0, referredMonthlyRevenue) * PARTNER_COMMISSION_RATE;
 }

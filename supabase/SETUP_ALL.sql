@@ -260,7 +260,7 @@ create table if not exists public.checkin_links (
   id          uuid primary key default gen_random_uuid(),
   token       text unique not null default replace(gen_random_uuid()::text, '-', ''),
   property_id text,
-  client_id   uuid references public.clients(id) on delete set null,
+  client_id   uuid,  -- FK προς public.clients προστίθεται πιο κάτω (η clients ορίζεται αργότερα)
   user_id     uuid not null references auth.users(id) on delete cascade,
   active      boolean default true,
   created_at  timestamptz default now(),
@@ -416,9 +416,10 @@ grant execute on function public.get_referral_stats(text) to authenticated;
 
 
 -- ─── 20260718100000_referral_v2.sql ───
--- Referral v2 — ενεργοποίηση, πρόοδος & ιδιότητα Συνεργάτη. ΑΣΦΑΛΕΙΑ: ενεργοποίηση
--- επαληθευμένη server-side, μπόνους αξίας προϊόντος (όχι μετρητά), σερί σε
--- ολοκληρωμένους μήνες, μόνιμη ιδιότητα Συνεργάτη. Idempotent.
+-- Referral v2 — δύο προγράμματα ανά προφίλ (Ιδιώτης/Επαγγελματίας). ΑΣΦΑΛΕΙΑ:
+-- ενεργοποίηση επαληθευμένη server-side, αξία προϊόντος (όχι μετρητά), τα paid
+-- milestones μετρούν συνδρομητές (plan monthly/annual), σερί σε ολοκληρωμένους
+-- μήνες, μόνιμη ιδιότητα Συνεργάτη. Idempotent.
 alter table public.referrals add column if not exists referrer_user_id uuid references auth.users(id) on delete set null;
 alter table public.referrals add column if not exists activated_at timestamptz;
 update public.referrals r set referrer_user_id = c.user_id
@@ -433,6 +434,7 @@ create table if not exists public.referral_rewards (
   kind         text not null,
   months       integer   default 0,
   amount_eur   numeric   default 0,
+  tier         text      default '',
   reason       text      default '',
   status       text      default 'pending',
   created_at   timestamptz default now()
@@ -440,6 +442,7 @@ create table if not exists public.referral_rewards (
 alter table public.referral_rewards enable row level security;
 drop policy if exists "own_referral_rewards" on public.referral_rewards;
 create policy "own_referral_rewards" on public.referral_rewards for select using (user_id = auth.uid());
+alter table public.referral_rewards add column if not exists tier text default '';
 
 create table if not exists public.referral_partners (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -479,63 +482,87 @@ grant execute on function public.mark_referral_activated() to authenticated;
 
 create or replace function public.get_referral_overview(p_code text)
 returns json language plpgsql security definer set search_path = public as $$
-declare v_owner uuid; v_invites int; v_activated int; v_this_month int; v_monthly json;
-        v_streak int := 0; v_partner boolean; r record;
+declare v_owner uuid; v_invites int; v_activated int;
+        v_m_pro int; v_m_indiv int; v_m_paid int; v_m_free int;
+        v_streak int := 0; v_partner boolean; v_monthly json; r record;
 begin
   select user_id into v_owner from referral_codes where code = p_code;
   if v_owner is null or v_owner <> auth.uid() then
-    return json_build_object('invites',0,'activated',0,'this_month',0,'streak',0,'partner',false,'monthly_counts',json_build_array());
+    return json_build_object('invites',0,'activated',0,'m_pro',0,'m_indiv',0,
+      'm_paid',0,'m_free',0,'streak',0,'partner',false,'paid_monthly_counts',json_build_array());
   end if;
   select count(*)::int into v_invites   from referrals where referrer_user_id = v_owner;
   select count(*)::int into v_activated from referrals where referrer_user_id = v_owner and activated_at is not null;
-  select count(*)::int into v_this_month from referrals
-   where referrer_user_id = v_owner and activated_at is not null
-     and date_trunc('month', activated_at) = date_trunc('month', now());
+  select
+    (count(*) filter (where coalesce(bp.profile_type,'individual') = 'professional'))::int,
+    (count(*) filter (where coalesce(bp.profile_type,'individual') <> 'professional'))::int,
+    (count(*) filter (where coalesce(bp.plan,'') in ('monthly','annual')))::int,
+    (count(*) filter (where coalesce(bp.plan,'') not in ('monthly','annual')))::int
+  into v_m_pro, v_m_indiv, v_m_paid, v_m_free
+  from referrals r2
+  left join billing_profiles bp on bp.user_id = r2.referred_user_id
+  where r2.referrer_user_id = v_owner and r2.activated_at is not null
+    and date_trunc('month', r2.activated_at) = date_trunc('month', now());
   for r in
-    select coalesce((select count(*)::int from referrals rr
-              where rr.referrer_user_id = v_owner and rr.activated_at is not null
-                and date_trunc('month', rr.activated_at) = gs.m), 0) as cnt
+    select (select (count(*) filter (where coalesce(bp.plan,'') in ('monthly','annual')))::int
+              from referrals rr left join billing_profiles bp on bp.user_id = rr.referred_user_id
+             where rr.referrer_user_id = v_owner and rr.activated_at is not null
+               and date_trunc('month', rr.activated_at) = gs.m) as paid
       from generate_series(date_trunc('month', now()) - interval '1 month',
              date_trunc('month', now()) - interval '12 months', interval '-1 month') as gs(m)
       order by gs.m desc
   loop
-    if r.cnt >= 5 then v_streak := v_streak + 1; else exit; end if;
+    if r.paid >= 5 then v_streak := v_streak + 1; else exit; end if;
   end loop;
   if v_streak >= 3 then
     insert into referral_partners (user_id) values (v_owner) on conflict (user_id) do nothing;
   end if;
   select exists(select 1 from referral_partners where user_id = v_owner) into v_partner;
-  select json_agg(cnt order by m) into v_monthly from (
-      select gs.m as m, coalesce((select count(*)::int from referrals r2
-                where r2.referrer_user_id = v_owner and r2.activated_at is not null
-                  and date_trunc('month', r2.activated_at) = gs.m), 0) as cnt
+  select json_agg(paid order by m) into v_monthly from (
+      select gs.m as m, (select (count(*) filter (where coalesce(bp.plan,'') in ('monthly','annual')))::int
+               from referrals rr left join billing_profiles bp on bp.user_id = rr.referred_user_id
+              where rr.referrer_user_id = v_owner and rr.activated_at is not null
+                and date_trunc('month', rr.activated_at) = gs.m) as paid
         from generate_series(date_trunc('month', now()) - interval '6 months',
                date_trunc('month', now()) - interval '1 month', interval '1 month') as gs(m)
     ) months;
-  return json_build_object('invites',v_invites,'activated',v_activated,'this_month',v_this_month,
-    'streak',v_streak,'partner',v_partner,'monthly_counts',coalesce(v_monthly,json_build_array()));
+  return json_build_object('invites',v_invites,'activated',v_activated,
+    'm_pro',v_m_pro,'m_indiv',v_m_indiv,'m_paid',v_m_paid,'m_free',v_m_free,
+    'streak',v_streak,'partner',v_partner,'paid_monthly_counts',coalesce(v_monthly,json_build_array()));
 end; $$;
 grant execute on function public.get_referral_overview(text) to authenticated;
 
-create or replace function public.claim_monthly_bonus(p_code text)
+create or replace function public.claim_referral_bonus(p_code text, p_kind text)
 returns json language plpgsql security definer set search_path = public as $$
-declare v_owner uuid; v_count int; v_exists int;
+declare v_owner uuid; v_count int; v_target int; v_months int; v_tier text; v_exists int;
 begin
   select user_id into v_owner from referral_codes where code = p_code;
   if v_owner is null or v_owner <> auth.uid() then return json_build_object('ok', false, 'reason', 'not_owner'); end if;
-  select count(*)::int into v_count from referrals
-   where referrer_user_id = v_owner and activated_at is not null
-     and date_trunc('month', activated_at) = date_trunc('month', now());
-  if v_count < 5 then return json_build_object('ok', false, 'reason', 'not_reached', 'count', v_count); end if;
+  if    p_kind = 'indiv_volume' then v_target := 5;  v_months := 1; v_tier := 'owner';
+  elsif p_kind = 'pro_paid'     then v_target := 5;  v_months := 2; v_tier := 'agency';
+  elsif p_kind = 'pro_free'     then v_target := 10; v_months := 1; v_tier := 'agency';
+  else return json_build_object('ok', false, 'reason', 'bad_kind'); end if;
+  perform pg_advisory_xact_lock(hashtext('referral_bonus:' || p_kind || ':' || v_owner::text));
+  select
+    case p_kind
+      when 'indiv_volume' then count(*) filter (where coalesce(bp.profile_type,'individual') <> 'professional')
+      when 'pro_paid'     then count(*) filter (where coalesce(bp.plan,'') in ('monthly','annual'))
+      when 'pro_free'     then count(*) filter (where coalesce(bp.plan,'') not in ('monthly','annual'))
+    end::int
+  into v_count
+  from referrals r left join billing_profiles bp on bp.user_id = r.referred_user_id
+  where r.referrer_user_id = v_owner and r.activated_at is not null
+    and date_trunc('month', r.activated_at) = date_trunc('month', now());
+  if v_count < v_target then return json_build_object('ok', false, 'reason', 'not_reached', 'count', v_count, 'target', v_target); end if;
   select count(*)::int into v_exists from referral_rewards
-   where user_id = v_owner and reason = 'milestone'
+   where user_id = v_owner and reason = p_kind
      and date_trunc('month', created_at) = date_trunc('month', now());
   if v_exists > 0 then return json_build_object('ok', false, 'reason', 'already_claimed'); end if;
-  insert into referral_rewards (user_id, kind, months, reason, status)
-       values (v_owner, 'months', 6, 'milestone', 'pending');
-  return json_build_object('ok', true, 'status', 'pending', 'months', 6);
+  insert into referral_rewards (user_id, kind, months, tier, reason, status)
+       values (v_owner, 'months', v_months, v_tier, p_kind, 'pending');
+  return json_build_object('ok', true, 'status', 'pending', 'months', v_months, 'tier', v_tier);
 end; $$;
-grant execute on function public.claim_monthly_bonus(text) to authenticated;
+grant execute on function public.claim_referral_bonus(text, text) to authenticated;
 
 
 -- ─── 20260705160000_rent_comparables.sql ───
@@ -1376,3 +1403,15 @@ language sql security definer set search_path = public stable as $$
 $$;
 revoke all on function public.community_market_stats() from public;
 grant execute on function public.community_market_stats() to authenticated;
+
+
+-- ─── checkin_links → clients FK (deferred, ώστε να μη σπάει σε fresh DB) ───
+-- Η public.clients ορίζεται πιο κάτω από την checkin_links στη συνένωση, οπότε το
+-- FK προστίθεται εδώ (idempotent) αφού πλέον υπάρχουν και οι δύο πίνακες.
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'checkin_links_client_fk') then
+    alter table public.checkin_links
+      add constraint checkin_links_client_fk foreign key (client_id)
+      references public.clients(id) on delete set null;
+  end if;
+end $$;
