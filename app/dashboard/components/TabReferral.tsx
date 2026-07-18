@@ -35,7 +35,7 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
 
 // Μετρητής που «τρέχει» από το 0 στην τιμή (ease-out cubic).
 function useCountUp(target: number, ms = 750) {
-  const [n, setN] = useState(target);
+  const [n, setN] = useState(() => reducedMotion() ? target : 0);
   useEffect(() => {
     if (reducedMotion()) { setN(target); return; }
     let raf = 0, start = 0;
@@ -150,6 +150,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     { label: 'Telegram', href: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(invite)}`, d: 'M21 4 3 11l5 2 2 6 3-4 5 4z' },
   ];
 
+  const referrerPaying = plan === 'monthly' || plan === 'annual';
   const steps = isPro
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
@@ -159,14 +160,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PropertyOS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ έναν μήνα Ιδιώτη.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο κι εσύ ${referrerPaying ? 'έναν μήνα Ιδιώτη' : 'ένα δωρεάν ακίνητο για έναν μήνα'}.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
   const coldStart = !!stats && stats.invites === 0;
-  const referrerPaying = plan === 'monthly' || plan === 'annual';
   const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
   const friendBase = refereeWelcome('free');                          // τι κερδίζει ο φίλος (μένει δωρεάν)
   const myTier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : (isPro ? 'agency' : 'owner');
