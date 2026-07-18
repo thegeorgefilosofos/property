@@ -1,20 +1,24 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { T, TT } from '@/components/Theme';
 import {
   referralCode, referralLink, daysUntilExpiry,
+  monthlyProgress, streakProgress, isPartner, partnerCommission,
   REFEREE_TRIAL_MONTHS, SLOT_REWARD_MONTHS, PAID_REWARD_MONTHS,
   PAID_REFEREE_BONUS_MONTHS, MONTHLY_CAP_AGENCY, MONTHLY_CAP_DEFAULT,
+  MONTHLY_MILESTONE, MILESTONE_BONUS_CASH, MILESTONE_BONUS_MONTHS,
+  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
 } from '@/lib/referral/referral';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TabReferral — «Πρόγραμμα Συνεργατών» (επαγγελματίας) / «Πρόγραμμα Πρόσκλησης»
-// (ιδιώτης). Σχεδίαση στο design system του app: επιφάνειες surface-raised με
-// elevation για βάθος (όχι υφές/θόρυβος), ένα accent (γαλάζιο) που εμφανίζεται
-// στο hover, αυστηρή στοίχιση και τυποποίηση (T/TT tokens). Το πρόγραμμα είναι
-// αξίας-για-αξία: σχεδόν μηδενικό κόστος για την Property OS, πραγματικό όφελος
-// και για τους δύο. Τα λεκτικά ανταμοιβής βγαίνουν από το lib/referral, ώστε να
-// μη διαφέρουν ποτέ από τους κανόνες.
+// (ιδιώτης). Χτισμένο στο design system του app (T/TT tokens, surface-raised +
+// elevation για βάθος, ένα accent-γαλάζιο στο hover). Τρία επίπεδα, εμπνευσμένα
+// από τα κορυφαία fintech: (0) αξία-για-αξία ανά σύσταση, (1) μηνιαίο milestone
+// «Οι 5 του μήνα» με μπάρα προόδου τύπου Revolut, (2) ιδιότητα «Συνεργάτης» με
+// επαναλαμβανόμενη προμήθεια. Persona-differentiated: ο επαγγελματίας βλέπει
+// εισόδημα/προμήθεια μπροστά, ο ιδιώτης το κοινωνικό/απλό. Οικονομικά win-win.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const Ic = ({ d, s = 18, c = 'currentColor', sw = 1.8 }: { d: string; s?: number; c?: string; sw?: number }) => (
@@ -28,18 +32,51 @@ const card: React.CSSProperties = {
   borderRadius: T.radius.card, boxShadow: 'var(--highlight-inset), var(--elev-1)',
 };
 
-export default function TabReferral({ userId, plan, profileType, activeSlots = [] }: {
+function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
+  return (
+    <div style={{ height: 8, background: 'var(--bg-overlay)', borderRadius: 100, overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, pct))}%`, background: tone, borderRadius: 100, transition: `width 0.4s ${T.ease.standard}` }} />
+    </div>
+  );
+}
+
+export default function TabReferral({ userId, plan, profileType, activeSlots = [], activatedThisMonth = 0, monthlyCounts = [], referredMonthlyRevenue = 0 }: {
   userId: string; plan: string; profileType: 'individual' | 'professional';
   activeSlots?: { expiresAt: string }[];
+  activatedThisMonth?: number;      // ενεργοποιήσεις τρέχοντος μήνα (για το milestone)
+  monthlyCounts?: number[];         // ενεργοποιήσεις ανά μήνα, παλιό→νέο (για το σερί)
+  referredMonthlyRevenue?: number;  // μηνιαία έσοδα από ενεργές συστάσεις (για προμήθεια)
 }) {
   const [origin, setOrigin] = useState('https://property-os.gr');
   const [copied, setCopied] = useState(false);
   const [nowIso, setNowIso] = useState('');
+  const [stats, setStats] = useState<{ invites: number; activated: number; this_month: number; monthly_counts: number[] } | null>(null);
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } setNowIso(new Date().toISOString()); }, []);
 
   const code = useMemo(() => referralCode(userId), [userId]);
   const link = useMemo(() => referralLink(origin, userId), [origin, userId]);
   const isPro = profileType === 'professional';
+
+  // Καταχώρησε τον ντετερμινιστικό κωδικό ώστε οι σύνδεσμοι να είναι εξαργυρώσιμοι,
+  // και τράβα τους πραγματικούς αριθμούς (προσκλήσεις/ενεργοποιήσεις/σερί).
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    let alive = true;
+    (async () => {
+      try {
+        await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
+        const { data } = await supabase.rpc('get_referral_overview', { p_code: code });
+        if (alive && data) setStats({
+          invites: Number(data.invites) || 0,
+          activated: Number(data.activated) || 0,
+          this_month: Number(data.this_month) || 0,
+          monthly_counts: Array.isArray(data.monthly_counts) ? data.monthly_counts.map(Number) : [],
+        });
+      } catch { /* η καρτέλα δουλεύει και χωρίς σύνδεση: δείχνει μηδενική πρόοδο */ }
+    })();
+    return () => { alive = false; };
+  }, [userId, code]);
 
   const invite = isPro
     ? `Σου στέλνω το Property OS για να έχεις τα οικονομικά του ακινήτου σου οργανωμένα και έτοιμα. Το πρώτο ακίνητο δωρεάν, με ${REFEREE_TRIAL_MONTHS} μήνες δώρο: ${link}`
@@ -54,7 +91,7 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
     { label: 'Telegram', href: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(invite)}`, d: 'M21 4 3 11l5 2 2 6 3-4 5 4z' },
   ];
 
-  // Ανταμοιβές — από τους πραγματικούς κανόνες (lib/referral).
+  // Ανταμοιβή ανά σύσταση — από τους πραγματικούς κανόνες.
   const youHeadline = isPro || plan !== 'free' ? `+${PAID_REWARD_MONTHS} μήνας` : `+1 ακίνητο`;
   const youDetail = isPro
     ? `Επαγγελματία δωρεάν για κάθε ενεργό πελάτη, ${PAID_REWARD_MONTHS + PAID_REFEREE_BONUS_MONTHS} αν γίνει κι αυτός συνδρομητής. Έως ${MONTHLY_CAP_AGENCY} τον μήνα.`
@@ -69,6 +106,13 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
   ];
 
   const slotsView = nowIso ? activeSlots.map(s => ({ days: daysUntilExpiry(s.expiresAt, nowIso) })).filter(s => s.days > 0).sort((a, b) => a.days - b.days) : [];
+  // Πραγματικά δεδομένα από τη βάση όταν υπάρχουν· αλλιώς οι props (μηδέν).
+  const thisMonth = stats?.this_month ?? activatedThisMonth;
+  const counts = stats && stats.monthly_counts.length ? stats.monthly_counts : monthlyCounts;
+  const mp = monthlyProgress(thisMonth);
+  const sp = streakProgress(counts);
+  const partner = isPartner(counts);
+  const commission = partnerCommission(referredMonthlyRevenue);
 
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
@@ -89,10 +133,10 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
         <div style={{ ...TT.label, color: 'var(--accent)', marginBottom: 8 }}>{isPro ? 'Πρόγραμμα Συνεργατών' : 'Πρόγραμμα Πρόσκλησης'}</div>
-        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
+        <h1 style={{ ...TT.display, margin: 0 }}>{isPro ? 'Φέρε τους πελάτες σου. Κέρδισε μήνες και προμήθεια.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}</h1>
         <p style={{ ...TT.body, color: 'var(--text-secondary)', maxWidth: 640, marginTop: 8 }}>
           {isPro
-            ? 'Κάθε ιδιοκτήτης-πελάτης που φέρνεις οργανώνεται και σου στέλνει έτοιμα στοιχεία, ενώ εσύ κερδίζεις δωρεάν μήνες. Ιδανικό για λογιστές, μεσίτες και διαχειριστές.'
+            ? 'Κάθε ιδιοκτήτης-πελάτης που φέρνεις οργανώνεται και σου στέλνει έτοιμα στοιχεία, ενώ εσύ κερδίζεις δωρεάν μήνες και χτίζεις προμήθεια. Το πιο αποδοτικό κανάλι για λογιστές, μεσίτες και διαχειριστές.'
             : 'Βοήθησέ τον να βάλει το ακίνητό του σε τάξη. Κάθε φίλος που ξεκινά κερδίζει δώρο, το ίδιο κι εσύ.'}
         </p>
       </div>
@@ -123,9 +167,57 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
         </div>
       </div>
 
+      {/* ── Η πρόοδός σου: μηνιαίο milestone + δρόμος για Συνεργάτη ── */}
+      <div style={{ ...TT.label, marginBottom: 12 }}>Η πρόοδός σου</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+
+        {/* Μηνιαίο milestone «Οι 5 του μήνα» */}
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ ...TT.h2, fontSize: 14 }}>Οι 5 του μήνα</span>
+            <span style={{ ...TT.kpi, fontSize: 18, color: mp.reached ? 'var(--positive)' : 'var(--accent)' }}>{mp.count}<span style={{ ...TT.caption, fontSize: 13 }}> / {mp.target}</span></span>
+          </div>
+          <Bar pct={mp.pct} tone={mp.reached ? 'var(--positive)' : 'var(--accent)'} />
+          <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
+            {mp.reached
+              ? `Το κατάφερες! Διάλεξε το μπόνους σου: ${MILESTONE_BONUS_CASH} € (μετρητά ή πίστωση) ή ${MILESTONE_BONUS_MONTHS} μήνες Επαγγελματία δωρεάν.`
+              : `Φέρε ${mp.remaining} ${mp.remaining === 1 ? 'ακόμη ενεργή σύσταση' : 'ακόμη ενεργές συστάσεις'} αυτόν τον μήνα και κερδίζεις ${MILESTONE_BONUS_CASH} € ή ${MILESTONE_BONUS_MONTHS} μήνες Επαγγελματία δωρεάν.`}
+          </p>
+          {mp.reached && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button className="ref-cta" style={{ height: 36, padding: '0 16px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 12.5, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>{MILESTONE_BONUS_CASH} € μετρητά</button>
+              <button className="ref-chip" style={{ height: 36, padding: '0 16px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>{MILESTONE_BONUS_MONTHS} μήνες δωρεάν</button>
+            </div>
+          )}
+        </div>
+
+        {/* Δρόμος για Συνεργάτη (streak 3 μηνών) */}
+        <div style={{ ...card, padding: 20, ...(partner ? { background: 'linear-gradient(180deg, var(--accent-soft), transparent 120%)', borderColor: 'var(--accent-border)' } : {}) }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ ...TT.h2, fontSize: 14, color: partner ? 'var(--accent)' : undefined }}>{partner ? 'Είσαι Συνεργάτης' : 'Γίνε Συνεργάτης'}</span>
+            {partner
+              ? <span style={{ fontSize: 9, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ενεργός</span>
+              : <span style={{ ...TT.kpi, fontSize: 18, color: 'var(--accent)' }}>{sp.current}<span style={{ ...TT.caption, fontSize: 13 }}> / {sp.target} μήνες</span></span>}
+          </div>
+          {partner ? (
+            <>
+              <div style={{ ...TT.kpi, fontSize: 22, color: 'var(--accent)' }}>{commission.toLocaleString('el-GR', { minimumFractionDigits: commission % 1 ? 2 : 0, maximumFractionDigits: 2 })} €<span style={{ ...TT.caption, fontSize: 12 }}> προμήθεια / μήνα</span></div>
+              <p style={{ ...TT.bodySm, marginTop: 10, lineHeight: 1.55 }}>{PARTNER_COMMISSION_RATE * 100}% επί όσων πληρώνουν οι συστάσεις σου, μόνιμο δωρεάν Επαγγελματίας, σήμα Συνεργάτη και προτεραιότητα υποστήριξης.</p>
+            </>
+          ) : (
+            <>
+              <Bar pct={(sp.current / sp.target) * 100} />
+              <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
+                Πέτυχε το milestone για {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και ξεκλειδώνεις: επαναλαμβανόμενη προμήθεια {PARTNER_COMMISSION_RATE * 100}%, μόνιμο δωρεάν Επαγγελματίας, σήμα Συνεργάτη και προτεραιότητα.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* ── Κερδισμένες θέσεις με αντίστροφη μέτρηση ── */}
       {slotsView.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: T.sp.lg }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: T.sp.xl }}>
           {slotsView.map((s, i) => {
             const urgent = s.days <= 7;
             const tone = urgent ? 'var(--warning)' : 'var(--accent)';
@@ -145,23 +237,8 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
         </div>
       )}
 
-      {/* ── Πώς λειτουργεί: τρία βήματα ── */}
-      <div style={{ ...TT.label, marginBottom: 12 }}>Πώς λειτουργεί</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
-        {steps.map((st, i) => (
-          <div key={i} className="ref-step" style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700 }}>{st.n}</span>
-              <span className="ref-step-ic" style={{ color: 'var(--text-tertiary)', transition: 'color .18s' }}><Ic d={st.d2} s={20} /></span>
-            </div>
-            <div style={{ ...TT.h2, fontSize: 13.5 }}>{st.t}</div>
-            <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{st.d}</div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Οι ανταμοιβές: εσύ | ο φίλος/πελάτης σου ── */}
-      <div style={{ ...TT.label, marginBottom: 12 }}>Οι ανταμοιβές</div>
+      <div style={{ ...TT.label, marginBottom: 12 }}>Ανταμοιβή ανά σύσταση</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
         <div style={{ ...card, padding: 20, background: 'linear-gradient(180deg, var(--accent-soft), transparent 120%)', borderColor: 'var(--accent-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -181,10 +258,25 @@ export default function TabReferral({ userId, plan, profileType, activeSlots = [
         </div>
       </div>
 
+      {/* ── Πώς λειτουργεί: τρία βήματα ── */}
+      <div style={{ ...TT.label, marginBottom: 12 }}>Πώς λειτουργεί</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12, marginBottom: T.sp.xl }}>
+        {steps.map((st, i) => (
+          <div key={i} className="ref-step" style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700 }}>{st.n}</span>
+              <span className="ref-step-ic" style={{ color: 'var(--text-tertiary)', transition: 'color .18s' }}><Ic d={st.d2} s={20} /></span>
+            </div>
+            <div style={{ ...TT.h2, fontSize: 13.5 }}>{st.t}</div>
+            <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{st.d}</div>
+          </div>
+        ))}
+      </div>
+
       {/* ── Κατάσταση προσκλήσεων ── */}
       <div style={{ ...TT.label, marginBottom: 12 }}>Οι προσκλήσεις σου</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, marginBottom: 14 }}>
-        {[['Προσκλήσεις', '0'], ['Ενεργοποιήθηκαν', '0'], ['Ανταμοιβές', '0']].map(([l, v], i) => (
+        {[['Προσκλήσεις', String(stats?.invites ?? 0)], ['Ενεργοποιήθηκαν', String(stats?.activated ?? 0)], ['Ανταμοιβές', String(stats?.activated ?? 0)]].map(([l, v], i) => (
           <div key={i} className="kpi-card">
             <div className="kpi-label">{l}</div>
             <div className="kpi-value">{v}</div>

@@ -825,20 +825,26 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = '/login'; return; }
       setUser(user);
-      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση, idempotent.
+      // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση, idempotent. Η RPC
+      // αναλύει τον κωδικό στον κάτοχο, μπλοκάρει την αυτο-παραπομπή και γράφει
+      // τον referrer, ώστε η σύσταση να προσμετράται σωστά στον συστήνοντα.
       const refBy = (user.user_metadata as any)?.referred_by;
-      if (refBy) { supabase.from('referrals').upsert({ code: String(refBy), referred_user_id: user.id }, { onConflict: 'referred_user_id', ignoreDuplicates: true }).then(() => {}); }
+      if (refBy) { supabase.rpc('redeem_referral', { p_code: String(refBy) }).then(() => {}); }
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
       supabase.from('billing_profiles').select('plan, owner_name, profile_type').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); });
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
       try {
-        const [{ data: ob }, { count }] = await Promise.all([
+        const [{ data: ob }, { count }, { count: docCount }] = await Promise.all([
           supabase.from('onboarding_progress').select('welcomed').eq('user_id', user.id).maybeSingle(),
           supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('property_documents').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         ]);
         if (!ob?.welcomed && (count || 0) === 0) setShowWelcome(true);
+        // Ενεργοποίηση σύστασης: ο νέος χρήστης έχει ≥1 ακίνητο & ≥1 σαρωμένο
+        // έγγραφο → η σύστασή του «κλειδώνει» (idempotent, μόνο τη δική του γραμμή).
+        if ((count || 0) >= 1 && (docCount || 0) >= 1) supabase.rpc('mark_referral_activated').then(() => {});
       } catch {}
       setLoading(false);
     };

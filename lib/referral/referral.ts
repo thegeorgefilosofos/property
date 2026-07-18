@@ -158,3 +158,79 @@ export function effectiveMaxProperties(planId: string | null | undefined, active
 export function canAddWithReferrals(planId: string | null | undefined, activeSlots: number, currentCount: number): boolean {
   return currentCount < effectiveMaxProperties(planId, activeSlots);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΠΙΠΕΔΟ 1 — «Οι 5 του μήνα» (μηνιαίο milestone με μπόνους)
+// ─────────────────────────────────────────────────────────────────────────
+// Αντιγράφει τη μηχανική Revolut/Wise: μπάρα προόδου «X/5» που εθίζει, και
+// ένα ουσιαστικό μπόνους όταν φτάσεις τις 5 ΕΝΕΡΓΕΣ συστάσεις μέσα σε έναν
+// ημερολογιακό μήνα. Οικονομικά: 5 ενεργοποιημένοι χρήστες = εξαιρετικά φθηνό
+// CAC (πολύ κάτω από κάθε διαφήμιση), αφού είναι ήδη πραγματικοί, ενεργοί.
+// Το μπόνους δίνεται ΕΠΙΛΟΓΗ: μετρητά (IRIS/πίστωση) Ή αξία προϊόντος.
+// ═══════════════════════════════════════════════════════════════════════════
+export const MONTHLY_MILESTONE = 5;          // ενεργές συστάσεις/μήνα για μπόνους
+export const MILESTONE_BONUS_CASH = 25;      // € (IRIS ή πίστωση συνδρομής)
+export const MILESTONE_BONUS_MONTHS = 6;     // εναλλακτικά: μήνες Επαγγελματία δωρεάν
+
+export type MilestoneBonus = { kind: 'cash'; amount: number } | { kind: 'months'; months: number };
+
+export function milestoneBonusOptions(): MilestoneBonus[] {
+  return [{ kind: 'cash', amount: MILESTONE_BONUS_CASH }, { kind: 'months', months: MILESTONE_BONUS_MONTHS }];
+}
+
+export function qualifiesMonthlyBonus(activatedThisMonth: number): boolean {
+  return activatedThisMonth >= MONTHLY_MILESTONE;
+}
+
+/** Πρόοδος προς το μηνιαίο μπόνους (για την μπάρα «X/5»). */
+export function monthlyProgress(activatedThisMonth: number): { count: number; target: number; remaining: number; reached: boolean; pct: number } {
+  const count = Math.max(0, Math.floor(activatedThisMonth));
+  const remaining = Math.max(0, MONTHLY_MILESTONE - count);
+  return { count, target: MONTHLY_MILESTONE, remaining, reached: count >= MONTHLY_MILESTONE, pct: Math.min(100, (count / MONTHLY_MILESTONE) * 100) };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΠΙΠΕΔΟ 2 — «Συνεργάτης Property OS» (streak 3 μηνών → status + προμήθεια)
+// ─────────────────────────────────────────────────────────────────────────
+// Όποιος πετύχει το milestone (5+) για 3 ΣΥΝΕΧΟΜΕΝΟΥΣ μήνες γίνεται επίσημος
+// Συνεργάτης. ΟΧΙ κουπόνι (θα ήταν φθηνιάρικο) αλλά πραγματική συνεργασία:
+// επαναλαμβανόμενη προμήθεια από όσα πληρώνουν οι συστάσεις του (αυτοχρηματο-
+// δοτείται, ποτέ ζημιά), μόνιμο δωρεάν Επαγγελματίας όσο είναι ενεργός, σήμα
+// και προτεραιότητα. Ιδανικό για λογιστές/μεσίτες — το κανάλι με τη μεγαλύτερη
+// μόχλευση για οργανική ανάπτυξη με μικρό κόστος.
+// ═══════════════════════════════════════════════════════════════════════════
+export const STREAK_TARGET_MONTHS = 3;        // συνεχόμενοι μήνες με milestone
+export const PARTNER_COMMISSION_RATE = 0.20;  // % επί των εσόδων των συστάσεων
+export const PARTNER_COMMISSION_MONTHS = 12;  // διάρκεια προμήθειας ανά σύσταση
+
+/** Τρέχον σερί: συνεχόμενοι ΤΕΛΕΥΤΑΙΟΙ μήνες με ≥ milestone ενεργοποιήσεις.
+ *  monthlyCounts: πίνακας ενεργοποιήσεων ανά μήνα, από παλιότερο → πιο πρόσφατο. */
+export function currentStreak(monthlyCounts: number[]): number {
+  let n = 0;
+  for (let i = monthlyCounts.length - 1; i >= 0; i--) {
+    if ((monthlyCounts[i] || 0) >= MONTHLY_MILESTONE) n++;
+    else break;
+  }
+  return n;
+}
+
+export function isPartner(monthlyCounts: number[]): boolean {
+  return currentStreak(monthlyCounts) >= STREAK_TARGET_MONTHS;
+}
+
+/** Πρόοδος προς την ιδιότητα Συνεργάτη (για την μπάρα «X/3 μήνες»). */
+export function streakProgress(monthlyCounts: number[]): { current: number; target: number; reached: boolean } {
+  const streak = currentStreak(monthlyCounts);
+  return { current: Math.min(streak, STREAK_TARGET_MONTHS), target: STREAK_TARGET_MONTHS, reached: streak >= STREAK_TARGET_MONTHS };
+}
+
+/** Μηνιαία προμήθεια Συνεργάτη επί των εσόδων που παρήγαγαν οι ενεργές του
+ *  συστάσεις (μόνο όσες βρίσκονται ακόμη εντός του παραθύρου προμήθειας). */
+export function partnerCommission(referredMonthlyRevenue: number): number {
+  return Math.max(0, referredMonthlyRevenue) * PARTNER_COMMISSION_RATE;
+}
+
+export function partnerCommissionFromSubs(monthlySubs: number[]): number {
+  const total = monthlySubs.reduce((s, v) => s + (v > 0 ? v : 0), 0);
+  return partnerCommission(total);
+}
