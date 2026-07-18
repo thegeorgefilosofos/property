@@ -98,6 +98,7 @@ type Overview = {
   streak: number; partner: boolean;
 };
 type Reward = { kind: string; months: number; tier: string; reason: string; status: string; created_at: string };
+type Referee = { created_at: string; activated_at: string | null; is_subscriber: boolean; is_professional: boolean };
 
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
@@ -109,6 +110,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [stats, setStats] = useState<Overview | null>(null);
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [list, setList] = useState<Referee[]>([]);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
   const [celebrate, setCelebrate] = useState<Record<string, boolean>>({});
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
@@ -126,13 +128,15 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
         // Καταγράφει την ανά-σύσταση αξία στο ledger (idempotent) πριν το διαβάσουμε.
         await supabase.rpc('reconcile_referral_rewards', { p_code: code });
-        const [{ data }, { data: sp }, { data: rw }] = await Promise.all([
+        const [{ data }, { data: sp }, { data: rw }, { data: ls }] = await Promise.all([
           supabase.rpc('get_referral_overview', { p_code: code }),
           supabase.rpc('get_referral_social_proof'),
           supabase.from('referral_rewards').select('kind,months,tier,reason,status,created_at').order('created_at', { ascending: false }),
+          supabase.rpc('get_referral_list', { p_code: code }),
         ]);
         if (alive && typeof sp === 'number') setSocial(sp);
         if (alive && Array.isArray(rw)) setRewards(rw as Reward[]);
+        if (alive && Array.isArray(ls)) setList(ls as Referee[]);
         if (alive && data) setStats({
           invites: Number(data.invites) || 0, activated: Number(data.activated) || 0,
           m_pro: Number(data.m_pro) || 0, m_indiv: Number(data.m_indiv) || 0,
@@ -457,6 +461,37 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </div>
         ))}
       </div>
+
+      {/* ── Οι προσκλήσεις σου (χωνί ανά στάδιο, χωρίς στοιχεία ταυτότητας) ── */}
+      {list.length > 0 && (
+        <div style={{ marginBottom: T.sp.xl }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <div style={{ ...TT.label }}>Οι προσκλήσεις σου</div>
+            <div style={{ ...TT.caption }}>{list.filter(r => r.activated_at).length} από {list.length} ενεργοποιήθηκαν</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {list.map((rf, i) => {
+              const stage = rf.is_professional ? 'Έγινε Επαγγελματίας'
+                : rf.is_subscriber ? 'Έγινε συνδρομητής'
+                : rf.activated_at ? 'Ενεργοποιήθηκε'
+                : 'Εκκρεμεί ενεργοποίηση';
+              const pending = !rf.activated_at;
+              const when = new Date(rf.created_at).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
+              return (
+                <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: pending ? 'var(--surface-sunken)' : 'var(--accent-dim)', color: pending ? 'var(--text-tertiary)' : 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: pending ? 'var(--well-inset)' : undefined }}>
+                    <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={18} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ ...TT.h2, fontSize: 13 }}>{stage}</div>
+                    <div style={{ ...TT.bodySm, marginTop: 2 }}>{pending ? 'Θύμισέ του να ξεκινήσει για να κερδίσετε κι οι δύο.' : `Ξεκίνησε ${when}`}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Τα δώρα σου (ιστορικό ανταμοιβών) ── */}
       {rewards.length > 0 && (
