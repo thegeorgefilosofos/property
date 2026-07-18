@@ -1,13 +1,13 @@
 // npx tsx lib/referral/referral.test.ts
 import {
   referralCode, referralLink, isValidReferral, isSelfOrDuplicate, normalizePhone,
-  withinMonthlyCap, monthlyCapFor, isActivated, referrerRewardFor, refereeReward,
-  countActiveSlots, daysUntilExpiry, effectiveMaxProperties, canAddWithReferrals,
-  MAX_ACTIVE_SLOTS, MONTHLY_CAP_DEFAULT, MONTHLY_CAP_AGENCY, REFEREE_TRIAL_MONTHS,
-  qualifiesMonthlyBonus, monthlyProgress,
-  currentStreak, isPartner, streakProgress, partnerCommission, partnerCommissionFromSubs,
-  MONTHLY_MILESTONE, STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
-  MILESTONE_BONUS_MONTHS,
+  isActivated, REFEREE_TRIAL_MONTHS,
+  individualReferralReward, INDIV_PER_REFERRAL_MONTHS, INDIV_PRO_BONUS_MONTHS,
+  INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PRO_FREE_TARGET, PRO_FREE_BONUS_MONTHS,
+  progress, currentStreak, isPartner, streakProgress,
+  partnerCommission, partnerCommissionFromSubs,
+  STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE, PARTNER_MONTHLY_FREE_MONTHS,
 } from './referral';
 
 let p = 0, f = 0;
@@ -35,65 +35,35 @@ ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerPhone: '+3069712
 ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', sharedDevice: true }) === true, 'μπλοκ: κοινή συσκευή');
 ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerPhone: '6971111111', refereePhone: '6972222222' }) === false, 'ΟΚ: διαφορετικά στοιχεία');
 
-// ── Πλαφόν ανά προφίλ ──
-ok(monthlyCapFor('free') === MONTHLY_CAP_DEFAULT, 'πλαφόν δωρεάν');
-ok(monthlyCapFor('agency') === MONTHLY_CAP_AGENCY, 'πλαφόν επαγγελματία υψηλότερο');
-ok(withinMonthlyCap('agency', MONTHLY_CAP_DEFAULT + 1) === true, 'επαγγελματίας ακόμη εντός');
-ok(withinMonthlyCap('free', MONTHLY_CAP_DEFAULT) === false, 'δωρεάν εκτός στο όριο');
-
 // ── Ενεργοποίηση ──
 ok(isActivated({ propertiesAdded: 1, documentsScanned: 1 }) === true, 'ενεργοποιήθηκε');
 ok(isActivated({ propertiesAdded: 1, documentsScanned: 0 }) === false, 'χωρίς σάρωση → όχι');
 
-// ── Ανταμοιβή: πίνακας προφίλ × τι έφερε ──
-const fr = referrerRewardFor('free', 'free', 0, 0);
-ok(fr.kind === 'slot' && fr.slots === 1 && fr.months === 1, 'δωρεάν → δωρεάν φίλο: +θέση 1 μήνα (προσωρινή)');
-ok(referrerRewardFor('free', 'owner', 0, 0).kind === 'free_month', 'δωρεάν → φίλο που έγινε Ιδιοκτήτης: μήνας Ιδιοκτήτη');
-ok(referrerRewardFor('free', 'agency', 0, 0).kind === 'free_month', 'δωρεάν → φίλο επαγγελματία: μήνας Ιδιοκτήτη');
-const or = referrerRewardFor('owner', 'free', 0, 0);
-ok(or.kind === 'free_month' && or.months === 1, 'ιδιοκτήτης → δωρεάν φίλο: 1 μήνας');
-const op = referrerRewardFor('owner', 'owner', 0, 0);
-ok(op.kind === 'free_month' && op.months === 2, 'ιδιοκτήτης → φίλο που έγινε Ιδιοκτήτης: 2 μήνες (μπόνους)');
-const oa = referrerRewardFor('owner', 'agency', 0, 0);
-ok(oa.kind === 'free_month' && oa.months === 2, 'ιδιοκτήτης → φίλο επαγγελματία: 2 μήνες');
-const ap = referrerRewardFor('agency', 'owner', 0, 0);
-ok(ap.kind === 'free_month' && ap.months === 2, 'επαγγελματίας → φίλο συνδρομητή: 2 μήνες');
-ok(referrerRewardFor('free', 'free', MAX_ACTIVE_SLOTS, 0).kind === 'none', 'δωρεάν με γεμάτες θέσεις → none');
-ok(referrerRewardFor('free', 'free', 0, MONTHLY_CAP_DEFAULT).kind === 'none', 'πάνω από πλαφόν → none');
-ok(referrerRewardFor('agency', 'free', 0, MONTHLY_CAP_DEFAULT + 3).kind === 'free_month', 'επαγγελματίας ακόμη ανταμείβεται πάνω από το κοινό πλαφόν');
+// ── Πρόγραμμα Ιδιώτη: ανταμοιβή ανά σύσταση ──
+const ri = individualReferralReward('free');
+ok(ri.selfMonths === INDIV_PER_REFERRAL_MONTHS && ri.selfMonths === 1, 'ιδιώτης φέρνει δωρεάν → +1 μήνας σε σένα');
+ok(ri.refereeMonths === REFEREE_TRIAL_MONTHS, 'ο νέος → δώρο καλωσορίσματος');
+ok(individualReferralReward('owner').selfMonths === 1, 'ιδιώτης φέρνει ιδιώτη → +1 μήνας');
+ok(individualReferralReward('agency').selfMonths === INDIV_PRO_BONUS_MONTHS, 'ιδιώτης φέρνει Επαγγελματία → +2 μήνες');
+ok(individualReferralReward('agency').selfMonths === 2, 'μπόνους επαγγελματία = 2 μήνες');
+ok(INDIV_VOLUME_TARGET === 5 && INDIV_VOLUME_BONUS_MONTHS === 1, '5 νέοι ιδιώτες/μήνα → +1 μήνας');
 
-// ── Δώρο νέου χρήστη ──
-ok(refereeReward().months === REFEREE_TRIAL_MONTHS, 'φίλος → 2 μήνες');
+// ── Πρόγραμμα Επαγγελματία: milestones ──
+ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 2, '5 συνδρομητές/μήνα → 2 μήνες Επαγγελματία');
+ok(PRO_FREE_TARGET === 10 && PRO_FREE_BONUS_MONTHS === 1, '10 δωρεάν/μήνα → 1 μήνας Επαγγελματία');
 
-// ── Ενεργές θέσεις με λήξη ──
-const grants = [{ expiresAt: '2026-01-01T00:00:00Z' }, { expiresAt: '2027-01-01T00:00:00Z' }, { expiresAt: null }];
-ok(countActiveSlots(grants, '2026-06-01T00:00:00Z') === 2, 'μετράει μόνο ενεργές (1 ληγμένη)');
-ok(countActiveSlots(grants, '2028-06-01T00:00:00Z') === 1, 'μόνο η μόνιμη μένει');
-ok(daysUntilExpiry('2026-01-20T00:00:00Z', '2026-01-01T00:00:00Z') === 19, 'λήγει σε 19 ημέρες');
-ok(daysUntilExpiry('2026-01-01T00:00:00Z', '2026-01-20T00:00:00Z') === 0, 'ληγμένη → 0 ημέρες');
+// ── Γενική πρόοδος ──
+const pr = progress(3, 5);
+ok(pr.count === 3 && pr.target === 5 && pr.remaining === 2 && pr.reached === false, 'πρόοδος 3/5, λείπουν 2');
+ok(Math.round(pr.pct) === 60, 'πρόοδος 60%');
+ok(progress(7, 5).reached === true && progress(7, 5).remaining === 0, 'πάνω από στόχο → επιτεύχθηκε');
+ok(progress(4, 10).pct === 40, 'πρόοδος 4/10 = 40%');
 
-// ── Πραγματικό όριο & προσθήκη ──
-ok(effectiveMaxProperties('free', 0) === 1, 'δωρεάν βάση 1');
-ok(effectiveMaxProperties('free', 2) === 3, 'δωρεάν +2 ενεργές = 3');
-ok(effectiveMaxProperties('free', 99) === 1 + MAX_ACTIVE_SLOTS, 'θέσεις κόβονται στο πλαφόν');
-ok(effectiveMaxProperties('owner', 1) === 7, 'ιδιοκτήτης 6 +1 = 7');
-ok(effectiveMaxProperties('agency', 5) === Infinity, 'επαγγελματίας απεριόριστος');
-ok(canAddWithReferrals('free', 2, 2) === true, 'δωρεάν +2 θέσεις, 2 ακίνητα → 3ο επιτρεπτό');
-ok(canAddWithReferrals('free', 2, 3) === false, 'δωρεάν +2 θέσεις, 3 ακίνητα → όχι');
-
-// ── Επίπεδο 1: μηνιαίο milestone «5 του μήνα» ──
-ok(qualifiesMonthlyBonus(MONTHLY_MILESTONE) === true, 'milestone στο 5 → μπόνους');
-ok(qualifiesMonthlyBonus(MONTHLY_MILESTONE - 1) === false, 'milestone στο 4 → όχι ακόμη');
-const mp = monthlyProgress(3);
-ok(mp.count === 3 && mp.target === 5 && mp.remaining === 2 && mp.reached === false, 'πρόοδος 3/5, λείπουν 2');
-ok(Math.round(mp.pct) === 60, 'πρόοδος 60%');
-ok(monthlyProgress(7).reached === true && monthlyProgress(7).remaining === 0, 'πάνω από 5 → επιτεύχθηκε');
-ok(MILESTONE_BONUS_MONTHS === 6, 'μπόνους milestone = 6 μήνες Επαγγελματία (αξία προϊόντος, όχι μετρητά)');
-
-// ── Επίπεδο 2: streak & Συνεργάτης ──
+// ── Σερί & Συνεργάτης (μετρά ΣΥΝΔΡΟΜΗΤΕΣ ≥5/μήνα) ──
 ok(currentStreak([5, 5, 5]) === 3, 'σερί 3 μηνών');
 ok(currentStreak([5, 2, 5, 6]) === 2, 'σερί μετρά μόνο τα τελευταία συνεχόμενα');
 ok(currentStreak([6, 6, 3]) === 0, 'σπασμένο σερί στον τελευταίο μήνα → 0');
+ok(currentStreak([4, 4, 4]) === 0, 'κάτω από 5 συνδρομητές → κανένα σερί');
 ok(currentStreak([]) === 0, 'κενό ιστορικό → 0');
 ok(isPartner([5, 5, 5]) === true, 'τρεις σερί → Συνεργάτης');
 ok(isPartner([5, 5, 4]) === false, 'δύο σερί → όχι ακόμη');
@@ -103,6 +73,7 @@ ok(sp2.current === 2 && sp2.target === STREAK_TARGET_MONTHS && sp2.reached === f
 ok(Math.round(sp2.pct) === 67, 'πρόοδος σερί 2/3 → ~67%');
 ok(streakProgress([5, 5, 5, 5]).current === STREAK_TARGET_MONTHS, 'πρόοδος σερί κόβεται στο target');
 ok(streakProgress([5, 5, 5]).pct === 100, 'σερί ολοκληρωμένο → 100%');
+ok(PARTNER_MONTHLY_FREE_MONTHS === 1, 'κάθε επιτυχημένος μήνας Συνεργάτη → 1 μήνας δωρεάν');
 
 // ── Προμήθεια Συνεργάτη ──
 ok(partnerCommission(100) === 20, 'προμήθεια 20% στα 100€');
