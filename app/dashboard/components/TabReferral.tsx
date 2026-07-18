@@ -40,6 +40,13 @@ const CHIP: React.CSSProperties = {
 function SectionLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return <h2 style={{ ...TT.label, margin: '0 0 12px', ...style }}>{children}</h2>;
 }
+// Διακριτικό pill κοινωνικής απόδειξης / κατάταξης. Το κείμενο σκουραίνει προς το
+// κύριο χρώμα κειμένου ώστε να περνά άνετα την αντίθεση AA και στα δύο θέματα.
+const PILL: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px',
+  borderRadius: T.radius.pill, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)',
+};
+const PILL_TEXT = 'color-mix(in srgb, var(--accent) 68%, var(--text-primary))';
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -93,24 +100,30 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   return cy;
 }
 
-// Μετρητής που «τρέχει» από το 0 στην τιμή (ease-out cubic).
-function useCountUp(target: number, ms = 750) {
-  const [n, setN] = useState(() => reducedMotion() ? target : 0);
+// Odometer: τα ψηφία κυλούν κατακόρυφα στη θέση τους (em-based, tabular, ήρεμο
+// cubic με κλιμακωτή καθυστέρηση). Σεβασμός prefers-reduced-motion. Ενιαίο σε
+// κάθε KPI της καρτέλας.
+function CountUp({ value }: { value: number }) {
+  const target = Math.max(0, Math.round(Number(value) || 0));
+  const [rolled, setRolled] = useState(() => reducedMotion());
   useEffect(() => {
-    if (reducedMotion()) { setN(target); return; }
-    let raf = 0, start = 0;
-    const tick = (t: number) => {
-      if (!start) start = t;
-      const p = Math.min(1, (t - start) / ms);
-      setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    setN(0); raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms]);
-  return n;
+    if (reducedMotion()) { setRolled(true); return; }
+    const id = requestAnimationFrame(() => setRolled(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const digits = String(target).split('').map(Number);
+  return (
+    <span aria-label={String(target)} style={{ display: 'inline-flex', fontVariantNumeric: 'tabular-nums', lineHeight: 1, verticalAlign: 'baseline' }}>
+      {digits.map((d, i) => (
+        <span key={`${digits.length}-${i}`} aria-hidden style={{ display: 'inline-block', height: '1em', overflow: 'hidden' }}>
+          <span style={{ display: 'block', lineHeight: 1, transform: `translateY(-${rolled ? d : 0}em)`, transition: reducedMotion() ? 'none' : 'transform 1.05s cubic-bezier(.16,1,.3,1)', transitionDelay: reducedMotion() ? '0ms' : `${i * 55}ms` }}>
+            {Array.from({ length: 10 }, (_, n) => <span key={n} style={{ display: 'block', height: '1em', lineHeight: 1 }}>{n}</span>)}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
 }
-function CountUp({ value }: { value: number }) { return <>{useCountUp(value)}</>; }
 
 // Μπάρα που γεμίζει από το 0 στο mount, με ομαλή καμπύλη.
 function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
@@ -168,6 +181,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [list, setList] = useState<Referee[]>([]);
+  const [standing, setStanding] = useState(0);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
   const [celebrate, setCelebrate] = useState<Record<string, boolean>>({});
   useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
@@ -185,15 +199,17 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         await supabase.from('referral_codes').upsert({ user_id: userId, code }, { onConflict: 'user_id' });
         // Καταγράφει την ανά-σύσταση αξία στο ledger (idempotent) πριν το διαβάσουμε.
         await supabase.rpc('reconcile_referral_rewards', { p_code: code });
-        const [{ data }, { data: sp }, { data: rw }, { data: ls }] = await Promise.all([
+        const [{ data }, { data: sp }, { data: rw }, { data: ls }, { data: st }] = await Promise.all([
           supabase.rpc('get_referral_overview', { p_code: code }),
           supabase.rpc('get_referral_social_proof'),
           supabase.from('referral_rewards').select('kind,months,tier,reason,status,created_at').order('created_at', { ascending: false }),
           supabase.rpc('get_referral_list', { p_code: code }),
+          supabase.rpc('get_referral_standing'),
         ]);
         if (alive && typeof sp === 'number') setSocial(sp);
         if (alive && Array.isArray(rw)) setRewards(rw as Reward[]);
         if (alive && Array.isArray(ls)) setList(ls as Referee[]);
+        if (alive && typeof st === 'number') setStanding(st);
         if (alive && data) setStats({
           invites: Number(data.invites) || 0, activated: Number(data.activated) || 0,
           m_pro: Number(data.m_pro) || 0, m_indiv: Number(data.m_indiv) || 0,
@@ -206,8 +222,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   }, [userId, code]);
 
   const invite = isPro
-    ? `Σου προτείνω το PropertyOS για τα ακίνητα των πελατών σου. Οργανώνει τα οικονομικά και δίνει έτοιμα στοιχεία για τη δήλωση. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`
-    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια. Σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`;
+    ? `Για το ακίνητό σου, σου προτείνω το PropertyOS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`
+    : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
@@ -401,10 +417,20 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             ? 'Κάθε ιδιοκτήτης που προσκαλείς οργανώνεται και σου δίνει έτοιμα στοιχεία. Εσύ κερδίζεις δωρεάν μήνες και, με σταθερή απόδοση, γίνεσαι Συνεργάτης με δική σου προμήθεια. Η πλέον αποδοτική πηγή εισοδήματος για λογιστές, μεσίτες και διαχειριστές ακινήτων.'
             : 'Δείξε του πώς να βάλει το ακίνητό του σε τάξη. Με κάθε ιδιοκτήτη που ξεκινά, κερδίζετε και οι δύο.'}
         </p>
-        {social >= 8 && (
-          <div className="ref-rise" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '7px 12px', borderRadius: T.radius.pill, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
-            <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M20 21v-2a4 4 0 0 0-3-3.87|M4 21v-2a4 4 0 0 1 3-3.87|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M16 3.13a4 4 0 0 1 0 7.75" s={15} /></span>
-            <span style={{ ...TT.bodySm, color: 'var(--accent)', fontWeight: 600 }}>{social.toLocaleString('el-GR')} ιδιοκτήτες κάλεσαν φίλο αυτόν τον μήνα</span>
+        {(standing > 0 || social >= 8) && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            {standing > 0 && (
+              <div className="ref-rise" style={PILL}>
+                <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6" s={15} /></span>
+                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>Είσαι στο κορυφαίο {standing}% των {isPro ? 'συνεργατών' : 'ιδιοκτητών'} που προσκαλούν αυτόν τον μήνα</span>
+              </div>
+            )}
+            {social >= 8 && (
+              <div className="ref-rise" style={PILL}>
+                <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M20 21v-2a4 4 0 0 0-3-3.87|M4 21v-2a4 4 0 0 1 3-3.87|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M16 3.13a4 4 0 0 1 0 7.75" s={15} /></span>
+                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>{social.toLocaleString('el-GR')} ιδιοκτήτες κάλεσαν φίλο αυτόν τον μήνα</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -499,7 +525,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης PropertyOS</span>
-              <span className="ref-kpi-hover" style={{ ...TT.kpi }}>{streak}<span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
+              <span className="ref-kpi-hover" style={{ ...TT.kpi }}><CountUp value={streak} /><span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
             </div>
             )}
             {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
@@ -519,6 +545,19 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 </li>
               ))}
             </ul>
+            {(() => {
+              const d = daysLeftInMonth();
+              const r = PRO_PAID_TARGET - (stats?.m_paid ?? 0);
+              if (!(streak >= 1 && r > 0 && d <= 10)) return null;
+              return (
+                <div style={{ marginTop: 16, display: 'flex', gap: 9, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
+                  <span style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }}><Ic d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z|M12 9v4|M12 17h.01" s={15} /></span>
+                  <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {d === 1 ? 'Ο μήνας κλείνει αύριο.' : `Ο μήνας κλείνει σε ${d} ημέρες.`} {r === 1 ? 'Σου λείπει ένας συνδρομητής' : `Σου λείπουν ${r} συνδρομητές`} {partner ? 'για να εξασφαλίσεις τον δωρεάν μήνα.' : 'για να κρατήσεις το σερί σου.'}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         </>
       ) : (
