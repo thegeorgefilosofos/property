@@ -4,10 +4,10 @@ import {
   withinMonthlyCap, monthlyCapFor, isActivated, referrerRewardFor, refereeReward,
   countActiveSlots, daysUntilExpiry, effectiveMaxProperties, canAddWithReferrals,
   MAX_ACTIVE_SLOTS, MONTHLY_CAP_DEFAULT, MONTHLY_CAP_AGENCY, REFEREE_TRIAL_MONTHS,
-  qualifiesMonthlyBonus, monthlyProgress, milestoneBonusOptions,
+  qualifiesMonthlyBonus, monthlyProgress,
   currentStreak, isPartner, streakProgress, partnerCommission, partnerCommissionFromSubs,
   MONTHLY_MILESTONE, STREAK_TARGET_MONTHS, PARTNER_COMMISSION_RATE,
-  MILESTONE_BONUS_CASH, MILESTONE_BONUS_MONTHS,
+  MILESTONE_BONUS_MONTHS,
 } from './referral';
 
 let p = 0, f = 0;
@@ -16,7 +16,8 @@ const ok = (c: boolean, m: string) => { if (c) p++; else { f++; console.error('�
 // ── Κωδικός & σύνδεσμος ──
 const uid = '3f9a12b7-0c4e-4a11-9d2e-77aa11bb22cc';
 ok(referralCode(uid) === referralCode(uid), 'κωδικός ντετερμινιστικός');
-ok(/^PO[0-9A-Z]{2,6}$/.test(referralCode(uid)), 'κωδικός σε μορφή');
+ok(/^PO[0-9A-Z]{7}$/.test(referralCode(uid)), 'κωδικός σε μορφή (PO + 7, χωρίς απώλεια ψηφίων)');
+ok(referralCode(uid).length === 9, 'κωδικός σταθερού μήκους 9');
 ok(referralCode(uid) !== referralCode('other'), 'διαφορετικοί χρήστες → διαφορετικοί κωδικοί');
 ok(referralLink('https://property-os.gr/', uid) === `https://property-os.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
 
@@ -87,9 +88,7 @@ const mp = monthlyProgress(3);
 ok(mp.count === 3 && mp.target === 5 && mp.remaining === 2 && mp.reached === false, 'πρόοδος 3/5, λείπουν 2');
 ok(Math.round(mp.pct) === 60, 'πρόοδος 60%');
 ok(monthlyProgress(7).reached === true && monthlyProgress(7).remaining === 0, 'πάνω από 5 → επιτεύχθηκε');
-const opts = milestoneBonusOptions();
-ok(opts.some(o => o.kind === 'cash' && o.amount === MILESTONE_BONUS_CASH), 'επιλογή μετρητών 25€');
-ok(opts.some(o => o.kind === 'months' && o.months === MILESTONE_BONUS_MONTHS), 'επιλογή 6 μηνών');
+ok(MILESTONE_BONUS_MONTHS === 6, 'μπόνους milestone = 6 μήνες Επαγγελματία (αξία προϊόντος, όχι μετρητά)');
 
 // ── Επίπεδο 2: streak & Συνεργάτης ──
 ok(currentStreak([5, 5, 5]) === 3, 'σερί 3 μηνών');
@@ -101,7 +100,9 @@ ok(isPartner([5, 5, 4]) === false, 'δύο σερί → όχι ακόμη');
 ok(isPartner([9, 9, 9, 9]) === true, 'τέσσερις σερί → Συνεργάτης');
 const sp2 = streakProgress([5, 5]);
 ok(sp2.current === 2 && sp2.target === STREAK_TARGET_MONTHS && sp2.reached === false, 'πρόοδος σερί 2/3');
+ok(Math.round(sp2.pct) === 67, 'πρόοδος σερί 2/3 → ~67%');
 ok(streakProgress([5, 5, 5, 5]).current === STREAK_TARGET_MONTHS, 'πρόοδος σερί κόβεται στο target');
+ok(streakProgress([5, 5, 5]).pct === 100, 'σερί ολοκληρωμένο → 100%');
 
 // ── Προμήθεια Συνεργάτη ──
 ok(partnerCommission(100) === 20, 'προμήθεια 20% στα 100€');

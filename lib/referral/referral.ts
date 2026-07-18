@@ -55,8 +55,10 @@ function fnv1a(str: string): number {
 }
 
 export function referralCode(userId: string): string {
-  const base = fnv1a(userId).toString(36).toUpperCase();
-  return ('PO' + base.padStart(6, '0')).slice(0, 8);
+  // 32-bit hash → base36 χωρίς απώλεια ψηφίων (max 4.294.967.295 = 7 ψηφία base36).
+  // ΔΕΝ κόβουμε ουρά (θα προκαλούσε συγκρούσεις — δύο χρήστες, ίδιος κωδικός).
+  const base = fnv1a(userId).toString(36).toUpperCase().padStart(7, '0');
+  return 'PO' + base;
 }
 
 export function referralLink(origin: string, userId: string): string {
@@ -166,17 +168,13 @@ export function canAddWithReferrals(planId: string | null | undefined, activeSlo
 // ένα ουσιαστικό μπόνους όταν φτάσεις τις 5 ΕΝΕΡΓΕΣ συστάσεις μέσα σε έναν
 // ημερολογιακό μήνα. Οικονομικά: 5 ενεργοποιημένοι χρήστες = εξαιρετικά φθηνό
 // CAC (πολύ κάτω από κάθε διαφήμιση), αφού είναι ήδη πραγματικοί, ενεργοί.
-// Το μπόνους δίνεται ΕΠΙΛΟΓΗ: μετρητά (IRIS/πίστωση) Ή αξία προϊόντος.
+// Το μπόνους είναι ΑΞΙΑ ΠΡΟΪΟΝΤΟΣ (μήνες Επαγγελματία), ΟΧΙ μετρητά: μηδενικό
+// οριακό κόστος για την Property OS, δεν «μυρίζει» κουπόνι σούπερ-μάρκετ, και
+// δεν δημιουργεί ταμειακή έκθεση/φοροτεχνικό βάρος σε ιδιώτες. Κερδίζουν και οι
+// δύο: ο συστήνων παίρνει το κορυφαίο πλάνο δωρεάν, εμείς πραγματικούς χρήστες.
 // ═══════════════════════════════════════════════════════════════════════════
 export const MONTHLY_MILESTONE = 5;          // ενεργές συστάσεις/μήνα για μπόνους
-export const MILESTONE_BONUS_CASH = 25;      // € (IRIS ή πίστωση συνδρομής)
-export const MILESTONE_BONUS_MONTHS = 6;     // εναλλακτικά: μήνες Επαγγελματία δωρεάν
-
-export type MilestoneBonus = { kind: 'cash'; amount: number } | { kind: 'months'; months: number };
-
-export function milestoneBonusOptions(): MilestoneBonus[] {
-  return [{ kind: 'cash', amount: MILESTONE_BONUS_CASH }, { kind: 'months', months: MILESTONE_BONUS_MONTHS }];
-}
+export const MILESTONE_BONUS_MONTHS = 6;     // μήνες Επαγγελματία δωρεάν (αξία προϊόντος)
 
 export function qualifiesMonthlyBonus(activatedThisMonth: number): boolean {
   return activatedThisMonth >= MONTHLY_MILESTONE;
@@ -219,9 +217,10 @@ export function isPartner(monthlyCounts: number[]): boolean {
 }
 
 /** Πρόοδος προς την ιδιότητα Συνεργάτη (για την μπάρα «X/3 μήνες»). */
-export function streakProgress(monthlyCounts: number[]): { current: number; target: number; reached: boolean } {
+export function streakProgress(monthlyCounts: number[]): { current: number; target: number; reached: boolean; pct: number } {
   const streak = currentStreak(monthlyCounts);
-  return { current: Math.min(streak, STREAK_TARGET_MONTHS), target: STREAK_TARGET_MONTHS, reached: streak >= STREAK_TARGET_MONTHS };
+  const current = Math.min(streak, STREAK_TARGET_MONTHS);
+  return { current, target: STREAK_TARGET_MONTHS, reached: streak >= STREAK_TARGET_MONTHS, pct: Math.min(100, (current / STREAK_TARGET_MONTHS) * 100) };
 }
 
 /** Μηνιαία προμήθεια Συνεργάτη επί των εσόδων που παρήγαγαν οι ενεργές του

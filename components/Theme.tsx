@@ -39,6 +39,8 @@ export const T = {
 // Χρήση: <div style={{ ...TT.label }}>…</div>  ή  style={TT.kpi}
 export const TT = {
   display: { fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
+  // Μικρότερο display για μεγάλους αριθμούς μέσα σε κάρτες (π.χ. ανταμοιβές).
+  displaySm: { fontFamily: T.font.sans, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, color: 'var(--text-primary)' },
   h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)' },
   h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)' },
   // Ετικέτα ενότητας, η uppercase «τελεία» των Bills, τυποποιημένη.
