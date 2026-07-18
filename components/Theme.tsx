@@ -200,7 +200,7 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
   const bg =
     tier === 'partner' ? 'radial-gradient(120% 90% at 50% -8%, rgba(255,255,255,.34), transparent 55%), radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 46%, color-mix(in srgb, var(--accent) 52%, #0c1f3a) 100%)'
     : tier === 'agency' ? 'radial-gradient(115% 85% at 50% -10%, rgba(255,255,255,.22), transparent 55%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--accent-dim) 60%, #ffffff) 0%, var(--accent-dim) 54%, color-mix(in srgb, var(--accent) 22%, var(--accent-dim)) 100%)'
-    : 'radial-gradient(115% 85% at 50% -12%, rgba(255,255,255,.5), transparent 52%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--surface-raised) 82%, #ffffff) 0%, var(--surface-sunken) 58%, color-mix(in srgb, var(--surface-sunken) 84%, #0c1f3a) 100%)';
+    : 'radial-gradient(115% 85% at 50% -12%, rgba(255,255,255,.5), transparent 52%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--border-raised) 72%, #ffffff) 0%, var(--border-raised) 54%, color-mix(in srgb, var(--border-raised) 82%, #0c1f3a) 100%)';
   const shadow =
     tier === 'partner' ? 'inset 0 0 0 1.5px color-mix(in srgb, var(--accent-text) 32%, transparent), inset 0 2px 5px color-mix(in srgb, #ffffff 26%, transparent), inset 0 -3px 6px color-mix(in srgb, #0c1f3a 22%, transparent), 0 10px 26px -8px color-mix(in srgb, var(--accent) 62%, transparent)'
     : tier === 'agency' ? 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px color-mix(in srgb, var(--accent) 20%, transparent), 0 5px 12px -6px color-mix(in srgb, var(--accent) 44%, transparent)'
@@ -208,7 +208,7 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
   const groove =
     tier === 'partner' ? 'color-mix(in srgb, var(--accent-text) 24%, transparent)'
     : tier === 'agency' ? 'color-mix(in srgb, var(--accent) 22%, transparent)'
-    : 'rgba(16,24,40,.10)';
+    : 'color-mix(in srgb, var(--text-tertiary) 22%, transparent)';
   const gl = size * (isPartner ? 0.58 : 0.5);
   const glyphs: Record<string, string> = {
     owner:  'M4 11 12 4l8 7|M6 9.5V20h12V9.5|M10 20v-5h4v5',
