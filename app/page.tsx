@@ -73,6 +73,22 @@ const SECURITY = [
   { t: 'Δεδομένα στην ΕΕ · Κανονισμός GDPR', d: 'Αποθήκευση σε ευρωπαϊκά κέντρα δεδομένων, πλήρως συμβατή με τον Κανονισμό GDPR.', i: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20' },
 ];
 
+// Δύο προγράμματα σύστασης: ιδιώτης (πρόσκληση) και επαγγελματίας (συνεργάτης).
+const REFERRAL = [
+  {
+    tag: 'Ιδιώτες', t: 'Πρόγραμμα Πρόσκλησης',
+    i: 'M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 4.5 12 7 12 7zM12 7s3-5 5.5-2.5S12 7 12 7z',
+    d: 'Δείξε σε έναν ιδιοκτήτη πώς να βάλει το ακίνητό του σε τάξη. Με κάθε φίλο που ξεκινά, κερδίζετε και οι δύο.',
+    items: ['Δύο μήνες δώρο για τον νέο ιδιοκτήτη', 'Δωρεάν μήνες για σένα, αυτόματα στη συνδρομή σου'],
+  },
+  {
+    tag: 'Επαγγελματίες', t: 'Πρόγραμμα Συνεργατών',
+    i: 'M3 7h18v13H3zM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18',
+    d: 'Για λογιστές, μεσίτες και διαχειριστές ακινήτων. Προσκάλεσε τους πελάτες-ιδιοκτήτες σου και χτίσε μια σταθερή πηγή εισοδήματος.',
+    items: ['Δωρεάν μήνες από την πρώτη κιόλας σύσταση', 'Επαναλαμβανόμενη προμήθεια ως επίσημος Συνεργάτης'],
+  },
+];
+
 const wrap: React.CSSProperties = { maxWidth: 1140, margin: '0 auto', padding: '0 clamp(20px, 5vw, 48px)' };
 const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
 const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>;
@@ -351,6 +367,28 @@ export default async function Landing() {
         <p style={{ textAlign: 'center', fontSize: 12.5, color: FAINT, margin: '22px auto 0', maxWidth: 540, lineHeight: 1.6 }}>
           Πληρώνεις μόνο για τα ακίνητα που διαχειρίζεσαι, χωρίς δέσμευση και χωρίς κρυφές χρεώσεις. Οι τιμές περιλαμβάνουν ΦΠΑ.
         </p>
+      </section>
+
+      {/* ── Σύσταση: δύο διακριτά προγράμματα, ιδιώτη και επαγγελματία ── */}
+      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 'clamp(44px, 7vw, 84px)' }}>
+        <SectionHead over="Σύσταση" title="Μοιράσου το. Κερδίστε και οι δύο." sub="Κάθε ιδιοκτήτης που ξεκινά με τη σύστασή σου παίρνει δώρο, κι εσύ ανταμείβεσαι. Για τους επαγγελματίες, γίνεται σταθερή πηγή εισοδήματος." />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
+          {REFERRAL.map((r, i) => (
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 18, padding: 'clamp(22px, 2.6vw, 30px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(r.i)}</div>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: ACCENT }}>{r.tag}</span>
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.015em' }}>{r.t}</h3>
+              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{r.d}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                {r.items.map((t, j) => (
+                  <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.45 }}>{t}</span></div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ── FAQ: δίστηλο, λιτή λίστα με λεπτές διαχωριστικές γραμμές ── */}
