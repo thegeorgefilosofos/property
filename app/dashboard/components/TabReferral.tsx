@@ -30,8 +30,21 @@ const card: React.CSSProperties = {
   borderRadius: T.radius.card, boxShadow: 'var(--highlight-inset), var(--elev-1)',
 };
 const PAD = T.sp.xl;
+// Κοινό στυλ «chip» για τα κανάλια κοινοποίησης (ενιαία εμφάνιση).
+const CHIP: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px',
+  background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
+  fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
+};
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Πόσες ημέρες απομένουν ως το τέλος του τρέχοντος μήνα (για επείγουσα ώθηση).
+const daysLeftInMonth = () => {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+};
 
 // Μετρητής που «τρέχει» από το 0 στην τιμή (ease-out cubic).
 function useCountUp(target: number, ms = 750) {
@@ -91,6 +104,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 }) {
   const [origin, setOrigin] = useState('https://property-os.gr');
   const [copied, setCopied] = useState(false);
+  const [msgCopied, setMsgCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [stats, setStats] = useState<Overview | null>(null);
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -134,6 +149,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     : `Οργανώνω το ακίνητό μου με το PropertyOS και μου έλυσε τα χέρια. Σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Το πρώτο ακίνητο είναι δωρεάν και με τον σύνδεσμό μου κερδίζεις ${REFEREE_FREE_SLOT_MONTHS} μήνες δώρο: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
+  const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
   const nativeShare = async () => { try { await (navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }).share?.({ text: invite }); } catch { /* ignore */ } };
   const doClaim = async (kind: string) => {
     setClaim(c => ({ ...c, [kind]: 'saving' }));
@@ -146,10 +162,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     } catch { setClaim(c => ({ ...c, [kind]: 'error' })); }
   };
 
+  const emailSubject = isPro ? 'Πρόσκληση στο PropertyOS για τα ακίνητα των πελατών σου' : 'Σου προτείνω το PropertyOS για το ακίνητό σου';
   const shares = [
     { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(invite)}`, d: 'M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5a8.5 8.5 0 0 1-1-4A8.38 8.38 0 0 1 11.5 3 8.5 8.5 0 0 1 21 11.5z' },
     { label: 'Viber', href: `viber://forward?text=${encodeURIComponent(invite)}`, d: 'M12 3a9 9 0 0 0-9 9 8.7 8.7 0 0 0 2 5.6L4 21l3.6-1a9 9 0 1 0 4.4-17z|M9 8c1.5 3 3.5 5 6.5 6' },
     { label: 'Telegram', href: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(invite)}`, d: 'M21 4 3 11l5 2 2 6 3-4 5 4z' },
+    { label: 'Email', href: `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(invite)}`, d: 'M2 5h20v14H2z|M2 6l10 7 10-7' },
   ];
 
   const referrerPaying = plan === 'monthly' || plan === 'annual';
@@ -201,6 +219,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const Milestone = ({ title, count, target, kind, reward }: { title: string; count: number; target: number; kind: string; reward: string }) => {
     const pr = progress(count, target);
     const st = claim[kind] || 'idle';
+    const dleft = daysLeftInMonth();
     return (
       <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible' }}>
         {celebrate[kind] && <Confetti />}
@@ -218,6 +237,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν τον στόχο.`
                 : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε.`}
         </p>
+        {!pr.reached && (
+          <div style={{ ...TT.caption, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: dleft <= 5 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
+            <Ic d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" s={13} c="currentColor" />
+            {dleft <= 1 ? 'Τελευταία ημέρα του μήνα' : `Απομένουν ${dleft} ημέρες ως το τέλος του μήνα`}
+          </div>
+        )}
         {pr.reached && (
           <div style={{ marginTop: 12 }}>
             {st === 'done'
@@ -233,6 +258,21 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   return (
     <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
       {styleBlock}
+
+      {/* ── QR κωδικός συνδέσμου (για διά ζώσης πρόσκληση) ── */}
+      {qrOpen && (
+        <div onClick={() => setQrOpen(false)} role="dialog" aria-modal="true" aria-label="Κωδικός QR πρόσκλησης"
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,12,24,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-3)', padding: 24, maxWidth: 340, width: '100%', textAlign: 'center' }}>
+            <div style={{ ...TT.h2, marginBottom: 4 }}>Σάρωσε για να προσκαλέσεις</div>
+            <div style={{ ...TT.bodySm, marginBottom: 16 }}>Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό.</div>
+            <div style={{ background: '#fff', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=6&data=${encodeURIComponent(link)}`} width={200} height={200} alt="Κωδικός QR" style={{ display: 'block' }} />
+            </div>
+            <button onClick={() => setQrOpen(false)} className="ref-cta" style={{ marginTop: 18, height: 40, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Κεφαλίδα ── */}
       <div style={{ marginBottom: T.sp.xxl }}>
@@ -267,14 +307,20 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
           </button>
         </div>
-        <span aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{copied ? 'Ο σύνδεσμος αντιγράφηκε' : ''}</span>
+        <span aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{copied ? 'Ο σύνδεσμος αντιγράφηκε' : msgCopied ? 'Το μήνυμα αντιγράφηκε' : ''}</span>
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {shares.map(s => (
-            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="ref-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none' }}>
+            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="ref-chip" style={CHIP}>
               <Ic d={s.d} s={15} c="var(--text-tertiary)" />{s.label}
             </a>
           ))}
-          <button onClick={nativeShare} className="ref-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+          <button onClick={copyMsg} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
+            <Ic d={msgCopied ? 'M20 6 9 17l-5-5' : 'M8 4h10a2 2 0 0 1 2 2v10|M4 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z'} s={15} c="var(--text-tertiary)" />{msgCopied ? 'Αντιγράφηκε' : 'Αντιγραφή μηνύματος'}
+          </button>
+          <button onClick={() => setQrOpen(true)} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
+            <Ic d="M3 3h7v7H3z|M14 3h7v7h-7z|M3 14h7v7H3z|M14 14h3v3|M20 20h1|M20 14h1|M14 20h1" s={15} c="var(--text-tertiary)" />QR
+          </button>
+          <button onClick={nativeShare} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
             <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} c="var(--text-tertiary)" />Κοινοποίηση
           </button>
           <span style={{ ...TT.caption, marginLeft: 'auto' }}>Κωδικός <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.mono, letterSpacing: '0.04em' }}>{code}</strong></span>
