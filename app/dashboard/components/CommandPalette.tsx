@@ -63,7 +63,7 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
         <input
           ref={inputRef}
           className="cmdk-input"
-          placeholder="Αναζήτηση ή μετάβαση…  (ακίνητο, tab, ενέργεια)"
+          placeholder="Αναζήτηση ή μετάβαση… (ακίνητο, καρτέλα, ενέργεια)"
           value={q}
           onChange={e => setQ(e.target.value)}
         />

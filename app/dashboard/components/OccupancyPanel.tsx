@@ -56,7 +56,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
   const kpi = (label: string, value: string, tone = 'var(--text-primary)') => (
     <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{label}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: tone, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
     </div>
   );
@@ -68,7 +68,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: <span title="Αριθμός Μητρώου Ακινήτου — αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ">ΑΜΑ</span>, πληρότητα, σύγκριση με μακροχρόνια</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: <span title="Αριθμός Μητρώου Ακινήτου: αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ">ΑΜΑ</span>, πληρότητα, σύγκριση με μακροχρόνια</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -111,7 +111,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
                     <div key={m} style={{ textAlign: 'center', minWidth: 0 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: isPeak ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
                       <input value={d.nights[i]} onChange={e => setNight(i, e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" placeholder="0"
-                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 8, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: `1px solid ${isPeak ? 'var(--accent-border)' : 'var(--border-default)'}`, borderRadius: 4, padding: '9px 2px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, textAlign: 'center', outline: 'none', transition: 'border-color 0.15s' }}
                         onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
                         onBlur={e => { e.currentTarget.style.borderColor = isPeak ? 'var(--accent-border)' : 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; }} />
                     </div>
@@ -121,7 +121,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
               {/* ── Αποτελέσματα ─────────────────────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
-                {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`, 'var(--accent)')}
+                {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`)}
                 {kpi('Νύχτες / έτος', String(totalNights))}
                 {kpi('Μεικτά έσοδα', fe(stRevenue))}
                 {kpi('Προμήθειες πλατφορμών', `− ${fe(net.platformFees)}`, 'var(--text-secondary)')}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, InfoBanner, Spinner } from '@/components/Theme';
+import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
 import { TextInput, Toggle } from './UIComponents';
 import { normalizePlan } from '@/lib/billing/plans';
 import { sanitizeAccent, sanitizeLogo, DEFAULT_ACCENT } from '@/lib/reportBranding';
@@ -82,23 +82,15 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const secHdr = (t: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-      <div style={{ fontFamily: T.font.sans, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontWeight: 700 }}>{t}</div>
-    </div>
-  );
-
   if (loading) return <Spinner label="Φόρτωση…" />;
 
   if (normalizePlan(plan) !== 'agency') {
     return (
-      <div style={card}>
-        {secHdr('Επωνυμία στις αναφορές')}
+      <Card>
+        <SecHdr label="Επωνυμία στις αναφορές" />
         <InfoBanner tone="info">Η επωνυμία στις αναφορές είναι δυνατότητα του πλάνου «Επαγγελματίας». Αναβάθμισε για να εμφανίζονται το λογότυπο, τα στοιχεία και τα χρώματά σου σε κάθε εκτυπώσιμη αναφορά (PDF).</InfoBanner>
         <div style={{ marginTop: 14 }}><Btn variant="primary" onClick={onUpgrade}>Δες τα πλάνα</Btn></div>
-      </div>
+      </Card>
     );
   }
 
@@ -107,8 +99,8 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
 
   return (
     <div>
-      <div style={card}>
-        {secHdr('Επωνυμία στις αναφορές')}
+      <Card>
+        <SecHdr label="Επωνυμία στις αναφορές" />
         <div style={{ marginBottom: 16 }}>
           <Toggle on={enabled} onChange={setEnabled} label="Εμφάνιση της επωνυμίας μου στις αναφορές" />
         </div>
@@ -117,34 +109,34 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
           <TextInput label="Τηλέφωνο επικοινωνίας" value={phone} onChange={setPhone} placeholder="210 0000000" />
           <TextInput label="Email επικοινωνίας" value={email} onChange={setEmail} placeholder="info@grafeio.gr" />
         </div>
-      </div>
+      </Card>
 
-      <div style={card}>
-        {secHdr('Λογότυπο')}
+      <Card>
+        <SecHdr label="Λογότυπο" />
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6, marginBottom: 14 }}>
           PNG ή JPG, ιδανικά τετράγωνο ή οριζόντιο. Μειώνεται αυτόματα, μέγιστο 500 KB.
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {logoUrl && <img src={logoUrl} alt="" style={{ height: 48, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 6 }} />}
+          {logoUrl && <img src={logoUrl} alt="" style={{ height: 48, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 6 }} />}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onFile} style={{ display: 'none' }} />
           <Btn variant="secondary" onClick={() => fileRef.current?.click()}>Μεταφόρτωση λογοτύπου</Btn>
           {logoUrl && <Btn variant="ghost" onClick={() => setLogoUrl('')}>Αφαίρεση</Btn>}
         </div>
-      </div>
+      </Card>
 
-      <div style={card}>
-        {secHdr('Χρώμα επωνυμίας')}
+      <Card>
+        <SecHdr label="Χρώμα επωνυμίας" />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <input type="color" value={sanitizeAccent(accent)} onChange={e => setAccent(e.target.value)}
-            style={{ width: 48, height: 40, border: '1px solid var(--border-subtle)', borderRadius: 8, background: 'transparent', cursor: 'pointer', padding: 2 }} />
+            style={{ width: 48, height: 40, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 2 }} />
           <div style={{ width: 160 }}>
             <TextInput label="" value={accent} onChange={v => setAccent(v)} placeholder="#1a73e8" />
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div style={card}>
-        {secHdr('Προεπισκόπηση κεφαλίδας')}
+      <Card>
+        <SecHdr label="Προεπισκόπηση κεφαλίδας" />
         <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
           <div style={{ height: 4, background: sanitizeAccent(accent) }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
@@ -158,7 +150,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {error && <div style={{ marginBottom: 12 }}><InfoBanner tone="warning">{error}</InfoBanner></div>}
       <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : saved ? 'Αποθηκεύτηκε ✓' : 'Αποθήκευση επωνυμίας'}</Btn>

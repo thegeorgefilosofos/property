@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, fn } from '@/components/Theme';
+import { T, fe, fn, fd } from '@/components/Theme';
 import { DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 
@@ -73,7 +73,7 @@ const num = (s: string) => { const v = parseFloat(s.replace(',', '.')); return i
 
 // ── Στυλ inputs (ίδιο look με το υπάρχον modal) ─────────────────────────────
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', height: 42, borderRadius: 10,
+  width: '100%', padding: '10px 16px', height: 40, borderRadius: 4,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Inter', sans-serif",
   letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -82,8 +82,8 @@ const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Robot
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3,
-  fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
-  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 7,
+  fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
+  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6,
 };
 
 // Όροφοι (ελληνική ονοματολογία): κείμενο, όχι αριθμός.
@@ -207,7 +207,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 28px 0' }}>
           <div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 500, color: 'var(--text-primary)', lineHeight: '28px' }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.25 }}>{isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}</div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, letterSpacing: '0.25px' }}>Βήμα {step + 1} από {STEPS.length} · {STEPS[step]}</div>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
@@ -342,13 +342,13 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   <div style={grid3}>
                     <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
                       <select style={selectStyle} value={peaClass} onChange={e => setPeaClass(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">—</option>
+                        <option value="">Επίλεξε</option>
                         {PEA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </Field>
                     <Field label="Τύπος Θέρμανσης">
                       <select style={selectStyle} value={heating} onChange={e => setHeating(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">—</option>
+                        <option value="">Επίλεξε</option>
                         {HEATING_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                       </select>
                     </Field>
@@ -404,9 +404,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               </div>
 
               {grossYield != null && (
-                <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη Μεικτή Απόδοση</div>
-                  <div style={{ fontFamily: "'Roboto Mono', monospace", fontSize: 28, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{grossYield.toFixed(1)}%</div>
+                  <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{grossYield.toFixed(1)}%</div>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                     {airbnb
                       ? `Ετήσια έσοδα ${fe(annualRent!, 0)} με εκτιμώμενη πληρότητα 60%`
@@ -431,7 +431,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 </span>
               </div>
 
-              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 14, overflow: 'hidden' }}>
                 {([
                   ['Τύπος', PROP_TYPE_LABELS[propType]],
                   ['Κατάσταση', STATUS_LABELS[effStatus]],
@@ -450,7 +450,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!, 0)] : null,
                   num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!, 0)} / έτος`] : null,
                   ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!, 0) : '—'],
-                  purchaseDate ? ['Ημ. Αγοράς', new Date(purchaseDate).toLocaleDateString('el-GR')] : null,
+                  purchaseDate ? ['Ημ. Αγοράς', fd(purchaseDate)] : null,
                   [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN, 0) : `${fe(rentN, 0)} / μήνα`) : '—'],
                   ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
                   ['Εκτιμώμενη Μεικτή Απόδοση', grossYield != null ? `${grossYield.toFixed(1)}%` : '—'],

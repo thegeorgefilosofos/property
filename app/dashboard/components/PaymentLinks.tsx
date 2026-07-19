@@ -53,21 +53,21 @@ export default function PaymentLinks() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Είσπραξη & Πληρωμές</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Σύνδεσμοι σε Viva, IRIS, Stripe και e-banking.</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Είσπραξη και Πληρωμές</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>Σύνδεσμοι σε Viva, IRIS, Stripe και e-banking.</div>
           </div>
         </div>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
       </div>
 
       {open && (
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 12, lineHeight: 1.5 }}>
             Δημιούργησε αίτημα είσπραξης ενοικίου ή πλήρωσε δαπάνες μέσω του παρόχου σου. Οι πληρωμές γίνονται απευθείας στον λογαριασμό σου.
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '4px 0 8px' }}>Είσπραξη</div>
           <LinkGrid items={COLLECT} />
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '14px 0 8px' }}>e-Banking Τράπεζας</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '16px 0 8px' }}>e-Banking Τράπεζας</div>
           <LinkGrid items={BANKS} />
         </div>
       )}

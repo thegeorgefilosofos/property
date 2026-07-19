@@ -30,7 +30,7 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
         onClick={(e) => { e.stopPropagation(); pos ? hide() : show() }}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle',
-          width: size, height: size, borderRadius: '50%', border: 'none', padding: 0, margin: '0 0 0 5px',
+          width: size, height: size, borderRadius: '50%', border: 'none', padding: 0, margin: '0 0 0 4px',
           background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0, lineHeight: 0,
           transition: 'color 0.13s',
         }}
@@ -51,9 +51,9 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
             transform: `translate(-50%, ${pos.place === 'bottom' ? '0' : '-100%'})`,
             zIndex: 9999, maxWidth: 280, width: 'max-content',
             background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
-            border: '1px solid var(--border-default)', borderRadius: 12,
-            padding: '11px 13px', fontSize: 12, lineHeight: 1.55, fontFamily: "'Inter',sans-serif",
-            boxShadow: '0 12px 32px -12px rgba(0,0,0,0.55)', pointerEvents: 'none',
+            border: '1px solid var(--border-default)', borderRadius: 10,
+            padding: '12px', fontSize: 12, lineHeight: 1.55, fontFamily: "'Inter',sans-serif",
+            boxShadow: 'var(--elev-3)', pointerEvents: 'none',
           }}
         >
           {children}

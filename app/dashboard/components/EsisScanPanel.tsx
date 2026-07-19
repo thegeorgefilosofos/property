@@ -8,8 +8,8 @@ import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 // έξοδα, ασφάλειες, κρυφές χρεώσεις. Ίδιο /api/anthropic pattern με τη σάρωση.
 const font = "'Inter',sans-serif"
 const labelStyle: React.CSSProperties = {
-  fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:600,fontFamily:font,
+  fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
+  letterSpacing:'0.06em',fontWeight:700,fontFamily:font,
 }
 
 const SYSTEM_PROMPT = `Είσαι αναλυτής στεγαστικών δανείων στην Ελλάδα. Σου δίνεται προσφορά τράπεζας ή Τυποποιημένο Ευρωπαϊκό Δελτίο Πληροφοριών (ESIS/ΤΕΔΠ).
@@ -129,8 +129,8 @@ export default function EsisScanPanel({
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={e=>{ const f=e.target.files?.[0]; if(f) loadFile(f); e.currentTarget.value='' }}/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}>
-        <p style={{flex:1,minWidth:240,fontSize:12.5,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
-        <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 15px',height:38,borderRadius:18,background:'var(--accent)',border:'none',color:'var(--accent-text)',fontSize:12.5,fontFamily:font,fontWeight:600,cursor:scanning?'wait':'pointer',flexShrink:0}}>
+        <p style={{flex:1,minWidth:240,fontSize:13,color:'var(--text-tertiary)',fontFamily:font,lineHeight:1.55}}>Ανέβασε το δελτίο ESIS ή την προσφορά της τράπεζας, ή πληκτρολόγησε τα νούμερα. Το εργαλείο αποκαλύπτει το πραγματικό κόστος (ΣΕΠΠΕ) πέρα από το διαφημιζόμενο επιτόκιο.</p>
+        <button onClick={()=>inputRef.current?.click()} disabled={scanning} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'0 16px',height:36,borderRadius:100,background:'var(--accent)',border:'1px solid transparent',color:'var(--accent-text)',fontSize:12,fontFamily:font,fontWeight:700,cursor:scanning?'wait':'pointer',flexShrink:0}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
           {scanning?'Ανάλυση…':'Ανέβασε προσφορά'}
         </button>
@@ -138,11 +138,11 @@ export default function EsisScanPanel({
 
       {error && (
         <div style={{padding:'10px 14px',background:'var(--negative-dim)',border:'1px solid var(--negative-border)',borderRadius:10}}>
-          <p style={{fontSize:12.5,color:'var(--negative)',fontFamily:font,lineHeight:1.5}}>{error==='key'?'Η υπηρεσία ανάλυσης δεν είναι διαθέσιμη αυτή τη στιγμή. Μπορείς να πληκτρολογήσεις τα νούμερα.':error==='big'?'Το αρχείο είναι πολύ μεγάλο (όριο 10MB).':error==='service'?'Προσωρινό πρόβλημα στην υπηρεσία. Δοκίμασε ξανά.':'Δεν διαβάστηκε καθαρά. Δοκίμασε πιο ευκρινές αρχείο ή συμπλήρωσε χειροκίνητα.'}</p>
+          <p style={{fontSize:13,color:'var(--negative)',fontFamily:font,lineHeight:1.5}}>{error==='key'?'Η υπηρεσία ανάλυσης δεν είναι διαθέσιμη αυτή τη στιγμή. Μπορείς να πληκτρολογήσεις τα νούμερα.':error==='big'?'Το αρχείο είναι πολύ μεγάλο (όριο 10MB).':error==='service'?'Προσωρινό πρόβλημα στην υπηρεσία. Δοκίμασε ξανά.':'Δεν διαβάστηκε καθαρά. Δοκίμασε πιο ευκρινές αρχείο ή συμπλήρωσε χειροκίνητα.'}</p>
         </div>
       )}
       {scanned && !scanning && !error && (
-        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
+        <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
       )}
 
       {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
@@ -160,16 +160,16 @@ export default function EsisScanPanel({
       {/* Ετυμηγορία — ουδέτερο κουτί· λευκή/ομοιόμορφη, γαλάζια μόνο στο πέρασμα του
           κέρσορα (το κόκκινο για ακριβή προσφορά παραμένει πάντα). */}
       <div onMouseEnter={()=>setVhE(true)} onMouseLeave={()=>setVhE(false)} onTouchStart={()=>setVhE(true)} onTouchEnd={()=>setVhE(false)}
-        style={{background:'var(--bg-surface)',border:`1px solid ${vhE?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px 18px',transition:'border-color 0.15s'}}>
+        style={{background:'var(--bg-surface)',border:`1px solid ${vhE?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:14}}>
           <p style={{fontSize:16,fontWeight:700,fontFamily:font,color:res.verdict==='expensive'?'var(--negative)':vhE?'var(--accent)':'var(--text-primary)',letterSpacing:'-0.01em',transition:'color 0.15s'}}>{esisVerdictLabel(res.verdict)}</p>
-          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες vs αγορά`}</p>}
+          {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${dec(res.vsMarketPct)} μονάδες έναντι αγοράς`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
           {costTiles.map((t,i)=>(
             <div key={t.l} onMouseEnter={()=>setHt(i)} onMouseLeave={()=>setHt(null)} onTouchStart={()=>setHt(i)} onTouchEnd={()=>setHt(null)}>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.05em',fontWeight:600,fontFamily:font,marginBottom:4}}>{t.l}</p>
-              <p style={{fontSize:t.hi?17:14.5,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:(t.hi&&res.verdict==='expensive')?'var(--negative)':ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
+              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily:font,marginBottom:4}}>{t.l}</p>
+              <p style={{fontSize:t.hi?16:13,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:(t.hi&&res.verdict==='expensive')?'var(--negative)':ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
             </div>
           ))}
         </div>
@@ -186,7 +186,7 @@ export default function EsisScanPanel({
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',gap:6}}>
             {res.flags.map((f,i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:600,fontFamily:font,color:f.kind==='bad'?'var(--negative)':'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.label}</span>
                 <InfoDot text={f.detail}/>
               </div>
             ))}

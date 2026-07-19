@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, Spinner } from '@/components/Theme';
+import { T, TT, Spinner, Btn } from '@/components/Theme';
 
 export interface InsightContext {
   propName: string;
@@ -87,16 +87,14 @@ export default function AIInsights({ ctx }: { ctx: InsightContext }) {
           <div style={{ ...TT.caption }}>Προτάσεις με τεχνητή νοημοσύνη βάσει των στοιχείων του ακινήτου</div>
         </div>
         {state !== 'loading' && (
-          <button onClick={run} style={{ height: 34, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-            {state === 'done' || state === 'error' ? 'Ανανέωση' : 'Ανάλυση'}
-          </button>
+          <Btn variant="primary" onClick={run}>{state === 'done' || state === 'error' ? 'Ανανέωση' : 'Ανάλυση'}</Btn>
         )}
       </div>
 
       {state === 'loading' && <Spinner label="Ανάλυση σε εξέλιξη…" />}
 
       {state === 'error' && (
-        <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', ...TT.bodySm, color: 'var(--text-secondary)' }}>
+        <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 16px', ...TT.bodySm, color: 'var(--text-secondary)' }}>
           Δεν ήταν δυνατή η ανάλυση: {errMsg}. Βεβαιώσου ότι έχει οριστεί το ANTHROPIC_API_KEY.
         </div>
       )}
@@ -104,7 +102,7 @@ export default function AIInsights({ ctx }: { ctx: InsightContext }) {
       {state === 'done' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {insights.map((a, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: `var(--${a.tone}-soft)`, border: `1px solid var(--${a.tone}-border)`, borderRadius: 10, padding: '10px 14px' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: `var(--${a.tone}-soft)`, border: `1px solid var(--${a.tone}-border)`, borderRadius: T.radius.inner, padding: '10px 16px' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: `var(--${a.tone})`, marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ ...TT.body, fontWeight: 700, fontSize: 13 }}>{a.title}</div>
@@ -112,7 +110,7 @@ export default function AIInsights({ ctx }: { ctx: InsightContext }) {
               </div>
             </div>
           ))}
-          <div style={{ ...TT.caption, fontSize: 10, marginTop: 2 }}>Οι προτάσεις είναι ενδεικτικές και δεν αποτελούν φορολογική ή επενδυτική συμβουλή.</div>
+          <div style={{ ...TT.caption, marginTop: 2 }}>Οι προτάσεις είναι ενδεικτικές και δεν αποτελούν φορολογική ή επενδυτική συμβουλή.</div>
         </div>
       )}
     </div>

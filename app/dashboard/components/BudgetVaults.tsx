@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, DatePicker, InfoDot, CustomSelect } from './UIComponents';
-import { T, feAuto } from '@/components/Theme';
+import { T, feAuto, Badge } from '@/components/Theme';
 import { reservePlan, savingsSchedule } from '@/lib/billing/budgetPro';
 
 // ── Κουμπαράδες / Αποθεματικά (sinking funds) ─────────────────────────────────
@@ -20,20 +20,20 @@ interface Vault { id: string; name: string; target: number; current: number; due
 // δίνεται εύρος. Είναι ΜΕΤΑΒΛΗΤΑ και επεξεργάσιμα· ο χρήστης προσαρμόζει το δικό του.
 interface BankRate { name: string; apy: number; range?: [number, number]; note: string }
 const BANK_RATES: BankRate[] = [
-  { name: 'Revolut',        apy: 2.25, range: [2.00, 2.50], note: 'Instant Access σε EUR — ανάλογα με πλάνο' },
+  { name: 'Revolut',        apy: 2.25, range: [2.00, 2.50], note: 'Instant Access σε EUR, ανάλογα με πλάνο' },
   { name: 'Trading 212',    apy: 2.40,                      note: 'Επιτόκιο σε αδιάθετα μετρητά (EUR)' },
   { name: 'Trade Republic', apy: 2.00,                      note: 'Επιτόκιο σε μετρητά, ημερήσιος υπολογισμός' },
   { name: 'Lightyear',      apy: 2.50,                      note: 'Ευέλικτο EUR, ημερήσιος τόκος' },
-  { name: 'Bunq',           apy: 2.01, range: [1.51, 2.46], note: 'easySavings — ανάλογα με πλάνο' },
-  { name: 'N26',            apy: 2.00, range: [2.00, 2.26], note: 'Instant Savings — ανάλογα με πλάνο' },
+  { name: 'Bunq',           apy: 2.01, range: [1.51, 2.46], note: 'easySavings, ανάλογα με πλάνο' },
+  { name: 'N26',            apy: 2.00, range: [2.00, 2.26], note: 'Instant Savings, ανάλογα με πλάνο' },
   { name: 'Freedom24',      apy: 3.00, range: [2.50, 3.50], note: 'D-account EUR, συνδεδεμένο με EURIBOR' },
   { name: 'Wealthyhood',    apy: 2.00,                      note: 'Ευέλικτη αποταμίευση σε EUR' },
   { name: 'Snappi',         apy: 1.00,                      note: 'Ελληνική neobank — ελεύθερη ανάληψη' },
   { name: 'Εθνική (Next)',  apy: 1.50,                      note: 'Πρόγραμμα νέων' },
   { name: 'Credia Bank',    apy: 1.50,                      note: 'Αποταμιευτικός λογαριασμός' },
-  { name: 'Eurobank',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
-  { name: 'Πειραιώς',       apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
-  { name: 'Alpha Bank',     apy: 0.30,                      note: 'Ταμιευτήριο — προθεσμιακά υψηλότερα' },
+  { name: 'Eurobank',       apy: 0.30,                      note: 'Ταμιευτήριο, προθεσμιακά υψηλότερα' },
+  { name: 'Πειραιώς',       apy: 0.30,                      note: 'Ταμιευτήριο, προθεσμιακά υψηλότερα' },
+  { name: 'Alpha Bank',     apy: 0.30,                      note: 'Ταμιευτήριο, προθεσμιακά υψηλότερα' },
 ];
 const pct = (n: number) => n.toString().replace('.', ',') + '%';
 const rateLabel = (b: BankRate) => b.range ? `${pct(b.range[0])}–${pct(b.range[1])}` : pct(b.apy);
@@ -175,14 +175,14 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
 
   if (!loaded) return null;
 
-  const card: React.CSSProperties = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 16px' };
+  const card: React.CSSProperties = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 };
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
       <div onClick={toggleShut} role="button" tabIndex={0} aria-expanded={!shut}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleShut(); } }}
-        style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: shut ? 0 : 12, paddingBottom: shut ? 0 : 9, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)', cursor: 'pointer', userSelect: 'none' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: T.font.sans }}>Κουμπαράδες</span>
+        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: shut ? 0 : 12, paddingBottom: shut ? 0 : 8, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)', cursor: 'pointer', userSelect: 'none' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Κουμπαράδες</span>
         <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}>
           <InfoDot text="Εικονικοί κουμπαράδες για μελλοντικά έξοδα (ΕΝΦΙΑ, λέβητας, ανακαίνιση, κενές περίοδοι). Ορίζεις στόχο και ημερομηνία· υπολογίζεται πόσο πρέπει να βάζεις κάθε μήνα ώστε να είναι έτοιμος όταν χρειαστεί." />
         </span>
@@ -206,7 +206,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
             return (
             <button key={sg.key} title={sg.note || undefined} onClick={() => addVault({ name: sg.name, target: sg.target, due: sg.due, srcKey: sg.key })}
               onMouseEnter={() => setHoverSg(sg.key)} onMouseLeave={() => setHoverSg(null)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: h ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: `1px dashed ${h ? 'var(--border-accent)' : 'var(--border-default)'}`, borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, transition: 'background 0.15s, border-color 0.15s' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: h ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: `1px dashed ${h ? 'var(--border-accent)' : 'var(--border-default)'}`, borderRadius: T.radius.pill, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, transition: 'background 0.15s, border-color 0.15s' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={h ? 'var(--accent)' : 'var(--text-tertiary)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 <strong style={{ color: h ? 'var(--accent)' : 'var(--text-primary)', fontWeight: 600, transition: 'color 0.15s' }}>{sg.name}</strong>
@@ -231,7 +231,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
           const on = hoverPct === v.id;
 
           if (editing) return (
-            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 14, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
+            <div key={v.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, padding: 16, gridColumn: '1 / -1', boxShadow: '0 6px 18px -12px color-mix(in srgb, var(--text-primary) 40%, transparent)' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{v.name ? 'Επεξεργασία κουμπαρά' : 'Νέος κουμπαράς'}</div>
               {(() => {
                 const knownBank = BANK_RATES.find(b => b.name === v.bank);
@@ -254,7 +254,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                 const sc = (v.planAmount && v.planAmount > 0)
                   ? savingsSchedule(v.target || 0, v.current || 0, v.planAmount, v.planDay || 1, { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() })
                   : null;
-                const grp: React.CSSProperties = { gridColumn: '1 / -1', fontSize: 9.5, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans, marginTop: 4 };
+                const grp: React.CSSProperties = { gridColumn: '1 / -1', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans, marginTop: 4 };
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 12px' }}>
                     {/* 1. Βασικά */}
@@ -300,7 +300,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
               })()}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 }}>
                 <button onClick={() => setEditId(null)} onMouseEnter={() => setDoneHover(true)} onMouseLeave={() => setDoneHover(false)} onTouchStart={() => setDoneHover(true)} onTouchEnd={() => setDoneHover(false)}
-                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? '#fff' : 'var(--bg-surface)', fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
+                  style={{ height: 36, padding: '0 20px', borderRadius: T.radius.btn, background: doneHover ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 88%, transparent)', border: 'none', color: doneHover ? 'var(--accent-text)' : 'var(--bg-surface)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>Έτοιμο</button>
                 <button onClick={() => remove(v.id)} onMouseEnter={() => setDelHover(true)} onMouseLeave={() => setDelHover(false)}
                   style={{ height: 36, padding: '0 12px', borderRadius: T.radius.btn, background: 'transparent', border: 'none', color: delHover ? 'var(--negative)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, fontFamily: T.font.sans, cursor: 'pointer', transition: 'color 0.15s' }}>Διαγραφή</button>
               </div>
@@ -317,8 +317,8 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
               onTouchStart={() => setHoverPct(v.id)} onTouchEnd={() => setHoverPct(null)}
               style={{ ...card, cursor: 'pointer', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, transform: on ? 'translateY(-2px)' : 'none', boxShadow: on ? '0 8px 20px -10px color-mix(in srgb, var(--text-primary) 34%, transparent)' : 'none', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name || 'Κουμπαράς'}</span>
-                {done && <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', padding: '2px 7px', borderRadius: T.radius.pill, fontFamily: T.font.sans, letterSpacing: '0.02em' }}>Καλυμμένο</span>}
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name || 'Κουμπαράς'}</span>
+                {done && <Badge tone="accent">Καλυμμένο</Badge>}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(v.current || 0, 0)}</span>
@@ -327,7 +327,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
               <div style={{ height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
                 <div style={{ height: '100%', width: `${funded}%`, background: barCol, borderRadius: 3, transition: 'width 0.5s ease, background 0.15s' }}/>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10.5, fontFamily: T.font.sans }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, fontFamily: T.font.sans }}>
                 <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{funded}%</span>
                 {done
                   ? <span style={{ color: 'var(--text-tertiary)' }}>Έτοιμος</span>
@@ -340,7 +340,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                         : null}
               </div>
               {v.apy != null && v.apy > 0 && (v.current || 0) > 0 && (
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? 'var(--accent)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'stroke 0.15s' }}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.bank || 'Τόκοι'}</span>
                   <span style={{ flex: 1 }}/>

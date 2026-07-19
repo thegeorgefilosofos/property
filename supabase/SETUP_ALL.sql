@@ -640,7 +640,8 @@ $$;
 grant execute on function public.reconcile_referral_rewards(text) to authenticated;
 
 -- ─── 20260718140000_referral_list.sql ───
--- Λίστα προσκεκλημένων ανά στάδιο (privacy-safe, χωρίς στοιχεία ταυτότητας).
+-- Λίστα προσκεκλημένων ανά στάδιο (privacy-safe). GDPR ελαχιστοποίηση (Άρθ. 5§1γ/25):
+-- ΜΟΝΟ εκκρεμεί/ενεργοποιήθηκε — καμία αποκάλυψη ανά άτομο για συνδρομητή/επαγγελματία.
 create or replace function public.get_referral_list(p_code text)
 returns json language plpgsql security definer set search_path = public as $$
 declare v_owner uuid; v_rows json;
@@ -651,12 +652,8 @@ begin
   select coalesce(json_agg(t order by t.created_at desc), json_build_array())
     into v_rows
     from (
-      select r.created_at,
-             r.activated_at,
-             (coalesce(bp.plan, '') in ('monthly', 'annual'))            as is_subscriber,
-             (coalesce(bp.profile_type, 'individual') = 'professional')  as is_professional
+      select r.created_at, r.activated_at
         from referrals r
-        left join billing_profiles bp on bp.user_id = r.referred_user_id
        where r.referrer_user_id = v_owner
     ) t;
 
