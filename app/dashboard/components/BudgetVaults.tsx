@@ -28,7 +28,7 @@ const BANK_RATES: BankRate[] = [
   { name: 'N26',            apy: 2.00, range: [2.00, 2.26], note: 'Instant Savings, ανάλογα με πλάνο' },
   { name: 'Freedom24',      apy: 3.00, range: [2.50, 3.50], note: 'D-account EUR, συνδεδεμένο με EURIBOR' },
   { name: 'Wealthyhood',    apy: 2.00,                      note: 'Ευέλικτη αποταμίευση σε EUR' },
-  { name: 'Snappi',         apy: 1.00,                      note: 'Ελληνική neobank — ελεύθερη ανάληψη' },
+  { name: 'Snappi',         apy: 1.00,                      note: 'Ελληνική neobank: ελεύθερη ανάληψη' },
   { name: 'Εθνική (Next)',  apy: 1.50,                      note: 'Πρόγραμμα νέων' },
   { name: 'Credia Bank',    apy: 1.50,                      note: 'Αποταμιευτικός λογαριασμός' },
   { name: 'Eurobank',       apy: 0.30,                      note: 'Ταμιευτήριο, προθεσμιακά υψηλότερα' },
@@ -288,7 +288,7 @@ export default function BudgetVaults({ propertyId, userId = '', suggestions = []
                     <div style={grp}>Προθεσμία και τράπεζα</div>
                     <DatePicker label="Ημερομηνία-στόχος" value={v.due || ''} onChange={val => update(v.id, { due: val })} />
                     <CustomSelect label="Αποταμίευση"
-                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν αδρανή και βλέπεις πόσους τόκους κερδίζεις τον χρόνο — έτσι αντισταθμίζεις και την απώλεια αγοραστικής δύναμης από τον πληθωρισμό. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
+                      labelInfo={<InfoDot text="Αν κρατάς τον κουμπαρά σε λογαριασμό με ευέλικτο επιτόκιο, τα χρήματα δεν μένουν αδρανή και βλέπεις πόσους τόκους κερδίζεις τον χρόνο, έτσι αντισταθμίζεις και την απώλεια αγοραστικής δύναμης από τον πληθωρισμό. Τα επιτόκια είναι ενδεικτικά και μεταβλητά (EUR, 2026) και εξαρτώνται από το πρόγραμμα ή το υπόλοιπο. Επιβεβαίωσέ τα στην τράπεζα." />}
                       value={selectValue} onChange={onBank} options={bankOptions} placeholder="Επιλογή…" />
                     {selectValue !== '' && (
                       <NumberInput label="Επιτόκιο (ετήσιο)" value={v.apy != null ? String(v.apy) : ''} onChange={val => update(v.id, { apy: val.trim() === '' ? undefined : (parseFloat(val.replace(',', '.')) || 0) })} suffix="%" step={0.25} placeholder="0" />
