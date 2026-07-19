@@ -138,13 +138,13 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
   }
 
   const inp: React.CSSProperties = {
-    width: '100%', height: 42, background: 'var(--bg-base)', border: '1px solid var(--border-default)',
-    borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14,
+    width: '100%', height: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
+    borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14,
     fontFamily: T.font.sans, letterSpacing: 0, outline: 'none', boxSizing: 'border-box',
   }
   const lbl: React.CSSProperties = {
-    fontSize: 11, fontFamily: T.font.sans, fontWeight: 600, color: 'var(--text-secondary)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 7,
+    fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, color: 'var(--text-secondary)',
+    letterSpacing: '0.5px', display: 'block', marginBottom: 6,
   }
 
   function Toggle({ val, onChange, label, desc }: {
@@ -181,10 +181,10 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── Smart Suggestions ── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 }}>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Sparkles size={15} color="var(--accent)"/>
             </div>
             <div>
@@ -267,9 +267,9 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
       </div>
 
       {/* ── Email Notifications ── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20 }}>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bell size={15} color="var(--accent)"/>
           </div>
           <div>
@@ -300,7 +300,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
         {prefs.email_enabled && (
           <div style={{ marginTop: 4 }}>
-            <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 14, marginBottom: 4 }}>
+            <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 14, marginBottom: 4 }}>
               Πότε να λαμβάνεις υπενθύμιση
             </p>
             <Toggle val={prefs.reminder_7days} onChange={v => setPrefs(p => ({ ...p, reminder_7days: v }))} label="7 μέρες πριν" desc="Εβδομαδιαία προειδοποίηση"/>
@@ -313,7 +313,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
         {/* ── Ληξιπρόθεσμο ενοίκιο (dunning) ── */}
         <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
             Ληξιπρόθεσμο ενοίκιο
           </p>
           <Toggle val={prefs.dunning_enabled} onChange={v => setPrefs(p => ({ ...p, dunning_enabled: v }))}
@@ -338,7 +338,7 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
 
         <button onClick={save} disabled={saving} style={{
           width: '100%', marginTop: 16,
-          background: saved ? 'var(--positive)' : 'var(--accent)', color: saved ? '#fff' : 'var(--accent-text)',
+          background: saved ? 'var(--positive)' : 'var(--accent)', color: 'var(--accent-text)',
           border: 'none', borderRadius: 100, padding: '12px 0',
           fontFamily: T.font.sans, fontSize: 14, fontWeight: 700,
           cursor: saving ? 'not-allowed' : 'pointer',

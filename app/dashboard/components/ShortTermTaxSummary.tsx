@@ -69,7 +69,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
     { label: 'Μεικτά έσοδα', value: fe(sum.grossRevenue, 0), sub: `${sum.stayCount} διαμονές, ${sum.totalNights} νύχτες` },
     { label: 'Εκτιμώμενος φόρος εισοδήματος', value: fe(sum.incomeTax, 0), sub: `μέσος συντελεστής ${Math.round(sum.effectiveRate * 100)}%` },
     { label: 'Τέλος Ανθεκτικότητας', value: fe(sum.levy, 0), sub: 'ανά διανυκτέρευση' },
-    { label: 'Τέλος παρεπιδημούντων', value: sum.municipalExempt ? '0 €' : fe(sum.municipalTax, 0), sub: sum.municipalExempt ? 'εξαίρεση (δες σημείωση)' : '0,5% επί μεικτών' },
+    { label: 'Τέλος παρεπιδημούντων', value: sum.municipalExempt ? fe(0, 0) : fe(sum.municipalTax, 0), sub: sum.municipalExempt ? 'εξαίρεση (δες σημείωση)' : '0,5% επί μεικτών' },
     { label: 'Καθαρά μετά φόρων', value: fe(sum.net, 0), sub: 'μεικτά μείον φόροι και τέλη', tone: 'positive' as const },
   ];
 
@@ -96,9 +96,9 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
       <SecHdr label="Φορολογία βραχυχρόνιας μίσθωσης"
         right={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 20, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 100, overflow: 'hidden' }}>
               {years.slice(0, 4).map(y => (
-                <button key={y} onClick={() => setYear(y)} style={{ border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, padding: '6px 12px', background: year === y ? 'var(--accent)' : 'transparent', color: year === y ? '#fff' : 'var(--text-secondary)' }}>{y}</button>
+                <button key={y} onClick={() => setYear(y)} style={{ border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, padding: '6px 12px', background: year === y ? 'var(--accent)' : 'transparent', color: year === y ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{y}</button>
               ))}
             </div>
             {sum.stayCount > 0 && <ExportButton onClick={exportCsv} />}
@@ -115,8 +115,8 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
           {/* Έσοδα ανά κανάλι */}
           {sum.byChannel.length > 0 && (
-            <div style={{ marginTop: 16, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>Έσοδα ανά κανάλι</div>
+            <div style={{ marginTop: 16, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>Έσοδα ανά κανάλι</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {sum.byChannel.map(c => (
                   <div key={c.channel}>
@@ -135,7 +135,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
 
           {/* Τι χρειάζεται το Ε2 + κλίμακα */}
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
-            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Τι χρειάζεται το Ε2</div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 <li>Αριθμός Μητρώου Ακινήτου (ΑΜΑ) βραχυχρόνιας διαμονής, ανά ακίνητο.</li>
@@ -145,7 +145,7 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
               </ul>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Το πλήρες Ε2 (με εξαγωγή) βρίσκεται στην ενότητα φορολογικών αναφορών.</div>
             </div>
-            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Κλίμακα φόρου εισοδήματος (2026)</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {RENTAL_TAX_ROWS_2026.map((r, i) => (
@@ -155,14 +155,14 @@ export default function ShortTermTaxSummary({ propertyId, userId }: { propertyId
                 ))}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
-                Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({isHouse && sqm != null && sqm > 80 ? 'μονοκατοικία άνω των 80 τ.μ.' : 'διαμέρισμα/κατοικία'}, ενδεικτικά 2025): υψηλή περίοδος (Απρ–Οκτ) {levyRates.high} €, χαμηλή (Νοε–Μαρ) {levyRates.low} €. Το υψηλότερο κλιμάκιο (15/4) αφορά μόνο μονοκατοικίες άνω των 80 τ.μ. Τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
+                Τέλος Ανθεκτικότητας ανά διανυκτέρευση ({isHouse && sqm != null && sqm > 80 ? 'μονοκατοικία άνω των 80 τ.μ.' : 'διαμέρισμα/κατοικία'}, ενδεικτικά 2025): υψηλή περίοδος (Απρ-Οκτ) {levyRates.high} €, χαμηλή (Νοε-Μαρ) {levyRates.low} €. Το υψηλότερο κλιμάκιο (15/4) αφορά μόνο μονοκατοικίες άνω των 80 τ.μ. Τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
                 <br />Τέλος παρεπιδημούντων 0,5% επί των μεικτών. {sum.municipalExempt ? 'Το ακίνητό σου εξαιρείται (μονοκατοικία ή έως 80 τ.μ., φυσικό πρόσωπο με έως 2 ακίνητα), άρα 0 €.' : 'Δεν πληροίς την εξαίρεση, οπότε εφαρμόζεται.'}
               </div>
             </div>
           </div>
 
           {propCount > 1 && unified.totalGross > 0 && (
-            <div style={{ marginTop: 16, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+            <div style={{ marginTop: 16, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Ενοποιημένη εικόνα ({propCount} ακίνητα)</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 Ο φόρος εισοδήματος είναι προοδευτικός στο <strong>σύνολο</strong> των εσόδων σου. Στο σύνολο των ακινήτων σου, τα μεικτά βραχυχρόνιας για το {year} είναι <strong style={{ fontFamily: T.font.num }}>{fe(unified.totalGross, 0)}</strong> και ο εκτιμώμενος φόρος εισοδήματος <strong style={{ fontFamily: T.font.num }}>{fe(unified.totalTax, 0)}</strong>. Η ανά-ακίνητο εκτίμηση παραπάνω είναι ενδεικτική κατανομή.
