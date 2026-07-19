@@ -69,13 +69,13 @@ export default function SpitiMouPanel({
         style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: 16, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 8, background: hardFail ? 'var(--bg-elevated)' : 'var(--accent)', color: hardFail ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 600, fontFamily: FONT }}>{hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
+            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: hardFail ? 'var(--bg-elevated)' : 'var(--accent)', color: hardFail ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT, maxWidth: 340 }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
           </div>
           <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-            <p style={{ fontSize: 30, fontWeight: 700, color: hi ? 'var(--accent)' : 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.03em', transition: 'color 0.15s' }}>{fmtPct(pay.blendedRatePct)}</p>
+            <p style={{ fontSize: 28, fontWeight: 700, color: hi ? 'var(--accent)' : 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{fmtPct(pay.blendedRatePct)}</p>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: FONT }}>μέσο πραγματικό επιτόκιο</p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function SpitiMouPanel({
           { k: 'Κανονική δόση', v: fmtEur(normalMonthly), s: `με ${fmtPct(bankRatePct)}` },
           { k: 'Εξοικονόμηση τον μήνα', v: fmtEur(saveMonthly), s: `${fmtEur(saveTotal)} συνολικά` },
         ].map(t => (
-          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 15px' }}>
+          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 16 }}>
             <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
             <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
             <p style={{ fontSize: 11, marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>

@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput, CustomSelect } from './UIComponents';
-import { T, Btn, InfoBanner, Spinner } from '@/components/Theme';
+import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
 
 interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
@@ -59,33 +59,25 @@ export default function Billing({ userId }: { userId: string }) {
     else alert('Σφάλμα αποθήκευσης: ' + error.message);
   };
 
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
-  const secHdr = (t: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
-      <div style={{ fontFamily: T.font.sans, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontWeight: 700 }}>{t}</div>
-    </div>
-  );
-
   if (loading) return <Spinner label="Φόρτωση…" />;
   const isInvoice = d.doc_type === 'invoice';
 
   return (
     <div>
       {/* Plans */}
-      <div style={card}>
-        {secHdr('Πλάνο συνδρομής')}
+      <Card>
+        <SecHdr label="Πλάνο συνδρομής" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
           {PLANS.map(p => {
             const active = d.plan === p.id;
             return (
               <button key={p.id} onClick={() => setD(prev => ({ ...prev, plan: p.id, billing_cycle: p.cycle }))}
-                style={{ textAlign: 'left', cursor: 'pointer', background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '16px 18px', transition: 'all 0.15s' }}>
+                style={{ textAlign: 'left', cursor: 'pointer', background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '16px', transition: 'all 0.15s' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
                   {active && <span style={{ color: 'var(--accent)', fontSize: 16 }}>✓</span>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontSize: 22, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num }}>{p.price}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{p.per}</span>
                 </div>
@@ -94,11 +86,11 @@ export default function Billing({ userId }: { userId: string }) {
             );
           })}
         </div>
-      </div>
+      </Card>
 
       {/* Invoice details */}
-      <div style={card}>
-        {secHdr('Στοιχεία τιμολόγησης')}
+      <Card>
+        <SecHdr label="Στοιχεία τιμολόγησης" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
           <CustomSelect label="Τύπος παραστατικού" value={d.doc_type} onChange={v => set('doc_type', v)}
             options={[{ value: 'receipt', label: 'Απόδειξη (ιδιώτης)' }, { value: 'invoice', label: 'Τιμολόγιο (επιχείρηση)' }]} />
@@ -116,22 +108,22 @@ export default function Billing({ userId }: { userId: string }) {
           <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
           {saved && <span style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε ✓</span>}
         </div>
-      </div>
+      </Card>
 
       {/* Payment (pre-Stripe) */}
-      <div style={card}>
-        {secHdr('Πληρωμή')}
+      <Card>
+        <SecHdr label="Πληρωμή" />
         <InfoBanner tone="info">
           Το πρώτο σου ακίνητο είναι <strong>δωρεάν για πάντα</strong>. Η πληρωμή με κάρτα για 2+ ακίνητα ενεργοποιείται πολύ σύντομα (Stripe). Συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης ώστε η ενεργοποίηση να γίνει με ένα κλικ.
         </InfoBanner>
         <div style={{ marginTop: 4 }}>
           <button disabled title="Σύντομα με Stripe"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 42, padding: '0 22px', borderRadius: T.radius.pill, border: 'none', background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'not-allowed' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'not-allowed' }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
             Πληρωμή με κάρτα, σύντομα
           </button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

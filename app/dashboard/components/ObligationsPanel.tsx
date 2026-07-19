@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fdLong } from '@/components/Theme';
+import { T, fdLong, SecHdr } from '@/components/Theme';
 import { computeObligations, oblToCalendarCategory, type Obligation, type OblProp } from './obligations';
 
 export default function ObligationsPanel({ propertyId, userId, prop, onNavigate }: {
@@ -61,19 +61,12 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Υποχρεώσεις & Προθεσμίες</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Φορολογικές & θεσμικές προθεσμίες + λήξεις ασφάλισης/μίσθωσης + συντήρηση</div>
-          </div>
-        </div>
+      <SecHdr label="Υποχρεώσεις & Προθεσμίες" sub="Φορολογικές και θεσμικές προθεσμίες, λήξεις ασφάλισης/μίσθωσης, συντήρηση" right={
         <button onClick={toggleCalendar} disabled={syncing} title={added ? 'Αφαίρεση από το Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: added ? '1px solid var(--border-default)' : 'none', background: added ? 'transparent' : 'var(--accent)', color: added ? 'var(--text-secondary)' : 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: added ? '1px solid var(--border-default)' : 'none', background: added ? 'transparent' : 'var(--accent)', color: added ? 'var(--text-secondary)' : 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
           {syncing ? 'Ενημέρωση…' : added ? 'Προστέθηκε στο Ημερολόγιο' : 'Προσθήκη στο Ημερολόγιο'}
         </button>
-      </div>
+      } />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {shown.map(o => {
@@ -82,7 +75,7 @@ export default function ObligationsPanel({ propertyId, userId, prop, onNavigate 
           const badge = overdue ? `${dabs} ${dabs === 1 ? 'ημέρα' : 'ημέρες'} πριν` : o.daysUntil === 0 ? 'Σήμερα' : `σε ${o.daysUntil} ${o.daysUntil === 1 ? 'ημέρα' : 'ημέρες'}`;
           return (
             <div key={o.id} onClick={() => onNavigate(o.category === 'financial' ? 'settings' : o.category === 'contract' ? 'tenant' : o.category === 'maintenance' ? 'inventory' : 'calendar')}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer' }}>
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', cursor: 'pointer' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-subtle)', marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>

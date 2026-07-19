@@ -28,7 +28,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
   if (minimized) {
     return (
       <button onClick={() => setMin(false)}
-        style={{ width: '100%', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
+        style={{ width: '100%', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
         <div style={{ position: 'relative', width: 26, height: 26, flexShrink: 0 }}>
           <svg width={26} height={26} viewBox="0 0 26 26" style={{ transform: 'rotate(-90deg)' }}>
             <circle cx="13" cy="13" r="11" fill="none" stroke="var(--border-subtle)" strokeWidth="2.5" />
@@ -37,7 +37,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Ρύθμιση ακινήτου</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 1 }}>{doneCount} από {steps.length} βήματα · πάτησε για να συνεχίσεις</div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{doneCount} από {steps.length} βήματα · πάτησε για να συνεχίσεις</div>
         </div>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
       </button>
@@ -48,7 +48,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
     <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent-border)', background: 'var(--accent-soft)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
-          <div style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ρύθμισε το ακίνητό σου</div>
+          <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Ρύθμισε το ακίνητό σου</div>
           <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{doneCount === 0 ? 'Λίγα βήματα για να δουλέψει πλήρως' : `Ολοκλήρωσες ${doneCount} από ${steps.length} βήματα`}</div>
         </div>
         <button onClick={() => setMin(true)} title="Ελαχιστοποίηση"
@@ -69,7 +69,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
             <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: s.done ? 'var(--positive)' : 'var(--bg-elevated)', border: s.done ? 'none' : '1.5px solid var(--border-default)' }}>
               {s.done
-                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-inverse)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                 : <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>

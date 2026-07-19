@@ -47,7 +47,7 @@ export default function RentROIReport({
         <meta charset="UTF-8">
         <title>Property OS, ${esc(propertyName)}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
         <style>
           ${brandRootVars(branding)}
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -88,7 +88,7 @@ export default function RentROIReport({
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #1a73e8;
+            color: var(--accent);
             margin-bottom: 10px;
             padding-bottom: 4px;
             border-bottom: 1px solid #e8eaed;
@@ -135,7 +135,7 @@ export default function RentROIReport({
           .positive { color: #137333; }
           .negative { color: #c5221f; }
           .warning { color: #b45309; }
-          .accent { color: #1a73e8; }
+          .accent { color: var(--accent); }
           .gold { color: var(--accent); }
           .muted { color: #5f6368; }
 
@@ -330,8 +330,8 @@ export default function RentROIReport({
               </div>
               <div>
                 <div class="kpi-grid-3" style="margin-bottom:10px;">
-                  <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.grossYield))}</div><div class="kpi-label">Gross Yield</div></div>
-                  <div class="kpi"><div class="kpi-value positive">${esc(fp(calc.netYield))}</div><div class="kpi-label">Net Yield</div></div>
+                  <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.grossYield))}</div><div class="kpi-label">Μεικτή Απόδοση</div></div>
+                  <div class="kpi"><div class="kpi-value positive">${esc(fp(calc.netYield))}</div><div class="kpi-label">Καθαρή Απόδοση</div></div>
                   <div class="kpi"><div class="kpi-value gold">${esc(calc.payback > 0 ? calc.payback.toFixed(1) + ' χρ' : '—')}</div><div class="kpi-label">Απόσβεση</div></div>
                 </div>
                 <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.trueYield))}</div><div class="kpi-label">Πραγματική Απόδοση (με κόστη απόκτησης)</div></div>
@@ -348,12 +348,12 @@ export default function RentROIReport({
             <div class="kpi-grid">
               <div class="kpi">
                 <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${esc(fp(calc.grossYield))}</div>
-                <div class="kpi-label">Gross Yield σου</div>
+                <div class="kpi-label">Μεικτή Απόδοση σου</div>
                 <div class="kpi-sub">Benchmark: ${esc(bench.market_gross)}%</div>
               </div>
               <div class="kpi">
                 <div class="kpi-value ${calc.netYield >= parseFloat(bench.target_net) ? 'positive' : 'warning'}">${esc(fp(calc.netYield))}</div>
-                <div class="kpi-label">Net Yield σου</div>
+                <div class="kpi-label">Καθαρή Απόδοση σου</div>
                 <div class="kpi-sub">Στόχος: >${esc(bench.target_net)}%</div>
               </div>
               <div class="kpi">
@@ -455,11 +455,11 @@ export default function RentROIReport({
         gap: 8,
         background: 'var(--bg-elevated)',
         border: '1px solid var(--border-default)',
-        borderRadius: 20,
+        borderRadius: 100,
         padding: '8px 18px',
         cursor: 'pointer',
         fontSize: 12,
-        fontWeight: 500,
+        fontWeight: 700,
         color: 'var(--text-secondary)',
         fontFamily: "'Inter', sans-serif",
         opacity: printing ? 0.7 : 1,

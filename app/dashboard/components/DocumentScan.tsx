@@ -137,7 +137,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false }: {
       type={type}
       value={String(value ?? '')}
       onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 6, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 13, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
+      style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${invalid ? 'var(--warning)' : 'var(--border-default)'}`, borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
       onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
       onBlur={e => (e.target.style.borderColor = invalid ? 'var(--warning)' : 'var(--border-default)')}
     />
@@ -462,10 +462,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   if (step === 'done' && edited) {
     return (
       <div style={{ textAlign: 'center', padding: '48px 20px', fontFamily: T.font.sans }}>
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(52,168,83,0.1)', border: '1px solid rgba(52,168,83,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em' }}>Καταχωρήθηκε</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.01em' }}>Καταχωρήθηκε</div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 18 }}>{docSummaryLine(edited)}</div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {savedInfo.map(s => (
@@ -487,7 +487,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
             return (
               <div style={{ maxWidth: 420, margin: '0 auto 22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 16px' }}>
                 {okSaved && <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>}
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: okSaved ? 'var(--positive)' : 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: okSaved ? 'var(--positive)' : 'var(--text-secondary)' }}>
                   {okSaved ? 'Αποθηκεύτηκε στις Επαφές' : 'Υπάρχει ήδη στις Επαφές'}
                 </span>
               </div>
@@ -501,31 +501,31 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, letterSpacing: '-0.01em' }}>
                 Να αποθηκεύσω τον προμηθευτή «{supplierName}» στις Επαφές;
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: 12 }}>
                 Θα τον βρίσκεις εύκολα την επόμενη φορά.
               </div>
               <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Όνομα</span>
-                  <span style={{ fontSize: 12.5, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{supplierName}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{supplierName}</span>
                 </div>
                 {afm && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ΑΦΜ</span>
-                    <span style={{ fontSize: 12.5, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{afm}</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{afm}</span>
                   </div>
                 )}
               </div>
               {contactState === 'error' && (
-                <div style={{ fontSize: 11.5, color: 'var(--warning)', marginBottom: 10 }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</div>
+                <div style={{ fontSize: 11, color: 'var(--warning)', marginBottom: 10 }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</div>
               )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}>
                 <button onClick={saveContact} disabled={saving}
-                  style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '10px 20px', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: T.font.sans }}>
+                  style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.btn, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: T.font.sans }}>
                   {saving ? 'Αποθήκευση…' : 'Αποθήκευση στις Επαφές'}
                 </button>
                 <button onClick={() => setContactState('dismissed')} disabled={saving}
-                  style={{ background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '10px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
+                  style={{ background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
                   Όχι τώρα
                 </button>
               </div>
@@ -545,8 +545,8 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Πρόσθεσε ένα έγγραφο</div>
-        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 4 }}>Πρόσθεσε ένα έγγραφο</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
           Φωτογράφισε ή ανέβασε <strong>οτιδήποτε</strong>, λογαριασμό, απόδειξη, μισθωτήριο, τίτλο, ασφάλεια, <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span>, κρατικό έγγραφο. Το αναγνωρίζουμε και το καταχωρούμε στο σωστό σημείο.
         </div>
       </div>
@@ -558,7 +558,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
               <div onClick={() => cameraRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Φωτογράφισε</div>
@@ -568,7 +568,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
 
               <div onClick={() => fileRef.current?.click()}
                 style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(26,115,232,0.03)'; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Ανέβασε αρχείο</div>
@@ -584,10 +584,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{file.name}</div>
                 </div>
               ) : (
-                <img src={image} alt="Έγγραφο" style={{ width: '100%', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', maxHeight: 480, objectFit: 'contain', background: '#fff' }} />
+                <img src={image} alt="Έγγραφο" style={{ width: '100%', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', maxHeight: 480, objectFit: 'contain', background: 'var(--bg-base)' }} />
               )}
               {scanning && (
-                <div style={{ marginTop: 12, background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ marginTop: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--accent)' }}>Claude AI</strong> αναγνωρίζει το έγγραφο…</div>
                 </div>
@@ -658,7 +658,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                 <div>
                   <label style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Κατηγορία</label>
                   <select value={edited.category || 'other'} onChange={e => setEdited(p => p ? { ...p, category: e.target.value } : p)}
-                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: T.font.sans }}>
+                    style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: T.font.sans }}>
                     {Object.entries(CATEGORY_LABELS).map(([val, l]) => <option key={val} value={val}>{l}</option>)}
                   </select>
                 </div>
@@ -681,9 +681,9 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
                 {(edited.custom || []).map((c, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <input value={c.label} placeholder="Πεδίο" onChange={e => setEdited(p => { if (!p) return p; const cs = [...(p.custom || [])]; cs[i] = { ...cs[i], label: e.target.value }; return { ...p, custom: cs }; })}
-                      style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                      style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
                     <input value={c.value} placeholder="Τιμή" onChange={e => setEdited(p => { if (!p) return p; const cs = [...(p.custom || [])]; cs[i] = { ...cs[i], value: e.target.value }; return { ...p, custom: cs }; })}
-                      style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                      style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
                     <button onClick={() => setEdited(p => p ? { ...p, custom: (p.custom || []).filter((_, j) => j !== i) } : p)} title="Αφαίρεση"
                       style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>×</button>
                   </div>
@@ -692,10 +692,10 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
             )}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
               <input value={newField.label} placeholder="Νέο πεδίο (π.χ. Αρ. πρωτοκόλλου)" onChange={e => setNewField(f => ({ ...f, label: e.target.value }))}
-                style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                style={{ flex: '0 0 38%', background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
               <input value={newField.value} placeholder="Τιμή" onChange={e => setNewField(f => ({ ...f, value: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter' && newField.label.trim()) { setEdited(p => p ? { ...p, custom: [...(p.custom || []), { ...newField }] } : p); setNewField({ label: '', value: '' }); } }}
-                style={{ flex: 1, background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
+                style={{ flex: 1, background: 'var(--bg-base)', border: '1px dashed var(--border-default)', borderRadius: 4, padding: '8px 12px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans }} />
               <button onClick={() => { if (newField.label.trim()) { setEdited(p => p ? { ...p, custom: [...(p.custom || []), { ...newField }] } : p); setNewField({ label: '', value: '' }); } }}
                 title="Προσθήκη πεδίου" style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 6, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>+</button>
             </div>
@@ -705,7 +705,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved }: Props
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{typeMeta?.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                  {edited.amount ? fe(edited.amount) : edited.monthly_rent ? `${fe(edited.monthly_rent)}/μ` : edited.premium ? fe(edited.premium) : '—'}
+                  {edited.amount ? fe(edited.amount) : edited.monthly_rent ? `${fe(edited.monthly_rent)}/μήνα` : edited.premium ? fe(edited.premium) : '—'}
                 </div>
               </div>
               <button onClick={save} disabled={saving || !canSave}

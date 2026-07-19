@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, SecHdr, SkeletonKPIs, Skeleton } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, SecHdr, SkeletonKPIs, Skeleton, fe, fn } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { stayTotal } from '@/lib/clients/clients';
 import { portfolioReturns } from '@/lib/market/portfolio';
@@ -18,7 +18,7 @@ import { downloadCsv } from './exportCsv';
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
 
-const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`;
+const eur = (n: number) => fe(n, 0);
 type Mode = 'short' | 'long' | 'vacant';
 
 interface Row {
@@ -157,7 +157,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     }));
     const { error } = await supabase.from('checklist_items').insert(inserts);
     setBulkSaving(false);
-    if (error) { showToast('Κάτι πήγε στραβά — δοκίμασε ξανά'); return; }
+    if (error) { showToast('Κάτι πήγε στραβά, δοκίμασε ξανά'); return; }
     const n = inserts.length;
     setShowBulk(false); setBulkDesc(''); clearSelection();
     showToast(`Η εργασία προστέθηκε σε ${n} ${n === 1 ? 'ακίνητο' : 'ακίνητα'}`);
@@ -209,17 +209,17 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     const w = window.open('', '_blank'); if (!w) return;
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const body = stmt.rows.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${eur(r.revenue)}</td><td class="n">${eur(r.expenses)}</td><td class="n">${eur(r.net)}</td></tr>`).join('');
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Κατάσταση ιδιοκτήτη — ${esc(stmt.name)}</title>
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Κατάσταση ιδιοκτήτη: ${esc(stmt.name)}</title>
       <style>*{font-family:Inter,system-ui,Arial,sans-serif}body{margin:40px;color:#111}h1{font-size:20px;margin:0 0 4px}.sub{color:#666;font-size:12px;margin-bottom:24px}
       table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e5e5}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       tr.total td{font-weight:700;border-top:2px solid #111;border-bottom:none}</style></head>
-      <body><h1>Κατάσταση ιδιοκτήτη — ${esc(stmt.name)}</h1><div class="sub">Έσοδα &amp; δαπάνες ${year} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>
+      <body><h1>Κατάσταση ιδιοκτήτη: ${esc(stmt.name)}</h1><div class="sub">Έσοδα &amp; δαπάνες ${year} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>
       <table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead>
       <tbody>${body}<tr class="total"><td>Σύνολο</td><td class="n">${eur(stmt.revenue)}</td><td class="n">${eur(stmt.expenses)}</td><td class="n">${eur(stmt.net)}</td></tr></tbody></table></body></html>`);
     w.document.close(); w.focus(); w.print();
   };
 
-  const fieldStyle: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, outline: 'none' };
+  const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
 
   const exportCsv = () => {
     const head = ['Ακίνητο', 'Τύπος', 'Κατάσταση', 'Έσοδα έτους', 'Δαπάνες έτους', 'Καθαρό', 'Πληρότητα %', 'Νύχτες', 'Εκκρεμότητες'];
@@ -260,13 +260,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
       {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
       {agg.valuedCount > 0 && (
-        <div className="card" style={{ marginTop: 12, padding: '16px 18px' }}>
+        <div className="card" style={{ marginTop: 12, padding: 16 }}>
           <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία`} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
-            <PStat label="Μεικτή απόδοση" value={`${agg.grossYield.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
-            <PStat label="Καθαρή απόδοση" value={`${agg.netYield.toLocaleString('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+            <PStat label="Μεικτή απόδοση" value={`${fn(agg.grossYield, 1)}%`} />
+            <PStat label="Καθαρή απόδοση" value={`${fn(agg.netYield, 1)}%`} />
           </div>
         </div>
       )}
@@ -318,7 +318,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                       : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   </td>
                 </tr>
               ))}
@@ -334,7 +334,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       {selected.size > 0 && (
         <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
           <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-            <div style={{ minWidth: 24, height: 24, padding: '0 6px', borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
+            <div style={{ minWidth: 24, height: 24, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -361,7 +361,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       {showBulk && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !bulkSaving && setShowBulk(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 460, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}>
-            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 18, fontWeight: 700, fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
+            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 4px', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>Νέα εργασία σε επιλεγμένα</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 20px', fontFamily: T.font.sans }}>Δημιουργείται μία ίδια εργασία σε {selected.size} {selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.</p>
             <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Περιγραφή</label>
             <input autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="π.χ. Έλεγχος κλιματιστικών" style={{ ...fieldStyle, marginBottom: 16 }} />
@@ -491,8 +491,8 @@ function Th({ label, k, sort, asc, onSort, align = 'right' }: { label: string; k
 function PStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>{label}</div>
-      <div style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', marginTop: 3 }}>{value}</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</div>
+      <div style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{value}</div>
     </div>
   );
 }
