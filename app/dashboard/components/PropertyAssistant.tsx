@@ -464,15 +464,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const how = a.channel === 'call' ? `να καλέσεις τον/την «${c.name}»`
         : a.channel === 'email' ? `να ανοίξει το email προς τον/την «${c.name}»`
           : `να ανοίξει το ${a.channel === 'viber' ? 'Viber' : 'WhatsApp'} προς τον/την «${c.name}»`;
-      setMsgs(m => [...m, { role: 'assistant', text: `Πάτησε ${how}. Το μήνυμα δεν φεύγει μόνο του — ανοίγει η εφαρμογή για να το στείλεις εσύ.`, action: { type: 'reach', name: c.name, channel: a.channel, text: a.text } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Πάτησε ${how}. Το μήνυμα δεν φεύγει μόνο του, ανοίγει η εφαρμογή για να το στείλεις εσύ.`, action: { type: 'reach', name: c.name, channel: a.channel, text: a.text } }]);
       return;
     }
     // Λείπει το απαραίτητο στοιχείο για το κανάλι — πρότεινε διαθέσιμη εναλλακτική.
     if (link.need === 'phone') {
-      if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email — να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
+      if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email, να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο ούτε email. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     } else {
-      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο — να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
+      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο, να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email ούτε τηλέφωνο. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     }
   };

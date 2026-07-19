@@ -842,7 +842,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const diff = forecastTotal - masterBudget;
       out.push(diff > 5
         ? `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal, 0)}: ${feAuto(diff, 0)} πάνω από τον στόχο.`
-        : `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal, 0)} — εντός στόχου κατά ${feAuto(Math.max(0, -diff), 0)}.`);
+        : `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal, 0)}: εντός στόχου κατά ${feAuto(Math.max(0, -diff), 0)}.`);
     }
     const biggest = activeCats.map(c => ({ label: c.label, v: actuals[c.key] || 0 })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)[0];
     if (biggest && out.length < 3) out.push(`Η μεγαλύτερη δαπάνη του μήνα είναι η «${biggest.label}» με ${feAuto(biggest.v, 0)}.`);
