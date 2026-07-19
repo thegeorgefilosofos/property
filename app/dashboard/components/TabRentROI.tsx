@@ -8,7 +8,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
-import { Spinner, fe } from '@/components/Theme';
+import { Spinner, fe, fn, T } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Building2, Layers, ArrowUpRight, Info } from 'lucide-react';
 import { yields, compound, leverage, applySeries, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -67,7 +67,7 @@ const BENCH_SHORT: Record<string, string> = {
   deposit: 'Κατάθεση', bond: 'Ομόλογο', gold: 'Χρυσός', athex: 'Χρηματιστήριο', sp500: 'S&P 500', inflation: 'Πληθωρισμός',
 };
 const benchShort = (key: string, fallback: string) => BENCH_SHORT[key] || fallback;
-const SANS = "'Inter',sans-serif";
+const SANS = T.font.sans;
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '18px 20px', boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 34px -20px rgba(0,0,0,0.55)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
@@ -324,7 +324,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
   return (
     <div style={{ display: 'flex', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 2, gap: 2 }}>
       {options.map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} style={{ height: 32, padding: '0 13px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{label}</button>
+        <button key={v} onClick={() => onChange(v)} style={{ height: 32, padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{label}</button>
       ))}
     </div>
   );
@@ -335,7 +335,7 @@ function LeverCard({ lever }: { lever: YieldLever }) {
   const [hot, setHot] = useState(false);
   return (
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
-      style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+      style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s' }}>{lever.title}</p>
         {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
@@ -691,7 +691,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5, fontFamily: SANS, color: 'var(--text-secondary)' }}>
             <span>Ενδεικτική εκτίμηση αξίας για την περιοχή{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue, 0)}</strong></span>
             <TermInfo text={`Ενδεικτικός υπολογισμός: μέση τιμή ανά τετραγωνικό μέτρο στην περιοχή, επί τα τετραγωνικά και τον συντελεστή τύπου του ακινήτου. Δεν υποκαθιστά την αντικειμενική αξία ούτε την εκτίμηση πιστοποιημένου εκτιμητή. Χρησιμοποίησέ την ως αφετηρία και προσάρμοσέ την στην πραγματική κατάσταση, τον όροφο και τη θέση του ακινήτου.`} />
-            <button onClick={() => setValue(String(estValue))} className="acc-toggle" style={{ height: 28, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>Χρήση</button>
+            <button onClick={() => setValue(String(estValue))} className="acc-toggle" style={{ height: 28, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>Χρήση</button>
           </div>
         )}
         {term === 'short' && (
@@ -835,7 +835,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}) — όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4–10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
+            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4–10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
           </p>
         </Section>
 
@@ -844,20 +844,20 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <Section icon={<Percent size={15} />} title="Εργαλεία απόδοσης" sub="Ανατοκισμός επανεπένδυσης και μόχλευση ιδίων κεφαλαίων">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
               {/* Ανατοκισμός */}
-              <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ padding: 14, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Ανατοκισμός επανεπένδυσης<TermInfo text={G.compound} /></p>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ width: 150 }}><NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} /></div>
                   <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας</p><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Τελική αξία</p><p style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.futureValue, 0)}</p></div>
+                  <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Τελική αξία</p><p style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.futureValue, 0)}</p></div>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Κέρδος ανατοκισμού</p><p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.totalGrowth, 0)}</p></div>
                 </div>
                 <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>Αρχική αξία συν ετήσια επανεπένδυση της καθαρής ταμειακής ροής ({fe(Math.max(0, grossAnnual - effOpex - annualTax), 0)} ανά έτος).</p>
               </div>
               {/* Μόχλευση */}
-              <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ padding: 14, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
                   <p style={{ ...titleStyle, margin: 0, display: 'flex', alignItems: 'center' }}>Μόχλευση (δανεισμός)<TermInfo text={G.leverage} /></p>
                   {savedLoan && savedLoan.amount > 0 && (
@@ -868,7 +868,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                         setLoanRate(String(savedLoan.rate));
                         setIfree(savedLoan.loan_type === 'first_home' ? '50' : '0');
                       }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 16, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 500, cursor: 'pointer' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 500, cursor: 'pointer' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12a9 9 0 11-6.2-8.5"/><polyline points="21 3 21 9 15 9"/></svg>
                       Χρησιμοποίησε το πραγματικό μου δάνειο
                     </button>
@@ -884,7 +884,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Απόδοση ιδίων</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashOnCash >= 0 ? 'var(--accent)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fp(lev.cashOnCash)}</p></div>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Ετήσια ροή</p><p style={{ fontSize: 16, fontWeight: 700, color: lev.cashFlow >= 0 ? 'var(--text-primary)' : 'var(--negative)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(lev.cashFlow, 0)}</p></div>
                 </div>
-                <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου — αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου, αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
               </div>
             </div>
           </Section>
@@ -892,7 +892,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
         {/* Επενδυτική ανάλυση IRR/NPV/DSCR — μόνο επαγγελματίας */}
         {pro && (
-          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR — αγορά, κατοχή και πώληση στον ορίζοντα">
+          <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR: αγορά, κατοχή και πώληση στον ορίζοντα">
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
               <div><p style={{ ...subStyle, margin: '0 0 6px' }}>Ορίζοντας κατοχής</p><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
               <div style={{ width: 128 }}><NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} /></div>
@@ -901,8 +901,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12 }}>
               <MetricTile label="IRR" value={Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : '—'} info={G.irr} />
               <MetricTile label="Καθαρή παρούσα αξία" value={fe(deal.npv, 0)} info={G.npv} tone={deal.npv < 0 ? 'neg' : undefined} />
-              <MetricTile label="DSCR" value={Number.isFinite(deal.dscr) ? deal.dscr.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '∞'} info={G.dscr} tone={deal.dscr < 1 ? 'neg' : undefined} />
-              <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${deal.equityMultiple.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`} info={G.equity_multiple} />
+              <MetricTile label="DSCR" value={Number.isFinite(deal.dscr) ? fn(deal.dscr, 2) : '∞'} info={G.dscr} tone={deal.dscr < 1 ? 'neg' : undefined} />
+              <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${fn(deal.equityMultiple, 2)}×`} info={G.equity_multiple} />
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
               Υποθέτει πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds, 0)} (μετά κόστη πώλησης 3% και υπόλοιπο δανείου {fe(deal.loanBalanceAtExit, 0)}). Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο· η NPV υπολογίζεται με επιτόκιο προεξόφλησης {fp(parseFloat(discountRate) || 0)}. Ενδεικτικά, όχι επενδυτική συμβουλή.
@@ -941,7 +941,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
                   {isFinite(breakEvenOcc) && breakEvenOcc <= 100
                     ? `Πάνω από αυτό το ποσοστό πληρότητας, τα καθαρά έσοδα της βραχυχρόνιας ξεπερνούν τα καθαρά της μακροχρόνιας μίσθωσης (προ φόρου).`
-                    : `Με τα τρέχοντα δεδομένα, η βραχυχρόνια δύσκολα ξεπερνά τη μακροχρόνια — η μακροχρόνια μίσθωση φαίνεται προτιμότερη.`}
+                    : `Με τα τρέχοντα δεδομένα, η βραχυχρόνια δύσκολα ξεπερνά τη μακροχρόνια: η μακροχρόνια μίσθωση φαίνεται προτιμότερη.`}
                 </p>
               </div>
             )}
@@ -963,7 +963,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <a href={AUCTION_FACTS.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>
               </div>
               <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>
-                Μέσω συμβολαιογράφου. Μετά από 2 άγονους η τιμή πέφτει στο 80%, μετά τον 3ο στο 65% — έως −35% της εκτιμηθείσας αξίας. Εγγύηση {AUCTION_FACTS.guaranteePct}% + τέλος {AUCTION_FACTS.systemFee}€. Μόνο περίπου 1 στους 7 βρίσκει αγοραστή. {AUCTION_FACTS.note}
+                Μέσω συμβολαιογράφου. Μετά από 2 άγονους η τιμή πέφτει στο 80%, μετά τον 3ο στο 65%, έως −35% της εκτιμηθείσας αξίας. Εγγύηση {AUCTION_FACTS.guaranteePct}% + τέλος {AUCTION_FACTS.systemFee}€. Μόνο περίπου 1 στους 7 βρίσκει αγοραστή. {AUCTION_FACTS.note}
               </p>
             </div>
           )}

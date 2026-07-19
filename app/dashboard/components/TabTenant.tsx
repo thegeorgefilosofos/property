@@ -144,7 +144,7 @@ function SectionTitle({ children, dot='var(--accent)' }: { children: React.React
 function SvcSection({ title, hint, open, onToggle, children }: { title:string; hint?:string; open:boolean; onToggle:()=>void; children:React.ReactNode }) {
   return (
     <div style={{ border:`1px solid ${open?'var(--border-default)':'var(--border-subtle)'}`, borderRadius:T.radius.inner, marginBottom:10, background:'var(--bg-elevated)', overflow:open?'visible':'hidden', transition:'border-color 0.15s' }}>
-      <div onClick={onToggle} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'13px 16px', cursor:'pointer', userSelect:'none' as const }}>
+      <div onClick={onToggle} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'12px 16px', cursor:'pointer', userSelect:'none' as const }}>
         <div style={{ minWidth:0 }}>
           <div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</div>
           {hint&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2, lineHeight:1.4 }}>{hint}</div>}
@@ -264,7 +264,7 @@ function KpiCard({ label, value, color='var(--text-primary)', sub }: { label:str
 
 function StatusBadge({ label, color, bg }: { label:string; color:string; bg:string }) {
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', padding:'3px 10px', borderRadius:T.radius.badge, fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid ${color}33`, fontFamily:T.font.sans, fontWeight:600 }}>
+    <span style={{ display:'inline-flex', alignItems:'center', padding:'3px 10px', borderRadius:T.radius.badge, fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid color-mix(in srgb, ${color} 20%, transparent)`, fontFamily:T.font.sans, fontWeight:600 }}>
       {label}
     </span>
   );
@@ -506,7 +506,7 @@ const LATEST_CPI_PCT=CPI_BY_YEAR[LATEST_CPI_YEAR];
 function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
   const branding = useReportBranding(userId);
   const TDE=CPI_BY_YEAR;
-  const fmtE=(n:number)=>`${n.toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+  const fmtE = fe;
   const fmtDate=(d:string|null)=>d?new Date(d+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
   const rent=tenant.monthly_rent||0;
   const daysExp=tenant.lease_end?Math.ceil((new Date(tenant.lease_end+'T00:00:00').getTime()-Date.now())/86400000):null;
@@ -671,7 +671,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
               </div>
 
               {/* Print Button */}
-              <button onClick={genLetter} style={{ width:'100%', height:46, borderRadius:T.radius.pill, border:'none', background:'var(--accent)', color:'var(--accent-text)', cursor:'pointer', fontSize:13, fontFamily:T.font.sans, fontWeight:600, letterSpacing:'0.04em', marginBottom:12 }}>
+              <button onClick={genLetter} style={{ width:'100%', height:40, borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', cursor:'pointer', fontSize:13, fontFamily:T.font.sans, fontWeight:700, letterSpacing:'0.04em', marginBottom:12 }}>
                 Εκτύπωση Ειδοποίησης Αναπροσαρμογής
               </button>
             </>
@@ -1799,7 +1799,7 @@ function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; c
               {avgPerSqm>0&&<DataRow label="Μέση τιμή ανά m²" value={<span style={{ fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{fmt(avgPerSqm)}</span>}/>}
               <DataRow label="Απόκλιση τρέχοντος" value={<span style={{ color:marketDiff>0?'var(--positive)':marketDiff<0?'var(--warning)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{marketDiff>0?'+':''}{fmt(marketDiff)} ({marketDiffPct.toFixed(1)}%)</span>}/>
               <div style={{ marginTop:10, fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6 }}>
-                {marketDiff<0?'Το τρέχον μίσθωμα είναι κάτω από τον μέσο όρο της περιοχής — υπάρχει περιθώριο αναπροσαρμογής προς τα πάνω (εντός των ορίων του νόμου).':'Το τρέχον μίσθωμα είναι στο ή πάνω από τον μέσο όρο της περιοχής.'}
+                {marketDiff<0?'Το τρέχον μίσθωμα είναι κάτω από τον μέσο όρο της περιοχής, υπάρχει περιθώριο αναπροσαρμογής προς τα πάνω (εντός των ορίων του νόμου).':'Το τρέχον μίσθωμα είναι στο ή πάνω από τον μέσο όρο της περιοχής.'}
               </div>
             </>
           ):(
@@ -2124,8 +2124,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     <div style={{ fontFamily:T.font.sans, color:'var(--text-primary)' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      {ok&&<div style={{ background:'var(--positive-dim)', border:'1px solid var(--positive)44', borderLeft:'3px solid var(--positive)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--positive)', fontSize:13, fontFamily:T.font.sans, fontWeight:500 }}>{ok}</div>}
-      {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative)44', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
+      {ok&&<div style={{ background:'var(--positive-dim)', border:'1px solid var(--positive-border)', borderLeft:'3px solid var(--positive)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--positive)', fontSize:13, fontFamily:T.font.sans, fontWeight:500 }}>{ok}</div>}
+      {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
       <PageTitle title="Ενοικιαστής" sub="Μητρώο ενοικιαστών του ακινήτου: τρέχων και ιστορικοί, με πλήρες ντοσιέ ανά μίσθωση."
         right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
@@ -2532,7 +2532,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             {formTab==='services'&&(
               <>
                 <div style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:16 }}>
-                  Ενεργοποίησε μόνο τις υπηρεσίες που ισχύουν για αυτόν τον μισθωτή. Κάθε ενότητα ανοίγει με τις λεπτομέρειες: τι περιλαμβάνεται και ποιος επιβαρύνεται — είτε πρόκειται για Turn Key είτε για χωριστές χρεώσεις.
+                  Ενεργοποίησε μόνο τις υπηρεσίες που ισχύουν για αυτόν τον μισθωτή. Κάθε ενότητα ανοίγει με τις λεπτομέρειες: τι περιλαμβάνεται και ποιος επιβαρύνεται, είτε πρόκειται για Turn Key είτε για χωριστές χρεώσεις.
                 </div>
 
                 {form.furnishing==='empty'&&(

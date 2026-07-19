@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadCsv, csvDate } from './exportCsv';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge } from '@/components/Theme';
+import { T, TT, Badge, TierBadge, ExportButton, fn } from '@/components/Theme';
 import {
   referralCode, referralLink, progress,
   individualReferrerReward, refereeWelcome,
@@ -34,7 +34,7 @@ const card: React.CSSProperties = {
 const PAD = T.sp.xl;
 // Κοινό στυλ «chip» για τα κανάλια κοινοποίησης (ενιαία εμφάνιση).
 const CHIP: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px',
+  display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px',
   background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
   fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
 };
@@ -450,7 +450,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {social >= 8 && (
               <div className="ref-rise" style={PILL}>
                 <span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Ic d="M20 21v-2a4 4 0 0 0-3-3.87|M4 21v-2a4 4 0 0 1 3-3.87|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M16 3.13a4 4 0 0 1 0 7.75" s={15} /></span>
-                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>{social.toLocaleString('el-GR')} ιδιοκτήτες κάλεσαν φίλο αυτόν τον μήνα</span>
+                <span style={{ ...TT.bodySm, color: PILL_TEXT, fontWeight: 600 }}>{fn(social)} ιδιοκτήτες κάλεσαν φίλο αυτόν τον μήνα</span>
               </div>
             )}
           </div>
@@ -497,7 +497,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <Ic d="M22 2 11 13|M22 2 15 22l-4-9-9-4z" s={20} />
           </span>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ ...TT.h2, fontSize: 14 }}>Κάνε την πρώτη σου πρόσκληση</div>
+            <div style={{ ...TT.h2, fontSize: 13 }}>Κάνε την πρώτη σου πρόσκληση</div>
             <div style={{ ...TT.bodySm, marginTop: 2 }}>Στείλε τον σύνδεσμό σου σε {isPro ? 'έναν πελάτη-ιδιοκτήτη' : 'έναν ιδιοκτήτη ακινήτου'} και ξεκίνα να κερδίζεις από σήμερα.</div>
           </div>
           <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ height: 40, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>Μοιράσου τώρα</button>
@@ -514,7 +514,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
           ] as [string, number, boolean][]).map(([l, v, hi], i) => (
             <div key={i} style={{ minWidth: 88 }}>
-              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
+              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
@@ -701,9 +701,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       </p>
 
       {(list.length > 0 || rewards.length > 0) && (
-        <button onClick={exportMyData} className="ref-chip" style={{ ...CHIP, marginTop: 14, cursor: 'pointer', fontFamily: T.font.sans }}>
-          <Ic d="M12 3v12|M7 10l5 5 5-5|M5 21h14" s={15} c="var(--text-tertiary)" />Εξαγωγή των δεδομένων μου (CSV)
-        </button>
+        <div style={{ marginTop: 14 }}><ExportButton onClick={exportMyData} label="Εξαγωγή των δεδομένων μου (CSV)" /></div>
       )}
     </div>
   );

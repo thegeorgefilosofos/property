@@ -63,14 +63,14 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
     setBusy(true);
     try {
       const { data: prop, error: pe } = await supabase.from('user_properties').insert({
-        user_id: userId, name: 'Demo — Διαμέρισμα, Κουκάκι', prop_type: 'apartment', status_detail: 'seasonal',
+        user_id: userId, name: 'Demo: Διαμέρισμα, Κουκάκι', prop_type: 'apartment', status_detail: 'seasonal',
         address: 'Δείγμα, Αθήνα', postal_code: '11742', sqm: 62, value: 195000, target_rent: 850, year_built: 2006, bedrooms: 1,
       }).select('id').single();
       if (pe || !prop) throw new Error(pe?.message || 'demo property');
       const pid = prop.id as string;
 
       const { data: cl } = await supabase.from('clients').insert({
-        user_id: userId, type: 'client', full_name: 'Demo — Επισκέπτης', stage: 'closed', notes: 'Δείγμα για επίδειξη.',
+        user_id: userId, type: 'client', full_name: 'Demo: Επισκέπτης', stage: 'closed', notes: 'Δείγμα για επίδειξη.',
       }).select('id').single();
       const clientId = cl?.id as string | undefined;
 
@@ -101,14 +101,14 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
 
   // Premium κουμπιά (κεντραρισμένα, καθαρά, με hover) — χωρίς το γενικό Btn.
   const primaryBtn: React.CSSProperties = {
-    width: '100%', height: 50, borderRadius: 13, border: 'none', cursor: busy ? 'default' : 'pointer',
-    background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: T.font.sans,
+    width: '100%', height: 50, borderRadius: 10, border: 'none', cursor: busy ? 'default' : 'pointer',
+    background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, fontFamily: T.font.sans,
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, letterSpacing: '-0.01em',
     boxShadow: '0 8px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent)',
     transition: 'filter 0.15s ease, transform 0.08s ease', opacity: busy ? 0.7 : 1,
   };
   const secondaryBtn: React.CSSProperties = {
-    width: '100%', height: 48, borderRadius: 13, cursor: busy ? 'default' : 'pointer',
+    width: '100%', height: 48, borderRadius: 10, cursor: busy ? 'default' : 'pointer',
     background: 'var(--surface-raised)', color: 'var(--text-primary)', border: '1px solid var(--border-default)',
     fontSize: 14, fontWeight: 600, fontFamily: T.font.sans, display: 'flex', alignItems: 'center', justifyContent: 'center',
     boxShadow: 'var(--highlight-inset), var(--elev-1)', transition: 'background 0.15s ease, transform 0.08s ease',
@@ -134,8 +134,8 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
         {/* Οπτικό + κείμενο */}
         <div style={{ padding: '4px 36px 4px', textAlign: 'center' }}>
           <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent) 8%, transparent))', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>{ic(s.icon)}</div>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
-          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
         </div>
 
         {/* Επιλογή τύπου προφίλ (μόνο στο πρώτο slide) */}
@@ -147,8 +147,8 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
                 const on = profile === v;
                 return (
                   <button key={v} onClick={() => chooseProfile(v)}
-                    style={{ textAlign: 'center', cursor: 'pointer', borderRadius: 12, padding: '11px 8px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface-raised)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s', fontFamily: T.font.sans }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
+                    style={{ textAlign: 'center', cursor: 'pointer', borderRadius: 10, padding: '11px 8px', border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--surface-raised)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s', fontFamily: T.font.sans }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
                   </button>
                 );

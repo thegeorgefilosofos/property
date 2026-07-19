@@ -5,6 +5,7 @@ import { KPI, LensBar, cardStyle } from './LoanShared'
 import { downloadCsv, csvEur } from './exportCsv'
 import DocChecklist from './DocChecklist'
 import { escHtml } from '@/lib/reportBranding'
+import { Badge } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import {
   BANKS, LOAN_TYPES, BORROWER_PROFILES, TAX_DATA,
@@ -15,8 +16,8 @@ import {
 
 // ── MD3 tokens ────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
-  fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',
-  letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif",
+  fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',
+  letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif",
   display:'block',marginBottom:6,
 }
 const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperties => ({
@@ -29,7 +30,8 @@ const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperti
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <p style={{fontSize:11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{label}</p>
+      <span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
+      <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{label}</p>
     </div>
     {right}
   </div>
@@ -792,8 +794,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               </div>
             )}
           </div>
-          {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
-          {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
+          {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
+          {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
           <div style={{display:'flex',alignItems:'flex-end',gap:12,flexWrap:'wrap'}}>
             <button onClick={()=>setHasAgent(h=>!h)} style={{...pillBtn(hasAgent,'var(--accent)'),height:44}}>
               {hasAgent?<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
@@ -820,7 +822,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <NumberInput label="Διάρκεια (χρόνια)" value={years} onChange={v=>{setYears(v);setActivePreset(null)}} suffix="έτη" min={3} max={35}/>
             <DatePicker label="Ημερομηνία έναρξης" value={startDate} onChange={setStartDate}/>
             <div>
-              <CustomSelect label="Τράπεζα" value={bankId} onChange={setBankId} options={BANK_OPTIONS} placeholder="— Επιλέξτε τράπεζα —"/>
+              <CustomSelect label="Τράπεζα" value={bankId} onChange={setBankId} options={BANK_OPTIONS} placeholder="Επιλέξτε τράπεζα"/>
               {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="π.χ. Παγκρήτια Τράπεζα"/></div>}
             </div>
             <CustomSelect label="Τύπος επιτοκίου" value={rateType} onChange={v=>{setRateType(v as RateType);setActivePreset(null)}} options={RATE_TYPE_OPTIONS}/>
@@ -828,7 +830,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div title={rateType==='variable'?'Περιθώριο τράπεζας πάνω από το Euribor':undefined}>
               <NumberInput label={rateType==='variable'?'Περιθώριο τράπεζας (%)':'Ετήσιο επιτόκιο (%)'} value={rate} onChange={v=>{setRate(v);setActivePreset(null)}} suffix="%" step={0.05}/>
               {rateType==='variable'&&(
-                <div style={{marginTop:7,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
+                <div style={{marginTop:7,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <p style={{fontSize:12,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}><span title="Διατραπεζικό επιτόκιο ευρώ — βάση κυμαινόμενων δανείων">Euribor</span> {fmtPct(market.euribor_3m)} + {fmtPct(R)} = <strong>{fmtPct(effRate)}</strong></p>
                   <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily:"'Inter',sans-serif"}}>Αυτόματη ενημέρωση από την ΕΚΤ κάθε πρωί</p>
                 </div>
@@ -837,7 +839,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div>
               <NumberInput label="Έκτακτη μηνιαία πληρωμή (€)" value={extraPay} onChange={setExtraPay} suffix="€" placeholder="0"/>
               {extraSav&&EP>0&&(
-                <div style={{marginTop:6,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
+                <div style={{marginTop:6,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                   <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Εξοικονομείτε {Math.round(extraSav.savedMonths/12)} χρόνια και {fmtEur(extraSav.savedInt)} τόκους</p>
                 </div>
               )}
@@ -862,8 +864,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             onTouchStart={()=>setHoverKpi(i)} onTouchEnd={()=>setHoverKpi(null)}
             style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
             boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
-            <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
-            <p style={{fontSize:29,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
+            <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
+            <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
             <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
           </div>
           )
@@ -902,7 +904,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   const cell=(v:string,f:string,w:number)=><input value={v} onChange={e=>updScen(s.id,f,f==='label'?e.target.value:Number(e.target.value))} style={{background:'var(--bg-surface)',border:'1px solid var(--accent)',borderRadius:10,padding:'5px 8px',color:'var(--text-primary)',fontSize:12,letterSpacing:0,outline:'none',width:w,fontFamily:f==='label'?"'Inter',sans-serif":"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}} type={f==='label'?'text':'number'} step={f==='rate'?0.05:1}/>
                   return(
                     <tr key={s.id} style={{borderBottom:'1px solid var(--border-subtle)',background:isBest?'var(--bg-surface)':'transparent'}}>
-                      <td style={{padding:'9px 10px'}}>{isEd?cell(s.label,'label',120):<div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.label}</span>{isBest&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:8,background:'var(--accent-dim)',color:'var(--accent)',border:'1px solid var(--border-accent)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>ΒΕΛΤΙΣΤΟ</span>}</div>}</td>
+                      <td style={{padding:'9px 10px'}}>{isEd?cell(s.label,'label',120):<div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:'var(--text-primary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.label}</span>{isBest&&<Badge tone="accent">Βέλτιστο</Badge>}</div>}</td>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.amount),'amount',90):<span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600}}>{fmtEur(s.amount)}</span>}</td>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.rate),'rate',65):<span style={{fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)'}}>{fmtPct(s.rate)}</span>}</td>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(String(s.years),'years',55):<span style={{color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{s.years} έτη</span>}</td>
@@ -1039,7 +1041,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         </div>
         <div style={{background:'var(--accent-dim)',border:'1px solid var(--border-accent)',borderRadius:10,padding:'14px 18px',textAlign:'center' as const}}>
           <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Εκτιμώμενη συνολική εξοικονόμηση</p>
-          <p style={{fontSize:32,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
+          <p style={{fontSize:28,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:'var(--accent)',fontWeight:700}}>{fmtEur(spitiSv)}</p>
           <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:6,fontFamily:"'Inter',sans-serif"}}>{fmtEur(spitiSv/Math.max(Y*12,1))} τον μήνα εξοικονόμηση</p>
         </div>
         <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:10,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Εκτίμηση βάσει μέσου επιδοτούμενου επιτοκίου. → <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>greece20.gov.gr</a></p>
@@ -1087,7 +1089,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:16,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
               boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
               <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.k}</p>
-              <p style={{fontSize:26,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
+              <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--negative)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}>{t.v}</p>
               <p style={{fontSize:11.5,marginTop:7,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif"}}>{t.s}</p>
             </div>
             )
@@ -1181,12 +1183,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
               <p style={{...labelStyle,marginBottom:12}}>Κλίμακα ενοικίων 2026</p>
               {TAX_DATA.rental_tax.map((b,i)=>(
-                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8,marginBottom:5}}>
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:5}}>
                   <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>{b.label}</span>
                   <span style={{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{(b.rate*100).toFixed(0)}%</span>
                 </div>
               ))}
-              <div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
+              <div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
                 <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif"}}>Αυτόματη έκπτωση 5% · Εκτιμώμενος φόρος: {fmtEur(renTax)} τον χρόνο</p>
               </div>
             </div>
@@ -1215,7 +1217,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           </tbody>
         </table>
         </div>
-        {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια, προστατευμένοι από ανατιμήσεις Euribor</p></div>}
+        {rateType==='fixed'&&<div style={{marginTop:10,padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontWeight:500}}>Σταθερό {fixedPeriod} χρόνια, προστατευμένοι από ανατιμήσεις Euribor</p></div>}
       </Section>
 
       <Section title="Ανάλυση αναχρηματοδότησης" sub="Σημείο απόσβεσης, πότε αξίζει η μεταφορά">
@@ -1337,7 +1339,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               onMouseEnter={()=>setHoverCost(i)} onMouseLeave={()=>setHoverCost(null)}
               onTouchStart={()=>setHoverCost(i)} onTouchEnd={()=>setHoverCost(null)}
               style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,background:'var(--bg-elevated)',border:`1px solid ${(on||item.primary)?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
-              boxShadow:on?'0 4px 14px -6px color-mix(in srgb, var(--text-primary) 26%, transparent)':'none'}}>
+              boxShadow:on?'var(--elev-2)':'none'}}>
               <div style={{minWidth:0}}>
                 <p style={{fontSize:12.5,color:'var(--text-primary)',fontWeight:item.hi?600:500,fontFamily:"'Inter',sans-serif"}}>{item.label}</p>
                 <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:2,fontFamily:"'Inter',sans-serif"}}>{item.sub}</p>

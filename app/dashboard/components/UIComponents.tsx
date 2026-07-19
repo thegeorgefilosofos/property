@@ -7,8 +7,8 @@ import { T } from '@/components/Theme';
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
 // Ύψος 42, γωνία 10 (ταιριάζει με τις κάρτες), 1px border + accent focus-ring
 // (χωρίς μετατόπιση layout — δεν αλλάζει πάχος border/padding στο focus).
-export const FIELD_HEIGHT = 42;
-export const FIELD_RADIUS = 10;
+export const FIELD_HEIGHT = 40;
+export const FIELD_RADIUS = 4;
 export const fieldBorderColor = (active: boolean) => (active ? 'var(--accent)' : 'var(--border-default)');
 export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-dim)' : 'none');
 
@@ -17,7 +17,7 @@ const mdInputBase: React.CSSProperties = {
   background: 'var(--bg-surface)',
   border: '1px solid var(--border-default)',
   borderRadius: FIELD_RADIUS,
-  padding: '10px 14px',
+  padding: '10px 16px',
   color: 'var(--text-primary)',
   fontSize: 14,
   fontFamily: "'Inter', sans-serif",
@@ -31,12 +31,11 @@ const mdInputBase: React.CSSProperties = {
 const mdLabelBase: React.CSSProperties = {
   display: 'block',
   fontFamily: "'Inter', sans-serif",
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase' as const,
+  fontSize: 12,
+  fontWeight: 500,
+  letterSpacing: '0.5px',
   color: 'var(--text-secondary)',
-  marginBottom: 7,
+  marginBottom: 6,
 };
 
 // ── InfoDot: διακριτικό εικονίδιο «i» με tooltip στο πέρασμα του κέρσορα/δαχτύλου.
@@ -69,7 +68,7 @@ export function InfoDot({ text }: { text: string }) {
       </button>
       {open && typeof document !== 'undefined' && createPortal(
         <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
-          <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.55 }}>{text}</p>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.55 }}>{text}</p>
         </div>,
         document.body,
       )}
@@ -349,7 +348,7 @@ export function CustomSelect({
           opacity: disabled ? 0.5 : 1,
           border: `1px solid ${fieldBorderColor(open || focused)}`,
           boxShadow: fieldRing(open || focused),
-          padding: '10px 14px',
+          padding: '10px 16px',
           userSelect: 'none',
         }}
       >
@@ -377,7 +376,7 @@ export function CustomSelect({
           left: 0,
           right: 0,
           background: 'var(--bg-surface)',
-          borderRadius: 12,
+          borderRadius: T.radius.inner,
           zIndex: 1000,
           boxShadow: 'var(--elev-3), 0 12px 32px -8px rgba(0,0,0,0.35)',
           border: '1px solid var(--border-default)',
@@ -390,7 +389,7 @@ export function CustomSelect({
             {opt.header && (
               <div style={{
                 padding: '10px 12px 5px', fontFamily: "'Inter', sans-serif", fontSize: 10.5,
-                fontWeight: 600, letterSpacing: '0.6px', textTransform: 'uppercase',
+                fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)', userSelect: 'none', pointerEvents: 'none',
               }}>{opt.header}</div>
             )}
@@ -550,7 +549,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
           left: coords.left,
           background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)',
-          borderRadius: 8,
+          borderRadius: 10,
           padding: 16,
           zIndex: 2000,
           width: 280,
@@ -672,7 +671,7 @@ export function Toggle({ on, onChange, label, labelOff, size = 'md' }: TogglePro
           width: on ? thumbOn : thumbOff,
           height: on ? thumbOn : thumbOff,
           borderRadius: '50%',
-          background: on ? '#fff' : 'var(--text-secondary)',
+          background: on ? 'var(--accent-text)' : 'var(--text-secondary)',
           position: 'absolute',
           top: '50%',
           transform: 'translateY(-50%)',
