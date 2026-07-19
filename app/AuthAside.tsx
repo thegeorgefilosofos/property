@@ -1,5 +1,7 @@
 'use client'
 
+import { T } from '@/components/Theme'
+
 // ═══════════════════════════════════════════════════════════════════════════
 // AuthAside, το ΕΝΙΑΙΟ marketing panel για ΟΛΕΣ τις οθόνες auth (Σύνδεση,
 // Εγγραφή, Επαναφορά). Κινηματογραφικό σκοτεινό σκηνικό, ίδιο DNA με το hero
@@ -30,7 +32,7 @@ export default function AuthAside({
   sub?: string
 }) {
   return (
-    <div className="auth-aside" style={{ width: '45%', minWidth: 400, background: 'linear-gradient(180deg, #070b12 0%, #0a0f18 70%, #0b101a 100%)', borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', padding: '48px 48px', overflow: 'hidden', position: 'relative', fontFamily: "'Inter',sans-serif" }}>
+    <div className="auth-aside" style={{ width: '45%', minWidth: 400, background: 'linear-gradient(180deg, #070b12 0%, #0a0f18 70%, #0b101a 100%)', borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', padding: '48px 48px', overflow: 'hidden', position: 'relative', fontFamily: T.font.sans }}>
       <style>{`
         .auth-aside::before { content: ''; position: absolute; top: -18%; left: -22%; width: 78%; aspect-ratio: 1; border-radius: 50%; filter: blur(90px); background: radial-gradient(circle, #1a73e8, transparent 64%); opacity: .18; pointer-events: none; animation: authDrift 30s ease-in-out infinite alternate; }
         @keyframes authDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(4vw, 4vh, 0) scale(1.12); } }
@@ -39,7 +41,7 @@ export default function AuthAside({
 
       {/* logo lockup */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 15, fontWeight: 800 }}>P</div>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 15, fontWeight: 700 }}>P</div>
         <span style={{ color: '#fff', fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
       </div>
 
@@ -47,7 +49,7 @@ export default function AuthAside({
       <div style={{ position: 'relative', marginBottom: 40 }}>
         {/* Διακοσμητική marketing επικεφαλίδα (όχι page heading): το h1 της σελίδας
             είναι η φόρμα δεξιά, ώστε να υπάρχει έγκυρο h1 και όταν το aside κρύβεται σε κινητό. */}
-        <div style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.12, margin: '0 0 18px', color: '#fff' }}>
+        <div style={{ fontSize: 'clamp(27px, 3vw, 34px)', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.12, margin: '0 0 18px', color: '#fff' }}>
           {headline}<br /><span style={{ color: '#8ab4f8' }}>{accent}</span>
         </div>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,.62)', lineHeight: 1.7, margin: 0, maxWidth: 380 }}>{sub}</p>
@@ -59,8 +61,8 @@ export default function AuthAside({
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 1fr', gap: 14, alignItems: 'start' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(138,180,248,.12)', border: '1px solid rgba(138,180,248,.32)', color: '#8ab4f8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}><Check /></span>
             <div>
-              <p style={{ fontSize: 13.5, fontWeight: 680, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.01em' }}>{p.label}</p>
-              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,.55)', margin: 0, lineHeight: 1.6 }}>{p.text}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.01em' }}>{p.label}</p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,.55)', margin: 0, lineHeight: 1.6 }}>{p.text}</p>
             </div>
           </div>
         ))}

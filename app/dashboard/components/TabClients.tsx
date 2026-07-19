@@ -145,7 +145,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
       <input value={input} onChange={e => setInput(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}
         onBlur={add} placeholder="Ετικέτα και Enter (π.χ. VIP, ήσυχος)"
-        style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, height: 42, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans }} />
+        style={{ width: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: 40, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans }} />
     </div>
   );
 }
@@ -691,9 +691,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
 
   // ── Κοινά inline styles ────────────────────────────────────────────────────
-  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, height: 42, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
+  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: 40, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
   const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
-  const chip = (active: boolean): React.CSSProperties => ({ padding: '7px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
+  const chip = (active: boolean): React.CSSProperties => ({ padding: '8px 14px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
   const msgLink: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };
   // Chip επικοινωνίας (ίδιο ύφος με msgLink, με inline εικονίδιο).
   const contactChip: React.CSSProperties = { ...msgLink, display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' };
@@ -703,7 +703,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const secHead = (t: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 0 13px' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
   );
@@ -755,7 +755,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   {avatar(c.full_name, 42)}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
                       {(c.rating || 0) > 0 && <Stars value={c.rating || 0} size={13} />}
                       {st.lastVisit && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span>}
@@ -854,7 +854,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία Στοιχείων</Btn>
+                <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
                 <button onClick={() => setOpenId(null)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 38, height: 38, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}>×</button>
               </div>
             </div>
@@ -913,7 +913,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {(propsByClient.get(dc.id) || []).length === 0 && unlinkedProps.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Κανένα ακίνητο</span>}
                 {unlinkedProps.length > 0 && (
                   <select value="" onChange={e => { if (e.target.value) linkProperty(dc.id, e.target.value); }} style={{ ...inp, cursor: 'pointer', fontSize: 12, height: 36, width: 'auto', minWidth: 170, padding: '4px 12px' }}>
-                    <option value="" disabled hidden>Πρόσθεσε Ακίνητο</option>
+                    <option value="" disabled hidden>Πρόσθεσε ακίνητο</option>
                     {unlinkedProps.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 )}
@@ -957,7 +957,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {/* Μικρο-γράφημα: πορεία εσόδων ανά διαμονή (μόνο για επαναλαμβανόμενους) */}
             {dcStays.length >= 2 && (
-              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: '12px 14px 8px', marginBottom: 24, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '12px 14px 8px', marginBottom: 24, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Πορεία εσόδων ανά διαμονή</span>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(dcStats.revenue, 0)} συνολικά</span>
@@ -1008,7 +1008,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {dcStays.map(s => {
                     const n = s.nights ?? stayNights(s.check_in, s.check_out);
                     return (
-                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.property_id ? propName(s.property_id) : 'Χωρίς ακίνητο'}</div>
@@ -1050,7 +1050,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {MSG_TEMPLATES.map(t => {
                   const text = buildMessage(t.id, msgCtx!);
                   return (
-                    <div key={t.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                    <div key={t.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <div style={{ minWidth: 0, flex: '1 1 240px' }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{t.label}</div>
@@ -1070,7 +1070,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {/* Έγγραφα (ταυτότητα, συμβόλαιο, αποδείξεις) */}
             <div style={{ marginBottom: 24 }}>
-              <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις — ασφαλής αποθήκευση" />
+              <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις, ασφαλής αποθήκευση" />
               <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ minWidth: 200, flex: '1 1 200px' }}>
                   <CustomSelect label="Είδος εγγράφου" value={docKind} onChange={setDocKind} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
@@ -1084,7 +1084,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {docs.map(d => (
-                    <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
                       </div>
@@ -1147,7 +1147,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, width: 'min(600px, 100%)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή από email</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή από email</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό</div>
               </div>
               <button onClick={() => setEmailOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
@@ -1192,7 +1192,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή iCal</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Εισαγωγή iCal</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Συγχρονισμός κρατήσεων από Airbnb ή Booking</div>
               </div>
               <button onClick={() => setIcalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
@@ -1218,7 +1218,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {icalPropertyId && icalFeeds.filter(f => f.property_id === icalPropertyId).length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
                   {icalFeeds.filter(f => f.property_id === icalPropertyId).map(f => (
-                    <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                    <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <div style={{ minWidth: 0, flex: '1 1 220px' }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
@@ -1293,7 +1293,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" /><rect x="12" y="6" width="3" height="11" /><rect x="17" y="13" width="3" height="4" /></svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Αναφορές</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Αναφορές</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Έσοδα, κανάλια και πληρότητα φιλοξενίας</div>
               </div>
               <button onClick={() => setReportsOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>
@@ -1372,7 +1372,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 10 }}>
                       {statTile('Μέση τιμή / νύχτα', fe(adr, 0), { title: 'Average Daily Rate' })}
                       {statTile('Επαναλαμβανόμενοι', String(repeatY), { title: 'Πελάτες με 2+ διαμονές τη χρονιά' })}
-                      {statTile('Μέση βαθμολογία', avgRating != null ? `${avgRating}/5` : '—')}
+                      {statTile('Μέση βαθμολογία', avgRating != null ? `${avgRating}/5` : '-')}
                       {statTile('Φθορές', String(damages))}
                     </div>
 
@@ -1409,7 +1409,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </div>
 
                     {secHead(`Έσοδα ανά μήνα (${reportYear})`)}
-                    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 12, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                         {months.map((v, i) => (
                           <div key={i} title={`${monthNames[i]}: ${fe(v, 0)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
@@ -1440,7 +1440,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 700, fontSize: 15, fontFamily: T.font.sans, flexShrink: 0, letterSpacing: '0.02em' }}>{initials}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editing ? (form.full_name.trim() || 'Επεξεργασία πελάτη') : 'Νέα καταχώρηση'}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}</div>
               </div>
               <button onClick={() => setModalOpen(false)} title="Κλείσιμο" style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, flexShrink: 0 }}>×</button>

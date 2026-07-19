@@ -10,13 +10,13 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
+import { feAuto } from '@/components/Theme';
 
 interface Expense { category: string; amount: number; date: string }
 interface Stay { check_in: string | null; check_out: string | null; nights: number | null; total: number | null }
 interface Prop { name: string; atak: string | null; address: string | null; prop_type: string | null; rent: number | null; expenses: Expense[]; stays: Stay[] }
 interface Data { owner: string | null; year: number; properties: Prop[] }
 
-const eur = (n: number) => `${Math.round(n).toLocaleString('el-GR')} €`;
 const sum = (a: number[]) => a.reduce((s, v) => s + (v || 0), 0);
 
 export default function AccountantPortal() {
@@ -40,7 +40,7 @@ export default function AccountantPortal() {
   }, [token, year]);
 
   const wrap: React.CSSProperties = { maxWidth: 760, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
+  const card: React.CSSProperties = { background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' };
 
   // Σύνολα (ο φόρος εισοδήματος είναι προοδευτικός στο ΣΥΝΟΛΟ των ενοικίων)
   const props = data?.properties || [];
@@ -56,9 +56,9 @@ export default function AccountantPortal() {
   const estTax = rentalIncomeTax(totalIncome);
 
   const row = (k: string, v: string, strong?: boolean) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
-      <span style={{ fontSize: 14, fontWeight: strong ? 800 : 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{v}</span>
+      <span style={{ fontSize: 14, fontWeight: strong ? 700 : 600, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{v}</span>
     </div>
   );
 
@@ -67,11 +67,11 @@ export default function AccountantPortal() {
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>P</div>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Πύλη Λογιστή</span>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>P</div>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>Πύλη Λογιστή</span>
           </div>
           {state === 'ok' && (
-            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '6px 10px', color: 'var(--text-primary)', fontSize: 13, fontFamily: "'Roboto Mono',monospace", fontWeight: 700 }}>
+            <select value={year} onChange={e => setYear(parseInt(e.target.value, 10))} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: "'Roboto Mono',monospace", fontWeight: 700 }}>
               {[nowYear, nowYear - 1, nowYear - 2, nowYear - 3].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
@@ -83,7 +83,7 @@ export default function AccountantPortal() {
 
         {state === 'notfound' && (
           <div style={{ ...card, textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>Ζήτησε από τον ιδιοκτήτη έναν ενημερωμένο σύνδεσμο.</div>
           </div>
         )}
@@ -91,15 +91,15 @@ export default function AccountantPortal() {
         {state === 'ok' && data && (
           <>
             <div style={card}>
-              <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 2 }}>{data.owner || 'Ιδιοκτήτης'}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.owner || 'Ιδιοκτήτης'}</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Οικονομική εικόνα ακινήτων · φορολογικό έτος {year}</div>
             </div>
 
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Σύνοψη έτους</div>
-              {row('Συνολικά έσοδα από ενοίκια/βραχυχρόνια', eur(totalIncome))}
-              {row('Συνολικές καταγεγραμμένες δαπάνες', eur(totalExpenses))}
-              {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', eur(estTax), true)}
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Σύνοψη έτους</div>
+              {row('Συνολικά έσοδα από ενοίκια/βραχυχρόνια', feAuto(totalIncome))}
+              {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
+              {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
                 Οι αριθμοί είναι ενδεικτικοί, βάσει των καταχωρήσεων του ιδιοκτήτη. Ο φόρος υπολογίζεται με την κλίμακα ενοικίων (15% έως 35.000 €, 35% έως 45.000 €, 45% άνω). Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
               </div>
@@ -108,17 +108,17 @@ export default function AccountantPortal() {
             {perProp.map((x, i) => (
               <div key={i} style={card}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || '—'}</div>
-                {x.rentAnnual > 0 && row('Ενοίκια (ετήσια)', eur(x.rentAnnual))}
-                {x.shortGross > 0 && row('Βραχυχρόνια (μεικτά)', eur(x.shortGross))}
-                {row('Δαπάνες έτους', eur(x.expenses))}
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || 'Χωρίς στοιχεία'}</div>
+                {x.rentAnnual > 0 && row('Ενοίκια (ετήσια)', feAuto(x.rentAnnual))}
+                {x.shortGross > 0 && row('Βραχυχρόνια (μεικτά)', feAuto(x.shortGross))}
+                {row('Δαπάνες έτους', feAuto(x.expenses))}
                 {(x.p.expenses || []).length > 0 && (
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Δαπάνες ανά κατηγορία</div>
                     {Object.entries((x.p.expenses || []).reduce<Record<string, number>>((m, e) => { m[e.category || 'Άλλο'] = (m[e.category || 'Άλλο'] || 0) + (e.amount || 0); return m; }, {})).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                      <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12.5 }}>
+                      <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
                         <span style={{ color: 'var(--text-secondary)' }}>{cat}</span>
-                        <span style={{ fontFamily: "'Roboto Mono',monospace", color: 'var(--text-primary)' }}>{eur(amt)}</span>
+                        <span style={{ fontFamily: "'Roboto Mono',monospace", color: 'var(--text-primary)' }}>{feAuto(amt)}</span>
                       </div>
                     ))}
                   </div>

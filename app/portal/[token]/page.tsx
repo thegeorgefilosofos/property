@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { T, feAuto, fdLong } from '@/components/Theme';
 
 interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
 
@@ -20,8 +21,8 @@ interface PortalData {
   payment_link: string | null;
 }
 
-const eur = (n: number | null) => (n == null ? '—' : `${Math.round(n).toLocaleString('el-GR')} €`);
-const gdate = (d: string | null) => (d ? new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—');
+const eur = (n: number | null) => (n == null ? '—' : feAuto(n));
+const gdate = (d: string | null) => (d ? fdLong(d) : '—');
 const GR_MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const monthLabel = (month: number, year: number) => `${GR_MONTHS[month - 1] ?? ''} ${year}`.trim();
 
@@ -157,9 +158,9 @@ export default function TenantPortal() {
   };
 
   const wrap: React.CSSProperties = { maxWidth: 560, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
-  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '12px 14px', color: 'var(--text-primary)', fontSize: 15, outline: 'none', fontFamily: 'inherit' };
-  const label: React.CSSProperties = { fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' };
+  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
+  const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' };
+  const label: React.CSSProperties = { fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' };
   const row = (k: string, v: string) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
@@ -172,7 +173,7 @@ export default function TenantPortal() {
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>P</div>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>Πύλη Ενοικιαστή</span>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Πύλη Ενοικιαστή</span>
         </div>
       </header>
 
@@ -188,7 +189,7 @@ export default function TenantPortal() {
 
         {state === 'locked' && (
           <div style={{ ...card, textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Απαιτείται κωδικός</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Απαιτείται κωδικός</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 18 }}>Ζήτησε τον κωδικό από τον ιδιοκτήτη.</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 280, margin: '0 auto' }}>
               <input
@@ -202,7 +203,7 @@ export default function TenantPortal() {
                 placeholder="Κωδικός"
                 style={{ ...field, textAlign: 'center', letterSpacing: '0.3em' }}
               />
-              {pinErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{pinErr}</div>}
+              {pinErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{pinErr}</div>}
               <button
                 type="button"
                 onClick={submitPin}
@@ -228,12 +229,12 @@ export default function TenantPortal() {
                     </div>
                   ) : (
                     <>
-                      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.02em', fontFamily: "'Roboto Mono',monospace", color: 'var(--text-primary)', marginBottom: 4 }}>{eur(data.total_due)}</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', fontFamily: T.font.mono, color: 'var(--text-primary)', marginBottom: 4 }}>{eur(data.total_due)}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 18 }}>Συνολικό εκκρεμές ποσό προς εξόφληση</div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 4 }}>
                         {data.due.map(item => (
-                          <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '12px 14px' }}>
+                          <div key={item.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{monthLabel(item.month, item.year)}</span>
                               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Roboto Mono',monospace" }}>{eur(item.amount)}</span>
@@ -242,14 +243,14 @@ export default function TenantPortal() {
                             <div style={{ marginTop: 12 }}>
                               {item.declared ? (
                                 <span style={{ display: 'inline-block', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontSize: 12, fontWeight: 600, borderRadius: 100, padding: '6px 12px' }}>
-                                  Δηλώθηκε — σε επιβεβαίωση από τον ιδιοκτήτη
+                                  Δηλώθηκε, σε επιβεβαίωση από τον ιδιοκτήτη
                                 </span>
                               ) : (
                                 <button
                                   type="button"
                                   disabled={declareBusyId === item.id}
                                   onClick={() => declarePayment(item.id)}
-                                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '9px 14px', cursor: declareBusyId === item.id ? 'not-allowed' : 'pointer', opacity: declareBusyId === item.id ? 0.6 : 1, fontFamily: 'inherit' }}
+                                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 10, padding: '9px 16px', cursor: declareBusyId === item.id ? 'not-allowed' : 'pointer', opacity: declareBusyId === item.id ? 0.6 : 1, fontFamily: 'inherit' }}
                                 >
                                   {declareBusyId === item.id ? 'Αποστολή…' : 'Δήλωσα την πληρωμή'}
                                 </button>
@@ -259,7 +260,7 @@ export default function TenantPortal() {
                         ))}
                       </div>
 
-                      {declareErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)', marginTop: 12 }}>{declareErr}</div>}
+                      {declareErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)', marginTop: 12 }}>{declareErr}</div>}
 
                       {(() => {
                         const link = data.payment_link;
@@ -309,7 +310,7 @@ export default function TenantPortal() {
             })()}
 
             <div style={card}>
-              <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 2 }}>{data.property.name}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.property.name}</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>{[data.property.type, data.property.address].filter(Boolean).join(' · ') || 'Ακίνητο'}</div>
               {row('Μηνιαίο ενοίκιο', eur(data.tenant.rent))}
               {row('Έναρξη μίσθωσης', gdate(data.tenant.lease_start))}
@@ -358,7 +359,7 @@ export default function TenantPortal() {
                     {photoNote && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.5 }}>{photoNote}</div>}
                   </div>
 
-                  {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
+                  {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
                   <button type="submit" disabled={sending || !title.trim()} style={{ height: 46, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή αιτήματος'}
                   </button>

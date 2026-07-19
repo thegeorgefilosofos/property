@@ -6,7 +6,7 @@ import {
   Toggle, TextInput, Textarea, ServiceBySelect as UIServiceBySelect,
   SegmentControl, FREQ_OPTIONS,
 } from './UIComponents';
-import { T } from '@/components/Theme';
+import { T, feAuto } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import { rentDueOccurrence, applyExdate } from '@/lib/calendar/rentDue';
 
@@ -73,7 +73,7 @@ export const DEFAULT_STREAMING: StreamingSvc[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 export const fmt = (n: number | null | undefined) =>
-  n == null ? '—' : `${n.toLocaleString('el-GR', { minimumFractionDigits:0, maximumFractionDigits:2 })} €`;
+  n == null ? '—' : feAuto(n);
 export const fmtD = (d: string | null) =>
   !d ? '—' : new Date(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
 export const daysLeft = (end: string | null) =>
@@ -95,26 +95,26 @@ export const calcEnd = (start: string, type: LeaseType, days: number): string =>
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 export const s = {
-  card:     { background:'var(--bg-surface)',  border:'1px solid var(--border-subtle)',  borderRadius:'12px', padding:'20px', marginBottom:'16px' } as React.CSSProperties,
-  cardGold: { background:'var(--bg-surface)',  border:'1px solid var(--border-accent)',  borderRadius:'12px', padding:'20px', marginBottom:'16px' } as React.CSSProperties,
-  sec:      { fontSize:'9px', letterSpacing:'0.18em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' },
-  dot:      (c='var(--accent)') => ({ width:'4px', height:'4px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
+  card:     { background:'var(--bg-surface)',  border:'1px solid var(--border-subtle)',  borderRadius:'14px', padding:'16px', marginBottom:'16px' } as React.CSSProperties,
+  cardGold: { background:'var(--bg-surface)',  border:'1px solid var(--border-accent)',  borderRadius:'14px', padding:'16px', marginBottom:'16px' } as React.CSSProperties,
+  sec:      { fontSize:'10px', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' },
+  dot:      (c='var(--accent)') => ({ width:'6px', height:'6px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
   divider:  { borderTop:'1px solid var(--border-subtle)', margin:'18px 0' } as React.CSSProperties,
   g2:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'14px' } as React.CSSProperties,
   g3:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'14px' } as React.CSSProperties,
   g4:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:'14px' } as React.CSSProperties,
-  badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius:'5px', fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid ${color}33` } as React.CSSProperties),
+  badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius:'100px', fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid color-mix(in srgb, ${color} 20%, transparent)` } as React.CSSProperties),
   tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:T.font.sans, transition:'all 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),
-  kpi:      { background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'10px', padding:'14px 16px', textAlign:'center' as const } as React.CSSProperties,
-  kpiV:     { fontSize:'20px', fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' } as React.CSSProperties,
+  kpi:      { background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'16px', padding:'14px 16px', textAlign:'center' as const } as React.CSSProperties,
+  kpiV:     { fontSize:'22px', fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' } as React.CSSProperties,
   kpiL:     { fontSize:'9px', letterSpacing:'0.1em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginTop:'5px' } as React.CSSProperties,
   th:       { fontSize:'9px', letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', padding:'8px 12px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left' as const, fontWeight:400 } as React.CSSProperties,
   td:       { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-primary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
   tdM:      { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-secondary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
-  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'8px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:T.font.sans, cursor:'pointer', fontWeight:700 } as React.CSSProperties,
-  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
-  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer', fontWeight:600 } as React.CSSProperties,
-  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'7px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
+  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'10px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:T.font.sans, cursor:'pointer', fontWeight:700 } as React.CSSProperties,
+  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'10px', padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
+  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer', fontWeight:600 } as React.CSSProperties,
+  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
 };
 
 // ─── Streaming Configurator ───────────────────────────────────────────────────
