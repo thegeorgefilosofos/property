@@ -58,12 +58,12 @@ export default function LoginPage() {
   const field: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
     background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-    borderRadius: 10, padding: '12px 14px',
-    color: 'var(--text-primary)', fontSize: 15,
+    borderRadius: 4, padding: '10px 16px',
+    color: 'var(--text-primary)', fontSize: 14,
     fontFamily: 'inherit', transition: 'border-color .15s',
   }
   const label: React.CSSProperties = {
-    fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600,
+    fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700,
     display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em',
     fontFamily: "'Inter',sans-serif",
   }
@@ -80,7 +80,7 @@ export default function LoginPage() {
           {sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
           ) : (<>
-          <h1 style={{ fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.5 }}>
             Δεν έχεις λογαριασμό;{' '}
             <Link href="/signup" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Εγγραφή δωρεάν</Link>
@@ -127,7 +127,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="auth-cta" style={{ width: '100%', padding: '13px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+            <button type="submit" disabled={loading} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
               {loading ? 'Σύνδεση…' : 'Σύνδεση →'}
             </button>
           </form>

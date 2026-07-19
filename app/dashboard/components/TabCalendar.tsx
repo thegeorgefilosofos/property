@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
-import { Spinner } from '@/components/Theme'
+import { Spinner, feAuto } from '@/components/Theme'
 import { downloadCsv, csvEur, csvDate } from './exportCsv'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -249,7 +249,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           {event.status!=='pending'&&<StatusDot status={event.status}/>}
           {event.amount!=null&&(
             <span style={{ fontSize:13, fontFamily:"'Inter', sans-serif", fontVariantNumeric:'tabular-nums', color:'var(--text-secondary)', fontWeight:500 }}>
-              {event.amount.toLocaleString('el-GR',{style:'currency',currency:'EUR'})}
+              {feAuto(event.amount)}
             </span>
           )}
           {event.attachment_url&&(
@@ -599,7 +599,7 @@ function TimelineView({ events, currentYear, onYearChange, onPickMonth, onPickDa
                       const dots=evs.slice().sort((a,b)=>statusRank(a)-statusRank(b)).slice(0,3)
                       const cell=(
                         <button onClick={()=>onPickDay?.(dateStr)} title={onPickDay?`Άνοιγμα ${d} ${mName}`:undefined} style={{ width:'100%', minHeight:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, border:'none', borderRadius:7, background:'transparent', cursor:onPickDay?'pointer':'default', padding:'2px 0', transition:'background 0.1s' }} onMouseEnter={e=>{if(onPickDay)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                          <span style={{ width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:isToday?700:evs.length?600:400, background:isToday?'var(--accent)':'transparent', color:isToday?'#fff':evs.length?'var(--text-primary)':wknd?'var(--text-tertiary)':'var(--text-secondary)', lineHeight:1 }}>{d}</span>
+                          <span style={{ width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:isToday?700:evs.length?600:400, background:isToday?'var(--accent)':'transparent', color:isToday?'var(--accent-text)':evs.length?'var(--text-primary)':wknd?'var(--text-tertiary)':'var(--text-secondary)', lineHeight:1 }}>{d}</span>
                           <span style={{ display:'flex', gap:2, height:4, alignItems:'center', justifyContent:'center' }}>
                             {dots.map((e,di)=>(<span key={di} style={{ width:4, height:4, borderRadius:'50%', background:dotColor(e) }}/>))}
                           </span>
@@ -840,9 +840,9 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   // Προσβασιμότητα: Escape κλείνει, Cmd/Ctrl+Enter αποθηκεύει.
   useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if(e.key==='Escape')onClose(); if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&form.title.trim()&&form.event_date)onSave() }; document.addEventListener('keydown',h); return ()=>document.removeEventListener('keydown',h) },[onClose,onSave,form.title,form.event_date])
   // Ενιαία, καθαρά πεδία — ίδιο ύψος/καμπύλη/χρώμα παντού (Google λογική).
-  const fld: React.CSSProperties = { width:'100%', boxSizing:'border-box', height:44, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'0 14px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", outline:'none', transition:'border-color 0.15s' }
+  const fld: React.CSSProperties = { width:'100%', boxSizing:'border-box', height:40, background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:4, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily:"'Inter',sans-serif", outline:'none', transition:'border-color 0.15s' }
   const focus=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--accent)'
-  const blur=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--border-subtle)'
+  const blur=(e:React.FocusEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>)=>e.currentTarget.style.borderColor='var(--border-default)'
   const chevron="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%239aa0a6'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")"
   const sel: React.CSSProperties = {...fld, appearance:'none' as any, cursor:'pointer', backgroundImage:chevron, backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center', paddingRight:34}
   const lbl: React.CSSProperties = { fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-secondary)', display:'block', marginBottom:6 }
@@ -853,7 +853,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
       <div role="dialog" aria-modal="true" aria-labelledby="cal-modal-title" onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-elevated)', borderRadius:22, width:'100%', maxWidth:480, maxHeight:'92vh', border:'1px solid var(--border-subtle)', boxShadow:'0 24px 70px rgba(0,0,0,0.45)', display:'flex', flexDirection:'column' }}>
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px 14px', borderBottom:'1px solid var(--border-subtle)', flexShrink:0 }}>
-          <h3 id="cal-modal-title" style={{ fontFamily:"'Inter',sans-serif", fontSize:17, fontWeight:700, color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
+          <h3 id="cal-modal-title" style={{ fontFamily:"'Inter',sans-serif", fontSize:16, fontWeight:700, letterSpacing:'-0.01em', color:'var(--text-primary)', margin:0 }}>{editing?'Επεξεργασία':'Νέο γεγονός'}</h3>
           <button aria-label="Κλείσιμο" onClick={onClose} style={{ width:32, height:32, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
         </div>
 
@@ -866,7 +866,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
               return (
                 <button onClick={()=>setForm(f=>({...f,title:qa.title,event_date:qa.date||f.event_date,event_time:qa.time||f.event_time}))} style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, padding:'7px 12px', borderRadius:10, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", width:'100%', textAlign:'left' }}>
-                  <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')} — «{qa.title}»
+                  <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')} · «{qa.title}»
                 </button>
               )
             })()}
@@ -1543,7 +1543,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
   const periodLabel=()=>{
     if(viewMode==='year')return`${timelineYear}`
     if(viewMode==='day')return`${DAY_FULL_GR[currentDate.getDay()]} ${currentDate.getDate()} ${MONTH_NAMES_GR[currentDate.getMonth()]} ${currentDate.getFullYear()}`
-    if(viewMode==='week'){const d=new Date(currentDate);const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);const end=new Date(d);end.setDate(d.getDate()+6);return`${d.getDate()} ${MONTH_SHORT_GR[d.getMonth()]} – ${end.getDate()} ${MONTH_SHORT_GR[end.getMonth()]}`}
+    if(viewMode==='week'){const d=new Date(currentDate);const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);const end=new Date(d);end.setDate(d.getDate()+6);return`${d.getDate()} ${MONTH_SHORT_GR[d.getMonth()]} έως ${end.getDate()} ${MONTH_SHORT_GR[end.getMonth()]}`}
     return`${MONTH_NAMES_GR[currentDate.getMonth()]} ${currentDate.getFullYear()}`
   }
 

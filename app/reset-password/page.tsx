@@ -61,15 +61,15 @@ export default function ResetPasswordPage() {
 
   const field: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-    borderRadius: 10, padding: '12px 14px', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', transition: 'border-color .15s',
+    borderRadius: 4, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit', transition: 'border-color .15s',
   }
   const label: React.CSSProperties = {
-    fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: 8,
+    fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8,
     textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter',sans-serif",
   }
   const btn: React.CSSProperties = {
-    width: '100%', padding: '13px', background: 'var(--accent)', border: 'none', borderRadius: 100,
-    color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+    width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100,
+    color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
     opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit',
   }
   const eye = (
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
   )
 
   // Τυποποιημένες επικεφαλίδες/υποκείμενα, ίδια ακριβώς με Σύνδεση/Εγγραφή.
-  const h2s: React.CSSProperties = { fontSize: 26, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.03em', margin: '0 0 8px' }
+  const h2s: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }
   const subs: React.CSSProperties = { fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.6 }
 
   const mailIcon = (

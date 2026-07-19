@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NumberInput, TextInput, CustomSelect, SegmentControl } from './UIComponents';
 import { median, saleStats } from './comparableStats';
+import { Card, SecHdr, KPIGrid, Badge, feAuto } from '@/components/Theme';
 
 interface Comparable {
   id?: string;
@@ -47,28 +48,6 @@ const LISTING_MODES = [
   { value: 'rent', label: 'Ενοικίαση' },
   { value: 'sale', label: 'Πώληση' },
 ];
-
-const fe = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
-
-const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-elevated)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
-};
-
-const SectionLabel = ({ label, right }: { label: string; right?: React.ReactNode }) => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
-        {label}
-      </span>
-    </div>
-    {right}
-  </div>
-);
 
 export default function RentComparables({
   propertyId, userId, actualRent,
@@ -169,15 +148,15 @@ export default function RentComparables({
   const g4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 12, marginBottom: 12 };
 
   return (
-    <div style={cardStyle}>
-      <SectionLabel
+    <Card>
+      <SecHdr
         label={mode === 'rent' ? 'Συγκριτικά Ακίνητα Ενοικίασης' : 'Συγκριτικά Ακίνητα Πώλησης'}
         right={
           <button
             onClick={() => setShowForm(v => !v)}
             style={{
               background: showForm ? 'transparent' : 'var(--accent)',
-              color: showForm ? 'var(--text-secondary)' : '#fff',
+              color: showForm ? 'var(--text-secondary)' : 'var(--accent-text)',
               border: `1px solid ${showForm ? 'var(--border-default)' : 'var(--accent)'}`,
               borderRadius: 20, padding: '6px 14px', fontSize: 11, fontWeight: 500,
               cursor: 'pointer', fontFamily: "'Inter', sans-serif",
@@ -204,58 +183,44 @@ export default function RentComparables({
 
       {/* Rent KPIs */}
       {mode === 'rent' && view.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Μέσο Ενοίκιο Αγοράς', value: fe(avgRent), color: 'var(--info)' },
-            { label: 'Μέσο € ανά τετραγωνικό', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} € ανά τετραγωνικό` : '—', color: 'var(--accent)' },
-            { label: 'Ενοίκιό σου', value: actualRent > 0 ? fe(actualRent) : '—', color: 'var(--text-primary)' },
-            { label: 'vs Αγορά', value: diff !== 0 ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—', color: diff > 5 ? 'var(--positive)' : diff < -5 ? 'var(--negative)' : 'var(--warning)' },
-          ].map((k, i) => (
-            <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Inter', sans-serif", marginBottom: 3 }}>{k.value}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
+        <KPIGrid items={[
+          { label: 'Μέσο Ενοίκιο Αγοράς', value: feAuto(avgRent), tone: 'info' },
+          { label: 'Μέσο € ανά τετραγωνικό', value: avgPerSqm > 0 ? `${avgPerSqm.toFixed(2)} € ανά τετραγωνικό` : '—', tone: 'accent' },
+          { label: 'Ενοίκιό σου', value: actualRent > 0 ? feAuto(actualRent) : '—' },
+          { label: 'vs Αγορά', value: diff !== 0 ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%` : '—', tone: diff > 5 ? 'positive' : diff < -5 ? 'negative' : 'warning' },
+        ]} />
       )}
 
       {/* Sale KPIs */}
       {mode === 'sale' && view.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Μέση Ζητούμενη Τιμή', value: s.avgPrice > 0 ? fe(s.avgPrice) : '—', color: 'var(--info)' },
-            { label: 'Μέσο €/τ.μ. Πώλησης', value: s.avgPriceSqm > 0 ? fps(s.avgPriceSqm) : '—', color: 'var(--accent)' },
-            { label: 'Διάμεσο €/τ.μ.', value: s.medPriceSqm > 0 ? fps(s.medPriceSqm) : '—', color: 'var(--text-primary)' },
-            { label: 'Μέσος Χρόνος στην Αγορά', value: s.avgDom > 0 ? `${s.avgDom} ημέρες` : '—', color: 'var(--warning)' },
-          ].map((k, i) => (
-            <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: "'Inter', sans-serif", marginBottom: 3 }}>{k.value}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
+        <KPIGrid items={[
+          { label: 'Μέση Ζητούμενη Τιμή', value: s.avgPrice > 0 ? feAuto(s.avgPrice) : '—', tone: 'info' },
+          { label: 'Μέσο €/τ.μ. Πώλησης', value: s.avgPriceSqm > 0 ? fps(s.avgPriceSqm) : '—', tone: 'accent' },
+          { label: 'Διάμεσο €/τ.μ.', value: s.medPriceSqm > 0 ? fps(s.medPriceSqm) : '—' },
+          { label: 'Μέσος Χρόνος στην Αγορά', value: s.avgDom > 0 ? `${s.avgDom} ημέρες` : '—', tone: 'warning' },
+        ]} />
       )}
 
       {/* Θέση στην αγορά (ενοικίαση) */}
       {mode === 'rent' && view.length >= 2 && maxRent > minRent && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>Θέση στην αγορά</span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>{fe(medianRent)}</strong></span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>Θέση στην αγορά</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>{feAuto(medianRent)}</strong></span>
           </div>
           <div style={{ position: 'relative', height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginBottom: 10 }}>
             <div style={{ position: 'absolute', top: -3, bottom: -3, left: `${maxRent > minRent ? ((medianRent - minRent) / (maxRent - minRent)) * 100 : 50}%`, width: 2, background: 'var(--border-strong)', transform: 'translateX(-1px)' }} />
             {actualRent > 0 && (
-              <div style={{ position: 'absolute', top: '50%', left: `${posPct}%`, width: 14, height: 14, borderRadius: '50%', background: diff >= 0 ? 'var(--positive)' : 'var(--warning)', border: '2px solid var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)' }} />
+              <div style={{ position: 'absolute', top: '50%', left: `${posPct}%`, width: 14, height: 14, borderRadius: '50%', background: diff >= 0 ? 'var(--positive)' : 'var(--warning)', border: '2px solid var(--bg-surface)', boxShadow: 'var(--elev-1)', transform: 'translate(-50%, -50%)' }} />
             )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>
-            <span>{fe(minRent)}</span>
-            <span>{fe(maxRent)}</span>
+            <span>{feAuto(minRent)}</span>
+            <span>{feAuto(maxRent)}</span>
           </div>
           {actualRent > 0 && (
             <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
-              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif" }}>{fe(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς, {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
+              Το ενοίκιό σου (<strong style={{ color: diff >= 0 ? 'var(--positive)' : 'var(--warning)', fontFamily: "'Inter', sans-serif" }}>{feAuto(actualRent)}</strong>) βρίσκεται στο <strong>{posPct.toFixed(0)}%</strong> του εύρους της αγοράς, {posPct >= 66 ? 'στο ανώτερο τρίτο' : posPct >= 33 ? 'στο μέσο' : 'στο κατώτερο τρίτο'}.
             </div>
           )}
         </div>
@@ -265,7 +230,7 @@ export default function RentComparables({
       {mode === 'sale' && s.count >= 2 && s.maxPriceSqm > s.minPriceSqm && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>Εύρος €/τ.μ. Πώλησης</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>Εύρος €/τ.μ. Πώλησης</span>
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Inter', sans-serif" }}>{postalCode ? `ΤΚ ${postalCode}` : 'Περιοχή'} · Διάμεσος <strong style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>{fps(s.medPriceSqm)}</strong></span>
           </div>
           <div style={{ position: 'relative', height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginBottom: 10 }}>
@@ -289,14 +254,14 @@ export default function RentComparables({
       )}
       {mode === 'rent' && diff < -5 && view.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--warning)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, fontFamily: "'Inter', sans-serif" }}>
-          Το ενοίκιό σου είναι <strong style={{ color: 'var(--warning)' }}>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο, ίσως να μπορείς να αυξήσεις κατά <strong style={{ color: 'var(--warning)' }}>{fe(avgRent - actualRent)}/μήνα</strong>.
+          Το ενοίκιό σου είναι <strong style={{ color: 'var(--warning)' }}>{Math.abs(diff).toFixed(1)}%</strong> κάτω από τον μέσο όρο, ίσως να μπορείς να αυξήσεις κατά <strong style={{ color: 'var(--warning)' }}>{feAuto(avgRent - actualRent)}/μήνα</strong>.
         </div>
       )}
 
       {/* Add form */}
       {showForm && (
         <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: 16, marginBottom: 16, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 14, fontFamily: "'Inter', sans-serif" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14, fontFamily: "'Inter', sans-serif" }}>
             {mode === 'rent' ? 'Νέο Συγκριτικό Ενοικίασης' : 'Νέο Συγκριτικό Πώλησης'}
           </div>
           <div style={g4}>
@@ -314,7 +279,7 @@ export default function RentComparables({
               ? <TextInput label="Απόσταση" value={form.distance || ''} onChange={v => sf('distance', v)} placeholder="π.χ. < 500μ" />
               : <NumberInput label="Ημέρες στην Αγορά" value={String(form.days_on_market || '')} onChange={v => sf('days_on_market', v)} suffix="ημέρες" step={5} />}
             <div>
-              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500, fontFamily: "'Inter', sans-serif", display: 'block', marginBottom: 6 }}>{mode === 'rent' ? '€ ανά τετραγωνικό (αυτόματο)' : '€/τ.μ. (αυτόματο)'}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: "'Inter', sans-serif", display: 'block', marginBottom: 6 }}>{mode === 'rent' ? '€ ανά τετραγωνικό (αυτόματο)' : '€/τ.μ. (αυτόματο)'}</span>
               <div style={{ height: 42, display: 'flex', alignItems: 'center', padding: '0 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 10, fontSize: 14, letterSpacing: 0, color: 'var(--accent)', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}>
                 {mode === 'rent'
                   ? (form.rent_per_sqm ? `${parseFloat(String(form.rent_per_sqm)).toFixed(2)} € ανά τετραγωνικό` : '—')
@@ -331,7 +296,7 @@ export default function RentComparables({
           <TextInput label="URL Αγγελίας (προαιρετικό)" value={form.url || ''} onChange={v => sf('url', v)} placeholder="https://www.spitogatos.gr/..." />
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
             <button onClick={() => setShowForm(false)} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', borderRadius: 20, padding: '8px 16px', fontSize: 11, cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>Ακύρωση</button>
-            <button onClick={save} disabled={mode === 'rent' ? (!form.title || !form.rent) : (!form.title || !form.asking_price)} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '9px 20px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>Αποθήκευση</button>
+            <button onClick={save} disabled={mode === 'rent' ? (!form.title || !form.rent) : (!form.title || !form.asking_price)} style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 20, padding: '9px 20px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>Αποθήκευση</button>
           </div>
         </div>
       )}
@@ -355,7 +320,7 @@ export default function RentComparables({
                   ? ['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ενοίκιο', '€ ανά τετραγωνικό', 'Κατάσταση', 'Πηγή', 'vs Δικό σου', '']
                   : ['Ακίνητο', 'Περιοχή', 'Τ.Μ.', 'Ζητούμενη', '€/τ.μ.', 'Ημ. Αγοράς', 'Πωλήθηκε', 'Κατάσταση', 'Πηγή', '']
                 ).map((h, i) => (
-                  <th key={i} style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>{h}</th>
+                  <th key={i} style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -372,23 +337,23 @@ export default function RentComparables({
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{c.area || '—'}</td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{c.sqm > 0 ? `${c.sqm} τετραγωνικά μέτρα` : '—'}</td>
                     {mode === 'rent' ? (<>
-                      <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{fe(c.rent)}</td>
+                      <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{feAuto(c.rent)}</td>
                       <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 11 }}>{c.rent_per_sqm > 0 ? `${c.rent_per_sqm.toFixed(2)} €` : '—'}</td>
                     </>) : (<>
-                      <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{c.asking_price > 0 ? fe(c.asking_price) : '—'}</td>
+                      <td style={{ padding: '9px 8px', fontWeight: 700, color: 'var(--info)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{c.asking_price > 0 ? feAuto(c.asking_price) : '—'}</td>
                       <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 11 }}>{c.price_per_sqm > 0 ? fps(c.price_per_sqm) : '—'}</td>
                       <td style={{ padding: '9px 8px', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontSize: 11 }}>{c.days_on_market > 0 ? `${c.days_on_market} ημ.` : '—'}</td>
                       <td style={{ padding: '9px 8px' }}>
                         {c.sold_price > 0 ? (
                           <div>
-                            <div style={{ fontWeight: 700, color: 'var(--positive)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{fe(c.sold_price)}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--positive)', fontFamily: "'Inter', sans-serif", fontSize: 12 }}>{feAuto(c.sold_price)}</div>
                             {soldDiff !== 0 && <div style={{ fontSize: 10, color: soldDiff >= 0 ? 'var(--positive)' : 'var(--negative)', fontFamily: "'Inter', sans-serif", marginTop: 1 }}>{soldDiff > 0 ? '+' : ''}{soldDiff.toFixed(1)}% vs ζητούμενη</div>}
                           </div>
-                        ) : <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap' }}>Διαθέσιμο</span>}
+                        ) : <Badge tone="neutral">Διαθέσιμο</Badge>}
                       </td>
                     </>)}
                     <td style={{ padding: '9px 8px' }}>
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap' }}>{condLabel(c.condition)}</span>
+                      <Badge tone="neutral">{condLabel(c.condition)}</Badge>
                     </td>
                     <td style={{ padding: '9px 8px', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: "'Inter', sans-serif" }}>{srcLabel(c.source)}</td>
                     {mode === 'rent' && (
@@ -399,7 +364,7 @@ export default function RentComparables({
                       </td>
                     )}
                     <td style={{ padding: '9px 8px' }}>
-                      <button onClick={() => del(c.id!)} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'rgba(239,68,68,0.08)'; b.style.color = 'var(--negative)'; b.style.borderColor = 'var(--negative)'; }} onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.color = 'var(--text-tertiary)'; b.style.borderColor = 'var(--border-subtle)'; }}>
+                      <button onClick={() => del(c.id!)} style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'var(--negative-soft)'; b.style.color = 'var(--negative)'; b.style.borderColor = 'var(--negative)'; }} onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.color = 'var(--text-tertiary)'; b.style.borderColor = 'var(--border-subtle)'; }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                       </button>
                     </td>
@@ -411,6 +376,6 @@ export default function RentComparables({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

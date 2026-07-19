@@ -243,10 +243,10 @@ function CopyInventoryModal({properties, currentPropertyId, userId, onClose, onC
   };
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'var(--bg-surface)',borderRadius:28,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
+      <div style={{background:'var(--bg-surface)',borderRadius:16,padding:24,width:'100%',maxWidth:480,display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <p style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:400,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
+            <p style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>Αντιγραφή Απογραφής</p>
             <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',letterSpacing:'0.25px'}}>Χρησιμοποίησε απογραφή άλλου ακινήτου ως βάση</p>
           </div>
           <button onClick={onClose} style={{width:40,height:40,borderRadius:20,border:'none',background:'transparent',cursor:'pointer',color:'var(--text-secondary)',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -616,7 +616,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             <tbody>
               {[['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τετραγωνικά`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος Κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',prop.heating?HEATING_LABELS[prop.heating]||prop.heating:null],['Ενεργειακή Κλάση',prop.pea_class],['Θέσεις Στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική Αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]].filter(([,v])=>v).map(([k,v],i) => (
                 <tr key={i}>
-                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων — ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
+                  <td title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ετήσιος φόρος περιουσίας':undefined} style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-secondary)',width:110,fontSize:13,letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{k}</td>
                   <td style={{padding:'8px 0',fontFamily:"'Inter',sans-serif",color:'var(--text-primary)',fontSize:13,textAlign:'right',letterSpacing:'0.25px',borderBottom:'1px solid var(--border-subtle)'}}>{v as string}</td>
                 </tr>
               ))}
@@ -674,7 +674,7 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
           ]; })().map((k,i) => { const acc=(k as any).accent; return (
             <div key={i} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           );})}
         </div>
@@ -758,7 +758,7 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--negative)', color: '#fff', fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
+          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>
       </div>
@@ -1031,7 +1031,7 @@ export default function Dashboard() {
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && profileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
-                  {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'#fff',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
+                  {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
                 </button>
               );})}
             </div>
@@ -1058,7 +1058,7 @@ export default function Dashboard() {
             <>
               <div style={{flex:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:17,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
+                  <span style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
                     <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:`1px solid ${statusColor}44`,background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:statusColor,transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
@@ -1069,7 +1069,7 @@ export default function Dashboard() {
                       <>
                       {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
-                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
+                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
                         <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => {
                           const active = (selected.status_detail||'')===k;
@@ -1123,7 +1123,7 @@ export default function Dashboard() {
               <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
               </div>
-              <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:26,fontWeight:800,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
+              <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
               <p style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
                 {[
@@ -1215,7 +1215,7 @@ export default function Dashboard() {
       <CommandPalette open={cmdkOpen} onClose={()=>setCmdkOpen(false)} items={cmdItems} />
 
       {quickAddOpen&&user&&selected&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.44)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.32)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}
           onClick={e=>{if(e.target===e.currentTarget)closeQuickAdd();}}>
           <div style={{background:'var(--bg-surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',width:'100%',maxWidth:820,margin:'auto',padding:'28px 28px 32px',position:'relative'}}>
             <button onClick={()=>closeQuickAdd()} aria-label="Κλείσιμο"
