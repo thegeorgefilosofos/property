@@ -348,12 +348,12 @@ export default function RentROIReport({
             <div class="kpi-grid">
               <div class="kpi">
                 <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${esc(fp(calc.grossYield))}</div>
-                <div class="kpi-label">Μεικτή Απόδοση σου</div>
+                <div class="kpi-label">Μεικτή Απόδοσή σου</div>
                 <div class="kpi-sub">Benchmark: ${esc(bench.market_gross)}%</div>
               </div>
               <div class="kpi">
                 <div class="kpi-value ${calc.netYield >= parseFloat(bench.target_net) ? 'positive' : 'warning'}">${esc(fp(calc.netYield))}</div>
-                <div class="kpi-label">Καθαρή Απόδοση σου</div>
+                <div class="kpi-label">Καθαρή Απόδοσή σου</div>
                 <div class="kpi-sub">Στόχος: >${esc(bench.target_net)}%</div>
               </div>
               <div class="kpi">

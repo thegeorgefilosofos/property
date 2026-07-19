@@ -514,7 +514,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             [isPro ? 'Συνδρομητές τον μήνα' : 'Νέοι τον μήνα', isPro ? stats.m_paid : stats.m_indiv, false],
           ] as [string, number, boolean][]).map(([l, v, hi], i) => (
             <div key={i} style={{ minWidth: 88 }}>
-              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
+              <div className={hi ? 'ref-kpi-hover' : undefined} style={{ ...TT.kpi, fontSize: 26, color: hi ? undefined : 'var(--text-primary)' }}><CountUp value={Number(v)} /></div>
               <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
             </div>
           ))}
