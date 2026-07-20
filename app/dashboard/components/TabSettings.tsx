@@ -292,6 +292,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [compPlan, setCompPlan] = useState<string | null>(null);
   const [compUntil, setCompUntil] = useState<string | null>(null);
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
+  const [inOrg, setInOrg] = useState(false);
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -318,6 +319,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       .then(({ data }) => setPartner(!!data));
     supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId)
       .then(({ count }) => setPropertyCount(count ?? 0));
+    supabase.from('organization_members').select('id').eq('user_id', userId).eq('status', 'active').limit(1)
+      .then(({ data }) => setInOrg((data?.length ?? 0) > 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -516,8 +519,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       )}
 
-      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (μόνο Επαγγελματίας) ─────────────────────── */}
-      {profileType === 'professional' && (
+      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
+      {(profileType === 'professional' || inOrg) && (
         <Card className="acc-section" style={{ animationDelay: '110ms' }}>
           <SecHdr label="Οργανισμός & Ομάδα" />
           <OrgTeam userId={userId} />
