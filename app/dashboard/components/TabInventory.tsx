@@ -310,13 +310,19 @@ function ReplacementHint({item,compact}:{item:InventoryItem;compact?:boolean}) {
 
 function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:string,c:string)=>void}) {
   const [open,setOpen] = useState(false)
-  const [rect,setRect] = useState<{top:number;left:number;width:number}|null>(null)
+  const [rect,setRect] = useState<{top:number;left:number;width:number;up?:boolean;maxH?:number}|null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   // Το μενού ζει σε portal (fixed) ώστε να μην το «κόβει» κανένα overflow:hidden γονικό (κάρτα/φωτο).
+  // Τοποθέτηση με επίγνωση viewport: διαλέγει πλευρά με χώρο + maxHeight ώστε να μη κόβεται εκτός οθόνης.
   const place = useCallback(()=>{
     const b=btnRef.current?.getBoundingClientRect()
-    if(b) setRect({top:b.bottom+4,left:b.left,width:b.width})
+    if(!b) return
+    const M=8, GAP=4, needed=CONDITIONS.length*36+12
+    const spaceBelow=window.innerHeight-b.bottom-M, spaceAbove=b.top-M
+    const up = spaceBelow<needed && spaceAbove>spaceBelow
+    const maxH = Math.max(120, Math.min((up?spaceAbove:spaceBelow)-GAP, needed))
+    setRect({top: up?b.top-GAP:b.bottom+GAP, left:b.left, width:b.width, up, maxH})
   },[])
   useEffect(()=>{
     if(!open) return
@@ -340,7 +346,7 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
         <div ref={menuRef} onClick={e=>e.stopPropagation()}
-          style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:6,zIndex:9000,minWidth:Math.max(160,rect.width),boxShadow:'var(--shadow-xl)'}}>
+          style={{position:'fixed',top:rect.top,left:rect.left,transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:6,zIndex:9000,minWidth:Math.max(160,rect.width),boxShadow:'var(--shadow-xl)'}}>
           {CONDITIONS.map(c=>(
             <div key={c} onClick={()=>{onUpdate(item.id,c);setOpen(false)}}
               style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:12,fontFamily:T.font.sans,color:CONDITION_COLOR[c],background:item.condition===c?CONDITION_COLOR[c]+'15':'transparent',fontWeight:item.condition===c?600:400,transition:'background 0.1s'}}
@@ -359,13 +365,18 @@ function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate:(id:st
 interface OverflowAction { label:string; onClick:()=>void; icon?:React.ReactNode; danger?:boolean }
 function OverflowMenu({actions,align='right',dark}:{actions:OverflowAction[];align?:'left'|'right';dark?:boolean}) {
   const [open,setOpen] = useState(false)
-  const [rect,setRect] = useState<{top:number;right:number;left:number}|null>(null)
+  const [rect,setRect] = useState<{top:number;right:number;left:number;up?:boolean;maxH?:number}|null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const place = useCallback(()=>{
     const b=btnRef.current?.getBoundingClientRect()
-    if(b) setRect({top:b.bottom+6,right:window.innerWidth-b.right,left:b.left})
-  },[])
+    if(!b) return
+    const M=8, GAP=6, needed=actions.length*38+12
+    const spaceBelow=window.innerHeight-b.bottom-M, spaceAbove=b.top-M
+    const up = spaceBelow<needed && spaceAbove>spaceBelow
+    const maxH = Math.max(120, Math.min((up?spaceAbove:spaceBelow)-GAP, needed))
+    setRect({top: up?b.top-GAP:b.bottom+GAP, right:window.innerWidth-b.right, left:b.left, up, maxH})
+  },[actions.length])
   useEffect(()=>{
     if(!open) return
     place()
@@ -391,7 +402,7 @@ function OverflowMenu({actions,align='right',dark}:{actions:OverflowAction[];ali
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
         <div ref={menuRef} onClick={e=>e.stopPropagation()}
-          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
+          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
           {actions.map((a,i)=>(
             <button key={i} onClick={()=>{a.onClick();setOpen(false)}}
               style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize:12.5,fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}

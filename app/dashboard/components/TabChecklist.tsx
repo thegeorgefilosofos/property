@@ -61,7 +61,7 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: minWidth })
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxH: number }>({ top: 0, left: 0, width: minWidth, maxH: 320 })
   const current = options.find(o => o.value === value) || options[0]
   const active = value !== 'all'
   const reposition = () => {
@@ -69,7 +69,10 @@ function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: str
     const r = btnRef.current.getBoundingClientRect()
     const menuH = Math.min(options.length * 40 + 12, 320)
     const openUp = r.bottom + menuH + 8 > window.innerHeight && r.top - menuH - 8 > 0
-    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width })
+    // maxH = ο ίδιος διαθέσιμος χώρος που δεσμεύτηκε για το flip, ώστε το πραγματικό ύψος
+    // να μη ξεπερνά τον χώρο και το πλεόνασμα να κάνει εσωτερικό scroll (αντί να κόβεται).
+    const avail = openUp ? r.top - 8 : window.innerHeight - r.bottom - 8
+    setPos({ top: openUp ? r.top - menuH - 6 : r.bottom + 6, left: r.left, width: r.width, maxH: Math.max(120, Math.min(menuH, avail - 6)) })
   }
   useEffect(() => {
     if (!open) return
