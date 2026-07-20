@@ -1705,10 +1705,13 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
                   const overdue=all.filter(e=>prothesmia(e)==='Εκπρόθεσμο'), upcoming=all.filter(e=>prothesmia(e)==='Εντός προθεσμίας')
                   // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
                   // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
-                  const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,columns:cols,rows:cur.map(toRow)}]
-                  if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',columns:cols,rows:all.map(toRow)})
-                  if(overdue.length) sheets.push({name:'Εκπρόθεσμα',columns:cols,rows:overdue.map(toRow)})
-                  if(upcoming.length) sheets.push({name:'Επερχόμενα',columns:cols,rows:upcoming.map(toRow)})
+                  const issued=athensNow().toLocaleDateString('el-GR')
+                  const subFor=(scope:string)=>`Property OS · ${scope} · Ημ. έκδοσης ${issued}`
+                  const TOT=[6] // στήλη «Ποσό» → γραμμή ΣΥΝΟΛΟ
+                  const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,title:`ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ ${curYear}`,subtitle:subFor(`Έτος ${curYear}`),columns:cols,rows:cur.map(toRow),totalCols:TOT}]
+                  if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',title:'ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ · ΟΛΑ ΤΑ ΕΤΗ',subtitle:subFor('Όλα τα έτη'),columns:cols,rows:all.map(toRow),totalCols:TOT})
+                  if(overdue.length) sheets.push({name:'Εκπρόθεσμα',title:'ΕΚΠΡΟΘΕΣΜΕΣ ΥΠΟΧΡΕΩΣΕΙΣ',subtitle:subFor('Εκπρόθεσμες υποχρεώσεις'),columns:cols,rows:overdue.map(toRow),totalCols:TOT})
+                  if(upcoming.length) sheets.push({name:'Επερχόμενα',title:'ΕΠΕΡΧΟΜΕΝΕΣ ΥΠΟΧΡΕΩΣΕΙΣ',subtitle:subFor('Επερχόμενες υποχρεώσεις'),columns:cols,rows:upcoming.map(toRow),totalCols:TOT})
                   downloadXlsx(`atzenta_${curYear}`,sheets)
                   setShowMenu(false)
                 }},
