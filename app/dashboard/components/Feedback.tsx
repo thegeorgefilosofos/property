@@ -84,6 +84,11 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
   // ── Ολοκληρωμένο (ευχαριστία) ──────────────────────────────────────────────
   if (done || alreadyThisMonth) {
     const pooled = done?.in_pool;
+    // Ημέρες μέχρι να ξαναγράψει (κανόνας: μία φορά ανά ημερολογιακό μήνα → 1η επόμενου μήνα).
+    const now = new Date();
+    const firstNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const daysLeft = Math.max(1, Math.ceil((firstNext.getTime() - now.getTime()) / 86400000));
+    const dayPhrase = daysLeft === 1 ? 'σε 1 ημέρα' : `σε ${daysLeft} ημέρες`;
     return (
       <div style={shell}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -100,8 +105,8 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
-                ? 'Το μήνυμά σου καταγράφηκε και το διαβάζει άνθρωπος από την ομάδα. Μπορείς να ξαναγράψεις τον επόμενο μήνα.'
-                : 'Έχεις ήδη μοιραστεί τη γνώμη σου αυτόν τον μήνα. Θα μπορείς ξανά τον επόμενο.'}
+                ? `Το μήνυμά σου καταγράφηκε και το διαβάζει άνθρωπος από την ομάδα. Βοήθησέ μας ξανά ${dayPhrase} με άλλη μία ιδέα.`
+                : `Ευχαριστούμε για το μήνυμά σου αυτόν τον μήνα, το επεξεργαζόμαστε ήδη για να γίνουμε καλύτεροι. Βοήθησέ μας ξανά ${dayPhrase} με άλλη μία εποικοδομητική ιδέα.`}
             </div>
             {pooled && (
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
