@@ -908,7 +908,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Χρωματική ταυτότητα avatar ανά φύλο (διακριτικά).
   const avatarBg = identity.gender === 'female' ? 'linear-gradient(135deg,#ec4899,#f9a8d4)'
     : identity.gender === 'male' ? 'linear-gradient(135deg,var(--accent),#8ab4f8)'
-    : 'linear-gradient(135deg,#8b5cf6,#22d3ee)';
+    : 'linear-gradient(135deg,var(--accent),#8ab4f8)';   // ουδέτερο: το μπλε της landing
 
   // ── Μετακίνηση του βοηθού (σύρσιμο) ώστε να μην εμποδίζει το περιεχόμενο ──
   const FAB = 60;
