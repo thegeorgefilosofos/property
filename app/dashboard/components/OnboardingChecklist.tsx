@@ -64,7 +64,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {steps.map(s => (
-          <button key={s.key} onClick={() => !s.done && onNavigate(s.nav)}
+          <button key={s.key} onClick={() => !s.done && onNavigate(s.nav)} className="po-onbstep" data-done={s.done ? 'true' : 'false'}
             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', cursor: s.done ? 'default' : 'pointer', textAlign: 'left', width: '100%' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: s.done ? 'var(--positive)' : 'var(--bg-elevated)', border: s.done ? 'none' : '1.5px solid var(--border-default)' }}>
@@ -76,7 +76,7 @@ export default function OnboardingChecklist({ propertyId, steps, onNavigate }: {
               <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textDecoration: s.done ? 'line-through' : 'none', opacity: s.done ? 0.6 : 1 }}>{s.label}</div>
               {!s.done && <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{s.hint}</div>}
             </div>
-            {!s.done && <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>}
+            {!s.done && <svg className="po-onbstep-chev" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m9 18 6-6-6-6"/></svg>}
           </button>
         ))}
       </div>
