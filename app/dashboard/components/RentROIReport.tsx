@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { reportAccent, brandRootVars, brandLogoImg, brandName, brandContactLine, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+import { useReportBranding } from '@/lib/reportBranding';
+import {
+  reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport,
+  rEsc, rEur, rSigned, rPct,
+} from './reportPdf';
 
 interface ReportProps {
   propertyName: string;
@@ -17,11 +21,6 @@ interface ReportProps {
   userId?: string;
 }
 
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-const fp = (n: number, d = 2) => `${n.toFixed(d)}%`;
-const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
-const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
-
 export default function RentROIReport({
   propertyName, propertyAddress, propertyType,
   calc, scen, bench, ownerAge, constructionType, floor, electronic, userId,
@@ -29,409 +28,101 @@ export default function RentROIReport({
   const [printing, setPrinting] = useState(false);
   const branding = useReportBranding(userId);
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     setPrinting(true);
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      alert('Επίτρεψε τα popups: πάτα το εικονίδιο στη γραμμή διευθύνσεων → Pop-ups → Allow');
-      setPrinting(false);
-      return;
-    }
 
-    const accent = reportAccent(branding);
+    const sub = [propertyAddress, propertyType].filter(Boolean).map(x => rEsc(String(x))).join(' · ');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Property OS, ${esc(propertyName)}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-        <style>
-          :root{--accent:#111;--accent-text:#fff}
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Inter', sans-serif;
-            background: #fff;
-            color: #111;
-            font-size: 11px;
-            line-height: 1.5;
-          }
-          .page { padding: 32px; max-width: 794px; margin: 0 auto; }
+    // ── Συνολική αξιολόγηση ──────────────────────────────────────────────
+    const scoreBlock =
+      reportSection('Συνολική αξιολόγηση')
+      + `<div class="kpis">`
+      + reportKpi('Μεικτή απόδοση', rPct(calc.grossYield))
+      + reportKpi('Καθαρή απόδοση', rPct(calc.netYield))
+      + reportKpi('Κεφαλαιακή απόδοση', rPct(calc.capRate))
+      + reportKpi('Καθαρό / μήνα', rSigned(calc.afterTax / 12))
+      + `</div>`
+      + `<div class="note">Συνολική βαθμολογία <strong class="tnum">${rEsc(String(calc.totalScore))} / 100</strong> · ${rEsc(calc.scoreLabel)}</div>`;
 
-          /* Header */
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #111;
-          }
-          .logo {
-            font-family: 'Inter', sans-serif;
-            font-size: 20px;
-            font-weight: 700;
-            color: #111;
-            letter-spacing: -0.3px;
-          }
-          .logo span { color: #111; }
-          .meta { text-align: right; font-size: 10px; color: #666; font-family: 'Inter', sans-serif; }
-          .meta-title { font-family: 'Inter', sans-serif; font-weight: 700; color: #111; font-size: 13px; margin-bottom: 2px; }
+    // ── Κατάσταση αποτελεσμάτων χρήσης (P&L) ─────────────────────────────
+    const plRows =
+      reportRow('Ακαθάριστο ενοίκιο / έτος', rEur(calc.annual))
+      + (calc.reduction > 0 ? reportRow('Έκπτωση ηλεκτρονικής πληρωμής', rSigned(-calc.reduction)) : '')
+      + reportRow('Δαπάνες ακινήτου', rSigned(-calc.totalExp))
+      + reportRow('Καθαρό εισόδημα (προ φόρου)', rSigned(calc.netIncome), 'sub')
+      + reportRow('Φόρος εισοδήματος', rSigned(-calc.tax))
+      + reportRow('Καθαρό εισόδημα (μετά φόρου)', rSigned(calc.afterTax), 'result');
+    const plBlock =
+      reportSection('Κατάσταση αποτελεσμάτων χρήσης (P&L)')
+      + `<table><tbody>${plRows}</tbody></table>`
+      + `<div class="kpis" style="margin-top:14px">`
+      + reportKpi('Απόσβεση', calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—')
+      + reportKpi('Πραγματική απόδοση', rPct(calc.trueYield))
+      + reportKpi('Πραγματικός φορ. συντελεστής', rPct(calc.effectiveRate))
+      + reportKpi('Breakeven / μήνα', rEur(calc.breakeven))
+      + `</div>`
+      + (electronic && calc.electronicSaving > 0
+        ? `<div class="note">Εξοικονόμηση ηλεκτρονικής πληρωμής <strong class="tnum">${rEsc(rEur(calc.electronicSaving))}</strong> / έτος</div>`
+        : '');
 
-          /* Section */
-          .section { margin-bottom: 20px; }
-          .section-title {
-            font-family: 'Inter', sans-serif;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #374151;
-            margin-bottom: 10px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #d1d5db;
-          }
+    // ── Σύγκριση με την αγορά ─────────────────────────────────────────────
+    const benchBlock = bench
+      ? reportSection(`Σύγκριση με την αγορά · ${bench.market_label}`)
+        + `<table><thead><tr><th>Δείκτης</th><th class="n">Δικό σου</th><th class="np">Αναφορά</th></tr></thead><tbody>`
+        + `<tr><td>Μεικτή απόδοση</td><td class="n">${rEsc(rPct(calc.grossYield))}</td><td class="np">Αγορά ${rEsc(bench.market_gross)}%</td></tr>`
+        + `<tr><td>Καθαρή απόδοση</td><td class="n">${rEsc(rPct(calc.netYield))}</td><td class="np">Στόχος &gt;${rEsc(bench.target_net)}%</td></tr>`
+        + `<tr><td>Απόδοση έναντι EURIBOR</td><td class="n">+${rEsc(rPct(Math.max(calc.netYield - parseFloat(bench.euribor), 0)))}</td><td class="np">EURIBOR ${rEsc(bench.euribor)}%</td></tr>`
+        + `<tr><td>Σύγκριση με ETF</td><td class="n">${rEsc(calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά ETF' : 'Κάτω ETF')}</td><td class="np">ETF ${rEsc(bench.etf_return)}%/έτος</td></tr>`
+        + `</tbody></table>`
+      : '';
 
-          /* KPI grids */
-          .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
-          .kpi-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
-          .kpi {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 10px 12px;
-          }
-          .kpi-value {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 15px;
-            font-weight: 700;
-            margin-bottom: 3px;
-          }
-          .kpi-label {
-            font-family: 'Inter', sans-serif;
-            font-size: 9px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #5f6368;
-          }
-          .kpi-sub { font-size: 9px; color: #9aa0a6; margin-top: 2px; font-family: 'Inter', sans-serif; }
+    // ── Ανάλυση δανείου ───────────────────────────────────────────────────
+    const loanBlock = calc.loanBal > 0
+      ? reportSection('Ανάλυση δανείου')
+        + `<div class="kpis">`
+        + reportKpi('DSCR · κάλυψη δανείου', `${calc.DSCR.toFixed(2)}x`)
+        + reportKpi('LTV · δάνειο / αξία', rPct(calc.LTV))
+        + reportKpi('Ίδια κεφάλαια', rEur(calc.equity))
+        + reportKpi('Ταμειακή ροή / μήνα', rSigned(calc.cfDebt / 12))
+        + `</div>`
+      : '';
 
-          /* Colors (monochrome) */
-          .positive { color: #111; }
-          .negative { color: #111; }
-          .warning { color: #111; }
-          .accent { color: #111; }
-          .gold { color: #111; }
-          .muted { color: #6b7280; }
+    // ── Σενάρια και προβλέψεις ────────────────────────────────────────────
+    const scenBlock = scen
+      ? reportSection('Σενάρια και προβλέψεις')
+        + `<table><tbody>`
+        + reportRow('Πώληση τώρα', '', 'sub')
+        + reportRow('Αξία πώλησης', rEur(calc.myVal))
+        + reportRow('Μετά έξοδα', rEur(scen.sellNow))
+        + reportRow('Κράτα και νοίκιαζε', '', 'sub')
+        + reportRow('Σύνολο ενοικίων', rEur(scen.rentTotal))
+        + reportRow('Αξία σε χρόνια', rEur(scen.futVal))
+        + reportRow('Συνολική απόδοση', rSigned(scen.total), 'result')
+        + `</tbody></table>`
+        + `<div class="kpis" style="margin-top:14px">`
+        + reportKpi('CAGR αξίας', rPct(scen.cagr))
+        + reportKpi('Μέση ετήσια απόδοση', rPct(scen.irr))
+        + reportKpi('Πιθανότητα κέρδους (Monte Carlo)', rPct(scen.mcPositive))
+        + reportKpi('Πιθανότερη απόδοση (P50)', rSigned(scen.mcP50))
+        + `</div>`
+      : '';
 
-          /* Stat rows */
-          .row {
-            display: flex;
-            justify-content: space-between;
-            padding: 7px 0;
-            border-bottom: 1px solid #f1f3f4;
-          }
-          .row-label { color: #5f6368; font-family: 'Inter', sans-serif; }
-          .row-value { font-family: 'Roboto Mono', monospace; font-weight: 500; }
-          .row-value.bold { font-weight: 700; font-size: 13px; }
+    const html =
+      reportHead(`Ανάλυση απόδοσης · ${propertyName}`)
+      + `<body><div class="page">`
+      + reportHeader(branding, 'Ανάλυση απόδοσης ακινήτου')
+      + `<h1>${rEsc(propertyName)}</h1>`
+      + (sub ? `<div class="sub">${sub}</div>` : '')
+      + scoreBlock
+      + plBlock
+      + benchBlock
+      + loanBlock
+      + scenBlock
+      + reportDisclaimer('Το παρόν έγγραφο αποτελεί εκτίμηση και όχι επίσημη φορολογική ή επενδυτική συμβουλή. Συμβουλευτείτε λογιστή ή χρηματοοικονομικό σύμβουλο.', branding)
+      + `</div></body></html>`;
 
-          /* Two-col */
-          .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-          /* Info banners */
-          .info-box {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 10px;
-            color: #374151;
-            margin-top: 8px;
-            line-height: 1.5;
-            font-family: 'Inter', sans-serif;
-          }
-          .warning-box {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 10px;
-            color: #374151;
-            margin-top: 8px;
-            line-height: 1.5;
-            font-family: 'Inter', sans-serif;
-          }
-          .success-box {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 10px;
-            color: #374151;
-            margin-top: 8px;
-            line-height: 1.5;
-            font-family: 'Inter', sans-serif;
-          }
-
-          /* Score */
-          .score-big {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 48px;
-            font-weight: 700;
-            text-align: center;
-            padding: 12px;
-            line-height: 1;
-          }
-
-          /* Scenario boxes */
-          .scenario-box { border-radius: 8px; padding: 12px; }
-          .sell-box {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-          }
-          .hold-box {
-            background: #f8f9fa;
-            border: 1px solid #d1d5db;
-          }
-          .box-title {
-            font-family: 'Inter', sans-serif;
-            font-size: 11px;
-            font-weight: 500;
-            margin-bottom: 8px;
-          }
-
-          /* Progress bar */
-          .bar-track {
-            height: 5px;
-            background: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-          }
-          .bar-fill {
-            height: 100%;
-            border-radius: 3px;
-          }
-
-          /* Score card */
-          .score-card {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 16px;
-          }
-          .score-block {
-            text-align: center;
-            padding: 12px 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid #d1d5db;
-          }
-
-          /* Footer */
-          .footer {
-            margin-top: 32px;
-            padding-top: 12px;
-            border-top: 1px solid #e8eaed;
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #9aa0a6;
-            font-family: 'Inter', sans-serif;
-          }
-          .disclaimer {
-            text-align: center;
-            font-size: 9px;
-            color: #9aa0a6;
-            margin-top: 8px;
-            font-family: 'Inter', sans-serif;
-          }
-
-          @media print {
-            .page { padding: 20px; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-
-          <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-          <!-- Header -->
-          <div class="header">
-            <div>
-              ${branding ? `${brandLogoImg(branding, 26)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
-              <div style="font-size:10px;color:#5f6368;margin-top:2px;font-family:'Inter',sans-serif;">Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
-            </div>
-            <div class="meta">
-              <div class="meta-title">${esc(propertyName)}</div>
-              ${propertyAddress ? `<div>${esc(propertyAddress)}</div>` : ''}
-              <div>${esc(propertyType)}</div>
-              <div style="margin-top:4px;">${esc(today)}</div>
-            </div>
-          </div>
-
-          <!-- Αξιολόγηση -->
-          <div class="section">
-            <div class="section-title">Συνολική Αξιολόγηση</div>
-            <div class="score-card">
-              <div class="score-block">
-                <div class="score-big ${calc.totalScore >= 70 ? 'positive' : calc.totalScore >= 50 ? 'warning' : 'negative'}">${esc(calc.totalScore)}</div>
-                <div style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:#111">${esc(calc.scoreLabel)}</div>
-                <div style="font-size:9px;color:#9aa0a6;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px">βαθμολογία / 100</div>
-              </div>
-              <div class="kpi-grid" style="margin-bottom:0;">
-                <div class="kpi">
-                  <div class="kpi-value ${calc.grossYield >= 5 ? 'positive' : calc.grossYield >= 3 ? 'warning' : 'negative'}">${esc(fp(calc.grossYield))}</div>
-                  <div class="kpi-label">Μεικτή Απόδοση</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-value ${calc.netYield >= 3 ? 'positive' : calc.netYield >= 1.5 ? 'warning' : 'negative'}">${esc(fp(calc.netYield))}</div>
-                  <div class="kpi-label">Καθαρή Απόδοση</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-value accent">${esc(fp(calc.capRate))}</div>
-                  <div class="kpi-label">Κεφαλαιακή Απόδοση</div>
-                </div>
-                <div class="kpi">
-                  <div class="kpi-value ${calc.afterTax > 0 ? 'positive' : 'negative'}">${esc(fe(calc.afterTax / 12))}</div>
-                  <div class="kpi-label">Καθαρό / Μήνα</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- P&L -->
-          <div class="section">
-            <div class="section-title">Κατάσταση Αποτελεσμάτων Χρήσης (P&L)</div>
-            <div class="two-col">
-              <div>
-                <div class="row"><span class="row-label">Ακαθάριστο Ενοίκιο / έτος</span><span class="row-value positive">${esc(fe(calc.annual))}</span></div>
-                ${calc.reduction > 0 ? `<div class="row"><span class="row-label">Έκπτωση Ηλεκτρονικής Πληρωμής</span><span class="row-value accent">−${esc(fe(calc.reduction))}</span></div>` : ''}
-                <div class="row"><span class="row-label">Δαπάνες Ακινήτου</span><span class="row-value warning">−${esc(fe(calc.totalExp))}</span></div>
-                <div class="row"><span class="row-label">Καθαρό Εισόδημα (προ φόρου)</span><span class="row-value accent bold">${esc(fe(calc.netIncome))}</span></div>
-                <div class="row"><span class="row-label">Φόρος Εισοδήματος</span><span class="row-value negative">−${esc(fe(calc.tax))}</span></div>
-                <div class="row"><span class="row-label">Καθαρό Εισόδημα (μετά φόρου)</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax))}</span></div>
-                <div class="row"><span class="row-label">Καθαρό / Μήνα</span><span class="row-value ${calc.afterTax >= 0 ? 'positive' : 'negative'} bold">${esc(fe(calc.afterTax / 12))}</span></div>
-              </div>
-              <div>
-                <div class="kpi-grid-3" style="margin-bottom:10px;">
-                  <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.grossYield))}</div><div class="kpi-label">Μεικτή Απόδοση</div></div>
-                  <div class="kpi"><div class="kpi-value positive">${esc(fp(calc.netYield))}</div><div class="kpi-label">Καθαρή Απόδοση</div></div>
-                  <div class="kpi"><div class="kpi-value gold">${esc(calc.payback > 0 ? calc.payback.toFixed(1) + ' χρ' : '—')}</div><div class="kpi-label">Απόσβεση</div></div>
-                </div>
-                <div class="kpi"><div class="kpi-value accent">${esc(fp(calc.trueYield))}</div><div class="kpi-label">Πραγματική Απόδοση (με κόστη απόκτησης)</div></div>
-                <div class="info-box">Πραγματικός Φ.Σ.: ${esc(fp(calc.effectiveRate))} &nbsp;|&nbsp; Breakeven: ${esc(fe(calc.breakeven))}/μήνα</div>
-                ${electronic && calc.electronicSaving > 0 ? `<div class="success-box">Εξοικονόμηση ηλεκτρονικής πληρωμής: <strong>${esc(fe(calc.electronicSaving))}</strong>/έτος</div>` : ''}
-              </div>
-            </div>
-          </div>
-
-          <!-- Benchmarks -->
-          ${bench ? `
-          <div class="section">
-            <div class="section-title">Σύγκριση με Αγορά, ${esc(bench.market_label)}</div>
-            <div class="kpi-grid">
-              <div class="kpi">
-                <div class="kpi-value ${calc.grossYield >= parseFloat(bench.market_gross) ? 'positive' : 'warning'}">${esc(fp(calc.grossYield))}</div>
-                <div class="kpi-label">Μεικτή Απόδοσή σου</div>
-                <div class="kpi-sub">Benchmark: ${esc(bench.market_gross)}%</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value ${calc.netYield >= parseFloat(bench.target_net) ? 'positive' : 'warning'}">${esc(fp(calc.netYield))}</div>
-                <div class="kpi-label">Καθαρή Απόδοσή σου</div>
-                <div class="kpi-sub">Στόχος: >${esc(bench.target_net)}%</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value ${calc.netYield > parseFloat(bench.euribor) ? 'positive' : 'negative'}">+${esc(fp(Math.max(calc.netYield - parseFloat(bench.euribor), 0)))}</div>
-                <div class="kpi-label">vs EURIBOR</div>
-                <div class="kpi-sub">EURIBOR ${esc(bench.euribor)}%</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value ${calc.netYield >= parseFloat(bench.etf_return) ? 'positive' : 'negative'}">${calc.netYield >= parseFloat(bench.etf_return) ? 'Νικά ETF' : 'Κάτω ETF'}</div>
-                <div class="kpi-label">vs ETF</div>
-                <div class="kpi-sub">Benchmark ${esc(bench.etf_return)}%/έτος</div>
-              </div>
-            </div>
-          </div>` : ''}
-
-          <!-- Δάνειο -->
-          ${calc.loanBal > 0 ? `
-          <div class="section">
-            <div class="section-title">Ανάλυση Δανείου</div>
-            <div class="kpi-grid">
-              <div class="kpi">
-                <div class="kpi-value ${calc.DSCR >= 1.25 ? 'positive' : calc.DSCR >= 1 ? 'warning' : 'negative'}">${esc(calc.DSCR.toFixed(2))}x</div>
-                <div class="kpi-label">DSCR, Κάλυψη Δανείου</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value ${calc.LTV <= 60 ? 'positive' : calc.LTV <= 80 ? 'warning' : 'negative'}">${esc(fp(calc.LTV))}</div>
-                <div class="kpi-label">LTV, Δάνειο / Αξία</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value positive">${esc(fe(calc.equity))}</div>
-                <div class="kpi-label">Ίδια Κεφάλαια (Equity)</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-value ${calc.cfDebt > 0 ? 'positive' : 'negative'}">${esc(fe(calc.cfDebt / 12))}/μήνα</div>
-                <div class="kpi-label">Ταμειακή Ροή μετά Δάνειο</div>
-              </div>
-            </div>
-          </div>` : ''}
-
-          <!-- Σενάρια -->
-          ${scen ? `
-          <div class="section">
-            <div class="section-title">Σενάρια και Προβλέψεις</div>
-            <div class="two-col" style="margin-bottom:12px;">
-              <div class="scenario-box sell-box">
-                <div class="box-title negative">Πώληση Τώρα</div>
-                <div class="row"><span class="row-label">Αξία Πώλησης</span><span class="row-value">${esc(fe(calc.myVal))}</span></div>
-                <div class="row"><span class="row-label">Μετά έξοδα</span><span class="row-value warning bold">${esc(fe(scen.sellNow))}</span></div>
-              </div>
-              <div class="scenario-box hold-box">
-                <div class="box-title positive">Κράτα και Νοίκιαζε</div>
-                <div class="row"><span class="row-label">Σύνολο Ενοικίων</span><span class="row-value positive">${esc(fe(scen.rentTotal))}</span></div>
-                <div class="row"><span class="row-label">Αξία σε χρόνια</span><span class="row-value positive">${esc(fe(scen.futVal))}</span></div>
-                <div class="row"><span class="row-label">Συνολική Απόδοση</span><span class="row-value positive bold">${esc(fe(scen.total))}</span></div>
-              </div>
-            </div>
-            <div class="kpi-grid">
-              <div class="kpi"><div class="kpi-value accent">${esc(fp(scen.cagr))}</div><div class="kpi-label">CAGR Αξίας</div></div>
-              <div class="kpi"><div class="kpi-value gold">${esc(fp(scen.irr))}</div><div class="kpi-label">Μέση ετήσια απόδοση</div></div>
-              <div class="kpi">
-                <div class="kpi-value ${scen.mcPositive >= 70 ? 'positive' : scen.mcPositive >= 50 ? 'warning' : 'negative'}">${esc(scen.mcPositive.toFixed(0))}%</div>
-                <div class="kpi-label">Πιθανότητα Κέρδους (Monte Carlo)</div>
-              </div>
-              <div class="kpi"><div class="kpi-value positive">${esc(fe(scen.mcP50))}</div><div class="kpi-label">Πιθανότερη Απόδοση (P50)</div></div>
-            </div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width:${esc(scen.mcPositive)}%;background:#111;"></div>
-            </div>
-          </div>` : ''}
-
-          <!-- Footer -->
-          <div class="footer">
-            <div>${branding?.companyName ? brandName(branding) : 'Property OS'}, Επαγγελματικό Εργαλείο Ανάλυσης Ακινήτων</div>
-            <div>${esc(today)}</div>
-          </div>
-          <div class="disclaimer">
-            Το παρόν έγγραφο αποτελεί εκτίμηση και όχι επίσημη φορολογική ή επενδυτική συμβουλή. Συμβουλευτείτε λογιστή ή χρηματοοικονομικό σύμβουλο.
-          </div>
-
-        </div>
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.print();
-      setPrinting(false);
-    }, 1000);
+    openReport(html);
+    setTimeout(() => setPrinting(false), 600);
   };
 
   return (

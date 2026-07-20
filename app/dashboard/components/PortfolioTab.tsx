@@ -14,6 +14,7 @@ import { resolveRent } from '@/lib/billing/propertyFacts';
 import { stayTotal } from '@/lib/clients/clients';
 import { portfolioReturns } from '@/lib/market/portfolio';
 import { downloadCsv } from './exportCsv';
+import { reportHead, reportHeader, reportSection, reportDisclaimer, openReport, rEsc, rEur, rSigned } from './reportPdf';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
@@ -206,17 +207,21 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const printStatement = () => {
     if (!stmt) return;
-    const w = window.open('', '_blank'); if (!w) return;
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const body = stmt.rows.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${eur(r.revenue)}</td><td class="n">${eur(r.expenses)}</td><td class="n">${eur(r.net)}</td></tr>`).join('');
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Κατάσταση ιδιοκτήτη: ${esc(stmt.name)}</title>
-      <style>*{font-family:Inter,system-ui,Arial,sans-serif}body{margin:40px;color:#111}h1{font-size:20px;margin:0 0 4px}.sub{color:#666;font-size:12px;margin-bottom:24px}
-      table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e5e5}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-      tr.total td{font-weight:700;border-top:2px solid #111;border-bottom:none}</style></head>
-      <body><h1>Κατάσταση ιδιοκτήτη: ${esc(stmt.name)}</h1><div class="sub">Έσοδα &amp; δαπάνες ${year} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>
-      <table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead>
-      <tbody>${body}<tr class="total"><td>Σύνολο</td><td class="n">${eur(stmt.revenue)}</td><td class="n">${eur(stmt.expenses)}</td><td class="n">${eur(stmt.net)}</td></tr></tbody></table></body></html>`);
-    w.document.close(); w.focus(); w.print();
+    const bodyRows = stmt.rows.map(r =>
+      `<tr><td>${rEsc(r.name)}</td><td class="n">${rEsc(rEur(r.revenue))}</td><td class="n">${rEsc(rEur(r.expenses))}</td><td class="n">${rEsc(rSigned(r.net))}</td></tr>`
+    ).join('');
+    const totalRow = `<tr class="result"><td>Σύνολο</td><td class="n">${rEsc(rEur(stmt.revenue))}</td><td class="n">${rEsc(rEur(stmt.expenses))}</td><td class="n">${rEsc(rSigned(stmt.net))}</td></tr>`;
+    const html =
+      reportHead(`Κατάσταση ιδιοκτήτη · ${stmt.name}`)
+      + `<body><div class="page">`
+      + reportHeader(null, 'Κατάσταση ιδιοκτήτη', { rightNote: `Περίοδος αναφοράς: ${year}` })
+      + `<h1>${rEsc(stmt.name)}</h1>`
+      + `<div class="sub">Έσοδα &amp; δαπάνες ${rEsc(String(year))} · ${stmt.rows.length} ${stmt.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}</div>`
+      + reportSection('Ανάλυση ανά ακίνητο')
+      + `<table><thead><tr><th>Ακίνητο</th><th class="n">Έσοδα</th><th class="n">Δαπάνες</th><th class="n">Καθαρό</th></tr></thead><tbody>${bodyRows}${totalRow}</tbody></table>`
+      + reportDisclaimer('Η παρούσα κατάσταση δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Επιβεβαίωσε τα ποσά με τον λογιστή σου.')
+      + `</div></body></html>`;
+    openReport(html);
   };
 
   const fieldStyle: CSSProperties = { width: '100%', padding: '10px 16px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none' };
