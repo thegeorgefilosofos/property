@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Bell, Send } from 'lucide-react'
-import { T, Btn } from '@/components/Theme'
+import { T, Btn, settingsField } from '@/components/Theme'
+import { Toggle } from './UIComponents'
 
 interface NotifPrefs {
   email_enabled: boolean
@@ -36,7 +37,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(false)
-  const [testMsg, setTestMsg] = useState('')
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => { load() }, [userId])
 
@@ -62,23 +63,21 @@ export default function NotificationSettings({ userId }: { userId: string }) {
   }
 
   function testEmail() {
-    if (!prefs.reminder_email) { setTestMsg('Βάλε πρώτα το email σου.'); return }
-    // Έντιμο: δεν στέλνουμε δοκιμαστικό email εδώ — απλώς επιβεβαιώνουμε τη μορφή.
+    if (!prefs.reminder_email) { setTestMsg({ ok: false, text: 'Βάλε πρώτα το email σου.' }); return }
+    // Έντιμο: δεν στέλνουμε δοκιμαστικό email εδώ, επιβεβαιώνουμε μόνο τη μορφή.
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefs.reminder_email)
-    setTestMsg(valid ? 'Η μορφή του email είναι σωστή. Αποθήκευσε για να λαμβάνεις ειδοποιήσεις.' : 'Η μορφή του email δεν είναι σωστή.')
+    setTestMsg(valid
+      ? { ok: true, text: 'Η μορφή του email είναι σωστή. Αποθήκευσε για να λαμβάνεις ειδοποιήσεις.' }
+      : { ok: false, text: 'Η μορφή του email δεν είναι σωστή.' })
   }
 
-  const inp: React.CSSProperties = {
-    width: '100%', height: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-    borderRadius: T.radius.inner, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14,
-    fontFamily: T.font.sans, letterSpacing: 0, outline: 'none', boxSizing: 'border-box',
-  }
   const lbl: React.CSSProperties = {
     fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, color: 'var(--text-secondary)',
-    letterSpacing: '0.5px', display: 'block', marginBottom: 6,
+    display: 'block', marginBottom: 6,
   }
 
-  function Toggle({ val, onChange, label, desc }: {
+  // Γραμμή διακόπτη με τίτλο/περιγραφή, με το κοινό MD3 Toggle (ίδιο με όλες τις Ρυθμίσεις).
+  function NotifRow({ val, onChange, label, desc }: {
     val: boolean; onChange: (v: boolean) => void; label: string; desc: string
   }) {
     return (
@@ -87,12 +86,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{label}</p>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{desc}</p>
         </div>
-        <button role="switch" aria-checked={val} aria-label={label} onClick={() => onChange(!val)} style={{
-          width: 40, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', padding: 0,
-          background: val ? 'var(--accent)' : 'var(--border-strong)', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-        }}>
-          <span style={{ position: 'absolute', top: 2, left: val ? 18 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s cubic-bezier(0.2,0,0,1)' }}/>
-        </button>
+        <Toggle on={val} onChange={onChange} size="sm" />
       </div>
     )
   }
@@ -115,21 +109,14 @@ export default function NotificationSettings({ userId }: { userId: string }) {
         <div style={{ marginBottom: 14 }}>
           <label htmlFor="notif-email" style={lbl}>Email αποστολής</label>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input id="notif-email" style={{ ...inp, flex: 1 }} type="email" placeholder="ονομα@email.com"
+            <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1 }} type="email" placeholder="ονομα@email.com"
               value={prefs.reminder_email} onChange={e => setPrefs(p => ({ ...p, reminder_email: e.target.value }))}/>
-            <button onClick={testEmail} style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '10px 14px',
-              background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.btn,
-              cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
-              fontFamily: T.font.sans, whiteSpace: 'nowrap', flexShrink: 0,
-            }}>
-              <Send size={11}/>Δοκιμή
-            </button>
+            <Btn variant="secondary" onClick={testEmail}><Send size={11}/>Δοκιμή</Btn>
           </div>
-          {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: /είναι σωστή/.test(testMsg) ? 'var(--positive)' : 'var(--negative)' }}>{testMsg}</p>}
+          {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: testMsg.ok ? 'var(--positive)' : 'var(--negative)' }}>{testMsg.text}</p>}
         </div>
 
-        <Toggle val={prefs.email_enabled} onChange={v => setPrefs(p => ({ ...p, email_enabled: v }))}
+        <NotifRow val={prefs.email_enabled} onChange={v => setPrefs(p => ({ ...p, email_enabled: v }))}
           label="Ενεργοποίηση ειδοποιήσεων" desc="Λήψη email για τα γεγονότα του ημερολογίου"/>
 
         {prefs.email_enabled && (
@@ -137,11 +124,11 @@ export default function NotificationSettings({ userId }: { userId: string }) {
             <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 14, marginBottom: 4 }}>
               Πότε να λαμβάνεις υπενθύμιση
             </p>
-            <Toggle val={prefs.reminder_7days} onChange={v => setPrefs(p => ({ ...p, reminder_7days: v }))} label="7 ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση"/>
-            <Toggle val={prefs.reminder_3days} onChange={v => setPrefs(p => ({ ...p, reminder_3days: v }))} label="3 ημέρες πριν" desc="Τριήμερη προειδοποίηση"/>
-            <Toggle val={prefs.reminder_1day} onChange={v => setPrefs(p => ({ ...p, reminder_1day: v }))} label="Την προηγούμενη ημέρα" desc="Υπενθύμιση αύριο το πρωί"/>
-            <Toggle val={prefs.reminder_today} onChange={v => setPrefs(p => ({ ...p, reminder_today: v }))} label="Ημέρα εκτέλεσης" desc="Υπενθύμιση την ίδια ημέρα στις 08:00"/>
-            <Toggle val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις"/>
+            <NotifRow val={prefs.reminder_7days} onChange={v => setPrefs(p => ({ ...p, reminder_7days: v }))} label="7 ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση"/>
+            <NotifRow val={prefs.reminder_3days} onChange={v => setPrefs(p => ({ ...p, reminder_3days: v }))} label="3 ημέρες πριν" desc="Τριήμερη προειδοποίηση"/>
+            <NotifRow val={prefs.reminder_1day} onChange={v => setPrefs(p => ({ ...p, reminder_1day: v }))} label="Την προηγούμενη ημέρα" desc="Υπενθύμιση αύριο το πρωί"/>
+            <NotifRow val={prefs.reminder_today} onChange={v => setPrefs(p => ({ ...p, reminder_today: v }))} label="Ημέρα εκτέλεσης" desc="Υπενθύμιση την ίδια ημέρα στις 08:00"/>
+            <NotifRow val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις"/>
           </div>
         )}
 
@@ -150,19 +137,19 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
             Ληξιπρόθεσμο ενοίκιο
           </p>
-          <Toggle val={prefs.dunning_enabled} onChange={v => setPrefs(p => ({ ...p, dunning_enabled: v }))}
+          <NotifRow val={prefs.dunning_enabled} onChange={v => setPrefs(p => ({ ...p, dunning_enabled: v }))}
             label="Αυτόματες ειδοποιήσεις για ληξιπρόθεσμο ενοίκιο" desc="Διακριτική ενημέρωση με email όταν μια δόση καθυστερεί."/>
           {prefs.dunning_enabled && (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
               <div style={{ flex: 1, minWidth: 150 }}>
                 <label htmlFor="dunning-every" style={lbl}>Ανά πόσες ημέρες</label>
-                <input id="dunning-every" type="number" min={1} max={30} style={inp} value={prefs.dunning_every_days}
+                <input id="dunning-every" className="po-field" type="number" min={1} max={30} style={settingsField} value={prefs.dunning_every_days}
                   onChange={e => setPrefs(p => ({ ...p, dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) }))}/>
                 <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ελάχιστο διάστημα μεταξύ ειδοποιήσεων για την ίδια δόση.</p>
               </div>
               <div style={{ flex: 1, minWidth: 150 }}>
                 <label htmlFor="dunning-max" style={lbl}>Μέγιστες ειδοποιήσεις</label>
-                <input id="dunning-max" type="number" min={1} max={12} style={inp} value={prefs.dunning_max}
+                <input id="dunning-max" className="po-field" type="number" min={1} max={12} style={settingsField} value={prefs.dunning_max}
                   onChange={e => setPrefs(p => ({ ...p, dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) }))}/>
                 <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ανώτατος αριθμός ειδοποιήσεων ανά δόση.</p>
               </div>

@@ -11,7 +11,7 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T, Btn, settingsField } from '@/components/Theme';
 import { logActivity } from '@/lib/activity';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
@@ -19,19 +19,14 @@ const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(-
 const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const desc: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 4 };
 const fieldLabel: CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6, display: 'block' };
-const field: CSSProperties = {
-  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
-  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
-};
+const field: CSSProperties = settingsField;
 const rowVal: CSSProperties = { fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, textAlign: 'right', overflowWrap: 'anywhere' };
 
 // ── Ελάχιστοι τοπικοί τύποι για τα αποτελέσματα του Supabase MFA ──────────
 interface MfaFactor { id: string; friendly_name?: string; factor_type: string; status: 'verified' | 'unverified' }
 type MfaState = 'loading' | 'off' | 'enrolling' | 'on';
 
-export default function SecuritySettings({ userId }: { userId: string }) {
-  void userId;
+export default function SecuritySettings() {
   const supabase = createClient();
 
   // Κωδικός πρόσβασης
@@ -236,14 +231,14 @@ export default function SecuritySettings({ userId }: { userId: string }) {
           <div>
             <label htmlFor="sec-new-pass" style={fieldLabel}>Νέος κωδικός</label>
             <input
-              id="sec-new-pass" type="password" autoComplete="new-password"
+              id="sec-new-pass" type="password" autoComplete="new-password" className="po-field"
               value={newPass} onChange={e => setNewPass(e.target.value)} style={field}
             />
           </div>
           <div>
             <label htmlFor="sec-confirm-pass" style={fieldLabel}>Επιβεβαίωση</label>
             <input
-              id="sec-confirm-pass" type="password" autoComplete="new-password"
+              id="sec-confirm-pass" type="password" autoComplete="new-password" className="po-field"
               value={confirm} onChange={e => setConfirm(e.target.value)} style={field}
             />
           </div>
@@ -342,7 +337,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
                 2. Καταχώρησε τον 6ψήφιο κωδικό από την εφαρμογή
               </label>
               <input
-                id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code"
+                id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code" className="po-field"
                 placeholder="123456"
                 value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 style={{ ...field, maxWidth: 200, fontFamily: T.font.mono, letterSpacing: '0.3em' }}

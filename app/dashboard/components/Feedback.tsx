@@ -105,7 +105,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
-                ? `Το μήνυμά σου το διαβάζει άνθρωπος από την ομάδα, όχι κάποια μηχανή. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
+                ? `Το κρατήσαμε και το κοιτάζει η ομάδα. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
                 : `Έχουμε ήδη το μήνυμά σου αυτόν τον μήνα και το επεξεργαζόμαστε. Πες μας ξανά τη γνώμη σου ${dayPhrase}.`}
             </div>
             {pooled && (

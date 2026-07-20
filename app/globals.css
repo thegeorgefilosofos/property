@@ -1894,6 +1894,11 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
    κλικ· διακριτικό δαχτυλίδι μόνο για πλοήγηση με πληκτρολόγιο (focus-visible). */
 .po-sec-toggle { outline: none; }
 .po-sec-toggle:focus-visible { box-shadow: 0 0 0 2px var(--accent-dim); border-radius: 6px; }
+
+/* Χειροποίητα πεδία Ρυθμίσεων: ορατό, ομοιόμορφο focus ring (ίδιο με τα shared
+   primitives), χωρίς μετατόπιση layout. */
+.po-field { transition: border-color 0.15s, box-shadow 0.15s; }
+.po-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 @media (prefers-reduced-motion: reduce) {
   .acc-section { animation: none; }
   .acc-live-dot::after { animation: none; }

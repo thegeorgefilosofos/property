@@ -8,7 +8,9 @@ import { T } from '@/components/Theme';
 // Ύψος 40, γωνία 4, 1px border + accent focus-ring
 // (χωρίς μετατόπιση layout — δεν αλλάζει πάχος border/padding στο focus).
 export const FIELD_HEIGHT = 40;
-export const FIELD_RADIUS = 4;
+// Ακτίνα πεδίων: ίδια με τα κουμπιά και το inner token (T.radius.inner = 10),
+// ώστε πεδία και κουμπιά να έχουν την ίδια γεωμετρία παντού.
+export const FIELD_RADIUS = T.radius.inner;
 export const fieldBorderColor = (active: boolean) => (active ? 'var(--accent)' : 'var(--border-default)');
 export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-dim)' : 'none');
 
