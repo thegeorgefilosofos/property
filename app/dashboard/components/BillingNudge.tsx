@@ -64,7 +64,7 @@ export default function BillingNudge({ userId, onNavigate }: { userId: string; o
       background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
       borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 16,
     }}>
-      <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+      <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 200 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
           Ολοκλήρωσε τα στοιχεία τιμολόγησης

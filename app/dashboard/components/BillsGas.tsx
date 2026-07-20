@@ -170,7 +170,7 @@ const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1p
 
 const secHdr = (label: string, sub?: string) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-    <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
+    <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
     <div>
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
       {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
@@ -429,7 +429,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
           {savings > 1 && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
                 Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--positive)' }}>{fe(savings)} / μήνα</strong> ({fe(savings * 12)} / έτος) με το φθηνότερο τιμολόγιο, επιβεβαίωσε πάντα την τρέχουσα προσφορά στον πάροχο.
               </span>

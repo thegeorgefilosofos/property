@@ -50,7 +50,7 @@ const cardStyle: React.CSSProperties = {
 
 const SectionLabel = ({ label }: { label: string }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
+    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', display: 'inline-block', flexShrink: 0 }} />
     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
       {label}
     </span>
@@ -310,7 +310,7 @@ export default function ExpenseAnalytics({ expenses }: Props) {
       {/* Header + περίοδος */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', display: 'inline-block' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Inter', sans-serif" }}>
             Ανάλυση δαπανών
           </span>

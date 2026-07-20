@@ -375,7 +375,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
           background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
           borderRadius: T.radius.inner, padding: '10px 16px',
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
           <span style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
             Ένα μέλος σου ζήτησε αναβάθμιση συνδρομής.
           </span>
