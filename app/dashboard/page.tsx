@@ -101,7 +101,7 @@ const NAV_ITEMS = [
   { id:'roi',        label:'Αποδόσεις' },
   { id:'comparison', label:'Σύγκριση ακινήτων' },
   { id:'referral',   label:'Πρόγραμμα Πρόσκλησης' },
-  { id:'settings',   label:'Ρυθμίσεις' },
+  { id:'settings',   label:'Λογαριασμός' },
 ];
 const NAV_LABEL: Record<string,string> = NAV_ITEMS.reduce((a,i)=>{a[i.id]=i.label;return a;},{} as Record<string,string>);
 

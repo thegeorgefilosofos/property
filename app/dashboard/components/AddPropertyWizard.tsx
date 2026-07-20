@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, fd } from '@/components/Theme';
 import { DatePicker } from './UIComponents';
@@ -36,7 +36,22 @@ const LAND_LIKE = new Set(['land', 'parking', 'storage', 'warehouse']);
 // Airbnb εκτίμηση πληρότητας
 const OCCUPANCY = 0.6;
 
-const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Σύνοψη'];
+const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Ρυθμίσεις', 'Σύνοψη'];
+
+// ── property_settings (χωριστός πίνακας, keyed by property_id) ───────────────
+// Ίδια πεδία/ετικέτες με την καρτέλα «Ρυθμίσεις» (TabSettings).
+interface PropertySettings {
+  owner_name: string; owner_afm: string; owner_phone: string; owner_email: string;
+  electricity_provider: string; water_provider: string; internet_provider: string; internet_plan: string;
+  property_manager: string; property_manager_phone: string;
+  insurance_company: string; insurance_policy: string; insurance_expiry: string; notes: string;
+}
+const INIT_SETTINGS: PropertySettings = {
+  owner_name: '', owner_afm: '', owner_phone: '', owner_email: '',
+  electricity_provider: '', water_provider: '', internet_provider: '', internet_plan: '',
+  property_manager: '', property_manager_phone: '',
+  insurance_company: '', insurance_policy: '', insurance_expiry: '', notes: '',
+};
 
 // ── Εικονίδια ανά τύπο ακινήτου (inline SVG, currentColor) ──────────────────
 function TypeIcon({ type }: { type: string }) {
@@ -95,6 +110,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div><label style={labelStyle}>{label}</label>{children}</div>;
 }
 
+// Επικεφαλίδα υποενότητας (ίδιο accent uppercase look με το panel απόδοσης)
+const sectionLabelStyle: React.CSSProperties = {
+  fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 4,
+};
+
 interface ExistingProperty {
   id: string; name?: string | null; prop_type?: string | null; address?: string | null;
   postal_code?: string | null; sqm?: number | null; floor?: number | string | null; year_built?: number | null;
@@ -137,6 +158,20 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [parking, setParking] = useState(s(existing?.parking_spaces));
   const [storageSqm, setStorageSqm] = useState(s(existing?.storage_sqm));
   const [bedrooms, setBedrooms] = useState(s(existing?.bedrooms));
+
+  // property_settings (μόνο για υπάρχον ακίνητο υπάρχει ήδη γραμμή· για νέο τη δημιουργούμε στο save)
+  const [settings, setSettings] = useState<PropertySettings>(INIT_SETTINGS);
+  const setSf = (k: keyof PropertySettings) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setSettings(p => ({ ...p, [k]: e.target.value }));
+
+  useEffect(() => {
+    if (!existing?.id) return;
+    let active = true;
+    supabase.from('property_settings').select('*').eq('property_id', existing.id).maybeSingle()
+      .then(({ data }) => { if (active && data) setSettings({ ...INIT_SETTINGS, ...(data as Partial<PropertySettings>) }); });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing?.id]);
 
   const isLandLike = LAND_LIKE.has(propType);
   // Airbnb ⇒ status seasonal
@@ -185,11 +220,26 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       bedrooms: isLandLike ? null : (bedrooms ? parseInt(bedrooms) : null),
       rental_mode: rentalModeFromAirbnb(airbnb),
     };
-    const { error: err } = isEdit
-      ? await supabase.from('user_properties').update(payload).eq('id', existing!.id)
-      : await supabase.from('user_properties').insert({ user_id: userId, ...payload });
+    let propertyId: string | null = existing?.id ?? null;
+    let err: { message?: string } | null = null;
+    if (isEdit) {
+      const res = await supabase.from('user_properties').update(payload).eq('id', existing!.id);
+      err = res.error;
+    } else {
+      const res = await supabase.from('user_properties').insert({ user_id: userId, ...payload }).select('id').single();
+      err = res.error;
+      propertyId = res.data?.id ?? null;
+    }
+    if (err) { setSaving(false); setError(err.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
+
+    // property_settings: αποθήκευση μόνο αν έχει συμπληρωθεί κάτι (αποφυγή κενής γραμμής)
+    if (propertyId && Object.values(settings).some(v => (v ?? '').toString().trim() !== '')) {
+      const { error: sErr } = await supabase.from('property_settings')
+        .upsert({ ...settings, property_id: propertyId, user_id: userId }, { onConflict: 'property_id' });
+      if (sErr) { setSaving(false); setError(sErr.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
+    }
+
     setSaving(false);
-    if (err) { setError(err.message || 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση.'); return; }
     onSaved();
   };
 
@@ -417,8 +467,79 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </div>
           )}
 
-          {/* STEP 4, Σύνοψη */}
+          {/* STEP 4, Ρυθμίσεις (property_settings) */}
           {step === 3 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {/* Ιδιοκτήτης */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={sectionLabelStyle}>Ιδιοκτήτης</div>
+                <Field label="Ονοματεπώνυμο">
+                  <input style={inputStyle} value={settings.owner_name} onChange={setSf('owner_name')} onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+                <div style={grid2}>
+                  <Field label="ΑΦΜ">
+                    <input style={monoInputStyle} value={settings.owner_afm} onChange={setSf('owner_afm')} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Τηλέφωνο">
+                    <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                </div>
+                <Field label="Email">
+                  <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />
+                </Field>
+              </div>
+
+              {/* Πάροχοι */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={sectionLabelStyle}>Πάροχοι</div>
+                <div style={grid2}>
+                  <Field label="Ρεύμα">
+                    <input style={inputStyle} value={settings.electricity_provider} onChange={setSf('electricity_provider')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Νερό">
+                    <input style={inputStyle} value={settings.water_provider} onChange={setSf('water_provider')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Internet">
+                    <input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Πρόγραμμα">
+                    <input style={inputStyle} value={settings.internet_plan} onChange={setSf('internet_plan')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Διαχείριση & Ασφάλεια */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={sectionLabelStyle}>Διαχείριση & Ασφάλεια</div>
+                <div style={grid2}>
+                  <Field label="Διαχειριστής">
+                    <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Τηλέφωνο Διαχειριστή">
+                    <input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Ασφαλιστική">
+                    <input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                  <Field label="Αρ. Πολίτικής">
+                    <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                </div>
+                <Field label="Λήξη Ασφάλισης">
+                  <DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} />
+                </Field>
+              </div>
+
+              {/* Σημειώσεις */}
+              <Field label="Σημειώσεις">
+                <textarea value={settings.notes} onChange={setSf('notes')} rows={4}
+                  style={{ ...inputStyle, height: 'auto', resize: 'none' }} />
+              </Field>
+            </div>
+          )}
+
+          {/* STEP 5, Σύνοψη */}
+          {step === 4 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
                 <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>

@@ -165,6 +165,8 @@ create table if not exists public.billing_profiles (
 alter table public.billing_profiles enable row level security;
 -- Ιδιοκτήτης: εμφανιζόμενο όνομα προσφώνησης (idempotent για υπάρχουσες βάσεις)
 alter table public.billing_profiles add column if not exists owner_name text;
+-- 20260720120000: χρονοσήμανση τελευταίας αλλαγής ονόματος (κλείδωμα 1 φορά/μήνα)
+alter table public.billing_profiles add column if not exists full_name_changed_at timestamptz;
 -- Τύπος προφίλ: 'individual' (ιδιώτης) | 'professional' (επαγγελματίας διαχειριστής).
 -- Οδηγεί το interface (τι βλέπει/μπορεί ο καθένας), ώστε να μη μπερδεύεται.
 alter table public.billing_profiles add column if not exists profile_type text default 'individual';

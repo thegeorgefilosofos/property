@@ -1867,3 +1867,30 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 }
 .tier-medallion:hover .tier-sheen { animation: tier-sheen 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
 @media (prefers-reduced-motion: reduce) { .tier-medallion:hover .tier-sheen { animation: none; } }
+
+/* ═══ «Λογαριασμός» — διακριτικό βάθος & ζωντάνια (χειρουργικά, minimal) ═══ */
+/* Είσοδος ενοτήτων: απαλή ανύψωση+εμφάνιση, μία φορά, με stagger μέσω delay. */
+@keyframes acc-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.acc-section { animation: acc-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Ζωντανή «ανάσα» για ενεργές ενδείξεις (π.χ. τρέχον πλάνο, ενεργές ενσωματώσεις). */
+@keyframes acc-breathe {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--positive) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.acc-live-dot { position: relative; border-radius: 50%; }
+.acc-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; animation: acc-breathe 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.acc-live-dot.accent::after { animation-name: acc-breathe-accent; }
+@keyframes acc-breathe-accent {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
+  70%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+/* Επιλογή τρόπου χρήσης: διακριτικό «σήκωμα» βάθους στο hover. */
+.acc-choice { transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s cubic-bezier(0.2, 0, 0, 1), border-color 0.18s, background-color 0.18s; }
+.acc-choice:hover { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .acc-section { animation: none; }
+  .acc-live-dot::after { animation: none; }
+  .acc-choice:hover { transform: none; }
+}

@@ -1,102 +1,55 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
+// ═══════════════════════════════════════════════════════════════════════════
+// Λογαριασμός — μία καθαρή σελίδα με κύλιση (προφίλ, συνδρομή, προτιμήσεις,
+// ειδοποιήσεις, δεδομένα & απόρρητο). Στυλ fintech: κάρτες, SecHdr, tokens.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
-import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
-import { T, fe, PageTitle, InfoBanner, Btn, Badge, TierBadge } from '@/components/Theme';
+import { CustomSelect, Toggle } from './UIComponents';
+import { T, Card, SecHdr, Btn, Badge, TierBadge, InfoBanner, PageTitle } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
-import { runE2Export } from './e2Export';
 import Billing from './Billing';
 import ReportBranding from './ReportBranding';
+import { ThemeToggle } from './ThemeToggle';
+import { PLANS, normalizePlan } from '@/lib/billing/plans';
 
-// ─── ΦΜΑ Data ─────────────────────────────────────────────────────────────────
-const FMA_RATE = 0.03;
-const NOTARY_BRACKETS = [
-  { limit:120_000, rate:0.008, min:400 },
-  { limit:384_000, rate:0.007, min:0 },
-  { limit:Infinity,rate:0.0065,min:0 },
-];
-const LAWYER_BRACKETS = [
-  { limit:44_020,    rate:0.01 },
-  { limit:1_467_350, rate:0.005 },
-  { limit:Infinity,  rate:0.003 },
-];
-const REGISTRATION_RATE = 0.005;
-const BROKER_RATE = 0.02;
+type ProfileType = 'individual' | 'professional';
 
-function calcNotary(v:number):number {
-  let rem=v,tot=0,prev=0;
-  for (const b of NOTARY_BRACKETS) {
-    if (rem<=0) break;
-    const taxable = b.limit===Infinity ? rem : Math.min(rem,b.limit-prev);
-    tot += taxable*b.rate; rem-=taxable; prev=b.limit;
-  }
-  const br = NOTARY_BRACKETS.find(b=>v<=b.limit);
-  return Math.max(tot, br?.min||0);
-}
-function calcLawyer(v:number):number {
-  let rem=v,tot=0,prev=0;
-  for (const b of LAWYER_BRACKETS) {
-    if (rem<=0) break;
-    const taxable = b.limit===Infinity ? rem : Math.min(rem,b.limit-prev);
-    tot += taxable*b.rate; rem-=taxable; prev=b.limit;
-  }
-  return tot;
+// Ρυθμίσεις ακινήτου: κρατούνται μόνο για την εξαγωγή CSV (η επεξεργασία γίνεται
+// πλέον στον οδηγό ακινήτου).
+type S = Record<string, unknown>;
+
+// ── Κοινά δομικά κομμάτια της σελίδας ─────────────────────────────────────
+const divider = { borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 } as const;
+
+// Γραμμή «ετικέτα … τιμή» (στατικά στοιχεία, π.χ. email).
+function InfoLine({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{value}</span>
+    </div>
+  );
 }
 
-// ─── Tax brackets ─────────────────────────────────────────────────────────────
-// Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 (βλ. lib/billing/greekTax).
-const RENTAL_TAX = [
-  { limit:12_000, rate:0.15 },
-  { limit:24_000, rate:0.25 },
-  { limit:35_000, rate:0.35 },
-  { limit:Infinity,rate:0.45 },
-];
-function calcRentalTax(gross:number, deductible:number) {
-  const taxable = Math.max(0, gross-deductible);
-  let rem=taxable, tax=0, prev=0;
-  const breakdown:{ label:string;taxable:number;tax:number }[]=[];
-  for (const b of RENTAL_TAX) {
-    if (rem<=0) break;
-    const t=b.limit===Infinity?rem:Math.min(rem,b.limit-prev);
-    const tx=t*b.rate;
-    if (t>0) breakdown.push({ label:`${b.rate*100}%`, taxable:t, tax:tx });
-    tax+=tx; rem-=t; prev=b.limit;
-  }
-  const eff = taxable>0 ? (tax/taxable)*100 : 0;
-  return { tax, taxable, effectiveRate:eff, netAfterTax:gross-tax, breakdown, advance:tax*0.55 };
+// Γραμμή ρύθμισης «τίτλος + περιγραφή … control».
+function SettingRow({ title, desc, control }: { title: string; desc?: string; control: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{title}</div>
+        {desc && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3, lineHeight: 1.5 }}>{desc}</div>}
+      </div>
+      <div style={{ flexShrink: 0 }}>{control}</div>
+    </div>
+  );
 }
 
-type S = {
-  owner_name:string; owner_afm:string; owner_phone:string; owner_email:string;
-  electricity_provider:string; water_provider:string; internet_provider:string; internet_plan:string;
-  property_manager:string; property_manager_phone:string;
-  insurance_company:string; insurance_policy:string; insurance_expiry:string; notes:string;
-}
-const INIT:S = {
-  owner_name:'',owner_afm:'',owner_phone:'',owner_email:'',
-  electricity_provider:'',water_provider:'',internet_provider:'',internet_plan:'',
-  property_manager:'',property_manager_phone:'',
-  insurance_company:'',insurance_policy:'',insurance_expiry:'',notes:''
-}
-
-// Πεδία ακινήτου που επεξεργάζεται η καρτέλα «Ακίνητο» (γράφουν στο user_properties).
-type PropRow = {
-  value:number|null; obj_value:number|null; target_rent:number|null; sqm:number|null;
-  floor:number|null; year_built:number|null; ownership:number|string|null; atak:string|null;
-  enfia:number|null; pea_class:string|null; heating:string|null; parking_spaces:number|null;
-  storage_sqm:number|null; purchase_price:number|null; purchase_date:string|null; rental_mode:string|null;
-}
-const PEA_CLASSES = ['A+','A','B+','B','Γ','Δ','Ε','Ζ','Η'];
-const HEATING_OPTS:[string,string][] = [
-  ['central_gas','Κεντρική (αέριο)'],['autonomous_gas','Αυτόνομη (αέριο)'],['oil','Πετρέλαιο'],
-  ['heat_pump','Αντλία θερμότητας'],['electric','Ηλεκτρική'],['pellet','Pellet / Ξύλο'],
-  ['ac_only','Κλιματιστικά'],['none','Χωρίς θέρμανση'],['other','Άλλο'],
-];
-
-// Σύνδεσμος λογιστή (read-only, ανά χρήστη): δημιουργία/αντιγραφή.
+// ── Σύνδεσμος λογιστή (read-only, ανά χρήστη), bare block ──────────────────
 function AccountantLink({ userId }: { userId: string }) {
   const supabase = createClient();
   const [url, setUrl] = useState('');
@@ -113,16 +66,16 @@ function AccountantLink({ userId }: { userId: string }) {
     if (data?.token) { const u = `${window.location.origin}/accountant/${data.token}`; setUrl(u); try { await navigator.clipboard.writeText(u); setCopied(true); setTimeout(() => setCopied(false), 2600); } catch { /* ignore */ } }
   };
   return (
-    <div className="card">
-      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Σύνδεσμος για τον λογιστή σου</div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>Δώσε στον λογιστή σου έναν ασφαλή σύνδεσμο μόνο-ανάγνωσης με την εικόνα εσόδων/δαπανών των ακινήτων σου ανά έτος. Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.</div>
+    <div style={divider}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Σύνδεσμος για τον λογιστή σου</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 12 }}>Δώσε στον λογιστή σου έναν ασφαλή σύνδεσμο μόνο ανάγνωσης με την εικόνα εσόδων και δαπανών των ακινήτων σου ανά έτος. Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.</div>
       {url && <div style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
       <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε ✓' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
     </div>
   );
 }
 
-// Συγκατάθεση δεδομένων κοινότητας (ανά χρήστη, opt-out). Προεπιλογή: συμμετοχή.
+// ── Συγκατάθεση δεδομένων κοινότητας (opt-out), bare row ──────────────────
 function MarketDataSharing({ userId }: { userId: string }) {
   const supabase = createClient();
   const [on, setOn] = useState(true);
@@ -137,27 +90,24 @@ function MarketDataSharing({ userId }: { userId: string }) {
     await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
   };
   return (
-    <div className="card">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Συνεισφορά στα δεδομένα κοινότητας</div>
-          <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            Τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά. Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου — εμφανίζονται μόνο περιοχές με τουλάχιστον πέντε ακίνητα. Μπορείς να εξαιρεθείς όποτε θέλεις.
-          </div>
+    <div style={{ ...divider, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Συνεισφορά στα δεδομένα κοινότητας</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+          Τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά. Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου· εμφανίζονται μόνο περιοχές με τουλάχιστον πέντε ακίνητα. Μπορείς να εξαιρεθείς όποτε θέλεις.
         </div>
-        {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
       </div>
+      {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
     </div>
   );
 }
 
-// Ενσωματώσεις: ειλικρινής εικόνα του τι δουλεύει ΤΩΡΑ και τι έρχεται (χρειάζεται
-// εξωτερική υποδομή). Καμία ψεύτικη σύνδεση — μόνο πραγματική κατάσταση.
-function IntegrationsCard() {
+// ── Ενσωματώσεις: πραγματική κατάσταση, bare list ─────────────────────────
+function IntegrationsList() {
   const LIVE: { name: string; desc: string }[] = [
     { name: 'Airbnb / Booking (iCal)', desc: 'Συγχρονισμός κρατήσεων μέσω συνδέσμου iCal, στο Πελατολόγιο.' },
     { name: 'Εισαγωγή από email', desc: 'Το AI διαβάζει email κράτησης και δημιουργεί πελάτη και διαμονή.' },
-    { name: 'Πύλη λογιστή', desc: 'Ασφαλής σύνδεσμος μόνο-ανάγνωσης με εικόνα εσόδων/δαπανών ανά έτος.' },
+    { name: 'Πύλη λογιστή', desc: 'Ασφαλής σύνδεσμος μόνο ανάγνωσης με εικόνα εσόδων και δαπανών ανά έτος.' },
     { name: 'Πύλη επισκέπτη (check-in)', desc: 'Ο επισκέπτης συμπληρώνει στοιχεία άφιξης πριν φτάσει, με συγκατάθεση GDPR.' },
     { name: 'Σύνδεσμοι πληρωμής', desc: 'Κουμπιά προς e-banking τραπεζών, Revolut και IRIS για είσπραξη ενοικίου.' },
   ];
@@ -170,66 +120,24 @@ function IntegrationsCard() {
   const Row = ({ name, desc, live }: { name: string; desc: string; live: boolean }) => (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border-subtle)' }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</div>
-        <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 2 }}>{desc}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{name}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 2 }}>{desc}</div>
       </div>
       <Badge tone={live ? 'positive' : 'neutral'}>{live ? 'Ενεργό' : 'Σύντομα'}</Badge>
     </div>
   );
   return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Ενσωματώσεις</div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>Τι λειτουργεί ήδη και τι ετοιμάζουμε. Είμαστε ξεκάθαροι: όσα χρειάζονται εξωτερική υποδομή ή αδειοδότηση σημειώνονται ως «Σύντομα», χωρίς ψεύτικα κουμπιά.</div>
+    <div style={divider}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Ενσωματώσεις</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 4 }}>Τι λειτουργεί ήδη και τι ετοιμάζουμε. Όσα χρειάζονται εξωτερική υποδομή ή αδειοδότηση σημειώνονται ως «Σύντομα», χωρίς ψεύτικα κουμπιά.</div>
       {LIVE.map(i => <Row key={i.name} {...i} live />)}
       {SOON.map(i => <Row key={i.name} {...i} live={false} />)}
     </div>
   );
 }
 
-// Επιλογή τύπου προφίλ (Ιδιώτης / Επαγγελματίας) — οδηγεί το interface.
-function ProfileTypeCard({ userId, value, onChange }: { userId: string; value: 'individual'|'professional'; onChange: (v: 'individual'|'professional') => void }) {
-  const supabase = createClient();
-  const [partner, setPartner] = useState(false);
-  useEffect(() => { supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle().then(({ data }) => setPartner(!!data)); }, [userId]);
-  const set = async (v: 'individual'|'professional') => {
-    if (v === value) return;
-    onChange(v);
-    await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
-  };
-  const OPTS: { v: 'individual'|'professional'; title: string; sub: string }[] = [
-    { v: 'individual', title: 'Ιδιώτης', sub: 'Ένα ή λίγα δικά μου ακίνητα. Απλό, καθαρό, χωρίς περιττά.' },
-    { v: 'professional', title: 'Επαγγελματίας', sub: 'Διαχειρίζομαι πολλά ακίνητα. Χαρτοφυλάκιο, σύγκριση, εργαλεία διαχείρισης.' },
-  ];
-  return (
-    <div className="card" style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-        <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Τύπος προφίλ</div>
-        <TierBadge tier={partner ? 'partner' : (value === 'professional' ? 'agency' : 'owner')} />
-      </div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης Property OS.' : ''}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
-        {OPTS.map(o => {
-          const on = value === o.v;
-          return (
-            <button key={o.v} onClick={() => set(o.v)}
-              style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 800, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{o.title}</span>
-                <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                </span>
-              </div>
-              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Οριστική διαγραφή λογαριασμού (μη αναστρέψιμη) ──────────────────────────
-function DeleteAccountCard() {
+// ── Οριστική διαγραφή λογαριασμού (μη αναστρέψιμη), bare block ─────────────
+function DeleteAccount() {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -247,31 +155,31 @@ function DeleteAccountCard() {
   };
 
   return (
-    <div className="card" style={{ marginBottom: 20, border: '1px solid var(--negative-border)' }}>
-      <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--negative)', marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.55 }}>
-        Διαγράφει οριστικά τον λογαριασμό σου και όλα τα δεδομένα σου — ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις να κρατήσεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
+    <div style={divider}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
+        Διαγράφει οριστικά τον λογαριασμό σου και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
       </div>
       {!open ? (
         <button onClick={() => setOpen(true)}
-          style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600 }}>
+          style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
           Διαγραφή του λογαριασμού μου
         </button>
       ) : (
         <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: 16 }}>
-          <div style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
           <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus
             style={{ width: '100%', maxWidth: 260, height: 40, padding: '0 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none', marginBottom: 12 }} />
-          {error && <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--negative)', marginBottom: 10 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={del} disabled={!ready || busy}
-              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: 'none', background: ready && !busy ? 'var(--negative)' : 'var(--bg-elevated)', color: ready && !busy ? '#fff' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700 }}>
+              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: 'none', background: ready && !busy ? 'var(--negative)' : 'var(--bg-elevated)', color: ready && !busy ? '#fff' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
               {busy ? 'Διαγραφή...' : 'Οριστική διαγραφή'}
             </button>
             <button onClick={() => { setOpen(false); setConfirmText(''); setError(null); }} disabled={busy}
-              style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 500 }}>
+              style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500 }}>
               Ακύρωση
             </button>
           </div>
@@ -281,72 +189,166 @@ function DeleteAccountCard() {
   );
 }
 
-export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId:string; userId:string; profileType?: 'individual'|'professional'; onProfileChange?: (v: 'individual'|'professional') => void }) {
-  const supabase = createClient();
-  const [s, setS] = useState<S>(INIT);
-  const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState<'property'|'settings'|'account'|'billing'|'branding'|'prefs'|'fma'|'e2'>('property');
-  const [accountEmail, setAccountEmail] = useState('');
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
+// ── Πεδίο σε γραμμή «ετικέτα … τιμή / επεξεργασία» ─────────────────────────
+const fieldStyle = {
+  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
+  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
+} as const;
 
-  // App preferences state
+// ── Προφίλ: email (επεξεργάσιμο) + όνομα (μία αλλαγή ανά μήνα) ─────────────
+function ProfileCard({ userId, email }: { userId: string; email: string }) {
+  const supabase = createClient();
+  const [name, setName] = useState('');
+  const [afm, setAfm] = useState('');
+  const [changedAt, setChangedAt] = useState<string | null>(null);
+
+  const [emailEdit, setEmailEdit] = useState(false);
+  const [emailVal, setEmailVal] = useState('');
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  const [nameEdit, setNameEdit] = useState(false);
+  const [nameVal, setNameVal] = useState('');
+  const [nameErr, setNameErr] = useState('');
+  const [nameBusy, setNameBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.from('billing_profiles').select('full_name, afm, full_name_changed_at').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data) { setName((data.full_name as string) || ''); setAfm((data.afm as string) || ''); setChangedAt((data.full_name_changed_at as string) || null); } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const daysLeft = changedAt ? Math.max(0, 30 - Math.floor((Date.now() - new Date(changedAt).getTime()) / 86400000)) : 0;
+  const nameLocked = daysLeft > 0;
+
+  const saveEmail = async () => {
+    const v = emailVal.trim();
+    if (!v || v === email) { setEmailEdit(false); return; }
+    setEmailBusy(true); setEmailMsg(null);
+    const { error } = await supabase.auth.updateUser({ email: v });
+    setEmailBusy(false);
+    if (error) { setEmailMsg({ ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' }); return; }
+    setEmailMsg({ ok: true, text: 'Σου στείλαμε σύνδεσμο επιβεβαίωσης στη νέα διεύθυνση.' });
+    setEmailEdit(false);
+  };
+  const saveName = async () => {
+    const v = nameVal.trim();
+    if (!v || v === name || nameLocked) { setNameEdit(false); return; }
+    setNameBusy(true); setNameErr('');
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, full_name: v, full_name_changed_at: nowIso }, { onConflict: 'user_id' });
+    setNameBusy(false);
+    if (error) { setNameErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.'); return; }
+    setName(v); setChangedAt(nowIso); setNameEdit(false);
+  };
+
+  const editBtn = (onClick: () => void, disabled = false) => (
+    <button onClick={onClick} disabled={disabled}
+      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0 }}>
+      Αλλαγή
+    </button>
+  );
+
+  return (
+    <Card className="acc-section">
+      <SecHdr label="Προφίλ" />
+
+      {/* Email */}
+      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        {!emailEdit ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || '—'}</div>
+            </div>
+            {editBtn(() => { setEmailVal(email); setEmailMsg(null); setEmailEdit(true); })}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Νέο email</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
+              <Btn variant="primary" onClick={saveEmail} disabled={emailBusy}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+              <Btn variant="secondary" onClick={() => setEmailEdit(false)} disabled={emailBusy}>Ακύρωση</Btn>
+            </div>
+          </div>
+        )}
+        {emailMsg && <div style={{ fontSize: 12, color: emailMsg.ok ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>{emailMsg.text}</div>}
+      </div>
+
+      {/* Όνομα (μία αλλαγή / μήνα) */}
+      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        {!nameEdit ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Όνομα</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: name ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>{name || 'Δεν έχει οριστεί'}</div>
+            </div>
+            {editBtn(() => { setNameVal(name); setNameErr(''); setNameEdit(true); }, nameLocked)}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Όνομα ή επωνυμία</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
+              <Btn variant="primary" onClick={saveName} disabled={nameBusy}>{nameBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+              <Btn variant="secondary" onClick={() => setNameEdit(false)} disabled={nameBusy}>Ακύρωση</Btn>
+            </div>
+          </div>
+        )}
+        {nameErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{nameErr}</div>}
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.5 }}>
+          {nameLocked ? `Το όνομα αλλάζει μία φορά τον μήνα. Θα μπορείς ξανά σε ${daysLeft} ${daysLeft === 1 ? 'ημέρα' : 'ημέρες'}.` : 'Το όνομα μπορεί να αλλάξει μία φορά τον μήνα.'}
+        </div>
+      </div>
+
+      {afm && <InfoLine label="ΑΦΜ" value={afm} />}
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void }) {
+  const supabase = createClient();
+
+  // Ταυτότητα λογαριασμού & χρέωσης
+  const [accountEmail, setAccountEmail] = useState('');
+  const [plan, setPlan] = useState('free');
+  const [partner, setPartner] = useState(false);
+
+  // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
+  const [s, setS] = useState<S>({});
+
+  // Προτιμήσεις εφαρμογής (κρατάμε μόνο τα δεκαδικά ορατά εδώ, χωρίς απώλεια των υπολοίπων)
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
   const [prefsSaved, setPrefsSaved] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // FMA state
-  const [fmaMode, setFmaMode]             = useState<'buy'|'sell'>('buy');
-  const [contractVal, setContractVal]     = useState('');
-  const [objVal, setObjVal]               = useState('');
-  const [isFirstHome, setIsFirstHome]     = useState(false);
-  const [hasBroker, setHasBroker]         = useState(true);
-  const [hasLawyer, setHasLawyer]         = useState(true);
-  const [needsMortgage, setNeedsMortgage] = useState(false);
-  const [mortgageAmt, setMortgageAmt]     = useState('');
-  const [sellVal, setSellVal]             = useState('');
-  const [origPrice, setOrigPrice]         = useState('');
-  const [origYear, setOrigYear]           = useState('');
-  const [sellBroker, setSellBroker]       = useState(true);
-  const [sellLawyer, setSellLawyer]       = useState(false);
+  // Αποκάλυψη διαχείρισης συνδρομής
+  const [showBilling, setShowBilling] = useState(false);
+  const billingRef = useRef<HTMLDivElement | null>(null);
 
-  // E2 state
-  const [e2Rent, setE2Rent]           = useState('');
-  const [e2Deductible, setE2Deductible] = useState('');
-  const [e2Year, setE2Year]           = useState(String(new Date().getFullYear()-1));
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
-  // Property-level fields (γράφουν κατευθείαν στο user_properties, τροφοδοτούν τα KPI)
-  const [prop, setProp] = useState<PropRow|null>(null);
-  const [propSaved, setPropSaved] = useState(false);
-  const setP = (patch: Partial<PropRow>) => setProp(p => p ? { ...p, ...patch } : p);
-  const numOrNull = (v: string): number | null => { const n = parseFloat(v.replace(',', '.')); return isNaN(n) ? null : n; };
-  const ns = (v: unknown): string => (v == null ? '' : String(v));
+  useEffect(() => {
+    supabase.from('billing_profiles').select('plan').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data) setPlan((data.plan as string) || 'free'); });
+    supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => setPartner(!!data));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  useEffect(() => { load(); loadProp(); }, [propertyId]);
-  async function load() {
-    const { data } = await supabase.from('property_settings').select('*').eq('property_id',propertyId).maybeSingle();
+  useEffect(() => { loadSettings(); loadPrefs(); }, [propertyId]);
+
+  async function loadSettings() {
+    const { data } = await supabase.from('property_settings').select('*').eq('property_id', propertyId).maybeSingle();
     if (data) setS(data);
   }
-  async function loadProp() {
-    const { data } = await supabase.from('user_properties')
-      .select('value,obj_value,target_rent,sqm,floor,year_built,ownership,atak,enfia,pea_class,heating,parking_spaces,storage_sqm,purchase_price,purchase_date,rental_mode')
-      .eq('id',propertyId).maybeSingle();
-    if (data) setProp(data as PropRow);
-  }
-  async function saveProp() {
-    if (!prop) return;
-    await supabase.from('user_properties').update({ ...prop }).eq('id',propertyId);
-    setPropSaved(true); setTimeout(()=>setPropSaved(false),2000);
-  }
-  async function save() {
-    await supabase.from('property_settings').upsert({ ...s, property_id:propertyId, user_id:userId },{ onConflict:'property_id' });
-    setSaved(true); setTimeout(()=>setSaved(false),2000);
-  }
-
-  // ── App preferences: load on mount, debounce-save on change ──
-  useEffect(() => { loadPrefs(); }, [propertyId]);
   async function loadPrefs() {
     const { data } = await supabase.from('bills_settings').select('data')
-      .eq('property_id',propertyId).eq('section','app_preferences').maybeSingle();
+      .eq('property_id', propertyId).eq('section', 'app_preferences').maybeSingle();
     if (data?.data) setPrefs(p => ({ ...p, ...data.data }));
     else setPrefs(DEFAULT_PREFERENCES);
   }
@@ -359,696 +361,168 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           property_id: propertyId, user_id: String(userId),
           section: 'app_preferences', data: next, updated_at: new Date().toISOString(),
         }, { onConflict: 'property_id,section' });
-        setPrefsSaved(true); setTimeout(()=>setPrefsSaved(false),1800);
+        setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
       }, 800);
       return next;
     });
   }
 
-  // FMA calculations
-  const buyCalc = useMemo(() => {
-    const cv=parseFloat(contractVal)||0, ov=parseFloat(objVal)||0;
-    if (cv<=0&&ov<=0) return null;
-    const taxBase=Math.max(cv,ov);
-    let fma=0;
-    if (isFirstHome) { const t=Math.max(0,taxBase-200_000); fma=t*FMA_RATE; }
-    else { fma=taxBase*FMA_RATE; }
-    const notary=calcNotary(taxBase), notaryVat=notary*0.24;
-    const lawyer=hasLawyer?calcLawyer(taxBase):0, lawyerVat=lawyer*0.24;
-    const broker=hasBroker?cv*BROKER_RATE:0, brokerVat=broker*0.24;
-    const reg=taxBase*REGISTRATION_RATE;
-    const mortg=needsMortgage?(parseFloat(mortgageAmt)||0)*0.01:0;
-    const total=fma+notary+notaryVat+lawyer+lawyerVat+broker+brokerVat+reg+mortg;
-    return { fma,notary,notaryVat,lawyer,lawyerVat,broker,brokerVat,reg,mortg,total,taxBase,cv };
-  },[contractVal,objVal,isFirstHome,hasBroker,hasLawyer,needsMortgage,mortgageAmt]);
+  // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
+  const setProfile = async (v: ProfileType) => {
+    if (v === profileType) return;
+    onProfileChange?.(v);
+    await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+  };
 
-  const sellCalc = useMemo(() => {
-    const sv=parseFloat(sellVal)||0;
-    if (sv<=0) return null;
-    const notary=calcNotary(sv), notaryVat=notary*0.24;
-    const lawyer=sellLawyer?calcLawyer(sv):0, lawyerVat=lawyer*0.24;
-    const broker=sellBroker?sv*BROKER_RATE:0, brokerVat=broker*0.24;
-    const op=parseFloat(origPrice)||0, oy=parseInt(origYear)||0;
-    const yrs=oy>0?new Date().getFullYear()-oy:0;
-    const gain=op>0?sv-op:0;
-    const gainTax=gain>0&&yrs<5?gain*0.15:0;
-    const total=notary+notaryVat+lawyer+lawyerVat+broker+brokerVat+150+gainTax;
-    return { notary,notaryVat,lawyer,lawyerVat,broker,brokerVat,gainTax,yrs,gain,total,net:sv-total,sv };
-  },[sellVal,sellBroker,sellLawyer,origPrice,origYear]);
+  const openBilling = () => {
+    setShowBilling(true);
+    setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
 
-  // E2 calculation
-  const e2Result = useMemo(() => {
-    const g=parseFloat(e2Rent)||0;
-    if (g<=0) return null;
-    return calcRentalTax(g, parseFloat(e2Deductible)||0);
-  },[e2Rent,e2Deductible]);
+  const planId = normalizePlan(plan);
+  const planMeta = PLANS[planId];
+  const isProPlan = planId === 'agency';
+  const needsUpgrade = profileType === 'professional' && !isProPlan && !partner;
+  const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
-  // Shared styles
-  const card = { background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:20 } as const;
-  const cardGap = { ...card, marginBottom:16 };
-  const lbl = { fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-secondary)',display:'block',marginBottom:7,fontFamily:"'Inter',sans-serif" } as const;
-  const inp = { background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:10,height:42,padding:'10px 14px',color:'var(--text-primary)',fontSize:14,letterSpacing:0,width:'100%',outline:'none',boxSizing:'border-box',fontFamily:"'Inter',sans-serif" } as const;
-  const grid = { display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 } as const;
-  const sectionTitle = (t:string) => (
-    <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16,paddingBottom:10,
-      borderBottom:'1px solid var(--border-subtle)' }}>
-      <div style={{ width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0 }}/>
-      <div style={{ fontFamily:"'Inter',sans-serif",fontSize:10,textTransform:'uppercase',
-        letterSpacing:'0.06em',color:'var(--text-secondary)',fontWeight:700 }}>{t}</div>
-    </div>
-  );
-  const statRow = (label:string, value:string, color='var(--text-primary)', bold=false) => (
-    <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
-      padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>{label}</span>
-      <span style={{ fontSize:bold?15:13,fontWeight:bold?700:500,color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{value}</span>
-    </div>
-  );
+  const exportSettingsCsv = () => {
+    const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
+    downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0, 10)}`, ['Πεδίο', 'Τιμή'], rows);
+  };
 
-  const prefRow = (label:string, description:string|null, control:ReactNode) => (
-    <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,
-      padding:'12px 0',borderBottom:'1px solid var(--border-subtle)' }}>
-      <div style={{ minWidth:0 }}>
-        <div style={{ fontSize:13,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif" }}>{label}</div>
-        {description && (
-          <div style={{ fontSize:11,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",marginTop:4,lineHeight:1.5 }}>{description}</div>
-        )}
-      </div>
-      <div style={{ flexShrink:0 }}>{control}</div>
-    </div>
-  );
-
-  // Nav tabs
-  const NAV = [
-    { id:'property', label:'Ακίνητο' },
-    { id:'settings', label:'Ρυθμίσεις' },
-    { id:'account',  label:'Λογαριασμός' },
-    { id:'billing',  label:'Συνδρομή & Χρέωση' },
-    { id:'branding', label:'Επωνυμία αναφορών' },
-    { id:'prefs',    label:'Προτιμήσεις' },
-    { id:'fma',      label:'ΦΜΑ, Αγορά / Πώληση' },
-    { id:'e2',       label:'Ε2, Εισόδημα Ακινήτων' },
-  ] as const;
+  const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
+    { v: 'individual', title: 'Ιδιώτης', sub: 'Ένα ή λίγα δικά μου ακίνητα. Απλό, καθαρό, χωρίς περιττά.' },
+    { v: 'professional', title: 'Επαγγελματίας', sub: 'Πολλά ακίνητα. Χαρτοφυλάκιο, σύγκριση, εργαλεία διαχείρισης.' },
+  ];
 
   return (
-    <div style={{ fontFamily:"'Inter',sans-serif", color:'var(--text-primary)' }}>
+    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 760 }}>
 
-      <PageTitle title="Ρυθμίσεις" sub="Στοιχεία ακινήτου, προτιμήσεις εφαρμογής και φορολογικά εργαλεία"/>
+      <PageTitle title="Λογαριασμός" sub="Ο λογαριασμός, η συνδρομή και οι προτιμήσεις σου." />
 
-      {/* Section nav */}
-      <div style={{ display:'flex',gap:6,marginBottom:20 }}>
-        {NAV.map(n => (
-          <button key={n.id} onClick={()=>setActiveSection(n.id as any)}
-            style={{ padding:'9px 18px',borderRadius:20,border:`1px solid ${activeSection===n.id?'var(--accent)':'var(--border-subtle)'}`,
-              background:activeSection===n.id?'var(--accent-soft)':'transparent',
-              color:activeSection===n.id?'var(--accent)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
-              fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
-            {n.label}
-          </button>
-        ))}
-      </div>
+      {/* ── 1. ΠΡΟΦΙΛ ─────────────────────────────────────────────────── */}
+      <ProfileCard userId={userId} email={accountEmail} />
 
-      {/* ── ΑΚΙΝΗΤΟ (γράφει στο user_properties, τροφοδοτεί τα KPI) ── */}
-      {activeSection==='property' && prop && (
-        <div className="space-y-5">
-          <div style={{ marginBottom:16 }}>
-            <InfoBanner tone="info">Τα στοιχεία αυτά τροφοδοτούν τα KPI (αξία, ενοίκιο, απόδοση) και τις φορολογικές εκτιμήσεις. Συμπλήρωσε τουλάχιστον την αξία και το ενοίκιο.</InfoBanner>
-          </div>
+      {/* ── 2. ΣΥΝΔΡΟΜΗ (hero) ────────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '70ms', background: 'var(--surface-hero)', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
+        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} size={32} />} />
 
-          <div style={cardGap}>
-            {sectionTitle('Αξία & Ενοίκιο')}
-            <div style={grid}>
-              <div><NumberInput label="Εμπορική Αξία (€)" value={ns(prop.value)} onChange={v=>setP({value:numOrNull(v)})} suffix="€" /></div>
-              <div><NumberInput label="Αντικειμενική Αξία (€)" value={ns(prop.obj_value)} onChange={v=>setP({obj_value:numOrNull(v)})} suffix="€" /></div>
-              <div><NumberInput label="Στόχος Ενοικίου (€/μήνα)" value={ns(prop.target_rent)} onChange={v=>setP({target_rent:numOrNull(v)})} suffix="€" /></div>
-              <div><NumberInput label="Ποσοστό Ιδιοκτησίας (%)" value={ns(prop.ownership)} onChange={v=>setP({ownership:numOrNull(v)})} max={100} suffix="%" /></div>
+        {/* Τρέχον πλάνο */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
+              <span className={isProPlan ? 'acc-live-dot accent' : 'acc-live-dot'} style={{ width: 6, height: 6, background: isProPlan ? 'var(--accent)' : 'var(--positive)' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Πλάνο {planMeta.name}</span>
             </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
           </div>
-
-          <div style={cardGap}>
-            {sectionTitle('Φυσικά χαρακτηριστικά')}
-            <div style={grid}>
-              <div><NumberInput label="Εμβαδόν (τετραγωνικά μέτρα)" value={ns(prop.sqm)} onChange={v=>setP({sqm:numOrNull(v)})} /></div>
-              <div><NumberInput label="Όροφος" value={ns(prop.floor)} onChange={v=>setP({floor:numOrNull(v)})} min={-5} /></div>
-              <div><NumberInput label="Έτος Κατασκευής" value={ns(prop.year_built)} onChange={v=>setP({year_built:numOrNull(v)})} min={1800} /></div>
-              <div><NumberInput label="Θέσεις Στάθμευσης" value={ns(prop.parking_spaces)} onChange={v=>setP({parking_spaces:numOrNull(v)})} /></div>
-              <div><NumberInput label="Αποθήκη (τ.μ.)" value={ns(prop.storage_sqm)} onChange={v=>setP({storage_sqm:numOrNull(v)})} /></div>
-              <div><CustomSelect label="Ενεργειακή Κλάση (ΠΕΑ)" value={prop.pea_class||''} onChange={v=>setP({pea_class:v||null})} options={[{value:'',label:'—'},...PEA_CLASSES.map(c=>({value:c,label:c}))]} /></div>
-              <div><CustomSelect label="Τύπος Θέρμανσης" value={prop.heating||''} onChange={v=>setP({heating:v||null})} options={[{value:'',label:'—'},...HEATING_OPTS.map(([val,l])=>({value:val,label:l}))]} /></div>
-              <div><CustomSelect label="Τρόπος Μίσθωσης" value={prop.rental_mode||'long_term'} onChange={v=>setP({rental_mode:v})} options={[{value:'long_term',label:'Μακροχρόνια'},{value:'short_term',label:'Βραχυχρόνια (Airbnb / Booking)'}]} /></div>
-            </div>
-          </div>
-
-          <div style={cardGap}>
-            {sectionTitle('Μητρώο & Φορολογικά')}
-            <div style={grid}>
-              <div><label style={lbl} title="Αριθμός Ταυτότητας Ακινήτου (από το Ε9)">ΑΤΑΚ</label><input style={inp} value={prop.atak||''} onChange={e=>setP({atak:e.target.value.replace(/[^0-9]/g,'').slice(0,11)||null})} inputMode="numeric" placeholder="11 ψηφία"/></div>
-              <div><NumberInput label="Εκτ. ΕΝΦΙΑ (€/έτος)" value={ns(prop.enfia)} onChange={v=>setP({enfia:numOrNull(v)})} suffix="€" /></div>
-              <div><NumberInput label="Τιμή Αγοράς (€)" value={ns(prop.purchase_price)} onChange={v=>setP({purchase_price:numOrNull(v)})} suffix="€" /></div>
-              <div><label style={lbl}>Ημερομηνία Αγοράς</label><DatePicker value={prop.purchase_date||''} onChange={v=>setP({purchase_date:v||null})}/></div>
-            </div>
-          </div>
-
-          <button onClick={saveProp}
-            style={{ width:'100%',background:'var(--accent)',color:'var(--accent-text)',border:'none',borderRadius:8,
-              padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Inter',sans-serif",
-              textTransform:'uppercase',letterSpacing:'0.1em' }}>
-            {propSaved ? 'Αποθηκεύτηκε' : 'Αποθήκευση στοιχείων ακινήτου'}
-          </button>
+          <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
         </div>
-      )}
 
-      {/* ── ACCOUNT ── */}
-      {activeSection==='account' && (
-        <div>
-          <div style={cardGap}>
-            {sectionTitle('Λογαριασμός')}
-            {statRow('Email', accountEmail || '—')}
-            {statRow('Γλώσσα', 'Ελληνικά')}
-            {statRow('Νόμισμα', 'Ευρώ (€)')}
-            {prefRow('Εμφάνιση', 'Αλλάζεις φωτεινό/σκοτεινό θέμα από το εικονίδιο πάνω δεξιά.', <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif" }}>Πάνω δεξιά</span>)}
-            <div style={{ marginTop:16 }}>
-              <Btn variant="secondary" onClick={async()=>{ await supabase.auth.signOut(); window.location.href='/login'; }}>Αποσύνδεση</Btn>
-            </div>
+        {/* Τρόπος χρήσης: Ιδιώτης / Επαγγελματίας */}
+        <div style={divider}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Τρόπος χρήσης</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.5 }}>
+            Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης Property OS.' : ''}
           </div>
-
-          <div style={cardGap}>
-            {sectionTitle('Συνδρομή')}
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap' }}>
-              <div>
-                <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'transparent',border:'1px solid var(--border-subtle)',borderRadius:100,padding:'4px 12px' }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--text-secondary)' }}/>
-                  <span style={{ fontSize:12,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif" }}>Δωρεάν πλάνο</span>
-                </div>
-                <div style={{ fontSize:12,color:'var(--text-tertiary)',marginTop:8,fontFamily:"'Inter',sans-serif",lineHeight:1.5 }}>Το πρώτο σου ακίνητο είναι δωρεάν, για πάντα. Για περισσότερα: Ιδιοκτήτης 5,90 € τον μήνα (έως έξι ακίνητα) ή Επαγγελματίας 18,90 € τον μήνα (απεριόριστα, με ομαδική διαχείριση).</div>
-              </div>
-              <Btn variant="secondary" onClick={()=>setActiveSection('billing')}>Διαχείριση συνδρομής</Btn>
-            </div>
-          </div>
-
-          <div style={cardGap}>
-            {sectionTitle('Δεδομένα')}
-            {prefRow('Εξαγωγή ρυθμίσεων ακινήτου', 'Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV.',
-              <Btn variant="secondary" onClick={()=>{
-                const rows = Object.entries(s as Record<string,unknown>).map(([k,v]) => [k, v==null?'':String(v)]);
-                downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0,10)}`, ['Πεδίο','Τιμή'], rows);
-              }}>Εξαγωγή CSV</Btn>
-            )}
-            <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά tab από το κουμπί «Εξαγωγή CSV».</InfoBanner>
-          </div>
-
-          <ProfileTypeCard userId={userId} value={profileType} onChange={v => onProfileChange?.(v)} />
-          <AccountantLink userId={userId} />
-          <MarketDataSharing userId={userId} />
-          <IntegrationsCard />
-          <DeleteAccountCard />
-        </div>
-      )}
-
-      {/* ── BILLING ── */}
-      {activeSection==='billing' && <Billing userId={userId} />}
-
-      {activeSection==='branding' && <ReportBranding userId={userId} onUpgrade={()=>setActiveSection('billing')} />}
-
-      {/* ── SETTINGS ── */}
-      {activeSection==='settings' && (
-        <div className="space-y-5">
-          {/* Owner */}
-          <div style={cardGap}>
-            {sectionTitle('Ιδιοκτήτης')}
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
-              <div style={{ gridColumn:'1/3' }}>
-                <label style={lbl}>Ονοματεπώνυμο</label>
-                <input style={inp} value={s.owner_name} onChange={e=>setS(p=>({...p,owner_name:e.target.value}))}/>
-              </div>
-              {([['owner_afm','ΑΦΜ'],['owner_phone','Τηλέφωνο']] as [keyof S,string][]).map(([k,l])=>(
-                <div key={k}><label style={lbl}>{l}</label><input style={inp} value={s[k]} onChange={e=>setS(p=>({...p,[k]:e.target.value}))}/></div>
-              ))}
-              <div style={{ gridColumn:'1/3' }}>
-                <label style={lbl}>Email</label>
-                <input type="email" style={inp} value={s.owner_email} onChange={e=>setS(p=>({...p,owner_email:e.target.value}))}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Providers */}
-          <div style={cardGap}>
-            {sectionTitle('Πάροχοι')}
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
-              {([['electricity_provider','Ρεύμα'],['water_provider','Νερό'],['internet_provider','Internet'],['internet_plan','Πρόγραμμα']] as [keyof S,string][]).map(([k,l])=>(
-                <div key={k}><label style={lbl}>{l}</label><input style={inp} value={s[k]} onChange={e=>setS(p=>({...p,[k]:e.target.value}))}/></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Management & Insurance */}
-          <div style={cardGap}>
-            {sectionTitle('Διαχείριση & Ασφάλεια')}
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12 }}>
-              {([['property_manager','Διαχειριστής'],['property_manager_phone','Τηλέφωνο Διαχειριστή'],['insurance_company','Ασφαλιστική'],['insurance_policy','Αρ. Πολίτικής']] as [keyof S,string][]).map(([k,l])=>(
-                <div key={k}><label style={lbl}>{l}</label><input style={inp} value={s[k]} onChange={e=>setS(p=>({...p,[k]:e.target.value}))}/></div>
-              ))}
-              <div style={{ gridColumn:'1/3' }}>
-                <label style={lbl}>Λήξη Ασφάλισης</label>
-                <DatePicker value={s.insurance_expiry} onChange={v=>setS(p=>({...p,insurance_expiry:v}))}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div style={cardGap}>
-            <label style={lbl}>Σημειώσεις</label>
-            <textarea value={s.notes} onChange={e=>setS(p=>({...p,notes:e.target.value}))} rows={4}
-              style={{ ...inp, resize:'none', height:'auto' }}/>
-          </div>
-
-          <button onClick={save}
-            style={{ width:'100%',background:'var(--accent)',color:'var(--accent-text)',border:'none',borderRadius:8,
-              padding:'12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Inter',sans-serif",
-              textTransform:'uppercase',letterSpacing:'0.1em' }}>
-            {saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση Ρυθμίσεων'}
-          </button>
-
-          <NotificationSettings userId={userId} propertyId={propertyId}/>
-        </div>
-      )}
-
-      {/* ── ΠΡΟΤΙΜΗΣΕΙΣ & ΔΥΝΑΤΟΤΗΤΕΣ ── */}
-      {activeSection==='prefs' && (
-        <div className="space-y-5">
-          <div style={{ marginBottom:16 }}>
-            <InfoBanner tone="info">
-              {prefs.rememberAcrossProperties
-                ? 'Οι προτιμήσεις αποθηκεύονται αυτόματα και εφαρμόζονται σε όλα τα ακίνητά σου, καθώς η μνήμη είναι ενεργή.'
-                : 'Οι προτιμήσεις αποθηκεύονται αυτόματα για αυτό το ακίνητο. Ενεργοποίησε τη μνήμη για να εφαρμόζονται σε όλα τα ακίνητα.'}
-            </InfoBanner>
-          </div>
-
-          {/* Ειδοποιήσεις */}
-          <div style={cardGap}>
-            {sectionTitle('Ειδοποιήσεις')}
-            {prefRow('Ζωντανές ειδοποιήσεις στην Επισκόπηση',
-              'Εμφάνιση ζωντανών ειδοποιήσεων στην αρχική οθόνη επισκόπησης.',
-              <Toggle on={prefs.liveNotifications} onChange={v=>updatePrefs({ liveNotifications:v })} size="sm"/>)}
-            {prefRow('Ειδοποιήσεις λήξεων & προθεσμιών',
-              'Υπενθυμίσεις για λήξεις ασφαλίσεων, μισθωτηρίων και φορολογικές προθεσμίες.',
-              <Toggle on={prefs.deadlineAlerts} onChange={v=>updatePrefs({ deadlineAlerts:v })} size="sm"/>)}
-          </div>
-
-          {/* Αρχείο & Καταχωρήσεις */}
-          <div style={cardGap}>
-            {sectionTitle('Αρχείο & Καταχωρήσεις')}
-            {prefRow('Αυτόματη πρόταση κατηγορίας βάσει παρόχου',
-              'Πρόταση κατηγορίας δαπάνης αυτόματα, ανάλογα με τον πάροχο που επιλέγεις.',
-              <Toggle on={prefs.autoSuggestCategory} onChange={v=>updatePrefs({ autoSuggestCategory:v })} size="sm"/>)}
-            {prefRow('Επιβεβαίωση πριν τη διαγραφή',
-              'Ερώτηση επιβεβαίωσης πριν τη διαγραφή καταχωρήσεων.',
-              <Toggle on={prefs.confirmBeforeDelete} onChange={v=>updatePrefs({ confirmBeforeDelete:v })} size="sm"/>)}
-          </div>
-
-          {/* Εμφάνιση */}
-          <div style={cardGap}>
-            {sectionTitle('Εμφάνιση')}
-            {prefRow('Συμπαγής προβολή',
-              'Πυκνότερη διάταξη με λιγότερα κενά για περισσότερες πληροφορίες στην οθόνη.',
-              <Toggle on={prefs.compactView} onChange={v=>updatePrefs({ compactView:v })} size="sm"/>)}
-            {prefRow('Εμφάνιση έξυπνων συμβουλών',
-              'Εμφάνιση χρήσιμων συμβουλών και υποδείξεων μέσα στην εφαρμογή.',
-              <Toggle on={prefs.showSmartTips} onChange={v=>updatePrefs({ showSmartTips:v })} size="sm"/>)}
-            {prefRow('Δεκαδικά στα ποσά',
-              'Πλήθος δεκαδικών ψηφίων για την εμφάνιση των χρηματικών ποσών.',
-              <div style={{ width:220 }}>
-                <CustomSelect value={prefs.decimals}
-                  onChange={v=>updatePrefs({ decimals: v as AppPreferences['decimals'] })}
-                  options={[
-                    { value:'0', label:'Χωρίς δεκαδικά (1.234 €)' },
-                    { value:'2', label:'Δύο δεκαδικά (1.234,56 €)' },
-                  ]}/>
-              </div>)}
-          </div>
-
-          {/* Μνήμη & Δεδομένα */}
-          <div style={cardGap}>
-            {sectionTitle('Μνήμη & Δεδομένα')}
-            {prefRow('Να θυμάται τις προτιμήσεις μου σε όλα τα ακίνητα',
-              'Όταν είναι ενεργό, οι προτιμήσεις σου αποθηκεύονται και μεταφέρονται αυτόματα σε κάθε ακίνητο, ώστε να μη χρειάζεται να τις ρυθμίζεις ξανά.',
-              <Toggle on={prefs.rememberAcrossProperties} onChange={v=>updatePrefs({ rememberAcrossProperties:v })} size="sm"/>)}
-          </div>
-
-          <div style={{ height:20,display:'flex',alignItems:'center',justifyContent:'flex-end' }}>
-            {prefsSaved && (
-              <span style={{ fontSize:11,color:'var(--positive)',fontFamily:"'Inter',sans-serif",
-                display:'inline-flex',alignItems:'center',gap:6 }}>
-                <span style={{ width:6,height:6,borderRadius:'50%',background:'var(--positive)' }}/>
-                Αποθηκεύτηκε
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── ΦΜΑ CALCULATOR ── */}
-      {activeSection==='fma' && (
-        <div>
-          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
-            <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>
-              Φόρος Μεταβίβασης Ακινήτων, Εκτίμηση 2024
-            </div>
-            <div style={{ display:'flex',background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:4,gap:4 }}>
-              {(['buy','sell'] as const).map(m=>(
-                <button key={m} onClick={()=>setFmaMode(m)}
-                  style={{ height:30,padding:'0 16px',borderRadius:6,border:'none',
-                    background:fmaMode===m?'var(--accent)':'transparent',
-                    color:fmaMode===m?'var(--accent-text)':'var(--text-secondary)',cursor:'pointer',fontSize:12,
-                    fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
-                  {m==='buy'?'Αγορά':'Πώληση'}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
+            {PROFILE_OPTS.map(o => {
+              const on = profileType === o.v;
+              return (
+                <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
+                  style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
+                    <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {fmaMode==='buy' ? (
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
-              <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-                <div style={cardGap}>
-                  {sectionTitle('Στοιχεία Ακινήτου')}
-                  <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-                    <div><label style={lbl}>Συμβολαιογραφική Αξία (€)</label>
-                      <input type="number" style={inp} value={contractVal} onChange={e=>setContractVal(e.target.value)} placeholder="π.χ. 150000"/></div>
-                    <div><label style={lbl}>Αντικειμενική Αξία (€)</label>
-                      <input type="number" style={inp} value={objVal} onChange={e=>setObjVal(e.target.value)} placeholder="π.χ. 120000"/></div>
-                    {buyCalc && buyCalc.taxBase>=(parseFloat(objVal)||0) && parseFloat(objVal)>parseFloat(contractVal) && (
-                      <div style={{ fontSize:11,color:'var(--warning)',background:'var(--warning-soft)',
-                        border:'1px solid var(--warning-border)',borderRadius:8,padding:'8px 12px' }}>
-                        <span title="Φόρος Μεταβίβασης Ακινήτων">ΦΜΑ</span> υπολογίζεται επί αντικειμενικής ({fe(parseFloat(objVal))})
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div style={cardGap}>
-                  {sectionTitle('Επιλογές')}
-                  <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-                    {[
-                      {label:'Πρώτη Κύρια Κατοικία (αφορολ. έως €200k)',on:isFirstHome,set:setIsFirstHome},
-                      {label:'Μεσίτης (2% + ΦΠΑ)', on:hasBroker, set:setHasBroker},
-                      {label:'Δικηγόρος', on:hasLawyer, set:setHasLawyer},
-                      {label:'Στεγαστικό Δάνειο', on:needsMortgage, set:setNeedsMortgage},
-                    ].map((opt,i)=>(
-                      <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                        <span style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif" }}>{opt.label}</span>
-                        <Toggle on={opt.on} onChange={opt.set} size="sm"/>
-                      </div>
-                    ))}
-                    {needsMortgage && (
-                      <div><label style={lbl}>Ποσό Δανείου (€)</label>
-                        <input type="number" style={inp} value={mortgageAmt} onChange={e=>setMortgageAmt(e.target.value)}/></div>
-                    )}
-                    {isFirstHome && (
-                      <div style={{ fontSize:11,color:'var(--text-secondary)',background:'var(--bg-base)',
-                        border:'1px solid var(--border-subtle)',borderRadius:8,padding:'8px 12px' }}>
-                        Αφορολόγητο ποσό: έως €200.000. <span title="Φόρος Μεταβίβασης Ακινήτων">ΦΜΑ</span> μόνο για το υπερβάλλον.
-                      </div>
-                    )}
-                  </div>
+          {/* Έξυπνη ειδοποίηση αναβάθμισης */}
+          {needsUpgrade && (
+            <div style={{ marginTop: 12, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Ο τρόπος «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
                 </div>
               </div>
-
-              <div>
-                {buyCalc ? (
-                  <>
-                    <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
-                      <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(buyCalc.total)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Συνολικό Κόστος Αγοράς</div>
-                      </div>
-                      <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:20,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>
-                          {buyCalc.cv>0?((buyCalc.total/buyCalc.cv)*100).toFixed(1):'—'}%
-                        </div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Επί Αξίας</div>
-                      </div>
-                    </div>
-                    <div style={cardGap}>
-                      {sectionTitle('Ανάλυση')}
-                      {statRow(`ΦΜΑ 3%${isFirstHome?' (μειωμένο)':''}`, fe(buyCalc.fma))}
-                      {statRow('Συμβολαιογράφος', fe(buyCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου 24%', fe(buyCalc.notaryVat))}
-                      {buyCalc.lawyer>0 && statRow('Δικηγόρος', fe(buyCalc.lawyer))}
-                      {buyCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου 24%', fe(buyCalc.lawyerVat))}
-                      {buyCalc.broker>0 && statRow('Μεσίτης 2%', fe(buyCalc.broker))}
-                      {buyCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη 24%', fe(buyCalc.brokerVat))}
-                      {statRow('Τέλος Μεταγραφής 0.5%', fe(buyCalc.reg))}
-                      {buyCalc.mortg>0 && statRow('Έξοδα Υποθήκης ~1%', fe(buyCalc.mortg))}
-                      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Σύνολο Εξόδων</span>
-                        <span style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.total)}</span>
-                      </div>
-                    </div>
-                    <div style={{ ...card,border:'1px solid var(--accent)',background:'var(--accent-soft)' }}>
-                      {sectionTitle('Συνολικό Κεφάλαιο')}
-                      {statRow('Τίμημα Ακινήτου', fe(buyCalc.cv))}
-                      {statRow('Έξοδα Αγοράς', fe(buyCalc.total))}
-                      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Συνολικό Κεφάλαιο</span>
-                        <span style={{ fontSize:22,fontWeight:700,color:'var(--accent)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(buyCalc.cv+buyCalc.total)}</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
-                    <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif" }}>Συμπλήρωσε την αξία του ακινήτου</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
-              <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-                <div style={cardGap}>
-                  {sectionTitle('Στοιχεία Πώλησης')}
-                  <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-                    <div><label style={lbl}>Τιμή Πώλησης (€)</label>
-                      <input type="number" style={inp} value={sellVal} onChange={e=>setSellVal(e.target.value)}/></div>
-                    <div><label style={lbl}>Τιμή Αγοράς (€)</label>
-                      <input type="number" style={inp} value={origPrice} onChange={e=>setOrigPrice(e.target.value)}/></div>
-                    <div><label style={lbl}>Έτος Αγοράς</label>
-                      <input type="number" style={inp} value={origYear} onChange={e=>setOrigYear(e.target.value)} placeholder="π.χ. 2018"/></div>
-                  </div>
-                </div>
-                <div style={cardGap}>
-                  {sectionTitle('Επιλογές')}
-                  <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-                    <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                      <span style={{ fontSize:12,color:'var(--text-secondary)' }}>Μεσίτης (2% + ΦΠΑ)</span>
-                      <Toggle on={sellBroker} onChange={setSellBroker} size="sm"/>
-                    </div>
-                    <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                      <span style={{ fontSize:12,color:'var(--text-secondary)' }}>Δικηγόρος</span>
-                      <Toggle on={sellLawyer} onChange={setSellLawyer} size="sm"/>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                {sellCalc ? (
-                  <>
-                    <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
-                      <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--negative)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.total)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Έξοδα Πώλησης</div>
-                      </div>
-                      <div style={{ ...card,textAlign:'center' }}>
-                        <div style={{ fontSize:18,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:4 }}>{fe(sellCalc.net)}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-secondary)' }}>Καθαρά Έσοδα</div>
-                      </div>
-                    </div>
-                    <div style={cardGap}>
-                      {sectionTitle('Ανάλυση')}
-                      {statRow('Συμβολαιογράφος', fe(sellCalc.notary))}
-                      {statRow('ΦΠΑ Συμβολαιογράφου', fe(sellCalc.notaryVat))}
-                      {sellCalc.lawyer>0 && statRow('Δικηγόρος', fe(sellCalc.lawyer))}
-                      {sellCalc.lawyerVat>0 && statRow('ΦΠΑ Δικηγόρου', fe(sellCalc.lawyerVat))}
-                      {sellCalc.broker>0 && statRow('Μεσίτης 2%', fe(sellCalc.broker))}
-                      {sellCalc.brokerVat>0 && statRow('ΦΠΑ Μεσίτη', fe(sellCalc.brokerVat))}
-                      {statRow('Πιστοποιητικά & ΔΟΥ', fe(150))}
-                      {sellCalc.gainTax>0 && statRow(`Φόρος Κέρδους 15% (${sellCalc.yrs}χρ κατοχή)`, fe(sellCalc.gainTax))}
-                      {sellCalc.gain>0 && sellCalc.gainTax===0 && (
-                        <div style={{ fontSize:11,color:'var(--positive)',background:'var(--positive-soft)',border:'1px solid var(--positive-border)',borderRadius:8,padding:'8px 12px',margin:'4px 0' }}>
-                          Κέρδος {fe(sellCalc.gain)}, Αφορολόγητο ({sellCalc.yrs} χρόνια κατοχής)
-                        </div>
-                      )}
-                      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10 }}>
-                        <span style={{ fontSize:14,fontWeight:700,fontFamily:"'Inter',sans-serif" }}>Καθαρά Έσοδα</span>
-                        <span style={{ fontSize:20,fontWeight:700,color:'var(--positive)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(sellCalc.net)}</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ ...card,textAlign:'center',padding:48,color:'var(--text-tertiary)' }}>
-                    <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif" }}>Συμπλήρωσε την τιμή πώλησης</div>
-                  </div>
-                )}
-              </div>
+              <Btn variant="primary" onClick={openBilling}>Δες τα πλάνα</Btn>
             </div>
           )}
+        </div>
 
-          {/* Info notes */}
-          <div style={{ ...cardGap,marginTop:14 }}>
-            {sectionTitle('Σημαντικές Πληροφορίες')}
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:10 }}>
-              {[
-                {title:'Πρώτη Κατοικία',desc:'Αφορολόγητο ΦΜΑ έως €200.000 για ανύπαντρους, έως €275.000 για έγγαμους.'},
-                {title:'Νέα Ακίνητα (ΦΠΑ)',desc:'Ακίνητα με άδεια μετά το 2006: ΦΠΑ 24% αντί ΦΜΑ 3%. Απαλλαγή έως 31/12/2024.'},
-                {title:'Κτηματολόγιο',desc:'Σε περιοχές με ενεργό κτηματολόγιο απαιτείται εγγραφή. Κόστος ~0.5% επί αξίας.'},
-              ].map((n,i)=>(
-                <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:8,padding:'12px 14px' }}>
-                  <div style={{ fontSize:12,fontWeight:500,color:'var(--accent)',fontFamily:"'Inter',sans-serif",marginBottom:6 }}>{n.title}</div>
-                  <div style={{ fontSize:11,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",lineHeight:1.6 }}>{n.desc}</div>
-                </div>
-              ))}
-            </div>
+        {/* Επωνυμία αναφορών (μόνο για Επαγγελματία) */}
+        {profileType === 'professional' && (
+          <div style={divider}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>Επωνυμία αναφορών</div>
+            <ReportBranding userId={userId} onUpgrade={openBilling} />
           </div>
+        )}
+      </Card>
+
+      {/* Διαχείριση συνδρομής (αποκάλυψη) */}
+      {showBilling && (
+        <div ref={billingRef} style={{ scrollMarginTop: 16 }}>
+          <Billing userId={userId} />
         </div>
       )}
 
-      {/* ── Ε2 HELPER ── */}
-      {activeSection==='e2' && (
-        <div>
-          <div style={{ ...cardGap,border:'1px solid var(--accent-border)',background:'var(--accent-soft)' }}>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14 }}>
-              {sectionTitle('Εκτίμηση Φόρου Εισοδήματος Ακινήτων')}
-              <select value={e2Year} onChange={e=>setE2Year(e.target.value)}
-                style={{ ...inp,width:'auto',height:36,padding:'0 12px',fontSize:12 }}>
-                {[new Date().getFullYear()-1,new Date().getFullYear()-2,new Date().getFullYear()-3]
-                  .map(y=><option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12,marginBottom:16 }}>
-              <div>
-                <label style={lbl}>Ετήσια Μισθώματα {e2Year} (€)</label>
-                <input type="number" style={inp} value={e2Rent} onChange={e=>setE2Rent(e.target.value)}
-                  placeholder="π.χ. 8400 (700€/μήνα × 12)"/>
-              </div>
-              <div>
-                <label style={lbl}>Εκπιπτόμενες Δαπάνες (€)</label>
-                <input type="number" style={inp} value={e2Deductible} onChange={e=>setE2Deductible(e.target.value)}
-                  placeholder="από TabΔαπάνες"/>
-              </div>
-            </div>
-
-            {e2Result ? (
-              <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16 }}>
-                {/* Left: KPIs */}
-                <div>
-                  <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:10,marginBottom:14 }}>
-                    {[
-                      {label:'Ακαθάριστα',value:fe(e2Result.taxable+parseFloat(e2Deductible)||0),color:'var(--text-primary)'},
-                      {label:'Φορολογητέο',value:fe(e2Result.taxable),color:'var(--text-primary)'},
-                      {label:'Φόρος',value:fe(e2Result.tax),color:'var(--negative)'},
-                      {label:'Καθαρό/μήνα',value:fe(e2Result.netAfterTax/12),color:'var(--accent)'},
-                    ].map((k,i)=>(
-                      <div key={i} style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'12px 14px' }}>
-                        <div style={{ fontSize:15,fontWeight:700,color:k.color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums',marginBottom:3 }}>{k.value}</div>
-                        <div style={{ fontSize:9,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-tertiary)' }}>{k.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Bracket breakdown */}
-                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14 }}>
-                    {sectionTitle('Κλιμάκωση')}
-                    {e2Result.breakdown.map((b,i)=>(
-                      <div key={i} style={{ marginBottom:10 }}>
-                        <div style={{ display:'flex',justifyContent:'space-between',marginBottom:3 }}>
-                          <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{b.label}</span>
-                          <span style={{ fontSize:12,fontWeight:600,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{fe(b.tax)}</span>
-                        </div>
-                        <div style={{ height:4,background:'var(--border-subtle)',borderRadius:2 }}>
-                          <div style={{ height:'100%',width:`${(b.taxable/(e2Result.taxable||1))*100}%`,background:'var(--text-secondary)',borderRadius:2 }}/>
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ display:'flex',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize:11,color:'var(--text-secondary)' }}>Πραγματικός Συντελεστής</span>
-                      <span style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)',fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>
-                        {e2Result.effectiveRate.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: E2 codes + deadlines */}
-                <div>
-                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,marginBottom:14 }}>
-                    {sectionTitle('Κωδικοί Ε2, Τι να γράψεις')}
-                    {[
-                      {code:'Κωδ. 101',label:'Ακαθάριστα Μισθώματα',value:fe(parseFloat(e2Rent)||0),color:'var(--text-primary)'},
-                      {code:'Κωδ. 102',label:'Εκπιπτόμενες Δαπάνες',value:fe(parseFloat(e2Deductible)||0),color:'var(--text-primary)'},
-                      {code:'Κωδ. 103',label:'Καθαρό Φορολογητέο',value:fe(e2Result.taxable),color:'var(--text-primary)'},
-                      {code:'Κωδ. 401',label:'Φόρος Εισοδήματος',value:fe(e2Result.tax),color:'var(--text-primary)'},
-                      {code:'Προκαταβολή 55%',label:'Επόμενο έτος',value:fe(e2Result.advance),color:'var(--text-primary)'},
-                    ].map((row,i)=>(
-                      <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
-                        <div>
-                          <span style={{ fontSize:9,fontWeight:700,color:'var(--accent)',fontFamily:"'Inter',sans-serif",marginRight:8 }}>{row.code}</span>
-                          <span style={{ fontSize:11,color:'var(--text-secondary)' }}>{row.label}</span>
-                        </div>
-                        <span style={{ fontSize:12,fontWeight:600,color:row.color,fontFamily:"'Inter', sans-serif",fontVariantNumeric:'tabular-nums' }}>{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:14,marginBottom:14 }}>
-                    {sectionTitle('Σημαντικές Προθεσμίες')}
-                    {[
-                      {label:'Υποβολή Ε1/Ε2',desc:'30 Ιουνίου κάθε χρόνο',color:'var(--accent)'},
-                      {label:'Καταχώρηση Μισθωτηρίου',desc:'Εντός 30 ημερών από υπογραφή',color:'var(--text-primary)'},
-                      {label:'Ηλεκτρονική Πληρωμή',desc:'Έκπτωση 5% αν πληρώσεις online',color:'var(--text-primary)'},
-                    ].map((d,i)=>(
-                      <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)' }}>
-                        <div>
-                          <div style={{ fontSize:12,fontWeight:500,color:d.color,fontFamily:"'Inter',sans-serif" }}>{d.label}</div>
-                          <div style={{ fontSize:11,color:'var(--text-secondary)' }}>{d.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer" title="ΑΑΔΕ — Ανεξάρτητη Αρχή Δημοσίων Εσόδων"
-                    style={{ display:'flex',alignItems:'center',gap:6,padding:'10px 14px',
-                      background:'var(--accent-soft)',border:'1px solid var(--accent-border)',
-                      borderRadius:8,textDecoration:'none',color:'var(--accent)',fontSize:12,
-                      fontFamily:"'Inter',sans-serif",fontWeight:500 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    AADE.gr, Φορολογία Ακινήτων
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign:'center',padding:'32px',color:'var(--text-tertiary)' }}>
-                <div style={{ fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:6 }}>
-                  Συμπλήρωσε τα ετήσια μισθώματα για υπολογισμό
-                </div>
-                <div style={{ fontSize:11 }}>Φορολογική κλίμακα: 15% / 25% / 35% / 45%</div>
-              </div>
-            )}
-          </div>
-
-          <div style={cardGap}>
-            {sectionTitle('Αναλυτική Κατάσταση Ε2 (για λογιστή)')}
-            <div style={{ fontSize:12,color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",lineHeight:1.6,marginBottom:14 }}>
-              Κατέβασε αρχείο CSV με μία γραμμή ανά ακίνητο (ΑΤΑΚ, διεύθυνση, ποσοστό συνιδιοκτησίας, είδος μίσθωσης, μήνες, ακαθάριστο εισόδημα) για το έτος {e2Year}. Έτοιμο για αποστολή στον λογιστή σου.
-            </div>
-            <Btn variant="primary" onClick={async()=>{ const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
-            <div style={{ marginTop:12 }}>
-              <InfoBanner tone="warning">Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου· το <span title="Αριθμός Ταυτότητας Ακινήτου (από το Ε9)">ΑΤΑΚ</span> και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>.</InfoBanner>
-            </div>
-          </div>
-
-          <div style={{ fontSize:11,color:'var(--text-tertiary)',textAlign:'center',fontFamily:"'Inter',sans-serif",lineHeight:1.6 }}>
-            Εκτίμηση βάσει ισχύουσας νομοθεσίας. Δεν αποτελεί επίσημη φορολογική συμβουλή. Συμβουλευτείτε λογιστή.
-          </div>
+      {/* ── 3. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '140ms' }}>
+        <SecHdr label="Εμφάνιση & Γλώσσα" />
+        <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
+        <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
+        <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
+        <SettingRow title="Δεκαδικά στα ποσά" desc="Πλήθος δεκαδικών ψηφίων για την εμφάνιση χρηματικών ποσών."
+          control={<div style={{ width: 220 }}>
+            <CustomSelect value={prefs.decimals}
+              onChange={v => updatePrefs({ decimals: v as AppPreferences['decimals'] })}
+              options={[
+                { value: '0', label: 'Χωρίς δεκαδικά (1.234 €)' },
+                { value: '2', label: 'Δύο δεκαδικά (1.234,56 €)' },
+              ]} />
+          </div>} />
+        <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+          {prefsSaved && (
+            <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
+              Αποθηκεύτηκε
+            </span>
+          )}
         </div>
-      )}
+      </Card>
+
+      {/* ── 4. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
+        <SecHdr label="Ειδοποιήσεις" />
+        <NotificationSettings userId={userId} propertyId={propertyId} />
+      </Card>
+
+      {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
+        <SecHdr label="Δεδομένα & Απόρρητο" />
+        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV."
+          control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
+        <div style={{ marginTop: 12 }}>
+          <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά καρτέλα από το κουμπί «Εξαγωγή CSV».</InfoBanner>
+        </div>
+        <AccountantLink userId={userId} />
+        <MarketDataSharing userId={userId} />
+        <IntegrationsList />
+        <div style={{ ...divider, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνδεση</div>
+          <Btn variant="secondary" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }}>Αποσύνδεση</Btn>
+        </div>
+        <DeleteAccount />
+      </Card>
+
     </div>
   );
 }
