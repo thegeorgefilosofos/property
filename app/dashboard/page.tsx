@@ -56,7 +56,7 @@ interface Property {
   insurance_expiry: string | null; pea_class: string | null; year_built: number | null;
   atak: string | null; floor: number | string | null; heating: string | null;
   parking_spaces: number | null; storage_sqm: number | null; bedrooms: number | null;
-  rental_mode: string | null; client_id: string | null;
+  rental_mode: string | null; client_id: string | null; co_owners: string[] | null;
   notes: string | null; status_detail: string | null; created_at: string;
 }
 interface Expense  { id:string; amount:number; date:string; category:string; description:string; }
@@ -495,10 +495,17 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
         <button onClick={()=>printPropertyStatement({
-          propName: prop.name, address: prop.address||undefined,
+          propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
           propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
           status: STATUS_LABELS[prop.status_detail||'']||undefined, year, propValue: propValue||undefined,
-          sqm: prop.sqm||undefined, monthlyRent: rent, annualRent, grossYield, netYield,
+          objValue: prop.obj_value!=null?Number(prop.obj_value):undefined, enfia: prop.enfia!=null?Number(prop.enfia):undefined,
+          sqm: prop.sqm||undefined, bedrooms: prop.bedrooms!=null?prop.bedrooms:undefined,
+          floor: prop.floor!=null?prop.floor:undefined, yearBuilt: prop.year_built!=null?prop.year_built:undefined,
+          energyClass: prop.pea_class||undefined, atak: prop.atak||undefined,
+          ownership: prop.ownership!=null?Number(prop.ownership):undefined,
+          coOwners: Array.isArray(prop.co_owners)?prop.co_owners:undefined,
+          shortTerm: prop.rental_mode==='short_term'||prop.status_detail==='seasonal',
+          monthlyRent: rent, annualRent, grossYield, netYield,
           expensesYTD: totalExpYTD, categories: catEntries, branding,
         })}
           style={{display:'inline-flex',alignItems:'center',gap:8,height:36,padding:'0 16px',borderRadius:100,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:'pointer'}}
