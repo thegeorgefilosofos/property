@@ -9,9 +9,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput, CustomSelect } from './UIComponents';
-import { T, Btn, InfoBanner, Spinner, Card, SecHdr, feAuto } from '@/components/Theme';
-import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
-import { PLANS, PLAN_ORDER, annualPerMonth } from '@/lib/billing/plans';
+import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
 
 interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
@@ -26,8 +24,6 @@ const INIT: BillingData = {
 export default function Billing({ userId }: { userId: string }) {
   const supabase = createClient();
   const [d, setD] = useState<BillingData>(INIT);
-  const [profileType, setProfileType] = useState<ProfileType>('individual');
-  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -40,7 +36,6 @@ export default function Billing({ userId }: { userId: string }) {
       const meta = (u.user?.user_metadata as any) || {};
       if (data) setD({ ...INIT, ...data });
       else setD(p => ({ ...p, full_name: meta.full_name || '' }));
-      setProfileType((data as { profile_type?: string } | null)?.profile_type === 'professional' ? 'professional' : 'individual');
       setLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,66 +58,6 @@ export default function Billing({ userId }: { userId: string }) {
 
   return (
     <div>
-      {/* Plans, σύγκριση (η πληρωμή με κάρτα έρχεται με το Stripe) */}
-      <Card>
-        <SecHdr label="Πλάνο συνδρομής" right={
-          <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100 }}>
-            {(['monthly', 'annual'] as const).map(c => (
-              <button key={c} onClick={() => setCycle(c)}
-                style={{ appearance: 'none', border: 'none', cursor: 'pointer', padding: '5px 12px', borderRadius: 100, fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: cycle === c ? 'var(--text-primary)' : 'var(--text-tertiary)', background: cycle === c ? 'var(--bg-surface)' : 'transparent', boxShadow: cycle === c ? 'var(--elev-1)' : 'none' }}>
-                {c === 'monthly' ? 'Μηνιαία' : 'Ετήσια'}
-              </button>
-            ))}
-          </div>
-        } />
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 14 }}>
-          {profileType === 'professional'
-            ? 'Στον τρόπο «Επαγγελματίας» διαθέσιμο είναι το πλάνο Επαγγελματίας. Για Δωρεάν ή Ιδιοκτήτη, γύρνα στον τρόπο «Ιδιώτης» από τη σελίδα Λογαριασμός.'
-            : 'Στον τρόπο «Ιδιώτης» διαλέγεις ανάμεσα σε Δωρεάν και Ιδιοκτήτη. Το πλάνο Επαγγελματίας ενεργοποιείται στον τρόπο «Επαγγελματίας».'}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-          {PLAN_ORDER.map(id => {
-            const p = PLANS[id];
-            const allowed = isPlanAllowedForProfile(profileType, id);
-            const locked = !allowed;
-            const isCurrent = allowed && (d.plan === id || (id === 'free' && d.plan !== 'owner' && d.plan !== 'agency'));
-            const popular = !locked && !isCurrent && id === (profileType === 'professional' ? 'agency' : 'owner');
-            const hint = profileType === 'professional' ? 'Διαθέσιμο στον τρόπο «Ιδιώτης»' : 'Διαθέσιμο στον τρόπο «Επαγγελματίας»';
-            const isFree = p.priceMonthly === 0;
-            const priceMain = isFree ? '0 €' : cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
-            const monthsFree = p.priceAnnual > 0 && p.priceMonthly > 0 ? Math.round(12 - p.priceAnnual / p.priceMonthly) : 0;
-            return (
-              <div key={id} title={locked ? hint : undefined}
-                style={{ position: 'relative', opacity: locked ? 0.55 : 1, background: isCurrent ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1.5px solid ${isCurrent ? 'var(--accent)' : popular ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '16px' }}>
-                {popular && <span style={{ position: 'absolute', top: -9, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: 100, padding: '2px 9px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.02em' }}>Πιο δημοφιλές</span>}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
-                  {isCurrent
-                    ? <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Τρέχον</span>
-                    : locked && <span aria-hidden style={{ color: 'var(--text-tertiary)', display: 'inline-flex' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></span>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num }}>{priceMain}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{isFree ? 'για πάντα' : '/μήνα'}</span>
-                </div>
-                {!isFree && cycle === 'annual' && (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span>{feAuto(p.priceAnnual)}/χρόνο</span>
-                    {monthsFree > 0 && <span style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)', borderRadius: 100, padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>περίπου {monthsFree} μήνες δωρεάν</span>}
-                  </div>
-                )}
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, fontFamily: T.font.sans, lineHeight: 1.4 }}>
-                  {p.maxProperties === Infinity ? 'Απεριόριστα ακίνητα' : `Έως ${p.maxProperties} ${p.maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 12 }}>
-          Η τελική τιμή με ΦΠΑ και η ακριβής ημερομηνία χρέωσης επιβεβαιώνονται στην πληρωμή, που έρχεται σύντομα.
-        </div>
-      </Card>
-
       {/* Invoice details */}
       <Card>
         <SecHdr label="Στοιχεία τιμολόγησης" />

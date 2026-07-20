@@ -16,6 +16,8 @@ import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
+import PlanComparison from './PlanComparison';
+import { exportAllData } from '@/lib/dataExport';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
 
@@ -297,9 +299,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [prefsSaved, setPrefsSaved] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Αποκάλυψη διαχείρισης συνδρομής
+  // Αποκάλυψη διαχείρισης συνδρομής (νηφάλια χρέωση) & σύγκρισης πλάνων (aspirational)
   const [showBilling, setShowBilling] = useState(false);
   const billingRef = useRef<HTMLDivElement | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
+  const comparisonRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportErr, setExportErr] = useState('');
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -351,6 +357,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setShowBilling(true);
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
+  const openComparison = () => {
+    setShowComparison(true);
+    setTimeout(() => comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
 
   const ent = { plan, profileType, partner, compPlan, compUntil };
   const effPlan = effectivePlan(ent);
@@ -368,6 +378,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const exportSettingsCsv = () => {
     const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
     downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0, 10)}`, ['Πεδίο', 'Τιμή'], rows);
+  };
+
+  const exportAll = async () => {
+    if (exporting) return;
+    setExporting(true); setExportErr('');
+    const res = await exportAllData(userId);
+    setExporting(false);
+    if (!res.ok) setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.');
   };
 
   const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
@@ -396,7 +414,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
           </div>
-          <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Btn variant="primary" onClick={openComparison}>Σύγκρινε πλάνα</Btn>
+            <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+          </div>
         </div>
 
         {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
@@ -465,7 +486,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
                 </div>
               </div>
-              <Btn variant="primary" onClick={openBilling}>Δες τα πλάνα</Btn>
+              <Btn variant="primary" onClick={openComparison}>Δες τα πλάνα</Btn>
             </div>
           )}
         </div>
@@ -474,12 +495,19 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         {profileType === 'professional' && (
           <div style={divider}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>Επωνυμία αναφορών</div>
-            <ReportBranding userId={userId} onUpgrade={openBilling} />
+            <ReportBranding userId={userId} onUpgrade={openComparison} />
           </div>
         )}
       </Card>
 
-      {/* Διαχείριση συνδρομής (αποκάλυψη) */}
+      {/* Σύγκριση πλάνων (αποκάλυψη, aspirational, N26-style highlight-gains) */}
+      {showComparison && (
+        <div ref={comparisonRef} style={{ scrollMarginTop: 16, marginBottom: 16 }}>
+          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
+        </div>
+      )}
+
+      {/* Διαχείριση συνδρομής (αποκάλυψη, νηφάλια χρέωση) */}
       {showBilling && (
         <div ref={billingRef} style={{ scrollMarginTop: 16 }}>
           <Billing userId={userId} />
@@ -520,10 +548,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
       <Card className="acc-section" style={{ animationDelay: '280ms' }}>
         <SecHdr label="Δεδομένα & Απόρρητο" />
-        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV."
+        <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
+          control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
+        {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
+        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε αρχείο CSV για γρήγορη ματιά."
           control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
         <div style={{ marginTop: 12 }}>
-          <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά καρτέλα από το κουμπί «Εξαγωγή CSV».</InfoBanner>
+          <InfoBanner tone="info">Για αναλυτικά δεδομένα ανά κατηγορία, κάθε καρτέλα (δαπάνες, λογαριασμοί, ενοικιαστές) έχει και τη δική της εξαγωγή CSV.</InfoBanner>
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
