@@ -65,7 +65,7 @@ export function reportHeader(branding: ReportBranding | null | undefined, report
   const rv = opts.rightValue ?? rDate();
   return `<div class="top">
     <div class="brand">${mark}<div>
-      <div class="bname">${rEsc(brandName(branding))}</div>
+      <div class="bname">${brandName(branding)}</div>
       <div class="muted" style="font-size:11px">${rEsc(reportType)}</div>
       ${contact ? `<div class="muted" style="font-size:10px;margin-top:2px">${contact}</div>` : ''}
     </div></div>
@@ -87,7 +87,7 @@ export const reportKpi = (label: string, value: string): string =>
   `<div class="kpi"><div class="kl">${rEsc(label)}</div><div class="kv">${rEsc(value)}</div></div>`;
 
 export function reportDisclaimer(text: string, branding?: ReportBranding | null): string {
-  return `<div class="disc">${branding?.companyName ? rEsc(brandName(branding)) + ' · ' : ''}${rEsc(text)}</div>`;
+  return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}</div>`;
 }
 
 /** Ανοίγει παράθυρο εκτύπωσης με το πλήρες HTML (auto-print). */

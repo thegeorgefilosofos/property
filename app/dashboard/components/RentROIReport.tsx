@@ -57,7 +57,7 @@ export default function RentROIReport({
       + `<table><tbody>${plRows}</tbody></table>`
       + `<div class="kpis" style="margin-top:14px">`
       + reportKpi('Απόσβεση', calc.payback > 0 ? `${calc.payback.toFixed(1)} χρ` : '—')
-      + reportKpi('Πραγματική απόδοση', rPct(calc.trueYield))
+      + reportKpi('Πραγματική απόδοση (με κόστη απόκτησης)', rPct(calc.trueYield))
       + reportKpi('Πραγματικός φορ. συντελεστής', rPct(calc.effectiveRate))
       + reportKpi('Breakeven / μήνα', rEur(calc.breakeven))
       + `</div>`
