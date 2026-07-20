@@ -154,7 +154,7 @@ export default function Billing({ userId }: { userId: string }) {
           </button>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-          Χωρίς δέσμευση. Αλλάζεις, υποβαθμίζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις. Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή.
+          Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή: αλλάζεις, υποβαθμίζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
         </div>
       </Card>
     </div>

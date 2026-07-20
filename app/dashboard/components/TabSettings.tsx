@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, settingsField } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
@@ -113,7 +113,8 @@ function MarketDataSharing({ userId }: { userId: string }) {
   }, [userId]);
   const toggle = async (v: boolean) => {
     setOn(v);
-    await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
+    if (error) setOn(!v); // επαναφορά αν η αποθήκευση απέτυχε (χωρίς σιωπηλή απόκλιση)
   };
   return (
     <div style={{ ...divider, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -168,8 +169,8 @@ function DeleteAccount() {
           <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
-          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus
-            style={{ width: '100%', maxWidth: 260, height: 40, padding: '0 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none', marginBottom: 12 }} />
+          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus className="po-field"
+            style={{ ...settingsField, maxWidth: 260, marginBottom: 12 }} />
           {error && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {/* Ουδέτερο ως προεπιλογή· κόκκινο μόνο στο hover/focus, όταν είναι ενεργό (γραμμένο ΔΙΑΓΡΑΦΗ). */}
@@ -192,12 +193,6 @@ function DeleteAccount() {
   );
 }
 
-// ── Πεδίο σε γραμμή «ετικέτα … τιμή / επεξεργασία» ─────────────────────────
-const fieldStyle = {
-  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
-  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
-} as const;
 
 // ── Προφίλ: email (επεξεργάσιμο) + όνομα (μία αλλαγή ανά μήνα) ─────────────
 function ProfileCard({ userId, email }: { userId: string; email: string }) {
@@ -273,7 +268,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Νέο email</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
+              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
               <Btn variant="primary" onClick={saveEmail} disabled={emailBusy}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
               <Btn variant="secondary" onClick={() => setEmailEdit(false)} disabled={emailBusy}>Ακύρωση</Btn>
             </div>
@@ -296,7 +291,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Όνομα ή επωνυμία</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
+              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
               <Btn variant="primary" onClick={saveName} disabled={nameBusy}>{nameBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
               <Btn variant="secondary" onClick={() => setNameEdit(false)} disabled={nameBusy}>Ακύρωση</Btn>
             </div>
@@ -333,6 +328,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Προτιμήσεις εφαρμογής (κρατάμε μόνο τα δεκαδικά ορατά εδώ, χωρίς απώλεια των υπολοίπων)
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
   const [prefsSaved, setPrefsSaved] = useState(false);
+  const [prefsErr, setPrefsErr] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ενιαία «Διαχείριση συνδρομής»: σύγκριση πλάνων + στοιχεία τιμολόγησης, σε μία
@@ -375,11 +371,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       const next = { ...prev, ...partial };
       if (prefsTimer.current) clearTimeout(prefsTimer.current);
       prefsTimer.current = setTimeout(async () => {
-        await supabase.from('bills_settings').upsert({
+        const { error } = await supabase.from('bills_settings').upsert({
           property_id: propertyId, user_id: String(userId),
           section: 'app_preferences', data: next, updated_at: new Date().toISOString(),
         }, { onConflict: 'property_id,section' });
-        setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
+        if (error) { setPrefsErr(true); return; }
+        setPrefsErr(false); setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
       }, 800);
       return next;
     });
@@ -388,8 +385,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
   const setProfile = async (v: ProfileType) => {
     if (v === profileType) return;
+    const prev = profileType;
     onProfileChange?.(v);
-    await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+    if (error) onProfileChange?.(prev); // επαναφορά αν απέτυχε
   };
 
   // Ένα σημείο εισόδου: όλα τα CTA (διαχείριση, σύγκριση, «Δες τα πλάνα») ανοίγουν
@@ -556,7 +555,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
       {showManage && (
         <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
-          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
+          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
           <Billing userId={userId} />
         </div>
       )}
@@ -586,8 +585,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
       <CollapsibleSection title="Εμφάνιση & Γλώσσα" delay="210ms">
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
-        <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
-        <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
         <SettingRow title="Δεκαδικά στα ποσά" desc="Πλήθος δεκαδικών ψηφίων για την εμφάνιση χρηματικών ποσών."
           control={<div style={{ width: 264 }}>
             <CustomSelect value={prefs.decimals}
@@ -601,19 +598,24 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
         <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
           control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
-        <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
-          {prefsSaved && (
-            <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
-              Αποθηκεύτηκε
-            </span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)
+          </span>
+          {prefsErr
+            ? <span style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>
+            : prefsSaved && (
+              <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
+                Αποθηκεύτηκε
+              </span>
+            )}
         </div>
       </CollapsibleSection>
 
       {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
       <CollapsibleSection title="Ασφάλεια" delay="280ms">
-        <SecuritySettings userId={userId} />
+        <SecuritySettings />
       </CollapsibleSection>
 
       {/* ── ΔΡΑΣΤΗΡΙΟΤΗΤΑ (audit log) ─────────────────────────────────── */}

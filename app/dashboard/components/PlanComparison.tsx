@@ -56,13 +56,11 @@ function LockGlyph() {
   );
 }
 
-export default function PlanComparison({ userId, profileType, currentPlan, onUpgrade }: {
-  userId: string;
+export default function PlanComparison({ profileType, currentPlan, onUpgrade }: {
   profileType: 'individual' | 'professional';
   currentPlan: PlanId;
   onUpgrade?: () => void;
 }) {
-  void userId; // κρατείται στην υπογραφή για μελλοντική χρήση (analytics/checkout)
   const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const rankOf = (id: PlanId) => PLAN_ORDER.indexOf(id);
