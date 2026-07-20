@@ -283,7 +283,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       {/* 4. Επαλήθευση δύο βημάτων (2FA / TOTP) */}
       <div style={group}>
         <div style={subLabel}>Επαλήθευση δύο βημάτων</div>
-        <div style={desc}>Πρόσθεσε ένα δεύτερο επίπεδο ασφάλειας με εφαρμογή επαλήθευσης (authenticator).</div>
+        <div style={desc}>Πρόσθεσε ένα δεύτερο επίπεδο ασφάλειας με εφαρμογή επαλήθευσης. Προτείνουμε το Google Authenticator (δωρεάν, από App Store ή Google Play) ως την πιο ασφαλή και απλή επιλογή, αλλά λειτουργεί με οποιαδήποτε (Authy, Microsoft Authenticator, 1Password).</div>
 
         {mfaState === 'loading' && (
           <div style={{ ...desc, marginTop: 12 }}>Έλεγχος κατάστασης…</div>
@@ -298,8 +298,11 @@ export default function SecuritySettings({ userId }: { userId: string }) {
         {/* OFF: όφελος + «Ενεργοποίηση» */}
         {mfaState === 'off' && !mfaUnavailable && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
               Ακόμη κι αν κάποιος μάθει τον κωδικό σου, δεν θα μπορεί να συνδεθεί χωρίς τον προσωρινό κωδικό από την εφαρμογή σου.
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
+              Αφορά μόνο τον δικό σου λογαριασμό. Σε ομάδα, κάθε μέλος έχει δικό του λογαριασμό και δική του επαλήθευση, οπότε η ενεργοποίηση εδώ δεν επηρεάζει την πρόσβαση των υπολοίπων.
             </div>
             <Btn variant="primary" onClick={startEnroll} disabled={mfaBusy}>
               {mfaBusy ? 'Ενεργοποίηση…' : 'Ενεργοποίηση'}
@@ -315,7 +318,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
-                1. Σκάναρε τον κωδικό QR με την εφαρμογή επαλήθευσης (π.χ. Google Authenticator, Authy)
+                1. Σκάναρε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
               </div>
               <div style={{ display: 'inline-flex', padding: 10, background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-default)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
