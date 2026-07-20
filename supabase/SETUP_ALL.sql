@@ -170,6 +170,12 @@ alter table public.billing_profiles add column if not exists full_name_changed_a
 -- Τύπος προφίλ: 'individual' (ιδιώτης) | 'professional' (επαγγελματίας διαχειριστής).
 -- Οδηγεί το interface (τι βλέπει/μπορεί ο καθένας), ώστε να μη μπερδεύεται.
 alter table public.billing_profiles add column if not exists profile_type text default 'individual';
+-- 20260720130000: δωρεάν πρόσβαση (comp) + λίστα αναμονής mobile.
+alter table public.billing_profiles add column if not exists comp_plan           text;
+alter table public.billing_profiles add column if not exists comp_until           timestamptz;
+alter table public.billing_profiles add column if not exists comp_months_granted  int default 0;
+alter table public.billing_profiles add column if not exists comp_started_at       timestamptz;
+alter table public.billing_profiles add column if not exists wants_mobile          boolean default false;
 
 drop policy if exists "own_billing_profile" on public.billing_profiles;
 create policy "own_billing_profile" on public.billing_profiles for all
@@ -185,8 +191,17 @@ begin
   if current_user in ('authenticated', 'anon') then
     if tg_op = 'INSERT' then
       new.plan := 'free';
-    elsif new.plan is distinct from old.plan then
-      new.plan := old.plan;
+      new.comp_plan := null;
+      new.comp_until := null;
+      new.comp_months_granted := 0;
+      new.comp_started_at := null;
+    else
+      if new.plan is distinct from old.plan then new.plan := old.plan; end if;
+      -- Τα comp_* (δωρεάν πρόσβαση) τα ορίζει μόνο ο server, όχι ο client.
+      new.comp_plan          := old.comp_plan;
+      new.comp_until         := old.comp_until;
+      new.comp_months_granted := old.comp_months_granted;
+      new.comp_started_at    := old.comp_started_at;
     end if;
   end if;
   return new;
@@ -196,6 +211,73 @@ drop trigger if exists lock_billing_plan_trg on public.billing_profiles;
 create trigger lock_billing_plan_trg
   before insert or update on public.billing_profiles
   for each row execute function public.lock_billing_plan();
+
+-- ─── 20260720130000_plan_entitlements.sql ───
+-- Ενεργό επίπεδο πλάνου + αυστηρή επιβολή ορίου ακινήτων + συγχρονισμός δωρεάν μηνών.
+create or replace function public.plan_max_properties(p_rank int)
+returns int language sql immutable as $$
+  select case p_rank when 2 then 2147483647 when 1 then 6 else 1 end;
+$$;
+
+create or replace function public.user_plan_rank(p_uid uuid)
+returns int language plpgsql stable security definer set search_path = public as $$
+declare
+  v_plan text; v_comp_plan text; v_comp_until timestamptz; v_rank int := 0;
+begin
+  select plan, comp_plan, comp_until into v_plan, v_comp_plan, v_comp_until
+    from billing_profiles where user_id = p_uid;
+  if v_plan = 'owner'  then v_rank := greatest(v_rank, 1); end if;
+  if v_plan = 'agency' then v_rank := greatest(v_rank, 2); end if;
+  if v_comp_until is not null and v_comp_until > now() then
+    if v_comp_plan = 'owner'  then v_rank := greatest(v_rank, 1); end if;
+    if v_comp_plan = 'agency' then v_rank := greatest(v_rank, 2); end if;
+  end if;
+  if exists (select 1 from referral_partners where user_id = p_uid) then
+    v_rank := greatest(v_rank, 2);
+  end if;
+  return v_rank;
+end;
+$$;
+
+create or replace function public.enforce_property_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_count int; v_limit int;
+begin
+  select count(*) into v_count from user_properties where user_id = NEW.user_id;
+  v_limit := plan_max_properties(user_plan_rank(NEW.user_id));
+  if v_count >= v_limit then
+    raise exception 'PROPERTY_LIMIT: Το πλάνο σου καλύπτει % ακίνητα. Αναβάθμισε για περισσότερα.', v_limit
+      using errcode = 'P0001';
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists trg_enforce_property_limit on public.user_properties;
+create trigger trg_enforce_property_limit
+  before insert on public.user_properties
+  for each row execute function public.enforce_property_limit();
+
+create or replace function public.sync_comp_from_referrals()
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_months int; v_ptype text; v_target text; v_cap int := 12;
+begin
+  if v_uid is null then return; end if;
+  select coalesce(sum(months), 0) into v_months
+    from referral_rewards where user_id = v_uid and kind = 'months';
+  v_months := least(v_months, v_cap);
+  if v_months <= 0 then return; end if;
+  select coalesce(profile_type, 'individual') into v_ptype from billing_profiles where user_id = v_uid;
+  v_target := case when v_ptype = 'professional' then 'agency' else 'owner' end;
+  update billing_profiles
+     set comp_months_granted = greatest(coalesce(comp_months_granted, 0), v_months),
+         comp_started_at     = coalesce(comp_started_at, now()),
+         comp_plan           = v_target,
+         comp_until          = coalesce(comp_started_at, now())
+                               + (greatest(coalesce(comp_months_granted, 0), v_months) || ' months')::interval
+   where user_id = v_uid and v_months > coalesce(comp_months_granted, 0);
+end;
+$$;
+grant execute on function public.sync_comp_from_referrals() to authenticated;
 
 
 -- ─── 20260705120000_tenant_portal.sql ───
