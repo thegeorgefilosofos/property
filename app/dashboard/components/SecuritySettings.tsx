@@ -272,7 +272,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       {/* 3. Καθολική αποσύνδεση */}
       <div style={group}>
         <div style={subLabel}>Καθολική αποσύνδεση</div>
-        <div style={desc}>Κλείνει τη σύνδεση σε κάθε συσκευή και φυλλομετρητή. Θα χρειαστεί να συνδεθείς ξανά.</div>
+        <div style={desc}>Κλείνει τη σύνδεση σε κάθε συσκευή και περιηγητή. Θα χρειαστεί να συνδεθείς ξανά.</div>
         <div style={{ marginTop: 12 }}>
           <Btn variant="secondary" onClick={signOutEverywhere} disabled={signingOut}>
             {signingOut ? 'Αποσύνδεση…' : 'Αποσύνδεση από όλες τις συσκευές'}
@@ -318,11 +318,11 @@ export default function SecuritySettings({ userId }: { userId: string }) {
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
-                1. Σκάναρε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
+                1. Σάρωσε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
               </div>
               <div style={{ display: 'inline-flex', padding: 10, background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-default)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={enrollFactor.qr} alt="QR" width={168} height={168} />
+                <img src={enrollFactor.qr} alt="Κωδικός QR επαλήθευσης" width={168} height={168} />
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, marginBottom: 6 }}>
                 ή καταχώρησε τον κωδικό χειροκίνητα
@@ -345,7 +345,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
                 <Btn variant="primary" onClick={verifyCode} disabled={mfaBusy}>
                   {mfaBusy ? 'Επιβεβαίωση…' : 'Επιβεβαίωση'}
                 </Btn>
-                <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Άκυρο</Btn>
+                <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Ακύρωση</Btn>
               </div>
               {mfaErr && (
                 <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>

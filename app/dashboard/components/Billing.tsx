@@ -29,6 +29,7 @@ export default function Billing({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveErr, setSaveErr] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   const set = (k: keyof BillingData, v: string) => setD(p => ({ ...p, [k]: v }));
 
@@ -75,7 +76,7 @@ export default function Billing({ userId }: { userId: string }) {
   }, [userId]);
 
   const save = async () => {
-    setSaving(true); setSaved(false);
+    setSaving(true); setSaved(false); setSaveErr(false);
     // Το plan/billing_cycle ορίζονται ΜΟΝΟ από τη χρέωση (Stripe), όχι από τον client·
     // δεν τα στέλνουμε ώστε η αποθήκευση στοιχείων να μη φαίνεται ότι αλλάζει πλάνο.
     const payload: Record<string, unknown> = { ...d, user_id: userId, updated_at: new Date().toISOString() };
@@ -83,7 +84,7 @@ export default function Billing({ userId }: { userId: string }) {
     const { error } = await supabase.from('billing_profiles').upsert(payload, { onConflict: 'user_id' });
     setSaving(false);
     if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
-    else alert('Σφάλμα αποθήκευσης: ' + error.message);
+    else setSaveErr(true);
   };
 
   if (loading) return <Spinner label="Φόρτωση…" />;
@@ -135,6 +136,7 @@ export default function Billing({ userId }: { userId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
           <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
           {saved && <span style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε ✓</span>}
+          {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
         </div>
       </Card>
 
