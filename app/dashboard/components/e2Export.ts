@@ -1,6 +1,6 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import XLSX from 'xlsx-js-style';
+import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
 import {
   E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary,
   E1_HEADERS, e1LineToCells, E2_INSTRUCTIONS,
@@ -8,32 +8,11 @@ import {
 } from '@/lib/billing/e2';
 
 const NCOLS = E2_OFFICIAL_HEADERS.length; // 19
-const EUR = '#,##0.00';   // καθαροί αριθμοί (χωρίς σύμβολο) για copy-paste στο myAADE
-const INT = '0';
-const PCT = '0.00';
-// Πλάτη στηλών του πίνακα I (σε χαρακτήρες) — με αναδίπλωση επικεφαλίδας χωράνε άνετα.
-const WIDTHS = [5, 34, 13, 18, 10, 24, 15, 26, 15, 16, 12, 12, 7, 13, 12, 16, 16, 16, 16];
-
-// ── Στυλ (ασπρόμαυρα/γκρι — καθαρό, λογιστικό look) ──────────────────────────
-const INK = '111111', SUB = '6B7280', LINE = 'D0D5DD', HEADBG = 'E9ECEF', SECBG = 'F3F4F6';
-const bThin = { style: 'thin', color: { rgb: LINE } };
-const boxAll = { top: bThin, bottom: bThin, left: bThin, right: bThin };
-const S_TITLE = { font: { bold: true, sz: 13, color: { rgb: INK } }, alignment: { vertical: 'center' } };
-const S_SUB = { font: { sz: 9, italic: true, color: { rgb: SUB } }, alignment: { vertical: 'center' } };
-const S_SECTION = { font: { bold: true, sz: 10, color: { rgb: INK } }, fill: { fgColor: { rgb: SECBG } }, alignment: { vertical: 'center' } };
-const S_LABEL = { font: { sz: 10, color: { rgb: '374151' } }, alignment: { vertical: 'center' } };
-const S_FIELD = { font: { sz: 10, color: { rgb: INK } }, alignment: { vertical: 'center' }, border: { bottom: bThin } };
-const S_HEAD = { font: { bold: true, sz: 9.5, color: { rgb: INK } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, fill: { fgColor: { rgb: HEADBG } }, border: boxAll };
-const S_TXT = { font: { sz: 10, color: { rgb: INK } }, alignment: { horizontal: 'left', vertical: 'center' }, border: boxAll };
-const S_NUM = { font: { sz: 10, color: { rgb: INK } }, alignment: { horizontal: 'right', vertical: 'center' }, border: boxAll };
-const S_TOT_TXT = { font: { bold: true, sz: 10, color: { rgb: INK } }, alignment: { horizontal: 'left', vertical: 'center' }, border: { top: { style: 'medium', color: { rgb: INK } }, bottom: bThin, left: bThin, right: bThin } };
-const S_TOT_NUM = { font: { bold: true, sz: 10, color: { rgb: INK } }, alignment: { horizontal: 'right', vertical: 'center' }, border: { top: { style: 'medium', color: { rgb: INK } }, bottom: bThin, left: bThin, right: bThin } };
-
-type Cell = { v: string | number; t?: string; z?: string; s?: object };
-const setCell = (ws: XLSX.WorkSheet, r: number, c: number, patch: Partial<Cell>) => {
-  const addr = XLSX.utils.encode_cell({ r, c });
-  const cur = (ws[addr] as Cell) || { v: '', t: 's' };
-  ws[addr] = { ...cur, ...patch, s: { ...(cur.s || {}), ...(patch.s || {}) } };
+// Πλάτη στηλών (χαρακτήρες) — με αναδιπλωμένες επικεφαλίδες χωράνε άνετα δεδομένα+τίτλοι.
+const WIDTHS = [5, 34, 13, 18, 10, 24, 15, 26, 15, 16, 12, 12, 8, 14, 13, 16, 17, 17, 15];
+const numZ: Record<number, string> = {
+  [E2_NUM_COLS.sqm]: FMT.int, [E2_NUM_COLS.months]: FMT.int, [E2_NUM_COLS.monthly]: FMT.eur, [E2_NUM_COLS.pct]: FMT.pct,
+  [E2_NUM_COLS.gross13]: FMT.eur, [E2_NUM_COLS.gross14]: FMT.eur, [E2_NUM_COLS.gross15]: FMT.eur, [E2_NUM_COLS.gross16]: FMT.eur,
 };
 
 function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: string, year: number): XLSX.WorkSheet {
@@ -61,51 +40,37 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const lastDataRow = headerRow + officialRows.length;
   const totalR = lastDataRow + 1;
-  const numZ: Record<number, string> = {
-    [E2_NUM_COLS.sqm]: INT, [E2_NUM_COLS.months]: INT, [E2_NUM_COLS.monthly]: EUR, [E2_NUM_COLS.pct]: PCT,
-    [E2_NUM_COLS.gross13]: EUR, [E2_NUM_COLS.gross14]: EUR, [E2_NUM_COLS.gross15]: EUR, [E2_NUM_COLS.gross16]: EUR,
-  };
 
   ws['!cols'] = WIDTHS.map(w => ({ wch: w }));
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: NCOLS - 1 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: NCOLS - 1 } },
-    { s: { r: 3, c: 0 }, e: { r: 3, c: NCOLS - 1 } },
-    { s: { r: 8, c: 0 }, e: { r: 8, c: NCOLS - 1 } },
-  ];
+  ws['!merges'] = [0, 1, 3, 8].map(r => ({ s: { r, c: 0 }, e: { r, c: NCOLS - 1 } }));
   ws['!rows'] = [];
-  ws['!rows'][0] = { hpt: 22 };
-  ws['!rows'][1] = { hpt: 15 };
-  ws['!rows'][headerRow] = { hpt: 44 };
+  ws['!rows'][0] = { hpt: 24 };
+  ws['!rows'][1] = { hpt: 16 };
+  ws['!rows'][3] = { hpt: 18 };
+  ws['!rows'][8] = { hpt: 18 };
+  ws['!rows'][headerRow] = { hpt: 58 }; // ψηλή επικεφαλίδα → πλήρως ορατοί αναδιπλωμένοι τίτλοι
   for (let r = headerRow + 1; r <= totalR; r++) ws['!rows'][r] = { hpt: 18 };
   ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: headerRow, c: 0 }, e: { r: lastDataRow, c: NCOLS - 1 } }) };
 
-  // Στυλ ενοτήτων/επικεφαλίδας υπόχρεου
-  setCell(ws, 0, 0, { s: S_TITLE });
-  setCell(ws, 1, 0, { s: S_SUB });
-  setCell(ws, 3, 0, { s: S_SECTION });
-  setCell(ws, 8, 0, { s: S_SECTION });
-  for (let r = 4; r <= 6; r++) { setCell(ws, r, 0, { s: S_LABEL }); setCell(ws, r, 1, { s: S_FIELD }); }
-
-  // Επικεφαλίδα πίνακα
-  for (let c = 0; c < NCOLS; c++) setCell(ws, headerRow, c, { s: S_HEAD });
-  // Δεδομένα (και κενά κελιά για πλαίσιο)
+  setCell(ws, 0, 0, { s: S.title });
+  setCell(ws, 1, 0, { s: S.sub });
+  setCell(ws, 3, 0, { s: S.section });
+  setCell(ws, 8, 0, { s: S.section });
+  for (let r = 4; r <= 6; r++) { setCell(ws, r, 0, { s: S.label }); setCell(ws, r, 1, { s: S.field }); }
+  for (let c = 0; c < NCOLS; c++) setCell(ws, headerRow, c, { s: S.head });
   for (let r = headerRow + 1; r <= lastDataRow; r++) {
     for (let c = 0; c < NCOLS; c++) {
       const z = numZ[c];
-      const isNum = z !== undefined;
-      const addr = XLSX.utils.encode_cell({ r, c });
-      const cell = ws[addr] as Cell | undefined;
-      const numeric = isNum && cell && typeof cell.v === 'number';
-      setCell(ws, r, c, { s: numeric ? S_NUM : S_TXT, ...(numeric ? { t: 'n', z } : {}) });
+      const cell = ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
+      const numeric = z !== undefined && cell && typeof cell.v === 'number';
+      setCell(ws, r, c, { s: numeric ? S.num : S.txt, ...(numeric ? { t: 'n', z } : {}) });
     }
   }
-  // Σύνολο
   for (let c = 0; c < NCOLS; c++) {
     const z = numZ[c];
     const cell = ws[XLSX.utils.encode_cell({ r: totalR, c })] as Cell | undefined;
     const numeric = z !== undefined && cell && typeof cell.v === 'number';
-    setCell(ws, totalR, c, { s: numeric ? S_TOT_NUM : S_TOT_TXT, ...(numeric ? { t: 'n', z } : {}) });
+    setCell(ws, totalR, c, { s: numeric ? S.totNum : S.totTxt, ...(numeric ? { t: 'n', z } : {}) });
   }
   return ws;
 }
@@ -141,12 +106,12 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   const gAoa: (string | number)[][] = [['ΟΔΗΓΙΕΣ ΣΥΜΠΛΗΡΩΣΗΣ ΕΝΤΥΠΟΥ Ε2'], [], ...E2_INSTRUCTIONS.map(t => [t]), [], ['Σημείωση: οι στήλες ακολουθούν το επίσημο έντυπο Ε2. Επιβεβαιώστε τυχόν ετήσιες αλλαγές στο myAADE.']];
   const guide = XLSX.utils.aoa_to_sheet(gAoa);
   guide['!cols'] = [{ wch: 118 }];
-  guide['!rows'] = [{ hpt: 22 }];
-  setCell(guide, 0, 0, { s: { font: { bold: true, sz: 12, color: { rgb: INK } } } });
+  guide['!rows'] = [{ hpt: 24 }];
+  setCell(guide, 0, 0, { s: S.title });
   for (let i = 0; i < E2_INSTRUCTIONS.length; i++) {
     const r = 2 + i;
-    setCell(guide, r, 0, { s: { font: { sz: 10, color: { rgb: '374151' } }, alignment: { wrapText: true, vertical: 'top' } } });
-    (guide['!rows'] as { hpt: number }[])[r] = { hpt: Math.max(28, Math.ceil(E2_INSTRUCTIONS[i].length / 95) * 14 + 14) };
+    setCell(guide, r, 0, { s: S.txtWrap });
+    (guide['!rows'] as { hpt: number }[])[r] = { hpt: Math.max(28, Math.ceil(E2_INSTRUCTIONS[i].length / 95) * 15 + 12) };
   }
   XLSX.utils.book_append_sheet(wb, guide, 'Οδηγίες συμπλήρωσης');
 
@@ -158,18 +123,18 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
       [...E1_HEADERS], ...e1.lines.map(e1LineToCells), ['Σύνολο ακαθάριστου', '', '', e1.totalGross], [], [e1.note],
     ];
     const e1ws = XLSX.utils.aoa_to_sheet(e1aoa);
-    e1ws['!cols'] = [{ wch: 12 }, { wch: 58 }, { wch: 24 }, { wch: 20 }];
+    e1ws['!cols'] = [{ wch: 12 }, { wch: 60 }, { wch: 24 }, { wch: 20 }];
     e1ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
-    const hr = 2, last = 3 + e1.lines.length; // header row index, total row index
-    setCell(e1ws, 0, 0, { s: { font: { bold: true, sz: 11, color: { rgb: INK } } } });
-    for (let c = 0; c < 4; c++) setCell(e1ws, hr, c, { s: S_HEAD });
+    e1ws['!rows'] = []; e1ws['!rows'][0] = { hpt: 22 }; e1ws['!rows'][2] = { hpt: 30 };
+    const hr = 2, last = 3 + e1.lines.length;
+    setCell(e1ws, 0, 0, { s: S.title });
+    for (let c = 0; c < 4; c++) setCell(e1ws, hr, c, { s: S.head });
     for (let r = hr + 1; r <= last; r++) {
       for (let c = 0; c < 4; c++) {
-        const isTot = r === last;
-        const isNum = c === 3;
+        const isTot = r === last, isNum = c === 3;
         const cell = e1ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
         const numeric = isNum && cell && typeof cell.v === 'number';
-        setCell(e1ws, r, c, { s: isTot ? (isNum ? S_TOT_NUM : S_TOT_TXT) : (isNum ? S_NUM : S_TXT), ...(numeric ? { t: 'n', z: EUR } : {}) });
+        setCell(e1ws, r, c, { s: isTot ? (isNum ? S.totNum : S.totTxt) : (isNum ? S.num : S.txt), ...(numeric ? { t: 'n', z: FMT.eur } : {}) });
       }
     }
     XLSX.utils.book_append_sheet(wb, e1ws, 'Σύνοψη Ε1');
