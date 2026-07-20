@@ -227,7 +227,7 @@ function SplitBar({ owner, onChange }: { owner:number; onChange:(v:number)=>void
           transition: dragging ? 'none' : 'left 0.18s cubic-bezier(0.2,0,0,1), box-shadow 0.15s',
           display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none',
         }}>
-          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)' }}/>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--text-tertiary)' }}/>
         </div>
       </div>
       {/* Γρήγορα presets */}
