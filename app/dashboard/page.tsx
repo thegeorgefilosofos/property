@@ -65,13 +65,22 @@ interface Bill     { id:string; type:string; amount:number; avg_amount:number|nu
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
+// Κατάσταση ακινήτου: μία κλιμακωτή ράμπα από το μπλε της landing (var(--accent),
+// #1a73e8) — 7 ομοιογενείς αποχρώσεις, από βαθύ προς ανοιχτό, στη λογική σειρά των
+// καταστάσεων. Τυποποιημένο, μονοχρωματικό, premium (όχι φανάρι πολλών χρωμάτων).
 const STATUS_COLORS: Record<string,string> = {
-  rented:'var(--accent)', vacant:'var(--warning)', own_use:'var(--accent)',
-  renovation:'var(--accent)', for_sale:'var(--accent)', seasonal:'var(--accent)', disputed:'var(--negative)',
+  rented:    '#0b57d0',
+  vacant:    '#1a73e8',
+  own_use:   '#3385ec',
+  seasonal:  '#4d97ef',
+  renovation:'#66a8f2',
+  for_sale:  '#80baf6',
+  disputed:  '#99cbf9',
 };
+// Σειρά κατά χρησιμότητα (πιο συνηθισμένες πρώτα).
 const STATUS_LABELS: Record<string,string> = {
-  rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία',
-  renovation:'Ανακαίνιση', for_sale:'Προς Πώληση', seasonal:'Εποχιακό', disputed:'Αμφισβητούμενο',
+  rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία', seasonal:'Εποχιακό',
+  renovation:'Ανακαίνιση', for_sale:'Προς Πώληση', disputed:'Αμφισβητούμενο',
 };
 const PROP_TYPE_LABELS: Record<string,string> = {
   apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
@@ -1096,7 +1105,7 @@ export default function Dashboard() {
                   <span style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:`1px solid ${statusColor}44`,background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:statusColor,transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:32,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
                     </button>

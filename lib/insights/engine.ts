@@ -168,8 +168,15 @@ export function computeInsights(input: InsightInput): Insight[] {
 
 /** Επιστρέφει έναν φιλικό χαιρετισμό ανάλογα με την ώρα. */
 export function greeting(now: number, name?: string | null): string {
-  const h = new Date(now).getHours();
-  const part = h < 5 ? 'Καλό ξημέρωμα' : h < 12 ? 'Καλημέρα' : h < 18 ? 'Καλησπέρα' : 'Καλό βράδυ';
+  // Ώρα Ελλάδας (Europe/Athens), ανεξάρτητα από τη ζώνη του browser.
+  let h: number;
+  try {
+    h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Athens', hour: '2-digit', hour12: false }).format(new Date(now))) % 24;
+  } catch {
+    h = new Date(now).getHours();
+  }
+  // Δύο χαιρετισμοί: Καλημέρα έως τις 12μμ, Καλησπέρα από τις 12μμ έως τα μεσάνυχτα.
+  const part = h < 12 ? 'Καλημέρα' : 'Καλησπέρα';
   const who = name && name.trim() ? `, ${vocative(name)}` : '';
   return `${part}${who}`;
 }

@@ -218,7 +218,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
               style={{
                 display: 'flex', flexDirection: 'column',
-                width: '100%', textAlign: 'left', cursor: 'pointer',
+                width: '100%', minHeight: 190, textAlign: 'left', cursor: 'pointer',
                 background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
                 borderRadius: T.radius.inner, padding: 13, fontFamily: T.font.sans,
                 animationDelay: `${120 + i * 55}ms`,

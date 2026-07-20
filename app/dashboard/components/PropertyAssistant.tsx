@@ -908,14 +908,29 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Χρωματική ταυτότητα avatar ανά φύλο (διακριτικά).
   const avatarBg = identity.gender === 'female' ? 'linear-gradient(135deg,#ec4899,#f9a8d4)'
     : identity.gender === 'male' ? 'linear-gradient(135deg,var(--accent),#8ab4f8)'
-    : 'linear-gradient(135deg,#8b5cf6,#22d3ee)';
+    : 'linear-gradient(135deg,var(--accent),#8ab4f8)';   // ουδέτερο: το μπλε της landing
 
   // ── Μετακίνηση του βοηθού (σύρσιμο) ώστε να μην εμποδίζει το περιεχόμενο ──
   const FAB = 60;
   const fabDrag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
   useEffect(() => {
-    try { const s = localStorage.getItem('pa_fab_pos'); if (s) setFabPos(JSON.parse(s)); } catch { /* ignore */ }
+    // Φόρτωσε την αποθηκευμένη θέση, ΑΛΛΑ μόνο αν χωράει ολόκληρο το κουμπί μέσα
+    // στην τρέχουσα οθόνη. Αλλιώς (άλλο μέγεθος παραθύρου/οθόνη, χαλασμένη τιμή)
+    // αγνόησέ την ώστε το πλωτό να επιστρέψει στη σταθερή κάτω-δεξιά θέση.
+    try {
+      const s = localStorage.getItem('pa_fab_pos');
+      if (!s) return;
+      const p = JSON.parse(s) as { x: number; y: number };
+      const m = 8;
+      const inView = typeof window !== 'undefined'
+        && Number.isFinite(p?.x) && Number.isFinite(p?.y)
+        && p.x >= m && p.y >= m
+        && p.x <= window.innerWidth - FAB - m
+        && p.y <= window.innerHeight - FAB - m;
+      if (inView) setFabPos(p);
+      else localStorage.removeItem('pa_fab_pos');
+    } catch { /* ignore */ }
   }, []);
   useEffect(() => {
     if (!fabPos || dragging) return;
