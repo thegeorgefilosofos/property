@@ -8,7 +8,8 @@ import { Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
-import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+import { useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -100,10 +101,6 @@ const CASHBACK_METHODS    = PAYMENT_METHODS.filter(p => p.hasCashback).map(p => 
 const fmtEur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const fmtEur0 = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`;
 const fmtD = (d: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
-
-// HTML-escape helper for dynamic values interpolated into the print/PDF HTML that is
-// passed to window.open(...).document.write, prevents stored-XSS via user/tenant/DB fields.
-const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 
 const bestPayment = (a: number) =>
   a >= 2000 ? 'Πιστωτική με άτοκες δόσεις, μέγιστη ρευστότητα' :
@@ -761,8 +758,6 @@ async function exportExcel(expenses: Expense[], propertyName: string) {
 
 
 function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportBranding | null) {
-  const accent = reportAccent(branding);
-  const today = new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
   const total = expenses.reduce((s,e)=>s+e.amount,0);
   const totalVat = expenses.reduce((s,e)=>s+(e.vat_amount||0),0);
   const totalCashback = expenses.reduce((s,e)=>s+(e.cashback_amount||0),0);
@@ -773,192 +768,90 @@ function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportB
   const byGroup: Record<string,number> = {};
   expenses.forEach(e=>{ const g=e.expense_group||'other'; byGroup[g]=(byGroup[g]||0)+e.amount; });
 
-  const w = window.open('','_blank','width=1100,height=850');
-  if (!w) { alert('Επίτρεψε τα popups'); return; }
-
-  const kpiHtml = (val: string, label: string) =>
-    `<div class="kpi"><div class="kpi-v">${esc(val)}</div><div class="kpi-l">${label}</div></div>`;
-
-  const groupTableRows = Object.entries(EXPENSE_GROUPS)
+  const detailRows = Object.entries(EXPENSE_GROUPS)
     .filter(([k])=>grouped[k]&&grouped[k].length>0)
     .map(([k,info])=>{
       const grpExp = (grouped[k]||[]).sort((a,b)=>b.date.localeCompare(a.date));
       const grpTotal = grpExp.reduce((s,e)=>s+e.amount,0);
       const rows = grpExp.map(e=>`
         <tr>
-          <td>${esc(fmtD(e.date))}</td>
-          <td>${esc(e.category)}</td>
+          <td>${rEsc(fmtD(e.date))}</td>
+          <td>${rEsc(e.category)}</td>
           <td>
-            <div style="font-weight:500;color:#111">${esc(e.description)}</div>
-            ${e.store_vendor?`<div style="font-size:9px;color:#6b7280">${esc(e.store_vendor)}</div>`:''}
-            ${e.is_recurring?`<span class="badge-tag" style="background:#f1f3f4;color:#374151">${e.recurring_frequency==='monthly'?'Μηνιαία':e.recurring_frequency==='annual'?'Ετήσια':'Επαναλ.'}</span>`:''}
+            <div style="font-weight:600;color:#111">${rEsc(e.description)}</div>
+            ${e.store_vendor?`<div style="font-size:11px;color:#8a8f98">${rEsc(e.store_vendor)}</div>`:''}
+            ${e.is_recurring?`<div style="font-size:10.5px;color:#8a8f98">${e.recurring_frequency==='monthly'?'Μηνιαία':e.recurring_frequency==='annual'?'Ετήσια':'Επαναλαμβανόμενη'}</div>`:''}
           </td>
-          <td>${PAID_BY_OPTIONS.find(p=>p.value===e.paid_by)?.label||'—'}</td>
-          <td style="font-size:9px">${PAYMENT_METHODS.find(p=>p.value===e.payment_method)?.label||'—'}${e.installments?`<br>${esc(e.installments)} δόσεις`:''}</td>
-          <td class="mono right">${esc(e.vat_amount&&e.vat_amount>0?fmtEur(e.vat_amount):'—')}</td>
-          <td class="center"><span class="badge-tag ${info.taxDeductible?'b-yes':'b-no'}">${info.taxDeductible?'ΝΑΙ':'ΟΧΙ'}</span></td>
-          <td class="mono right" style="font-weight:600;color:#111">${esc(fmtEur(e.amount))}</td>
+          <td>${rEsc(PAID_BY_OPTIONS.find(p=>p.value===e.paid_by)?.label||'—')}</td>
+          <td>${rEsc(PAYMENT_METHODS.find(p=>p.value===e.payment_method)?.label||'—')}${e.installments?`<br><span style="color:#8a8f98;font-size:11px">${rEsc(e.installments)} δόσεις</span>`:''}</td>
+          <td class="n">${rEsc(e.vat_amount&&e.vat_amount>0?rEur(e.vat_amount):'—')}</td>
+          <td style="text-align:center">${info.taxDeductible?'ΝΑΙ':'ΟΧΙ'}</td>
+          <td class="n">${rEsc(rEur(e.amount))}</td>
         </tr>`).join('');
       return `
-        <tr class="g-header">
-          <td colspan="8">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="display:flex;align-items:center;gap:8px">
-                <strong>${info.label}</strong>
-                <span style="font-size:9px;color:#6b7280;font-weight:400">${esc(grpExp.length)} εγγραφές</span>
-                ${info.taxDeductible?'<span class="badge-tag b-yes">ΕΚΠΙΠΤΟΜΕΝΗ</span>':''}
-              </div>
-              <span style="font-family:\'Roboto Mono\',monospace;font-weight:700;color:#111">${esc(fmtEur(grpTotal))}</span>
-            </div>
-          </td>
-        </tr>
+        <tr class="sub"><td colspan="8" style="border-top:2px solid #111">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span><strong>${rEsc(info.label)}</strong> <span style="font-weight:400;color:#8a8f98;font-size:11px">${rEsc(grpExp.length)} εγγραφές${info.taxDeductible?' · Εκπιπτόμενη':''}</span></span>
+            <span class="tnum">${rEsc(rEur(grpTotal))}</span>
+          </div>
+        </td></tr>
         ${rows}
-        <tr class="g-sub">
-          <td colspan="7" style="text-align:right;color:#6b7280;font-size:10px;padding-right:12px">Υποσύνολο ${info.label}</td>
-          <td class="mono right" style="font-weight:700;color:#111">${esc(fmtEur(grpTotal))}</td>
+        <tr>
+          <td colspan="7" style="text-align:right;color:#8a8f98;font-size:11px">Υποσύνολο ${rEsc(info.label)}</td>
+          <td class="n">${rEsc(rEur(grpTotal))}</td>
         </tr>`;
     }).join('');
 
-  w.document.write(`<!DOCTYPE html><html lang="el"><head>
-  <meta charset="UTF-8"><title>Κατάσταση Δαπανών, ${esc(propertyName)}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <style>${brandRootVars(branding)}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',sans-serif;background:#fff;color:#111;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{padding:28px 32px;max-width:940px;margin:0 auto}
-    /* Header */
-    .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #111}
-    .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#111}.logo span{color:#111}
-    .logo-s{font-size:10px;color:#6b7280;margin-top:2px}
-    .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#111}
-    .meta-d{font-size:10px;color:#5f6368;margin-top:3px}
-    /* Section titles */
-    .sec-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#374151;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #111}
-    .sec{margin-bottom:20px}
-    /* KPIs */
-    .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
-    .kpi{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:11px 13px}
-    .kpi-v{font-family:'Roboto Mono',monospace;font-size:15px;font-weight:700;margin-bottom:3px}
-    .kpi-l{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;line-height:1.3}
-    /* Summary grid */
-    .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-    .sum-box{background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:13px 15px}
-    .sum-box-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#374151;margin-bottom:9px}
-    .sum-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f1f3f4}
-    .sum-row:last-child{border:none}
-    .sum-row-l{font-size:10px;color:#5f6368}
-    .sum-row-v{font-family:'Roboto Mono',monospace;font-size:10px;font-weight:600}
-    .sum-total{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;margin-top:6px;border-top:2px solid #e8eaed}
-    /* Table */
-    table{width:100%;border-collapse:collapse;font-size:9.5px}
-    th{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:#5f6368;padding:7px 7px;border-bottom:2px solid #e8eaed;text-align:left;background:#f8f9fa;white-space:nowrap}
-    th.right{text-align:right}th.center{text-align:center}
-    td{padding:7px 7px;border-bottom:1px solid #f1f3f4;vertical-align:top;color:#3c4043}
-    td.mono{font-family:'Roboto Mono',monospace}td.right{text-align:right}td.center{text-align:center}
-    .g-header td{background:#f3f4f6;border-top:2px solid #111;border-bottom:1px solid #d1d5db;padding:9px 10px;font-family:'Inter',sans-serif;font-size:10.5px;color:#111}
-    .g-sub td{background:#fafafa;border-top:1px solid #e5e7eb;border-bottom:2px solid #e5e7eb;padding:5px 7px;font-size:9.5px}
-    .g-total td{background:#fff;color:#111;border-top:2px solid #111;padding:9px 10px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700}
-    .g-total .mono{color:#111;font-weight:700;font-size:13px}
-    /* Badges */
-    .badge-tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:500;font-family:'Inter',sans-serif}
-    .b-yes{background:#f1f3f4;color:#374151}.b-no{background:#f1f3f4;color:#6b7280}
-    /* Footer */
-    .footer{margin-top:24px;padding-top:10px;border-top:1px solid #e8eaed;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#9aa0a6}
-    .disc{text-align:center;font-size:8.5px;color:#9aa0a6;margin-top:6px;font-style:italic}
-    @media print{
-      .page{padding:18px 22px}
-      .g-header td,.g-total td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    }
-  </style></head><body><div class="page">
+  const subtitle = `Αναλυτική κατάσταση δαπανών · ${expenses.length} εγγραφές`;
+  const disclaimer = 'Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας (Ν. 4172/2013). Δεν αποτελεί επίσημο φορολογικό ή λογιστικό έγγραφο. Πριν από κάθε υποβολή, επιβεβαιώστε τα ποσά με τον λογιστή σας.';
 
-  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-  <!-- Header -->
-  <div class="hdr">
-    <div>
-      ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
-      <div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div>
-    </div>
-    <div class="meta-r">
-      <div class="meta-title">${esc(propertyName)}</div>
-      <div class="meta-d">Κατάσταση Δαπανών &nbsp;·&nbsp; ${esc(today)}</div>
-    </div>
-  </div>
+  const html = reportHead(`Κατάσταση δαπανών · ${propertyName}`)
+    + `<body><div class="page">`
+    + reportHeader(branding, 'Κατάσταση δαπανών', { rightNote: `${expenses.length} εγγραφές` })
+    + `<h1>${rEsc(propertyName)}</h1>`
+    + `<div class="sub">${rEsc(subtitle)}</div>`
+    + reportSection('Σύνοψη')
+    + `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">`
+      + reportKpi('Σύνολο δαπανών', rEur(total))
+      + reportKpi('Εκπιπτόμενες', rEur(deductible))
+      + reportKpi('Μη εκπιπτόμενες', rEur(total-deductible))
+      + reportKpi('Σύνολο ΦΠΑ', rEur(totalVat))
+      + reportKpi('Cashback', rEur(totalCashback))
+    + `</div>`
+    + reportSection('Φορολογική ανάλυση')
+    + `<table><tbody>`
+      + reportRow('Εκπιπτόμενες δαπάνες', rEur(deductible))
+      + reportRow('Μη εκπιπτόμενες δαπάνες', rEur(total-deductible))
+      + reportRow('Ποσοστό εκπτώσεων', rPct(total>0?(deductible/total)*100:0))
+      + reportRow('Εκτ. φόρος ενοικίων (15%)', rEur(deductible*0.15))
+      + reportRow('Σύνολο ΦΠΑ', rEur(totalVat))
+      + (totalCashback>0?reportRow('Cashback (εξοικονόμηση)', rEur(totalCashback)):'')
+      + (unpaid>0?reportRow('Εκκρεμείς πληρωμές', rEur(unpaid)):'')
+    + `</tbody></table>`
+    + reportSection('Κατανομή ανά ομάδα δαπάνης')
+    + `<table><tbody>`
+      + Object.entries(byGroup).sort(([,a],[,b])=>b-a).map(([k,v])=>reportRow(EXPENSE_GROUPS[k]?.label||k, rEur(v))).join('')
+      + reportRow('Γενικό σύνολο', rEur(total), 'result')
+    + `</tbody></table>`
+    + reportSection('Αναλυτικές δαπάνες ανά ομάδα')
+    + `<table>`
+      + `<thead><tr>`
+        + `<th style="width:64px">Ημερομηνία</th>`
+        + `<th style="width:84px">Κατηγορία</th>`
+        + `<th>Περιγραφή</th>`
+        + `<th style="width:66px">Πληρώνει</th>`
+        + `<th style="width:84px">Πληρωμή</th>`
+        + `<th class="n" style="width:62px">ΦΠΑ</th>`
+        + `<th style="width:46px;text-align:center">Εκπιπτ.</th>`
+        + `<th class="n" style="width:72px">Ποσό</th>`
+      + `</tr></thead><tbody>`
+        + detailRows
+        + `<tr class="result"><td colspan="7">Γενικό σύνολο · ${rEsc(expenses.length)} εγγραφές</td><td class="n">${rEsc(rEur(total))}</td></tr>`
+      + `</tbody></table>`
+    + reportDisclaimer(disclaimer, branding)
+    + `</div></body></html>`;
 
-  <!-- KPIs -->
-  <div class="sec">
-    <div class="sec-title">Σύνοψη</div>
-    <div class="kpi-row">
-      ${kpiHtml(fmtEur(total),'Σύνολο Δαπανών')}
-      ${kpiHtml(fmtEur(deductible),'Εκπιπτόμενες')}
-      ${kpiHtml(fmtEur(total-deductible),'Μη Εκπιπτόμενες')}
-      ${kpiHtml(fmtEur(totalVat),'Σύνολο ΦΠΑ')}
-      ${kpiHtml(fmtEur(totalCashback),'Cashback')}
-    </div>
-
-    <!-- Summary boxes -->
-    <div class="sum-grid">
-      <div class="sum-box">
-        <div class="sum-box-title">Κατανομή ανά Ομάδα Δαπάνης</div>
-        ${Object.entries(byGroup).sort(([,a],[,b])=>b-a).map(([k,v])=>`
-          <div class="sum-row">
-            <span class="sum-row-l">${esc(EXPENSE_GROUPS[k]?.label||k)}</span>
-            <span class="sum-row-v">${esc(fmtEur(v))}</span>
-          </div>`).join('')}
-        <div class="sum-total">
-          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:500">Γενικό Σύνολο</span>
-          <span style="font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;color:#111">${esc(fmtEur(total))}</span>
-        </div>
-      </div>
-      <div class="sum-box">
-        <div class="sum-box-title">Φορολογική Ανάλυση</div>
-        <div class="sum-row"><span class="sum-row-l">Εκπιπτόμενες δαπάνες</span><span class="sum-row-v">${esc(fmtEur(deductible))}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Μη εκπιπτόμενες δαπάνες</span><span class="sum-row-v">${esc(fmtEur(total-deductible))}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Ποσοστό εκπτώσεων</span><span class="sum-row-v">${esc(total>0?((deductible/total)*100).toFixed(1):0)}%</span></div>
-        <div class="sum-row"><span class="sum-row-l">Εκτ. φόρος ενοικίων (15%)</span><span class="sum-row-v">${esc(fmtEur(deductible*0.15))}</span></div>
-        <div class="sum-row"><span class="sum-row-l">Σύνολο ΦΠΑ</span><span class="sum-row-v">${esc(fmtEur(totalVat))}</span></div>
-        ${totalCashback>0?`<div class="sum-row"><span class="sum-row-l">Cashback (εξοικονόμηση)</span><span class="sum-row-v">+${esc(fmtEur(totalCashback))}</span></div>`:''}
-        ${unpaid>0?`<div class="sum-row"><span class="sum-row-l">Εκκρεμείς πληρωμές</span><span class="sum-row-v">${esc(fmtEur(unpaid))}</span></div>`:''}
-      </div>
-    </div>
-  </div>
-
-  <!-- Detail table -->
-  <div class="sec">
-    <div class="sec-title">Αναλυτικές Δαπάνες ανά Ομάδα</div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:70px">Ημερομηνία</th>
-          <th style="width:88px">Κατηγορία</th>
-          <th>Περιγραφή</th>
-          <th style="width:68px">Πληρώνει</th>
-          <th style="width:86px">Πληρωμή</th>
-          <th class="right" style="width:68px">ΦΠΑ</th>
-          <th class="center" style="width:48px">Εκπιπτ.</th>
-          <th class="right" style="width:78px">Ποσό</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${groupTableRows}
-        <tr class="g-total">
-          <td colspan="7">Γενικό Σύνολο &nbsp;·&nbsp; ${esc(expenses.length)} εγγραφές</td>
-          <td class="mono right">${esc(fmtEur(total))}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div>${branding?.companyName ? brandName(branding) : 'Property OS'} &nbsp;·&nbsp; Κατάσταση Δαπανών Ακινήτου</div>
-    <div>${esc(today)}</div>
-  </div>
-  <div class="disc">Εκτίμηση βάσει ελληνικής φορολογικής νομοθεσίας. Δεν αποτελεί επίσημο φορολογικό έγγραφο. Συμβουλευτείτε λογιστή.</div>
-
-  </div></body></html>`);
-  w.document.close();
-  setTimeout(()=>{ w.print(); }, 900);
+  openReport(html);
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────

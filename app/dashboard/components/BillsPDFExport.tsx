@@ -1,28 +1,22 @@
 'use client';
 
-import { reportAccent, brandLogoImg, brandName, brandRootVars, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+import { useReportBranding } from '@/lib/reportBranding';
+import {
+  reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport,
+  rEur, rPct, rEsc, rDate,
+} from './reportPdf';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BillsPDFExport, Επαγγελματική Αναφορά Λογαριασμών (Έκδοση 2.0)
+// BillsPDFExport — Επαγγελματική Αναφορά Λογαριασμών, στο ΚΟΙΝΟ ασπρόμαυρο
+// «λογιστικό» σύστημα αναφορών (reportPdf). Ενιαία τυπογραφία/κενά/στοίχιση με
+// τις υπόλοιπες εκτυπώσεις (Inter, tabular numerals). Μοναδικό σημείο χρώματος:
+// το σήμα/λογότυπο του brand (το χειρίζεται το reportHeader).
 //
-// Τι αλλάζει σε σχέση με την προηγούμενη έκδοση:
-// • Πλήρης δομή εγγράφου: Εξώφυλλο-κεφαλίδα → Executive Summary → Εκκρεμότητες
-//   → Επερχόμενες λήξεις 30 ημερών → Πληρωμένοι → Κατανομή ανά κατηγορία
-//   → Ιστορικό 12μήνου με στατιστικά → Μεθοδολογία & υπογραφή.
-// • Σωστή σελιδοποίηση Α4: κάθε ενότητα δεν «σπάει» στη μέση (break-inside:avoid),
-//   επαναλαμβανόμενες κεφαλίδες πινάκων ανά σελίδα (thead display:table-header-group).
-// • Καθαρή τυπογραφία εγγράφου (Inter + Roboto Mono), διακριτική χρυσή ταυτότητα.
-// • Όλα τα δεδομένα χρήστη περνούν από esc(), προστασία από stored-XSS.
+// Δομή: κεφαλίδα → Σύνοψη (KPIs) → Εκκρεμείς/Ληξιπρόθεσμοι → Επερχόμενες λήξεις
+// 30 ημερών → Κατανομή ανά κατηγορία → Ιστορικό 12μήνου → Πληρωμένοι →
+// Σημειώσεις & μεθοδολογία → disclaimer. Χρήματα «1.234,56 €», ποσοστά «18,00%».
+// Όλα τα δεδομένα χρήστη περνούν από rEsc() (προστασία από stored-XSS).
 // ─────────────────────────────────────────────────────────────────────────────
-
-const fe = (n: number, d = 2) => `${n.toLocaleString('el-GR', { minimumFractionDigits: d, maximumFractionDigits: d })} €`;
-const todayStr = () => new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' });
-
-// SECURITY: ονόματα/σημειώσεις/πεδία ακινήτου προέρχονται από τον χρήστη και
-// παρεμβάλλονται σε HTML string, escape για αποφυγή stored-XSS.
-const esc = (v: unknown) => String(v ?? '')
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 interface BillEntry {
   id: string; category: string; name: string; amount: number;
@@ -36,31 +30,30 @@ interface BillsData {
   historyTotals: number[];
 }
 
-// Ασπρόμαυρο: όλες οι κατηγορίες χρησιμοποιούν ουδέτερο σκούρο γκρι για τα
-// τετραγωνάκια/μπάρες — καμία χρωματική διάκριση (επίσημο λογιστικό ύφος).
-const CAT: Record<string, { label: string; color: string }> = {
-  electricity: { label: 'Ρεύμα',                 color: '#374151' },
-  common:      { label: 'Κοινόχρηστα',            color: '#374151' },
-  internet:    { label: 'Internet',                color: '#374151' },
-  water:       { label: 'Νερό',                   color: '#374151' },
-  gas:         { label: 'Αέριο / Θέρμανση',       color: '#374151' },
-  insurance:   { label: 'Ασφάλεια',               color: '#374151' },
-  security:    { label: 'Security / Συναγερμός',   color: '#374151' },
-  streaming:   { label: 'Streaming',               color: '#374151' },
-  enfia:       { label: 'ΕΝΦΙΑ',                  color: '#374151' },
-  dimotika:    { label: 'Δημοτικά Τέλη',          color: '#374151' },
-  taxes:       { label: 'Φόροι',                  color: '#374151' },
-  cleaning:    { label: 'Καθαρισμός',              color: '#374151' },
-  garden:      { label: 'Κήπος',                  color: '#374151' },
-  pool:        { label: 'Πισίνα',                 color: '#374151' },
-  elevator:    { label: 'Ανελκυστήρας',           color: '#374151' },
-  ac_service:  { label: 'Σέρβις Κλιματιστικού',    color: '#374151' },
-  renovation:  { label: 'Ανακαίνιση',             color: '#374151' },
-  pest:        { label: 'Απεντόμωση',             color: '#374151' },
-  other:       { label: 'Άλλο',                   color: '#374151' },
+// Ασπρόμαυρο: μόνο ετικέτες κατηγοριών (καμία χρωματική διάκριση).
+const CAT: Record<string, string> = {
+  electricity: 'Ρεύμα',
+  common:      'Κοινόχρηστα',
+  internet:    'Internet',
+  water:       'Νερό',
+  gas:         'Αέριο / Θέρμανση',
+  insurance:   'Ασφάλεια',
+  security:    'Security / Συναγερμός',
+  streaming:   'Streaming',
+  enfia:       'ΕΝΦΙΑ',
+  dimotika:    'Δημοτικά Τέλη',
+  taxes:       'Φόροι',
+  cleaning:    'Καθαρισμός',
+  garden:      'Κήπος',
+  pool:        'Πισίνα',
+  elevator:    'Ανελκυστήρας',
+  ac_service:  'Σέρβις Κλιματιστικού',
+  renovation:  'Ανακαίνιση',
+  pest:        'Απεντόμωση',
+  other:       'Άλλο',
 };
 
-const catOf = (v: string) => CAT[v] || { label: v, color: '#374151' };
+const catLabel = (v: string) => CAT[v] || v;
 const MONTHS_FULL = ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
 const MONTHS_SH   = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 
@@ -68,7 +61,6 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
   const branding = useReportBranding(userId);
 
   const handlePrint = () => {
-    const accent = reportAccent(branding);
     const now          = new Date();
     const currentMonth = now.getMonth();
     const year         = now.getFullYear();
@@ -84,6 +76,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     const unpaidSum   = unpaidBills.reduce((s, b) => s + b.amount, 0);
     const paidSum     = paidBills.reduce((s, b) => s + b.amount, 0);
     const paidPct     = data.bills.length > 0 ? Math.round((paidBills.length / data.bills.length) * 100) : 0;
+    const overdueSum  = overdue.reduce((s, b) => s + b.amount, 0);
 
     // Ιστορικό, στατιστικά
     const hist        = data.historyTotals || [];
@@ -93,321 +86,169 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
     const maxH        = Math.max(...(hist.length ? hist : [1]), 1);
 
     // Κατανομή ανά κατηγορία (πάγια)
-    const byCat: Record<string, { label: string; color: string; monthly: number; count: number }> = {};
+    const byCat: Record<string, { label: string; monthly: number; count: number }> = {};
     data.bills.filter(b => b.recurring).forEach(b => {
-      const c = catOf(b.category);
-      if (!byCat[b.category]) byCat[b.category] = { ...c, monthly: 0, count: 0 };
+      if (!byCat[b.category]) byCat[b.category] = { label: catLabel(b.category), monthly: 0, count: 0 };
       byCat[b.category].monthly += b.amount;
       byCat[b.category].count++;
     });
     const catEntries  = Object.entries(byCat).sort((a, b) => b[1].monthly - a[1].monthly);
     const topCategory = catEntries[0]?.[1] || null;
+    const topPct      = topCategory && data.totalMonthly > 0 ? (topCategory.monthly / data.totalMonthly) * 100 : 0;
 
     // ── Γραμμή λογαριασμού ─────────────────────────────────────────────────
-    const billRow = (b: BillEntry, i: number) => {
-      const c        = catOf(b.category);
-      const dl       = b.due_date ? daysTo(b.due_date) : null;
-      const isOd     = dl !== null && dl < 0 && !b.paid;
-      const stBg     = '#f3f4f6';
-      const stColor  = '#374151';
-      const stText   = b.paid ? 'Πληρώθηκε' : isOd ? 'Ληξιπρόθεσμος' : 'Εκκρεμεί';
-      return `
-        <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed">
-            <span style="display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;color:#334155">
-              <span style="width:8px;height:8px;border-radius:2px;background:${c.color};display:inline-block"></span>${c.label}
-            </span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111;font-size:10.5px">
-            ${esc(b.name)}
-            ${b.notes ? `<div style="font-weight:400;font-size:9px;color:#6b7280;margin-top:2px">${esc(b.notes)}</div>` : ''}
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-size:9.5px;color:#475569;white-space:nowrap">
-            ${esc(b.period) || (b.due_date ? new Date(b.due_date).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—')}
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
-            <span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db">${b.recurring ? 'Πάγιο' : 'Εφάπαξ'}</span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
-            <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px;background:${stBg};color:${stColor};border:1px solid #d1d5db">${stText}</span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:700;text-align:right;font-family:'Roboto Mono',monospace;font-size:11px;color:#111;white-space:nowrap">${fe(b.amount)}</td>
-        </tr>`;
+    const billRow = (b: BillEntry) => {
+      const dl     = b.due_date ? daysTo(b.due_date) : null;
+      const isOd   = dl !== null && dl < 0 && !b.paid;
+      const stText = b.paid ? 'Πληρώθηκε' : isOd ? 'Ληξιπρόθεσμος' : 'Εκκρεμεί';
+      const period = rEsc(b.period) || (b.due_date ? rDate(b.due_date) : '—');
+      return `<tr>
+        <td>${rEsc(catLabel(b.category))}</td>
+        <td style="font-weight:600;color:#111">${rEsc(b.name)}${b.notes ? `<div style="font-weight:400;font-size:11px;color:#8a8f98;margin-top:2px">${rEsc(b.notes)}</div>` : ''}</td>
+        <td>${period}</td>
+        <td>${b.recurring ? 'Πάγιο' : 'Εφάπαξ'}</td>
+        <td>${stText}</td>
+        <td class="n">${rEur(b.amount)}</td>
+      </tr>`;
     };
 
     const billsTable = (bills: BillEntry[], sumLabel: string, sum: number) => `
       <table>
         <thead><tr>
-          <th style="width:16%">Κατηγορία</th><th>Ονομασία / Πάροχος</th><th style="width:16%">Περίοδος / Λήξη</th>
-          <th style="width:9%;text-align:center">Τύπος</th><th style="width:12%;text-align:center">Κατάσταση</th>
-          <th style="width:12%;text-align:right">Ποσό</th>
+          <th>Κατηγορία</th><th>Ονομασία / πάροχος</th><th>Περίοδος / λήξη</th>
+          <th>Τύπος</th><th>Κατάσταση</th><th class="n">Ποσό</th>
         </tr></thead>
-        <tbody>${bills.map((b, i) => billRow(b, i)).join('')}</tbody>
-        <tfoot><tr>
-          <td colspan="5" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">${sumLabel}</td>
-          <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(sum)}</td>
-        </tr></tfoot>
+        <tbody>
+          ${bills.map(billRow).join('')}
+          <tr class="result"><td colspan="5">${rEsc(sumLabel)}</td><td class="n">${rEur(sum)}</td></tr>
+        </tbody>
       </table>`;
 
     // ── Γραμμή κατηγορίας ──────────────────────────────────────────────────
-    const catRow = ([, v]: [string, typeof byCat[string]]) => {
-      const pct = data.totalMonthly > 0 ? (v.monthly / data.totalMonthly) * 100 : 0;
-      return `
-        <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed">
-            <span style="display:inline-flex;align-items:center;gap:8px;font-size:10.5px;color:#111;font-weight:600">
-              <span style="width:10px;height:10px;border-radius:3px;background:${v.color};display:inline-block"></span>${v.label}
-            </span>
-            <span style="font-size:9px;color:#94a3b8;margin-left:6px">(${v.count} ${v.count === 1 ? 'λογαριασμός' : 'λογαριασμοί'})</span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-weight:700;font-family:'Roboto Mono',monospace;color:#111;font-size:11px;white-space:nowrap">${fe(v.monthly)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;color:#64748b;font-family:'Roboto Mono',monospace;font-size:10px;white-space:nowrap">${fe(v.monthly * 12)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;width:34%">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="flex:1;height:7px;background:#eef1f5;border-radius:4px;overflow:hidden">
-                <div style="height:100%;width:${Math.min(pct, 100).toFixed(0)}%;background:${v.color};border-radius:4px"></div>
-              </div>
-              <span style="font-size:9.5px;color:#475569;font-family:'Roboto Mono',monospace;min-width:34px;text-align:right">${pct.toFixed(0)}%</span>
-            </div>
-          </td>
-        </tr>`;
+    const catRow = ([, v]: [string, { label: string; monthly: number; count: number }]) => {
+      const p = data.totalMonthly > 0 ? (v.monthly / data.totalMonthly) * 100 : 0;
+      return `<tr>
+        <td>${rEsc(v.label)} <span style="color:#8a8f98;font-size:11px">(${v.count} ${v.count === 1 ? 'λογαριασμός' : 'λογαριασμοί'})</span></td>
+        <td class="n">${rEur(v.monthly)}</td>
+        <td class="n">${rEur(v.monthly * 12)}</td>
+        <td class="np">${rPct(p)}</td>
+      </tr>`;
     };
 
     // ── Επερχόμενες λήξεις 30 ημερών ───────────────────────────────────────
     const dueSoonRow = (b: BillEntry) => {
       const dl = daysTo(b.due_date!);
-      const urgency = '#111';
-      return `
-        <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-weight:600;color:#111;font-size:10.5px">${esc(b.name)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#475569">${catOf(b.category).label}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;font-size:10px;color:#475569;white-space:nowrap">${new Date(b.due_date!).toLocaleDateString('el-GR', { day: '2-digit', month: 'short' })}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:center">
-            <span style="font-size:9.5px;font-weight:700;color:${urgency}">${dl === 0 ? 'ΣΗΜΕΡΑ' : `σε ${dl} ημ.`}</span>
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e8eaed;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;font-size:11px;color:#111;white-space:nowrap">${fe(b.amount)}</td>
-        </tr>`;
+      return `<tr>
+        <td style="font-weight:600;color:#111">${rEsc(b.name)}</td>
+        <td>${rEsc(catLabel(b.category))}</td>
+        <td>${rDate(b.due_date!)}</td>
+        <td>${dl === 0 ? 'Σήμερα' : `σε ${dl} ημ.`}</td>
+        <td class="n">${rEur(b.amount)}</td>
+      </tr>`;
     };
 
-    // ── Ιστόγραμμα 12 μηνών ────────────────────────────────────────────────
+    // ── Ιστόγραμμα 12 μηνών (μόνο διαβαθμίσεις του γκρι) ────────────────────
     const histBars = MONTHS_SH.map((m, i) => {
       const val   = hist[i] || 0;
-      const pct   = val / maxH;
+      const p     = val / maxH;
       const isCur = i === currentMonth;
-      const barH  = Math.max(pct * 64, val > 0 ? 4 : 1);
-      const color = isCur ? '#111' : '#9ca3af';
-      return `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
-          <div style="font-size:8.5px;font-family:'Roboto Mono',monospace;color:${isCur ? '#111' : '#6b7280'};font-weight:${isCur ? '700' : '400'};white-space:nowrap">${val > 0 ? fe(val, 0) : ''}</div>
-          <div style="width:70%;display:flex;align-items:flex-end;height:64px">
-            <div style="width:100%;height:${barH}px;background:${color};border-radius:3px 3px 0 0"></div>
-          </div>
-          <div style="font-size:9px;color:${isCur ? '#111' : '#94a3b8'};font-weight:${isCur ? '700' : '400'}">${m}</div>
-        </div>`;
+      const barH  = Math.max(p * 64, val > 0 ? 4 : 1);
+      const shade = isCur ? '#111' : '#c7ccd3';
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
+        <div style="font-size:8px;font-variant-numeric:tabular-nums;color:${isCur ? '#111' : '#8a8f98'};font-weight:${isCur ? '700' : '400'};white-space:nowrap">${val > 0 ? rEur(val) : ''}</div>
+        <div style="width:70%;display:flex;align-items:flex-end;height:64px">
+          <div style="width:100%;height:${barH}px;background:${shade};border-radius:3px 3px 0 0"></div>
+        </div>
+        <div style="font-size:9px;color:${isCur ? '#111' : '#8a8f98'};font-weight:${isCur ? '700' : '400'}">${m}</div>
+      </div>`;
     }).join('');
 
-    // ── KPI κάρτα ──────────────────────────────────────────────────────────
-    const kpi = (label: string, value: string, sub: string, accent = '#111') => `
-      <div style="border:1px solid #d1d5db;border-radius:10px;padding:13px 15px;background:#ffffff">
-        <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;margin-bottom:6px">${label}</div>
-        <div style="font-size:19px;font-weight:700;color:${accent};font-family:'Roboto Mono',monospace;line-height:1">${value}</div>
-        <div style="font-size:9px;color:#94a3b8;margin-top:5px">${sub}</div>
-      </div>`;
+    const html = reportHead(`Αναφορά Λογαριασμών · ${data.propertyName}`)
+      + `<body><div class="page">`
+      + reportHeader(branding, 'Αναφορά Λογαριασμών', {
+          rightNote: `Έτος αναφοράς ${year} · ${data.bills.length} ${data.bills.length === 1 ? 'εγγραφή' : 'εγγραφές'}`,
+        })
+      + `<h1>${rEsc(data.propertyName)}</h1>`
+      + `<div class="sub">${rEsc(data.propertyAddress)}</div>`
 
-    const html = `<!DOCTYPE html>
-<html lang="el">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Αναφορά Λογαριασμών, ${esc(data.propertyName)}, ${todayStr()}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <style>
-    :root{--accent:#111;--accent-text:#fff}
-    *{box-sizing:border-box;margin:0;padding:0}
-    html{background:#eef1f5}
-    body{font-family:'Inter',sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    @page{size:A4;margin:16mm 14mm 18mm 14mm}
-    .sheet{max-width:820px;margin:0 auto;padding:28px;background:#fff}
-    @media print{
-      html,body{background:#fff}
-      .sheet{max-width:none;padding:0}
-      .no-print{display:none !important}
-      .card{box-shadow:none}
-    }
-    table{width:100%;border-collapse:collapse}
-    thead{display:table-header-group}   /* επανάληψη κεφαλίδας σε κάθε σελίδα */
-    tr{break-inside:avoid;page-break-inside:avoid}
-    th{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;padding:8px 12px;background:#f4f6f9;border-bottom:2px solid #d1d5db;text-align:left}
-    .card{border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#fff;break-inside:avoid;page-break-inside:avoid}
-    .section-title{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#374151;padding:13px 18px;border-bottom:1px solid #111;background:#fff}
-    .section-title .bar{width:4px;height:16px;border-radius:2px;background:#111;flex-shrink:0}
-    .muted{color:#6b7280;font-weight:500;letter-spacing:0;text-transform:none;font-size:9.5px;margin-left:auto}
-  </style>
-</head>
-<body>
-<div class="sheet">
+      // ── Σύνοψη ────────────────────────────────────────────────────────────
+      + reportSection('Σύνοψη')
+      + `<div class="kpis">`
+        + reportKpi('Μηνιαίο κόστος', rEur(data.totalMonthly))
+        + reportKpi('Ετήσια προβολή', rEur(data.totalAnnual))
+        + reportKpi(`Μέσος όρος ${year}`, rEur(data.avgMonthly))
+        + reportKpi('Εξοφλημένοι', rPct(paidPct))
+      + `</div>`
+      + (overdue.length > 0
+          ? `<div class="note"><strong>Απαιτείται ενέργεια:</strong> ${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'} συνολικού ύψους <strong class="tnum">${rEur(overdueSum)}</strong>.</div>`
+          : `<div class="note">Κανένας ληξιπρόθεσμος λογαριασμός κατά την ημερομηνία έκδοσης.</div>`)
+      + (topCategory
+          ? `<div class="note">Μεγαλύτερη κατηγορία δαπάνης: <strong>${rEsc(topCategory.label)}</strong> · <span class="tnum">${rEur(topCategory.monthly)}</span> / μήνα (${rPct(topPct)} του συνόλου).</div>`
+          : '')
+      + `<div class="note tnum">${paidBills.length} από ${data.bills.length} ${data.bills.length === 1 ? 'λογαριασμός' : 'λογαριασμοί'} εξοφλημένοι.</div>`
 
-  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-  <!-- Κουμπί εκτύπωσης (δεν εκτυπώνεται) -->
-  <div class="no-print" style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px">
-    <button onclick="window.print()" style="background:#111;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">
-      Εκτύπωση / Αποθήκευση PDF
-    </button>
-  </div>
+      // ── 1. Εκκρεμείς & Ληξιπρόθεσμοι ──────────────────────────────────────
+      + (unpaidBills.length > 0
+          ? reportSection(`1. Εκκρεμείς & ληξιπρόθεσμοι (${unpaidBills.length} ${unpaidBills.length === 1 ? 'λογαριασμός' : 'λογαριασμοί'})`)
+            + billsTable(unpaidBills, 'Σύνολο εκκρεμών οφειλών', unpaidSum)
+          : '')
 
-  <!-- ═══ Κεφαλίδα εγγράφου ═══ -->
-  <div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px">
-    <div style="background:#111;color:#fff;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
-      <div>
-        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-          <span style="width:10px;height:10px;border-radius:2px;background:#fff;display:inline-block"></span>
-          ${brandLogoImg(branding, 20)}
-          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:#fff">${branding?.companyName ? brandName(branding) : 'Property OS'}</span>
-        </div>
-        <div style="font-size:23px;font-weight:800;letter-spacing:-0.02em;line-height:1.15">${esc(data.propertyName)}</div>
-        <div style="font-size:12px;color:#9ca3af;margin-top:4px">${esc(data.propertyAddress)}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:4px">Αναφορά Λογαριασμών</div>
-        <div style="font-size:12.5px;font-weight:700">${todayStr()}</div>
-        <div style="font-size:9.5px;color:#9ca3af;margin-top:6px">Έτος αναφοράς ${year} · ${data.bills.length} ${data.bills.length === 1 ? 'εγγραφή' : 'εγγραφές'}</div>
-      </div>
-    </div>
+      // ── 2. Επερχόμενες λήξεις 30 ημερών ───────────────────────────────────
+      + (dueSoon30.length > 0
+          ? reportSection('2. Επερχόμενες λήξεις · επόμενες 30 ημέρες')
+            + `<table>
+                <thead><tr>
+                  <th>Λογαριασμός</th><th>Κατηγορία</th><th>Λήξη</th><th>Προθεσμία</th><th class="n">Ποσό</th>
+                </tr></thead>
+                <tbody>
+                  ${dueSoon30.map(dueSoonRow).join('')}
+                  <tr class="result"><td colspan="4">Σύνολο επόμενων 30 ημερών</td><td class="n">${rEur(dueSoon30.reduce((s, b) => s + b.amount, 0))}</td></tr>
+                </tbody>
+              </table>`
+          : '')
 
-    <!-- Executive Summary -->
-    <div style="padding:16px 20px;background:#fafbfc">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-        ${kpi('Μηνιαίο Κόστος', fe(data.totalMonthly), 'τρέχοντα πάγια / μήνα')}
-        ${kpi('Ετήσια Προβολή', fe(data.totalAnnual), 'εκτίμηση 12μήνου')}
-        ${kpi('Μέσος Όρος ' + year, fe(data.avgMonthly), 'ανά μήνα με δεδομένα')}
-        ${kpi('Εξοφλημένοι', paidPct + '%', paidBills.length + ' από ' + data.bills.length + ' λογαριασμούς')}
-      </div>
+      // ── 3. Κατανομή ανά κατηγορία ─────────────────────────────────────────
+      + (catEntries.length > 0
+          ? reportSection('3. Κατανομή πάγιων δαπανών ανά κατηγορία')
+            + `<table>
+                <thead><tr>
+                  <th>Κατηγορία</th><th class="n">Μηνιαίο</th><th class="n">Ετήσιο</th><th class="np">Ποσοστό</th>
+                </tr></thead>
+                <tbody>
+                  ${catEntries.map(catRow).join('')}
+                  <tr class="result"><td>Σύνολο πάγιων</td><td class="n">${rEur(data.totalMonthly)}</td><td class="n">${rEur(data.totalAnnual)}</td><td class="np">${rPct(100)}</td></tr>
+                </tbody>
+              </table>`
+          : '')
 
-      ${overdue.length > 0 ? `
-      <div style="margin-top:12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 15px;font-size:11px;color:#111">
-        <strong>Απαιτείται ενέργεια:</strong> ${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'} συνολικού ύψους <strong style="font-family:'Roboto Mono',monospace">${fe(overdue.reduce((s, b) => s + b.amount, 0))}</strong>.
-      </div>` : `
-      <div style="margin-top:12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:10px 15px;font-size:11px;color:#374151">
-        Κανένας ληξιπρόθεσμος λογαριασμός κατά την ημερομηνία έκδοσης.
-      </div>`}
-      ${topCategory ? `
-      <div style="margin-top:8px;font-size:10px;color:#6b7280;padding:0 2px">
-        Μεγαλύτερη κατηγορία δαπάνης: <strong style="color:#111">${topCategory.label}</strong>, ${fe(topCategory.monthly)}/μήνα (${data.totalMonthly > 0 ? Math.round((topCategory.monthly / data.totalMonthly) * 100) : 0}% του συνόλου).
-      </div>` : ''}
-    </div>
-  </div>
+      // ── 4. Ιστορικό 12μήνου ───────────────────────────────────────────────
+      + (hist.some(v => v > 0)
+          ? reportSection(`4. Ιστορικό κόστους ${year} · τρέχων μήνας ${MONTHS_FULL[currentMonth]}`)
+            + `<div style="display:flex;align-items:flex-end;gap:4px;border-bottom:1px solid #d0d5dd;padding-bottom:0;margin-top:6px">${histBars}</div>
+               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
+                 <div class="note" style="margin-top:0">Μέσος όρος: <strong class="tnum">${rEur(data.avgMonthly)}</strong> / μήνα</div>
+                 ${maxMonth ? `<div class="note" style="margin-top:0">Ακριβότερος μήνας: <strong class="tnum">${MONTHS_SH[maxMonth.i]}, ${rEur(maxMonth.v)}</strong></div>` : '<div></div>'}
+                 ${minMonth ? `<div class="note" style="margin-top:0">Οικονομικότερος: <strong class="tnum">${MONTHS_SH[minMonth.i]}, ${rEur(minMonth.v)}</strong></div>` : '<div></div>'}
+               </div>
+               <div class="note" style="font-size:10px;color:#8a8f98">Οι ράβδοι απεικονίζουν το μηνιαίο κόστος· ο τρέχων μήνας εμφανίζεται με έντονη μαύρη ράβδο.</div>`
+          : '')
 
-  <!-- ═══ 1. Εκκρεμείς & Ληξιπρόθεσμοι ═══ -->
-  ${unpaidBills.length > 0 ? `
-  <div class="card">
-    <div class="section-title"><span class="bar"></span>1. Εκκρεμείς &amp; Ληξιπρόθεσμοι <span class="muted">${unpaidBills.length} ${unpaidBills.length === 1 ? 'λογαριασμός' : 'λογαριασμοί'}</span></div>
-    ${billsTable(unpaidBills, 'Σύνολο εκκρεμών οφειλών', unpaidSum)}
-  </div>` : ''}
+      // ── 5. Πληρωμένοι ─────────────────────────────────────────────────────
+      + (paidBills.length > 0
+          ? reportSection(`5. Πληρωμένοι λογαριασμοί (${paidBills.length} ${paidBills.length === 1 ? 'εγγραφή' : 'εγγραφές'})`)
+            + billsTable(paidBills, 'Σύνολο εξοφλημένων', paidSum)
+          : '')
 
-  <!-- ═══ 2. Επερχόμενες λήξεις 30 ημερών ═══ -->
-  ${dueSoon30.length > 0 ? `
-  <div class="card">
-    <div class="section-title"><span class="bar"></span>2. Επερχόμενες Λήξεις, Επόμενες 30 Ημέρες <span class="muted">προγραμματισμός πληρωμών</span></div>
-    <table>
-      <thead><tr>
-        <th>Λογαριασμός</th><th style="width:20%">Κατηγορία</th><th style="width:13%">Λήξη</th>
-        <th style="width:13%;text-align:center">Προθεσμία</th><th style="width:14%;text-align:right">Ποσό</th>
-      </tr></thead>
-      <tbody>${dueSoon30.map(dueSoonRow).join('')}</tbody>
-      <tfoot><tr>
-        <td colspan="4" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">Σύνολο επόμενων 30 ημερών</td>
-        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(dueSoon30.reduce((s, b) => s + b.amount, 0))}</td>
-      </tr></tfoot>
-    </table>
-  </div>` : ''}
+      // ── Σημειώσεις & μεθοδολογία ──────────────────────────────────────────
+      + reportSection('Σημειώσεις & μεθοδολογία')
+      + `<div class="note">Το «Μηνιαίο κόστος» αθροίζει μόνο τους επαναλαμβανόμενους (πάγιους) λογαριασμούς· τα εφάπαξ ποσά εμφανίζονται στους αναλυτικούς πίνακες.</div>`
+      + `<div class="note">Η «Ετήσια προβολή» είναι εκτίμηση (μηνιαίο × 12) και δεν συνυπολογίζει εποχικότητα (π.χ. θέρμανση χειμώνα).</div>`
+      + `<div class="note">Τα ποσά καταχωρούνται από τον χρήστη και ενδέχεται να διαφέρουν από τα επίσημα παραστατικά των παρόχων.</div>`
 
-  <!-- ═══ 3. Κατανομή ανά κατηγορία ═══ -->
-  ${catEntries.length > 0 ? `
-  <div class="card">
-    <div class="section-title"><span class="bar"></span>3. Κατανομή Πάγιων Δαπανών ανά Κατηγορία <span class="muted">μόνο επαναλαμβανόμενοι λογαριασμοί</span></div>
-    <table>
-      <thead><tr>
-        <th>Κατηγορία</th><th style="width:15%;text-align:right">Μηνιαίο</th>
-        <th style="width:15%;text-align:right">Ετήσιο</th><th>Ποσοστό συνόλου</th>
-      </tr></thead>
-      <tbody>${catEntries.map(catRow).join('')}</tbody>
-      <tfoot><tr>
-        <td style="padding:9px 12px;font-size:10px;font-weight:700;color:#334155;border-top:2px solid #cbd5e1">Σύνολο πάγιων</td>
-        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#111;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(data.totalMonthly)}</td>
-        <td style="padding:9px 12px;text-align:right;font-family:'Roboto Mono',monospace;font-size:10.5px;color:#64748b;border-top:2px solid #cbd5e1;white-space:nowrap">${fe(data.totalAnnual)}</td>
-        <td style="border-top:2px solid #cbd5e1"></td>
-      </tr></tfoot>
-    </table>
-  </div>` : ''}
+      + reportDisclaimer(`Αναφορά: ${rDate()} · Εμπιστευτικό έγγραφο, μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου.`, branding)
+      + `</div></body></html>`;
 
-  <!-- ═══ 4. Ιστορικό 12μήνου ═══ -->
-  ${hist.some(v => v > 0) ? `
-  <div class="card">
-    <div class="section-title"><span class="bar"></span>4. Ιστορικό Κόστους ${year} <span class="muted">τρέχων μήνας: ${MONTHS_FULL[currentMonth]}</span></div>
-    <div style="padding:18px 18px 10px">
-      <div style="display:flex;align-items:flex-end;gap:4px;border-bottom:2px solid #e8eaed;padding-bottom:0">
-        ${histBars}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
-        <div style="font-size:10px;color:#6b7280">Μέσος όρος: <strong style="color:#111;font-family:'Roboto Mono',monospace">${fe(data.avgMonthly)}</strong>/μήνα</div>
-        ${maxMonth ? `<div style="font-size:10px;color:#6b7280">Ακριβότερος μήνας: <strong style="color:#111;font-family:'Roboto Mono',monospace">${MONTHS_SH[maxMonth.i]}, ${fe(maxMonth.v)}</strong></div>` : '<div></div>'}
-        ${minMonth ? `<div style="font-size:10px;color:#6b7280">Οικονομικότερος: <strong style="color:#111;font-family:'Roboto Mono',monospace">${MONTHS_SH[minMonth.i]}, ${fe(minMonth.v)}</strong></div>` : '<div></div>'}
-      </div>
-      <div style="margin-top:10px;padding:8px 12px;background:#f8f9fa;border:1px solid #d1d5db;border-radius:6px;font-size:9px;color:#6b7280">
-        Οι ράβδοι απεικονίζουν το μηνιαίο κόστος· ο τρέχων μήνας εμφανίζεται με έντονη μαύρη ράβδο.
-      </div>
-    </div>
-  </div>` : ''}
-
-  <!-- ═══ 5. Πληρωμένοι ═══ -->
-  ${paidBills.length > 0 ? `
-  <div class="card">
-    <div class="section-title"><span class="bar"></span>5. Πληρωμένοι Λογαριασμοί <span class="muted">${paidBills.length} ${paidBills.length === 1 ? 'εγγραφή' : 'εγγραφές'}</span></div>
-    ${billsTable(paidBills, 'Σύνολο εξοφλημένων', paidSum)}
-  </div>` : ''}
-
-  <!-- ═══ Μεθοδολογία & υπογραφή ═══ -->
-  <div class="card" style="background:#fafbfc">
-    <div style="padding:14px 18px">
-      <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:#94a3b8;margin-bottom:8px">Σημειώσεις &amp; Μεθοδολογία</div>
-      <ul style="font-size:9.5px;color:#64748b;line-height:1.7;padding-left:16px">
-        <li>Το «Μηνιαίο Κόστος» αθροίζει μόνο τους επαναλαμβανόμενους (πάγιους) λογαριασμούς· τα εφάπαξ ποσά εμφανίζονται στους αναλυτικούς πίνακες.</li>
-        <li>Η «Ετήσια Προβολή» είναι εκτίμηση (μηνιαίο × 12) και δεν συνυπολογίζει εποχικότητα (π.χ. θέρμανση χειμώνα).</li>
-        <li>Τα ποσά καταχωρούνται από τον χρήστη και ενδέχεται να διαφέρουν από τα επίσημα παραστατικά των παρόχων.</li>
-      </ul>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e8eaed">
-        <div style="font-size:9px;color:#94a3b8">
-          ${branding?.companyName ? brandName(branding) : 'Property OS'} · Αναφορά: ${todayStr()} · Εμπιστευτικό έγγραφο, μόνο για τον ιδιοκτήτη/διαχειριστή του ακινήτου
-        </div>
-        <div style="text-align:center">
-          <div style="width:180px;border-bottom:1px solid #cbd5e1;height:26px"></div>
-          <div style="font-size:8.5px;color:#94a3b8;margin-top:4px">Υπογραφή / Ημερομηνία</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-  // Άνοιγμα διαλόγου εκτύπωσης αφού φορτώσουν οι γραμματοσειρές
-  window.addEventListener('load', function () {
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function () { setTimeout(function () { window.print(); }, 300); });
-    } else {
-      setTimeout(function () { window.print(); }, 800);
-    }
-  });
-</script>
-</body>
-</html>`;
-
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-    }
+    openReport(html);
   };
 
   return (
