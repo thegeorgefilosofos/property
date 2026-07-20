@@ -40,7 +40,9 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const [showPast, setShowPast] = useState(false); // εμφάνιση περασμένων μηνών
   const [sel, setSel] = useState<DayPrice | null>(null);
   const [touched, setTouched] = useState(false);
-  const [savedTick, setSavedTick] = useState(0);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  // Στιγμιότυπο πρόβλεψης για «ζωντανό», χρήσιμο μήνυμα αποθήκευσης (όχι στείρο «αποθηκεύτηκαν»).
+  const projRef = useRef<{ projRevenue: number; uplift: number; upliftPct: number; occPct: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [gapTitles, setGapTitles] = useState<Set<string>>(new Set()); // κενά ήδη στο Ημερολόγιο
   const compsKey = `pos-pricing-comps-${propertyId}`;
@@ -107,9 +109,23 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
     }, { onConflict: 'user_id,property_id' }), [userId, propertyId]);
   useEffect(() => {
     if (!touched || base <= 0) return;
-    const t = setTimeout(async () => { await persist({ base, min, max, wknd, minStay }); setSavedTick(x => x + 1); }, 700);
+    const t = setTimeout(async () => {
+      await persist({ base, min, max, wknd, minStay });
+      // Ζωντανό, χρήσιμο μήνυμα: τι ισχύει τώρα και τι σημαίνει σε έσοδα, αντί για
+      // πάντα το ίδιο «αποθηκεύτηκαν». Οι αριθμοί αλλάζουν με κάθε ρύθμιση.
+      const p = projRef.current;
+      const range = `${fe(min || base, 0)}–${fe(max || base, 0)}`;
+      const note = p && p.uplift > 0
+        ? `Αποθηκεύτηκε. Βάση ${fe(base, 0)}, εύρος ${range} · εκτιμώμενα ${fe(p.projRevenue, 0)} τον χρόνο, +${p.upliftPct}% έναντι σταθερής τιμής (${p.occPct}% πληρότητα).`
+        : p
+        ? `Αποθηκεύτηκε. Βάση ${fe(base, 0)}, εύρος ${range} · εκτιμώμενα ${fe(p.projRevenue, 0)} τον χρόνο στο ${p.occPct}% πληρότητα.`
+        : `Αποθηκεύτηκε. Βάση ${fe(base, 0)}, εύρος ${range}, Σαββατοκύριακο +${wknd}%, ελάχιστη διαμονή ${minStay} ${minStay === 1 ? 'νύχτα' : 'νύχτες'}.`;
+      setSaveNote(note);
+    }, 700);
     return () => clearTimeout(t);
   }, [base, min, max, wknd, minStay, touched, persist]);
+  // Το μήνυμα σβήνει διακριτικά μετά από λίγο — μένει «ζωντανό», όχι μόνιμο.
+  useEffect(() => { if (!saveNote) return; const t = setTimeout(() => setSaveNote(null), 5200); return () => clearTimeout(t); }, [saveNote]);
   // Flush κατά την έξοδο: η τελευταία αλλαγή δεν χάνεται αν φύγεις μέσα στα 700ms.
   useEffect(() => () => {
     const v = settingsRef.current;
@@ -139,6 +155,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
   const occBySeason = useMemo(() => estimateSeasonalOccupancy(stays), [stays]);
   const personalizedOcc = stays.length >= 4;
   const projection = useMemo(() => base > 0 ? projectRevenue(rows, base, occBySeason) : null, [rows, base, occBySeason]);
+  useEffect(() => { projRef.current = projection; }, [projection]);
   const gaps = useMemo(() => findGaps(rows, todayIso()), [rows]);
 
   const kpis = useMemo(() => [
@@ -237,7 +254,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
       </div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
         {adr > 0 && <>Μέση πραγματική τιμή (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr, 0)}</strong> / νύχτα από {stays.length} διαμονές. </>}
-        {savedTick > 0 && <span style={{ color: 'var(--positive)' }}>Οι ρυθμίσεις αποθηκεύτηκαν.</span>}
+        {saveNote && <span style={{ color: 'var(--text-secondary)' }}>{saveNote}</span>}
       </div>
 
       {/* Βαθμονόμηση βάσης από τον ανταγωνισμό (προαιρετικό, τοπικό) */}
