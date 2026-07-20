@@ -50,7 +50,7 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
       [idLine],
       [],
       ['ΑΠΟΤΕΛΕΣΜΑ ΧΡΗΣΗΣ'],
-      ['Περιγραφή', 'Ποσό (€)'],
+      ['Περιγραφή', 'Ποσό'],
       ...plRows.map(r => [r.label, r.amount ?? '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -84,7 +84,7 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
     const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
     const sumIn = sorted.filter(e => e.type === 'income').reduce((s, e) => s + (e.amount || 0), 0);
     const sumEx = sorted.filter(e => e.type === 'expense').reduce((s, e) => s + (e.amount || 0), 0);
-    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Έσοδα (€)', 'Έξοδα (€)'];
+    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Έσοδα', 'Έξοδα'];
     const dataRows: Cell['v'][][] = sorted.map((e, i) => [
       i + 1, toDate(e.date), e.category || '', e.description || '',
       e.type === 'income' ? e.amount : '', e.type === 'expense' ? e.amount : '',

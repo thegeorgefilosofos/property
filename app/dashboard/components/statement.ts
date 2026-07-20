@@ -126,7 +126,7 @@ export function printPropertyStatement(c: StatementCtx): void {
   const subtitle = [c.propType, c.sqm ? `${c.sqm} τ.μ.` : '', leaseType, c.status].filter(Boolean).map(x => esc(String(x))).join(' · ');
 
   const html = `<!doctype html><html lang="el"><head><meta charset="utf-8">
-<title>Αναφορά Ακινήτου — ${esc(c.propName)}</title>
+<title>Αναφορά Ακινήτου · ${esc(c.propName)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
