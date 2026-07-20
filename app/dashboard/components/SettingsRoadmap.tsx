@@ -90,7 +90,6 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
       {/* Επικεφαλίδα ενότητας */}
       <div className="acc-section" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Τι έρχεται
           </span>
