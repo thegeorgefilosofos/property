@@ -249,7 +249,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em' }}>
                   {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
                 </span>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
+                <svg aria-hidden="true" focusable="false" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </div>
