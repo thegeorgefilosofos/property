@@ -1110,7 +1110,7 @@ export default function Dashboard() {
                       <>
                       {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
                       <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
-                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
+                      <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
                         <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {Object.entries(STATUS_LABELS).map(([k,v]) => {
                           const active = (selected.status_detail||'')===k;
