@@ -847,6 +847,8 @@ export default function Dashboard() {
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
       supabase.rpc('sync_comp_from_referrals').then(() => {});
+      // Αυτόματη αποδοχή προσκλήσεων οργανισμού για το email του χρήστη (idempotent).
+      supabase.rpc('accept_org_invites_for_me').then(() => {});
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
