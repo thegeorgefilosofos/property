@@ -56,6 +56,25 @@ function SettingRow({ title, desc, control }: { title: string; desc?: string; co
   );
 }
 
+// ── Ενότητα ρυθμίσεων που ελαχιστοποιείται (καθαρό, χωρίς «λίστα σουπερμάρκετ»).
+//    Ξεκινά κλειστή· ανοίγει με ένα κλικ. Η κεφαλίδα ακολουθεί το ίδιο στυλ SecHdr.
+function CollapsibleSection({ title, defaultOpen = false, delay, children }: { title: string; defaultOpen?: boolean; delay?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card className="acc-section" style={{ animationDelay: delay }}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
+        style={{ appearance: 'none', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', ...(open ? { marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' } : {}) }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{title}</span>
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && children}
+    </Card>
+  );
+}
+
 // ── Σύνδεσμος λογιστή (read-only, ανά χρήστη), bare block ──────────────────
 function AccountantLink({ userId }: { userId: string }) {
   const supabase = createClient();
@@ -316,11 +335,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [prefsSaved, setPrefsSaved] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Αποκάλυψη διαχείρισης συνδρομής (νηφάλια χρέωση) & σύγκρισης πλάνων (aspirational)
-  const [showBilling, setShowBilling] = useState(false);
-  const billingRef = useRef<HTMLDivElement | null>(null);
-  const [showComparison, setShowComparison] = useState(false);
-  const comparisonRef = useRef<HTMLDivElement | null>(null);
+  // Ενιαία «Διαχείριση συνδρομής»: σύγκριση πλάνων + στοιχεία τιμολόγησης, σε μία
+  // αποκάλυψη (κλειστή ως προεπιλογή, ώστε να μη μοιάζει με λίστα).
+  const [showManage, setShowManage] = useState(false);
+  const manageRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -374,14 +392,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
   };
 
-  const openBilling = () => {
-    setShowBilling(true);
-    setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  // Ένα σημείο εισόδου: όλα τα CTA (διαχείριση, σύγκριση, «Δες τα πλάνα») ανοίγουν
+  // την ίδια ενοποιημένη ενότητα.
+  const openManage = () => {
+    setShowManage(true);
+    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
-  const openComparison = () => {
-    setShowComparison(true);
-    setTimeout(() => comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  };
+  const openBilling = openManage;
+  const openComparison = openManage;
 
   const ent = { plan, profileType, partner, compPlan, compUntil };
   const effPlan = effectivePlan(ent);
@@ -451,8 +469,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={openComparison}>Σύγκρινε πλάνα</Btn>
-            <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+            <Btn variant={showManage ? 'secondary' : 'primary'} onClick={() => showManage ? setShowManage(false) : openManage()}>
+              {showManage ? 'Κλείσιμο' : 'Διαχείριση συνδρομής'}
+            </Btn>
           </div>
         </div>
 
@@ -536,37 +555,29 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         )}
       </Card>
 
-      {/* Σύγκριση πλάνων (αποκάλυψη, aspirational, N26-style highlight-gains) */}
-      {showComparison && (
-        <div ref={comparisonRef} style={{ scrollMarginTop: 16, marginBottom: 16 }}>
-          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
-        </div>
-      )}
-
-      {/* Διαχείριση συνδρομής (αποκάλυψη, νηφάλια χρέωση) */}
-      {showBilling && (
-        <div ref={billingRef} style={{ scrollMarginTop: 16 }}>
+      {/* Ενοποιημένη «Διαχείριση συνδρομής»: πρώτα η σύγκριση πλάνων (τι κερδίζεις),
+          έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
+      {showManage && (
+        <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
+          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
           <Billing userId={userId} />
         </div>
       )}
 
       {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
       {(profileType === 'professional' || inOrg) && (
-        <Card className="acc-section" style={{ animationDelay: '110ms' }}>
-          <SecHdr label="Οργανισμός & Ομάδα" />
+        <CollapsibleSection title="Οργανισμός & Ομάδα" delay="110ms">
           <OrgTeam userId={userId} />
-        </Card>
+        </CollapsibleSection>
       )}
 
-      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
-      <Card className="acc-section" style={{ animationDelay: '140ms' }}>
-        <SecHdr label="Ειδοποιήσεις" />
+      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
+      <CollapsibleSection title="Ειδοποιήσεις" delay="140ms">
         <NotificationSettings userId={userId} />
-      </Card>
+      </CollapsibleSection>
 
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
-        <SecHdr label="Εμφάνιση & Γλώσσα" />
+      <CollapsibleSection title="Εμφάνιση & Γλώσσα" delay="210ms">
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
         <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
@@ -591,17 +602,15 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             </span>
           )}
         </div>
-      </Card>
+      </CollapsibleSection>
 
       {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
-        <SecHdr label="Ασφάλεια" />
+      <CollapsibleSection title="Ασφάλεια" delay="280ms">
         <SecuritySettings userId={userId} />
-      </Card>
+      </CollapsibleSection>
 
       {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '340ms' }}>
-        <SecHdr label="Δεδομένα & Απόρρητο" />
+      <CollapsibleSection title="Δεδομένα & Απόρρητο" delay="340ms">
         <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
           control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
         {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
@@ -617,7 +626,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <Feedback target="general" />
         </div>
         <DeleteAccount />
-      </Card>
+      </CollapsibleSection>
 
     </div>
   );
