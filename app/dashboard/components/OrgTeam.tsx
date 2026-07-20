@@ -546,7 +546,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
         </div>
         {inviteError && <div style={errStyle}>{inviteError}</div>}
         <div style={{ ...descStyle, marginTop: 10 }}>
-          Το μέλος αποκτά πρόσβαση μόλις συνδεθεί με το ίδιο email και ξεκινά με δικαίωμα ανάγνωσης. Την επεξεργασία τη δίνεις εσύ από τη στήλη «Πρόσβαση».
+          Το μέλος αποκτά πρόσβαση μόλις συνδεθεί με το ίδιο email και ξεκινά με δικαίωμα ανάγνωσης. Την επεξεργασία την επιτρέπει ο ιδιοκτήτης από τη στήλη «Πρόσβαση».
         </div>
       </section>
 
