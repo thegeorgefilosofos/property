@@ -6,7 +6,7 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, money, moneySigned, type Cell } from './xlsxStyle';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
 export interface AccountantMovement { date: string; type: 'income' | 'expense'; category: string; description: string; amount: number }
@@ -73,7 +73,7 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
       const txtS = r.kind === 'result' ? S.totTxt : r.kind === 'subtotal' ? S.strongTxt : r.kind === 'memo' ? MEMO_TXT : S.txt;
       const numS = r.kind === 'result' ? S.totNum : r.kind === 'subtotal' ? S.strongNum : r.kind === 'memo' ? MEMO_NUM : S.num;
       setCell(ws, rr, 0, { s: txtS });
-      setCell(ws, rr, 1, { s: numS, t: 'n', z: FMT.eur });
+      setCell(ws, rr, 1, { v: moneySigned(r.amount ?? 0), t: 's', s: numS }); // κείμενο «€» με κόμμα
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Κατάσταση αποτελεσμάτων');
   }
@@ -119,15 +119,15 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
       setCell(ws, r, 2, { s: S.txt });                                       // Κατηγορία
       setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
-      for (const c of [4, 5]) { const cell = ws[enc(r, c)] as Cell | undefined; setCell(ws, r, c, { s: S.num, ...(cell && typeof cell.v === 'number' ? { t: 'n', z: FMT.eur } : {}) }); }
+      // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
+      for (const c of [4, 5]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
     }
-    // Σύνολα + καθαρό — ΖΩΝΤΑΝΑ SUM (recompute αν ο λογιστής προσθέσει/σβήσει γραμμή).
-    const hasRows = sorted.length > 0;
+    // Σύνολα + καθαρό (υπολογισμένα, ως κείμενο «€»).
     setCell(ws, totalR, 0, { s: S.totTxt }); setCell(ws, totalR, 1, { s: S.totTxt }); setCell(ws, totalR, 2, { s: S.totTxt }); setCell(ws, totalR, 3, { s: S.totTxt });
-    setCell(ws, totalR, 4, { s: S.totNum, t: 'n', z: FMT.eur, ...(hasRows ? { f: `SUM(${enc(HR + 1, 4)}:${enc(lastData, 4)})` } : {}) });
-    setCell(ws, totalR, 5, { s: S.totNum, t: 'n', z: FMT.eur, ...(hasRows ? { f: `SUM(${enc(HR + 1, 5)}:${enc(lastData, 5)})` } : {}) });
+    setCell(ws, totalR, 4, { v: money(sumIn), t: 's', s: S.totNum });
+    setCell(ws, totalR, 5, { v: money(sumEx), t: 's', s: S.totNum });
     setCell(ws, netR, 3, { s: S.strongTxt });
-    setCell(ws, netR, 4, { s: S.strongNum, t: 'n', z: FMT.eur, f: `${enc(totalR, 4)}-${enc(totalR, 5)}` });
+    setCell(ws, netR, 4, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's', s: S.strongNum });
     setCell(ws, netR, 5, { s: S.strongTxt });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Κινήσεις ${year}`);

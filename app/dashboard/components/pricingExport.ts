@@ -9,8 +9,11 @@
 // Ίδιο «λογιστικό» στυλ με τις άλλες εξαγωγές (xlsxStyle): ασπρόμαυρο, στοιχισμένο,
 // δύο δεκαδικά, ημερομηνίες ως ημερομηνίες, ζωντανά σύνολα όπου έχει νόημα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, money, percent, intGr, type Cell } from './xlsxStyle';
 import { SEASON_LABELS, type Season } from '@/lib/pricing/dynamicPricing';
+
+// Κείμενο βάσει μορφής: ποσό «€», ποσοστό «%», ακέραιος — πάντα με ελληνικό κόμμα.
+const fmtZ = (v: number, z?: string): string => (z === FMT.pct ? percent(v) : z === FMT.int ? intGr(v) : money(v));
 
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
 const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
@@ -82,13 +85,13 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     setCell(ws, 1, 0, { s: S.sub });
     setCell(ws, 3, 0, { s: S.section });
     setCell(ws, 4, 0, { s: S.head }); setCell(ws, 4, 1, { s: S.head });
-    settingLines.forEach((l, i) => { const r = 5 + i; setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.num, t: 'n', z: l.z }); });
+    settingLines.forEach((l, i) => { const r = 5 + i; setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { v: fmtZ(l.value as number, l.z), t: 's', s: S.num }); });
     setCell(ws, secRow2, 0, { s: S.section });
     setCell(ws, secRow2 + 1, 0, { s: S.head }); setCell(ws, secRow2 + 1, 1, { s: S.head });
     resultLines.forEach((l, i) => {
       const r = secRow2 + 2 + i;
       setCell(ws, r, 0, { s: l.kind === 'result' ? S.totTxt : S.txt });
-      setCell(ws, r, 1, { s: l.kind === 'result' ? S.totNum : S.num, t: 'n', z: l.z });
+      setCell(ws, r, 1, { v: fmtZ(l.value as number, l.z), t: 's', s: l.kind === 'result' ? S.totNum : S.num });
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Σύνοψη');
   }
@@ -126,7 +129,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       setCell(ws, r, 2, { s: S.txt });
       setCell(ws, r, 3, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
       setCell(ws, r, 4, { s: S.txt });
-      setCell(ws, r, 5, { s: S.num, t: 'n', z: FMT.eur });
+      setCell(ws, r, 5, { v: money(rows[r - HR - 1].price), t: 's', s: S.num }); // κείμενο «€» με κόμμα
       setCell(ws, r, 6, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
     }
     if (rows.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
@@ -166,8 +169,12 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       const r = HR + 1 + i;
       ws['!rows']![r] = { hpt: 16 };
       setCell(ws, r, 0, { s: S.txt });
-      for (const c of [1, 2, 3]) setCell(ws, r, c, { s: S.num, t: 'n', z: FMT.int });
-      for (const c of [4, 5, 6]) setCell(ws, r, c, { s: S.num, t: 'n', z: FMT.eur });
+      setCell(ws, r, 1, { v: intGr(m.days), t: 's', s: S.num });
+      setCell(ws, r, 2, { v: intGr(m.available), t: 's', s: S.num });
+      setCell(ws, r, 3, { v: intGr(m.booked), t: 's', s: S.num });
+      setCell(ws, r, 4, { v: money(m.avg), t: 's', s: S.num });
+      setCell(ws, r, 5, { v: money(m.min), t: 's', s: S.num });
+      setCell(ws, r, 6, { v: money(m.max), t: 's', s: S.num });
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Ανά μήνα');
   }

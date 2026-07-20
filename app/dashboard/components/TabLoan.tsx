@@ -891,7 +891,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
                         <div style={{marginLeft:'auto',flexShrink:0,display:'flex',alignItems:'baseline',gap:12}}>
                           <span style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap' as const}}>{fmtEur(r.monthlyPayment)}/μήνα</span>
                           <span style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:700,lineHeight:1,transition:'color 0.15s',minWidth:52,textAlign:'right' as const}}>{fmtPct(r.effectiveRatePct)}</span>
-                          <InfoDot text={r.eligible?r.why:r.blockers.join(' · ')}/>
+                          {!r.eligible && <InfoDot text={r.blockers.join(' · ')}/>}
                         </div>
                       </div>
                       )

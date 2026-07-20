@@ -124,6 +124,23 @@ alter table public.tenants add column if not exists lease_doc_external_url text;
 create index if not exists tenants_property_idx on public.tenants (property_id);
 create index if not exists tenants_user_idx     on public.tenants (user_id);
 
+-- 3β) Κατάργηση λανθασμένου UNIQUE(property_id) ────────────────────────────────
+-- Παλαιό σχήμα είχε unique στο property_id (1 ενοικιαστής/ακίνητο) → έριχνε
+-- «duplicate key ... tenants_property_id_key» στη 2η καταχώρηση. Ένα ακίνητο
+-- ΠΡΕΠΕΙ να δέχεται πολλούς ενοικιαστές (τρέχων + ιστορικό + συν-μισθωτές).
+do $$
+declare r record;
+begin
+  for r in
+    select conname from pg_constraint
+    where conrelid = 'public.tenants'::regclass and contype = 'u'
+      and pg_get_constraintdef(oid) ilike '%(property_id)%'
+  loop
+    execute format('alter table public.tenants drop constraint %I', r.conname);
+  end loop;
+exception when undefined_table then null;
+end $$;
+
 -- 4) RLS: ο χρήστης βλέπει/γράφει μόνο τους δικούς του ενοικιαστές ─────────────
 alter table public.tenants enable row level security;
 drop policy if exists own_tenants on public.tenants;
