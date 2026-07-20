@@ -137,9 +137,9 @@ export default function NotificationSettings({ userId }: { userId: string }) {
             </p>
             <Toggle val={prefs.reminder_7days} onChange={v => setPrefs(p => ({ ...p, reminder_7days: v }))} label="7 μέρες πριν" desc="Εβδομαδιαία προειδοποίηση"/>
             <Toggle val={prefs.reminder_3days} onChange={v => setPrefs(p => ({ ...p, reminder_3days: v }))} label="3 μέρες πριν" desc="Τριήμερη προειδοποίηση"/>
-            <Toggle val={prefs.reminder_1day} onChange={v => setPrefs(p => ({ ...p, reminder_1day: v }))} label="Την προηγούμενη μέρα" desc="Reminder αύριο το πρωί"/>
-            <Toggle val={prefs.reminder_today} onChange={v => setPrefs(p => ({ ...p, reminder_today: v }))} label="Ημέρα εκτέλεσης" desc="Reminder την ίδια μέρα στις 08:00"/>
-            <Toggle val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Alert για ληξιπρόθεσμες υποχρεώσεις"/>
+            <Toggle val={prefs.reminder_1day} onChange={v => setPrefs(p => ({ ...p, reminder_1day: v }))} label="Την προηγούμενη μέρα" desc="Υπενθύμιση αύριο το πρωί"/>
+            <Toggle val={prefs.reminder_today} onChange={v => setPrefs(p => ({ ...p, reminder_today: v }))} label="Ημέρα εκτέλεσης" desc="Υπενθύμιση την ίδια μέρα στις 08:00"/>
+            <Toggle val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις"/>
           </div>
         )}
 
@@ -168,17 +168,18 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           )}
         </div>
 
-        <button onClick={save} disabled={saving} style={{
-          width: '100%', marginTop: 16,
-          background: saved ? 'var(--positive)' : 'var(--accent)', color: 'var(--accent-text)',
-          border: 'none', borderRadius: 100, padding: '12px 0',
-          fontFamily: T.font.sans, fontSize: 14, fontWeight: 700,
-          cursor: saving ? 'not-allowed' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          transition: 'background 0.3s',
-        }}>
-          {saved ? <><Check size={13}/>Αποθηκεύτηκε</> : saving ? 'Αποθήκευση…' : 'Αποθήκευση Ρυθμίσεων'}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <button onClick={save} disabled={saving} style={{
+            background: saved ? 'var(--positive)' : 'var(--accent)', color: 'var(--accent-text)',
+            border: 'none', borderRadius: 100, padding: '10px 22px',
+            fontFamily: T.font.sans, fontSize: 13, fontWeight: 700,
+            cursor: saving ? 'not-allowed' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            transition: 'background 0.3s',
+          }}>
+            {saved ? <><Check size={13}/>Αποθηκεύτηκε</> : saving ? 'Αποθήκευση…' : 'Αποθήκευση'}
+          </button>
+        </div>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

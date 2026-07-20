@@ -217,7 +217,9 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
 
   const editBtn = (onClick: () => void, disabled = false) => (
     <button onClick={onClick} disabled={disabled}
-      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0 }}>
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--accent)'; }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0, transition: 'color 0.15s' }}>
       Αλλαγή
     </button>
   );
@@ -399,7 +401,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   ];
 
   return (
-    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 760 }}>
+    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 880, margin: '0 auto' }}>
 
       <PageTitle title="Λογαριασμός" sub="Ο λογαριασμός, η συνδρομή και οι προτιμήσεις σου." />
 
