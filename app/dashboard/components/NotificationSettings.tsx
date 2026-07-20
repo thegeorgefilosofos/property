@@ -70,14 +70,27 @@ export default function NotificationSettings({ userId }: { userId: string }) {
     setTesting(true); setTestMsg(null)
     // Στέλνουμε πραγματικό δοκιμαστικό email, ώστε να επιβεβαιωθεί ότι φτάνει.
     let ok = false
+    let reason = ''
     try {
       const { data, error } = await supabase.functions.invoke('send-test-notification', { body: { email } })
-      ok = !error && !!(data as { sent?: boolean } | null)?.sent
-    } catch { ok = false }
+      if (error) {
+        // Μη-2xx: διάβασε το σώμα της απόκρισης της function για τον πραγματικό λόγο.
+        try { const body = await (error as { context?: Response }).context?.json?.(); reason = (body?.detail || body?.error || '') as string; } catch { /* ignore */ }
+        console.error('Δοκιμαστικό email — σφάλμα function:', error, reason)
+      } else {
+        const res = data as { sent?: boolean; error?: string; detail?: string } | null
+        ok = !!res?.sent
+        if (!ok) { reason = res?.detail || res?.error || ''; console.error('Δοκιμαστικό email — δεν στάλθηκε:', res) }
+      }
+    } catch (e) { console.error('Δοκιμαστικό email — εξαίρεση:', e) }
     setTesting(false)
-    setTestMsg(ok
-      ? { ok: true, text: `Στάλθηκε δοκιμαστικό email στο ${email}. Έλεγξε τα εισερχόμενά σου.` }
-      : { ok: false, text: 'Δεν στάλθηκε το δοκιμαστικό email. Δοκίμασε ξανά σε λίγο.' })
+    if (ok) { setTestMsg({ ok: true, text: `Στάλθηκε δοκιμαστικό email στο ${email}. Έλεγξε τα εισερχόμενά σου.` }); return }
+    // Σαφές, ειλικρινές μήνυμα ανάλογα με τον λόγο (χωρίς τεχνικό θόρυβο στον χρήστη).
+    const low = reason.toLowerCase()
+    const text = /testing emails|verify a domain|not allowed|403|only send/.test(low)
+      ? 'Το email δεν στάλθηκε: ο πάροχος επιτρέπει αποστολή μόνο σε επαληθευμένη διεύθυνση/τομέα ακόμη. Θα ενεργοποιηθεί με την επίσημη διεύθυνση αποστολής.'
+      : 'Δεν στάλθηκε το δοκιμαστικό email. Δοκίμασε ξανά σε λίγο.'
+    setTestMsg({ ok: false, text })
   }
 
   const lbl: React.CSSProperties = {

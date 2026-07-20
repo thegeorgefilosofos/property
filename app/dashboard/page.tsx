@@ -65,16 +65,17 @@ interface Bill     { id:string; type:string; amount:number; avg_amount:number|nu
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
-// Κατάσταση ακινήτου: κατηγορική πληροφορία όπου το χρώμα είναι λειτουργικό
-// (σαν φανάρι), όχι διακοσμητικό. Διακριτή, ήρεμη παλέτα ανά κατάσταση.
+// Κατάσταση ακινήτου: μία κλιμακωτή ράμπα από το μπλε της landing (var(--accent),
+// #1a73e8) — 7 ομοιογενείς αποχρώσεις, από βαθύ προς ανοιχτό, στη λογική σειρά των
+// καταστάσεων. Τυποποιημένο, μονοχρωματικό, premium (όχι φανάρι πολλών χρωμάτων).
 const STATUS_COLORS: Record<string,string> = {
-  rented:'var(--positive)',        // ενεργό εισόδημα
-  vacant:'var(--warning)',         // προσοχή: χωρίς εισόδημα
-  own_use:'var(--text-secondary)', // ιδιοχρησία, ουδέτερο
-  seasonal:'var(--accent)',        // περιοδικό
-  renovation:'var(--warning)',     // σε εξέλιξη
-  for_sale:'var(--info)',          // σε μετάβαση
-  disputed:'var(--negative)',      // πρόβλημα
+  rented:    '#0b57d0',
+  vacant:    '#1a73e8',
+  own_use:   '#3385ec',
+  seasonal:  '#4d97ef',
+  renovation:'#66a8f2',
+  for_sale:  '#80baf6',
+  disputed:  '#99cbf9',
 };
 // Σειρά κατά χρησιμότητα (πιο συνηθισμένες πρώτα).
 const STATUS_LABELS: Record<string,string> = {

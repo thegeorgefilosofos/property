@@ -322,13 +322,12 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     const sel = status === k;
                     return (
                       <button key={k} onClick={() => setStatus(k)} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
                         border: sel ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
                         background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                         fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 500,
                         color: sel ? 'var(--text-primary)' : 'var(--text-secondary)',
                       }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[k] || 'var(--text-tertiary)' }} />
                         {v}
                       </button>
                     );
