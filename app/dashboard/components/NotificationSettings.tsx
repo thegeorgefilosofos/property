@@ -38,6 +38,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(false)
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [testing, setTesting] = useState(false)
 
   useEffect(() => { load() }, [userId])
 
@@ -62,13 +63,21 @@ export default function NotificationSettings({ userId }: { userId: string }) {
     setTimeout(() => setSaved(false), 2500)
   }
 
-  function testEmail() {
-    if (!prefs.reminder_email) { setTestMsg({ ok: false, text: 'Βάλε πρώτα το email σου.' }); return }
-    // Έντιμο: δεν στέλνουμε δοκιμαστικό email εδώ, επιβεβαιώνουμε μόνο τη μορφή.
-    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefs.reminder_email)
-    setTestMsg(valid
-      ? { ok: true, text: 'Η μορφή του email είναι σωστή. Αποθήκευσε για να λαμβάνεις ειδοποιήσεις.' }
-      : { ok: false, text: 'Η μορφή του email δεν είναι σωστή.' })
+  async function testEmail() {
+    const email = prefs.reminder_email.trim()
+    if (!email) { setTestMsg({ ok: false, text: 'Βάλε πρώτα το email σου.' }); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setTestMsg({ ok: false, text: 'Η μορφή του email δεν είναι σωστή.' }); return }
+    setTesting(true); setTestMsg(null)
+    // Στέλνουμε πραγματικό δοκιμαστικό email, ώστε να επιβεβαιωθεί ότι φτάνει.
+    let ok = false
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-notification', { body: { email } })
+      ok = !error && !!(data as { sent?: boolean } | null)?.sent
+    } catch { ok = false }
+    setTesting(false)
+    setTestMsg(ok
+      ? { ok: true, text: `Στάλθηκε δοκιμαστικό email στο ${email}. Έλεγξε τα εισερχόμενά σου.` }
+      : { ok: false, text: 'Δεν στάλθηκε το δοκιμαστικό email. Δοκίμασε ξανά σε λίγο.' })
   }
 
   const lbl: React.CSSProperties = {
@@ -111,7 +120,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1 }} type="email" placeholder="ονομα@email.com"
               value={prefs.reminder_email} onChange={e => setPrefs(p => ({ ...p, reminder_email: e.target.value }))}/>
-            <Btn variant="secondary" onClick={testEmail}><Send size={11}/>Δοκιμή</Btn>
+            <Btn variant="secondary" onClick={testEmail} disabled={testing}><Send size={11}/>{testing ? 'Αποστολή…' : 'Δοκιμή'}</Btn>
           </div>
           {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: testMsg.ok ? 'var(--positive)' : 'var(--negative)' }}>{testMsg.text}</p>}
         </div>

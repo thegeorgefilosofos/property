@@ -5,7 +5,7 @@
 // ειδοποιήσεις, δεδομένα & απόρρητο). Στυλ fintech: κάρτες, SecHdr, tokens.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
@@ -61,16 +61,17 @@ function SettingRow({ title, desc, control }: { title: string; desc?: string; co
 //    Ξεκινά κλειστή· ανοίγει με ένα κλικ. Η κεφαλίδα ακολουθεί το ίδιο στυλ SecHdr.
 function CollapsibleSection({ title, defaultOpen = false, delay, children }: { title: string; defaultOpen?: boolean; delay?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
+  const panelId = useId();
   return (
     <Card className="acc-section" style={{ animationDelay: delay }}>
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="po-sec-toggle"
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={panelId} className="po-sec-toggle"
         style={{ appearance: 'none', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', ...(open ? { marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' } : {}) }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{title}</span>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
+        <svg aria-hidden="true" focusable="false" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open && children}
+      <div id={panelId} hidden={!open}>{open && children}</div>
     </Card>
   );
 }
@@ -385,6 +386,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
   const setProfile = async (v: ProfileType) => {
     if (v === profileType) return;
+    // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας. Αν δεν το έχεις,
+    // δεν αλλάζει ο τρόπος: σε παραπέμπουμε αμέσως στην αναβάθμιση συνδρομής.
+    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) {
+      openComparison();
+      return;
+    }
     const prev = profileType;
     onProfileChange?.(v);
     const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
@@ -409,7 +416,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const nearLimit = propLimit !== Infinity && !atLimit && propLimit > 1 && (propertyCount ?? 0) >= propLimit - 1;
   const planMeta = PLANS[effPlan];
   const isProPlan = effPlan === 'agency';
-  const needsUpgrade = profileType === 'professional' && !planAtLeast(effPlan, 'agency');
+  const proEligible = planAtLeast(effPlan, 'agency');
   const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
   const exportSettingsCsv = () => {
@@ -514,34 +521,31 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
             {PROFILE_OPTS.map(o => {
               const on = profileType === o.v;
+              const requiresUpgrade = o.v === 'professional' && !proEligible;
               return (
                 <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
+                  title={requiresUpgrade ? 'Απαιτεί το πλάνο Επαγγελματίας' : undefined}
                   style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                    </span>
+                    {requiresUpgrade ? (
+                      <span aria-hidden style={{ flexShrink: 0, color: 'var(--text-tertiary)', display: 'inline-flex' }}>
+                        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                      </span>
+                    ) : (
+                      <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
+                  {requiresUpgrade && (
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πλάνο Επαγγελματίας.</div>
+                  )}
                 </button>
               );
             })}
           </div>
-
-          {/* Έξυπνη ειδοποίηση αναβάθμισης */}
-          {needsUpgrade && (
-            <div style={{ marginTop: 12, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Το πλάνο «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
-                </div>
-              </div>
-              <Btn variant="primary" onClick={openComparison}>Δες τα πλάνα</Btn>
-            </div>
-          )}
         </div>
 
       </Card>

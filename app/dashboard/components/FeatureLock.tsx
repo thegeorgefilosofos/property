@@ -52,9 +52,8 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
             <LockIcon />
           </div>
           <div style={{ width: '100%' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 10, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Πλάνο {plan.name}</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 10, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πλάνο {plan.name}</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.2 }}>{title}</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6, maxWidth: 480 }}>{benefit}</p>

@@ -140,19 +140,12 @@ export default function Billing({ userId }: { userId: string }) {
         </div>
       </Card>
 
-      {/* Payment (pre-Stripe) */}
+      {/* Πληρωμή (πριν το Stripe): τίμια, χωρίς απενεργοποιημένα «κουμπιά-φαντάσματα» */}
       <Card>
         <SecHdr label="Πληρωμή" />
         <InfoBanner tone="info">
-          Το πρώτο σου ακίνητο είναι <strong>δωρεάν για πάντα</strong>. Η πληρωμή με κάρτα για 2+ ακίνητα ενεργοποιείται πολύ σύντομα (Stripe). Συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης ώστε η ενεργοποίηση να γίνει με ένα κλικ.
+          Το πρώτο σου ακίνητο είναι <strong>δωρεάν για πάντα</strong>. Για 2+ ακίνητα, η πληρωμή με κάρτα ενεργοποιείται πολύ σύντομα. Συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης, ώστε η ενεργοποίηση να γίνει με ένα κλικ.
         </InfoBanner>
-        <div style={{ marginTop: 4 }}>
-          <button disabled title="Σύντομα με Stripe"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--bg-overlay)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'not-allowed' }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-            Πληρωμή με κάρτα, σύντομα
-          </button>
-        </div>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
           Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή: αλλάζεις, υποβαθμίζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
         </div>
