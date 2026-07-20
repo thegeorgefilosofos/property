@@ -16,6 +16,7 @@ import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
+import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
 import OrgTeam from './OrgTeam';
@@ -607,6 +608,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
         <SettingsRoadmap userId={userId} />
+        <div style={divider}>
+          <Feedback target="general" />
+        </div>
         <DeleteAccount />
       </Card>
 
