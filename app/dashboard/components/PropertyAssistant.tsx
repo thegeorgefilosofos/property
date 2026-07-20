@@ -10,6 +10,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, feAuto } from '@/components/Theme';
+import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { computeInsights, type Insight } from '@/lib/insights/engine';
 import { RENTAL_TAX_SUMMARY_2026, CLIMATE_LEVY_SUMMARY_2025, MUNICIPAL_ACCOM_SUMMARY } from '@/lib/billing/greekTax';
@@ -76,6 +77,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [busy, setBusy] = useState(false);
   // Κουμπιά ενεργειών που έχουν ήδη εκτελεστεί (ώστε ένα δεύτερο πάτημα να μη διπλοκαταχωρεί).
   const [consumedActions, setConsumedActions] = useState<Set<number>>(() => new Set());
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // Μετρητής απαντήσεων του βοηθού· μετά τις ~12 πρώτες, προτείνουμε (μία φορά) αξιολόγηση.
+  const answeredRef = useRef(0);
+  const nudgedRef = useRef(false);
   const imgRef = useRef<HTMLInputElement>(null);   // λήψη/επιλογή φωτο αντικειμένου για αναγνώριση
   const [err, setErr] = useState('');
   const [ctxStr, setCtxStr] = useState('');
@@ -393,6 +398,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else if (a.type === 'paid') { markPaid(a.description, a.amount); return; }
     else if (a.type === 'inventory') { registerInventory(a); return; }
     else if (a.type === 'vault') { createVault(a); return; }
+    else if (a.type === 'feedback') { setFeedbackOpen(true); return; }
     if (!keepOpen) setOpen(false);
   };
 
@@ -815,6 +821,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const willAutoRun = !!action && !isReach && (viaVoice || handsFreeRef.current);
       setMsgs(m => [...m, { role: 'assistant', text: clean, action: (isReach || willAutoRun) ? undefined : action }]);
       if (isReach) runAction(action, true);
+      // Μετά τις ~12 πρώτες απαντήσεις, πρότεινε (μία φορά) αξιολόγηση PropertyOS + βοηθού.
+      answeredRef.current += 1;
+      if (answeredRef.current >= 12 && !nudgedRef.current && !action) {
+        nudgedRef.current = true;
+        setMsgs(m => [...m, {
+          role: 'assistant',
+          text: `Με βοηθάς λίγο; Αξιολόγησε το PropertyOS κι εμένα, ώστε να βελτιώσουμε τις υπηρεσίες μας. Ό,τι γράψεις το διαβάζει άνθρωπος από την ομάδα και το παίρνουμε στα σοβαρά.`,
+          action: { type: 'feedback' },
+        }]);
+      }
       // Φωνητική απάντηση + εκτέλεση ενέργειας / συνέχιση συνομιλίας.
       if (viaVoice || handsFreeRef.current) {
         speak(clean, () => {
@@ -1061,6 +1077,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                           : m.action.type === 'task' ? `Νέα εκκρεμότητα`
                           : m.action.type === 'inventory' ? `Κατέγραψε: ${m.action.name}`
                           : m.action.type === 'vault' ? `Φτιάξε κουμπαρά: ${m.action.name}`
+                          : m.action.type === 'feedback' ? 'Γράψε την αξιολόγησή σου'
                           : `Πήγαινε: ${navLabel(m.action.tab)}`}
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                       </button>
@@ -1099,6 +1116,21 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {feedbackOpen && (
+        <div
+          role="dialog" aria-modal="true"
+          onClick={() => setFeedbackOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(12,20,34,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: 460, maxWidth: '100%', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 18, boxShadow: '0 20px 60px rgba(0,0,0,0.32)', padding: 20 }}
+          >
+            <Feedback target="assistant" embedded onDone={() => setFeedbackOpen(false)} />
+          </div>
         </div>
       )}
 

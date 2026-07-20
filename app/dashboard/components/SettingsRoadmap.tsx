@@ -183,7 +183,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
 
       {/* Δευτερεύοντα, όλα μαζί σε μία σειρά: ομοιόμορφα, συμπαγή, ισοϋψή.
           Τέσσερα σε πλάτος στην επιφάνεια εργασίας, αναδιπλώνονται καθαρά. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'start' }}>
         {ITEMS.map((it, i) => {
           const isOpen = !!open[i];
           return (
@@ -196,7 +196,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.boxShadow = 'var(--highlight-inset), var(--elev-1)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
               style={{
-                display: 'flex', flexDirection: 'column', height: '100%',
+                display: 'flex', flexDirection: 'column',
                 width: '100%', textAlign: 'left', cursor: 'pointer',
                 background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
                 borderRadius: T.radius.inner, padding: 13, fontFamily: T.font.sans,
