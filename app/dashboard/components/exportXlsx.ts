@@ -8,7 +8,7 @@
 // ελληνική μορφή νομίσματος/αριθμών («1.234,56 €»), προαιρετική γραμμή ΣΥΝΟΛΟ
 // με ζωντανό SUM, και AutoFilter. Πραγματικά κελιά — ποτέ «όλα στη στήλη A».
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, boxAll, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, boxAll, money, percent, intGr, type Cell } from './xlsxStyle';
 
 export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
 export type XlsxCol = { header: string; width?: number; kind?: XlsxKind };
@@ -23,12 +23,6 @@ export type XlsxSheet = {
   totalCols?: number[];
 };
 
-// Μορφές ανά τύπο — με ελληνικό πρόθεμα [$-408] ώστε το κόμμα/η τελεία να είναι
-// σωστά σε κάθε Excel (ανεξάρτητα γλώσσας).
-const ZBY: Record<XlsxKind, string | undefined> = {
-  text: undefined, date: FMT.date, eur: FMT.eur, int: FMT.int,
-  year: '0', pct: FMT.pct, num: '[$-408]#,##0.00',
-};
 const RIGHT = new Set<XlsxKind>(['eur', 'int', 'num', 'pct']);
 const CENTER = new Set<XlsxKind>(['date', 'year']);
 // Στυλ κειμένου ανά στοίχιση (κρατά πλαίσια/γραμματοσειρά του κοινού στυλ).
@@ -79,30 +73,30 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
     ws['!rows'][HR] = { hpt: 28 };
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
 
-    // Δεδομένα — στυλ + μορφή ανά τύπο στήλης.
+    // Δεδομένα — στυλ + μορφή ανά τύπο. Τα ποσά/ποσοστά γράφονται ως ΚΕΙΜΕΝΟ με
+    // ελληνικό κόμμα («751,00 €», «18,00%»), ώστε να φαίνονται ίδια σε κάθε Excel.
     for (let R = HR + 1; R <= lastData; R++) {
       ws['!rows'][R] = { hpt: 16 };
       for (let c = 0; c < NC; c++) {
         const kind = (sh.columns[c]?.kind || 'text') as XlsxKind;
         const cell = ws[enc(R, c)] as Cell | undefined;
-        const z = ZBY[kind];
-        const isNum = !!cell && typeof cell.v === 'number';
-        const isDate = !!cell && cell.v instanceof Date;
-        const style = RIGHT.has(kind) ? S.num : CENTER.has(kind) ? txtCenter : txtLeft;
-        const patch: Partial<Cell> = { s: style };
-        if (kind === 'date' && isDate) { patch.t = 'd'; patch.z = z; }
-        else if (isNum && z) { patch.t = 'n'; patch.z = z; }
-        setCell(ws, R, c, patch);
+        const raw = cell?.v;
+        if (kind === 'date' && raw instanceof Date) setCell(ws, R, c, { s: txtCenter, t: 'd', z: FMT.date });
+        else if ((kind === 'eur' || kind === 'num') && typeof raw === 'number') setCell(ws, R, c, { v: money(raw), t: 's', s: S.num });
+        else if (kind === 'pct' && typeof raw === 'number') setCell(ws, R, c, { v: percent(raw), t: 's', s: S.num });
+        else if (kind === 'int' && typeof raw === 'number') setCell(ws, R, c, { v: intGr(raw), t: 's', s: S.num });
+        else if (kind === 'year') setCell(ws, R, c, { v: String(raw ?? ''), t: 's', s: txtCenter });
+        else setCell(ws, R, c, { s: RIGHT.has(kind) ? S.num : CENTER.has(kind) ? txtCenter : txtLeft });
       }
     }
 
-    // Γραμμή ΣΥΝΟΛΟ (ζωντανό SUM στις αριθμητικές στήλες).
+    // Γραμμή ΣΥΝΟΛΟ — άθροισμα (κείμενο «€» με κόμμα, ίδιο σε κάθε Excel).
     if (totals) {
       const totSet = new Set(sh.totalCols);
       for (let c = 0; c < NC; c++) {
         if (totSet.has(c) && sh.rows.length) {
-          const z = ZBY[(sh.columns[c]?.kind || 'num') as XlsxKind] || FMT.eur;
-          setCell(ws, totalR, c, { s: totRight, t: 'n', z, f: `SUM(${enc(HR + 1, c)}:${enc(lastData, c)})` });
+          const sum = sh.rows.reduce((acc, row) => acc + (typeof row[c] === 'number' ? (row[c] as number) : 0), 0);
+          setCell(ws, totalR, c, { v: money(sum), t: 's', s: totRight });
         } else {
           setCell(ws, totalR, c, { s: totLeft });
         }

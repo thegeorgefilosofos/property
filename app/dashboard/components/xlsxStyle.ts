@@ -48,6 +48,16 @@ export const S = {
 // πραγματικό λογιστικό πρόγραμμα)· το v κρατά cached τιμή για viewers χωρίς recalc.
 export type Cell = { v?: string | number | Date; t?: string; z?: string; s?: object; f?: string };
 
+// ── Κείμενο με ΕΓΓΥΗΜΕΝΟ ελληνικό κόμμα ─────────────────────────────────────
+// Τα αριθμητικά κελιά του Excel δείχνουν «.» ή «,» ανάλογα με τη ΓΛΩΣΣΑ του
+// υπολογιστή (το πρόθεμα [$-408] δεν το επιβάλλει αξιόπιστα). Για να φαίνεται
+// ΠΑΝΤΑ ελληνικά («60,00 €», «18,00%»), γράφουμε τα ποσά/ποσοστά ως κείμενο
+// προ-μορφοποιημένο με toLocaleString('el-GR') — ίδια εμφάνιση σε κάθε Excel.
+export const money = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+export const moneySigned = (n?: number | null) => ((n ?? 0) < 0 ? `−${money(Math.abs(n ?? 0))}` : money(n ?? 0));
+export const percent = (n?: number | null) => `${(n ?? 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+export const intGr = (n?: number | null) => (n ?? 0).toLocaleString('el-GR');
+
 /** Ασφαλής εφαρμογή στυλ/τύπου/μορφής σε κελί (δημιουργεί το κελί αν λείπει). */
 export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial<Cell>): void {
   const addr = XLSX.utils.encode_cell({ r, c });
