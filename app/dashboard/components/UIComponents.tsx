@@ -250,11 +250,13 @@ export function CustomSelect({
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
-  // Άνοιγμα προς τα πάνω όταν δεν χωράει από κάτω — καθαρό, επαγγελματικό,
-  // χωρίς να «κόβεται» ή να καλύπτει άβολα το περιεχόμενο.
-  const [dropUp, setDropUp] = useState(false);
+  // Το μενού ζωγραφίζεται σε portal (fixed) ώστε να μην «κόβεται» ποτέ από modal ή
+  // scroll container. Ανοίγει προς τα κάτω· γυρίζει προς τα πάνω μόνο αν πραγματικά
+  // δεν χωράει, με ύψος που προσαρμόζεται στον διαθέσιμο χώρο (εσωτερικό scroll).
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; minWidth: number; maxH: number; up: boolean }>({ top: 0, left: 0, minWidth: 0, maxH: 264, up: false });
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const optRefs = useRef<(HTMLDivElement | null)[]>([]);
   // useId(): σταθερό αναγνωριστικό σε server και client (χωρίς hydration mismatch).
   const baseId = useId();
@@ -264,7 +266,9 @@ export function CustomSelect({
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -275,8 +279,29 @@ export function CustomSelect({
     if (open && activeIndex >= 0) optRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
 
-  // Πάντα άνοιγμα προς τα κάτω — σταθερή, προβλέψιμη συμπεριφορά σε όλη την εφαρμογή.
-  useEffect(() => { setDropUp(false); }, [open, options.length]);
+  // Θέση μενού: προτίμηση προς τα κάτω· γύρισμα προς τα πάνω μόνο αν από κάτω δεν
+  // χωράει εύλογο μενού. Το ύψος προσαρμόζεται στον διαθέσιμο χώρο (εσωτερικό scroll),
+  // ώστε ποτέ να μη «κόβεται» ή να βγαίνει εκτός οθόνης.
+  const reposition = () => {
+    const el = triggerRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const GAP = 4, MARGIN = 8, DESIRED = 264;
+    const below = window.innerHeight - r.bottom - MARGIN;
+    const above = r.top - MARGIN;
+    const up = below < Math.min(DESIRED, 200) && above > below;
+    const maxH = Math.max(140, Math.min(DESIRED, (up ? above : below) - GAP));
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8));
+    setMenuPos({ top: up ? r.top - GAP : r.bottom + GAP, left, minWidth: r.width, maxH, up });
+  };
+  useEffect(() => {
+    if (!open) return;
+    reposition();
+    const onScroll = () => reposition();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, options.length]);
 
   const openList = (to?: number) => {
     setOpen(true);
@@ -371,24 +396,23 @@ export function CustomSelect({
           <path d="M7 10l5 5 5-5z"/>
         </svg>
       </div>
-      {open && (
-        <div role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
-          position: 'absolute',
-          ...(dropUp ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }),
-          // Δεξιά αγκύρωση + πλάτος στο περιεχόμενο: το μενού μεγαλώνει όσο
-          // χρειάζεται (χωρίς να σπάει η ετικέτα σε δύο σειρές), ποτέ στενότερο
-          // από το πεδίο, με ανώτατο όριο ώστε να μη βγαίνει εκτός κάρτας.
-          left: 0,
-          right: 'auto',
-          minWidth: '100%',
+      {open && createPortal(
+        <div ref={menuRef} role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
+          // Portal + fixed: το μενού δεν «κόβεται» ποτέ από modal/scroll container.
+          position: 'fixed',
+          top: menuPos.top,
+          left: menuPos.left,
+          transform: menuPos.up ? 'translateY(-100%)' : 'none',
+          // Πλάτος στο περιεχόμενο, ποτέ στενότερο από το πεδίο, με ανώτατο όριο.
+          minWidth: menuPos.minWidth,
           width: 'max-content',
           maxWidth: 'min(340px, 86vw)',
           background: 'var(--bg-surface)',
           borderRadius: T.radius.inner,
-          zIndex: 1000,
+          zIndex: 2000,
           boxShadow: 'var(--elev-3), 0 12px 32px -8px rgba(0,0,0,0.35)',
           border: '1px solid var(--border-default)',
-          maxHeight: 264,
+          maxHeight: menuPos.maxH,
           overflowY: 'auto',
           padding: '6px',
         }}>
@@ -439,7 +463,8 @@ export function CustomSelect({
             </div>
             </Fragment>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -471,10 +496,18 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   const reposition = () => {
     if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    const PANEL_W = 280;
-    // Πάντα προς τα κάτω — σταθερή συμπεριφορά σε όλη την εφαρμογή.
-    const left = Math.min(r.left, window.innerWidth - PANEL_W - 8);
-    setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
+    const PANEL_W = 280, GAP = 4, MARGIN = 8;
+    // Πραγματικό ύψος πίνακα (μεταβλητό: 5–6 εβδομάδες) — με fallback πριν ζωγραφιστεί.
+    const panelH = popupRef.current?.offsetHeight || 344;
+    const left = Math.max(MARGIN, Math.min(r.left, window.innerWidth - PANEL_W - MARGIN));
+    const below = window.innerHeight - r.bottom - MARGIN;
+    // Προτίμηση προς τα κάτω· αν δεν χωράει ολόκληρο, γύρισμα προς τα πάνω, αλλιώς
+    // clamp ώστε ο πίνακας να μένει πάντα πλήρως ορατός στην οθόνη.
+    let top: number;
+    if (below >= panelH) top = r.bottom + GAP;
+    else if (r.top - MARGIN > below) top = Math.max(MARGIN, r.top - GAP - panelH);
+    else top = Math.max(MARGIN, window.innerHeight - panelH - MARGIN);
+    setCoords({ top, left });
   };
 
   useEffect(() => {
