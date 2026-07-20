@@ -88,7 +88,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
     return (
       <Card>
         <SecHdr label="Επωνυμία στις αναφορές" />
-        <InfoBanner tone="info">Η επωνυμία στις αναφορές είναι δυνατότητα του πλάνου «Επαγγελματίας». Αναβάθμισε για να εμφανίζονται το λογότυπο, τα στοιχεία και τα χρώματά σου σε κάθε εκτυπώσιμη αναφορά (PDF).</InfoBanner>
+        <InfoBanner tone="info">Διαθέσιμο στο πλάνο «Επαγγελματίας». Με την αναβάθμιση, κάθε εκτυπώσιμο PDF φέρει το λογότυπο, τα στοιχεία και τα χρώματα της επιχείρησής σου.</InfoBanner>
         <div style={{ marginTop: 14 }}><Btn variant="primary" onClick={onUpgrade}>Δες τα πλάνα</Btn></div>
       </Card>
     );
