@@ -112,7 +112,7 @@ export function buildE1Summary(rows: E2Row[]): E1Summary {
   return { lines, totalGross, note: 'Οι κωδικοί Ε1 είναι ενδεικτικοί — επιβεβαίωσε στο έντυπο του τρέχοντος έτους (myAADE).' }
 }
 
-export const E1_HEADERS = ['Κωδικός Ε1', 'Περιγραφή', 'Κατηγορία', 'Ακαθάριστο Εισόδημα (€)']
+export const E1_HEADERS = ['Κωδικός Ε1', 'Περιγραφή', 'Κατηγορία', 'Ακαθάριστο Εισόδημα']
 export function e1LineToCells(l: E1CodeLine): (string | number)[] {
   return [l.code, l.label, l.category, String(Math.round(l.amount))]
 }

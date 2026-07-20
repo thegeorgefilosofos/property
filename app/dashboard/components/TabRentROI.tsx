@@ -674,9 +674,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
     ].map(t => `<li>${esc(t)}</li>`).join('');
 
-    const disclaimer = `Η παρούσα αναφορά είναι ενημερωτικό εργαλείο εκτίμησης. Οι υπολογισμοί βασίζονται στα στοιχεία που καταχώρησες και σε ενδεικτικά δημόσια δεδομένα αγοράς — δεν αποτελούν επενδυτική, φορολογική ή νομική συμβουλή. Τα πραγματικά μεγέθη διαφέρουν ανά ακίνητο, όροφο, κατάσταση, ακριβή θέση και συνθήκες αγοράς. Οι αποδόσεις εναλλακτικών επενδύσεων είναι ιστορικές· παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Πριν από οποιαδήποτε απόφαση, επιβεβαίωσε τα δεδομένα και συμβουλέψου εξειδικευμένο λογιστή ή σύμβουλο ακινήτων. Δεδομένα αγοράς: ${MARKET_DATA_ASOF}.`;
+    const disclaimer = `Η παρούσα αναφορά αποτελεί ενημερωτικό εργαλείο εκτίμησης. Οι υπολογισμοί βασίζονται στα στοιχεία που καταχώρησες και σε ενδεικτικά δημόσια δεδομένα αγοράς, και δεν συνιστούν επενδυτική, φορολογική ή νομική συμβουλή. Τα πραγματικά μεγέθη διαφέρουν ανά ακίνητο, όροφο, κατάσταση, θέση και συνθήκες αγοράς. Οι αποδόσεις των εναλλακτικών επενδύσεων είναι ιστορικές και δεν εγγυώνται μελλοντικά αποτελέσματα. Πριν από κάθε απόφαση, επιβεβαίωσε τα στοιχεία και συμβουλέψου εξειδικευμένο λογιστή ή σύμβουλο ακινήτων. Δεδομένα αγοράς: ${MARKET_DATA_ASOF}.`;
 
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης — ${esc(name)}</title>
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης · ${esc(name)}</title>
       <style>
         *{box-sizing:border-box}
         body{font-family:Inter,system-ui,Arial,sans-serif;margin:0;color:#111;font-size:12.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -729,7 +729,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         ${sensBlock}
         ${beBlock}
         <section class="sec"><h2>Σύγκριση με εναλλακτικές επενδύσεις (${esc(cmpYears)} έτη, πραγματικές αποδόσεις)</h2>
-          <table><tbody>${compare.map(c => R(c.label, `${fe(c.futureValue, 0)}  ·  ${fp(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table></section>
+          <table><tbody>${compare.map(c => R(c.label, `${fe(c.futureValue, 0)} · ${fp(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table></section>
         <section class="sec"><h2>Παραδοχές & μεθοδολογία</h2><ul class="asmp">${asmpItems}</ul></section>
 
         <div class="disc">${esc(disclaimer)}</div>

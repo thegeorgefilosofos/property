@@ -96,7 +96,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
   // ── Φύλλο 2: Ημερήσιες τιμές ────────────────────────────────────────────────
   {
     const NC = 7, HR = 3;
-    const header = ['Ημερομηνία', 'Ημέρα', 'Εποχή', 'Σαββατοκύριακο', 'Αργία', 'Τιμή/νύχτα (€)', 'Κατάσταση'];
+    const header = ['Ημερομηνία', 'Ημέρα', 'Εποχή', 'Σαββατοκύριακο', 'Αργία', 'Τιμή/νύχτα', 'Κατάσταση'];
     const data: (string | number | Date)[][] = rows.map(r => [
       toDate(r.date), wd(r.dow), SEASON_LABELS[r.season] || '', r.isWeekend ? 'Ναι' : '—',
       r.holidayName || '', r.price, r.booked ? 'Κλεισμένο' : 'Διαθέσιμο',
@@ -147,7 +147,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
         avg, min: prices.length ? Math.min(...prices) : 0, max: prices.length ? Math.max(...prices) : 0,
       };
     });
-    const header = ['Μήνας', 'Ημέρες', 'Διαθέσιμες', 'Κλεισμένες', 'Μέση τιμή (€)', 'Ελάχιστη (€)', 'Μέγιστη (€)'];
+    const header = ['Μήνας', 'Ημέρες', 'Διαθέσιμες', 'Κλεισμένες', 'Μέση τιμή', 'Ελάχιστη', 'Μέγιστη'];
     const aoa: (string | number)[][] = [
       [`ΑΝΑΛΥΣΗ ΑΝΑ ΜΗΝΑ ${year}`],
       [idLine],
