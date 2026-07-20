@@ -105,6 +105,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     else { setHasIdentity(false); }
   }, []);
 
+  // Άνοιγμα από εξωτερικό σημείο εισόδου (π.χ. κουμπί «Βοηθός» στο header).
+  useEffect(() => {
+    const openIt = () => setOpen(true);
+    window.addEventListener('po:open-assistant', openIt);
+    return () => window.removeEventListener('po:open-assistant', openIt);
+  }, []);
+
   // Κλείσιμο με κλικ εκτός πάνελ (χωρίς να χρειάζεται το «×»). Δεν κλείνει όταν
   // επεξεργάζεσαι ταυτότητα ή όταν «ακούει», για να μη χαθεί η ενέργεια.
   useEffect(() => {
