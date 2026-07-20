@@ -88,13 +88,13 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 10, marginBottom: 14 }}>
                 {[
-                  { label: 'Ακαθάριστα', value: fe(e2Result.taxable + parseFloat(e2Deductible) || 0), color: 'var(--text-primary)' },
-                  { label: 'Φορολογητέο', value: fe(e2Result.taxable), color: 'var(--text-primary)' },
-                  { label: 'Φόρος', value: fe(e2Result.tax), color: 'var(--negative)' },
-                  { label: 'Καθαρό/μήνα', value: fe(e2Result.netAfterTax / 12), color: 'var(--accent)' },
+                  { label: 'Ακαθάριστα', value: fe(parseFloat(e2Rent) || 0), tone: undefined as string | undefined },
+                  { label: 'Φορολογητέο', value: fe(e2Result.taxable), tone: undefined },
+                  { label: 'Φόρος', value: fe(e2Result.tax), tone: 'negative' },
+                  { label: 'Καθαρό/μήνα', value: fe(e2Result.netAfterTax / 12), tone: 'accent' },
                 ].map((k, i) => (
-                  <div key={i} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>{k.value}</div>
+                  <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '12px 14px' }}>
+                    <div className="po-fig" data-tone={k.tone} style={{ fontSize: 15, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>{k.value}</div>
                     <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>{k.label}</div>
                   </div>
                 ))}
@@ -146,7 +146,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
               <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
                 {sectionTitle('Σημαντικές Προθεσμίες')}
                 {[
-                  { label: 'Υποβολή Ε1/Ε2', desc: '30 Ιουνίου κάθε χρόνο', color: 'var(--accent)' },
+                  { label: 'Υποβολή Ε1/Ε2', desc: '30 Ιουνίου κάθε χρόνο', color: 'var(--text-primary)' },
                   { label: 'Καταχώρηση Μισθωτηρίου', desc: 'Εντός 30 ημερών από υπογραφή', color: 'var(--text-primary)' },
                   { label: 'Ηλεκτρονική Πληρωμή', desc: 'Έκπτωση 5% αν πληρώσεις online', color: 'var(--text-primary)' },
                 ].map((d, i) => (
@@ -179,9 +179,9 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
       <div style={cardGap}>
         {sectionTitle('Αναλυτική Κατάσταση Ε2 (για λογιστή)')}
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6, marginBottom: 14 }}>
-          Κατέβασε αρχείο CSV με μία γραμμή ανά ακίνητο (ΑΤΑΚ, διεύθυνση, ποσοστό συνιδιοκτησίας, είδος μίσθωσης, μήνες, ακαθάριστο εισόδημα) για το έτος {e2Year}. Έτοιμο για αποστολή στον λογιστή σου.
+          Κατέβασε προσυμπληρωμένο αρχείο Excel για το έτος {e2Year}, με τη δομή του επίσημου εντύπου Ε2 (Πίνακας I με την αρίθμηση στηλών της ΑΑΔΕ), μία γραμμή ανά ακίνητο, φύλλο «Οδηγίες συμπλήρωσης» και σύνοψη Ε1. Έτοιμο να το αντιγράψει ο λογιστής στο myAADE.
         </div>
-        <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
+        <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (Excel)</Btn>
         <div style={{ marginTop: 16, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
           Ορισμένα πεδία συμπληρώνονται αυτόματα ως εκτίμηση. Έλεγξέ τα πριν την υποβολή.
           <InfoHint>Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου. Το ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου, από το Ε9) και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων).</InfoHint>
