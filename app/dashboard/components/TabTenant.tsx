@@ -1142,7 +1142,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
                 {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
-            <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σκάναρε απόδειξη</button>
+            <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σάρωσε απόδειξη</button>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
             <button style={s.btnSm} onClick={generateNow} disabled={busy}>{busy?'…':'Δημιουργία δόσεων'}</button>
             <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(

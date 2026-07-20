@@ -984,9 +984,8 @@ export default function Dashboard() {
               <circle cx="12" cy="13" r="4"/>
             </svg>
           </span>
-          <span className="quick-add-label">Σκάναρε έγγραφο</span>
+          <span className="quick-add-label">Σάρωσε έγγραφο</span>
         </button>
-        <div className="quick-add-hint">Μία φωτογραφία, λογαριασμός, συμβόλαιο, ασφάλεια, οτιδήποτε. Το AI το βάζει στη θέση του.</div>
 
         <div className="sidebar-section">
           <div className="sidebar-section-label">{profileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
