@@ -17,7 +17,7 @@
 
 import { useEffect, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T, Btn, Chip } from '@/components/Theme';
 
 type Role = 'owner' | 'admin' | 'member';
 type Status = 'invited' | 'active' | 'revoked';
@@ -95,49 +95,21 @@ const ROW_MIN = 960;
 const focusOn = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
 const focusOff = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
 
-// ── Chip ρόλου: διακριτικό· owner με accent-soft, admin/member ουδέτερα ────
+// ── Chip ρόλου: owner με accent, admin/member ουδέτερα (κοινό Chip primitive) ─
 function RoleChip({ role }: { role: Role }) {
-  const owner = role === 'owner';
   const label = role === 'owner' ? 'Ιδιοκτήτης' : role === 'admin' ? 'Διαχειριστής' : 'Μέλος';
-  return (
-    <span style={{
-      display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
-      fontFamily: T.font.sans, whiteSpace: 'nowrap',
-      background: owner ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-      color: owner ? 'var(--accent)' : 'var(--text-secondary)',
-      border: `1px solid ${owner ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
-    }}>{label}</span>
-  );
+  return <Chip tone={role === 'owner' ? 'accent' : 'neutral'}>{label}</Chip>;
 }
 
-// ── Chip κατάστασης: Ενεργό (positive soft) / Προσκεκλημένο (ουδέτερο) /
-//    Ανακλήθηκε (σβησμένο) ───────────────────────────────────────────────
+// ── Chip κατάστασης: Ενεργό (positive) / Προσκεκλημένο, Ανακλήθηκε (ουδέτερα) ─
 function StatusChip({ status }: { status: Status }) {
-  const cfg =
-    status === 'active'
-      ? { label: 'Ενεργό', bg: 'var(--positive-soft)', color: 'var(--positive)', border: 'var(--positive-border)' }
-      : status === 'invited'
-      ? { label: 'Προσκεκλημένο', bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' }
-      : { label: 'Ανακλήθηκε', bg: 'transparent', color: 'var(--text-tertiary)', border: 'var(--border-subtle)' };
-  return (
-    <span style={{
-      display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
-      fontFamily: T.font.sans, whiteSpace: 'nowrap', background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
-    }}>{cfg.label}</span>
-  );
+  const label = status === 'active' ? 'Ενεργό' : status === 'invited' ? 'Προσκεκλημένο' : 'Ανακλήθηκε';
+  return <Chip tone={status === 'active' ? 'positive' : 'neutral'}>{label}</Chip>;
 }
 
-// ── Chip πρόσβασης: Επεξεργασία (positive soft) / Ανάγνωση (ουδέτερο) ──────
+// ── Chip πρόσβασης: Επεξεργασία (positive) / Ανάγνωση (ουδέτερο) ───────────
 function AccessChip({ canEdit }: { canEdit: boolean }) {
-  const cfg = canEdit
-    ? { label: 'Επεξεργασία', bg: 'var(--positive-soft)', color: 'var(--positive)', border: 'var(--positive-border)' }
-    : { label: 'Ανάγνωση', bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
-  return (
-    <span style={{
-      display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
-      fontFamily: T.font.sans, whiteSpace: 'nowrap', background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
-    }}>{cfg.label}</span>
-  );
+  return <Chip tone={canEdit ? 'positive' : 'neutral'}>{canEdit ? 'Επεξεργασία' : 'Ανάγνωση'}</Chip>;
 }
 
 // ── Πλήκτρο τμηματικού ελέγχου «Ανάγνωση | Επεξεργασία» ────────────────────
@@ -505,13 +477,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                         fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>{m.email || '—'}</span>
-                      {isYou && (
-                        <span style={{
-                          flexShrink: 0, borderRadius: 100, padding: '2px 7px', fontSize: 10, fontWeight: 700,
-                          fontFamily: T.font.sans, background: 'var(--bg-elevated)', color: 'var(--text-tertiary)',
-                          border: '1px solid var(--border-subtle)',
-                        }}>Εσύ</span>
-                      )}
+                      {isYou && <Chip tone="neutral">Εσύ</Chip>}
                     </div>
 
                     {/* Ρόλος */}
@@ -525,11 +491,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                       {canAct && (
                         m.edit_requested_at && !m.can_edit ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{
-                              display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
-                              fontFamily: T.font.sans, whiteSpace: 'nowrap',
-                              background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)',
-                            }}>Ζητά επεξεργασία</span>
+                            <Chip tone="accent">Ζητά επεξεργασία</Chip>
                             <Btn variant="primary" onClick={() => setMemberEdit(m.email, true)} disabled={busy}>Έγκριση</Btn>
                             <Btn variant="secondary" onClick={() => setMemberEdit(m.email, false)} disabled={busy}>Όχι</Btn>
                           </div>
