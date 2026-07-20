@@ -72,9 +72,9 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
     if (busy || confirmed) return;
     setBusy(true);
     try {
-      const { error } = await supabase
-        .from('billing_profiles')
-        .upsert({ user_id: userId, wants_mobile: true }, { onConflict: 'user_id' });
+      // Καταγράφεται στη λίστα αναμονής με το email του, για πραγματικό ενημερωτικό
+      // email στην κυκλοφορία της εφαρμογής (η RPC κρατά και το wants_mobile).
+      const { error } = await supabase.rpc('join_mobile_waitlist');
       if (!error) setConfirmed(true);
     } catch {
       /* σιωπηλά */
