@@ -11,18 +11,19 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import * as XLSX from 'xlsx';
 
-export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'pct' | 'num';
+export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
 export type XlsxCol = { header: string; width?: number; kind?: XlsxKind };
 export type XlsxCell = string | number | Date | null | undefined;
 export type XlsxSheet = { name: string; columns: XlsxCol[]; rows: XlsxCell[][] };
 
 // Μορφές αριθμών (το Excel αποδίδει «.»/«,» κατά locale· εδώ ορίζουμε μόνο τη δομή).
 const FMT: Record<string, string> = {
-  eur: '#,##0.00;-#,##0.00',
+  eur: '#,##0.00" €";-#,##0.00" €"', // νόμισμα σε ευρώ, δύο δεκαδικά
   num: '#,##0.00',
   int: '#,##0',
-  pct: '0.0%',
-  date: 'dd/mm/yyyy',
+  year: '0',                          // έτος χωρίς διαχωριστικό χιλιάδων (2026, όχι 2.026)
+  pct: '0.00%',
+  date: 'dd/mm/yyyy',                 // ημερομηνία: μέρα/μήνας/έτος
 };
 
 /** Κατεβάζει ένα .xlsx με ένα ή περισσότερα φύλλα, με φίλτρα, πλάτη στηλών και
