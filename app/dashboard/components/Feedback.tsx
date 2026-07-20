@@ -61,7 +61,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
       const { data, error: e } = await supabase.rpc('submit_feedback', { p_body: body.trim(), p_target: target });
       const res = (data || {}) as { status?: string; in_pool?: boolean };
       if (e || !res.status || res.status === 'error') { setError('Κάτι πήγε στραβά. Δοκίμασε ξανά σε λίγο.'); setBusy(false); return; }
-      if (res.status === 'too_short') { setError(`Γράψε λίγες λέξεις ακόμη ώστε να σε καταλάβουμε σωστά.`); setBusy(false); return; }
+      if (res.status === 'too_short') { setError('Γράψε λίγες λέξεις ακόμη, για να καταλάβουμε σωστά τι εννοείς.'); setBusy(false); return; }
       if (res.status === 'already') { setStatus({ ...status, submitted_this_month: true }); setBusy(false); return; }
       setDone({ in_pool: !!res.in_pool });
     } catch {
@@ -84,6 +84,11 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
   // ── Ολοκληρωμένο (ευχαριστία) ──────────────────────────────────────────────
   if (done || alreadyThisMonth) {
     const pooled = done?.in_pool;
+    // Ημέρες μέχρι να ξαναγράψει (κανόνας: μία φορά ανά ημερολογιακό μήνα → 1η επόμενου μήνα).
+    const now = new Date();
+    const firstNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const daysLeft = Math.max(1, Math.ceil((firstNext.getTime() - now.getTime()) / 86400000));
+    const dayPhrase = daysLeft === 1 ? 'σε 1 ημέρα' : `σε ${daysLeft} ημέρες`;
     return (
       <div style={shell}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -96,16 +101,16 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
-              Ευχαριστούμε. Σε ακούσαμε.
+              Ευχαριστούμε, σε ακούσαμε.
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
-                ? 'Το feedback σου καταγράφηκε και το διαβάζει άνθρωπος από την ομάδα. Μπορείς να στείλεις ξανά τον επόμενο μήνα.'
-                : 'Έχεις ήδη στείλει feedback αυτόν τον μήνα. Μπορείς να στείλεις ξανά τον επόμενο.'}
+                ? `Το κρατήσαμε και το κοιτάζει η ομάδα. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
+                : `Έχουμε ήδη το μήνυμά σου αυτόν τον μήνα και το επεξεργαζόμαστε. Πες μας ξανά τη γνώμη σου ${dayPhrase}.`}
             </div>
             {pooled && (
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
-                Μπήκες στην κλήρωση για μία δωρεάν χρονιά «Επαγγελματίας».
+                Μπήκες και στην κλήρωση για μία δωρεάν ετήσια συνδρομή «Επαγγελματίας».
               </div>
             )}
           </div>
@@ -145,13 +150,13 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           </span>
           <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
-            Κάνε το PropertyOS καλύτερο
+            Κάνε το Property OS καλύτερο
           </span>
         </div>
 
         {/* Στόχος (πελατοκεντρικό μήνυμα) */}
         <p style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, margin: '10px 0 0' }}>
-          Θέλουμε η διαχείριση ακινήτων να γίνει εύκολη, γρήγορη και αποτελεσματική για όλους. Πες μας τι δουλεύει, τι σε δυσκολεύει και τι θα ήθελες από τα εργαλεία και τον βοηθό μας. Ό,τι γράψεις το διαβάζει άνθρωπος από την ομάδα.
+          Στόχος μας είναι η διαχείριση των ακινήτων σου να γίνει απλή, γρήγορη και αποτελεσματική. Πες μας τι λειτουργεί καλά, τι σε δυσκολεύει και τι θα ήθελες από τα εργαλεία και τον βοηθό μας. Κάθε μήνυμα το διαβάζει άνθρωπος από την ομάδα, όχι κάποια μηχανή.
         </p>
 
         {/* Πεδίο */}
@@ -160,7 +165,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           onChange={e => { setBody(e.target.value); if (error) setError(null); }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Γράψε ελεύθερα. Τι θα έκανε τη διαχείριση πιο εύκολη για σένα;"
+          placeholder="Γράψε ελεύθερα, με δικά σου λόγια. Τι θα σε βοηθούσε περισσότερο;"
           rows={4}
           maxLength={4000}
           style={{
@@ -177,8 +182,8 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
         {/* Μετρητής λέξεων / ένδειξη ετοιμότητας */}
         <div style={{ fontSize: 11.5, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 7, lineHeight: 1.5 }}>
           {ready
-            ? 'Έτοιμο για αποστολή.'
-            : `Λίγες λέξεις ακόμη ώστε να σε καταλάβουμε σωστά (${words}/${MIN_WORDS}).`}
+            ? 'Ωραία, το μήνυμά σου είναι έτοιμο.'
+            : `Γράψε λίγες λέξεις ακόμη και βοήθησέ μας να βελτιωθούμε (${words}/${MIN_WORDS}).`}
         </div>
 
         {error && (
@@ -191,7 +196,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
           </span>
           <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
-            Κάθε ουσιαστικό feedback μπαίνει στην κλήρωση για μία <strong style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>δωρεάν ετήσια συνδρομή «Επαγγελματίας»</strong>.
+            Κάθε ουσιαστικό σχόλιο μπαίνει στην κλήρωση για μία <strong style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>δωρεάν ετήσια συνδρομή «Επαγγελματίας»</strong>.
           </span>
         </div>
 
@@ -202,7 +207,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           </Btn>
           {embedded && onDone && <Btn variant="ghost" onClick={onDone}>Άλλη φορά</Btn>}
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Επώνυμο, μία φορά τον μήνα.
+            Με το όνομά σου, μία φορά τον μήνα.
           </span>
         </div>
       </div>

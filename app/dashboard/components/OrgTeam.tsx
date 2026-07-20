@@ -15,9 +15,10 @@
 // ιδιοκτήτη). Η όψη επιλέγεται αυτόματα κατά τη φόρτωση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, Chip } from '@/components/Theme';
+import { T, Btn, Chip, settingsField } from '@/components/Theme';
+import { logActivity } from '@/lib/activity';
 import { CustomSelect } from './UIComponents';
 
 // Κοινές επιλογές ρόλου (ίδιο dropdown με το υπόλοιπο app: CustomSelect).
@@ -61,19 +62,8 @@ interface Membership {
   editRequestedAt: string | null;
 }
 
-// ── Κοινά στυλ πεδίων (ίδια «γεωμετρία» με τα υπόλοιπα Settings) ───────────
-const fieldStyle: CSSProperties = {
-  height: 40,
-  borderRadius: T.radius.inner,
-  border: '1px solid var(--border-default)',
-  background: 'var(--bg-surface)',
-  color: 'var(--text-primary)',
-  fontSize: 14,
-  padding: '0 14px',
-  boxSizing: 'border-box',
-  fontFamily: T.font.sans,
-  outline: 'none',
-};
+// ── Κοινά στυλ πεδίων: ίδιο primitive με όλες τις Ρυθμίσεις (focus με .po-field).
+const fieldStyle: CSSProperties = settingsField;
 const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 3 };
 const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 };
@@ -82,9 +72,6 @@ const microLabel: CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing
 // Πλέγμα σειράς μητρώου (κοινό σε κεφαλίδα & γραμμές, για τέλεια ευθυγράμμιση).
 const ROW_COLS = 'minmax(180px, 1fr) 104px 116px 250px 232px';
 const ROW_MIN = 960;
-
-const focusOn = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
-const focusOff = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
 
 // Chips μητρώου: ουδέτερα (η ετικέτα λέει τα πάντα). Κρατάμε το χρώμα μόνο για
 // ό,τι είναι πραγματικά actionable (π.χ. εκκρεμές αίτημα), όχι για διακόσμηση.
@@ -148,6 +135,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
   const [inviteRole, setInviteRole] = useState<InviteRole>('member');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteNote, setInviteNote] = useState<string | null>(null);
 
   // Ενέργειες ανά γραμμή
   const [rowBusy, setRowBusy] = useState<string | null>(null);
@@ -219,6 +207,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setNameSaving(false);
     if (error) { setNameError('Η αποθήκευση δεν ολοκληρώθηκε.'); return; }
     setOrg(prev => (prev ? { ...prev, name: p_name } : prev));
+    void logActivity(supabase, 'org_renamed', 'organization', org.id, { name: p_name });
     setEditingName(false);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2500);
@@ -226,14 +215,26 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
   const invite = async () => {
     if (!org) return;
-    const email = inviteEmail.trim();
+    const email = inviteEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) { setInviteError('Δώσε ένα έγκυρο email.'); return; }
-    setInviting(true); setInviteError(null);
+    setInviting(true); setInviteError(null); setInviteNote(null);
     const { error } = await supabase.rpc('invite_org_member', { p_email: email, p_role: inviteRole });
     if (error) { setInviteError('Η πρόσκληση δεν στάλθηκε.'); setInviting(false); return; }
+    void logActivity(supabase, 'member_invited', 'organization', org.id, { email, role: inviteRole });
+    // Πραγματικό email πρόσκλησης (best-effort): η εγγραφή στη βάση είναι η πηγή
+    // αλήθειας· αν το email δεν σταλεί, το μέλος αποκτά πρόσβαση συνδεόμενο κανονικά.
+    let mailed = false;
+    try {
+      const { data } = await supabase.functions.invoke('send-org-invite', { body: { email } });
+      mailed = !!(data as { sent?: boolean } | null)?.sent;
+    } catch { /* σιωπηλά */ }
+    setInviteNote(mailed
+      ? `Στάλθηκε πρόσκληση με email στο ${email}.`
+      : `Ο ${email} προστέθηκε. Θα αποκτήσει πρόσβαση μόλις συνδεθεί με αυτό το email.`);
     setInviteEmail('');
     await loadMembers(org.id);
     setInviting(false);
+    setTimeout(() => setInviteNote(null), 6000);
   };
 
   const changeRole = async (email: string, role: InviteRole) => {
@@ -241,7 +242,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('set_org_member_role', { p_email: email, p_role: role });
     if (error) setRowError('Η αλλαγή ρόλου δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, 'member_role_changed', 'organization', org.id, { email, role }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 
@@ -250,7 +251,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('revoke_org_member', { p_email: email });
     if (error) setRowError('Η αφαίρεση δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, 'member_revoked', 'organization', org.id, { email }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 
@@ -260,7 +261,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('set_member_edit', { p_email: email, p_can: can });
     if (error) setRowError('Η αλλαγή πρόσβασης δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, can ? 'member_edit_granted' : 'member_edit_revoked', 'organization', org.id, { email }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 
@@ -391,10 +392,9 @@ export default function OrgTeam({ userId }: { userId: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
             <input
               type="text"
+              className="po-field"
               value={nameDraft}
               onChange={e => setNameDraft(e.target.value)}
-              onFocus={focusOn}
-              onBlur={focusOff}
               onKeyDown={e => { if (e.key === 'Enter') void saveName(); if (e.key === 'Escape') cancelEditName(); }}
               placeholder="Η επωνυμία του γραφείου σου"
               autoFocus
@@ -403,7 +403,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
             <Btn variant="primary" onClick={saveName} disabled={nameSaving}>
               {nameSaving ? 'Αποθήκευση…' : 'Αποθήκευση'}
             </Btn>
-            <Btn variant="secondary" onClick={cancelEditName} disabled={nameSaving}>Άκυρο</Btn>
+            <Btn variant="secondary" onClick={cancelEditName} disabled={nameSaving}>Ακύρωση</Btn>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
@@ -525,10 +525,9 @@ export default function OrgTeam({ userId }: { userId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
           <input
             type="email"
+            className="po-field"
             value={inviteEmail}
-            onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); }}
-            onFocus={focusOn}
-            onBlur={focusOff}
+            onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); if (inviteNote) setInviteNote(null); }}
             onKeyDown={e => { if (e.key === 'Enter') void invite(); }}
             placeholder="Email του μέλους"
             style={{ ...fieldStyle, flex: 1, minWidth: 220 }}
@@ -545,14 +544,19 @@ export default function OrgTeam({ userId }: { userId: string }) {
           </Btn>
         </div>
         {inviteError && <div style={errStyle}>{inviteError}</div>}
+        {inviteNote && (
+          <div style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>
+            {inviteNote}
+          </div>
+        )}
         <div style={{ ...descStyle, marginTop: 10 }}>
-          Το μέλος μπαίνει αυτόματα με το που συνδεθεί με το ίδιο email. Τη στάθμη πρόσβασής του τη ρυθμίζεις από τη στήλη «Πρόσβαση».
+          Στέλνουμε πρόσκληση με email. Το μέλος αποκτά πρόσβαση μόλις δημιουργήσει λογαριασμό με το ίδιο email και ξεκινά με δικαίωμα ανάγνωσης. Την επεξεργασία επιτρέπει ο ιδιοκτήτης από τη στήλη «Πρόσβαση».
         </div>
       </section>
 
       {/* ── Επεξήγηση ρόλων (μία γραμμή) ─────────────────────────────── */}
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, paddingTop: 2 }}>
-        Ο Ιδιοκτήτης διαχειρίζεται τα πάντα· τα μέλη βλέπουν το χαρτοφυλάκιο και, με την έγκρισή σου, το επεξεργάζονται.
+        Ο ιδιοκτήτης έχει την πλήρη διαχείριση. Τα μέλη βλέπουν το χαρτοφυλάκιο και το επεξεργάζονται μόνο μετά από δική σου έγκριση.
       </div>
     </div>
   );

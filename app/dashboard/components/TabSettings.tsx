@@ -5,11 +5,11 @@
 // ειδοποιήσεις, δεδομένα & απόρρητο). Στυλ fintech: κάρτες, SecHdr, tokens.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, settingsField } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
@@ -19,6 +19,7 @@ import SettingsRoadmap from './SettingsRoadmap';
 import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
+import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
 import { PLANS } from '@/lib/billing/plans';
@@ -53,6 +54,25 @@ function SettingRow({ title, desc, control }: { title: string; desc?: string; co
       </div>
       <div style={{ flexShrink: 0 }}>{control}</div>
     </div>
+  );
+}
+
+// ── Ενότητα ρυθμίσεων που ελαχιστοποιείται (καθαρό, χωρίς «λίστα σουπερμάρκετ»).
+//    Ξεκινά κλειστή· ανοίγει με ένα κλικ. Η κεφαλίδα ακολουθεί το ίδιο στυλ SecHdr.
+function CollapsibleSection({ title, defaultOpen = false, delay, children }: { title: string; defaultOpen?: boolean; delay?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panelId = useId();
+  return (
+    <Card className="acc-section" style={{ animationDelay: delay }}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={panelId} className="po-sec-toggle"
+        style={{ appearance: 'none', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', ...(open ? { marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' } : {}) }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{title}</span>
+        <svg aria-hidden="true" focusable="false" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div id={panelId} hidden={!open}>{open && children}</div>
+    </Card>
   );
 }
 
@@ -94,7 +114,8 @@ function MarketDataSharing({ userId }: { userId: string }) {
   }, [userId]);
   const toggle = async (v: boolean) => {
     setOn(v);
-    await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, share_market_data: v }, { onConflict: 'user_id' });
+    if (error) setOn(!v); // επαναφορά αν η αποθήκευση απέτυχε (χωρίς σιωπηλή απόκλιση)
   };
   return (
     <div style={{ ...divider, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -131,7 +152,7 @@ function DeleteAccount() {
     <div style={divider}>
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
-        Διαγράφει οριστικά τον λογαριασμό σου και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
+        Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
       </div>
       {!open ? (
         // Ουδέτερο ως προεπιλογή· γίνεται κόκκινο μόνο στο hover/focus, ώστε να μη
@@ -149,12 +170,17 @@ function DeleteAccount() {
           <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
-          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus
-            style={{ width: '100%', maxWidth: 260, height: 40, padding: '0 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none', marginBottom: 12 }} />
+          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus className="po-field"
+            style={{ ...settingsField, maxWidth: 260, marginBottom: 12 }} />
           {error && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {/* Ουδέτερο ως προεπιλογή· κόκκινο μόνο στο hover/focus, όταν είναι ενεργό (γραμμένο ΔΙΑΓΡΑΦΗ). */}
             <button onClick={del} disabled={!ready || busy}
-              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: 'none', background: ready && !busy ? 'var(--negative)' : 'var(--bg-elevated)', color: ready && !busy ? '#fff' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
+              onMouseEnter={e => { if (ready && !busy) { e.currentTarget.style.background = 'var(--negative)'; e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = '#fff'; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)'; }}
+              onFocus={e => { if (ready && !busy) { e.currentTarget.style.background = 'var(--negative)'; e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = '#fff'; } }}
+              onBlur={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)'; }}
+              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, transition: 'background 0.15s, color 0.15s, border-color 0.15s' }}>
               {busy ? 'Διαγραφή...' : 'Οριστική διαγραφή'}
             </button>
             <button onClick={() => { setOpen(false); setConfirmText(''); setError(null); }} disabled={busy}
@@ -168,12 +194,6 @@ function DeleteAccount() {
   );
 }
 
-// ── Πεδίο σε γραμμή «ετικέτα … τιμή / επεξεργασία» ─────────────────────────
-const fieldStyle = {
-  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
-  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
-} as const;
 
 // ── Προφίλ: email (επεξεργάσιμο) + όνομα (μία αλλαγή ανά μήνα) ─────────────
 function ProfileCard({ userId, email }: { userId: string; email: string }) {
@@ -249,7 +269,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Νέο email</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
+              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
               <Btn variant="primary" onClick={saveEmail} disabled={emailBusy}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
               <Btn variant="secondary" onClick={() => setEmailEdit(false)} disabled={emailBusy}>Ακύρωση</Btn>
             </div>
@@ -272,7 +292,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Όνομα ή επωνυμία</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
+              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
               <Btn variant="primary" onClick={saveName} disabled={nameBusy}>{nameBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
               <Btn variant="secondary" onClick={() => setNameEdit(false)} disabled={nameBusy}>Ακύρωση</Btn>
             </div>
@@ -309,13 +329,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Προτιμήσεις εφαρμογής (κρατάμε μόνο τα δεκαδικά ορατά εδώ, χωρίς απώλεια των υπολοίπων)
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
   const [prefsSaved, setPrefsSaved] = useState(false);
+  const [prefsErr, setPrefsErr] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Αποκάλυψη διαχείρισης συνδρομής (νηφάλια χρέωση) & σύγκρισης πλάνων (aspirational)
-  const [showBilling, setShowBilling] = useState(false);
-  const billingRef = useRef<HTMLDivElement | null>(null);
-  const [showComparison, setShowComparison] = useState(false);
-  const comparisonRef = useRef<HTMLDivElement | null>(null);
+  // Ενιαία «Διαχείριση συνδρομής»: σύγκριση πλάνων + στοιχεία τιμολόγησης, σε μία
+  // αποκάλυψη (κλειστή ως προεπιλογή, ώστε να μη μοιάζει με λίστα).
+  const [showManage, setShowManage] = useState(false);
+  const manageRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -352,11 +372,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       const next = { ...prev, ...partial };
       if (prefsTimer.current) clearTimeout(prefsTimer.current);
       prefsTimer.current = setTimeout(async () => {
-        await supabase.from('bills_settings').upsert({
+        const { error } = await supabase.from('bills_settings').upsert({
           property_id: propertyId, user_id: String(userId),
           section: 'app_preferences', data: next, updated_at: new Date().toISOString(),
         }, { onConflict: 'property_id,section' });
-        setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
+        if (error) { setPrefsErr(true); return; }
+        setPrefsErr(false); setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
       }, 800);
       return next;
     });
@@ -365,18 +386,25 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // Έξυπνη αλλαγή τύπου προφίλ (persist όπως πριν· η ειδοποίηση εμφανίζεται από το derived state)
   const setProfile = async (v: ProfileType) => {
     if (v === profileType) return;
+    // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας. Αν δεν το έχεις,
+    // δεν αλλάζει ο τρόπος: σε παραπέμπουμε αμέσως στην αναβάθμιση συνδρομής.
+    if (v === 'professional' && !planAtLeast(effPlan, 'agency')) {
+      openComparison();
+      return;
+    }
+    const prev = profileType;
     onProfileChange?.(v);
-    await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, profile_type: v }, { onConflict: 'user_id' });
+    if (error) onProfileChange?.(prev); // επαναφορά αν απέτυχε
   };
 
-  const openBilling = () => {
-    setShowBilling(true);
-    setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  // Ένα σημείο εισόδου: όλα τα CTA (διαχείριση, σύγκριση, «Δες τα πλάνα») ανοίγουν
+  // την ίδια ενοποιημένη ενότητα.
+  const openManage = () => {
+    setShowManage(true);
+    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
-  const openComparison = () => {
-    setShowComparison(true);
-    setTimeout(() => comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  };
+  const openComparison = openManage;
 
   const ent = { plan, profileType, partner, compPlan, compUntil };
   const effPlan = effectivePlan(ent);
@@ -388,7 +416,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const nearLimit = propLimit !== Infinity && !atLimit && propLimit > 1 && (propertyCount ?? 0) >= propLimit - 1;
   const planMeta = PLANS[effPlan];
   const isProPlan = effPlan === 'agency';
-  const needsUpgrade = profileType === 'professional' && !planAtLeast(effPlan, 'agency');
+  const proEligible = planAtLeast(effPlan, 'agency');
   const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
   const exportSettingsCsv = () => {
@@ -446,8 +474,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={openComparison}>Σύγκρινε πλάνα</Btn>
-            <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+            <Btn variant={showManage ? 'secondary' : 'primary'} onClick={() => showManage ? setShowManage(false) : openManage()}>
+              {showManage ? 'Κλείσιμο' : 'Διαχείριση συνδρομής'}
+            </Btn>
           </div>
         </div>
 
@@ -492,79 +521,74 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
             {PROFILE_OPTS.map(o => {
               const on = profileType === o.v;
+              const requiresUpgrade = o.v === 'professional' && !proEligible;
               return (
                 <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
+                  title={requiresUpgrade ? 'Απαιτεί το πλάνο Επαγγελματίας' : undefined}
                   style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                    </span>
+                    {requiresUpgrade ? (
+                      <span aria-hidden style={{ flexShrink: 0, color: 'var(--text-tertiary)', display: 'inline-flex' }}>
+                        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                      </span>
+                    ) : (
+                      <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
+                  {requiresUpgrade && (
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πλάνο Επαγγελματίας.</div>
+                  )}
                 </button>
               );
             })}
           </div>
-
-          {/* Έξυπνη ειδοποίηση αναβάθμισης */}
-          {needsUpgrade && (
-            <div style={{ marginTop: 12, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Ο τρόπος «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
-                </div>
-              </div>
-              <Btn variant="primary" onClick={openComparison}>Δες τα πλάνα</Btn>
-            </div>
-          )}
         </div>
 
-        {/* Επωνυμία αναφορών (μόνο για Επαγγελματία) */}
-        {profileType === 'professional' && (
-          <div style={divider}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>Επωνυμία αναφορών</div>
-            <ReportBranding userId={userId} onUpgrade={openComparison} />
-          </div>
-        )}
       </Card>
 
-      {/* Σύγκριση πλάνων (αποκάλυψη, aspirational, N26-style highlight-gains) */}
-      {showComparison && (
-        <div ref={comparisonRef} style={{ scrollMarginTop: 16, marginBottom: 16 }}>
-          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
-        </div>
+      {/* Επωνυμία αναφορών (Επαγγελματίας): δική της ενότητα, χωρίς Card-in-Card. */}
+      {profileType === 'professional' && (
+        <ReportBranding userId={userId} onUpgrade={openComparison} />
       )}
 
-      {/* Διαχείριση συνδρομής (αποκάλυψη, νηφάλια χρέωση) */}
-      {showBilling && (
-        <div ref={billingRef} style={{ scrollMarginTop: 16 }}>
+      {/* Ενοποιημένη «Διαχείριση συνδρομής»: πρώτα η σύγκριση πλάνων (τι κερδίζεις),
+          έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
+      {showManage && (
+        <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
+          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
           <Billing userId={userId} />
         </div>
       )}
 
       {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
       {(profileType === 'professional' || inOrg) && (
-        <Card className="acc-section" style={{ animationDelay: '110ms' }}>
-          <SecHdr label="Οργανισμός & Ομάδα" />
+        <CollapsibleSection title="Οργανισμός & Ομάδα" delay="110ms">
           <OrgTeam userId={userId} />
-        </Card>
+        </CollapsibleSection>
       )}
 
-      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
-      <Card className="acc-section" style={{ animationDelay: '140ms' }}>
-        <SecHdr label="Ειδοποιήσεις" />
+      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
+      <CollapsibleSection title="Ειδοποιήσεις" delay="140ms">
         <NotificationSettings userId={userId} />
+      </CollapsibleSection>
+
+      {/* ── Η ΓΝΩΜΗ ΣΟΥ (εμφανές, πελατοκεντρικό) ─────────────────────── */}
+      <div className="acc-section" style={{ animationDelay: '170ms', marginBottom: T.sp.lg }}>
+        <Feedback target="general" />
+      </div>
+
+      {/* ── ΤΙ ΕΡΧΕΤΑΙ (εμφανές, χτίζει προσδοκία) ────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '200ms' }}>
+        <SettingsRoadmap userId={userId} />
       </Card>
 
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
-        <SecHdr label="Εμφάνιση & Γλώσσα" />
+      <CollapsibleSection title="Εμφάνιση & Γλώσσα" delay="210ms">
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
-        <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
-        <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
         <SettingRow title="Δεκαδικά στα ποσά" desc="Πλήθος δεκαδικών ψηφίων για την εμφάνιση χρηματικών ποσών."
           control={<div style={{ width: 264 }}>
             <CustomSelect value={prefs.decimals}
@@ -578,25 +602,33 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
         <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
           control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
-        <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
-          {prefsSaved && (
-            <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
-              Αποθηκεύτηκε
-            </span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+            Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)
+          </span>
+          {prefsErr
+            ? <span style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>
+            : prefsSaved && (
+              <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
+                Αποθηκεύτηκε
+              </span>
+            )}
         </div>
-      </Card>
+      </CollapsibleSection>
 
       {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
-        <SecHdr label="Ασφάλεια" />
-        <SecuritySettings userId={userId} />
-      </Card>
+      <CollapsibleSection title="Ασφάλεια" delay="280ms">
+        <SecuritySettings />
+      </CollapsibleSection>
+
+      {/* ── ΔΡΑΣΤΗΡΙΟΤΗΤΑ (audit log) ─────────────────────────────────── */}
+      <CollapsibleSection title="Δραστηριότητα" delay="310ms">
+        <ActivityLog />
+      </CollapsibleSection>
 
       {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '340ms' }}>
-        <SecHdr label="Δεδομένα & Απόρρητο" />
+      <CollapsibleSection title="Δεδομένα & Απόρρητο" delay="340ms">
         <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
           control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
         {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
@@ -607,12 +639,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
-        <SettingsRoadmap userId={userId} />
-        <div style={divider}>
-          <Feedback target="general" />
-        </div>
         <DeleteAccount />
-      </Card>
+      </CollapsibleSection>
 
     </div>
   );

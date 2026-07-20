@@ -56,13 +56,11 @@ function LockGlyph() {
   );
 }
 
-export default function PlanComparison({ userId, profileType, currentPlan, onUpgrade }: {
-  userId: string;
+export default function PlanComparison({ profileType, currentPlan, onUpgrade }: {
   profileType: 'individual' | 'professional';
   currentPlan: PlanId;
   onUpgrade?: () => void;
 }) {
-  void userId; // κρατείται στην υπογραφή για μελλοντική χρήση (analytics/checkout)
   const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const rankOf = (id: PlanId) => PLAN_ORDER.indexOf(id);
@@ -86,7 +84,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
     <div>
       {/* ── 1+2. Κεφαλίδα με διακόπτη κύκλου + στήλες πλάνων ───────────────── */}
       <Card className="acc-section" style={{ animationDelay: '0ms' }}>
-        <SecHdr label="Σύγκρινε πλάνα" right={
+        <SecHdr label="Σύγκριση πλάνων" right={
           <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100 }}>
             {(['monthly', 'annual'] as const).map(c => (
               <button key={c} onClick={() => setCycle(c)}
@@ -187,15 +185,11 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
             {/* Κεφαλίδα πίνακα: επανάληψη ονομάτων, μικρά & διακριτικά */}
             <div style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'end', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
               <div />
-              {PLAN_ORDER.map(id => {
-                const isCurrent = id === currentPlan;
-                return (
-                  <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-                    {isCurrent && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />}
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: isCurrent ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
-                  </div>
-                );
-              })}
+              {PLAN_ORDER.map(id => (
+                <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
+                </div>
+              ))}
             </div>
 
             {/* Γραμμές δυνατοτήτων */}
@@ -207,9 +201,9 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
                   const gain = isGain(row, id);
                   let content: ReactNode;
                   if (typeof v === 'string') {
-                    content = <span style={{ fontSize: 12.5, fontWeight: gain ? 700 : 600, color: gain ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
+                    content = <span style={{ fontSize: 12.5, fontWeight: gain ? 700 : 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
                   } else if (v === true) {
-                    content = <Check tone={gain ? 'accent' : 'muted'} />;
+                    content = <Check tone="muted" />;
                   } else {
                     content = <span style={{ color: 'var(--text-tertiary)', fontSize: 14, fontFamily: T.font.sans }}>—</span>;
                   }

@@ -2089,3 +2089,195 @@ begin
       $cron$ select public.draw_due_feedback_winners(); $cron$);
   end if;
 end $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Στοιχεία τιμολόγησης: προσθήκη VAT (VIES) για ενδοκοινοτικές συναλλαγές.
+--
+-- Για σωστό τιμολόγιο παροχής (διαδικτυακών) υπηρεσιών κατά το ελληνικό/ΕΕ
+-- δίκαιο χρειάζεται, πέρα από ΑΦΜ/ΔΟΥ (πελάτης ΕΛ), ο κοινοτικός αριθμός VAT
+-- (VIES) όταν ο πελάτης είναι επιχείρηση άλλης χώρας ΕΕ (αντιστροφή υποχρέωσης).
+-- Η χώρα υπάρχει ήδη (billing_profiles.country, default 'GR'). Idempotent.
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table public.billing_profiles
+  add column if not exists vat_number text;   -- κοινοτικός VAT (VIES), για μη-ΕΛ επιχειρήσεις ΕΕ
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Αρίθμηση παραστατικών (OSS-ready) + σκελετός πίνακα εκδοθέντων παραστατικών.
+--
+-- Νόμιμη απαίτηση (ΑΑΔΕ/myDATA): μοναδικός, σειριακός, ΧΩΡΙΣ ΚΕΝΑ αριθμός ανά
+-- σειρά και έτος. Η next_invoice_number αυξάνει ατομικά έναν μετρητή και
+-- επιστρέφει τον επόμενο αριθμό — καλείται ΜΟΝΟ από το backend (service_role)
+-- όταν το Stripe εκδίδει παραστατικό, ώστε να μη δημιουργούνται κενά.
+--
+-- Ο πίνακας invoices κρατά την ανάλυση ΦΠΑ ανά χώρα/καθεστώς (domestic / OSS /
+-- reverse charge / εκτός ΕΕ), έτοιμος για δηλώσεις OSS. Idempotent.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create extension if not exists pgcrypto;
+
+-- Μετρητής ανά σειρά/έτος (η εταιρεία μας είναι ο εκδότης → global, όχι ανά χρήστη).
+create table if not exists public.invoice_counters (
+  series  text   not null,
+  year    int    not null,
+  last_no bigint not null default 0,
+  primary key (series, year)
+);
+alter table public.invoice_counters enable row level security;
+-- (Χωρίς policies: πρόσβαση μόνο από backend/service_role.)
+
+create or replace function public.next_invoice_number(p_series text, p_year int)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare v bigint;
+begin
+  insert into invoice_counters(series, year, last_no)
+  values (p_series, p_year, 1)
+  on conflict (series, year)
+    do update set last_no = invoice_counters.last_no + 1
+  returning last_no into v;
+  return v;
+end; $$;
+
+revoke all on function public.next_invoice_number(text, int) from public;
+-- (Δεν δίνεται σε authenticated: την καλεί μόνο ο εκδότης-backend.)
+
+-- Εκδοθέντα παραστατικά (γεμίζει από το Stripe webhook· τώρα μένει σκελετός).
+create table if not exists public.invoices (
+  id            uuid primary key default gen_random_uuid(),
+  number        text unique not null,          -- π.χ. ΤΠΥ-2026-000123
+  series        text not null,
+  year          int  not null,
+  user_id       uuid references auth.users(id) on delete set null,
+  country       text,
+  vat_treatment text,                           -- domestic | oss_b2c | reverse_charge | outside_eu
+  currency      text default 'EUR',
+  net           numeric(12,2),
+  vat_pct       numeric(5,2),
+  vat_amount    numeric(12,2),
+  gross         numeric(12,2),
+  stripe_ref    text,
+  issued_at     timestamptz not null default now()
+);
+create index if not exists idx_invoices_user on public.invoices(user_id, issued_at desc);
+
+alter table public.invoices enable row level security;
+drop policy if exists "invoices_select_own" on public.invoices;
+create policy "invoices_select_own" on public.invoices for select using (user_id = auth.uid());
+-- (Εγγραφή μόνο από backend/service_role· ο χρήστης βλέπει μόνο τα δικά του.)
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Λίστα αναμονής για το Property OS Mobile. Όποιος πατήσει «Ειδοποίησέ με μόλις
+-- βγει» καταγράφεται εδώ με το email του, ώστε στην κυκλοφορία της εφαρμογής να
+-- του σταλεί πραγματικό ενημερωτικό email (μία φορά).
+--
+-- Καταγραφή μόνο μέσω RPC (SECURITY DEFINER): κρατάμε auth.uid() + το email από
+-- τον πίνακα χρηστών (όχι από τον client, για να μη δηλωθεί ξένο email). Το πεδίο
+-- notified_at αποτρέπει τη διπλή αποστολή στο launch. Idempotent.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create table if not exists public.mobile_waitlist (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  email       text,
+  created_at  timestamptz not null default now(),
+  notified_at timestamptz
+);
+
+alter table public.mobile_waitlist enable row level security;
+drop policy if exists "mobile_waitlist_select_own" on public.mobile_waitlist;
+create policy "mobile_waitlist_select_own" on public.mobile_waitlist for select using (user_id = auth.uid());
+-- (Εγγραφή μόνο μέσω RPC· η αποστολή launch email γίνεται από backend/service_role.)
+
+create or replace function public.join_mobile_waitlist()
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_email text;
+begin
+  if v_uid is null then return; end if;
+  select email into v_email from auth.users where id = v_uid;
+
+  insert into mobile_waitlist(user_id, email) values (v_uid, v_email)
+  on conflict (user_id) do update set email = excluded.email;
+
+  -- Διατηρούμε και την ένδειξη wants_mobile (τη διαβάζει το UI για το «μπήκες»).
+  insert into billing_profiles(user_id, wants_mobile) values (v_uid, true)
+  on conflict (user_id) do update set wants_mobile = true;
+end; $$;
+
+revoke all on function public.join_mobile_waitlist() from public;
+grant execute on function public.join_mobile_waitlist() to authenticated;
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Έξοδος από τη λίστα αναμονής του Property OS Mobile. Αν ο χρήστης μετάνιωσε,
+-- μπορεί να αφαιρεθεί· και να ξαναμπεί όποτε θέλει (join_mobile_waitlist).
+-- Idempotent.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create or replace function public.leave_mobile_waitlist()
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then return; end if;
+  delete from mobile_waitlist where user_id = v_uid;
+  update billing_profiles set wants_mobile = false where user_id = v_uid;
+end; $$;
+
+revoke all on function public.leave_mobile_waitlist() from public;
+grant execute on function public.leave_mobile_waitlist() to authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ─── 20260720210000_activity_log.sql ───
+-- Μητρώο δραστηριότητας (audit log): ποιος έκανε τι και πότε. Καταγράφει
+-- ευαίσθητα γεγονότα λογαριασμού/ασφάλειας και ενέργειες διαχείρισης ομάδας.
+--   • user_id  = η «σκηνή» στην οποία ανήκει το γεγονός (ατομικά = ο ίδιος).
+--   • actor_id = ποιος πραγματικά το έκανε (auth.uid()).
+-- Εγγραφή ΜΟΝΟ μέσω SECURITY DEFINER RPC (log_activity), με actor_id = auth.uid()
+-- πάντα (δεν πλαστογραφείται ο δράστης). Ανάγνωση με RLS. Idempotent.
+-- ═══════════════════════════════════════════════════════════════════════════
+create extension if not exists pgcrypto;
+
+create table if not exists public.activity_log (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  actor_id    uuid references auth.users(id) on delete set null,
+  actor_email text,
+  action      text not null,
+  entity      text,
+  entity_id   text,
+  metadata    jsonb not null default '{}',
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_activity_user  on public.activity_log(user_id, created_at desc);
+create index if not exists idx_activity_actor on public.activity_log(actor_id, created_at desc);
+
+alter table public.activity_log enable row level security;
+drop policy if exists "activity_select_own" on public.activity_log;
+create policy "activity_select_own" on public.activity_log for select
+  using (user_id = auth.uid() or actor_id = auth.uid());
+-- (Καμία policy INSERT/UPDATE/DELETE: εγγραφή μόνο μέσω RPC.)
+
+create or replace function public.log_activity(
+  p_action text, p_entity text default null, p_entity_id text default null, p_metadata jsonb default '{}'
+) returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_email text;
+begin
+  if v_uid is null or coalesce(p_action, '') = '' then return; end if;
+  select email into v_email from auth.users where id = v_uid;
+  insert into activity_log(user_id, actor_id, actor_email, action, entity, entity_id, metadata)
+  values (v_uid, v_uid, v_email, left(p_action, 60), left(p_entity, 40), left(p_entity_id, 100), coalesce(p_metadata, '{}'));
+end; $$;
+
+revoke all on function public.log_activity(text, text, text, jsonb) from public;
+grant execute on function public.log_activity(text, text, text, jsonb) to authenticated;
+
+create or replace function public.my_activity(p_limit int default 30)
+returns setof public.activity_log language sql stable security definer set search_path = public as $$
+  select * from activity_log
+   where user_id = auth.uid() or actor_id = auth.uid()
+   order by created_at desc
+   limit greatest(1, least(coalesce(p_limit, 30), 100));
+$$;
+
+grant execute on function public.my_activity(int) to authenticated;

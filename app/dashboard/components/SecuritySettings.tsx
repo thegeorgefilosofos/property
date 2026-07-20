@@ -11,26 +11,22 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn } from '@/components/Theme';
+import { T, Btn, settingsField } from '@/components/Theme';
+import { logActivity } from '@/lib/activity';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
 const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };
 const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const desc: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 4 };
 const fieldLabel: CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6, display: 'block' };
-const field: CSSProperties = {
-  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
-  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
-};
+const field: CSSProperties = settingsField;
 const rowVal: CSSProperties = { fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, textAlign: 'right', overflowWrap: 'anywhere' };
 
 // ── Ελάχιστοι τοπικοί τύποι για τα αποτελέσματα του Supabase MFA ──────────
 interface MfaFactor { id: string; friendly_name?: string; factor_type: string; status: 'verified' | 'unverified' }
 type MfaState = 'loading' | 'off' | 'enrolling' | 'on';
 
-export default function SecuritySettings({ userId }: { userId: string }) {
-  void userId;
+export default function SecuritySettings() {
   const supabase = createClient();
 
   // Κωδικός πρόσβασης
@@ -147,6 +143,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       setEnrollFactor(null);
       setCode('');
       setMfaState('on');
+      void logActivity(supabase, 'mfa_enabled', 'security');
     } catch {
       setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
     } finally {
@@ -180,6 +177,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       }
       setMfaState('off');
       setConfirmDisable(false);
+      void logActivity(supabase, 'mfa_disabled', 'security');
     } catch {
       setMfaErr('Δεν ήταν δυνατή η απενεργοποίηση. Δοκίμασε ξανά.');
     } finally {
@@ -207,10 +205,13 @@ export default function SecuritySettings({ userId }: { userId: string }) {
     setNewPass('');
     setConfirm('');
     setPwMsg({ ok: true, text: 'Ο κωδικός ενημερώθηκε ✓' });
+    void logActivity(supabase, 'password_changed', 'security');
   }
 
   async function signOutEverywhere() {
     setSigningOut(true);
+    // Καταγραφή ΠΡΙΝ την καθολική αποσύνδεση (μετά χάνεται η συνεδρία).
+    await logActivity(supabase, 'signed_out_all', 'security');
     await supabase.auth.signOut({ scope: 'global' });
     window.location.href = '/login';
   }
@@ -230,14 +231,14 @@ export default function SecuritySettings({ userId }: { userId: string }) {
           <div>
             <label htmlFor="sec-new-pass" style={fieldLabel}>Νέος κωδικός</label>
             <input
-              id="sec-new-pass" type="password" autoComplete="new-password"
+              id="sec-new-pass" type="password" autoComplete="new-password" className="po-field"
               value={newPass} onChange={e => setNewPass(e.target.value)} style={field}
             />
           </div>
           <div>
             <label htmlFor="sec-confirm-pass" style={fieldLabel}>Επιβεβαίωση</label>
             <input
-              id="sec-confirm-pass" type="password" autoComplete="new-password"
+              id="sec-confirm-pass" type="password" autoComplete="new-password" className="po-field"
               value={confirm} onChange={e => setConfirm(e.target.value)} style={field}
             />
           </div>
@@ -272,7 +273,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       {/* 3. Καθολική αποσύνδεση */}
       <div style={group}>
         <div style={subLabel}>Καθολική αποσύνδεση</div>
-        <div style={desc}>Κλείνει τη σύνδεση σε κάθε συσκευή και φυλλομετρητή. Θα χρειαστεί να συνδεθείς ξανά.</div>
+        <div style={desc}>Κλείνει τη σύνδεση σε κάθε συσκευή και περιηγητή. Θα χρειαστεί να συνδεθείς ξανά.</div>
         <div style={{ marginTop: 12 }}>
           <Btn variant="secondary" onClick={signOutEverywhere} disabled={signingOut}>
             {signingOut ? 'Αποσύνδεση…' : 'Αποσύνδεση από όλες τις συσκευές'}
@@ -318,11 +319,11 @@ export default function SecuritySettings({ userId }: { userId: string }) {
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
-                1. Σκάναρε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
+                1. Σάρωσε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
               </div>
               <div style={{ display: 'inline-flex', padding: 10, background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-default)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={enrollFactor.qr} alt="QR" width={168} height={168} />
+                <img src={enrollFactor.qr} alt="Κωδικός QR επαλήθευσης" width={168} height={168} />
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, marginBottom: 6 }}>
                 ή καταχώρησε τον κωδικό χειροκίνητα
@@ -336,7 +337,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
                 2. Καταχώρησε τον 6ψήφιο κωδικό από την εφαρμογή
               </label>
               <input
-                id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code"
+                id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code" className="po-field"
                 placeholder="123456"
                 value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 style={{ ...field, maxWidth: 200, fontFamily: T.font.mono, letterSpacing: '0.3em' }}
@@ -345,7 +346,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
                 <Btn variant="primary" onClick={verifyCode} disabled={mfaBusy}>
                   {mfaBusy ? 'Επιβεβαίωση…' : 'Επιβεβαίωση'}
                 </Btn>
-                <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Άκυρο</Btn>
+                <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Ακύρωση</Btn>
               </div>
               {mfaErr && (
                 <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>

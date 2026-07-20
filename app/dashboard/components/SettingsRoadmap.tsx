@@ -11,8 +11,6 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, Chip } from '@/components/Theme';
 
-const divider = { borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 } as const;
-
 type ChipTone = 'accent' | 'neutral';
 
 interface RoadItem { name: string; line: string; detail: string; chip: string; tone: ChipTone }
@@ -72,10 +70,24 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
     if (busy || confirmed) return;
     setBusy(true);
     try {
-      const { error } = await supabase
-        .from('billing_profiles')
-        .upsert({ user_id: userId, wants_mobile: true }, { onConflict: 'user_id' });
+      // Καταγράφεται στη λίστα αναμονής με το email του, για πραγματικό ενημερωτικό
+      // email στην κυκλοφορία της εφαρμογής (η RPC κρατά και το wants_mobile).
+      const { error } = await supabase.rpc('join_mobile_waitlist');
       if (!error) setConfirmed(true);
+    } catch {
+      /* σιωπηλά */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Έξοδος από τη λίστα (αν μετάνιωσε)· μπορεί να ξαναμπεί όποτε θέλει.
+  const leave = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc('leave_mobile_waitlist');
+      if (!error) setConfirmed(false);
     } catch {
       /* σιωπηλά */
     } finally {
@@ -86,12 +98,11 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
   const toggle = (i: number) => setOpen(p => ({ ...p, [i]: !p[i] }));
 
   return (
-    <div style={divider}>
+    <div>
       {/* Επικεφαλίδα ενότητας */}
       <div className="acc-section" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Τι έρχεται
           </span>
         </div>
@@ -157,20 +168,30 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               <Chip tone="neutral">Android</Chip>
             </div>
 
-            {/* CTA / επιβεβαιωμένο state */}
+            {/* CTA: ένα κουμπί-διακόπτης. Μπαίνεις στη λίστα και, αν ξαναπατήσεις
+                το «Θα σε ειδοποιήσουμε», βγαίνεις και επιστρέφει στο «Ειδοποίησέ με». */}
             <div style={{ marginTop: 14 }}>
               {confirmed ? (
-                <span
-                  role="status"
+                <button
+                  type="button"
+                  onClick={leave}
+                  disabled={busy}
+                  aria-pressed
+                  title="Πάτησε ξανά για να βγεις από τη λίστα"
+                  onMouseEnter={e => { if (!busy) e.currentTarget.style.borderColor = 'var(--positive)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--positive-border)'; }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '9px 18px', borderRadius: T.radius.btn,
                     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
+                    cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
                     background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)',
+                    transition: 'border-color 0.15s cubic-bezier(0.2,0,0,1)',
                   }}
                 >
-                  Θα σε ειδοποιήσουμε ✓
-                </span>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  Θα σε ειδοποιήσουμε
+                </button>
               ) : (
                 <Btn variant="primary" onClick={notify} disabled={busy}>
                   {busy ? 'Ειδοποίηση…' : 'Ειδοποίησέ με μόλις βγει'}
@@ -228,18 +249,13 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em' }}>
                   {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
                 </span>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
+                <svg aria-hidden="true" focusable="false" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </div>
             </button>
           );
         })}
-      </div>
-
-      {/* Closing line */}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.45, marginTop: 14 }}>
-        Έχεις μια ιδέα ή κάτι που θα ήθελες αλλιώς; Πες το μας μέσα από τον βοηθό, σε ακούμε.
       </div>
     </div>
   );

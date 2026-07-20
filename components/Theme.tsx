@@ -130,7 +130,6 @@ export function Card({ children, style, className }: { children: ReactNode; styl
 export function SecHdr({ label, sub, right }: { label: string; sub?: string; right?: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</div>
         {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
@@ -165,7 +164,9 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
       {items.map((k, i) => (
         <div key={i} className="kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="kpi-label">{k.label}</div>
-          <div className="kpi-value" style={{ marginBottom: 0, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : undefined }}>{k.value}</div>
+          {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται μόνο στο hover
+              (data-tone + globals.css), για ομοιόμορφο, χαμηλού θορύβου look. */}
+          <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={k.tone && k.tone !== 'neutral' ? k.tone : undefined}>{k.value}</div>
           {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
       ))}
@@ -364,6 +365,16 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 // (κινητό/tablet) να πέφτουν αυτόματα σε λιγότερες στήλες ή μία, ενώ σε desktop
 // κρατούν την επιθυμητή διάταξη. Το «min(100%, …)» εγγυάται ότι ποτέ δεν
 // ξεπερνούν το πλάτος του γονέα (μηδενική οριζόντια κύλιση).
+// ── Κοινό πεδίο εισόδου Ρυθμίσεων ─────────────────────────────────────────
+// Μία γεωμετρία (ύψος/ακτίνα/border/χρώματα) για όλα τα «χειροποίητα» inputs των
+// Ρυθμίσεων, ώστε να μη διαφέρουν μεταξύ τους. Το focus ring μπαίνει με την κλάση
+// `po-field` (globals.css), χωρίς ανά-input JS handlers.
+export const settingsField: CSSProperties = {
+  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
+  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
+};
+
 export const g2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
 export const g3: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
 export const g4: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
