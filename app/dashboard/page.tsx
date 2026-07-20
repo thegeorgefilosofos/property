@@ -26,6 +26,7 @@ import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
 import AIInsights from './components/AIInsights';
+import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import PaymentLinks from './components/PaymentLinks';
@@ -533,6 +534,8 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
       </div>
 
       <ObligationsPanel propertyId={prop.id} userId={userId} prop={prop} onNavigate={onNavigate} />
+
+      {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
 
       {prefs.showSmartTips && (
         <AIInsights ctx={{

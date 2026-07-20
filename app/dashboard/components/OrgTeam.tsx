@@ -7,11 +7,15 @@
 // του Card, ο γονέας δίνει <Card><SecHdr label="Οργανισμός & Ομάδα" />…).
 //
 // Πηγή αλήθειας για χρώματα/κενά/ακτίνες: app/globals.css (μόνο CSS variables).
-// Τα μέλη έχουν πρόσβαση ΑΝΑΓΝΩΣΗΣ στο χαρτοφυλάκιο σε αυτή την έκδοση, καμία
-// επεξεργασία, και το UI δεν υπόσχεται κάτι διαφορετικό.
+// Τα μέλη ξεκινούν με πρόσβαση ΑΝΑΓΝΩΣΗΣ στο χαρτοφυλάκιο. Ο ιδιοκτήτης μπορεί να
+// τους δώσει και δικαιώματα ΕΠΕΞΕΡΓΑΣΙΑΣ, ανά μέλος, εγκρίνοντας το αίτημά τους.
+//
+// Το component εξυπηρετεί ΔΥΟ όψεις: του ΙΔΙΟΚΤΗΤΗ (διαχείριση οργανισμού, μελών
+// και προσβάσεων) και του ΜΕΛΟΥΣ (προβολή του οργανισμού και αιτήματα προς τον
+// ιδιοκτήτη). Η όψη επιλέγεται αυτόματα κατά τη φόρτωση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, type CSSProperties, type FocusEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn } from '@/components/Theme';
 
@@ -32,6 +36,25 @@ interface Member {
   status: Status;
   joined_at: string | null;
   user_id: string | null;
+  can_edit: boolean;
+  edit_requested_at: string | null;
+}
+
+// Η δική μου εγγραφή στον πίνακα μελών (για την ανίχνευση όψης).
+interface MyRow {
+  org_id: string;
+  role: Role;
+  can_edit: boolean;
+  edit_requested_at: string | null;
+  status: Status;
+}
+// Τα δεδομένα της όψης μέλους (read-only για το μέλος).
+interface Membership {
+  orgId: string;
+  orgName: string;
+  role: Role;
+  canEdit: boolean;
+  editRequestedAt: string | null;
 }
 
 // ── Κοινά στυλ πεδίων (ίδια «γεωμετρία» με τα υπόλοιπα Settings) ───────────
@@ -66,8 +89,8 @@ const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFa
 const microLabel: CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
 
 // Πλέγμα σειράς μητρώου (κοινό σε κεφαλίδα & γραμμές, για τέλεια ευθυγράμμιση).
-const ROW_COLS = 'minmax(200px, 1fr) 120px 140px 250px';
-const ROW_MIN = 760;
+const ROW_COLS = 'minmax(180px, 1fr) 104px 116px 250px 232px';
+const ROW_MIN = 960;
 
 const focusOn = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
 const focusOff = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
@@ -104,12 +127,52 @@ function StatusChip({ status }: { status: Status }) {
   );
 }
 
+// ── Chip πρόσβασης: Επεξεργασία (positive soft) / Ανάγνωση (ουδέτερο) ──────
+function AccessChip({ canEdit }: { canEdit: boolean }) {
+  const cfg = canEdit
+    ? { label: 'Επεξεργασία', bg: 'var(--positive-soft)', color: 'var(--positive)', border: 'var(--positive-border)' }
+    : { label: 'Ανάγνωση', bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
+  return (
+    <span style={{
+      display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
+      fontFamily: T.font.sans, whiteSpace: 'nowrap', background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+    }}>{cfg.label}</span>
+  );
+}
+
+// ── Πλήκτρο τμηματικού ελέγχου «Ανάγνωση | Επεξεργασία» ────────────────────
+function SegBtn({ active, disabled, divider, onClick, children }: {
+  active: boolean; disabled?: boolean; divider?: boolean; onClick: () => void; children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      style={{
+        height: 30, padding: '0 12px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+        cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap',
+        border: 'none', borderLeft: divider ? '1px solid var(--border-default)' : 'none',
+        background: active ? 'var(--accent-soft)' : 'transparent',
+        color: active ? 'var(--accent)' : 'var(--text-secondary)',
+      }}
+    >{children}</button>
+  );
+}
+
 export default function OrgTeam({ userId }: { userId: string }) {
   const supabase = createClient();
 
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Όψη: ιδιοκτήτης (διαχείριση) ή μέλος (προβολή + αιτήματα)
+  const [mode, setMode] = useState<'owner' | 'member' | null>(null);
+  const [me, setMe] = useState<Membership | null>(null);
+  const [memberBusy, setMemberBusy] = useState(false);
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const [editSent, setEditSent] = useState(false);
+  const [upgradeSent, setUpgradeSent] = useState(false);
 
   // Όνομα οργανισμού (inline-editable)
   const [editingName, setEditingName] = useState(false);
@@ -131,7 +194,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
   const loadMembers = async (orgId: string) => {
     const { data } = await supabase
       .from('organization_members')
-      .select('email, role, status, joined_at, user_id')
+      .select('email, role, status, joined_at, user_id, can_edit, edit_requested_at')
       .eq('org_id', orgId)
       .order('invited_at');
     setMembers((data as Member[] | null) ?? []);
@@ -140,6 +203,36 @@ export default function OrgTeam({ userId }: { userId: string }) {
   useEffect(() => {
     let active = true;
     (async () => {
+      // 1) Είμαι ήδη μέλος ενεργού οργανισμού κάποιου άλλου;
+      const { data: mine } = await supabase
+        .from('organization_members')
+        .select('org_id, role, can_edit, edit_requested_at, status')
+        .eq('user_id', userId)
+        .eq('status', 'active');
+      if (!active) return;
+
+      const memberRow = (mine as MyRow[] | null)?.find(r => r.role !== 'owner');
+      if (memberRow) {
+        // ── ΟΨΗ ΜΕΛΟΥΣ: χωρίς ensure_organization (δεν δημιουργούμε φανταστικό οργανισμό)
+        const { data: orgRow } = await supabase
+          .from('organizations')
+          .select('name, owner_user_id')
+          .eq('id', memberRow.org_id)
+          .maybeSingle();
+        if (!active) return;
+        setMe({
+          orgId: memberRow.org_id,
+          orgName: ((orgRow?.name as string | null) ?? '').trim(),
+          role: memberRow.role,
+          canEdit: !!memberRow.can_edit,
+          editRequestedAt: memberRow.edit_requested_at,
+        });
+        setMode('member');
+        setLoading(false);
+        return;
+      }
+
+      // 2) ── ΟΨΗ ΙΔΙΟΚΤΗΤΗ
       const { data, error } = await supabase.rpc('ensure_organization');
       if (!active) return;
       if (error || !data) { setLoading(false); return; }
@@ -147,7 +240,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
       setOrg(o);
       setNameDraft(o?.name ?? '');
       await loadMembers(o.id);
-      if (active) setLoading(false);
+      if (active) { setMode('owner'); setLoading(false); }
     })();
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,6 +292,41 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(null);
   };
 
+  // Ιδιοκτήτης: ορίζει/εγκρίνει δικαιώματα επεξεργασίας ανά μέλος
+  const setMemberEdit = async (email: string, can: boolean) => {
+    if (!org) return;
+    setRowBusy(email); setRowError(null);
+    const { error } = await supabase.rpc('set_member_edit', { p_email: email, p_can: can });
+    if (error) setRowError('Η αλλαγή πρόσβασης δεν ολοκληρώθηκε.');
+    else await loadMembers(org.id);
+    setRowBusy(null);
+  };
+
+  // Ιδιοκτήτης: σβήνει το αίτημα αναβάθμισης αφού το δει
+  const clearUpgrade = async () => {
+    const { error } = await supabase.rpc('clear_org_upgrade_request');
+    if (error) return;
+    setOrg(prev => (prev ? { ...prev, upgrade_requested_at: null } : prev));
+  };
+
+  // Μέλος: ζητά δικαιώματα επεξεργασίας
+  const requestEdit = async () => {
+    setMemberBusy(true); setMemberError(null);
+    const { error } = await supabase.rpc('request_member_edit');
+    setMemberBusy(false);
+    if (error) { setMemberError('Το αίτημα δεν στάλθηκε.'); return; }
+    setEditSent(true);
+  };
+
+  // Μέλος: ζητά αναβάθμιση συνδρομής
+  const requestUpgrade = async () => {
+    setMemberBusy(true); setMemberError(null);
+    const { error } = await supabase.rpc('request_org_upgrade');
+    setMemberBusy(false);
+    if (error) { setMemberError('Το αίτημα δεν στάλθηκε.'); return; }
+    setUpgradeSent(true);
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '20px 0', fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
@@ -207,10 +335,90 @@ export default function OrgTeam({ userId }: { userId: string }) {
     );
   }
 
+  // ═══ ΟΨΗ ΜΕΛΟΥΣ ═══════════════════════════════════════════════════════════
+  if (mode === 'member' && me) {
+    const editPending = !me.canEdit && (me.editRequestedAt != null || editSent);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* ── Ο οργανισμός σου ─────────────────────────────────────────── */}
+        <section className="acc-section">
+          <div style={subLabel}>Ο οργανισμός σου</div>
+          <div style={{
+            marginTop: 12, fontSize: 15, fontWeight: 600, fontFamily: T.font.sans, color: 'var(--text-primary)',
+          }}>
+            {me.orgName ? `Είσαι μέλος του οργανισμού: ${me.orgName}` : 'Είσαι μέλος ενός οργανισμού.'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <RoleChip role={me.role} />
+            <AccessChip canEdit={me.canEdit} />
+          </div>
+        </section>
+
+        {/* ── Δικαιώματα επεξεργασίας ──────────────────────────────────── */}
+        <section className="acc-section" style={{ animationDelay: '60ms' }}>
+          <div style={subLabel}>Δικαιώματα επεξεργασίας</div>
+          <div style={descStyle}>Η πρόσβασή σου στο χαρτοφυλάκιο του οργανισμού.</div>
+          <div style={{ marginTop: 12 }}>
+            {me.canEdit ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--positive)', fontFamily: T.font.sans }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)', flexShrink: 0 }} />
+                Έχεις δικαιώματα επεξεργασίας στο χαρτοφυλάκιο.
+              </div>
+            ) : editPending ? (
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                Το αίτημα επεξεργασίας στάλθηκε στον ιδιοκτήτη.
+              </div>
+            ) : (
+              <Btn variant="secondary" onClick={requestEdit} disabled={memberBusy}>Ζήτησε δικαιώματα επεξεργασίας</Btn>
+            )}
+          </div>
+        </section>
+
+        {/* ── Αναβάθμιση συνδρομής ─────────────────────────────────────── */}
+        <section className="acc-section" style={{ animationDelay: '120ms' }}>
+          <div style={subLabel}>Αναβάθμιση συνδρομής</div>
+          <div style={descStyle}>Ζήτησε από τον ιδιοκτήτη να αναβαθμίσει τη συνδρομή του οργανισμού.</div>
+          <div style={{ marginTop: 12 }}>
+            {upgradeSent ? (
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                Το αίτημα στάλθηκε στον ιδιοκτήτη.
+              </div>
+            ) : (
+              <Btn variant="secondary" onClick={requestUpgrade} disabled={memberBusy}>Ζήτησε αναβάθμιση συνδρομής</Btn>
+            )}
+          </div>
+        </section>
+
+        {memberError && <div style={errStyle}>{memberError}</div>}
+
+        {/* ── Ειλικρινής σημείωση (μία γραμμή) ─────────────────────────── */}
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, paddingTop: 2 }}>
+          Η επεξεργασία ενεργοποιείται μόνο αφού ο ιδιοκτήτης εγκρίνει το αίτημά σου.
+        </div>
+      </div>
+    );
+  }
+
   const nameEmpty = !org?.name?.trim();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* ── Αίτημα αναβάθμισης από μέλος ──────────────────────────────── */}
+      {org?.upgrade_requested_at && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          background: 'var(--warning-soft)', border: '1px solid var(--warning-border)',
+          borderRadius: T.radius.inner, padding: '10px 16px',
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            Ένα μέλος σου ζήτησε αναβάθμιση συνδρομής.
+          </span>
+          <Btn variant="secondary" onClick={clearUpgrade}>Το είδα</Btn>
+        </div>
+      )}
 
       {/* ── Όνομα οργανισμού ─────────────────────────────────────────── */}
       <section className="acc-section">
@@ -272,6 +480,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                 <div style={microLabel}>Μέλος</div>
                 <div style={microLabel}>Ρόλος</div>
                 <div style={microLabel}>Κατάσταση</div>
+                <div style={microLabel}>Πρόσβαση</div>
                 <div style={microLabel} />
               </div>
 
@@ -310,6 +519,28 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
                     {/* Κατάσταση */}
                     <div><StatusChip status={m.status} /></div>
+
+                    {/* Πρόσβαση: έγκριση αιτήματος ή τμηματικός έλεγχος Ανάγνωση/Επεξεργασία */}
+                    <div style={{ minWidth: 0 }}>
+                      {canAct && (
+                        m.edit_requested_at && !m.can_edit ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{
+                              display: 'inline-flex', borderRadius: 100, padding: '3px 9px', fontSize: 10, fontWeight: 700,
+                              fontFamily: T.font.sans, whiteSpace: 'nowrap',
+                              background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)',
+                            }}>Ζητά επεξεργασία</span>
+                            <Btn variant="primary" onClick={() => setMemberEdit(m.email, true)} disabled={busy}>Έγκριση</Btn>
+                            <Btn variant="secondary" onClick={() => setMemberEdit(m.email, false)} disabled={busy}>Όχι</Btn>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
+                            <SegBtn active={!m.can_edit} disabled={busy} onClick={() => { if (m.can_edit) void setMemberEdit(m.email, false); }}>Ανάγνωση</SegBtn>
+                            <SegBtn active={m.can_edit} disabled={busy} divider onClick={() => { if (!m.can_edit) void setMemberEdit(m.email, true); }}>Επεξεργασία</SegBtn>
+                          </div>
+                        )
+                      )}
+                    </div>
 
                     {/* Ενέργειες */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -371,13 +602,13 @@ export default function OrgTeam({ userId }: { userId: string }) {
         </div>
         {inviteError && <div style={errStyle}>{inviteError}</div>}
         <div style={{ ...descStyle, marginTop: 10 }}>
-          Το μέλος μπαίνει αυτόματα με το που συνδεθεί με το ίδιο email. Σε αυτή την έκδοση, τα μέλη έχουν πρόσβαση ανάγνωσης στο χαρτοφυλάκιο.
+          Το μέλος μπαίνει αυτόματα με το που συνδεθεί με το ίδιο email. Τη στάθμη πρόσβασής του τη ρυθμίζεις από τη στήλη «Πρόσβαση».
         </div>
       </section>
 
       {/* ── Επεξήγηση ρόλων (μία γραμμή) ─────────────────────────────── */}
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, paddingTop: 2 }}>
-        Ο Ιδιοκτήτης διαχειρίζεται τα πάντα· ο Διαχειριστής και το Μέλος μόνο βλέπουν.
+        Ο Ιδιοκτήτης διαχειρίζεται τα πάντα· τα μέλη βλέπουν το χαρτοφυλάκιο και, με την έγκρισή σου, το επεξεργάζονται.
       </div>
     </div>
   );
