@@ -65,13 +65,21 @@ interface Bill     { id:string; type:string; amount:number; avg_amount:number|nu
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
 
+// Κατάσταση ακινήτου: κατηγορική πληροφορία όπου το χρώμα είναι λειτουργικό
+// (σαν φανάρι), όχι διακοσμητικό. Διακριτή, ήρεμη παλέτα ανά κατάσταση.
 const STATUS_COLORS: Record<string,string> = {
-  rented:'var(--accent)', vacant:'var(--warning)', own_use:'var(--accent)',
-  renovation:'var(--accent)', for_sale:'var(--accent)', seasonal:'var(--accent)', disputed:'var(--negative)',
+  rented:'var(--positive)',        // ενεργό εισόδημα
+  vacant:'var(--warning)',         // προσοχή: χωρίς εισόδημα
+  own_use:'var(--text-secondary)', // ιδιοχρησία, ουδέτερο
+  seasonal:'var(--accent)',        // περιοδικό
+  renovation:'var(--warning)',     // σε εξέλιξη
+  for_sale:'var(--info)',          // σε μετάβαση
+  disputed:'var(--negative)',      // πρόβλημα
 };
+// Σειρά κατά χρησιμότητα (πιο συνηθισμένες πρώτα).
 const STATUS_LABELS: Record<string,string> = {
-  rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία',
-  renovation:'Ανακαίνιση', for_sale:'Προς Πώληση', seasonal:'Εποχιακό', disputed:'Αμφισβητούμενο',
+  rented:'Ενοικιάζεται', vacant:'Κενό', own_use:'Ιδιοχρησία', seasonal:'Εποχιακό',
+  renovation:'Ανακαίνιση', for_sale:'Προς Πώληση', disputed:'Αμφισβητούμενο',
 };
 const PROP_TYPE_LABELS: Record<string,string> = {
   apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
