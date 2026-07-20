@@ -48,6 +48,14 @@ export const REGULATORY_UPDATES_2026: RegulatoryUpdate[] = [
     sourceLabel: 'Μισθώσεις ακινήτων (ΑΑΔΕ)', sourceHref: SRC.aadeRentals, severity: 'warning',
   },
   {
+    id: 'commercial-rent-cap-3pct',
+    area: 'rental_income', audiences: ['long_term', 'buyer', 'business'],
+    title: 'Πλαφόν 3% στις εμπορικές/επαγγελματικές μισθώσεις (2026)',
+    summary: 'Στις υφιστάμενες εμπορικές-επαγγελματικές μισθώσεις (ΠΔ 34/1995), από 1/1/2026 έως 31/12/2026 η αναπροσαρμογή του μισθώματος δεν επιτρέπεται να ξεπεράσει το 3% επί του μισθώματος του 2025, ακόμη κι αν οι αγοραίες τιμές ανέβηκαν περισσότερο. Το όριο ΔΕΝ ισχύει στην κατοικία, ούτε σε νέες μισθώσεις που υπογράφεις μέσα στο 2026 (εκεί το μίσθωμα διαμορφώνεται ελεύθερα). Εξαιρούνται εκμισθωτές ΑΕΕΑΠ/ΟΣΕΚΑ, εμπορικά κέντρα άνω των 15.000 τ.μ. και εταιρείες 100% του Δημοσίου.',
+    effective: '1/1/2026–31/12/2026', legalBasis: 'άρθρο 59 ν.5255/2025 · άρθρο 96 ν.5007/2022',
+    sourceLabel: 'Μισθώσεις ακινήτων (ΑΑΔΕ)', sourceHref: SRC.aadeRentals, severity: 'warning',
+  },
+  {
     id: 'longterm-exemption-conditions',
     area: 'rental_income', audiences: ['long_term', 'short_term'],
     title: '3ετής απαλλαγή ενοικίου: προϋποθέσεις',
