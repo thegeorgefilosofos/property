@@ -1889,6 +1889,11 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 /* Επιλογή τρόπου χρήσης: διακριτικό «σήκωμα» βάθους στο hover. */
 .acc-choice { transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s cubic-bezier(0.2, 0, 0, 1), border-color 0.18s, background-color 0.18s; }
 .acc-choice:hover { transform: translateY(-2px); }
+
+/* Κεφαλίδα ελαχιστοποιήσιμης ενότητας: καθαρή, χωρίς default outline «γραμμή» στο
+   κλικ· διακριτικό δαχτυλίδι μόνο για πλοήγηση με πληκτρολόγιο (focus-visible). */
+.po-sec-toggle { outline: none; }
+.po-sec-toggle:focus-visible { box-shadow: 0 0 0 2px var(--accent-dim); border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .acc-section { animation: none; }
   .acc-live-dot::after { animation: none; }
