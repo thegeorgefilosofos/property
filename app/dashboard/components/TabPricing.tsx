@@ -317,18 +317,18 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
               <SecHdr label="Κενές μέρες προς πλήρωση" sub="Διαστήματα χωρίς κράτηση, με προτεινόμενη τιμή και άμεσες ενέργειες" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {gaps.slice(0, 8).map((g, i) => (
-                  <div key={i} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div key={i} className="po-fig-card" style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {fd(g.start)} - {fd(g.end)}
-                        {g.hard && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: 100, padding: '1px 6px' }}>δύσκολο κενό</span>}
-                        {g.soon && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 100, padding: '1px 6px' }}>άμεσα</span>}
+                        {g.hard && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '1px 6px' }}>δύσκολο κενό</span>}
+                        {g.soon && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '1px 6px' }}>άμεσα</span>}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong style={{ color: 'var(--accent)', fontFamily: T.font.num }}>{fe(g.fillPrice, 0)}</strong>/νύχτα</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice, 0)}</strong>/νύχτα</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                       <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
-                      <Btn variant={gapTitles.has(gapTitle(g)) ? 'secondary' : 'ghost'} onClick={() => toggleGap(g)}>{gapTitles.has(gapTitle(g)) ? 'Προστέθηκε στο Ημερολόγιο' : 'Υπενθύμιση'}</Btn>
+                      <Btn variant="secondary" onClick={() => toggleGap(g)}>{gapTitles.has(gapTitle(g)) ? 'Προστέθηκε στο Ημερολόγιο' : 'Υπενθύμιση'}</Btn>
                     </div>
                   </div>
                 ))}
@@ -359,7 +359,6 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                         if (!d) return <div key={dayNum} style={{ aspectRatio: '1', borderRadius: 8, background: 'var(--bg-base)', opacity: 0.4 }} />;
                         const past = pyear === nowYear && d.date < todayIso();
                         const t = past ? 0 : norm(d.price);
-                        const strong = !past && t > 0.5 && !d.booked;   // λευκά ψηφία σε σκούρο φόντο
                         const top = !past && t > 0.82 && !d.booked;     // κορυφαία αιχμή: έξτρα έμφαση
                         return (
                           <button key={dayNum} onClick={() => setSel(d)} title={d.holidayName || ''}
@@ -373,11 +372,11 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                             transform: top ? 'scale(1.04)' : 'none', zIndex: top ? 1 : 0, opacity: past ? 0.4 : 1,
                           }}>
                             {!d.booked && !past && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
-                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : strong ? 'color-mix(in srgb, var(--accent-text) 90%, transparent)' : 'var(--text-tertiary)' }}>{dayNum}</span>
-                            <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? 'var(--accent-text)' : 'var(--text-primary)' }}>
+                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>{dayNum}</span>
+                            <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
                               {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
                             </span>
-                            {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: strong ? 'var(--accent-text)' : 'var(--accent)' }} />}
+                            {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>
                         );
                       })}
@@ -395,32 +394,32 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
 
           {/* Λεπτομέρεια επιλεγμένης ημέρας */}
           {sel && (
-            <div style={{ marginTop: 20, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: 18 }}>
+            <div className="po-fig-card" style={{ marginTop: 20, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{fd(sel.date)}{sel.holidayName ? ` · ${sel.holidayName}` : ''}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Εποχή {SEASON_LABELS[sel.season]}{sel.isWeekend ? ' · Σαββατοκύριακο' : ''}{sel.booked ? ' · Ήδη κλεισμένη' : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, color: 'var(--accent)' }}>{fe(sel.price, 0)}</div>
+                  <div className="po-fig" data-tone="accent" style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num }}>{fe(sel.price, 0)}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ανά νύχτα</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)' }}>
-                  <span>Βάση</span><span style={{ fontFamily: T.font.num }}>{fe(sel.base, 0)}</span>
+                  <span>Βάση</span><span className="po-fig" style={{ fontFamily: T.font.num }}>{fe(sel.base, 0)}</span>
                 </div>
                 {sel.factors.map((f, i) => {
                   const pct = Math.round((f.mult - 1) * 100);
                   return (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)' }}>
                       <span>{f.label}</span>
-                      <span style={{ fontFamily: T.font.num, color: pct > 0 ? 'var(--positive)' : pct < 0 ? 'var(--negative)' : 'var(--text-tertiary)' }}>{pct > 0 ? '+' : ''}{pct}%</span>
+                      <span className="po-fig" data-tone={pct > 0 ? 'positive' : pct < 0 ? 'negative' : undefined} style={{ fontFamily: T.font.num }}>{pct > 0 ? '+' : ''}{pct}%</span>
                     </div>
                   );
                 })}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 2 }}>
-                  <span>Προτεινόμενη τιμή</span><span style={{ fontFamily: T.font.num }}>{fe(sel.price, 0)}</span>
+                  <span>Προτεινόμενη τιμή</span><span className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(sel.price, 0)}</span>
                 </div>
               </div>
             </div>

@@ -138,7 +138,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
             aria-hidden
             style={{
               width: 46, height: 46, borderRadius: 13, flexShrink: 0,
-              background: 'var(--accent)', color: 'var(--accent-text)',
+              background: 'var(--accent)', color: '#fff',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: 'var(--highlight-inset), var(--elev-1)',
             }}
