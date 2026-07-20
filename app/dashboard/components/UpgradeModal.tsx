@@ -52,6 +52,16 @@ export default function UpgradeModal({ currentCount, planId, onClose, onManage }
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
                   {p.maxProperties === Infinity ? 'Απεριόριστα ακίνητα' : `Έως ${p.maxProperties} ${p.maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`}
                 </div>
+                {!isCurrent && p.id !== 'free' && (
+                  <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {p.features.slice(0, 3).map((f, i) => (
+                      <li key={i} style={{ display: 'flex', gap: 7, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {isCurrent && <div style={{ marginTop: 'auto', paddingTop: 12, fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>Το τρέχον πλάνο σου</div>}
               </div>
             );

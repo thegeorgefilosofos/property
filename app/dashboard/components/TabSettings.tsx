@@ -17,7 +17,7 @@ import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
 import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, activeComp, planAtLeast } from '@/lib/billing/entitlements';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -287,6 +287,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [partner, setPartner] = useState(false);
   const [compPlan, setCompPlan] = useState<string | null>(null);
   const [compUntil, setCompUntil] = useState<string | null>(null);
+  const [propertyCount, setPropertyCount] = useState<number | null>(null);
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -307,6 +308,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setCompPlan((data.comp_plan as string) || null); setCompUntil((data.comp_until as string) || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
+    supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+      .then(({ count }) => setPropertyCount(count ?? 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -352,6 +355,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const ent = { plan, profileType, partner, compPlan, compUntil };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
+  const propLimit = propertyLimit(ent);
+  const propLimitLabel = propLimit === Infinity ? 'απεριόριστα' : String(propLimit);
+  const usagePct = propLimit === Infinity || !propertyCount ? 0 : Math.min(100, Math.round((propertyCount / propLimit) * 100));
+  const atLimit = propLimit !== Infinity && (propertyCount ?? 0) >= propLimit;
+  const nearLimit = propLimit !== Infinity && !atLimit && propLimit > 1 && (propertyCount ?? 0) >= propLimit - 1;
   const planMeta = PLANS[effPlan];
   const isProPlan = effPlan === 'agency';
   const needsUpgrade = profileType === 'professional' && !planAtLeast(effPlan, 'agency');
@@ -390,6 +398,28 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
           <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
         </div>
+
+        {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
+        {propertyCount != null && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ακίνητα</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
+            </div>
+            {propLimit !== Infinity && (
+              <div style={{ height: 6, borderRadius: 100, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                <div style={{ width: `${usagePct}%`, height: '100%', borderRadius: 100, background: atLimit ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s cubic-bezier(0.2,0,0,1)' }} />
+              </div>
+            )}
+            {(atLimit || nearLimit) && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>
+                {atLimit
+                  ? 'Έφτασες το όριο του πλάνου σου. Αναβάθμισε για να κρατάς κι άλλα ακίνητα σε ένα σημείο.'
+                  : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πλάνου σου.'}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Ενεργή δωρεάν πρόσβαση (κερδισμένοι μήνες) */}
         {comp && (
@@ -456,8 +486,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       )}
 
-      {/* ── 3. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
+      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
       <Card className="acc-section" style={{ animationDelay: '140ms' }}>
+        <SecHdr label="Ειδοποιήσεις" />
+        <NotificationSettings userId={userId} propertyId={propertyId} />
+      </Card>
+
+      {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
         <SecHdr label="Εμφάνιση & Γλώσσα" />
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
@@ -479,12 +515,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             </span>
           )}
         </div>
-      </Card>
-
-      {/* ── 4. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
-        <SecHdr label="Ειδοποιήσεις" />
-        <NotificationSettings userId={userId} propertyId={propertyId} />
       </Card>
 
       {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
