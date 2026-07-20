@@ -10,6 +10,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
+import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
+import { type PlanId } from '@/lib/billing/plans';
 
 interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
@@ -30,6 +32,7 @@ const PLANS = [
 export default function Billing({ userId }: { userId: string }) {
   const supabase = createClient();
   const [d, setD] = useState<BillingData>(INIT);
+  const [profileType, setProfileType] = useState<ProfileType>('individual');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -42,6 +45,7 @@ export default function Billing({ userId }: { userId: string }) {
       const meta = (u.user?.user_metadata as any) || {};
       if (data) setD({ ...INIT, ...data });
       else setD(p => ({ ...p, full_name: meta.full_name || '' }));
+      setProfileType((data as { profile_type?: string } | null)?.profile_type === 'professional' ? 'professional' : 'individual');
       setLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,15 +71,26 @@ export default function Billing({ userId }: { userId: string }) {
       {/* Plans */}
       <Card>
         <SecHdr label="Πλάνο συνδρομής" />
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 14 }}>
+          {profileType === 'professional'
+            ? 'Στον τρόπο «Επαγγελματίας» διαθέσιμο είναι το πλάνο Επαγγελματίας. Για Δωρεάν ή Ιδιοκτήτη, γύρνα στον τρόπο «Ιδιώτης» από τη σελίδα Λογαριασμός.'
+            : 'Στον τρόπο «Ιδιώτης» διαλέγεις ανάμεσα σε Δωρεάν και Ιδιοκτήτη. Το πλάνο Επαγγελματίας ενεργοποιείται στον τρόπο «Επαγγελματίας».'}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
           {PLANS.map(p => {
             const active = d.plan === p.id;
+            const allowed = isPlanAllowedForProfile(profileType, p.id as PlanId);
+            const locked = !allowed;
+            const hint = profileType === 'professional' ? 'Διαθέσιμο στον τρόπο «Ιδιώτης»' : 'Διαθέσιμο στον τρόπο «Επαγγελματίας»';
             return (
-              <button key={p.id} onClick={() => setD(prev => ({ ...prev, plan: p.id, billing_cycle: p.cycle }))}
-                style={{ textAlign: 'left', cursor: 'pointer', background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '16px', transition: 'all 0.15s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <button key={p.id} disabled={locked} title={locked ? hint : undefined} className={locked ? undefined : 'acc-choice'}
+                onClick={() => { if (locked) return; setD(prev => ({ ...prev, plan: p.id, billing_cycle: p.cycle })); }}
+                style={{ textAlign: 'left', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.55 : 1, background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
-                  {active && <span style={{ color: 'var(--accent)', fontSize: 16 }}>✓</span>}
+                  {active
+                    ? <span style={{ color: 'var(--accent)', fontSize: 16 }}>✓</span>
+                    : locked && <span aria-hidden style={{ color: 'var(--text-tertiary)', display: 'inline-flex' }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontSize: 22, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num }}>{p.price}</span>
