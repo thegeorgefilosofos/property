@@ -27,15 +27,46 @@ export default function Billing({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
   const set = (k: keyof BillingData, v: string) => setD(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('billing_profiles').select('*').eq('user_id', userId).maybeSingle();
-      const { data: u } = await supabase.auth.getUser();
-      const meta = (u.user?.user_metadata as any) || {};
-      if (data) setD({ ...INIT, ...data });
-      else setD(p => ({ ...p, full_name: meta.full_name || '' }));
+      const [{ data }, { data: u }] = await Promise.all([
+        supabase.from('billing_profiles').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.auth.getUser(),
+      ]);
+      const meta = (u.user?.user_metadata as Record<string, string> | undefined) || {};
+      const base: BillingData = { ...INIT, ...(data || {}) };
+
+      // Έξυπνη προσυμπλήρωση: αντλούμε ό,τι ήδη ξέρουμε από το ακίνητο και τις
+      // ρυθμίσεις του, ώστε ο χρήστης να μη βρίσκει άδεια φόρμα (αλλιώς δεν τη
+      // συμπληρώνει ποτέ). Γεμίζουμε ΜΟΝΟ τα κενά· δεν πατάμε ό,τι υπάρχει ήδη.
+      let did = false;
+      const fill = (k: keyof BillingData, v?: string | null) => {
+        if (!String(base[k] || '').trim() && v && String(v).trim()) { base[k] = String(v).trim(); did = true; }
+      };
+      try {
+        const { data: prop } = await supabase
+          .from('user_properties').select('id, address, postal_code')
+          .eq('user_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+        let ps: { owner_name?: string; owner_afm?: string; owner_phone?: string } | null = null;
+        if (prop?.id) {
+          const { data: s } = await supabase
+            .from('property_settings').select('owner_name, owner_afm, owner_phone')
+            .eq('property_id', prop.id).maybeSingle();
+          ps = s;
+        }
+        fill('full_name', meta.full_name || ps?.owner_name);
+        fill('afm', ps?.owner_afm);
+        fill('phone', ps?.owner_phone);
+        fill('address', prop?.address);
+        fill('postal_code', prop?.postal_code);
+      } catch { /* σιωπηλά: η προσυμπλήρωση είναι bonus, δεν μπλοκάρει */ }
+      fill('full_name', meta.full_name);
+
+      setD(base);
+      setPrefilled(did);
       setLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,6 +92,11 @@ export default function Billing({ userId }: { userId: string }) {
       {/* Invoice details */}
       <Card>
         <SecHdr label="Στοιχεία τιμολόγησης" />
+        {prefilled && (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: -6, marginBottom: 14 }}>
+            Προσυμπληρώσαμε ό,τι ήδη ξέραμε από το ακίνητό σου. Έλεγξέ τα και αποθήκευσε.
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
           <CustomSelect label="Τύπος παραστατικού" value={d.doc_type} onChange={v => set('doc_type', v)}
             options={[{ value: 'receipt', label: 'Απόδειξη (ιδιώτης)' }, { value: 'invoice', label: 'Τιμολόγιο (επιχείρηση)' }]} />

@@ -18,6 +18,10 @@
 import { useEffect, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, Chip } from '@/components/Theme';
+import { CustomSelect } from './UIComponents';
+
+// Κοινές επιλογές ρόλου (ίδιο dropdown με το υπόλοιπο app: CustomSelect).
+const ROLE_OPTIONS = [{ value: 'admin', label: 'Διαχειριστής' }, { value: 'member', label: 'Μέλος' }];
 
 type Role = 'owner' | 'admin' | 'member';
 type Status = 'invited' | 'active' | 'revoked';
@@ -70,19 +74,6 @@ const fieldStyle: CSSProperties = {
   fontFamily: T.font.sans,
   outline: 'none',
 };
-const selectStyle: CSSProperties = {
-  height: 38,
-  borderRadius: 8,
-  border: '1px solid var(--border-default)',
-  background: 'var(--bg-surface)',
-  color: 'var(--text-primary)',
-  fontFamily: T.font.sans,
-  fontSize: 13,
-  fontWeight: 600,
-  padding: '0 10px',
-  boxSizing: 'border-box',
-  cursor: 'pointer',
-};
 const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 3 };
 const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 };
@@ -95,21 +86,20 @@ const ROW_MIN = 960;
 const focusOn = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
 const focusOff = (e: FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
 
-// ── Chip ρόλου: owner με accent, admin/member ουδέτερα (κοινό Chip primitive) ─
+// Chips μητρώου: ουδέτερα (η ετικέτα λέει τα πάντα). Κρατάμε το χρώμα μόνο για
+// ό,τι είναι πραγματικά actionable (π.χ. εκκρεμές αίτημα), όχι για διακόσμηση.
 function RoleChip({ role }: { role: Role }) {
   const label = role === 'owner' ? 'Ιδιοκτήτης' : role === 'admin' ? 'Διαχειριστής' : 'Μέλος';
-  return <Chip tone={role === 'owner' ? 'accent' : 'neutral'}>{label}</Chip>;
+  return <Chip tone="neutral">{label}</Chip>;
 }
 
-// ── Chip κατάστασης: Ενεργό (positive) / Προσκεκλημένο, Ανακλήθηκε (ουδέτερα) ─
 function StatusChip({ status }: { status: Status }) {
   const label = status === 'active' ? 'Ενεργό' : status === 'invited' ? 'Προσκεκλημένο' : 'Ανακλήθηκε';
-  return <Chip tone={status === 'active' ? 'positive' : 'neutral'}>{label}</Chip>;
+  return <Chip tone="neutral">{label}</Chip>;
 }
 
-// ── Chip πρόσβασης: Επεξεργασία (positive) / Ανάγνωση (ουδέτερο) ───────────
 function AccessChip({ canEdit }: { canEdit: boolean }) {
-  return <Chip tone={canEdit ? 'positive' : 'neutral'}>{canEdit ? 'Επεξεργασία' : 'Ανάγνωση'}</Chip>;
+  return <Chip tone="neutral">{canEdit ? 'Επεξεργασία' : 'Ανάγνωση'}</Chip>;
 }
 
 // ── Πλήκτρο τμηματικού ελέγχου «Ανάγνωση | Επεξεργασία» ────────────────────
@@ -381,7 +371,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
       {org?.upgrade_requested_at && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-          background: 'var(--warning-soft)', border: '1px solid var(--warning-border)',
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
           borderRadius: T.radius.inner, padding: '10px 16px',
         }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
@@ -508,18 +498,14 @@ export default function OrgTeam({ userId }: { userId: string }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {canAct && (
                         <>
-                          <select
-                            value={m.role === 'admin' ? 'admin' : 'member'}
-                            onChange={e => changeRole(m.email, e.target.value as InviteRole)}
-                            onFocus={focusOn}
-                            onBlur={focusOff}
-                            disabled={busy}
-                            aria-label="Ρόλος μέλους"
-                            style={{ ...selectStyle, opacity: busy ? 0.6 : 1 }}
-                          >
-                            <option value="admin">Διαχειριστής</option>
-                            <option value="member">Μέλος</option>
-                          </select>
+                          <div style={{ width: 140, opacity: busy ? 0.6 : 1 }}>
+                            <CustomSelect
+                              value={m.role === 'admin' ? 'admin' : 'member'}
+                              onChange={v => changeRole(m.email, v as InviteRole)}
+                              options={ROLE_OPTIONS}
+                              disabled={busy}
+                            />
+                          </div>
                           <Btn variant="secondary" onClick={() => revoke(m.email)} disabled={busy}>Αφαίρεση</Btn>
                         </>
                       )}
@@ -547,17 +533,13 @@ export default function OrgTeam({ userId }: { userId: string }) {
             placeholder="Email του μέλους"
             style={{ ...fieldStyle, flex: 1, minWidth: 220 }}
           />
-          <select
-            value={inviteRole}
-            onChange={e => setInviteRole(e.target.value as InviteRole)}
-            onFocus={focusOn}
-            onBlur={focusOff}
-            aria-label="Ρόλος πρόσκλησης"
-            style={{ ...selectStyle, height: 40 }}
-          >
-            <option value="admin">Διαχειριστής</option>
-            <option value="member">Μέλος</option>
-          </select>
+          <div style={{ width: 150 }}>
+            <CustomSelect
+              value={inviteRole}
+              onChange={v => setInviteRole(v as InviteRole)}
+              options={ROLE_OPTIONS}
+            />
+          </div>
           <Btn variant="primary" onClick={invite} disabled={inviting || !inviteEmail.trim()}>
             {inviting ? 'Πρόσκληση…' : 'Πρόσκληση'}
           </Btn>

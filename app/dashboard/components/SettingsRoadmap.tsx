@@ -147,8 +147,8 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
             </div>
 
             <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: '8px 0 0' }}>
-              Διαχειρίσου τα ακίνητά σου από το κινητό, με λίγα κλικ ή τη φωνή σου. Πιο εύκολα και πιο γρήγορα για όλους,
-              έρχεται πιο σύντομα από ποτέ.
+              Όλη η διαχείριση των ακινήτων σου στο κινητό, με λίγα κλικ ή τη φωνή σου. Απλά και γρήγορα,
+              όπου κι αν βρίσκεσαι.
             </p>
 
             {/* Platform chips */}
@@ -239,7 +239,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
 
       {/* Closing line */}
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.45, marginTop: 14 }}>
-        Έχεις ιδέα ή ζήτημα; Στείλε μας από τον βοηθό, το ακούμε.
+        Έχεις μια ιδέα ή κάτι που θα ήθελες αλλιώς; Πες το μας μέσα από τον βοηθό, σε ακούμε.
       </div>
     </div>
   );
