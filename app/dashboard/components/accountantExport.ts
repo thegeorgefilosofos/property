@@ -19,47 +19,62 @@ export interface AccountantBundleInput {
   book: AccountantMovement[];
 }
 
-const STRONG = new Set(['subtotal', 'result']);
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
+// Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
+const MEMO_TXT = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'left', vertical: 'center' } };
+const MEMO_NUM = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'right', vertical: 'center' } };
 
 /** Κατεβάζει τον «φάκελο λογιστή» (.xlsx) για το έτος. */
 export function exportAccountantBundle(inp: AccountantBundleInput): void {
   const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
   const wb = XLSX.utils.book_new();
+  // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
+  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημ. έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
 
   // ── Φύλλο 1: Κατάσταση Αποτελεσμάτων ───────────────────────────────────────
   {
     const NC = 2, HR = 4;
+    // Μοντέλο γραμμών: κανονική / υποσύνολο / αποτέλεσμα (λογιστική γραμμή) / κενό / memo.
+    type Kind = 'line' | 'subtotal' | 'result' | 'spacer' | 'memo';
+    const plRows: { label: string; amount: number | null; kind: Kind }[] = [
+      ...statementLines.map(l => ({
+        label: l.label,
+        amount: l.negative ? -Math.abs(l.amount) : l.amount,
+        kind: (l.kind === 'result' ? 'result' : l.kind === 'subtotal' ? 'subtotal' : 'line') as Kind,
+      })),
+      { label: '', amount: null, kind: 'spacer' },
+      { label: 'Πρόβλεψη φόρου / μήνα (εκτίμηση)', amount: Math.round(provisionMonthly * 100) / 100, kind: 'memo' },
+    ];
     const aoa: (string | number)[][] = [
       [`ΚΑΤΑΣΤΑΣΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΧΡΗΣΗΣ ${year}`],
-      [`Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''}`],
+      [idLine],
       [],
       ['ΑΠΟΤΕΛΕΣΜΑ ΧΡΗΣΗΣ'],
       ['Περιγραφή', 'Ποσό (€)'],
-      ...statementLines.map(l => [l.label, l.negative ? -Math.abs(l.amount) : l.amount]),
-      ['Πρόβλεψη φόρου / μήνα', Math.round(provisionMonthly * 100) / 100],
+      ...plRows.map(r => [r.label, r.amount ?? '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 42 }, { wch: 16 }];
+    ws['!cols'] = [{ wch: 46 }, { wch: 16 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
       { s: { r: 3, c: 0 }, e: { r: 3, c: NC - 1 } },
     ];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
-    const lastRow = HR + statementLines.length; // + provision row = HR + n + 1
     setCell(ws, 0, 0, { s: S.title });
     setCell(ws, 1, 0, { s: S.sub });
     setCell(ws, 3, 0, { s: S.section });
     setCell(ws, HR, 0, { s: S.head }); setCell(ws, HR, 1, { s: S.head });
-    for (let i = 0; i <= statementLines.length; i++) {
-      const r = HR + 1 + i;
-      const strong = i < statementLines.length && STRONG.has(statementLines[i].kind);
-      setCell(ws, r, 0, { s: strong ? S.strongTxt : S.txt });
-      setCell(ws, r, 1, { s: strong ? S.strongNum : S.num, t: 'n', z: FMT.eur });
-      ws['!rows'][r] = { hpt: 17 };
-    }
-    void lastRow;
+    plRows.forEach((r, i) => {
+      const rr = HR + 1 + i;
+      if (r.kind === 'spacer') { ws['!rows']![rr] = { hpt: 6 }; return; }
+      ws['!rows']![rr] = { hpt: 17 };
+      // 'result' = τελική λογιστική γραμμή (μεσαία άνω γραμμή)· 'subtotal' = έντονο· memo = ιταλικό γκρι.
+      const txtS = r.kind === 'result' ? S.totTxt : r.kind === 'subtotal' ? S.strongTxt : r.kind === 'memo' ? MEMO_TXT : S.txt;
+      const numS = r.kind === 'result' ? S.totNum : r.kind === 'subtotal' ? S.strongNum : r.kind === 'memo' ? MEMO_NUM : S.num;
+      setCell(ws, rr, 0, { s: txtS });
+      setCell(ws, rr, 1, { s: numS, t: 'n', z: FMT.eur });
+    });
     XLSX.utils.book_append_sheet(wb, ws, 'Κατάσταση αποτελεσμάτων');
   }
 
@@ -76,7 +91,7 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
     ]);
     const aoa: (string | number | Date)[][] = [
       [`ΑΝΑΛΥΤΙΚΕΣ ΚΙΝΗΣΕΙΣ ${year}`],
-      [`Property OS · ${propName}`],
+      [idLine],
       [],
       header,
       ...dataRows as (string | number | Date)[][],
@@ -90,6 +105,7 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
     ];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
+    const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     const lastData = HR + sorted.length;
     const totalR = lastData + 1, netR = lastData + 2;
     setCell(ws, 0, 0, { s: S.title });
@@ -98,15 +114,20 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
     for (let r = HR + 1; r <= lastData; r++) {
       ws['!rows'][r] = { hpt: 16 };
       setCell(ws, r, 0, { s: S.num });                                       // Α/Α
-      setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, t: 'd', z: FMT.date }); // Ημ/νία
+      const dcell = ws[enc(r, 1)] as Cell | undefined;                       // Ημ/νία — t:'d' μόνο αν όντως Date
+      const isDate = !!dcell && dcell.v instanceof Date;
+      setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
       setCell(ws, r, 2, { s: S.txt });                                       // Κατηγορία
       setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
-      for (const c of [4, 5]) { const cell = ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined; setCell(ws, r, c, { s: S.num, ...(cell && typeof cell.v === 'number' ? { t: 'n', z: FMT.eur } : {}) }); }
+      for (const c of [4, 5]) { const cell = ws[enc(r, c)] as Cell | undefined; setCell(ws, r, c, { s: S.num, ...(cell && typeof cell.v === 'number' ? { t: 'n', z: FMT.eur } : {}) }); }
     }
-    // Σύνολα + καθαρό
-    for (let c = 0; c < NC; c++) setCell(ws, totalR, c, { s: c >= 4 ? S.totNum : S.totTxt, ...(c >= 4 ? { t: 'n', z: FMT.eur } : {}) });
+    // Σύνολα + καθαρό — ΖΩΝΤΑΝΑ SUM (recompute αν ο λογιστής προσθέσει/σβήσει γραμμή).
+    const hasRows = sorted.length > 0;
+    setCell(ws, totalR, 0, { s: S.totTxt }); setCell(ws, totalR, 1, { s: S.totTxt }); setCell(ws, totalR, 2, { s: S.totTxt }); setCell(ws, totalR, 3, { s: S.totTxt });
+    setCell(ws, totalR, 4, { s: S.totNum, t: 'n', z: FMT.eur, ...(hasRows ? { f: `SUM(${enc(HR + 1, 4)}:${enc(lastData, 4)})` } : {}) });
+    setCell(ws, totalR, 5, { s: S.totNum, t: 'n', z: FMT.eur, ...(hasRows ? { f: `SUM(${enc(HR + 1, 5)}:${enc(lastData, 5)})` } : {}) });
     setCell(ws, netR, 3, { s: S.strongTxt });
-    setCell(ws, netR, 4, { s: S.strongNum, t: 'n', z: FMT.eur });
+    setCell(ws, netR, 4, { s: S.strongNum, t: 'n', z: FMT.eur, f: `${enc(totalR, 4)}-${enc(totalR, 5)}` });
     setCell(ws, netR, 5, { s: S.strongTxt });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Κινήσεις ${year}`);

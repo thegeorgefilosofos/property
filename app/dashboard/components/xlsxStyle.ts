@@ -11,6 +11,7 @@ export { XLSX };
 export const FMT = {
   eur: '#,##0.00;-#,##0.00',   // ευρώ, δύο δεκαδικά, αρνητικά με πρόσημο
   int: '#,##0',
+  dec2: '#,##0.##',            // αριθμός με δεκαδικά μόνο όταν υπάρχουν (π.χ. τ.μ. 85,5)
   pct: '0.00',
   date: 'dd/mm/yyyy',
 } as const;
@@ -39,7 +40,9 @@ export const S = {
   totNum: { font: font({ bold: true, sz: 10 }), alignment: { horizontal: 'right', vertical: 'center' }, border: { top: { style: 'medium', color: { rgb: INK } }, bottom: bThin, left: bThin, right: bThin } },
 } as const;
 
-export type Cell = { v: string | number | Date; t?: string; z?: string; s?: object };
+// v προαιρετικό + f (τύπος/formula) ώστε τα σύνολα να είναι ΖΩΝΤΑΝΑ SUM (όπως σε
+// πραγματικό λογιστικό πρόγραμμα)· το v κρατά cached τιμή για viewers χωρίς recalc.
+export type Cell = { v?: string | number | Date; t?: string; z?: string; s?: object; f?: string };
 
 /** Ασφαλής εφαρμογή στυλ/τύπου/μορφής σε κελί (δημιουργεί το κελί αν λείπει). */
 export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial<Cell>): void {
