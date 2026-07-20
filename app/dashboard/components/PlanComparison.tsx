@@ -86,7 +86,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
     <div>
       {/* ── 1+2. Κεφαλίδα με διακόπτη κύκλου + στήλες πλάνων ───────────────── */}
       <Card className="acc-section" style={{ animationDelay: '0ms' }}>
-        <SecHdr label="Σύγκρινε πλάνα" right={
+        <SecHdr label="Σύγκριση πλάνων" right={
           <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100 }}>
             {(['monthly', 'annual'] as const).map(c => (
               <button key={c} onClick={() => setCycle(c)}
