@@ -227,7 +227,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
         <NumberInput label="Premium Σαββατοκύριακου" value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
         <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 7 }}>Έτος</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Έτος</div>
           <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', height: 42 }}>
             {[nowYear, nowYear + 1, nowYear + 2].map(y => (
               <button key={y} onClick={() => setPyear(y)} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, background: pyear === y ? 'var(--accent)' : 'transparent', color: pyear === y ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{y}</button>
@@ -377,7 +377,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
                             <span style={{ position: 'relative', fontSize: top ? 12 : 11, fontWeight: top ? 800 : 700, fontFamily: T.font.num, color: d.booked ? 'var(--text-tertiary)' : strong ? 'var(--accent-text)' : 'var(--text-primary)' }}>
                               {d.booked ? '—' : fe(d.price, 0).replace(/\s?€/, '')}
                             </span>
-                            {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: strong ? '#fff' : 'var(--accent)' }} />}
+                            {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: strong ? 'var(--accent-text)' : 'var(--accent)' }} />}
                           </button>
                         );
                       })}

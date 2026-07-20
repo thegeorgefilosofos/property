@@ -866,7 +866,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               const dLbl=qa.date?new Date(qa.date).toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'}):''
               return (
                 <button onClick={()=>setForm(f=>({...f,title:qa.title,event_date:qa.date||f.event_date,event_time:qa.time||f.event_time}))} style={{ display:'flex', alignItems:'center', gap:7, marginTop:8, padding:'7px 12px', borderRadius:10, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif", width:'100%', textAlign:'left' }}>
-                  <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')} · «{qa.title}»
+                  <Zap size={13}/>Ορισμός: {[dLbl,qa.time].filter(Boolean).join(' · ')}, «{qa.title}»
                 </button>
               )
             })()}
@@ -1083,7 +1083,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
             <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000))', color:'var(--accent-text)', boxShadow:'0 8px 20px -8px var(--accent)' }}><CalendarPlus size={19}/></span>
             <div>
               <h3 style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Ζωντανή συνδρομή</h3>
-              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε μία φορά — το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>
+              <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'5px 0 0', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Σύνδεσε μία φορά, το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.</p>
             </div>
           </div>
           <button aria-label="Κλείσιμο" onClick={onClose} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:10, width:32, height:32, cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>
@@ -1105,12 +1105,12 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
             </div>
             <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:10 }}>
               <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
-              <p style={{ fontSize:11.5, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily:"'Inter',sans-serif" }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός — μην τον μοιράζεσαι.</p>
+              <p style={{ fontSize:11.5, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily:"'Inter',sans-serif" }}>Στο Google Calendar: «Άλλα ημερολόγια» → «Από URL» → επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
             </div>
             {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
             <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
               <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily:"'Inter',sans-serif" }}>Μπλοκάρισμα σε Airbnb / Booking</label>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού — κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily:"'Inter',sans-serif" }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού, κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
               <div style={{ display:'flex', gap:8 }}>
                 <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:40, padding:'0 12px', borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontFamily:"'Inter',sans-serif" }}/>
                 <button onClick={copyBusy} style={{ height:40, padding:'0 16px', borderRadius:10, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily:"'Inter',sans-serif" }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
@@ -1305,7 +1305,7 @@ export default function TabCalendar({ propertyId, userId }: { propertyId:string;
     if(notifyOn){ setNotifyOn(false); localStorage.removeItem('cal_notify'); setImportMsg('Οι ειδοποιήσεις συσκευής απενεργοποιήθηκαν.'); setTimeout(()=>setImportMsg(null),3500); return }
     let perm=Notification.permission
     if(perm==='default')perm=await Notification.requestPermission()
-    if(perm==='granted'){ setNotifyOn(true); localStorage.setItem('cal_notify','1'); setImportMsg('Ενεργές ειδοποιήσεις — θα σε προειδοποιούμε ~10΄ πριν.'); setTimeout(()=>setImportMsg(null),3500) }
+    if(perm==='granted'){ setNotifyOn(true); localStorage.setItem('cal_notify','1'); setImportMsg('Ενεργές ειδοποιήσεις: θα σε προειδοποιούμε ~10΄ πριν.'); setTimeout(()=>setImportMsg(null),3500) }
     else{ setImportMsg('Χρειάζεται άδεια ειδοποιήσεων από τον περιηγητή.'); setTimeout(()=>setImportMsg(null),3500) }
   }
 

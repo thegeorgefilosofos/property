@@ -629,7 +629,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
           )}
 
           {/* TDE History Grid */}
-          <div title="ΔΤΚ: Δείκτης Τιμών Καταναλωτή (βάση αναπροσαρμογής ενοικίου) — ΕΛΣΤΑΤ: Ελληνική Στατιστική Αρχή" style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΔΤΚ (ΕΛΣΤΑΤ)</div>
+          <div title="ΔΤΚ: Δείκτης Τιμών Καταναλωτή (βάση αναπροσαρμογής ενοικίου), ΕΛΣΤΑΤ: Ελληνική Στατιστική Αρχή" style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΔΤΚ (ΕΛΣΤΑΤ)</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap:5 }}>
             {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).map(([year,rate])=>{
               const active=parseInt(year)===parseInt(yr);
@@ -1014,7 +1014,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const epcPayload=(iban:string,name:string,amount:number,ref:string)=>
     `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
   const qrSrc=(data:string)=>`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(data)}`;
-  const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` — ${tenant.full_name}`:''}`;
+  const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>{
     const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${(p.base_rent||0).toLocaleString('el-GR')} € + υπηρεσίες ${(p.services_charge||0).toLocaleString('el-GR')} €)`:'';
     const ibanPart=tenant.rent_iban?` Πληρωμή σε IBAN ${tenant.rent_iban} (${landlordName}).`:'';
@@ -1142,7 +1142,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
                 {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
-            <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σκάναρε απόδειξη</button>
+            <button style={s.btnSm} onClick={()=>fileRef.current?.click()}>Σάρωσε απόδειξη</button>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)runScan(f);e.target.value='';}}/>
             <button style={s.btnSm} onClick={generateNow} disabled={busy}>{busy?'…':'Δημιουργία δόσεων'}</button>
             <ExportButton disabled={payments.length===0} onClick={()=>downloadCsv(
@@ -1181,7 +1181,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
         {staleUnpaid.length>0&&(
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const, background:'var(--warning-soft)', border:'1px solid var(--warning-border)', borderRadius:T.radius.inner, padding:'11px 16px', margin:'4px 0' }}>
             <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.5 }}>
-              {fn(staleUnpaid.length)} εκκρεμείς δόσεις δεν αντιστοιχούν στο τρέχον ποσό ({fmt(targetAmt)}{svcCharge>0?` — ενοίκιο ${fmt(baseRent)} + υπηρεσίες ${fmt(svcCharge)}`:''}).
+              {fn(staleUnpaid.length)} εκκρεμείς δόσεις δεν αντιστοιχούν στο τρέχον ποσό ({fmt(targetAmt)}{svcCharge>0?`: ενοίκιο ${fmt(baseRent)} + υπηρεσίες ${fmt(svcCharge)}`:''}).
             </span>
             <button style={s.btnSm} onClick={syncUnpaidToTarget} disabled={busy}>{busy?'…':'Ενημέρωση εκκρεμών'}</button>
           </div>
@@ -1327,7 +1327,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
                   <div style={{ marginBottom:16 }}>
                     <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
                     <select value={scan.periodId||''} onChange={e=>setScan(sc=>sc?{...sc,periodId:e.target.value}:sc)} style={inputStyle}>
-                      {open.map(p=><option key={p.id} value={p.id}>{monthLabel(p)} — {fmt(p.amount)}</option>)}
+                      {open.map(p=><option key={p.id} value={p.id}>{monthLabel(p)} · {fmt(p.amount)}</option>)}
                     </select>
                     <div style={{ marginTop:12 }}>
                       <SelectField label="Τρόπος Πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>
@@ -1675,7 +1675,7 @@ function MaintenanceView({ tenant, propertyId, userId, requests, onRefresh, noti
   };
   const toDamage=async(m:MaintenanceReq)=>{
     setBusy(true);
-    await supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(' — ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' });
+    await supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' });
     setBusy(false); onRefresh(); notify('Καταγράφηκε στις φθορές');
   };
   const del=async(m:MaintenanceReq)=>{ if(!confirm('Διαγραφή αιτήματος;')) return; await supabase.from('maintenance_requests').delete().eq('id',m.id); onRefresh(); };
@@ -1989,7 +1989,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       const{error:upErr}=await supabase.storage.from('property-files').upload(path,file,{upsert:false,contentType:file.type||undefined});
       if(upErr){ setError(upErr.message); setDocBusy(false); return; }
       const label=tag==='id'?'Έγγραφο ταυτοποίησης':'Μισθωτήριο / έγγραφο';
-      const title=`${label} — ${form.full_name.trim()||file.name}`.slice(0,200);
+      const title=`${label} · ${form.full_name.trim()||file.name}`.slice(0,200);
       const{data:ins,error:insErr}=await supabase.from('property_documents').insert({property_id:propertyId,user_id:userId,kind:'document',category:'tenant',supplier:editId?('tenant:'+editId):null,title,doc_date:todayISO(),file_path:path,file_name:file.name,mime:file.type||null,size_bytes:file.size}).select('id,file_name').single();
       if(insErr){ setError(insErr.message); setDocBusy(false); return; }
       if(ins) setFormDocs(prev=>[...prev,{id:ins.id as string,file_name:ins.file_name as string,tag}]);
@@ -2165,7 +2165,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                       <div style={{ minWidth:0, flex:1 }}>
                         <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{t.full_name}</div>
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, flexWrap:'wrap' as const }}>
-                          <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{t.lease_start||t.lease_end?`${fmtD(t.lease_start)} – ${fmtD(t.lease_end)}`:'χωρίς περίοδο μίσθωσης'}</span>
+                          <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{t.lease_start||t.lease_end?`${fmtD(t.lease_start)} έως ${fmtD(t.lease_end)}`:'χωρίς περίοδο μίσθωσης'}</span>
                           {t.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono }}>ΑΦΜ {t.afm}</span>}
                         </div>
                       </div>
@@ -2210,7 +2210,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                     <div key={t.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'10px 14px', flexWrap:'wrap' as const }}>
                       <div style={{ minWidth:0 }}>
                         <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{t.full_name}</div>
-                        <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{fmtD(t.lease_start)} – {fmtD(t.move_out_date||t.lease_end)}</div>
+                        <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{fmtD(t.lease_start)} έως {fmtD(t.move_out_date||t.lease_end)}</div>
                       </div>
                       <div style={{ textAlign:'right' as const }}>
                         <span style={{ fontSize:14, fontWeight:700, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', color:'var(--text-primary)' }}>{fmt(cur)}</span>
@@ -2264,7 +2264,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             <div style={{ flex:1, overflowY:'auto', padding:'20px 24px 32px' }}>
               {dossierTab==='overview'&&(
                 <>
-                  {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?` — αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το ντοσιέ διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
+                  {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το ντοσιέ διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
                   <DashboardView tenant={dc} payments={dcPayments}/>
                 </>
               )}
@@ -2435,7 +2435,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                   <div><div style={{ ...labelStyle, marginBottom:8 }}>Ηλεκτρονική Πληρωμή</div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} label="Ενεργή" labelOff="Ανενεργή"/></div>
                 </div>
                 <div style={{ ...s.g2, marginBottom:16 }}>
-                  <TextInput label="IBAN Πληρωμής Ενοικίου" value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR.. — για αίτημα πληρωμής και QR"/>
+                  <TextInput label="IBAN Πληρωμής Ενοικίου" value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..: για αίτημα πληρωμής και QR"/>
                 </div>
 
                 <div style={s.divider}/>

@@ -615,7 +615,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         ${kpi('DSCR', Number.isFinite(deal.dscr) ? deal.dscr.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '∞')}
         ${kpi('Πολλαπλασιαστής ιδίων', `${deal.equityMultiple.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)}
       </div>` : '';
-    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης — ${esc(name)}</title>
+    w.document.write(`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Αναφορά απόδοσης: ${esc(name)}</title>
       <style>
         *{font-family:Inter,system-ui,Arial,sans-serif;box-sizing:border-box}
         body{margin:40px;color:#111}
@@ -780,7 +780,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
               <p style={{ margin: 0, fontSize: 12, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>Δεδομένα κοινότητας Property OS<TermInfo text={G.community} /></p>
               <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
-                Ταχυδρομικός κώδικας {commStat.postal}: διάμεση μεικτή απόδοση <strong style={{ color: 'var(--text-secondary)' }}>{fp(commStat.median)}</strong> (εύρος {fp(commStat.p25)}–{fp(commStat.p75)}), από {commStat.count} πραγματικά ακίνητα χρηστών. Ανώνυμα και συγκεντρωτικά.
+                Ταχυδρομικός κώδικας {commStat.postal}: διάμεση μεικτή απόδοση <strong style={{ color: 'var(--text-secondary)' }}>{fp(commStat.median)}</strong> (εύρος {fp(commStat.p25)} έως {fp(commStat.p75)}), από {commStat.count} πραγματικά ακίνητα χρηστών. Ανώνυμα και συγκεντρωτικά.
               </p>
             </div>
           )}
@@ -789,7 +789,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               {stExact
                 ? <>Δεδομένα αναφοράς περιοχής: πληρότητα περίπου {stExact.occupancy}%, μέση τιμή {fe(stExact.adr, 0)} ανά νύχτα, ενδεικτική μεικτή απόδοση {fp(stExact.grossYield)} έναντι {fp(stExact.longTermYield)} στη μακροχρόνια.{stExact.redZone ? ' Κόκκινη ζώνη Αριθμού Μητρώου Ακινήτων: δεν επιτρέπονται νέες εγγραφές.' : ''} </>
                 : <>Στη βραχυχρόνια τα μεικτά έσοδα είναι συνήθως υψηλότερα, με έντονη όμως εποχικότητα. </>}
-              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή, καθώς τα λειτουργικά έξοδα (καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας, κενές νύχτες) απορροφούν το 40–60% των εσόδων.
+              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή, καθώς τα λειτουργικά έξοδα (καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας, κενές νύχτες) απορροφούν το 40 έως 60% των εσόδων.
             </div>
           )}
         </Section>
@@ -835,7 +835,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4–10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
+            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο έχει κόστος συναλλαγής (περίπου 4 έως 10%), απαιτεί χρόνο και συγκεντρώνει τον κίνδυνο σε ένα μόνο περιουσιακό στοιχείο. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
           </p>
         </Section>
 
@@ -852,7 +852,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Τελική αξία</p><p style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.futureValue, 0)}</p></div>
-                  <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Κέρδος ανατοκισμού</p><p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.totalGrowth, 0)}</p></div>
+                  <div><p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Κέρδος ανατοκισμού</p><p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(comp.totalGrowth, 0)}</p></div>
                 </div>
                 <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>Αρχική αξία συν ετήσια επανεπένδυση της καθαρής ταμειακής ροής ({fe(Math.max(0, grossAnnual - effOpex - annualTax), 0)} ανά έτος).</p>
               </div>

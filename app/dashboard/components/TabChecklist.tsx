@@ -1228,7 +1228,7 @@ function TemplateModal({ onSelect, onLoadAADE, onClose, profileType = 'individua
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Φορολογικό ημερολόγιο</div>
             <button type="button" onClick={() => { onLoadAADE(); onClose() }}
-              title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων — φορολογικό ημερολόγιο"
+              title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων: φορολογικό ημερολόγιο"
               style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', borderRadius: T.radius.card, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--accent-border)' }}>
@@ -1334,7 +1334,7 @@ function ItemModal({ item, contacts, allItems, onSave, onClose }: {
             </div>
           </div>
           <div><FL>Σημείωση</FL>
-            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-subtle)')} />
+            <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες..." rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -1574,7 +1574,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       }
     }
     setShowAddModal(false); setEditItem(null); fetchAll()
-    showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε — μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
+    showToast(editItem ? 'Η εκκρεμότητα ενημερώθηκε' : payload.due_date ? 'Προστέθηκε, μπήκε και στο ημερολόγιο' : 'Η εκκρεμότητα προστέθηκε')
   }
 
   const togglingRef = useRef<Set<string>>(new Set())
@@ -1626,7 +1626,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const addToCalendar = async (item: ChecklistItem) => {
     // Ο τίτλος του event περιλαμβάνει την ανατεθειμένη επαφή, ώστε στο Ημερολόγιο να
     // φαίνεται αμέσως ποιος συνεργάτης αναλαμβάνει (π.χ. «Service κλιματιστικών — Γ. Ψυκτικός»).
-    const title = item.assigned_contact_name ? `${item.description} — ${item.assigned_contact_name}` : item.description
+    const title = item.assigned_contact_name ? `${item.description} · ${item.assigned_contact_name}` : item.description
     // Το Ημερολόγιο δέχεται low|medium|high|critical — το checklist έχει και «normal».
     // Χαρτογράφηση normal → medium, αλλιώς το Ημερολόγιο κρασάρει σε άγνωστη προτεραιότητα.
     // Ιδempotent: αν υπάρχει ήδη συνδεδεμένο event, μην δημιουργείς διπλότυπο.
@@ -1636,7 +1636,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     const calId = (data as { id?: string } | null)?.id
     if (calId) await supabase.from('checklist_items').update({ calendar_event_id: calId }).eq('id', item.id)
     fetchAll()
-    showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο — ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
+    showToast(item.assigned_contact_name ? `Προγραμματίστηκε στο Ημερολόγιο: ${item.assigned_contact_name}` : 'Προστέθηκε στο Ημερολόγιο')
   }
 
   const loadAADECalendar = async () => {

@@ -121,7 +121,7 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
 
               {/* ── Αποτελέσματα ─────────────────────────────────────────── */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
-                {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`)}
+                {kpi('Πληρότητα', `${occupancyPct.toFixed(0)}%`, 'var(--accent)')}
                 {kpi('Νύχτες / έτος', String(totalNights))}
                 {kpi('Μεικτά έσοδα', fe(stRevenue))}
                 {kpi('Προμήθειες πλατφορμών', `− ${fe(net.platformFees)}`, 'var(--text-secondary)')}

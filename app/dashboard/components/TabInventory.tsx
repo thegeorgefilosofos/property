@@ -446,7 +446,7 @@ function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
     <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:28,maxWidth:320,width:'100%',display:'flex',flexDirection:'column',gap:16,alignItems:'center',boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%'}}>
-          <p title="Κωδικός QR — γρήγορη σάρωση στοιχείων αντικειμένου με κινητό" style={{fontSize:16,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>QR Αντικειμένου</p>
+          <p title="Κωδικός QR: γρήγορη σάρωση στοιχείων αντικειμένου με κινητό" style={{fontSize:16,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>QR Αντικειμένου</p>
           <button onClick={onClose} style={{padding:'4px 12px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:12,cursor:'pointer',fontFamily:T.font.sans}}>Κλείσιμο</button>
         </div>
         <div style={{background:'#fff',padding:12,borderRadius:T.radius.card}}><img src={qr} width={200} height={200} alt="QR"/></div>
@@ -494,7 +494,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
     <div style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.32)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:28,width:'100%',maxWidth:600,maxHeight:'85vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16,boxShadow:'var(--shadow-xl)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Μαζική Εισαγωγή <span title="CSV — αρχείο τιμών χωρισμένων με κόμμα· ανοίγει σε Excel/λογιστικά φύλλα">CSV</span></p>
+          <p style={{fontSize:18,fontWeight:400,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Μαζική Εισαγωγή <span title="CSV: αρχείο τιμών χωρισμένων με κόμμα· ανοίγει σε Excel/λογιστικά φύλλα">CSV</span></p>
           <button onClick={onClose} style={{width:36,height:36,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-secondary)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         {step==='upload'&&(
@@ -502,7 +502,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
             <button onClick={downloadTemplate} style={{padding:'10px',borderRadius:8,border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer'}}>Κατέβασμα προτύπου</button>
             <div onClick={()=>fileRef.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}} style={{border:'2px dashed var(--border-accent)',borderRadius:T.radius.card,padding:'40px 20px',textAlign:'center',cursor:'pointer',background:'var(--accent-dim)'}}>
               <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα CSV</p>
-              <p title="UTF-8 — κωδικοποίηση κειμένου που υποστηρίζει ελληνικούς χαρακτήρες" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Μορφή: UTF-8 CSV</p>
+              <p title="UTF-8: κωδικοποίηση κειμένου που υποστηρίζει ελληνικούς χαρακτήρες" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Μορφή: UTF-8 CSV</p>
             </div>
             <input ref={fileRef} type="file" accept=".csv" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
             {errors.length>0&&<div style={{padding:'10px 14px',background:'var(--negative-dim)',borderRadius:8,border:'1px solid var(--negative-border)'}}>{errors.map((e,i)=><p key={i} style={{fontSize:11,color:'var(--negative)',fontFamily:T.font.sans}}>{e}</p>)}</div>}
@@ -762,7 +762,7 @@ function ItemFormModal({item,onSave,onClose,propertyId}:{item?:InventoryItem|nul
               <SectionLabel label="Ενέργεια"/>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:12}}>
                 <div><label style={labelStyle}>Ενεργειακή Κλάση</label><CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'— Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/></div>
-                <div><label style={labelStyle} title="W = Watt — μονάδα ισχύος/κατανάλωσης ρεύματος">Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
+                <div><label style={labelStyle} title="W = Watt: μονάδα ισχύος/κατανάλωσης ρεύματος">Ισχύς Λειτουργίας (W)</label><NumberInput value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
                 <div><label style={labelStyle}>Ώρες χρήσης ανά ημέρα</label><NumberInput value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες" min={0} max={24}/></div>
                 <div><label style={labelStyle}>Κατανάλωση Αναμονής (W)</label><NumberInput value={String(form.standby_watts||0)} onChange={v=>set('standby_watts',parseFloat(v)||0)} suffix="W" min={0}/></div>
               </div>
@@ -1093,7 +1093,7 @@ function OverviewTab({items,repairs,kwhPrice,profileType='individual',kwhControl
       <div style={cardStyle}>
         <SectionLabel label="Ιστορικό Παραδόσεων" right={onOpenHandover?<button onClick={onOpenHandover} style={{padding:'0 12px',height:30,borderRadius:T.radius.pill,border:'1px solid var(--accent-border)',background:'var(--accent-soft)',color:'var(--accent)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'+ Νέο πρωτόκολλο'}</button>:undefined}/>
         {handovers.length===0
-          ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή κατάστασης εξοπλισμού στην είσοδο & έξοδο του ενοικιαστή — απόδειξη για την εγγύηση. Δημιούργησε ένα πρωτόκολλο ή ξεκίνησέ το από την καρτέλα του ενοικιαστή.</p>
+          ?<p style={{fontSize:12.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή κατάστασης εξοπλισμού στην είσοδο & έξοδο του ενοικιαστή: απόδειξη για την εγγύηση. Δημιούργησε ένα πρωτόκολλο ή ξεκίνησέ το από την καρτέλα του ενοικιαστή.</p>
           :<div style={{display:'flex',flexDirection:'column',gap:6}}>
             {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
               const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
@@ -1505,7 +1505,7 @@ function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{items:Inv
       </div>
       <div>
         <SectionLabel label="Κατάσταση Αντικειμένων" right={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{items.length} αντικείμενα</span>}/>
-        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong> — χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
+        <p style={{fontSize:11.5,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'-4px 0 10px',lineHeight:1.5}}>Πάτησε τη μικρογραφία για να τραβήξεις <strong style={{color:'var(--text-secondary)'}}>φωτογραφία της τρέχουσας κατάστασης</strong>, χρονοσφραγίζεται και μπαίνει στο εκτυπώσιμο πρωτόκολλο ως απόδειξη.</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {items.map(item=>(
             <div key={item.id} style={{display:'grid',gridTemplateColumns:'44px minmax(0,1.4fr) 150px minmax(0,1.6fr)',gap:14,alignItems:'center',padding:'10px 14px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
@@ -1805,7 +1805,7 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',gap:16}}>
         {[
           {title:'Απογραφή PDF',desc:'Πλήρης έκθεση με αξίες, ενεργειακές κλάσεις, ηλικία, tags, προέλευση και εγγυήσεις.',fn:exportPDF,primary:true},
-          {title:'Έκθεση Ασφάλισης',desc:'Εικονογραφημένη έκθεση με φωτογραφία & ασφαλιστέα αξία ανά αντικείμενο — έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
+          {title:'Έκθεση Ασφάλισης',desc:'Εικονογραφημένη έκθεση με φωτογραφία & ασφαλιστέα αξία ανά αντικείμενο, έτοιμη για τον ασφαλιστή.',fn:exportInsurancePDF,primary:false},
           {title:'Εξαγωγή CSV',desc:'Excel-συμβατό αρχείο με όλα τα πεδία, ιδανικό για λογιστή ή αρχειοθέτηση.',fn:exportCSV,primary:false},
         ].map(({title,desc,fn,primary})=>(
           <div key={title} style={cardStyle}>
@@ -1984,7 +1984,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             {handoverSeed&&(
               <div style={{display:'flex',alignItems:'center',gap:10,textAlign:'left',maxWidth:520,margin:'0 auto 24px',padding:'12px 16px',background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:T.radius.inner}}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <p style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Για το πρωτόκολλο παράδοσης{handoverSeed.tenantName?<> του <strong style={{color:'var(--text-primary)'}}>{handoverSeed.tenantName}</strong></>:''} πρόσθεσε πρώτα τον εξοπλισμό του ακινήτου — μετά θα καταγράφεις την κατάστασή του σε κάθε παράδοση/παραλαβή.</p>
+                <p style={{fontSize:12.5,color:'var(--text-secondary)',fontFamily:T.font.sans,lineHeight:1.5}}>Για το πρωτόκολλο παράδοσης{handoverSeed.tenantName?<> του <strong style={{color:'var(--text-primary)'}}>{handoverSeed.tenantName}</strong></>:''} πρόσθεσε πρώτα τον εξοπλισμό του ακινήτου, μετά θα καταγράφεις την κατάστασή του σε κάθε παράδοση/παραλαβή.</p>
               </div>
             )}
             <div style={{width:64,height:64,borderRadius:20,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>

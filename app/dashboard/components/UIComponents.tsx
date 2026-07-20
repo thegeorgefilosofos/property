@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { T } from '@/components/Theme';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
-// Ύψος 42, γωνία 10 (ταιριάζει με τις κάρτες), 1px border + accent focus-ring
+// Ύψος 40, γωνία 4, 1px border + accent focus-ring
 // (χωρίς μετατόπιση layout — δεν αλλάζει πάχος border/padding στο focus).
 export const FIELD_HEIGHT = 40;
 export const FIELD_RADIUS = 4;

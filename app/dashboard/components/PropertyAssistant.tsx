@@ -464,15 +464,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const how = a.channel === 'call' ? `να καλέσεις τον/την «${c.name}»`
         : a.channel === 'email' ? `να ανοίξει το email προς τον/την «${c.name}»`
           : `να ανοίξει το ${a.channel === 'viber' ? 'Viber' : 'WhatsApp'} προς τον/την «${c.name}»`;
-      setMsgs(m => [...m, { role: 'assistant', text: `Πάτησε ${how}. Το μήνυμα δεν φεύγει μόνο του — ανοίγει η εφαρμογή για να το στείλεις εσύ.`, action: { type: 'reach', name: c.name, channel: a.channel, text: a.text } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Πάτησε ${how}. Το μήνυμα δεν φεύγει μόνο του, ανοίγει η εφαρμογή για να το στείλεις εσύ.`, action: { type: 'reach', name: c.name, channel: a.channel, text: a.text } }]);
       return;
     }
     // Λείπει το απαραίτητο στοιχείο για το κανάλι — πρότεινε διαθέσιμη εναλλακτική.
     if (link.need === 'phone') {
-      if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email — να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
+      if (c.email) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο για ${CH_HUMAN[a.channel]}. Έχει όμως email, να το ετοιμάσω;`, action: { type: 'reach', name: c.name, channel: 'email', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο τηλέφωνο ούτε email. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     } else {
-      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο — να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
+      if (c.phone) setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email. Έχει τηλέφωνο, να ανοίξω WhatsApp αντ' αυτού;`, action: { type: 'reach', name: c.name, channel: 'whatsapp', text: a.text } }]);
       else setMsgs(m => [...m, { role: 'assistant', text: `Ο/Η «${c.name}» δεν έχει αποθηκευμένο email ούτε τηλέφωνο. Πρόσθεσε στοιχεία επικοινωνίας στις Επαφές.`, action: { type: 'go', tab: 'contacts' } }]);
     }
   };
@@ -652,7 +652,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const bits: string[] = [];
       if (due) bits.push('προθεσμία + υπενθύμιση email');
       if (est > 0) bits.push(`~${est}€ στον προϋπολογισμό`);
-      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}»${bits.length ? `: ${bits.join(', ')}` : ''}. Θέλεις να το δεις;`, action: { type: 'go', tab: 'checklist' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το πρόσθεσα στις Εκκρεμότητες: «${d}»${bits.length ? `, ${bits.join(', ')}` : ''}. Θέλεις να το δεις;`, action: { type: 'go', tab: 'checklist' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να προσθέσω την εκκρεμότητα τώρα. Δοκίμασε από την καρτέλα Εκκρεμότητες.' }]);
     }
@@ -1050,7 +1050,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       const used = consumedActions.has(i);
                       return (
                       <button disabled={used} onClick={() => { if (used) return; setConsumedActions(s => new Set(s).add(i)); runAction(m.action); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${used ? 'var(--border-subtle)' : 'var(--accent)'}`, background: used ? 'var(--bg-elevated)' : 'var(--accent-dim)', color: used ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: used ? 'default' : 'pointer' }}>
-                        {m.action.type === 'scan' ? 'Σκάναρε έγγραφο'
+                        {m.action.type === 'scan' ? 'Σάρωσε έγγραφο'
                           : m.action.type === 'book' ? `Κλείσε ραντεβού: ${new Date(m.action.date).toLocaleDateString('el-GR')}`
                           : m.action.type === 'client' ? `Καταχώρησε: ${m.action.name}`
                           : m.action.type === 'expense' ? `Κατέγραψε δαπάνη: ${eur(m.action.amount)}`
