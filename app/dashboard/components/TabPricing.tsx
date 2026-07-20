@@ -317,7 +317,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
               <SecHdr label="Κενές μέρες προς πλήρωση" sub="Διαστήματα χωρίς κράτηση, με προτεινόμενη τιμή και άμεσες ενέργειες" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {gaps.slice(0, 8).map((g, i) => (
-                  <div key={i} className="po-fig-card" style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {fd(g.start)} - {fd(g.end)}
@@ -394,7 +394,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
 
           {/* Λεπτομέρεια επιλεγμένης ημέρας */}
           {sel && (
-            <div className="po-fig-card" style={{ marginTop: 20, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: 18 }}>
+            <div className="po-fig-card" tabIndex={0} style={{ marginTop: 20, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 14, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{fd(sel.date)}{sel.holidayName ? ` · ${sel.holidayName}` : ''}</div>
