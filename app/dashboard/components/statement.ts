@@ -6,7 +6,7 @@
 // καθαροί πίνακες με λεπτές γραμμές. Ιδανικό για κοινοποίηση σε συνιδιοκτήτες,
 // λογιστές, δικηγόρους και ομάδες διαχείρισης.
 // ═══════════════════════════════════════════════════════════════════════════
-import { brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
+import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { incomeStatement } from '@/lib/accounting/statement';
 
 export interface StatementCtx {
@@ -34,6 +34,10 @@ const eurSigned = (n: number) => (n < 0 ? `− ${eur(Math.abs(n))}` : eur(n));
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 
 export function printPropertyStatement(c: StatementCtx): void {
+  // Το ΜΟΝΑΔΙΚΟ σημείο χρώματος: το σήμα του brand + μια λεπτή γραμμή «επιστολόχαρτου».
+  // Για συνδρομητές «Επαγγελματίας» γίνεται αυτόματα το δικό τους χρώμα (reportAccent),
+  // αλλιώς το μπλε του Property OS. Τα δεδομένα μένουν αυστηρά ασπρόμαυρα (επίσημο έγγραφο).
+  const accent = reportAccent(c.branding);
   // Φόρος με την κανονική μηχανή (κλίμακα 2026 + τεκμαρτή έκπτωση 5%), όχι flat 15%.
   const tax = incomeStatement({ regime: 'individual_longterm', grossIncome: c.annualRent }).incomeTax;
   const net = c.annualRent - c.expensesYTD - tax;
@@ -84,9 +88,10 @@ export function printPropertyStatement(c: StatementCtx): void {
   table{width:100%;border-collapse:collapse}
 </style></head>
 <body>
+  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;">
     <div style="display:flex;align-items:center;gap:11px">
-      ${brandLogoImg(c.branding, 34) || `<div style="width:34px;height:34px;border-radius:8px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">P</div>`}
+      ${brandLogoImg(c.branding, 34) || `<div style="width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">P</div>`}
       <div>
         <div style="font-size:15px;font-weight:700;color:#111">${brandName(c.branding)}</div>
         <div class="muted" style="font-size:11px">Αναφορά Ακινήτου</div>
