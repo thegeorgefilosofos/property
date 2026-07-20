@@ -183,7 +183,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
         <div style={{ fontSize: 11.5, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 7, lineHeight: 1.5 }}>
           {ready
             ? 'Ωραία, το μήνυμά σου είναι έτοιμο.'
-            : `Γράψε λίγες λέξεις ακόμη, για να καταλάβουμε σωστά τι εννοείς (${words}/${MIN_WORDS}).`}
+            : `Γράψε λίγες λέξεις ακόμη και βοήθησέ μας να βελτιωθούμε (${words}/${MIN_WORDS}).`}
         </div>
 
         {error && (

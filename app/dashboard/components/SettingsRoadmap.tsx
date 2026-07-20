@@ -11,8 +11,6 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, Chip } from '@/components/Theme';
 
-const divider = { borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 } as const;
-
 type ChipTone = 'accent' | 'neutral';
 
 interface RoadItem { name: string; line: string; detail: string; chip: string; tone: ChipTone }
@@ -83,10 +81,24 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
     }
   };
 
+  // Έξοδος από τη λίστα (αν μετάνιωσε)· μπορεί να ξαναμπεί όποτε θέλει.
+  const leave = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc('leave_mobile_waitlist');
+      if (!error) setConfirmed(false);
+    } catch {
+      /* σιωπηλά */
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggle = (i: number) => setOpen(p => ({ ...p, [i]: !p[i] }));
 
   return (
-    <div style={divider}>
+    <div>
       {/* Επικεφαλίδα ενότητας */}
       <div className="acc-section" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -156,20 +168,26 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               <Chip tone="neutral">Android</Chip>
             </div>
 
-            {/* CTA / επιβεβαιωμένο state */}
+            {/* CTA / επιβεβαιωμένο state (με δυνατότητα εξόδου από τη λίστα) */}
             <div style={{ marginTop: 14 }}>
               {confirmed ? (
-                <span
-                  role="status"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '9px 18px', borderRadius: T.radius.btn,
-                    fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
-                    background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)',
-                  }}
-                >
-                  Θα σε ειδοποιήσουμε ✓
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span
+                    role="status"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '9px 18px', borderRadius: T.radius.btn,
+                      fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
+                      background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)',
+                    }}
+                  >
+                    Θα σε ειδοποιήσουμε ✓
+                  </span>
+                  <button onClick={leave} disabled={busy}
+                    style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
+                    Αφαίρεση από τη λίστα
+                  </button>
+                </div>
               ) : (
                 <Btn variant="primary" onClick={notify} disabled={busy}>
                   {busy ? 'Ειδοποίηση…' : 'Ειδοποίησέ με μόλις βγει'}

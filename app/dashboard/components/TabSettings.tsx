@@ -62,7 +62,7 @@ function CollapsibleSection({ title, defaultOpen = false, delay, children }: { t
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Card className="acc-section" style={{ animationDelay: delay }}>
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="po-sec-toggle"
         style={{ appearance: 'none', border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', ...(open ? { marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' } : {}) }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{title}</span>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
@@ -575,6 +575,16 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <NotificationSettings userId={userId} />
       </CollapsibleSection>
 
+      {/* ── Η ΓΝΩΜΗ ΣΟΥ (εμφανές, πελατοκεντρικό) ─────────────────────── */}
+      <div className="acc-section" style={{ animationDelay: '170ms', marginBottom: T.sp.lg }}>
+        <Feedback target="general" />
+      </div>
+
+      {/* ── ΤΙ ΕΡΧΕΤΑΙ (εμφανές, χτίζει προσδοκία) ────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '200ms' }}>
+        <SettingsRoadmap userId={userId} />
+      </Card>
+
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
       <CollapsibleSection title="Εμφάνιση & Γλώσσα" delay="210ms">
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
@@ -620,10 +630,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
-        <SettingsRoadmap userId={userId} />
-        <div style={divider}>
-          <Feedback target="general" />
-        </div>
         <DeleteAccount />
       </CollapsibleSection>
 
