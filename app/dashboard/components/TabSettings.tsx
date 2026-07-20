@@ -17,6 +17,8 @@ import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
 import PlanComparison from './PlanComparison';
+import SecuritySettings from './SecuritySettings';
+import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
 import { PLANS } from '@/lib/billing/plans';
 import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
@@ -514,6 +516,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       )}
 
+      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (μόνο Επαγγελματίας) ─────────────────────── */}
+      {profileType === 'professional' && (
+        <Card className="acc-section" style={{ animationDelay: '110ms' }}>
+          <SecHdr label="Οργανισμός & Ομάδα" />
+          <OrgTeam userId={userId} />
+        </Card>
+      )}
+
       {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
       <Card className="acc-section" style={{ animationDelay: '140ms' }}>
         <SecHdr label="Ειδοποιήσεις" />
@@ -545,8 +555,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       </Card>
 
-      {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
+      {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
       <Card className="acc-section" style={{ animationDelay: '280ms' }}>
+        <SecHdr label="Ασφάλεια" />
+        <SecuritySettings userId={userId} />
+      </Card>
+
+      {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '340ms' }}>
         <SecHdr label="Δεδομένα & Απόρρητο" />
         <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
           control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
@@ -559,10 +575,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
         <SettingsRoadmap userId={userId} />
-        <div style={{ ...divider, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνδεση</div>
-          <Btn variant="secondary" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }}>Αποσύνδεση</Btn>
-        </div>
         <DeleteAccount />
       </Card>
 
