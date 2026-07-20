@@ -236,11 +236,6 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
           );
         })}
       </div>
-
-      {/* Closing line */}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.45, marginTop: 14 }}>
-        Έχεις μια ιδέα ή κάτι που θα ήθελες αλλιώς; Πες το μας μέσα από τον βοηθό, σε ακούμε.
-      </div>
     </div>
   );
 }
