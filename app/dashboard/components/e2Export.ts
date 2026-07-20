@@ -27,7 +27,7 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
 
   const aoa: (string | number)[][] = [
     [`ΑΝΑΛΥΤΙΚΗ ΚΑΤΑΣΤΑΣΗ ΜΙΣΘΩΜΑΤΩΝ ΑΚΙΝΗΤΗΣ ΠΕΡΙΟΥΣΙΑΣ — ΦΟΡΟΛΟΓΙΚΟ ΕΤΟΣ ${year}`],
-    ['Έντυπο Ε2 · προσυμπληρωμένο από το Property OS — αντιγράψτε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
+    ['Έντυπο Ε2 · προσυμπληρωμένο από το Property OS · συμπληρώστε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
     [],
     ['ΣΤΟΙΧΕΙΑ ΥΠΟΧΡΕΟΥ'],
     ['ΑΦΜ / Ονοματεπώνυμο', ownerAfmCommon],
@@ -118,7 +118,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   if (flagged.length) {
     const fAoa: (string | number)[][] = [
       ['ΕΠΙΣΗΜΑΝΣΕΙΣ ΠΡΙΝ ΤΗΝ ΥΠΟΒΟΛΗ'],
-      ['Έλεγξε και συμπλήρωσε τα παρακάτω πριν αντιγράψεις τα ποσά στο myAADE.'],
+      ['Έλεγξε και συμπλήρωσε τα παρακάτω πριν τα συμπληρώσεις στο myAADE.'],
       [],
       ['Α/Α', 'Ακίνητο', 'Επισημάνσεις'],
       ...flagged.map(x => [x.n, x.loc, x.flags.join(' · ')]),
