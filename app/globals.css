@@ -1381,12 +1381,8 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
 }
-.section-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
+/* Χωρίς τελείες αριστερά από τις επικεφαλίδες — καθαρές, ήσυχες ενότητες. */
+.section-dot { display: none; }
 
 /* Utility grids — ρευστά ώστε να «σπάνε» σε κινητό χωρίς οριζόντια κύλιση */
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }

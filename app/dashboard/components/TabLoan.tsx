@@ -1359,7 +1359,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertyRent,pr
 
       {toast&&(
         <div style={{position:'fixed',bottom:24,right:24,zIndex:1000,display:'flex',alignItems:'center',gap:9,padding:'11px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,boxShadow:'var(--shadow-lg)',maxWidth:320}}>
-          <span style={{width:6,height:6,borderRadius:'50%',background:'var(--text-tertiary)',display:'inline-block',flexShrink:0}}/>
           <span style={{fontSize:13,color:'var(--text-primary)',fontFamily:"'Inter',sans-serif"}}>{toast}</span>
         </div>
       )}

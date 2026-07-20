@@ -204,7 +204,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   // ── Section header ────────────────────────────────────────────────────────
   const secHdr = (label: string, sub?: string, link?: { url: string; text: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</div>
         {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{sub}</div>}
@@ -242,7 +241,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       {/* ── Cross-tab: Insurance earthquake ΕΝΦΙΑ discount ───────────────── */}
       {(crossTabData.insuranceEq || crossTabData.insuranceFlood) && !(s.enfiaReductions || []).includes('insurance') && (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans }}>
             <span style={{ fontWeight: 700, color: 'var(--accent)' }}>Έκπτωση <span title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων">ΕΝΦΙΑ</span> 10-20% διαθέσιμη! </span>
             <span style={{ color: 'var(--text-secondary)' }}>Η ασφάλειά σου καλύπτει φυσικές καταστροφές. Πρόσθεσέ την στις μειώσεις ΕΝΦΙΑ.</span>
@@ -258,7 +256,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       {/* ── Cross-tab: Dimotika from Electricity tab ─────────────────────── */}
       {crossTabData.electricityDimotika && parseFloat(crossTabData.electricityDimotika) > 0 && (
         <div style={{ background: 'rgba(26,115,232,0.05)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '11px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
           <div style={{ flex: 1, fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>
             <span style={{ fontWeight: 600, color: 'var(--accent)' }}>Δημοτικά τέλη {crossTabData.electricityDimotika}% </span>
            , από tab Ρεύμα · χρησιμοποιείται στον υπολογισμό λογαριασμού
@@ -286,7 +283,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       <div style={{ ...card, borderTop: '2px solid var(--accent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
             <div>
               <div title="Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>ΕΝΦΙΑ 2026, Υπολογιστής</div>
               <div title="Ε9: δήλωση στοιχείων ακινήτων στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων), μέσω myAADE" style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Εκτίμηση βάσει Ε9, επαλήθευσε στο myAADE.gr</div>
@@ -314,7 +310,6 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         {/* Cross-tab Checklist badge */}
         {crossTabData.enfiaChecklist && (
           <div style={{ background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '9px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
             <span style={{ flex: 1, color: 'var(--text-secondary)' }}>
               {crossTabData.enfiaChecklist.status === 'done'
                 ? 'ΕΝΦΙΑ καταγεγραμμένο ως ολοκληρωμένο στο Checklist'
