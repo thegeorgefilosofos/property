@@ -595,7 +595,30 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   margin-bottom: 7px;
+  transition: color 0.15s cubic-bezier(0.2,0,0,1);
 }
+/* Σημασιολογικός τόνος τιμής KPI: ουδέτερος by default, αποκαλύπτεται μόνο στο
+   hover/focus της κάρτας — ομοιόμορφο, χαμηλού θορύβου look σε όλο το app. */
+.kpi-card:hover .kpi-value[data-tone="negative"],
+.kpi-card:focus-within .kpi-value[data-tone="negative"] { color: var(--negative); }
+.kpi-card:hover .kpi-value[data-tone="positive"],
+.kpi-card:focus-within .kpi-value[data-tone="positive"] { color: var(--positive); }
+.kpi-card:hover .kpi-value[data-tone="warning"],
+.kpi-card:focus-within .kpi-value[data-tone="warning"] { color: var(--warning); }
+.kpi-card:hover .kpi-value[data-tone="info"],
+.kpi-card:focus-within .kpi-value[data-tone="info"] { color: var(--info); }
+.kpi-card:hover .kpi-value[data-tone="accent"],
+.kpi-card:focus-within .kpi-value[data-tone="accent"] { color: var(--accent); }
+
+/* Γενικό utility «ουδέτερο by default, σημασιολογικό στο hover» για custom
+   αριθμούς/τιμές εκτός KPIGrid. Βάλε .po-fig-card στην κάρτα και .po-fig
+   (+ data-tone) στην τιμή. */
+.po-fig { color: var(--text-primary); transition: color 0.15s cubic-bezier(0.2,0,0,1); }
+.po-fig-card:hover .po-fig[data-tone="accent"],   .po-fig-card:focus-within .po-fig[data-tone="accent"]   { color: var(--accent); }
+.po-fig-card:hover .po-fig[data-tone="positive"], .po-fig-card:focus-within .po-fig[data-tone="positive"] { color: var(--positive); }
+.po-fig-card:hover .po-fig[data-tone="negative"], .po-fig-card:focus-within .po-fig[data-tone="negative"] { color: var(--negative); }
+.po-fig-card:hover .po-fig[data-tone="warning"],  .po-fig-card:focus-within .po-fig[data-tone="warning"]  { color: var(--warning); }
+.po-fig-card:hover .po-fig[data-tone="info"],     .po-fig-card:focus-within .po-fig[data-tone="info"]     { color: var(--info); }
 .kpi-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
@@ -1899,6 +1922,12 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
    primitives), χωρίς μετατόπιση layout. */
 .po-field { transition: border-color 0.15s, box-shadow 0.15s; }
 .po-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+/* Μενού ενεργειών (native <details>): κρύβει τον προεπιλεγμένο δείκτη, ώστε το
+   summary να μοιάζει με κανονικό κουμπί του design system. */
+.po-menu > summary { list-style: none; cursor: pointer; }
+.po-menu > summary::-webkit-details-marker { display: none; }
+.po-menu > summary::marker { content: ''; }
 @media (prefers-reduced-motion: reduce) {
   .acc-section { animation: none; }
   .acc-live-dot::after { animation: none; }

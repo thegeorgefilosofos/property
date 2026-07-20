@@ -164,7 +164,9 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
       {items.map((k, i) => (
         <div key={i} className="kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="kpi-label">{k.label}</div>
-          <div className="kpi-value" style={{ marginBottom: 0, color: k.tone && k.tone !== 'neutral' ? `var(--${k.tone})` : undefined }}>{k.value}</div>
+          {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται μόνο στο hover
+              (data-tone + globals.css), για ομοιόμορφο, χαμηλού θορύβου look. */}
+          <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={k.tone && k.tone !== 'neutral' ? k.tone : undefined}>{k.value}</div>
           {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
       ))}

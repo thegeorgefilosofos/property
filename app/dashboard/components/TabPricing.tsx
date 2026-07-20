@@ -295,17 +295,17 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
           {/* Προβολή εσόδων & κέρδους (3D premium) */}
           {projection && (
             <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
-              <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
+              <div className="po-fig-card" style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
                 <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 10 }}>Προβολή εσόδων ({pyear === nowYear ? 'ως το τέλος του έτους' : `${pyear}`})</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 24, fontWeight: 700, fontFamily: T.font.num, color: 'var(--accent)' }}>{fe(projection.projRevenue, 0)}</span>
+                  <span className="po-fig" data-tone="accent" style={{ fontSize: 24, fontWeight: 700, fontFamily: T.font.num }}>{fe(projection.projRevenue, 0)}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>με δυναμική τιμή</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>έναντι {fe(projection.flatRevenue, 0)} με σταθερή. Εκτίμηση {projection.expectedNights} κρατημένων νυχτών ({projection.occPct}% πληρότητα, {personalizedOcc ? 'από το ιστορικό σου' : 'ενδεικτική'}).</div>
               </div>
-              <div style={{ background: 'linear-gradient(135deg, var(--accent-soft), transparent)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 10 }}>Εκτιμώμενο επιπλέον κέρδος</div>
-                <div style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num, color: 'var(--accent)' }}>+{fe(projection.uplift, 0)}</div>
+              <div className="po-fig-card" style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 10 }}>Εκτιμώμενο επιπλέον κέρδος</div>
+                <div className="po-fig" data-tone="positive" style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num }}>+{fe(projection.uplift, 0)}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>+{projection.upliftPct}% έναντι σταθερής τιμής, στο ίδιο επίπεδο πληρότητας.</div>
               </div>
             </div>

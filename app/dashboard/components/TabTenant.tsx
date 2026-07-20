@@ -131,10 +131,11 @@ function Label({ children }: { children: React.ReactNode }) {
   return <div style={labelStyle}>{children}</div>;
 }
 
-function SectionTitle({ children, dot='var(--accent)' }: { children: React.ReactNode; dot?: string }) {
+// Κεφαλίδα ενότητας: ίδια οπτική με το κοινό SecHdr (χωρίς διακοσμητική τελεία),
+// για ομοιομορφία με όλο το app.
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-      <div style={{ width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0 }}/>
       <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
     </div>
   );
@@ -1513,7 +1514,7 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
       </div>
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-        <SectionTitle dot="var(--warning)">Πότε & Υπό Ποιους Όρους Επιστρέφεται</SectionTitle>
+        <SectionTitle>Πότε & Υπό Ποιους Όρους Επιστρέφεται</SectionTitle>
         <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.8, marginBottom:14 }}>
           Η εγγύηση επιστρέφεται στη λήξη της μίσθωσης {dueDate?<>(<strong style={{ color:'var(--text-primary)' }}>{fmtD(dueDate)}</strong>){tenant.move_out_date?', βάσει της ημερομηνίας αποχώρησης':''}</>:'(δεν έχει οριστεί ημερομηνία λήξης/αποχώρησης)'}, μετά από <strong style={{ color:'var(--text-primary)' }}>έλεγχο για φθορές</strong> και <strong style={{ color:'var(--text-primary)' }}>εξόφληση τυχόν εκκρεμών οφειλών</strong>.
         </div>
@@ -1792,7 +1793,7 @@ function RenewalView({ tenant, userId, comps }:{ tenant:Tenant; userId:string; c
           </div>
         </div>
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle dot="var(--positive)">Με βάση την αγορά / περιοχή</SectionTitle>
+          <SectionTitle>Με βάση την αγορά / περιοχή</SectionTitle>
           {rentComps.length>0?(
             <>
               <DataRow label={`Μέσο ενοίκιο περιοχής (${rentComps.length} συγκρίσιμα)`} value={<span style={{ color:'var(--positive)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:700 }}>{fmt(avgMarket)}</span>}/>
@@ -1921,9 +1922,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     const arrearsCount=[...overdueByTenant.values()].reduce((a,e)=>a+e.count,0);
     const depositHeld=currentTenants.filter(t=>!t.deposit_returned).reduce((a,t)=>a+(t.deposit_amount||0),0);
     return [
-      { label:'Τρέχον Μηνιαίο Ενοίκιο', value:fe(currentRent), tone:'accent' },
-      { label:'Ληξιπρόθεσμη Οφειλή', value:fe(arrears), tone:arrears>0?'negative':'positive', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
-      { label:'Εγγύηση σε Κατοχή', value:fe(depositHeld), tone:'info' },
+      { label:'Τρέχον Μηνιαίο Ενοίκιο', value:fe(currentRent), tone:'neutral' },
+      { label:'Ληξιπρόθεσμη Οφειλή', value:fe(arrears), tone:arrears>0?'negative':'neutral', sub:arrearsCount>0?`${fn(arrearsCount)} δόσεις`:'καμία οφειλή' },
+      { label:'Εγγύηση σε Κατοχή', value:fe(depositHeld), tone:'neutral' },
       { label:'Προηγούμενοι Ενοικιαστές', value:fn(pastTenants.length), tone:'neutral' },
     ];
   },[currentTenants,pastTenants,overdueByTenant]);
@@ -2477,7 +2478,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
                 <div style={s.divider}/>
                 {/* Εγγύηση */}
-                <SectionTitle dot="var(--accent)">Εγγύηση</SectionTitle>
+                <SectionTitle>Εγγύηση</SectionTitle>
                 <div style={{ ...s.g3, marginBottom:16 }}>
                   <NumberInput label="Ποσό Εγγύησης" value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
                   <SelectField label="Τρόπος Καταβολής" value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή..."/>

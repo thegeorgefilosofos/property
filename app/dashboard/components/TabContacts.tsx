@@ -1608,14 +1608,30 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {!embedded && <PageTitle
         title="Επαφές"
         sub="Πάροχοι, τράπεζες, τεχνικοί και όλες οι επαφές του ακινήτου"
-        right={contacts.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Btn variant={bulkMode ? 'secondary' : 'ghost'} onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
-          <Btn variant="ghost" onClick={() => exportContactsExcel(contacts)}>Εξαγωγή Excel</Btn>
-          <Btn variant="ghost" onClick={() => exportContactsPDF(contacts, branding)}>Εξαγωγή PDF</Btn>
-          <Btn variant="ghost" onClick={() => downloadVcf(contacts, 'epafes.vcf')}>Εξαγωγή vCard</Btn>
-          <Btn variant="ghost" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>
-          {supportsPicker && <Btn variant="ghost" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}
-          <Btn variant="ghost" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωσε κάρτα'}</Btn>
+        right={contacts.length > 0 ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Btn variant="secondary" onClick={() => { setBulkMode(b => !b); setSelected(new Set()) }}>{bulkMode ? 'Ακύρωση επιλογής' : 'Μαζική επιλογή'}</Btn>
+          <Btn variant="secondary" onClick={() => importRef.current?.click()}>{importing ? 'Εισαγωγή…' : 'Εισαγωγή'}</Btn>
+          {supportsPicker && <Btn variant="secondary" onClick={pickFromPhone}>Από τηλέφωνο</Btn>}
+          <Btn variant="secondary" onClick={() => cardRef.current?.click()}>{scanning ? 'Σάρωση…' : 'Σάρωσε κάρτα'}</Btn>
+          <details className="po-menu" style={{ position: 'relative' }}>
+            <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+              Εξαγωγή
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" /></svg>
+            </summary>
+            <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 30, minWidth: 190, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.inner, boxShadow: 'var(--elev-2)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {([
+                { label: 'Excel', fn: () => exportContactsExcel(contacts) },
+                { label: 'PDF', fn: () => exportContactsPDF(contacts, branding) },
+                { label: 'vCard', fn: () => downloadVcf(contacts, 'epafes.vcf') },
+              ]).map(item => (
+                <button key={item.label} type="button" onClick={e => { item.fn(); (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open') }}
+                  style={{ appearance: 'none', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </details>
           <Btn variant="primary" onClick={openAdd}>Νέα επαφή</Btn>
         </div> : undefined}
       />}
@@ -1668,7 +1684,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent)', overflow: 'hidden', flexShrink: 0 }}>
                     {c._extra?.avatar_url ? <img src={c._extra.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} /> : c.full_name.split(' ').map((w: string) => w[0] || '').slice(0, 2).join('').toUpperCase() || <GroupIcon size={14} />}
                   </div>
-                  <div><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{c.full_name}</div><div style={{ fontSize: 11, color: 'var(--accent)' }}>{meta.label}</div></div>
+                  <div><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{c.full_name}</div><div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{meta.label}</div></div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                     {c.phone && <a href={'tel:' + c.phone} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 3 }}><Phone size={13} /></a>}
                     {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: '#25d366', background: 'rgba(37,211,102,0.12)', padding: '2px 5px', borderRadius: 4 }}>WA</a>}
@@ -1701,9 +1717,9 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <option value="alpha">Αλφαβητικά</option>
           <option value="rating">Αξιολόγηση</option>
         </select>
-        <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', background: 'var(--bg-elevated)', padding: 3, gap: 2 }}>
           {(['cards', 'compact'] as ViewMode[]).map(v => (
-            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '7px 16px', border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500, fontFamily: T.font.sans, transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
+            <button key={v} type="button" onClick={() => setViewMode(v)} style={{ padding: '5px 15px', border: 'none', borderRadius: T.radius.pill, background: viewMode === v ? 'var(--bg-surface)' : 'transparent', color: viewMode === v ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 500, fontFamily: T.font.sans, boxShadow: viewMode === v ? 'var(--elev-1)' : 'none', transition: 'all 0.15s' }}>{v === 'cards' ? 'Κάρτες' : 'Λίστα'}</button>
           ))}
         </div>
       </div>
@@ -1716,7 +1732,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             { id: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe },
             { id: 'property' as const, label: 'Ανά ακίνητο', Icon: Building2 },
           ]).map(o => { const active = filterScope === o.id; const Ico = o.Icon; return (
-            <button key={o.id} type="button" onClick={() => setFilterScope(o.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent-border)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--accent-text)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+            <button key={o.id} type="button" onClick={() => setFilterScope(o.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--border-default)' : 'var(--border-subtle)'), background: active ? 'var(--bg-elevated)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
               <Ico size={12} />{o.label}
             </button>
           )})}
@@ -1728,8 +1744,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           {GROUPS.filter(g => contacts.some(c => ROLE_META[c.role]?.groupId === g.id)).map(g => {
             const count = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id).length; const active = filterGroup === g.id; const GroupIcon = g.Icon
             return (
-              <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
-                <GroupIcon size={12} />{g.label}<span style={{ background: active ? 'var(--accent)' : 'var(--bg-elevated)', color: active ? 'var(--accent-text)' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{count}</span>
+              <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--border-default)' : 'var(--border-subtle)'), background: active ? 'var(--bg-elevated)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'all 0.15s' }}>
+                <GroupIcon size={12} />{g.label}<span style={{ background: active ? 'var(--border-raised)' : 'var(--bg-elevated)', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{count}</span>
               </button>
             )
           })}
