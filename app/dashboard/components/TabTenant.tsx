@@ -1965,7 +1965,13 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
   },[tenants,search,segment,overdueByTenant]);
 
   // ── Φόρμα ────────────────────────────────────────────────────────────────────
-  const openAdd=()=>{ setForm(blank()); setEditId(null); setFormDocs([]); setSvcUI(SVC_UI_CLOSED); setFormTab('profile'); setIsForm(true); };
+  const openAdd=()=>{ setForm(blank()); setEditId(null); setFormDocs([]); setSvcUI(SVC_UI_CLOSED); setFormTab('profile'); setError(null); setIsForm(true); };
+  // Κλείσιμο φόρμας με προστασία από ακούσια απώλεια δεδομένων (backdrop/Ακύρωση).
+  const closeForm=()=>{
+    const dirty = !!(form.full_name.trim()||form.afm||form.phone||form.email||form.monthly_rent);
+    if(dirty && !window.confirm('Κλείσιμο χωρίς αποθήκευση; Τα στοιχεία που συμπλήρωσες θα χαθούν.')) return;
+    setError(null); setIsForm(false);
+  };
   const openEditForm=(t:Tenant)=>{
     const n=(v:number|null)=>v?.toString()||'';
     const f:ReturnType<typeof blank>={
@@ -2056,13 +2062,26 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       ?supabase.from('tenants').update(payload).eq('id',editId).select('*').single()
       :supabase.from('tenants').insert(payload).select('*').single();
     const{data:savedRow,error:err}=await q;
-    if(err){setError(err.message);setSaving(false);return;}
-    const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
-    // Έγγραφα που ανέβηκαν κατά την ΠΡΟΣΘΗΚΗ (πριν υπάρξει id) συνδέονται τώρα με τον ενοικιαστή.
-    if(savedTenant?.id && !editId && formDocs.length){
-      await supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id));
+    if(err){
+      const msg=err.message||'Άγνωστο σφάλμα';
+      // Μετάφραση των συχνών αιτιών σε σαφές, ενεργήσιμο ελληνικό μήνυμα.
+      const friendly=/column|schema cache|does not exist/i.test(msg)
+        ? `Η αποθήκευση απέτυχε: η βάση δεδομένων δεν έχει όλα τα πεδία ενοικιαστή. Τρέξε το τελευταίο SQL (SETUP_ALL.sql) στο Supabase και δοκίμασε ξανά. Τεχνική λεπτομέρεια: ${msg}`
+        : /row-level security|violates row-level/i.test(msg)
+        ? `Η αποθήκευση απέτυχε λόγω δικαιωμάτων (RLS). Βεβαιώσου ότι έτρεξες τις πολιτικές ασφαλείας στο Supabase. Τεχνική λεπτομέρεια: ${msg}`
+        : `Η αποθήκευση απέτυχε: ${msg}`;
+      setError(friendly);setSaving(false);return;
     }
-    if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
+    // Ο ενοικιαστής αποθηκεύτηκε. Οι επόμενες δευτερεύουσες ενέργειες (σύνδεση
+    // εγγράφων, συγχρονισμός ημερολογίου) δεν πρέπει ΠΟΤΕ να μπλοκάρουν το κλείσιμο
+    // της φόρμας ή την ανανέωση — αλλιώς η καρτέλα θα «κολλούσε» με το ρελ. να γυρίζει.
+    const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
+    try{
+      if(savedTenant?.id && !editId && formDocs.length){
+        await supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id));
+      }
+      if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
+    }catch{ /* δευτερεύον — αγνοείται· ο ενοικιαστής έχει ήδη αποθηκευτεί */ }
     setSaving(false);setIsForm(false);
     notify(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
     await fetch_();
@@ -2359,14 +2378,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
       {/* ── Φόρμα (modal) ────────────────────────────────────────────────────── */}
       {isForm&&(
-        <div onClick={()=>setIsForm(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:950, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 16px', overflowY:'auto' as const }}>
+        <div onClick={closeForm} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:950, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 16px', overflowY:'auto' as const }}>
           <div onClick={e=>e.stopPropagation()} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-accent)', borderRadius:T.radius.card, padding:28, width:'min(860px, 100%)', margin:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
               <div>
                 <div style={{ fontSize:18, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, marginBottom:4 }}>{editId?'Επεξεργασία Ενοικιαστή':'Νέος Ενοικιαστής'}</div>
                 <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Συμπλήρωσε τα στοιχεία βήμα βήμα</div>
               </div>
-              <button style={s.btnGhost} onClick={()=>setIsForm(false)}>Ακύρωση</button>
+              <button style={s.btnGhost} onClick={closeForm}>Ακύρωση</button>
             </div>
 
             <div style={{ height:3, background:'var(--bg-overlay)', borderRadius:2, marginBottom:24, overflow:'hidden' }}>
@@ -2613,14 +2632,22 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
               </>
             )}
 
-            <div style={{ display:'flex', justifyContent:'space-between', marginTop:28, paddingTop:20, borderTop:'1px solid var(--border-subtle)' }}>
+            {/* Σφάλμα αποθήκευσης — ΜΕΣΑ στη φόρμα, ώστε να είναι πάντα ορατό (η
+                φόρμα είναι overlay· ένα σφάλμα στο body από κάτω δεν θα φαινόταν). */}
+            {error&&(
+              <div role="alert" style={{ marginTop:24, background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'12px 16px', color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', gap:12, alignItems:'flex-start', justifyContent:'space-between' }}>
+                <span style={{ lineHeight:1.55, wordBreak:'break-word' as const }}>{error}</span>
+                <button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0, flexShrink:0 }}>×</button>
+              </div>
+            )}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginTop:20, paddingTop:20, borderTop:'1px solid var(--border-subtle)', flexWrap:'wrap' as const }}>
               <div>
                 {formTab!=='profile'&&<button style={s.btnGhost} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)-1][1] as typeof formTab)}>‹ Πίσω</button>}
               </div>
-              <div style={{ display:'flex', gap:10 }}>
-                {formTab!=='services'&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)+1][1] as typeof formTab)}>Επόμενο ›</button>}
-                {/* Νέος ενοικιαστής: αποθήκευση μόνο στην τελευταία καρτέλα (αφού περάσει από όλα τα βήματα). Σε επεξεργασία, διαθέσιμη παντού. */}
-                {(editId||formTab==='services')&&<button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση...':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>}
+              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                {formTab!=='services'&&<button style={s.btnGhost} onClick={()=>setFormTab(FTABS[FTABS.findIndex(([,t])=>t===formTab)+1][1] as typeof formTab)}>Επόμενο: Υπηρεσίες ›</button>}
+                {/* Η αποθήκευση είναι διαθέσιμη ήδη από το 1ο βήμα — οι υπηρεσίες είναι προαιρετικές. */}
+                <button style={{ ...s.btnGold, padding:'10px 24px' }} onClick={save} disabled={saving}>{saving?'Αποθήκευση…':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
               </div>
             </div>
           </div>

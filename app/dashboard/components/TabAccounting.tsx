@@ -26,7 +26,7 @@ import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
-import { downloadCsv } from './exportCsv'
+import { exportAccountantBundle } from './accountantExport'
 import { printAccountingReport, type ReconLite } from './accountingReport'
 import { printRentCertificate } from './rentCertificate'
 import { AADE_CALENDAR_URL } from '@/lib/tax/greekTaxCalendar'
@@ -323,15 +323,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
 
   function exportBundle(){
-    // Φάκελος για τον λογιστή: κατάσταση αποτελεσμάτων + κινήσεις έτους.
-    const rows:(string|number)[][] = []
-    rows.push(['ΚΑΤΑΣΤΑΣΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ', String(year), prop?.name||''])
-    for(const l of statement.lines) rows.push([l.label, l.negative?-Math.round(l.amount):Math.round(l.amount), ''])
-    rows.push(['Πρόβλεψη φόρου/μήνα', Math.round(provision.monthly), ''])
-    rows.push(['', '', ''])
-    rows.push(['ΚΙΝΗΣΕΙΣ', 'Ημερομηνία', 'Κατηγορία'])
-    for(const e of book) rows.push([`${e.type==='income'?'+':'−'}${Math.round(e.amount)}, ${e.description}`, e.date, e.category])
-    downloadCsv(`logistiki_${prop?.name||'akinito'}_${year}`.replace(/\s+/g,'_'), ['Περιγραφή','Ποσό / Ημ.','Κατηγορία'], rows)
+    // Φάκελος για τον λογιστή: προσεγμένο Excel — Κατάσταση Αποτελεσμάτων + αναλυτικές
+    // κινήσεις (Έσοδα/Έξοδα) με σωστές ημερομηνίες/ποσά, σαν να το ετοίμασε λογιστής.
+    exportAccountantBundle({
+      year, propName: prop?.name || 'Ακίνητο',
+      statementLines: statement.lines.map(l => ({ label: l.label, amount: l.amount, kind: l.kind, negative: l.negative })),
+      provisionMonthly: provision.monthly,
+      book: book.map(e => ({ date: e.date, type: e.type, category: e.category, description: e.description, amount: e.amount })),
+    })
   }
 
   function printReport(){
@@ -803,7 +802,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={card}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
             <p style={{ ...cardTitle, margin:0 }}>{mode==='professional'?'Βιβλίο Εσόδων-Εξόδων':'Πρόσφατες κινήσεις'}</p>
-            <button onClick={exportBundle} title="Φάκελος για τον λογιστή (CSV)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Download size={13}/>Για τον λογιστή</button>
+            <button onClick={exportBundle} title="Φάκελος για τον λογιστή (Excel)" style={{ display:'inline-flex', alignItems:'center', gap:6, height:30, padding:'0 12px', borderRadius:15, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:"'Inter',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><Download size={13}/>Για τον λογιστή</button>
           </div>
           {recentLedger.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'8px 0' }}>Καμία κίνηση για το {year}.</p>
