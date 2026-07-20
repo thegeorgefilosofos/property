@@ -16,8 +16,12 @@ import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
+import PlanComparison from './PlanComparison';
+import SecuritySettings from './SecuritySettings';
+import OrgTeam from './OrgTeam';
+import { exportAllData } from '@/lib/dataExport';
 import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, activeComp, planAtLeast } from '@/lib/billing/entitlements';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -287,6 +291,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [partner, setPartner] = useState(false);
   const [compPlan, setCompPlan] = useState<string | null>(null);
   const [compUntil, setCompUntil] = useState<string | null>(null);
+  const [propertyCount, setPropertyCount] = useState<number | null>(null);
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -296,9 +301,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [prefsSaved, setPrefsSaved] = useState(false);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Αποκάλυψη διαχείρισης συνδρομής
+  // Αποκάλυψη διαχείρισης συνδρομής (νηφάλια χρέωση) & σύγκρισης πλάνων (aspirational)
   const [showBilling, setShowBilling] = useState(false);
   const billingRef = useRef<HTMLDivElement | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
+  const comparisonRef = useRef<HTMLDivElement | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportErr, setExportErr] = useState('');
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -307,6 +316,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setCompPlan((data.comp_plan as string) || null); setCompUntil((data.comp_until as string) || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
+    supabase.from('user_properties').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+      .then(({ count }) => setPropertyCount(count ?? 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -348,10 +359,19 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setShowBilling(true);
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
+  const openComparison = () => {
+    setShowComparison(true);
+    setTimeout(() => comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
 
   const ent = { plan, profileType, partner, compPlan, compUntil };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
+  const propLimit = propertyLimit(ent);
+  const propLimitLabel = propLimit === Infinity ? 'απεριόριστα' : String(propLimit);
+  const usagePct = propLimit === Infinity || !propertyCount ? 0 : Math.min(100, Math.round((propertyCount / propLimit) * 100));
+  const atLimit = propLimit !== Infinity && (propertyCount ?? 0) >= propLimit;
+  const nearLimit = propLimit !== Infinity && !atLimit && propLimit > 1 && (propertyCount ?? 0) >= propLimit - 1;
   const planMeta = PLANS[effPlan];
   const isProPlan = effPlan === 'agency';
   const needsUpgrade = profileType === 'professional' && !planAtLeast(effPlan, 'agency');
@@ -360,6 +380,14 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const exportSettingsCsv = () => {
     const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
     downloadCsv(`rythmiseis_akinitou_${new Date().toISOString().slice(0, 10)}`, ['Πεδίο', 'Τιμή'], rows);
+  };
+
+  const exportAll = async () => {
+    if (exporting) return;
+    setExporting(true); setExportErr('');
+    const res = await exportAllData(userId);
+    setExporting(false);
+    if (!res.ok) setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.');
   };
 
   const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
@@ -388,8 +416,33 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
           </div>
-          <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Btn variant="primary" onClick={openComparison}>Σύγκρινε πλάνα</Btn>
+            <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
+          </div>
         </div>
+
+        {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
+        {propertyCount != null && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ακίνητα</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
+            </div>
+            {propLimit !== Infinity && (
+              <div style={{ height: 6, borderRadius: 100, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                <div style={{ width: `${usagePct}%`, height: '100%', borderRadius: 100, background: atLimit ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s cubic-bezier(0.2,0,0,1)' }} />
+              </div>
+            )}
+            {(atLimit || nearLimit) && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>
+                {atLimit
+                  ? 'Έφτασες το όριο του πλάνου σου. Αναβάθμισε για να κρατάς κι άλλα ακίνητα σε ένα σημείο.'
+                  : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πλάνου σου.'}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Ενεργή δωρεάν πρόσβαση (κερδισμένοι μήνες) */}
         {comp && (
@@ -435,7 +488,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
                 </div>
               </div>
-              <Btn variant="primary" onClick={openBilling}>Δες τα πλάνα</Btn>
+              <Btn variant="primary" onClick={openComparison}>Δες τα πλάνα</Btn>
             </div>
           )}
         </div>
@@ -444,20 +497,41 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         {profileType === 'professional' && (
           <div style={divider}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>Επωνυμία αναφορών</div>
-            <ReportBranding userId={userId} onUpgrade={openBilling} />
+            <ReportBranding userId={userId} onUpgrade={openComparison} />
           </div>
         )}
       </Card>
 
-      {/* Διαχείριση συνδρομής (αποκάλυψη) */}
+      {/* Σύγκριση πλάνων (αποκάλυψη, aspirational, N26-style highlight-gains) */}
+      {showComparison && (
+        <div ref={comparisonRef} style={{ scrollMarginTop: 16, marginBottom: 16 }}>
+          <PlanComparison userId={userId} profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
+        </div>
+      )}
+
+      {/* Διαχείριση συνδρομής (αποκάλυψη, νηφάλια χρέωση) */}
       {showBilling && (
         <div ref={billingRef} style={{ scrollMarginTop: 16 }}>
           <Billing userId={userId} />
         </div>
       )}
 
-      {/* ── 3. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
+      {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (μόνο Επαγγελματίας) ─────────────────────── */}
+      {profileType === 'professional' && (
+        <Card className="acc-section" style={{ animationDelay: '110ms' }}>
+          <SecHdr label="Οργανισμός & Ομάδα" />
+          <OrgTeam userId={userId} />
+        </Card>
+      )}
+
+      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
       <Card className="acc-section" style={{ animationDelay: '140ms' }}>
+        <SecHdr label="Ειδοποιήσεις" />
+        <NotificationSettings userId={userId} propertyId={propertyId} />
+      </Card>
+
+      {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
         <SecHdr label="Εμφάνιση & Γλώσσα" />
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
@@ -481,27 +555,26 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       </Card>
 
-      {/* ── 4. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
-        <SecHdr label="Ειδοποιήσεις" />
-        <NotificationSettings userId={userId} propertyId={propertyId} />
+      {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
+        <SecHdr label="Ασφάλεια" />
+        <SecuritySettings userId={userId} />
       </Card>
 
-      {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
+      {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '340ms' }}>
         <SecHdr label="Δεδομένα & Απόρρητο" />
-        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV."
+        <SettingRow title="Εξαγωγή όλων των δεδομένων σου" desc="Κατέβασε σε ένα αρχείο όλα σου τα δεδομένα (ακίνητα, δαπάνες, λογαριασμοί, ενοικιαστές, πελάτες, έγγραφα). Δικό σου, όποτε το θελήσεις."
+          control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
+        {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
+        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε αρχείο CSV για γρήγορη ματιά."
           control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
         <div style={{ marginTop: 12 }}>
-          <InfoBanner tone="info">Η πλήρης εξαγωγή όλων των δεδομένων (δαπάνες, λογαριασμοί, ενοικιαστές) γίνεται ανά καρτέλα από το κουμπί «Εξαγωγή CSV».</InfoBanner>
+          <InfoBanner tone="info">Για αναλυτικά δεδομένα ανά κατηγορία, κάθε καρτέλα (δαπάνες, λογαριασμοί, ενοικιαστές) έχει και τη δική της εξαγωγή CSV.</InfoBanner>
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
         <SettingsRoadmap userId={userId} />
-        <div style={{ ...divider, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνδεση</div>
-          <Btn variant="secondary" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }}>Αποσύνδεση</Btn>
-        </div>
         <DeleteAccount />
       </Card>
 

@@ -1,0 +1,240 @@
+'use client';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PlanComparison — η «φιλόδοξη» επιφάνεια σύγκρισης πλάνων (ξεχωριστή από τη
+// νηφάλια Χρέωση). Αποκαλύπτεται μέσα στη σελίδα «Λογαριασμός» όταν ο χρήστης
+// πατήσει «Σύγκρινε πλάνα» / «Δες τα πλάνα». Στόχος: premium, καθαρή, ζωντανή,
+// αξιόπιστη εμπειρία αναβάθμισης, στο ίδιο design system με όλη την εφαρμογή.
+//
+// Το «κόλπο N26»: φωτίζουμε ΜΟΝΟ τα κέρδη. Κάθε δυνατότητα που ξεκλειδώνει ένα
+// ανώτερο πλάνο (και δεν την έχει το τρέχον) παίρνει διακριτική accent έμφαση,
+// ώστε το «τι κερδίζεις αν αναβαθμίσεις» να ξεχωρίζει, χωρίς να φωνάζει.
+// Καμία χρέωση εδώ· η πληρωμή (Stripe) έρχεται σύντομα.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { useState, type ReactNode } from 'react';
+import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
+import { T, Card, SecHdr, Btn, TierBadge, feAuto } from '@/components/Theme';
+
+// ── Πίνακας δυνατοτήτων (μία πηγή, καθρεφτίζει τα entitlements) ─────────────
+type CellValue = boolean | string;
+interface FeatureRow { label: string; values: Record<PlanId, CellValue> }
+
+const MATRIX: FeatureRow[] = [
+  { label: 'Ακίνητα', values: { free: '1', owner: 'Έως 6', agency: 'Απεριόριστα' } },
+  { label: 'Σάρωση εγγράφων & βοηθός με φωνή', values: { free: true, owner: true, agency: true } },
+  { label: 'Αποδόσεις, δαπάνες, ενέργεια & φόρος 2026', values: { free: true, owner: true, agency: true } },
+  { label: 'Έξυπνες ειδοποιήσεις & υπενθυμίσεις', values: { free: true, owner: true, agency: true } },
+  { label: 'Σύγκριση ακινήτων', values: { free: false, owner: true, agency: true } },
+  { label: 'Διαχείριση ενοικιαστών & εισπράξεις', values: { free: false, owner: true, agency: true } },
+  { label: 'Εξαγωγή Ε2 για τον λογιστή', values: { free: false, owner: true, agency: true } },
+  { label: 'Υποστήριξη κατά προτεραιότητα', values: { free: false, owner: true, agency: true } },
+  { label: 'Πελατολόγιο & υποψήφιοι (CRM)', values: { free: false, owner: false, agency: true } },
+  { label: 'Χαρτοφυλάκιο πολλών ακινήτων', values: { free: false, owner: false, agency: true } },
+  { label: 'Επώνυμες αναφορές & έγγραφα', values: { free: false, owner: false, agency: true } },
+  { label: 'Ομάδα, ρόλοι & δικαιώματα', values: { free: false, owner: false, agency: true } },
+];
+
+// Πλέγμα του πίνακα: ετικέτα + 3 στήλες πλάνων. Ελάχιστο πλάτος ώστε σε στενές
+// οθόνες να κυλάει μέσα στο δικό του container (η σελίδα δεν σπρώχνεται ποτέ).
+const MATRIX_GRID = 'minmax(184px, 1.7fr) repeat(3, minmax(92px, 1fr))';
+
+// ── Μικρά εικονίδια ────────────────────────────────────────────────────────
+function Check({ tone }: { tone: 'accent' | 'muted' }) {
+  return (
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={tone === 'accent' ? 'var(--accent)' : 'var(--text-secondary)'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+function LockGlyph() {
+  return (
+    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+export default function PlanComparison({ userId, profileType, currentPlan, onUpgrade }: {
+  userId: string;
+  profileType: 'individual' | 'professional';
+  currentPlan: PlanId;
+  onUpgrade?: () => void;
+}) {
+  void userId; // κρατείται στην υπογραφή για μελλοντική χρήση (analytics/checkout)
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
+
+  const rankOf = (id: PlanId) => PLAN_ORDER.indexOf(id);
+  const curRank = rankOf(currentPlan);
+  const recommended: PlanId = profileType === 'professional' ? 'agency' : 'owner';
+  const lockHint = profileType === 'professional'
+    ? 'Διαθέσιμο στον τρόπο «Ιδιώτης»'
+    : 'Διαθέσιμο στον τρόπο «Επαγγελματίας»';
+
+  // Κέρδος: κελί ανώτερου πλάνου που προσφέρει κάτι που δεν έχει το τρέχον.
+  // boolean → true εκεί & false στο τρέχον. string («Ακίνητα») → κάθε ανώτερο
+  // πλάνο (περισσότερα ακίνητα). Η στήλη του τρέχοντος δεν γίνεται ποτέ «κέρδος».
+  const isGain = (row: FeatureRow, id: PlanId): boolean => {
+    if (rankOf(id) <= curRank) return false;
+    const v = row.values[id];
+    if (typeof v === 'string') return true;
+    return v === true && row.values[currentPlan] === false;
+  };
+
+  return (
+    <div>
+      {/* ── 1+2. Κεφαλίδα με διακόπτη κύκλου + στήλες πλάνων ───────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '0ms' }}>
+        <SecHdr label="Σύγκρινε πλάνα" right={
+          <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100 }}>
+            {(['monthly', 'annual'] as const).map(c => (
+              <button key={c} onClick={() => setCycle(c)}
+                style={{ appearance: 'none', border: 'none', cursor: 'pointer', padding: '5px 12px', borderRadius: 100, fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: cycle === c ? 'var(--text-primary)' : 'var(--text-tertiary)', background: cycle === c ? 'var(--bg-surface)' : 'transparent', boxShadow: cycle === c ? 'var(--elev-1)' : 'none', transition: 'all 0.15s cubic-bezier(0.2,0,0,1)' }}>
+                {c === 'monthly' ? 'Μηνιαία' : 'Ετήσια'}
+              </button>
+            ))}
+          </div>
+        } />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
+          {PLAN_ORDER.map(id => {
+            const p = PLANS[id];
+            const isCurrent = id === currentPlan;
+            const allowed = isPlanAllowedForProfile(profileType, id);
+            const locked = !allowed && !isCurrent;
+            const popular = !locked && !isCurrent && id === recommended;
+            const isFree = p.priceMonthly === 0;
+            const colRank = rankOf(id);
+
+            const priceMain = isFree ? '0 €' : cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
+            const priceUnit = isFree ? 'για πάντα' : '/μήνα';
+            const monthsFree = p.priceAnnual > 0 && p.priceMonthly > 0 ? Math.round(12 - p.priceAnnual / p.priceMonthly) : 0;
+
+            // Ένα και μόνο «ήρωας»: η προτεινόμενη στήλη (βάθος με surface-hero).
+            const heroBg = popular ? 'var(--surface-hero)' : 'var(--bg-surface)';
+            const borderColor = isCurrent ? 'var(--accent)' : popular ? 'var(--accent-border)' : 'var(--border-subtle)';
+            const boxShadow = popular ? 'var(--highlight-inset), var(--elev-2)' : isCurrent ? '0 0 0 3px var(--accent-dim)' : 'none';
+
+            const cta = isCurrent
+              ? <Btn variant="ghost" disabled>Το τρέχον πλάνο σου</Btn>
+              : locked
+                ? <Btn variant="ghost" disabled>Κλειδωμένο</Btn>
+                : colRank > curRank
+                  ? <Btn variant="primary" onClick={() => onUpgrade?.()}>Αναβάθμιση</Btn>
+                  : <Btn variant="ghost" onClick={() => onUpgrade?.()}>Υποβάθμιση</Btn>;
+
+            return (
+              <div key={id} className={locked ? undefined : 'acc-choice'} title={locked ? lockHint : undefined}
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column', opacity: locked ? 0.55 : 1, background: heroBg, border: `1.5px solid ${borderColor}`, borderRadius: T.radius.card, boxShadow, padding: 18 }}>
+
+                {popular && (
+                  <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: 100, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Πιο δημοφιλές</span>
+                )}
+
+                {/* Όνομα + μετάλλιο + ένδειξη κατάστασης */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    {(id === 'owner' || id === 'agency') && <TierBadge tier={id} showLabel={false} size={22} />}
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
+                  </span>
+                  {isCurrent ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', borderRadius: 100, padding: '3px 9px', fontSize: 9.5, fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                      <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />
+                      Το πλάνο σου
+                    </span>
+                  ) : locked ? (
+                    <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', flexShrink: 0 }}><LockGlyph /></span>
+                  ) : null}
+                </div>
+
+                {/* Ταγκλάιν πλάνου */}
+                <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 6, minHeight: 34 }}>{p.tagline}</div>
+
+                {/* Τιμή */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 12 }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{priceMain}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{priceUnit}</span>
+                </div>
+
+                {!isFree && cycle === 'annual' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
+                    {monthsFree > 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 100, padding: '2px 8px', fontFamily: T.font.sans }}>περίπου {monthsFree} μήνες δωρεάν</span>
+                    )}
+                  </div>
+                )}
+
+                {id === 'owner' && (
+                  <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>Έξι ακίνητα, λιγότερο από 1 € το καθένα τον μήνα.</div>
+                )}
+
+                {/* CTA, καρφωμένο στη βάση ώστε οι στήλες να ισοϋψούνται */}
+                <div style={{ marginTop: 'auto', paddingTop: 16 }}>{cta}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ── 3. Πίνακας δυνατοτήτων ────────────────────────────────────────── */}
+      <Card className="acc-section" style={{ animationDelay: '80ms' }}>
+        <SecHdr label="Τι περιλαμβάνει κάθε πλάνο" />
+
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
+            {/* Κεφαλίδα πίνακα: επανάληψη ονομάτων, μικρά & διακριτικά */}
+            <div style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'end', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
+              <div />
+              {PLAN_ORDER.map(id => {
+                const isCurrent = id === currentPlan;
+                return (
+                  <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
+                    {isCurrent && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />}
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: isCurrent ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Γραμμές δυνατοτήτων */}
+            {MATRIX.map(row => (
+              <div key={row.label} style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
+                {PLAN_ORDER.map(id => {
+                  const v = row.values[id];
+                  const gain = isGain(row, id);
+                  let content: ReactNode;
+                  if (typeof v === 'string') {
+                    content = <span style={{ fontSize: 12.5, fontWeight: gain ? 700 : 600, color: gain ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
+                  } else if (v === true) {
+                    content = <Check tone={gain ? 'accent' : 'muted'} />;
+                  } else {
+                    content = <span style={{ color: 'var(--text-tertiary)', fontSize: 14, fontFamily: T.font.sans }}>—</span>;
+                  }
+                  return (
+                    <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
+                      {gain ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, padding: '5px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>{content}</span>
+                      ) : content}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 4. Γραμμή εμπιστοσύνης ─────────────────────────────────────── */}
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 16 }}>
+          Χωρίς δέσμευση. Αλλάζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
+        </div>
+        {/* ── 5. Διαφάνεια ΦΠΑ ───────────────────────────────────────────── */}
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
+          Η τελική τιμή με ΦΠΑ και η ακριβής ημερομηνία χρέωσης επιβεβαιώνονται στην πληρωμή, που έρχεται σύντομα.
+        </div>
+      </Card>
+    </div>
+  );
+}
