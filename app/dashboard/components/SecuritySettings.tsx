@@ -12,6 +12,7 @@
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn } from '@/components/Theme';
+import { logActivity } from '@/lib/activity';
 
 // ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
 const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };
@@ -147,6 +148,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       setEnrollFactor(null);
       setCode('');
       setMfaState('on');
+      void logActivity(supabase, 'mfa_enabled', 'security');
     } catch {
       setMfaErr('Ο κωδικός δεν είναι σωστός. Δοκίμασε ξανά.');
     } finally {
@@ -180,6 +182,7 @@ export default function SecuritySettings({ userId }: { userId: string }) {
       }
       setMfaState('off');
       setConfirmDisable(false);
+      void logActivity(supabase, 'mfa_disabled', 'security');
     } catch {
       setMfaErr('Δεν ήταν δυνατή η απενεργοποίηση. Δοκίμασε ξανά.');
     } finally {
@@ -207,10 +210,13 @@ export default function SecuritySettings({ userId }: { userId: string }) {
     setNewPass('');
     setConfirm('');
     setPwMsg({ ok: true, text: 'Ο κωδικός ενημερώθηκε ✓' });
+    void logActivity(supabase, 'password_changed', 'security');
   }
 
   async function signOutEverywhere() {
     setSigningOut(true);
+    // Καταγραφή ΠΡΙΝ την καθολική αποσύνδεση (μετά χάνεται η συνεδρία).
+    await logActivity(supabase, 'signed_out_all', 'security');
     await supabase.auth.signOut({ scope: 'global' });
     window.location.href = '/login';
   }

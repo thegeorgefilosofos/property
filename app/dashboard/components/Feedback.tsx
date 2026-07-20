@@ -101,16 +101,16 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
-              Ευχαριστούμε. Σε ακούσαμε.
+              Ευχαριστούμε, σε ακούσαμε.
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
-                ? `Το μήνυμά σου καταγράφηκε και το διαβάζει άνθρωπος από την ομάδα. Βοήθησέ μας ξανά ${dayPhrase} με άλλη μία ιδέα.`
-                : `Ευχαριστούμε για το μήνυμά σου αυτόν τον μήνα, το επεξεργαζόμαστε ήδη για να γίνουμε καλύτεροι. Βοήθησέ μας ξανά ${dayPhrase} με άλλη μία εποικοδομητική ιδέα.`}
+                ? `Το μήνυμά σου το διαβάζει άνθρωπος από την ομάδα, όχι κάποια μηχανή. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
+                : `Έχουμε ήδη το μήνυμά σου αυτόν τον μήνα και το επεξεργαζόμαστε. Πες μας ξανά τη γνώμη σου ${dayPhrase}.`}
             </div>
             {pooled && (
               <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
-                Μπήκες και στην κλήρωση για μία δωρεάν χρονιά «Επαγγελματίας».
+                Μπήκες και στην κλήρωση για μία δωρεάν ετήσια συνδρομή «Επαγγελματίας».
               </div>
             )}
           </div>

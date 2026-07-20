@@ -18,6 +18,7 @@
 import { useEffect, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, Btn, Chip } from '@/components/Theme';
+import { logActivity } from '@/lib/activity';
 import { CustomSelect } from './UIComponents';
 
 // Κοινές επιλογές ρόλου (ίδιο dropdown με το υπόλοιπο app: CustomSelect).
@@ -231,6 +232,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setInviting(true); setInviteError(null);
     const { error } = await supabase.rpc('invite_org_member', { p_email: email, p_role: inviteRole });
     if (error) { setInviteError('Η πρόσκληση δεν στάλθηκε.'); setInviting(false); return; }
+    void logActivity(supabase, 'member_invited', 'organization', org.id, { email: email.toLowerCase(), role: inviteRole });
     setInviteEmail('');
     await loadMembers(org.id);
     setInviting(false);
@@ -241,7 +243,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('set_org_member_role', { p_email: email, p_role: role });
     if (error) setRowError('Η αλλαγή ρόλου δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, 'member_role_changed', 'organization', org.id, { email, role }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 
@@ -250,7 +252,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('revoke_org_member', { p_email: email });
     if (error) setRowError('Η αφαίρεση δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, 'member_revoked', 'organization', org.id, { email }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 
@@ -260,7 +262,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
     setRowBusy(email); setRowError(null);
     const { error } = await supabase.rpc('set_member_edit', { p_email: email, p_can: can });
     if (error) setRowError('Η αλλαγή πρόσβασης δεν ολοκληρώθηκε.');
-    else await loadMembers(org.id);
+    else { void logActivity(supabase, can ? 'member_edit_granted' : 'member_edit_revoked', 'organization', org.id, { email }); await loadMembers(org.id); }
     setRowBusy(null);
   };
 

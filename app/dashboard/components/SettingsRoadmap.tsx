@@ -168,26 +168,30 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               <Chip tone="neutral">Android</Chip>
             </div>
 
-            {/* CTA / επιβεβαιωμένο state (με δυνατότητα εξόδου από τη λίστα) */}
+            {/* CTA: ένα κουμπί-διακόπτης. Μπαίνεις στη λίστα και, αν ξαναπατήσεις
+                το «Θα σε ειδοποιήσουμε», βγαίνεις και επιστρέφει στο «Ειδοποίησέ με». */}
             <div style={{ marginTop: 14 }}>
               {confirmed ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span
-                    role="status"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '9px 18px', borderRadius: T.radius.btn,
-                      fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
-                      background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)',
-                    }}
-                  >
-                    Θα σε ειδοποιήσουμε ✓
-                  </span>
-                  <button onClick={leave} disabled={busy}
-                    style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
-                    Αφαίρεση από τη λίστα
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={leave}
+                  disabled={busy}
+                  aria-pressed
+                  title="Πάτησε ξανά για να βγεις από τη λίστα"
+                  onMouseEnter={e => { if (!busy) e.currentTarget.style.borderColor = 'var(--positive)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--positive-border)'; }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '9px 18px', borderRadius: T.radius.btn,
+                    fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
+                    cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+                    background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', color: 'var(--positive)',
+                    transition: 'border-color 0.15s cubic-bezier(0.2,0,0,1)',
+                  }}
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  Θα σε ειδοποιήσουμε
+                </button>
               ) : (
                 <Btn variant="primary" onClick={notify} disabled={busy}>
                   {busy ? 'Ειδοποίηση…' : 'Ειδοποίησέ με μόλις βγει'}
