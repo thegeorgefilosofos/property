@@ -311,6 +311,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const comparisonRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [largeText, setLargeText] = useState(false);
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
@@ -393,6 +395,21 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     const res = await exportAllData(userId);
     setExporting(false);
     if (!res.ok) setExportErr('Δεν ήταν δυνατή η εξαγωγή αυτή τη στιγμή. Δοκίμασε ξανά.');
+  };
+
+  // Προσβασιμότητα: διάβασε τις αποθηκευμένες προτιμήσεις, εφάρμοσέ τες ζωντανά.
+  useEffect(() => {
+    try {
+      setReduceMotion(localStorage.getItem('po_reduce_motion') === '1');
+      setLargeText(localStorage.getItem('po_large_text') === '1');
+    } catch { /* ignore */ }
+  }, []);
+  const setA11y = (key: 'po_reduce_motion' | 'po_large_text', cls: string, v: boolean, setter: (b: boolean) => void) => {
+    setter(v);
+    try {
+      localStorage.setItem(key, v ? '1' : '0');
+      document.documentElement.classList.toggle(cls, v);
+    } catch { /* ignore */ }
   };
 
   const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
@@ -550,6 +567,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                 { value: '2', label: 'Δύο δεκαδικά (1.234,56 €)' },
               ]} />
           </div>} />
+        <SettingRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
+          control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
+        <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
+          control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
         <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
           {prefsSaved && (
             <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>

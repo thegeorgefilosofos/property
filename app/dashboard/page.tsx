@@ -808,6 +808,15 @@ export default function Dashboard() {
     setKbdHint(mac ? '⌘K' : 'Ctrl K');
   }, []);
 
+  // Προσβασιμότητα: εφαρμογή αποθηκευμένων προτιμήσεων σε όλη την εφαρμογή.
+  useEffect(() => {
+    try {
+      const r = document.documentElement;
+      if (localStorage.getItem('po_reduce_motion') === '1') r.classList.add('a11y-reduce-motion');
+      if (localStorage.getItem('po_large_text') === '1') r.classList.add('a11y-large-text');
+    } catch { /* ignore */ }
+  }, []);
+
   // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
