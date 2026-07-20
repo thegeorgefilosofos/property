@@ -1203,7 +1203,7 @@ export default function Dashboard() {
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {nav==='roi'       && <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType}/>}
-              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
+              {nav==='pricing'   && <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>}
               {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
               {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
