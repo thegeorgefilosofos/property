@@ -149,6 +149,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
   const [inviteRole, setInviteRole] = useState<InviteRole>('member');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteNote, setInviteNote] = useState<string | null>(null);
 
   // Ενέργειες ανά γραμμή
   const [rowBusy, setRowBusy] = useState<string | null>(null);
@@ -227,15 +228,26 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
   const invite = async () => {
     if (!org) return;
-    const email = inviteEmail.trim();
+    const email = inviteEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) { setInviteError('Δώσε ένα έγκυρο email.'); return; }
-    setInviting(true); setInviteError(null);
+    setInviting(true); setInviteError(null); setInviteNote(null);
     const { error } = await supabase.rpc('invite_org_member', { p_email: email, p_role: inviteRole });
     if (error) { setInviteError('Η πρόσκληση δεν στάλθηκε.'); setInviting(false); return; }
-    void logActivity(supabase, 'member_invited', 'organization', org.id, { email: email.toLowerCase(), role: inviteRole });
+    void logActivity(supabase, 'member_invited', 'organization', org.id, { email, role: inviteRole });
+    // Πραγματικό email πρόσκλησης (best-effort): η εγγραφή στη βάση είναι η πηγή
+    // αλήθειας· αν το email δεν σταλεί, το μέλος αποκτά πρόσβαση συνδεόμενο κανονικά.
+    let mailed = false;
+    try {
+      const { data } = await supabase.functions.invoke('send-org-invite', { body: { email } });
+      mailed = !!(data as { sent?: boolean } | null)?.sent;
+    } catch { /* σιωπηλά */ }
+    setInviteNote(mailed
+      ? `Στάλθηκε πρόσκληση με email στο ${email}.`
+      : `Ο ${email} προστέθηκε. Θα αποκτήσει πρόσβαση μόλις συνδεθεί με αυτό το email.`);
     setInviteEmail('');
     await loadMembers(org.id);
     setInviting(false);
+    setTimeout(() => setInviteNote(null), 6000);
   };
 
   const changeRole = async (email: string, role: InviteRole) => {
@@ -528,7 +540,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
           <input
             type="email"
             value={inviteEmail}
-            onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); }}
+            onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); if (inviteNote) setInviteNote(null); }}
             onFocus={focusOn}
             onBlur={focusOff}
             onKeyDown={e => { if (e.key === 'Enter') void invite(); }}
@@ -547,8 +559,13 @@ export default function OrgTeam({ userId }: { userId: string }) {
           </Btn>
         </div>
         {inviteError && <div style={errStyle}>{inviteError}</div>}
+        {inviteNote && (
+          <div style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>
+            {inviteNote}
+          </div>
+        )}
         <div style={{ ...descStyle, marginTop: 10 }}>
-          Το μέλος αποκτά πρόσβαση μόλις συνδεθεί με το ίδιο email και ξεκινά με δικαίωμα ανάγνωσης. Την επεξεργασία επιτρέπει ο ιδιοκτήτης από τη στήλη «Πρόσβαση».
+          Στέλνουμε πρόσκληση με email. Το μέλος αποκτά πρόσβαση μόλις δημιουργήσει λογαριασμό με το ίδιο email και ξεκινά με δικαίωμα ανάγνωσης. Την επεξεργασία επιτρέπει ο ιδιοκτήτης από τη στήλη «Πρόσβαση».
         </div>
       </section>
 
