@@ -12,21 +12,21 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, fe, fd } from '@/components/Theme';
 import { NumberInput } from './UIComponents';
-import { downloadCsv } from './exportCsv';
+import { exportPricingWorkbook } from './pricingExport';
 import {
   recommendPrices, summarize, suggestBase, suggestBaseFallback, suggestGuardrails, bookedDatesFromStays,
   realizedAdr, projectRevenue, findGaps, estimateSeasonalOccupancy, SEASON_LABELS,
   type DayPrice, type PricingStay, type Gap,
 } from '@/lib/pricing/dynamicPricing';
 
-interface Props { propertyId: string; userId: string; propertyRent?: number; propertySqm?: number }
+interface Props { propertyId: string; userId: string; propertyName?: string; propertyRent?: number; propertySqm?: number }
 
 const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
 const MONTH_NAMES = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
-export default function TabPricing({ propertyId, userId, propertyRent, propertySqm }: Props) {
+export default function TabPricing({ propertyId, userId, propertyName, propertyRent, propertySqm }: Props) {
   const supabase = createClient();
   const [stays, setStays] = useState<PricingStay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,10 +218,17 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
     flash('Το κείμενο προσφοράς αντιγράφηκε');
   };
 
-  const exportCsv = () => {
-    downloadCsv('dynamic-pricing.csv',
-      ['Ημερομηνία', 'Ημέρα', 'Τιμή/νύχτα (€)', 'Εποχή', 'Αργία', 'Κατάσταση'],
-      rows.map(r => [r.date, WEEKDAYS[(r.dow + 6) % 7], String(r.price), SEASON_LABELS[r.season], r.holidayName || '', r.booked ? 'Κλεισμένο' : 'Διαθέσιμο']));
+  // Εξαγωγή επαγγελματικού .xlsx (Σύνοψη + Ημερήσιες τιμές + Ανά μήνα).
+  const exportXlsx = () => {
+    exportPricingWorkbook({
+      propName: propertyName || 'Ακίνητο',
+      year: pyear,
+      settings: { base, min, max, weekendPremiumPct: wknd, minStay },
+      summary: sum,
+      projection,
+      realizedAdr: adr,
+      rows: rows.map(r => ({ date: r.date, dow: r.dow, season: r.season, isWeekend: r.isWeekend, holidayName: r.holidayName, price: r.price, booked: r.booked })),
+    });
   };
 
   const mark = (fn: (v: number) => void) => (v: number) => { setTouched(true); fn(v); };
@@ -230,7 +237,7 @@ export default function TabPricing({ propertyId, userId, propertyRent, propertyS
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle title="Δυναμική τιμολόγηση" titleHint="Προτεινόμενη τιμή ανά νύχτα με βάση τα δικά σου δεδομένα και την ελληνική εποχικότητα. Οι τιμές είναι προτάσεις, τις εφαρμόζεις εσύ στα κανάλια."
         sub="Έσοδα, κέρδος έναντι σταθερής τιμής, κενές μέρες προς πλήρωση και ημερολόγιο τιμών, όλα εξηγήσιμα και ζωντανά."
-        right={rows.length > 0 ? <ExportButton onClick={exportCsv} /> : undefined} />
+        right={rows.length > 0 ? <ExportButton onClick={exportXlsx} label="Εξαγωγή Excel" /> : undefined} />
 
       <InfoBanner tone="info">
         Οι τιμές είναι <strong>προτάσεις</strong>, όχι αυτόματη αλλαγή στα κανάλια. Βασίζονται στο ιστορικό διαμονών (χειροκίνητο και iCal), στην ελληνική εποχικότητα, στις αργίες, στην ημέρα της εβδομάδας και στη ζήτηση. Οι κλεισμένες ημέρες και οι ρυθμίσεις ενημερώνονται <strong>σε πραγματικό χρόνο</strong>. Η εκτιμώμενη πληρότητα είναι ενδεικτική.
