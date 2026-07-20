@@ -182,7 +182,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
           Κατέβασε αρχείο CSV με μία γραμμή ανά ακίνητο (ΑΤΑΚ, διεύθυνση, ποσοστό συνιδιοκτησίας, είδος μίσθωσης, μήνες, ακαθάριστο εισόδημα) για το έτος {e2Year}. Έτοιμο για αποστολή στον λογιστή σου.
         </div>
         <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
-        <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', lineHeight: 1.5 }}>
+        <div style={{ marginTop: 16, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
           Ορισμένα πεδία συμπληρώνονται αυτόματα ως εκτίμηση. Έλεγξέ τα πριν την υποβολή.
           <InfoHint>Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου. Το ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου, από το Ε9) και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων).</InfoHint>
         </div>
