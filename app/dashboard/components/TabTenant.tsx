@@ -17,7 +17,7 @@ import {
 import type { ServiceBy, LeaseType, LeaseCategory, PaymentFreq, IdDocType, StreamingSvc, CleaningCfg } from './TabTenantHelpers';
 import { T, PageTitle, KPIGrid, InfoBanner, Badge, Btn, EmptyState, SecHdr, fe, fn, fd, Spinner, ExportButton, type KPIItem } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
-import { brandName, brandContactLine, useReportBranding, brandLogoImg } from '@/lib/reportBranding';
+import { reportAccent, brandName, brandContactLine, useReportBranding, brandLogoImg } from '@/lib/reportBranding';
 import { rentalIncomeTax, effectiveRentalRate, RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax';
 import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { normalizePhone } from '@/lib/clients/clients';
@@ -526,6 +526,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
 
   const genLetter=()=>{
     const today_str=new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
+    const accent = reportAccent(branding);
     const w=window.open('','_blank','width=820,height=760');
     if(!w){alert('Επίτρεψε τα popups');return;}
     w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Αναπροσαρμογή Μισθώματος</title>
@@ -535,7 +536,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
       body{font-family:'Inter',system-ui,sans-serif;max-width:740px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.8;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:28px}
       .brand{display:flex;align-items:center;gap:11px}
-      .mark{width:34px;height:34px;border-radius:8px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
       h1{font-size:18px;font-weight:700;color:#111;letter-spacing:-.01em}
       .sub{font-size:11px;color:#6b7280;margin-top:2px}
       table{width:100%;border-collapse:collapse;margin:20px 0}
@@ -548,6 +549,7 @@ function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string }) {
       .footer{margin-top:40px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
       @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="header">
       <div class="brand">
         ${brandLogoImg(branding,34)||`<div class="mark">P</div>`}
@@ -978,6 +980,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
   const printReceipt=(p:RentPayment)=>{
     const w=window.open('','_blank','width=820,height=760'); if(!w){alert('Επίτρεψε τα popups');return;}
     const paidDate=p.paid_date?new Date(p.paid_date+'T00:00:00').toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+    const accent = reportAccent(branding);
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     w.document.write(`<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><title>Απόδειξη Ενοικίου ${esc(num)}</title>
@@ -987,7 +990,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .header{border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
       .brand{display:flex;align-items:center;gap:11px}
-      .mark{width:34px;height:34px;border-radius:8px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
       h1{font-size:19px;font-weight:700;color:#111;letter-spacing:-.01em}
       .sub{font-size:11px;color:#6b7280;margin-top:2px}
       .num{font-size:11px;color:#6b7280;text-align:right;white-space:nowrap}
@@ -1001,6 +1004,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       .footer{margin-top:36px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
       @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="header"><div class="brand">${brandLogoImg(branding,34)||`<div class="mark">P</div>`}<div><h1>Απόδειξη Είσπραξης Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div></div><div class="num">Αρ. ${esc(num)}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
     <table>
       <tr><th>Εκμισθωτής</th><td>${esc(landlord)}</td></tr>
@@ -1041,6 +1045,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
     const landlord=branding?.companyName?brandName(branding):'Property OS';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const base=p.base_rent!=null?p.base_rent:tenantBaseRent(tenant);
+    const accent = reportAccent(branding);
     const lines=tenantServiceLines(tenant);
     const svcTotal=lines.reduce((a,l)=>a+l.amount,0);
     const total=p.amount!=null?p.amount:base+svcTotal;
@@ -1053,7 +1058,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       body{font-family:'Inter',system-ui,sans-serif;max-width:720px;margin:0 auto;padding:40px;color:#111;background:#fff;font-size:13px;line-height:1.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .header{border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
       .brand{display:flex;align-items:center;gap:11px}
-      .mark{width:34px;height:34px;border-radius:8px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
+      .mark{width:34px;height:34px;border-radius:8px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
       h1{font-size:19px;font-weight:700;color:#111;letter-spacing:-.01em}
       .sub{font-size:11px;color:#6b7280;margin-top:2px}
       .num{font-size:11px;color:#6b7280;text-align:right;white-space:nowrap}
@@ -1067,6 +1072,7 @@ function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, notify 
       .footer{margin-top:36px;font-size:10px;color:#6b7280;text-align:center;border-top:1px solid #d1d5db;padding-top:12px}
       @media print{body{margin:0;padding:24px}@page{margin:16mm}}
     </style></head><body>
+    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
     <div class="header"><div class="brand">${brandLogoImg(branding,34)||`<div class="mark">P</div>`}<div><h1>Μηνιαία Κατάσταση Ενοικίου</h1><div class="sub">${esc(landlord)}</div></div></div><div class="num">Περίοδος ${esc(monthLabel(p))}<br>Έκδοση: ${esc(new Date().toLocaleDateString('el-GR'))}</div></div>
     <table class="meta">
       <tr><td>Μισθωτής</td><td>${esc(tenant.full_name||'—')}${tenant.afm?' &nbsp;·&nbsp; ΑΦΜ '+esc(tenant.afm):''}</td></tr>

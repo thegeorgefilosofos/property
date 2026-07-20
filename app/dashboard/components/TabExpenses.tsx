@@ -8,7 +8,7 @@ import { Spinner, ExportButton } from '@/components/Theme';
 import { downloadCsv, csvEur, csvDate } from './exportCsv';
 import { SHARED_SCOPES, ownerShareAmount, PAID_BY_OPTIONS } from '@/lib/expenses/sharing';
 import { annuityMonthly } from '@/lib/loans/recommend';
-import { brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
+import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -761,7 +761,7 @@ async function exportExcel(expenses: Expense[], propertyName: string) {
 
 
 function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportBranding | null) {
-  const accent = '#111';
+  const accent = reportAccent(branding);
   const today = new Date().toLocaleDateString('el-GR',{day:'2-digit',month:'long',year:'numeric'});
   const total = expenses.reduce((s,e)=>s+e.amount,0);
   const totalVat = expenses.reduce((s,e)=>s+(e.vat_amount||0),0);
@@ -828,7 +828,7 @@ function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportB
     body{font-family:'Inter',sans-serif;background:#fff;color:#111;font-size:10.5px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .page{padding:28px 32px;max-width:940px;margin:0 auto}
     /* Header */
-    .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid ${accent}}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #111}
     .logo{font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#111}.logo span{color:#111}
     .logo-s{font-size:10px;color:#6b7280;margin-top:2px}
     .meta-r{text-align:right}.meta-title{font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#111}
@@ -872,6 +872,7 @@ function exportPDF(expenses: Expense[], propertyName: string, branding?: ReportB
     }
   </style></head><body><div class="page">
 
+  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
   <!-- Header -->
   <div class="hdr">
     <div>

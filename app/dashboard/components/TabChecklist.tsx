@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { DatePicker } from './UIComponents'
 import { T, fn, PageTitle, KPIGrid, InfoBanner, Spinner, Btn, EmptyState, type KPIItem } from '@/components/Theme'
-import { brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
+import { reportAccent, brandRootVars, brandLogoImg, brandName, useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
 
 const supabase = createSupabaseClient()
@@ -476,6 +476,7 @@ async function exportChecklistExcel(items: ChecklistItem[]) {
 }
 
 function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBranding | null) {
+  const accent = reportAccent(branding)
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
   const eur = (n: number) => `${(n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
   const done = items.filter(i => i.status === 'done').length
@@ -574,8 +575,9 @@ tr:nth-child(even) td{background:#fafafa}
 .footer{margin-top:24px;padding-top:10px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:9px;color:#6b7280}
 @media print{.page{padding:18px 22px}}
 </style></head><body><div class="page">
+<div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
 <div class="hdr">
-  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:7px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">P</div><div class="logo">Property OS</div></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
+  <div>${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:7px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">P</div><div class="logo">Property OS</div></div>`}<div class="logo-s">Επαγγελματικό Εργαλείο Διαχείρισης Ακινήτων</div></div>
   <div class="meta-r"><div class="meta-title">Εκκρεμότητες Ακινήτου</div><div class="meta-d">${esc(today)}</div></div>
 </div>
 <div class="sec">
@@ -607,6 +609,7 @@ tr:nth-child(even) td{background:#fafafa}
 interface TenantData { full_name?: string; phone?: string; afm?: string; lease_end?: string; email?: string }
 
 function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' | 'checkout', tenant?: TenantData, branding?: ReportBranding | null) {
+  const accent = reportAccent(branding)
   const relevant = items.filter(i => i.category === type || (type === 'checkin' && i.category === 'legal'))
   const title = type === 'checkin' ? 'Πρωτόκολλο Παράδοσης Ακινήτου' : 'Πρωτόκολλο Αποχώρησης Ενοικιαστή'
   const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -755,6 +758,7 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#202124;font-size:11px
 </style></head><body>
 <div class="page">
 
+<div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
 <div class="hdr">
   <div>
     ${branding ? `${brandLogoImg(branding, 30)}<div class="logo">${brandName(branding)}</div>` : `<div class="logo">Property <span>OS</span></div>`}
