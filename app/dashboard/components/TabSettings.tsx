@@ -153,8 +153,13 @@ function DeleteAccount() {
             style={{ width: '100%', maxWidth: 260, height: 40, padding: '0 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 14, outline: 'none', marginBottom: 12 }} />
           {error && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {/* Ουδέτερο ως προεπιλογή· κόκκινο μόνο στο hover/focus, όταν είναι ενεργό (γραμμένο ΔΙΑΓΡΑΦΗ). */}
             <button onClick={del} disabled={!ready || busy}
-              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: 'none', background: ready && !busy ? 'var(--negative)' : 'var(--bg-elevated)', color: ready && !busy ? '#fff' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
+              onMouseEnter={e => { if (ready && !busy) { e.currentTarget.style.background = 'var(--negative)'; e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = '#fff'; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)'; }}
+              onFocus={e => { if (ready && !busy) { e.currentTarget.style.background = 'var(--negative)'; e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = '#fff'; } }}
+              onBlur={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)'; }}
+              style={{ appearance: 'none', cursor: ready && !busy ? 'pointer' : 'not-allowed', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: ready && !busy ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, transition: 'background 0.15s, color 0.15s, border-color 0.15s' }}>
               {busy ? 'Διαγραφή...' : 'Οριστική διαγραφή'}
             </button>
             <button onClick={() => { setOpen(false); setConfirmText(''); setError(null); }} disabled={busy}
