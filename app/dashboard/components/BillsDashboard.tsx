@@ -519,7 +519,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
     </div>
   );
@@ -701,7 +700,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
           <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Λογαριασμοί & Πάγια</span>
           {bills.length > 1 && (
             <select value={billSort} onChange={e => setBillSort(e.target.value as BillSort)} title="Ταξινόμηση"
@@ -816,7 +814,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
       {(calc.historyTotals.some(v => v > 0) || calc.byCategory.length > 0) && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', flex: 1, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ανάλυση & Γραφήματα</span>
             <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 3, gap: 2, border: '1px solid var(--border-subtle)' }}>
               {[{ id: 'area', label: 'Τάση' }, { id: 'bar', label: 'Μηνιαίο' }, { id: 'category', label: 'Κατηγορίες' }].map(v => (
@@ -987,7 +984,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
         return (
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ετήσιος Απολογισμός {currentYear}</span>
               <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginLeft: 'auto' }}>{MONTHS_GR[currentMonth]}, {currentYear}</span>
             </div>
@@ -1037,7 +1033,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                   <tr key={c.value}>
                     <td style={{ padding: '4px 8px', fontSize: 10, borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' as const }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                         <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{c.label}</span>
                       </div>
                     </td>
@@ -1109,7 +1104,6 @@ export default function BillsDashboard({ propertyId, userId, propertyName = 'Α�
                     return (
                       <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
                           <span style={{ fontSize: 11, color: b.paid ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: b.paid ? 'line-through' : 'none', fontFamily: T.font.sans }}>{b.name}</span>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

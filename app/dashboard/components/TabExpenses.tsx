@@ -138,7 +138,6 @@ const g4: React.CSSProperties = { display:'grid', gridTemplateColumns:'repeat(4,
 function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, paddingBottom:8, borderBottom:'1px solid var(--border-subtle)' }}>
-      <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--text-tertiary)', display:'inline-block', flexShrink:0 }} />
       <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
         {label}
       </span>
@@ -405,7 +404,6 @@ function ExpenseForm({
     <div style={{ ...cardStyle, border:`1px solid ${isEdit?'var(--accent)':'var(--border-accent)'}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <div style={{ fontSize:11, fontWeight:500, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif", display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--text-tertiary)', display:'inline-block' }} />
           {isEdit ? 'Επεξεργασία Δαπάνης' : 'Νέα Δαπάνη'}
         </div>
         {isDeductible !== undefined && (
@@ -1402,7 +1400,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, flexWrap:'wrap', gap:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--text-tertiary)', display:'inline-block' }} />
           <span style={{ fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.5px', fontFamily:"'Inter', sans-serif" }}>
             Δαπάνες Ακινήτου
           </span>
@@ -1701,7 +1698,6 @@ export default function TabExpenses({ propertyId, userId }: { propertyId:string;
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'16px 18px', marginBottom:16 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--text-tertiary)', display:'inline-block' }} />
                 <span style={{ fontSize:10, fontWeight:500, letterSpacing:'0.5px', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:"'Inter', sans-serif" }}>
                   Αναλύσεις & Ειδοποιήσεις
                 </span>

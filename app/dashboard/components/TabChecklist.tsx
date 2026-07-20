@@ -1169,7 +1169,6 @@ function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit: (item
             const cat = getCat(item.category)
             return (
               <div key={item.id} onClick={() => onEdit(item)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
               </div>

@@ -65,7 +65,6 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly }: 
     <div className="card" style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Airbnb και επιπλωμένο: <span title="Αριθμός Μητρώου Ακινήτου: αριθμός εγγραφής βραχυχρόνιας μίσθωσης στην ΑΑΔΕ">ΑΜΑ</span>, πληρότητα, σύγκριση με μακροχρόνια</div>

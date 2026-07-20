@@ -194,7 +194,6 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
 
   const secHdr = (label: string, link?: { url: string; text: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
@@ -436,7 +435,6 @@ export default function BillsProviders({ propertyId, userId = '' }: Props) {
         {/* FIX: "Συνδρομητική Τηλεόραση" (was "PAY TV") */}
         <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική Τηλεόραση</span>
             <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} label="Ενεργό" labelOff="Δεν έχω"/>
           </div>
