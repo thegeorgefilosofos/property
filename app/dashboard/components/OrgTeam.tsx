@@ -403,7 +403,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
             <Btn variant="primary" onClick={saveName} disabled={nameSaving}>
               {nameSaving ? 'Αποθήκευση…' : 'Αποθήκευση'}
             </Btn>
-            <Btn variant="secondary" onClick={cancelEditName} disabled={nameSaving}>Άκυρο</Btn>
+            <Btn variant="secondary" onClick={cancelEditName} disabled={nameSaving}>Ακύρωση</Btn>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>

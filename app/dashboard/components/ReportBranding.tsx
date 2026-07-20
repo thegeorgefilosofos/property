@@ -47,7 +47,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
     setError('');
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { setError('Μη έγκυρο αρχείο. Επίτρεπτά: PNG, JPG, WEBP.'); return; }
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { setError('Μη έγκυρο αρχείο. Επιτρεπτά: PNG, JPG, WebP.'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
@@ -64,7 +64,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
         if (out.length > MAX_LOGO_BYTES) { setError('Το αρχείο είναι πολύ μεγάλο. Διάλεξε εικόνα έως 500 KB.'); return; }
         setLogoUrl(out);
       };
-      img.onerror = () => setError('Μη έγκυρο αρχείο. Επίτρεπτά: PNG, JPG, WEBP.');
+      img.onerror = () => setError('Μη έγκυρο αρχείο. Επιτρεπτά: PNG, JPG, WebP.');
       img.src = String(reader.result);
     };
     reader.readAsDataURL(file);
@@ -114,10 +114,10 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
       <Card>
         <SecHdr label="Λογότυπο" />
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6, marginBottom: 14 }}>
-          PNG ή JPG, ιδανικά τετράγωνο ή οριζόντιο. Μειώνεται αυτόματα, μέγιστο 500 KB.
+          PNG, JPG ή WebP, ιδανικά τετράγωνο ή οριζόντιο. Μειώνεται αυτόματα, μέγιστο 500 KB.
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {logoUrl && <img src={logoUrl} alt="" style={{ height: 48, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 6 }} />}
+          {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 48, width: 'auto', maxWidth: 200, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 6 }} />}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onFile} style={{ display: 'none' }} />
           <Btn variant="secondary" onClick={() => fileRef.current?.click()}>Μεταφόρτωση λογοτύπου</Btn>
           {logoUrl && <Btn variant="ghost" onClick={() => setLogoUrl('')}>Αφαίρεση</Btn>}
@@ -141,7 +141,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
           <div style={{ height: 4, background: sanitizeAccent(accent) }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
             {logoUrl
-              ? <img src={logoUrl} alt="" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
+              ? <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
               : <div style={{ width: 34, height: 34, borderRadius: 9, background: sanitizeAccent(accent), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#202124', fontFamily: T.font.sans }}>{previewName}</div>

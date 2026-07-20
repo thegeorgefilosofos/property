@@ -397,7 +397,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setShowManage(true);
     setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
-  const openBilling = openManage;
   const openComparison = openManage;
 
   const ent = { plan, profileType, partner, compPlan, compUntil };
@@ -545,14 +544,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           )}
         </div>
 
-        {/* Επωνυμία αναφορών (μόνο για Επαγγελματία) */}
-        {profileType === 'professional' && (
-          <div style={divider}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>Επωνυμία αναφορών</div>
-            <ReportBranding userId={userId} onUpgrade={openComparison} />
-          </div>
-        )}
       </Card>
+
+      {/* Επωνυμία αναφορών (Επαγγελματίας): δική της ενότητα, χωρίς Card-in-Card. */}
+      {profileType === 'professional' && (
+        <ReportBranding userId={userId} onUpgrade={openComparison} />
+      )}
 
       {/* Ενοποιημένη «Διαχείριση συνδρομής»: πρώτα η σύγκριση πλάνων (τι κερδίζεις),
           έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
