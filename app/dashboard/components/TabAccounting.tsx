@@ -394,7 +394,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         const meta = { open:{ c:isCurrent?'var(--accent)':'var(--text-tertiary)', label:'ΑΝΟΙΧΤΟ' }, locked:{ c:'var(--positive)', label:'ΚΛΕΙΣΜΕΝΟ' }, drift:{ c:'var(--warning)', label:'ΑΠΟΚΛΙΣΗ' } }[st]
         return (
         <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', padding:'10px 14px', borderRadius:12, background:'var(--bg-surface)', border:`1px solid ${st==='drift'?'var(--warning)':'var(--border-subtle)'}` }}>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:24, padding:'0 10px', borderRadius:7, background:`color-mix(in srgb, ${meta.c} 12%, transparent)`, color:meta.c, fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily:"'Inter',sans-serif" }}>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:6, height:24, padding:'0 10px', borderRadius:7, background: st==='drift' ? `color-mix(in srgb, var(--warning) 12%, transparent)` : 'var(--bg-elevated)', color: st==='drift' ? 'var(--warning)' : 'var(--text-secondary)', fontSize:10, fontWeight:700, letterSpacing:'0.5px', fontFamily:"'Inter',sans-serif" }}>
             {st==='open'?(isCurrent?<span className="live-dot" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', flexShrink:0 }}/>:<Unlock size={12}/>):<Lock size={12}/>}{meta.label}
           </span>
           <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>
@@ -472,7 +472,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* Κατάσταση Αποτελεσμάτων + Πρόβλεψη φόρου */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
-        <div style={card}>
+        <div className="po-fig-card" style={card}>
           <p style={cardTitle}>Κατάσταση αποτελεσμάτων {year}</p>
           <div style={{ display:'flex', flexDirection:'column' }}>
             {statement.lines.map((l,i)=>{
@@ -480,7 +480,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               return (
                 <div key={l.key} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderTop:l.kind==='result'?'1px solid var(--border-subtle)':'none' }}>
                   <span style={{ flex:1, fontSize:strong?13.5:13, fontFamily:"'Inter',sans-serif", fontWeight:strong?600:400, color:l.kind==='result'?'var(--text-primary)':'var(--text-secondary)' }}>{l.label}</span>
-                  <span style={{ fontSize:strong?14:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:strong?700:500, color:lineColor(l.kind,l.amount) }}>{l.negative?'−':''}{eur2(l.amount)}</span>
+                  <span className="po-fig" data-tone={l.kind==='result'?(l.amount>=0?'accent':'negative'):undefined} style={{ fontSize:strong?14:13, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', fontWeight:strong?700:500 }}>{l.negative?'−':''}{eur2(l.amount)}</span>
                 </div>
               )
             })}
@@ -495,10 +495,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-          <div style={{ ...card, background:'linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--bg-elevated)) 0%, var(--bg-surface) 100%)' }}>
+          <div className="po-fig-card" style={card}>
             <p style={cardTitle}>Φόρος για να βάλεις στην άκρη</p>
             <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
-              <span style={{ fontSize:24, fontWeight:700, color:provision.monthly!==0?'var(--accent)':'var(--text-primary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
+              <span className="po-fig" data-tone={provision.monthly!==0?'accent':undefined} style={{ fontSize:24, fontWeight:700, fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums' }}>{eur(provision.monthly)}</span>
               <span style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>ανά μήνα</span>
             </div>
             <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>
@@ -526,9 +526,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
             {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; const lit=active||hot; return (
               <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
-                style={{ padding:'12px 14px', borderRadius:14, border:`1px solid ${lit?'var(--border-accent)':'var(--border-subtle)'}`, background:active?'var(--accent-soft)':'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', boxShadow:hot?'0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 30px -16px rgba(0,0,0,0.6)':'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -16px rgba(0,0,0,0.5)', transform:hot?'translateY(-3px)':'none', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease', cursor:'default' }}>
+                style={{ padding:'12px 14px', borderRadius:14, border:`1px solid ${lit?'var(--border-default)':'var(--border-subtle)'}`, background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', boxShadow:hot?'0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 30px -16px rgba(0,0,0,0.6)':'0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -16px rgba(0,0,0,0.5)', transform:hot?'translateY(-3px)':'none', transition:'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease', cursor:'default' }}>
                 <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:0, fontFamily:"'Inter',sans-serif" }}>{r.range}</p>
-                <p style={{ fontSize:16, fontWeight:700, color:lit?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", transition:'color 0.16s ease' }}>{r.rate}</p>
+                <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", transition:'color 0.16s ease' }}>{r.rate}</p>
               </div>
             )})}
           </div>
@@ -539,8 +539,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <p style={{ ...cardTitle, margin:0 }}>Νομικό πρόσωπο</p>
             <p style={{ fontSize:12.5, color:'var(--text-secondary)', margin:'7px 0 0', fontFamily:"'Inter',sans-serif", lineHeight:1.6, maxWidth:560 }}>Σταθερός φόρος <strong style={{ color:'var(--text-primary)' }}>22%</strong> επί των καθαρών κερδών, ανεξαρτήτως ύψους εισοδήματος (ΑΕ, ΕΠΕ, ΙΚΕ, ΟΕ, ΕΕ). Στη διανομή μερίσματος προστίθεται φόρος 5% και ισχύει προκαταβολή φόρου για το επόμενο έτος.</p>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minWidth:104, height:76, borderRadius:16, background:'linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%)', border:'1px solid var(--border-accent)', flexShrink:0 }}>
-            <span style={{ fontSize:28, fontWeight:700, color:'var(--accent)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', lineHeight:1 }}>22%</span>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minWidth:104, height:76, borderRadius:16, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexShrink:0 }}>
+            <span style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', lineHeight:1 }}>22%</span>
             <span style={{ fontSize:10, color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily:"'Inter',sans-serif", marginTop:5 }}>Συντελεστής</span>
           </div>
         </div>
@@ -566,7 +566,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 {portfolio.con.perProperty.map(pp=>(
-                  <div key={pp.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:`1px solid ${pp.id===propertyId?'var(--border-accent)':'var(--border-subtle)'}` }}>
+                  <div key={pp.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:`1px solid ${pp.id===propertyId?'var(--border-default)':'var(--border-subtle)'}` }}>
                     <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{portfolio.names[pp.id]}</span>
                     <span style={{ fontSize:12, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(pp.statement.grossIncome)}</span>
                     <span style={{ fontSize:12.5, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", minWidth:70, textAlign:'right' }}>φόρος {eur(pp.taxShare)}</span>
@@ -580,7 +580,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <div style={card}>
             <p style={cardTitle}>Εκπιπτόμενα έξοδα {year}</p>
             <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
-              <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--positive)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
+              <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(deductibleTotal)}</p></div>
               <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily:"'Inter',sans-serif" }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(expensesTotal-deductibleTotal)}</p></div>
             </div>
             <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily:"'Inter',sans-serif", lineHeight:1.5 }}>Για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
@@ -590,7 +590,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* Τεκμαρτή έκπτωση 5%: προϋπόθεση τραπεζικής είσπραξης (μακροχρόνια ιδιώτη) */}
       {!businessMode && regime==='individual_longterm' && (
-        <div style={{ ...card, padding:'13px 16px', display:'flex', flexDirection:'column', gap:6, border:`1px solid ${rentsBank?'var(--border-subtle)':'var(--negative-border)'}`, background:rentsBank?undefined:'color-mix(in srgb, var(--negative) 5%, var(--bg-surface))' }}>
+        <div style={{ ...card, padding:'13px 16px', display:'flex', flexDirection:'column', gap:6 }}>
           <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
             <Check checked={rentsBank} onChange={setRentsBank} label={<strong style={{ color:'var(--text-primary)', fontWeight:600 }}>Είσπραξη ενοικίων μέσω τραπέζης</strong>}/>
             <InfoHint>Από 1/1/2026 (ν.5246/2025) τα μισθώματα κατοικίας πρέπει να εισπράττονται με τραπεζικό/ηλεκτρονικό μέσο (κατάθεση, IRIS, έμβασμα). Με μετρητά χάνεται η τεκμαρτή έκπτωση 5% και φορολογείσαι στο 100% του ενοικίου.</InfoHint>
@@ -736,7 +736,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0 0' }}>
               <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{xferSide==='buy'?'Συνολική εκταμίευση':'Καθαρό έσοδο πώλησης'}</span>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--accent)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur(xferSide==='buy'?(xfer.cashOut||0):(xfer.netProceeds||0))}</span>
             </div>
           </div>
           <p style={{ fontSize:11.5, color:'var(--text-tertiary)', margin:'14px 0 0', paddingTop:12, borderTop:'1px solid var(--border-subtle)', fontFamily:"'Inter',sans-serif", lineHeight:1.55 }}>Ενδεικτική εκτίμηση. Τα ακριβή ποσά ορίζονται από συμβολαιογράφο ή την ΑΑΔΕ.<InfoHint>Τα ποσοστά είναι τα ισχύοντα. Τα κλιμακωτά συμβολαιογραφικά, η αντικειμενική αξία και οι απαλλαγές οριστικοποιούνται από συμβολαιογράφο, δικηγόρο ή την ΑΑΔΕ. Ο φόρος υπεραξίας 15% τελεί σε αναστολή.</InfoHint></p>
@@ -779,7 +779,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={card}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
             <p style={{ ...cardTitle, margin:0 }}>Συμφωνία ενοικίων</p>
-            <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>Εισπράχθηκαν <strong style={{ color:'var(--positive)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>
+            <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:"'Inter',sans-serif" }}>Εισπράχθηκαν <strong style={{ color:'var(--text-primary)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>
           </div>
           {recon.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", padding:'12px 0' }}>Δεν υπάρχουν καταχωρημένα ενοίκια για το {year}.</p>
@@ -790,7 +790,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   <span style={{ width:8, height:8, borderRadius:'50%', background:m.color, flexShrink:0 }}/>
                   <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif" }}>{r.expected.label}</span>
                   <span style={{ fontSize:12.5, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif" }}>{eur2(r.paidAmount)} / {eur2(r.expected.amount)}</span>
-                  <span style={{ fontSize:11, fontWeight:600, color:m.color, background:`color-mix(in srgb, ${m.color} 13%, transparent)`, borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif", minWidth:78, textAlign:'center' }}>{m.label}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:20, padding:'2px 9px', fontFamily:"'Inter',sans-serif", minWidth:78, textAlign:'center' }}>{m.label}</span>
                 </div>
               )})}
             </div>
@@ -814,7 +814,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', width:74, flexShrink:0 }}>{e.date.split('-').reverse().join('/')}</span>
                   <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily:"'Inter',sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</span>
                   {mode==='professional'&&<span style={{ fontSize:11.5, color:'var(--text-tertiary)', fontFamily:"'Inter',sans-serif", fontVariantNumeric:'tabular-nums', width:80, textAlign:'right' }}>{eur(e.balance)}</span>}
-                  <span style={{ fontSize:13, fontWeight:600, color:e.type==='income'?'var(--positive)':'var(--negative)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur2(e.amount)}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily:"'Inter',sans-serif", width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur2(e.amount)}</span>
                 </div>
               ))}
             </div>
