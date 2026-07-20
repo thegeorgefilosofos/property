@@ -160,11 +160,25 @@ function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: C
   const [open,setOpen]=useState(false)
   const btnRef=useRef<HTMLButtonElement>(null)
   const popRef=useRef<HTMLDivElement>(null)
-  const [pos,setPos]=useState({top:0,left:0})
+  const [pos,setPos]=useState({top:0,left:0,maxH:440,up:false})
   const setOpenX=setOpen
   // Ειδοποίηση γονέα εκτός φάσης render (όχι μέσα στον updater) — αποφυγή warning/StrictMode διπλο-κλήσης.
   useEffect(()=>{ onOpenChange?.(open) },[open,onOpenChange])
-  const reposition=()=>{ if(!btnRef.current)return; const r=btnRef.current.getBoundingClientRect(); const W=232,H=420; const left=Math.min(r.left,window.innerWidth-W-8); const openUp=r.bottom+H+8>window.innerHeight&&r.top-H-8>0; setPos({top:openUp?r.top-H-6:r.bottom+6,left:Math.max(8,left)}) }
+  // Τοποθέτηση με επίγνωση viewport: διάλεξε την πλευρά (κάτω/πάνω) με τον
+  // περισσότερο χώρο και όρισε maxHeight ίσο με τον διαθέσιμο χώρο, ώστε το μενού
+  // να ΧΩΡΑΕΙ ΠΑΝΤΑ στην οθόνη και να κάνει εσωτερικό scroll αν δεν φτάνει.
+  const reposition=()=>{
+    if(!btnRef.current)return;
+    const r=btnRef.current.getBoundingClientRect();
+    const W=232, M=8, GAP=6, DESIRED=440;
+    const left=Math.max(M, Math.min(r.left, window.innerWidth-W-M));
+    const spaceBelow=window.innerHeight - r.bottom - M;
+    const spaceAbove=r.top - M;
+    const up = spaceBelow < DESIRED && spaceAbove > spaceBelow;
+    const avail = up ? spaceAbove : spaceBelow;
+    const maxH = Math.max(140, Math.min(avail - GAP, DESIRED));
+    setPos({ top: up ? r.top - GAP : r.bottom + GAP, left, maxH, up });
+  }
   useEffect(()=>{ if(!open)return; reposition(); const h=(ev:MouseEvent)=>{const t=ev.target as Node; if(btnRef.current&&!btnRef.current.contains(t)&&popRef.current&&!popRef.current.contains(t))setOpenX(false)}; const s=()=>reposition(); document.addEventListener('mousedown',h); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s)} },[open])
   const links=allCalendarLinks(toCalInput(event))
   const row=(label:string,onClick:()=>void,icon:React.ReactNode,danger?:boolean)=>(
@@ -180,7 +194,7 @@ function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: C
         <MoreHorizontal size={16}/>
       </button>
       {open&&createPortal(
-        <div ref={popRef} style={{ position:'fixed',top:pos.top,left:pos.left,width:232,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,0.35)',padding:6,zIndex:2000 }}>
+        <div ref={popRef} style={{ position:'fixed',top:pos.top,left:pos.left,transform:pos.up?'translateY(-100%)':'none',width:232,maxHeight:pos.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:12,boxShadow:'0 12px 40px rgba(0,0,0,0.35)',padding:6,zIndex:2000 }}>
           <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 12px 4px',fontFamily:"'Inter',sans-serif" }}>Πρόσθεσε σε ημερολόγιο</div>
           {row('Google Calendar',()=>openExt(links.google),<Calendar size={15}/>)}
           {row('Outlook',()=>openExt(links.outlook),<Calendar size={15}/>)}
