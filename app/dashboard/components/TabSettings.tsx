@@ -16,6 +16,7 @@ import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
 import SettingsRoadmap from './SettingsRoadmap';
+import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
 import OrgTeam from './OrgTeam';
@@ -128,17 +129,23 @@ function DeleteAccount() {
 
   return (
     <div style={divider}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
         Διαγράφει οριστικά τον λογαριασμό σου και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα εξαγωγή δεδομένων από κάθε καρτέλα.
       </div>
       {!open ? (
+        // Ουδέτερο ως προεπιλογή· γίνεται κόκκινο μόνο στο hover/focus, ώστε να μη
+        // «σπρώχνει» τον χρήστη προς την έξοδο, αλλά να είναι σαφές όταν το πλησιάζει.
         <button onClick={() => setOpen(true)}
-          style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--negative-border)', background: 'transparent', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--negative-border)'; e.currentTarget.style.color = 'var(--negative)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--negative-border)'; e.currentTarget.style.color = 'var(--negative)'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          style={{ appearance: 'none', cursor: 'pointer', padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, transition: 'color 0.15s, border-color 0.15s' }}>
           Διαγραφή του λογαριασμού μου
         </button>
       ) : (
-        <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: 16 }}>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: 16 }}>
           <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
@@ -601,6 +608,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
         <SettingsRoadmap userId={userId} />
+        <div style={divider}>
+          <Feedback target="general" />
+        </div>
         <DeleteAccount />
       </Card>
 

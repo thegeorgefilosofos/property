@@ -21,7 +21,7 @@ const ITEMS: RoadItem[] = [
   {
     name: 'Πληρωμές εντός εφαρμογής',
     line: 'Είσπραξη με κάρτα ή IRIS μέσα από το app, με αδειοδοτημένο πάροχο.',
-    detail: 'Ο ενοικιαστής εξοφλεί με ένα άγγιγμα και η πληρωμή καταγράφεται μόνη της στο ταμείο σου.',
+    detail: 'Ο ενοικιαστής εξοφλεί με ένα κλικ και η πληρωμή καταγράφεται μόνη της στο ταμείο σου.',
     chip: 'Σε ανάπτυξη', tone: 'accent',
   },
   {
@@ -147,8 +147,8 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
             </div>
 
             <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, margin: '8px 0 0' }}>
-              Διαχειρίσου τα ακίνητά σου από το κινητό, με λίγα αγγίγματα. Πιο εύκολα και πιο γρήγορα για όλους,
-              έρχεται πιο σύντομα από ποτέ.
+              Όλη η διαχείριση των ακινήτων σου στο κινητό, με λίγα κλικ ή τη φωνή σου. Απλά και γρήγορα,
+              όπου κι αν βρίσκεσαι.
             </p>
 
             {/* Platform chips */}
@@ -181,55 +181,65 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* Compact grid, τα υπόλοιπα που έρχονται */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 10 }}>
+      {/* Δευτερεύοντα, όλα μαζί σε μία σειρά: ομοιόμορφα, συμπαγή, ισοϋψή.
+          Τέσσερα σε πλάτος στην επιφάνεια εργασίας, αναδιπλώνονται καθαρά. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'start' }}>
         {ITEMS.map((it, i) => {
           const isOpen = !!open[i];
           return (
-            <div key={it.name} className="acc-section" style={{ animationDelay: `${120 + i * 55}ms` }}>
-              <button
-                type="button"
-                className="acc-choice"
-                aria-expanded={isOpen}
-                onClick={() => toggle(i)}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.boxShadow = 'var(--highlight-inset), var(--elev-1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
-                style={{
-                  width: '100%', textAlign: 'left', cursor: 'pointer',
-                  background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-                  borderRadius: T.radius.inner, padding: 14, fontFamily: T.font.sans,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{it.name}</span>
-                  <Chip tone={it.tone}>{it.chip}</Chip>
+            <button
+              key={it.name}
+              type="button"
+              className="acc-section acc-choice"
+              aria-expanded={isOpen}
+              onClick={() => toggle(i)}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.boxShadow = 'var(--highlight-inset), var(--elev-1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.boxShadow = 'none'; }}
+              style={{
+                display: 'flex', flexDirection: 'column',
+                width: '100%', textAlign: 'left', cursor: 'pointer',
+                background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+                borderRadius: T.radius.inner, padding: 13, fontFamily: T.font.sans,
+                animationDelay: `${120 + i * 55}ms`,
+              }}
+            >
+              {/* Chip πρώτο, ενιαία θέση σε όλα τα κελιά (ιεραρχία/τυποποίηση) */}
+              <div style={{ marginBottom: 8 }}>
+                <Chip tone={it.tone}>{it.chip}</Chip>
+              </div>
+
+              <span style={{
+                fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>{it.name}</span>
+
+              <div style={{
+                fontSize: 11.5, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6,
+                ...(isOpen ? {} : { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
+              }}>{it.line}</div>
+
+              {isOpen && (
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-subtle)' }}>
+                  {it.detail}
                 </div>
+              )}
 
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 6 }}>{it.line}</div>
-
-                {isOpen && (
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-subtle)' }}>
-                    {it.detail}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: 'var(--text-tertiary)' }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em' }}>
-                    {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
-                  </span>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </div>
-              </button>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 'auto', paddingTop: 10, color: 'var(--text-tertiary)' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.02em' }}>
+                  {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
+                </span>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            </button>
           );
         })}
       </div>
 
       {/* Closing line */}
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.45, marginTop: 14 }}>
-        Έχεις ιδέα ή ζήτημα; Στείλε μας από τον βοηθό, το ακούμε.
+        Έχεις μια ιδέα ή κάτι που θα ήθελες αλλιώς; Πες το μας μέσα από τον βοηθό, σε ακούμε.
       </div>
     </div>
   );
