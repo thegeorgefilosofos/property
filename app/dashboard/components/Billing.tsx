@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
+import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
 interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
@@ -92,6 +93,7 @@ export default function Billing({ userId }: { userId: string }) {
   const reverseCharge = isReverseCharge(d);
   const missing = missingInvoiceFields(d as InvoiceProfile);
   const vatLabel = isEuCountry(country) ? 'VAT (VIES)' : 'Φορολογικό μητρώο';
+  const vatSummary = vatTreatmentLabel(determineVat(d));
 
   return (
     <div>
@@ -121,11 +123,10 @@ export default function Billing({ userId }: { userId: string }) {
           <TextInput label="Τηλέφωνο" value={d.phone} onChange={v => set('phone', v)} placeholder="69XXXXXXXX" />
         </div>
 
-        {reverseCharge && (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 12 }}>
-            Ενδοκοινοτική παροχή υπηρεσιών: το τιμολόγιο εκδίδεται χωρίς ΦΠΑ, με αντιστροφή της υποχρέωσης (reverse charge). Χρειάζεται έγκυρος κοινοτικός VAT (VIES).
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12, fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+          <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Καθεστώς ΦΠΑ</span>
+          <span>{vatSummary}{reverseCharge ? '. Χρειάζεται έγκυρος κοινοτικός VAT (VIES).' : ''}</span>
+        </div>
         {isInvoice && missing.length > 0 && (
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 10 }}>
             Για σωστό τιμολόγιο, συμπλήρωσε ακόμη: {missing.map(f => f.label).join(', ')}.
