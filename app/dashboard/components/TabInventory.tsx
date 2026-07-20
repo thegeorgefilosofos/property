@@ -8,6 +8,7 @@ import { T, PageTitle, KPIGrid, SecHdr, InfoBanner, Btn, EmptyState, fe, fn, fd,
 import { downloadCsv, csvEur, csvDate, csvSafe } from './exportCsv'
 import { depreciate, replacementSuggestion, portfolioSummary, USEFUL_LIFE_YEARS } from '@/lib/inventory/depreciation'
 import { reportAccent } from '@/lib/reportBranding'
+import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 
 const supabase = createSupabaseClient()
 
@@ -1779,21 +1780,23 @@ function ExportsTab({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:Inve
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='απογραφη.csv';a.click()
   }
   const exportPDF=()=>{
-    const accent = reportAccent(null)
     const byCat=['Έπιπλα','Ηλεκτρικές Συσκευές','Ηλεκτρονικά','Υδραυλικά','Θέρμανση & Ψύξη','Φωτιστικά','Διακόσμηση','Λοιπά'].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
-    const eur=(n:number)=>`${(n||0).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`
-    const w=window.open('','_blank');if(!w)return
-    w.document.write(`<html><head><title>Απογραφή</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Roboto,Arial,sans-serif;font-size:11px;color:#111;padding:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd{display:flex;align-items:center;gap:10px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:18px}.mark{width:32px;height:32px;border-radius:7px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}.bn{font-size:15px;font-weight:700;color:#111}h1{font-size:22px;font-weight:700;color:#111;margin-bottom:4px}.sub{color:#6b7280;margin-bottom:24px;font-size:12px}.kpis{display:flex;gap:12px;margin-bottom:28px}.kpi{flex:1;background:#f8f9fa;border:1px solid #d1d5db;border-radius:8px;padding:14px}.kpi-v{font-size:18px;font-weight:700;color:#111;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;margin-bottom:2px}.kpi-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:700}h2{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#374151;font-weight:700;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid #111}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f8f9fa;padding:7px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:700;border:1px solid #d1d5db}td{padding:7px 8px;border:1px solid #e5e7eb;font-size:11px;color:#374151}.num{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;color:#111}.footer{margin-top:40px;padding-top:12px;border-top:1px solid #d1d5db;font-size:10px;color:#6b7280;text-align:center}@media print{button{display:none}}</style></head><body>
-    <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
-    <div class="hd"><div class="mark">P</div><div class="bn">Property OS</div></div>
-    <h1>Απογραφή Ακινήτου</h1><div class="sub">${esc(new Date().toLocaleDateString('el-GR'))} · ${esc(items.length)} αντικείμενα</div>
-    <div class="kpis"><div class="kpi"><div class="kpi-v">${esc(eur(totalCurrent))}</div><div class="kpi-l">Τρέχουσα Αξία</div></div><div class="kpi"><div class="kpi-v">${esc(eur(Math.round(totalCurrent*1.1)))}</div><div class="kpi-l">Ασφαλιστέα (+10%)</div></div><div class="kpi"><div class="kpi-v">${esc(eur(totalRepairs))}</div><div class="kpi-l">Επισκευές</div></div>${electricItems.length>0?`<div class="kpi"><div class="kpi-v">${esc(eur(totalMonthlyCost))}</div><div class="kpi-l">Ρεύμα/Μήνα</div></div>`:''}</div>
-    <h2>Ανά Κατηγορία</h2>${byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e5e7eb"><span style="color:#374151">${esc(cat)} (${esc(count)})</span><strong class="num">${esc(eur(val))}</strong></div>`).join('')}
-    <h2>Αναλυτική Κατάλογος</h2><table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th>Προέλευση</th><th>Αξία Αγοράς</th><th>Τρέχουσα</th><th>Απόσβεση</th><th>kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>
-    ${items.map(i=>`<tr><td><strong>${esc(i.name)}</strong>${i.brand?`<br><small style="color:#6b7280">${esc(i.brand)} ${esc(i.model||'')}</small>`:''}</td><td>${esc(i.energy_class||'—')}</td><td>${esc(i.condition)}</td><td>${esc(provenanceLabel(i.provenance)||'Νέο')}</td><td class="num">${esc(i.purchase_value?eur(i.purchase_value):'—')}</td><td class="num" style="font-weight:700">${esc(eur(calcCurrentValue(i)))}</td><td class="num">${esc(calcDepreciationPct(i))}%</td><td class="num">${esc(calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—')}</td><td>${esc(i.warranty_expiry?fmtDate(i.warranty_expiry):'—')}</td></tr>`).join('')}
-    </tbody></table><div class="footer">Property OS · ${esc(new Date().toLocaleDateString('el-GR'))}</div>
-    <button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer;border-radius:6px">Εκτύπωση</button></body></html>`)
-    w.document.close()
+    const catRows=byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>reportRow(`${cat} (${count})`,rEur(val))).join('')
+    const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||'—')}</td><td>${rEsc(i.condition)}</td><td>${rEsc(provenanceLabel(i.provenance)||'Νέο')}</td><td class="n">${rEsc(i.purchase_value?rEur(i.purchase_value):'—')}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(calcDepreciationPct(i)))}</td><td class="n">${rEsc(calcMonthlyKwh(i)>0?calcMonthlyKwh(i)+' kWh':'—')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):'—')}</td></tr>`).join('')
+    const html = reportHead('Απογραφή ακινήτου')
+      + `<body><div class="page">`
+      + reportHeader(null, 'Απογραφή ακινήτου')
+      + `<h1>Απογραφή Ακινήτου</h1>`
+      + `<div class="sub">${rEsc(String(items.length))} αντικείμενα</div>`
+      + reportSection('Σύνοψη')
+      + `<div class="kpis">${reportKpi('Τρέχουσα Αξία', rEur(totalCurrent))}${reportKpi('Ασφαλιστέα (+10%)', rEur(Math.round(totalCurrent*1.1)))}${reportKpi('Επισκευές', rEur(totalRepairs))}${electricItems.length>0?reportKpi('Ρεύμα/Μήνα', rEur(totalMonthlyCost)):''}</div>`
+      + reportSection('Ανά Κατηγορία')
+      + `<table><tbody>${catRows}</tbody></table>`
+      + reportSection('Αναλυτικός Κατάλογος')
+      + `<table><thead><tr><th>Αντικείμενο</th><th>Κλάση</th><th>Κατάσταση</th><th>Προέλευση</th><th class="n">Αξία Αγοράς</th><th class="n">Τρέχουσα</th><th class="n">Απόσβεση</th><th class="n">kWh/μήνα</th><th>Εγγύηση</th></tr></thead><tbody>${detailRows}</tbody></table>`
+      + reportDisclaimer('Η παρούσα απογραφή δημιουργήθηκε από το Property OS και έχει ενημερωτικό χαρακτήρα. Οι τρέχουσες αξίες προκύπτουν από γραμμική απόσβεση βάσει της ωφέλιμης ζωής κάθε κατηγορίας και δεν αποτελούν επίσημη εκτίμηση. Η ασφαλιστέα αξία (+10%) είναι ενδεικτική.')
+      + `</div></body></html>`
+    openReport(html)
   }
   // Εικονογραφημένη έκθεση για ασφαλιστική — μία «κάρτα» ανά αντικείμενο με φωτογραφία & ασφαλιστέα αξία.
   const insurableOf=(i:InventoryItem)=> i.replacement_cost>0?i.replacement_cost:Math.round(calcCurrentValue(i)*1.1)
