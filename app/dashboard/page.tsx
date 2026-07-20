@@ -38,7 +38,9 @@ import { stayTotal } from '@/lib/clients/clients';
 import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
 import { rentalIncomeTax } from '@/lib/billing/greekTax';
 import UpgradeModal from './components/UpgradeModal';
-import { canAddProperty } from '@/lib/billing/plans';
+import FeatureLock, { LockBadge } from './components/FeatureLock';
+import { PLANS } from '@/lib/billing/plans';
+import { effectivePlan, isTabAllowed, isTabRelevant, canAddProperty, type EntitlementInput } from '@/lib/billing/entitlements';
 import OnboardingChecklist, { type SetupStep } from './components/OnboardingChecklist';
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
@@ -791,6 +793,8 @@ export default function Dashboard() {
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
+  const [compPlan, setCompPlan] = useState<string|null>(null);   // δωρεάν πρόσβαση: επίπεδο (π.χ. από referral)
+  const [compUntil, setCompUntil] = useState<string|null>(null); // δωρεάν πρόσβαση: λήξη (ISO)
   const [ownerName, setOwnerName] = useState('');         // όνομα ιδιοκτήτη για προσφώνηση (billing_profiles.owner_name)
   const [profileType, setProfileType] = useState<'individual'|'professional'>('individual'); // τύπος προφίλ → οδηγεί το interface
   const [isPartner, setIsPartner] = useState(false);      // ιδιότητα Συνεργάτη (referral_partners)
@@ -813,6 +817,11 @@ export default function Dashboard() {
   const inventoryAlerts = useInventoryAlerts(selected?.id||null, user?.id||null);
   const checklistAlerts = useChecklistAlerts(selected?.id||null);
 
+  // Δικαιώματα συνδρομής: το «ενεργό» πλάνο ορίζει τι βλέπεις (βασικό πλάνο,
+  // ανυψωμένο από ενεργούς δωρεάν μήνες ή ιδιότητα Συνεργάτη).
+  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil };
+  const effPlan = effectivePlan(ent);
+
   const fetchProperties = useCallback(async (uid: string) => {
     const { data } = await supabase.from('user_properties').select('*').eq('user_id', uid).order('created_at');
     const props = data || [];
@@ -834,7 +843,10 @@ export default function Dashboard() {
       // Ιδιότητα Συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      supabase.from('billing_profiles').select('plan, owner_name, profile_type').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); });
+      supabase.from('billing_profiles').select('plan, owner_name, profile_type, comp_plan, comp_until').eq('user_id', user.id).maybeSingle().then(({ data }) => { setPlan(data?.plan || 'free'); setOwnerName(data?.owner_name || ''); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); });
+      // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
+      // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
+      supabase.rpc('sync_comp_from_referrals').then(() => {});
       await fetchProperties(user.id);
       // Καλωσόρισμα πρώτης χρήσης: μόνο για νέο χρήστη (χωρίς ακίνητα) που δεν
       // έχει ξαναδεί το onboarding (πρόοδος στη βάση, όχι μόνο τοπικά).
@@ -856,7 +868,7 @@ export default function Dashboard() {
 
   // Προσθήκη ακινήτου με έλεγχο ορίου πλάνου: αν έφτασες το όριο, δείξε αναβάθμιση.
   const tryAddProperty = () => {
-    if (canAddProperty(plan, properties.length)) setShowAddModal(true);
+    if (canAddProperty(ent, properties.length)) setShowAddModal(true);
     else setShowUpgrade(true);
   };
 
@@ -942,7 +954,7 @@ export default function Dashboard() {
 
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
-    ...NAV_ITEMS.map(item => ({
+    ...NAV_ITEMS.filter(item => isTabRelevant(profileType, item.id)).map(item => ({
       id: `nav-${item.id}`, label: item.label, hint: 'Μετάβαση', group: 'Πλοήγηση',
       keywords: item.id, action: () => { if (selected) setNav(item.id); },
     })),
@@ -1009,9 +1021,9 @@ export default function Dashboard() {
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
           {NAV_GROUPS.map((group,gi) => {
-            // Χωρίς διπλότυπα: η ομάδα «Εργαλεία» εμφανίζεται στην μπάρα ΜΟΝΟ στον
-            // Επαγγελματία. Στον Ιδιώτη τα ίδια εργαλεία ζουν στην Επισκόπηση,
-            // κάτω από «Είσπραξη & Πληρωμές».
+            // Χωρίς διπλότυπα: τα εργαλεία (Απογραφή/Αρχείο/Εκκρεμότητες/Επαφές) είναι
+            // δωρεάν και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ —
+            // στον Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
             if (group.label==='Εργαλεία' && profileType!=='professional') return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
@@ -1026,11 +1038,11 @@ export default function Dashboard() {
                   <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               )}
-              {open && group.ids.filter(id => (id!=='comparison' || properties.length>=2) && (id!=='portfolio' || profileType==='professional')).map(id => { const badge=getBadge(id); return (
-                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}>
+              {open && group.ids.filter(id => isTabRelevant(profileType, id)).map(id => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
+                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected} title={locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && profileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
-                  {badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>}
+                  {locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
                 </button>
               );})}
             </div>
@@ -1150,9 +1162,13 @@ export default function Dashboard() {
                   Επισκόπηση
                 </button>
               )}
-              {nav==='portfolio' && <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
+              {nav==='portfolio' && (isTabAllowed(ent,'portfolio')
+                ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
+                : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit="Συγκεντρωτική εικόνα όλων των ακινήτων σου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='overview'  && <OverviewTab prop={selected} userId={user.id} ownerName={ownerName} onSaveOwnerName={async (n)=>{ setOwnerName(n); await supabase.from('billing_profiles').upsert({ user_id: user.id, owner_name: n.trim() || null }, { onConflict: 'user_id' }); }} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)} onCleanDemo={cleanupDemo} profileType={profileType}/>}
-              {nav==='comparison'&& <TabComparison properties={properties} userId={user.id}/>}
+              {nav==='comparison'&& (isTabAllowed(ent,'comparison')
+                ? <TabComparison properties={properties} userId={user.id}/>
+                : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit="Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις αμέσως πού κερδίζεις και πού χάνεις. Ξεκλειδώνει με το πλάνο Ιδιοκτήτης." requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyAddress={selected.address||''} profileType={profileType}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id}/>}
               {nav==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
@@ -1163,7 +1179,9 @@ export default function Dashboard() {
               {nav==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={profileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='contacts'  && <TabContacts propertyId={selected.id} userId={user.id} profileType={profileType} properties={properties}/>}
-              {nav==='clients'   && <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>}
+              {nav==='clients'   && (isTabAllowed(ent,'clients')
+                ? <TabClients userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
+                : <FeatureLock title="Πελατολόγιο και υποψήφιοι (CRM)" benefit="Οργάνωσε πελάτες, ιστορικό διαμονών, αξιολογήσεις και υποψήφιους σε ένα επαγγελματικό CRM. Ξεκλειδώνει με το πλάνο Επαγγελματίας." requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {nav==='documents' && <TabDocuments propertyId={selected.id} userId={user.id} profileType={profileType}/>}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={profileType}/>}
               {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={profileType} onProfileChange={setProfileType}/>}

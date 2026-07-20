@@ -488,6 +488,88 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('go accounting action (Ε2)', r.action?.type === 'go' && (r.action as any).tab === 'accounting');
 }
 
+// ── Συνδρομή & gating: ο βοηθός ξέρει τι ξεκλειδώνει κάθε πλάνο & upsellάρει με ΑΞΙΑ ──
+{
+  const p = buildSystemPrompt(id(), 'Διαμέρισμα');
+  // η νέα ενότητα υπάρχει
+  ok('gating: section exists', /ΣΥΝΔΡΟΜΗ & ΞΕΚΛΕΙΔΩΜΑ ΔΥΝΑΤΟΤΗΤΩΝ/.test(p));
+  // τα τρία πλάνα με τιμές & όρια (mirror plans.ts)
+  ok('gating: free plan named', /«Δωρεάν»/.test(p));
+  ok('gating: owner plan named', /«Ιδιοκτήτης»/.test(p));
+  ok('gating: agency plan named', /«Επαγγελματίας»/.test(p));
+  ok('gating: free = 0€ / 1 property', /0€/.test(p) && /1 ακίνητο/.test(p));
+  ok('gating: owner price 5,90€', /5,90€\/μήνα/.test(p));
+  ok('gating: owner up to 6', /έως 6 ακίνητα/.test(p));
+  ok('gating: agency price 18,90€', /18,90€\/μήνα/.test(p));
+  ok('gating: agency unlimited', /απεριόριστα ακίνητα/.test(p));
+
+  // τι δίνει η Δωρεάν για 1 ακίνητο (βασικά εργαλεία)
+  ok('gating: free unlocks basics', /Η «ΔΩΡΕΑΝ» ΔΙΝΕΙ ΤΑ ΠΑΝΤΑ ΓΙΑ 1 ΑΚΙΝΗΤΟ/.test(p));
+  ok('gating: free lists core tools', /Επισκόπηση/.test(p) && /Αποδόσεις/.test(p) && /σάρωση εγγράφων/.test(p));
+
+  // tier → unlock (Ιδιοκτήτης / owner)
+  ok('gating: Σύγκριση → Ιδιοκτήτης', /Ο «ΙΔΙΟΚΤΗΤΗΣ».*«Σύγκριση ακινήτων»/.test(p));
+  ok('gating: Ε2 → Ιδιοκτήτης', /Ο «ΙΔΙΟΚΤΗΤΗΣ».*«Ε2»/.test(p));
+  ok('gating: είσπραξη ενοικίου → Ιδιοκτήτης', /Ο «ΙΔΙΟΚΤΗΤΗΣ».*είσπραξη ενοικίου/.test(p));
+  ok('gating: περισσότερα ακίνητα → Ιδιοκτήτης', /Ο «ΙΔΙΟΚΤΗΤΗΣ».*περισσότερα ακίνητα/.test(p));
+
+  // tier → unlock (Επαγγελματίας / agency)
+  ok('gating: Χαρτοφυλάκιο → Επαγγελματίας', /Ο «ΕΠΑΓΓΕΛΜΑΤΙΑΣ».*«Χαρτοφυλάκιο»/.test(p));
+  ok('gating: Πελατολόγιο/CRM → Επαγγελματίας', /Ο «ΕΠΑΓΓΕΛΜΑΤΙΑΣ».*«Πελατολόγιο» \/ CRM/.test(p));
+  ok('gating: branding → Επαγγελματίας', /Ο «ΕΠΑΓΓΕΛΜΑΤΙΑΣ».*branding/.test(p));
+  ok('gating: επώνυμες αναφορές → Επαγγελματίας', /Ο «ΕΠΑΓΓΕΛΜΑΤΙΑΣ».*επώνυμες αναφορές/.test(p));
+  ok('gating: ομάδα → Επαγγελματίας', /Ο «ΕΠΑΓΓΕΛΜΑΤΙΑΣ».*ομάδα/.test(p));
+
+  // profile ↔ plan
+  ok('gating: Ιδιώτης → Δωρεάν ή Ιδιοκτήτης', /ο «Ιδιώτης» μπορεί «Δωρεάν» ή «Ιδιοκτήτης»/.test(p));
+  ok('gating: Επαγγελματίας → πλάνο Επαγγελματίας', /Ο «Επαγγελματίας» έχει το πλάνο «Επαγγελματίας»/.test(p));
+  ok('gating: Ιδιώτης θέλει pro → switch mode', /χρειάζεται να γυρίσει τον τρόπο σε «Επαγγελματίας»/.test(p));
+
+  // όριο ακινήτων 1 / 6 / απεριόριστα
+  ok('gating: limits 1/6/unlimited', /Δωρεάν 1, Ιδιοκτήτης 6, Επαγγελματίας απεριόριστα/.test(p));
+  ok('gating: δεύτερο ακίνητο needs upgrade', /«δεύτερο ακίνητο»/.test(p) && /χρειάζεται αναβάθμιση/.test(p));
+
+  // value-first framing keywords
+  ok('gating: value keyword «αξία»', /αξία/.test(p));
+  ok('gating: «χωρίς δέσμευση»', /χωρίς δέσμευση/.test(p));
+  ok('gating: «ακυρώνεις όποτε»', /ακυρώνεις όποτε/.test(p));
+  ok('gating: gain not spend', /ΚΕΡΔΙΖΕΙΣ σε αξία, όχι σαν έξοδο/.test(p));
+  ok('gating: no pressure / dark patterns', /ποτέ σαν πωλητής|ποτέ dark patterns/i.test(p));
+  ok('gating: honest if not needed', /Αν κάποιος δεν το χρειάζεται, πες το ειλικρινά/.test(p));
+
+  // δωρεάν μήνες / comp μπορούν να καλύψουν την αναβάθμιση
+  ok('gating: free months cover it', /δωρεάν μήνες από το Πρόγραμμα Πρόσκλησης/.test(p) && /μπορούν να το καλύψουν/.test(p));
+  ok('gating: partner comp mentioned', /ιδιότητα Συνεργάτη/.test(p));
+
+  // routing στην ενότητα «Συνδρομή»
+  ok('gating: routes to «Συνδρομή» settings', /ενότητα «Συνδρομή» με \[\[go:settings\]\]/.test(p));
+
+  // κλειδωμένες καρτέλες / FeatureLock / professional-only
+  ok('gating: lock icon + FeatureLock', /λουκέτο/.test(p) && /FeatureLock/.test(p));
+  ok('gating: Χαρτοφυλάκιο & Πελατολόγιο pro-only', /«Χαρτοφυλάκιο» και το «Πελατολόγιο» εμφανίζονται ΜΟΝΟ στους επαγγελματίες/.test(p));
+
+  // σύντομοι / greeklish / χωρίς-τόνους triggers
+  ok('gating: trigger «συγκριση» (no accent)', /«συγκριση»/.test(p));
+  ok('gating: trigger «xartofylakio» (greeklish)', /«xartofylakio»/.test(p));
+  ok('gating: trigger «crm» (lowercase)', /«crm»/.test(p));
+  ok('gating: trigger «περισσοτερα ακινητα» (no accent)', /«περισσοτερα ακινητα»/.test(p));
+  ok('gating: trigger «Ε2 εξαγωγή»', /«Ε2 εξαγωγή»/.test(p));
+  ok('gating: trigger «branding»/«επώνυμες αναφορές»', /«branding»\/«επώνυμες αναφορές»/.test(p));
+
+  // mobile app coming soon + waitlist
+  ok('gating: Property OS Mobile coming', /Property OS Mobile/.test(p) && /ΕΡΧΕΤΑΙ, ΔΕΝ υπάρχει ακόμη/.test(p));
+  ok('gating: mobile iOS & Android', /iOS και Android/.test(p));
+  ok('gating: mobile roadmap «Τι έρχεται»', /roadmap «Τι έρχεται»/.test(p));
+  ok('gating: mobile waitlist «Ειδοποίησέ με»', /λίστα αναμονής/.test(p) && /«Ειδοποίησέ με»/.test(p));
+  ok('gating: never claim mobile exists', /ΜΗΝ πεις ποτέ ότι υπάρχει ήδη/.test(p));
+}
+// parseAction: το upsell δρομολογεί έγκυρα στη Συνδρομή/Λογαριασμό
+{
+  const r = parseAction('Η «Σύγκριση ακινήτων» ανοίγει με το πλάνο Ιδιοκτήτης. [[go:settings]]');
+  ok('gating: go settings from upsell', r.action?.type === 'go' && (r.action as any).tab === 'settings');
+  ok('gating: upsell text stripped', !/\[\[/.test(r.clean));
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

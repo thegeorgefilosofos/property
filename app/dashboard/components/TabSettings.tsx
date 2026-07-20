@@ -9,13 +9,15 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, Badge, TierBadge, InfoBanner, PageTitle } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong } from '@/components/Theme';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadCsv } from './exportCsv';
 import Billing from './Billing';
 import ReportBranding from './ReportBranding';
 import { ThemeToggle } from './ThemeToggle';
-import { PLANS, normalizePlan } from '@/lib/billing/plans';
+import SettingsRoadmap from './SettingsRoadmap';
+import { PLANS } from '@/lib/billing/plans';
+import { effectivePlan, activeComp, planAtLeast } from '@/lib/billing/entitlements';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -98,40 +100,6 @@ function MarketDataSharing({ userId }: { userId: string }) {
         </div>
       </div>
       {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
-    </div>
-  );
-}
-
-// ── Ενσωματώσεις: πραγματική κατάσταση, bare list ─────────────────────────
-function IntegrationsList() {
-  const LIVE: { name: string; desc: string }[] = [
-    { name: 'Airbnb / Booking (iCal)', desc: 'Συγχρονισμός κρατήσεων μέσω συνδέσμου iCal, στο Πελατολόγιο.' },
-    { name: 'Εισαγωγή από email', desc: 'Το AI διαβάζει email κράτησης και δημιουργεί πελάτη και διαμονή.' },
-    { name: 'Πύλη λογιστή', desc: 'Ασφαλής σύνδεσμος μόνο ανάγνωσης με εικόνα εσόδων και δαπανών ανά έτος.' },
-    { name: 'Πύλη επισκέπτη (check-in)', desc: 'Ο επισκέπτης συμπληρώνει στοιχεία άφιξης πριν φτάσει, με συγκατάθεση GDPR.' },
-    { name: 'Σύνδεσμοι πληρωμής', desc: 'Κουμπιά προς e-banking τραπεζών, Revolut και IRIS για είσπραξη ενοικίου.' },
-  ];
-  const SOON: { name: string; desc: string }[] = [
-    { name: 'Channel manager δύο κατευθύνσεων', desc: 'Αμφίδρομος συγχρονισμός τιμών και διαθεσιμότητας. Απαιτεί επίσημη σύνδεση με τα API των καναλιών.' },
-    { name: 'Πληρωμές εντός εφαρμογής', desc: 'Είσπραξη με κάρτα ή IRIS μέσω αδειοδοτημένου παρόχου (π.χ. Stripe, Viva). Απαιτεί εμπορικό λογαριασμό.' },
-    { name: 'Τραπεζικές ροές (open banking)', desc: 'Αυτόματη άντληση κινήσεων λογαριασμού. Απαιτεί αδειοδοτημένο πάροχο PSD2.' },
-    { name: 'Ζωντανά δεδομένα αγοράς', desc: 'Τρέχουσες τιμές και αποδόσεις ανά περιοχή από επίσημες πηγές δεδομένων.' },
-  ];
-  const Row = ({ name, desc, live }: { name: string; desc: string; live: boolean }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border-subtle)' }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{name}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 2 }}>{desc}</div>
-      </div>
-      <Badge tone={live ? 'positive' : 'neutral'}>{live ? 'Ενεργό' : 'Σύντομα'}</Badge>
-    </div>
-  );
-  return (
-    <div style={divider}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Ενσωματώσεις</div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 4 }}>Τι λειτουργεί ήδη και τι ετοιμάζουμε. Όσα χρειάζονται εξωτερική υποδομή ή αδειοδότηση σημειώνονται ως «Σύντομα», χωρίς ψεύτικα κουμπιά.</div>
-      {LIVE.map(i => <Row key={i.name} {...i} live />)}
-      {SOON.map(i => <Row key={i.name} {...i} live={false} />)}
     </div>
   );
 }
@@ -317,6 +285,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [accountEmail, setAccountEmail] = useState('');
   const [plan, setPlan] = useState('free');
   const [partner, setPartner] = useState(false);
+  const [compPlan, setCompPlan] = useState<string | null>(null);
+  const [compUntil, setCompUntil] = useState<string | null>(null);
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -333,8 +303,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
   useEffect(() => {
-    supabase.from('billing_profiles').select('plan').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (data) setPlan((data.plan as string) || 'free'); });
+    supabase.from('billing_profiles').select('plan, comp_plan, comp_until').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setCompPlan((data.comp_plan as string) || null); setCompUntil((data.comp_until as string) || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -379,10 +349,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
-  const planId = normalizePlan(plan);
-  const planMeta = PLANS[planId];
-  const isProPlan = planId === 'agency';
-  const needsUpgrade = profileType === 'professional' && !isProPlan && !partner;
+  const ent = { plan, profileType, partner, compPlan, compUntil };
+  const effPlan = effectivePlan(ent);
+  const comp = activeComp(ent);
+  const planMeta = PLANS[effPlan];
+  const isProPlan = effPlan === 'agency';
+  const needsUpgrade = profileType === 'professional' && !planAtLeast(effPlan, 'agency');
   const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
   const exportSettingsCsv = () => {
@@ -418,6 +390,16 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
           <Btn variant="secondary" onClick={openBilling}>Διαχείριση συνδρομής</Btn>
         </div>
+
+        {/* Ενεργή δωρεάν πρόσβαση (κερδισμένοι μήνες) */}
+        {comp && (
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
+            <span className="acc-live-dot" style={{ width: 6, height: 6, background: 'var(--positive)', flexShrink: 0, marginTop: 6 }} />
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+              Έχεις δωρεάν πρόσβαση <strong style={{ color: 'var(--text-primary)' }}>{PLANS[comp.plan].name}</strong> έως τις {fdLong(comp.until)}. Την κέρδισες από το Πρόγραμμα Πρόσκλησης, χωρίς καμία χρέωση.
+            </div>
+          </div>
+        )}
 
         {/* Τρόπος χρήσης: Ιδιώτης / Επαγγελματίας */}
         <div style={divider}>
@@ -515,7 +497,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
         <AccountantLink userId={userId} />
         <MarketDataSharing userId={userId} />
-        <IntegrationsList />
+        <SettingsRoadmap userId={userId} />
         <div style={{ ...divider, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Σύνδεση</div>
           <Btn variant="secondary" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }}>Αποσύνδεση</Btn>
