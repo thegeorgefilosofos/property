@@ -248,6 +248,7 @@ export default function BillsPDFExport({ data, userId }: { data: BillsData; user
 <body>
 <div class="sheet">
 
+  <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
   <!-- Κουμπί εκτύπωσης (δεν εκτυπώνεται) -->
   <div class="no-print" style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px">
     <button onclick="window.print()" style="background:#111;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">

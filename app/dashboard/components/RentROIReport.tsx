@@ -38,7 +38,7 @@ export default function RentROIReport({
       return;
     }
 
-    const accent = '#111';
+    const accent = reportAccent(branding);
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -67,13 +67,13 @@ export default function RentROIReport({
             align-items: flex-start;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 2px solid ${accent};
+            border-bottom: 2px solid #111;
           }
           .logo {
             font-family: 'Inter', sans-serif;
             font-size: 20px;
             font-weight: 700;
-            color: ${accent};
+            color: #111;
             letter-spacing: -0.3px;
           }
           .logo span { color: #111; }
@@ -259,6 +259,7 @@ export default function RentROIReport({
       <body>
         <div class="page">
 
+          <div style="height:3px;background:${accent};border-radius:3px;margin-bottom:20px"></div>
           <!-- Header -->
           <div class="header">
             <div>
