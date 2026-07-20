@@ -19,6 +19,7 @@ import SettingsRoadmap from './SettingsRoadmap';
 import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
+import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
 import { PLANS } from '@/lib/billing/plans';
@@ -613,6 +614,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
       <CollapsibleSection title="Ασφάλεια" delay="280ms">
         <SecuritySettings userId={userId} />
+      </CollapsibleSection>
+
+      {/* ── ΔΡΑΣΤΗΡΙΟΤΗΤΑ (audit log) ─────────────────────────────────── */}
+      <CollapsibleSection title="Δραστηριότητα" delay="310ms">
+        <ActivityLog />
       </CollapsibleSection>
 
       {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
