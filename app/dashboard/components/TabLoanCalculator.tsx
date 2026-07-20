@@ -29,10 +29,7 @@ const pillBtn = (active:boolean, accentColor='var(--accent)'): React.CSSProperti
 
 const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-    <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
-      <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{label}</p>
-    </div>
+    <p style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{label}</p>
     {right}
   </div>
 )
