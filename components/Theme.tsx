@@ -343,9 +343,9 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
 }
 
 // ═══ ExportButton, κοινό κουμπί εξαγωγής CSV (ίδιο σε όλα τα tabs) ════════
-export function ExportButton({ onClick, label = 'Εξαγωγή CSV', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
+export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
   return (
-    <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε CSV (ανοίγει με Excel)" disabled={disabled}
+    <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε Excel (.xlsx)" disabled={disabled}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' }}
       onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
