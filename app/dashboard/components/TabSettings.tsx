@@ -530,7 +530,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ (υψηλή αξία/συχνότητα, πάνω από την Εμφάνιση) ─── */}
       <Card className="acc-section" style={{ animationDelay: '140ms' }}>
         <SecHdr label="Ειδοποιήσεις" />
-        <NotificationSettings userId={userId} propertyId={propertyId} />
+        <NotificationSettings userId={userId} />
       </Card>
 
       {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}

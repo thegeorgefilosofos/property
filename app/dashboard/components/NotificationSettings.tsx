@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, Check, Send, Sparkles, Plus, X, RotateCcw, TrendingUp } from 'lucide-react'
-import { T, fe } from '@/components/Theme'
+import { Bell, Check, Send } from 'lucide-react'
+import { T } from '@/components/Theme'
 
 interface NotifPrefs {
   email_enabled: boolean
@@ -30,27 +30,13 @@ const DEFAULT: NotifPrefs = {
   dunning_max: 3,
 }
 
-interface Suggestion {
-  title: string
-  category: string
-  amount?: number
-  recurring: boolean
-  recurring_interval?: string
-  priority?: string
-  reason: string
-}
-
-export default function NotificationSettings({ userId, propertyId }: { userId: string; propertyId: string }) {
+export default function NotificationSettings({ userId }: { userId: string }) {
   const supabase = createClient()
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testMsg, setTestMsg] = useState('')
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [loadingSugg, setLoadingSugg] = useState(false)
-  const [addingId, setAddingId] = useState<number | null>(null)
-  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set())
 
   useEffect(() => { load() }, [userId])
 
@@ -78,63 +64,6 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
     // Έντιμο: δεν στέλνουμε δοκιμαστικό email εδώ — απλώς επιβεβαιώνουμε τη μορφή.
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefs.reminder_email)
     setTestMsg(valid ? 'Το email είναι έγκυρο. Αποθήκευσε για να λαμβάνεις ειδοποιήσεις.' : 'Μη έγκυρη διεύθυνση email')
-  }
-
-  async function generateSuggestions() {
-    setLoadingSugg(true)
-    setSuggestions([])
-    setDismissedIds(new Set())
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/smart-suggestions`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ property_id: propertyId, user_id: userId }),
-        }
-      )
-      const data = await response.json()
-      if (data.suggestions?.length) {
-        setSuggestions(data.suggestions)
-      } else {
-        throw new Error('No suggestions')
-      }
-    } catch {
-      // Fallback αν δεν υπάρχει API key ακόμα
-      setSuggestions([
-        { title: 'Πληρωμή ΕΝΦΙΑ', category: 'financial', amount: 200, recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Ετήσια υποχρέωση, συνήθως Σεπτέμβριος' },
-        { title: 'Ετήσιος έλεγχος ηλεκτρικής εγκατάστασης', category: 'maintenance', recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Υποχρεωτικός για ασφάλεια ακινήτου' },
-        { title: 'Service κλιματιστικού', category: 'maintenance', amount: 60, recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Συνιστάται πριν το καλοκαίρι' },
-        { title: 'Ανανέωση ασφαλιστηρίου', category: 'contract', recurring: true, recurring_interval: 'annual', priority: 'high', reason: 'Έλεγχος λήξης ασφάλισης ακινήτου' },
-        { title: 'Έλεγχος κεντρικής θέρμανσης', category: 'maintenance', amount: 80, recurring: true, recurring_interval: 'annual', priority: 'medium', reason: 'Συνιστάται πριν τον χειμώνα' },
-      ])
-    }
-
-    setLoadingSugg(false)
-  }
-
-  async function addSuggestion(s: Suggestion, idx: number) {
-    setAddingId(idx)
-    const today = new Date()
-    const eventDate = new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString().split('T')[0]
-    await supabase.from('calendar_events').insert({
-      property_id: propertyId, user_id: userId,
-      title: s.title, category: s.category,
-      event_date: eventDate, amount: s.amount || null,
-      priority: s.priority || 'medium', status: 'pending',
-      recurring: s.recurring, recurring_interval: s.recurring_interval || null,
-      notes: `Smart suggestion: ${s.reason}`, source: 'manual',
-    })
-    setAddingId(null)
-    setDismissedIds(prev => new Set([...prev, idx]))
-  }
-
-  function dismiss(idx: number) {
-    setDismissedIds(prev => new Set([...prev, idx]))
   }
 
   const inp: React.CSSProperties = {
@@ -166,105 +95,8 @@ export default function NotificationSettings({ userId, propertyId }: { userId: s
     )
   }
 
-  const catColors: Record<string, string> = {
-    financial: 'var(--text-secondary)', bills: 'var(--text-secondary)', maintenance: 'var(--text-secondary)',
-    contract: 'var(--text-secondary)', tenant: 'var(--text-secondary)', reminder: 'var(--text-secondary)',
-  }
-  const catLabels: Record<string, string> = {
-    financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση',
-    contract: 'Συμβόλαιο', tenant: 'Ενοικιαστής', reminder: 'Υπενθύμιση',
-  }
-
-  const visibleSuggestions = suggestions.filter((_, i) => !dismissedIds.has(i))
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-      {/* ── Smart Suggestions ── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={15} color="var(--accent)"/>
-            </div>
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>Έξυπνες Προτάσεις</p>
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Ανάλυση με <span title="Τεχνητή Νοημοσύνη (Artificial Intelligence)">AI</span> βάσει των δεδομένων του ακινήτου</p>
-            </div>
-          </div>
-          <button onClick={generateSuggestions} disabled={loadingSugg} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-            background: loadingSugg ? 'transparent' : 'var(--accent-soft)',
-            border: '1px solid var(--accent-border)', borderRadius: 100,
-            cursor: loadingSugg ? 'not-allowed' : 'pointer',
-            color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
-          }}>
-            <Sparkles size={12} style={{ animation: loadingSugg ? 'spin 1s linear infinite' : 'none' }}/>
-            {loadingSugg ? 'Ανάλυση…' : 'Ανάλυση ακινήτου'}
-          </button>
-        </div>
-
-        {visibleSuggestions.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {suggestions.map((s, idx) => {
-              if (dismissedIds.has(idx)) return null
-              const color = catColors[s.category] || 'var(--text-tertiary)'
-              const label = catLabels[s.category] || s.category
-              const isAdded = addingId === idx
-              return (
-                <div key={idx} style={{
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                  borderLeft: '3px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px',
-                  display: 'flex', alignItems: 'center', gap: 12,
-                }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{s.title}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, padding: '2px 7px', borderRadius: T.radius.pill, color, background: `color-mix(in srgb, ${color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 28%, transparent)` }}>{label}</span>
-                      {s.recurring && (
-                        <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <RotateCcw size={9}/>{s.recurring_interval === 'annual' ? 'Ετήσιο' : s.recurring_interval === 'monthly' ? 'Μηνιαίο' : 'Τριμηνιαίο'}
-                        </span>
-                      )}
-                      {s.amount && <span style={{ fontSize: 10, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)' }}>~{fe(s.amount)}</span>}
-                    </div>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{s.reason}</p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => addSuggestion(s, idx)} disabled={isAdded} style={{
-                      display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
-                      background: 'var(--accent-soft)', border: '1px solid var(--accent-border)',
-                      borderRadius: 100, cursor: 'pointer', color: 'var(--accent)', fontSize: 10, fontWeight: 600,
-                      fontFamily: T.font.sans, whiteSpace: 'nowrap',
-                    }}>
-                      {isAdded ? <Check size={10}/> : <Plus size={10}/>}
-                      {isAdded ? 'Προστέθηκε' : 'Προσθήκη'}
-                    </button>
-                    <button onClick={() => dismiss(idx)} style={{ padding: '5px 7px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
-                      <X size={11}/>
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {suggestions.length > 0 && visibleSuggestions.length === 0 && (
-          <p style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 600, fontFamily: T.font.sans, textAlign: 'center', padding: '8px 0' }}>
-            Όλες οι προτάσεις διεκπεραιώθηκαν.
-          </p>
-        )}
-
-        {suggestions.length === 0 && !loadingSugg && (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <TrendingUp size={24} color="var(--text-tertiary)" style={{ margin: '0 auto 8px' }}/>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-              Πάτα «Ανάλυση ακινήτου» για έξυπνες προτάσεις
-            </p>
-          </div>
-        )}
-      </div>
 
       {/* ── Email Notifications ── */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
