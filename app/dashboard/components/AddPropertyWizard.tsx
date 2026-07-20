@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, fe, fn, fd } from '@/components/Theme';
-import { DatePicker } from './UIComponents';
+import { CustomSelect, DatePicker } from './UIComponents';
 import { rentalModeFromAirbnb } from '@/lib/billing/propertyFacts';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
@@ -94,7 +94,6 @@ const inputStyle: React.CSSProperties = {
   letterSpacing: 0, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 };
 const monoInputStyle: React.CSSProperties = { ...inputStyle, fontFamily: "'Roboto Mono', monospace", fontVariantNumeric: 'tabular-nums' };
-const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'flex-end', minHeight: 28, lineHeight: 1.3,
   fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
@@ -124,6 +123,7 @@ interface ExistingProperty {
   obj_value?: number | string | null; enfia?: number | string | null; pea_class?: string | null;
   heating?: string | null; purchase_date?: string | null; parking_spaces?: number | string | null;
   storage_sqm?: number | string | null; bedrooms?: number | string | null; rental_mode?: string | null;
+  co_owners?: string[] | null;
 }
 const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
 
@@ -153,6 +153,19 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const [purchaseDate, setPurchaseDate] = useState(existing?.purchase_date || '');
   const [rent, setRent] = useState(s(existing?.target_rent));
   const [ownership, setOwnership] = useState(s(existing?.ownership) || '100');
+  // Συνιδιοκτήτες: όταν το ποσοστό < 100%, ζητάμε πλήθος (1–99) και ονόματα.
+  const [coOwners, setCoOwners] = useState<string[]>(
+    Array.isArray(existing?.co_owners) && existing!.co_owners!.length ? existing!.co_owners!.map(String) : ['']
+  );
+  const setCoOwnerCount = (n: number) => {
+    const c = Math.max(1, Math.min(99, Math.floor(n) || 1));
+    setCoOwners(prev => {
+      const next = prev.slice(0, c);
+      while (next.length < c) next.push('');
+      return next;
+    });
+  };
+  const setCoOwnerAt = (i: number, val: string) => setCoOwners(prev => prev.map((v, idx) => idx === i ? val : v));
   const [peaClass, setPeaClass] = useState(existing?.pea_class || '');
   const [heating, setHeating] = useState(existing?.heating || '');
   const [parking, setParking] = useState(s(existing?.parking_spaces));
@@ -174,6 +187,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   }, [existing?.id]);
 
   const isLandLike = LAND_LIKE.has(propType);
+  // Συνιδιοκτησία: ποσοστό < 100% ⇒ ζητάμε συνιδιοκτήτες.
+  const ownershipN = num(ownership);
+  const isShared = ownershipN != null && ownershipN > 0 && ownershipN < 100;
   // Airbnb ⇒ status seasonal
   const effStatus = airbnb ? 'seasonal' : status;
 
@@ -209,6 +225,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       floor: isLandLike ? null : (floor.trim() || null),
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
+      co_owners: isShared ? coOwners.map(x => x.trim()).filter(Boolean) : null,
       status_detail: effStatus,
       obj_value: num(objValue),
       enfia: num(enfia),
@@ -379,10 +396,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                       <input style={monoInputStyle} type="number" inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} placeholder="85" onFocus={onFocus} onBlur={onBlur} />
                     </Field>
                     <Field label="Όροφος">
-                      <select style={selectStyle} value={floor} onChange={e => setFloor(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">Επίλεξε</option>
-                        {FLOOR_OPTS.map(f => <option key={f} value={f}>{f}</option>)}
-                      </select>
+                      <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
+                        options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
                     </Field>
                     <Field label="Έτος Κατασκευής">
                       <input style={monoInputStyle} type="number" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} placeholder="1995" onFocus={onFocus} onBlur={onBlur} />
@@ -390,16 +405,12 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   </div>
                   <div style={grid3}>
                     <Field label="Ενεργειακή Κλάση (ΠΕΑ)">
-                      <select style={selectStyle} value={peaClass} onChange={e => setPeaClass(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">Επίλεξε</option>
-                        {PEA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
+                        options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
                     </Field>
                     <Field label="Τύπος Θέρμανσης">
-                      <select style={selectStyle} value={heating} onChange={e => setHeating(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
-                        <option value="">Επίλεξε</option>
-                        {HEATING_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                      </select>
+                      <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
+                        options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
                     </Field>
                     <Field label="Θέσεις Στάθμευσης">
                       <input style={monoInputStyle} type="number" value={parking} onChange={e => setParking(e.target.value)} placeholder="1" onFocus={onFocus} onBlur={onBlur} />
@@ -450,7 +461,27 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 <Field label="Ποσοστό Ιδιοκτησίας (%)">
                   <input style={monoInputStyle} type="number" inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} placeholder="100" onFocus={onFocus} onBlur={onBlur} />
                 </Field>
+                {isShared && (
+                  <Field label="Αριθμός συνιδιοκτητών">
+                    <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
+                      onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
+                  </Field>
+                )}
               </div>
+              {isShared && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
+                    {coOwners.length === 1 ? 'Συνιδιοκτήτης' : 'Συνιδιοκτήτες'}
+                  </div>
+                  <div style={grid2}>
+                    {coOwners.map((nm, i) => (
+                      <Field key={i} label={coOwners.length === 1 ? 'Όνομα συνιδιοκτήτη' : `Όνομα συνιδιοκτήτη ${i + 1}`}>
+                        <input style={inputStyle} type="text" value={nm} onChange={e => setCoOwnerAt(i, e.target.value)} placeholder="Ονοματεπώνυμο" onFocus={onFocus} onBlur={onBlur} />
+                      </Field>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {grossYield != null && (
                 <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 14, padding: 16 }}>
