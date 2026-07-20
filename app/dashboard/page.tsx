@@ -25,7 +25,6 @@ import WelcomeOnboarding from './components/WelcomeOnboarding';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { SkeletonKPIs, Skeleton, TierBadge } from '@/components/Theme';
-import AIInsights from './components/AIInsights';
 import SmartSuggestions from './components/SmartSuggestions';
 import PropertyAssistant from './components/PropertyAssistant';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
@@ -550,15 +549,6 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
       {prefs.showSmartTips && <SmartSuggestions userId={userId} propertyId={prop.id} />}
 
-      {prefs.showSmartTips && (
-        <AIInsights ctx={{
-          propName: prop.name, propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
-          address: prop.address||undefined, value: propValue||undefined, sqm: prop.sqm||undefined,
-          monthlyRent: rent, grossYield, netYield, expensesYTD: totalExpYTD, annualRent,
-          daysToLeaseEnd: daysToExpiry, status: STATUS_LABELS[prop.status_detail||'']||undefined,
-        }}/>
-      )}
-
       <div className="grid-main">
         <div className="card">
           <div className="section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
@@ -684,14 +674,14 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
             const estTax = Math.round(rentalIncomeTax(annualRent));
             const net = annualRent - annualizedExp - estTax;
             return [
-            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent), color:'var(--text-primary)' },
-            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp), color:'var(--text-primary)' },
-            { label:'Εκτιμώμενος Φόρος Ενοικίου', value:fmtEur(estTax), color:'var(--text-primary)' },
-            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), color:net>=0?'var(--positive)':'var(--negative)' },
-            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, color:'var(--accent)', accent:true, title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
-          ]; })().map((k,i) => { const acc=(k as any).accent; return (
-            <div key={i} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:acc?'var(--accent-soft)':'var(--bg-elevated)',border:`1px solid ${acc?'var(--accent-border)':'var(--border-subtle)'}`,borderRadius:14}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,color:acc?'var(--accent)':k.color,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
+            { label:'Ακαθάριστα Έσοδα', value:fmtEur(annualRent) },
+            { label:'Δαπάνες (προβολή)', value:fmtEur(annualizedExp) },
+            { label:'Εκτιμώμενος Φόρος Ενοικίου', value:fmtEur(estTax) },
+            { label:'Καθαρό Αποτέλεσμα', value:fmtEur(net), tone:net>=0?'positive':'negative' },
+            { label:'Καθαρή Απόδοση', value:`${netYield.toFixed(1)}%`, tone:'accent', title:'Απόδοση (yield): καθαρό ετήσιο έσοδο ως ποσοστό της αξίας του ακινήτου' },
+          ]; })().map((k,i) => { const tone=(k as any).tone; return (
+            <div key={i} className="po-fig-card po-lift" tabIndex={0} title={(k as any).title} style={{textAlign:'center',padding:'16px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:14,boxShadow:'var(--highlight-inset), 0 8px 20px -16px color-mix(in srgb, var(--text-primary) 45%, transparent)'}}>
+              <div className="po-fig" data-tone={tone} style={{fontFamily:"'Inter',sans-serif",fontSize:20,fontWeight:700,marginBottom:8,fontVariantNumeric:'tabular-nums',lineHeight:1,letterSpacing:'-0.02em'}}>{k.value}</div>
               <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,color:'var(--text-tertiary)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{k.label}</div>
             </div>
           );})}
