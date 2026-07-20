@@ -1021,6 +1021,10 @@ export default function Dashboard() {
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
           {NAV_GROUPS.map((group,gi) => {
+            // Χωρίς διπλότυπα: τα εργαλεία (Απογραφή/Αρχείο/Εκκρεμότητες/Επαφές) είναι
+            // δωρεάν και στα δύο προφίλ· εμφανίζονται όμως σε ΕΝΑ σημείο ανά προφίλ —
+            // στον Ιδιώτη μέσα στην Επισκόπηση, στον Επαγγελματία στην πλαϊνή μπάρα.
+            if (group.label==='Εργαλεία' && profileType!=='professional') return null;
             const hasHeader = !!group.label;
             const open = !hasHeader || openGroup===group.label;
             const groupBadge = group.ids.reduce((s,id)=>s+getBadge(id),0);
