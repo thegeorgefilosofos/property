@@ -215,9 +215,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
                   }
                   return (
                     <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
-                      {gain ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, padding: '5px 10px', borderRadius: 8, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>{content}</span>
-                      ) : content}
+                      {content}
                     </div>
                   );
                 })}

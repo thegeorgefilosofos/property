@@ -559,7 +559,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
         <SettingRow title="Νόμισμα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ευρώ (€)</span>} />
         <SettingRow title="Δεκαδικά στα ποσά" desc="Πλήθος δεκαδικών ψηφίων για την εμφάνιση χρηματικών ποσών."
-          control={<div style={{ width: 220 }}>
+          control={<div style={{ width: 264 }}>
             <CustomSelect value={prefs.decimals}
               onChange={v => updatePrefs({ decimals: v as AppPreferences['decimals'] })}
               options={[

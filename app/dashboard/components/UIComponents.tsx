@@ -373,8 +373,14 @@ export function CustomSelect({
         <div role="listbox" id={listId} aria-labelledby={label ? `${idRef.current}-label` : undefined} style={{
           position: 'absolute',
           ...(dropUp ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }),
+          // Δεξιά αγκύρωση + πλάτος στο περιεχόμενο: το μενού μεγαλώνει όσο
+          // χρειάζεται (χωρίς να σπάει η ετικέτα σε δύο σειρές), ποτέ στενότερο
+          // από το πεδίο, με ανώτατο όριο ώστε να μη βγαίνει εκτός κάρτας.
           left: 0,
-          right: 0,
+          right: 'auto',
+          minWidth: '100%',
+          width: 'max-content',
+          maxWidth: 'min(340px, 86vw)',
           background: 'var(--bg-surface)',
           borderRadius: T.radius.inner,
           zIndex: 1000,
@@ -420,7 +426,7 @@ export function CustomSelect({
               {opt.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.dot, flexShrink: 0 }}/>}
               {opt.color && <div style={{ width: 10, height: 10, borderRadius: 2, background: opt.color, flexShrink: 0 }}/>}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div>{opt.label}</div>
+                <div style={{ whiteSpace: 'nowrap' }}>{opt.label}</div>
                 {opt.description && (
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
                 )}
