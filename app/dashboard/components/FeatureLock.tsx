@@ -82,7 +82,7 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
             )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-            Δοκίμασέ το με την ησυχία σου. Αλλάζεις ή σταματάς όποτε θες, χωρίς ερωτήσεις.
+            Χωρίς δέσμευση. Αναβαθμίζεις ή προσαρμόζεις όποτε θες, με ένα κλικ.
           </div>
         </div>
       </Card>
