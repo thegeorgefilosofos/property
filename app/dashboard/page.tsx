@@ -46,6 +46,7 @@ import OnboardingChecklist, { type SetupStep } from './components/OnboardingChec
 import ObligationsPanel from './components/ObligationsPanel';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
+import BillingNudge from './components/BillingNudge';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -475,6 +476,9 @@ function OverviewTab({ prop, userId, ownerName, onSaveOwnerName, onNavigate, onC
 
   return (
     <div>
+      {/* Διακριτική υπενθύμιση: συμπλήρωσε στοιχεία τιμολόγησης πριν την επόμενη χρέωση. */}
+      <BillingNudge userId={userId} onNavigate={onNavigate} />
+
       {/* Task-first hero: το πρώτο πράγμα που βλέπει ο χρήστης είναι ο χαιρετισμός
           και οι πιο σημαντικές ενέργειες που χρειάζονται τώρα (ελέγχεται από Προτιμήσεις). */}
       {prefs.liveNotifications && (

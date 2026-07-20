@@ -10,15 +10,16 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr } from '@/components/Theme';
+import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 
 interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
   profession: string; address: string; city: string; postal_code: string; country: string;
-  phone: string; plan: string; billing_cycle: string;
+  vat_number: string; phone: string; plan: string; billing_cycle: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
-  address: '', city: '', postal_code: '', country: 'GR', phone: '', plan: 'free', billing_cycle: 'monthly',
+  address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
 };
 
 export default function Billing({ userId }: { userId: string }) {
@@ -86,6 +87,11 @@ export default function Billing({ userId }: { userId: string }) {
 
   if (loading) return <Spinner label="Φόρτωση…" />;
   const isInvoice = d.doc_type === 'invoice';
+  const country = (d.country || 'GR').toUpperCase();
+  const isGr = country === 'GR';
+  const reverseCharge = isReverseCharge(d);
+  const missing = missingInvoiceFields(d as InvoiceProfile);
+  const vatLabel = isEuCountry(country) ? 'VAT (VIES)' : 'Φορολογικό μητρώο';
 
   return (
     <div>
@@ -100,16 +106,31 @@ export default function Billing({ userId }: { userId: string }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
           <CustomSelect label="Τύπος παραστατικού" value={d.doc_type} onChange={v => set('doc_type', v)}
             options={[{ value: 'receipt', label: 'Απόδειξη (ιδιώτης)' }, { value: 'invoice', label: 'Τιμολόγιο (επιχείρηση)' }]} />
+          <CustomSelect label="Χώρα" value={country} onChange={v => set('country', v)}
+            options={ALL_COUNTRIES.map(c => ({ value: c.code, label: c.name }))} />
           <TextInput label="Ονοματεπώνυμο" value={d.full_name} onChange={v => set('full_name', v)} placeholder="Γιώργος Παπαδόπουλος" />
           {isInvoice && <TextInput label="Επωνυμία εταιρείας" value={d.company_name} onChange={v => set('company_name', v)} placeholder="Παράδειγμα Ε.Ε." />}
-          {isInvoice && <TextInput label="ΑΦΜ" value={d.afm} onChange={v => set('afm', v)} placeholder="123456789" />}
-          {isInvoice && <TextInput label="ΔΟΥ" value={d.doy} onChange={v => set('doy', v)} placeholder="ΔΟΥ Α' Αθηνών" />}
           {isInvoice && <TextInput label="Δραστηριότητα" value={d.profession} onChange={v => set('profession', v)} placeholder="Διαχείριση ακινήτων" />}
+          {/* Φορολογικό αναγνωριστικό: ΑΦΜ/ΔΟΥ για Ελλάδα, κοινοτικό VAT (VIES) για ΕΕ, μητρώο για εκτός ΕΕ */}
+          {isInvoice && isGr && <TextInput label="ΑΦΜ" value={d.afm} onChange={v => set('afm', v)} placeholder="123456789" />}
+          {isInvoice && isGr && <TextInput label="ΔΟΥ" value={d.doy} onChange={v => set('doy', v)} placeholder="ΔΟΥ Α' Αθηνών" />}
+          {isInvoice && !isGr && <TextInput label={vatLabel} value={d.vat_number} onChange={v => set('vat_number', v)} placeholder={isEuCountry(country) ? `${country}XXXXXXXXX` : 'Αριθμός μητρώου'} />}
           <TextInput label="Διεύθυνση" value={d.address} onChange={v => set('address', v)} placeholder="Οδός & αριθμός" />
           <TextInput label="Πόλη" value={d.city} onChange={v => set('city', v)} placeholder="Αθήνα" />
           <TextInput label="Ταχ. Κώδικας" value={d.postal_code} onChange={v => set('postal_code', v)} placeholder="11527" />
           <TextInput label="Τηλέφωνο" value={d.phone} onChange={v => set('phone', v)} placeholder="69XXXXXXXX" />
         </div>
+
+        {reverseCharge && (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 12 }}>
+            Ενδοκοινοτική παροχή υπηρεσιών: το τιμολόγιο εκδίδεται χωρίς ΦΠΑ, με αντιστροφή της υποχρέωσης (reverse charge). Χρειάζεται έγκυρος κοινοτικός VAT (VIES).
+          </div>
+        )}
+        {isInvoice && missing.length > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 10 }}>
+            Για σωστό τιμολόγιο, συμπλήρωσε ακόμη: {missing.map(f => f.label).join(', ')}.
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
           <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
           {saved && <span style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε ✓</span>}

@@ -513,7 +513,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Ο τρόπος «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Το πλάνο «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
                 </div>
               </div>
