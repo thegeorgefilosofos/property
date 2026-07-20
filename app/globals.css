@@ -619,6 +619,20 @@ body {
 .po-fig-card:hover .po-fig[data-tone="negative"], .po-fig-card:focus-within .po-fig[data-tone="negative"] { color: var(--negative); }
 .po-fig-card:hover .po-fig[data-tone="warning"],  .po-fig-card:focus-within .po-fig[data-tone="warning"]  { color: var(--warning); }
 .po-fig-card:hover .po-fig[data-tone="info"],     .po-fig-card:focus-within .po-fig[data-tone="info"]     { color: var(--info); }
+/* Σε οθόνες αφής δεν υπάρχει hover: κάνοντας τις κάρτες εστιάσιμες, το tap
+   αποκαλύπτει τον τόνο ακριβώς όπως ο κέρσορας. Χωρίς ενοχλητικό δαχτυλίδι στο
+   tap/click — δαχτυλίδι μόνο στην πλοήγηση με πληκτρολόγιο (focus-visible). */
+.po-fig-card:focus, .kpi-card:focus { outline: none; }
+.po-fig-card:focus-visible, .kpi-card:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; border-radius: 12px; }
+
+/* Βήματα onboarding: ζωντανές, 3D κάρτες. Το βελάκι είναι ουδέτερο και εμφανίζεται
+   με κίνηση μόνο όταν ο κέρσορας/δάχτυλο πλησιάσει (hover/focus) — «αντιδρά». */
+.po-onbstep { box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent); transition: transform 0.16s cubic-bezier(0.2,0,0,1), box-shadow 0.16s cubic-bezier(0.2,0,0,1), border-color 0.16s; }
+.po-onbstep[data-done="false"]:hover, .po-onbstep[data-done="false"]:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--text-primary) 45%, transparent); border-color: var(--border-default); }
+.po-onbstep[data-done="false"]:active { transform: translateY(0) scale(0.995); }
+.po-onbstep-chev { color: var(--text-tertiary); opacity: 0; transform: translateX(-5px); transition: opacity 0.16s cubic-bezier(0.2,0,0,1), transform 0.16s cubic-bezier(0.2,0,0,1); }
+.po-onbstep:hover .po-onbstep-chev, .po-onbstep:focus-visible .po-onbstep-chev { opacity: 1; transform: translateX(0); }
+@media (hover: none) { .po-onbstep-chev { opacity: 0.5; transform: none; } }
 .kpi-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;

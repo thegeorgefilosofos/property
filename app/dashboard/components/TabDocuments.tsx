@@ -1041,7 +1041,7 @@ function FileList({ items, groupByMonth, empty, a }: { items: Item[]; groupByMon
         {Array.from(groups.entries()).map(([m, its]) => (
           <div key={m} className="card" style={{ margin: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}/>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'capitalize' as const }}>{m}</span>
               <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
             </div>

@@ -161,15 +161,21 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   const cols = columns ?? items.length;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16 }}>
-      {items.map((k, i) => (
-        <div key={i} className="kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((k, i) => {
+        const toned = !!(k.tone && k.tone !== 'neutral');
+        return (
+        // Οι κάρτες με τόνο γίνονται εστιάσιμες, ώστε το tap σε κινητό να
+        // αποκαλύπτει το χρώμα όπως ο κέρσορας (focus-within). Οι ουδέτερες όχι,
+        // για να μη γεμίζει το tab order.
+        <div key={i} className="kpi-card" tabIndex={toned ? 0 : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="kpi-label">{k.label}</div>
-          {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται μόνο στο hover
-              (data-tone + globals.css), για ομοιόμορφο, χαμηλού θορύβου look. */}
-          <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={k.tone && k.tone !== 'neutral' ? k.tone : undefined}>{k.value}</div>
+          {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
+              στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
+          <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={toned ? k.tone : undefined}>{k.value}</div>
           {k.sub && <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

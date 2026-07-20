@@ -551,7 +551,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
       <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
     </div>
   );
@@ -574,7 +574,7 @@ export default function BillsInsurance({ propertyId, userId = '' }: { propertyId
       {/* ── Auto-detected property type banner ──────────────────────────── */}
       {detectedPropertyType && (
         <div style={{ background: 'rgba(26,115,232,0.04)', border: '1px solid rgba(26,115,232,0.15)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}/>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0 }}/>
           <span style={{ color: 'var(--text-secondary)' }}>
             Ανιχνεύθηκε τύπος ακινήτου: <strong style={{ color: 'var(--accent)' }}>{detectedPropertyType}</strong>, εμφανίζονται {insOptions.length} σχετικές ασφαλιστικές εταιρείες.
           </span>
