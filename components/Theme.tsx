@@ -114,9 +114,9 @@ const toneVars = (tone: Tone) => {
 };
 
 // ═══ Card, η βασική επιφάνεια κάθε ενότητας ═══════════════════════════════
-export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+export function Card({ children, style, className }: { children: ReactNode; style?: CSSProperties; className?: string }) {
   return (
-    <div style={{
+    <div className={className} style={{
       background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
       borderRadius: T.radius.card, padding: T.sp.lg, marginBottom: T.sp.lg,
       boxShadow: 'var(--highlight-inset), var(--elev-1)', ...style,
