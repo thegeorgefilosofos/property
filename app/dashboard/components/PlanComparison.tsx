@@ -228,7 +228,7 @@ export default function PlanComparison({ userId, profileType, currentPlan, onUpg
 
         {/* ── 4. Γραμμή εμπιστοσύνης ─────────────────────────────────────── */}
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 16 }}>
-          Χωρίς δέσμευση. Αλλάζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
+          Χωρίς δέσμευση. Αναβαθμίζεις ή προσαρμόζεις όποτε θες, με ένα κλικ.
         </div>
         {/* ── 5. Διαφάνεια ΦΠΑ ───────────────────────────────────────────── */}
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
