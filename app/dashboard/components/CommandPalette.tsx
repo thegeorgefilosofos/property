@@ -27,8 +27,8 @@ const norm = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 const RECENT_KEY = 'po_cmdk_recent';
-const RECENT_MAX = 5;
-const DEFAULT_MAX = 8;   // ανώτατο πλήθος στην κενή αναζήτηση
+const RECENT_MAX = 3;    // πρόσφατες: το πολύ 3
+const SUGGEST_MAX = 3;   // προτεινόμενα: το πολύ 3
 
 function loadRecent(): string[] {
   try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
@@ -55,9 +55,9 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
       const res = items.filter(it => norm(`${it.label} ${it.hint || ''} ${it.keywords || ''}`).includes(nq));
       return { rows: res, groups: [{ label: '', items: res }] };
     }
-    const recent = recentIds.map(id => items.find(it => it.id === id)).filter(Boolean) as CommandItem[];
+    const recent = (recentIds.map(id => items.find(it => it.id === id)).filter(Boolean) as CommandItem[]).slice(0, RECENT_MAX);
     const seen = new Set(recent.map(it => it.id));
-    const suggested = items.filter(it => !seen.has(it.id)).slice(0, Math.max(0, DEFAULT_MAX - recent.length));
+    const suggested = items.filter(it => !seen.has(it.id)).slice(0, SUGGEST_MAX);
     const gs: { label: string; items: CommandItem[] }[] = [];
     if (recent.length) gs.push({ label: 'Πρόσφατα', items: recent });
     if (suggested.length) gs.push({ label: recent.length ? 'Προτεινόμενα' : 'Γρήγορη μετάβαση', items: suggested });
