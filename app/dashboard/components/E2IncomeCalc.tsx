@@ -9,7 +9,8 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, fe, InfoBanner, Btn } from '@/components/Theme';
+import { T, fe, Btn } from '@/components/Theme';
+import { InfoHint } from './InfoHint';
 import { runE2Export } from './e2Export';
 
 // ── Κλίμακα ενοικίων 2026: νέος ενδιάμεσος 25% στα 12.000–24.000 ──────────────
@@ -53,14 +54,13 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
   const cardGap = { ...card, marginBottom: 16 };
   const sectionTitle = (t: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
       <div style={{ fontFamily: T.font.sans, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontWeight: 700 }}>{t}</div>
     </div>
   );
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-      <div style={{ ...cardGap, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)' }}>
+      <div style={cardGap}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           {sectionTitle('Εκτίμηση Φόρου Εισοδήματος Ακινήτων')}
           <select value={e2Year} onChange={e => setE2Year(e.target.value)}
@@ -160,7 +160,7 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
               </div>
 
               <a href="https://www.aade.gr/polites/foroi/foros-eisodematos" target="_blank" rel="noopener noreferrer" title="ΑΑΔΕ — Ανεξάρτητη Αρχή Δημοσίων Εσόδων"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 8, textDecoration: 'none', color: 'var(--accent)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, textDecoration: 'none', color: 'var(--text-secondary)', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                 AADE.gr, Φορολογία Ακινήτων
               </a>
@@ -182,8 +182,9 @@ export default function E2IncomeCalc({ userId, propertyId }: { userId: string; p
           Κατέβασε αρχείο CSV με μία γραμμή ανά ακίνητο (ΑΤΑΚ, διεύθυνση, ποσοστό συνιδιοκτησίας, είδος μίσθωσης, μήνες, ακαθάριστο εισόδημα) για το έτος {e2Year}. Έτοιμο για αποστολή στον λογιστή σου.
         </div>
         <Btn variant="primary" onClick={async () => { const n = await runE2Export(supabase, String(userId), Number(e2Year)); if (!n) alert('Δεν βρέθηκαν ακίνητα για εξαγωγή.'); }}>Εξαγωγή Ε2 (CSV)</Btn>
-        <div style={{ marginTop: 12 }}>
-          <InfoBanner tone="warning">Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου· το <span title="Αριθμός Ταυτότητας Ακινήτου (από το Ε9)">ΑΤΑΚ</span> και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span>.</InfoBanner>
+        <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', lineHeight: 1.5 }}>
+          Ορισμένα πεδία συμπληρώνονται αυτόματα ως εκτίμηση. Έλεγξέ τα πριν την υποβολή.
+          <InfoHint>Το «είδος μίσθωσης», η «κατηγορία εισοδήματος», οι «μήνες» και το «ακαθάριστο» συμπληρώνονται αυτόματα ως εκτίμηση από τα δεδομένα του ακινήτου. Το ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου, από το Ε9) και το ΑΦΜ αντλούνται από όσα έχεις καταχωρήσει. Έλεγξέ τα πριν την υποβολή στην ΑΑΔΕ (Ανεξάρτητη Αρχή Δημοσίων Εσόδων).</InfoHint>
         </div>
       </div>
 

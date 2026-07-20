@@ -64,6 +64,8 @@ Deno.serve(async (req) => {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData?.user) return json({ error: 'unauthorized' }, 401)
 
+  if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
+
   const { subject, html } = testEmailHtml()
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -71,9 +73,14 @@ Deno.serve(async (req) => {
       headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: FROM_EMAIL, to: email, subject, html }),
     })
-    if (!res.ok) return json({ error: 'send_failed' }, 502)
+    if (!res.ok) {
+      // Επίστρεψε το πραγματικό μήνυμα του Resend (π.χ. sandbox: μόνο η δική σου
+      // διεύθυνση επιτρέπεται χωρίς επαληθευμένο domain), για σαφή διάγνωση.
+      const detail = await res.text().catch(() => '')
+      return json({ error: 'send_failed', status: res.status, detail: detail.slice(0, 500) }, 502)
+    }
   } catch (err) {
-    return json({ error: String(err) }, 500)
+    return json({ error: 'fetch_failed', detail: String(err) }, 500)
   }
   return json({ sent: true })
 })
