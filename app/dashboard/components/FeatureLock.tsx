@@ -71,7 +71,7 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
 
             {/* Τιμή, δεύτερη και διακριτική */}
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
-              {feAuto(plan.priceMonthly)}/μήνα{plan.priceAnnual > 0 ? `, ή ${feAuto(plan.priceAnnual)}/χρόνο (${feAuto(annualPerMonth(requiredPlan))}/μήνα)` : ''}
+              {feAuto(plan.priceMonthly)}/μήνα{plan.priceAnnual > 0 ? ` ή ${feAuto(plan.priceAnnual)}/χρόνο (${feAuto(annualPerMonth(requiredPlan))}/μήνα)` : ''}
             </div>
           </div>
 
