@@ -288,8 +288,11 @@ export function CustomSelect({
     const GAP = 4, MARGIN = 8, DESIRED = 264;
     const below = window.innerHeight - r.bottom - MARGIN;
     const above = r.top - MARGIN;
-    const up = below < Math.min(DESIRED, 200) && above > below;
-    const maxH = Math.max(140, Math.min(DESIRED, (up ? above : below) - GAP));
+    // Προτίμηση ΠΡΟΣ ΤΑ ΚΑΤΩ: το μενού κάνει εσωτερικό scroll, οπότε ανοίγει κάτω
+    // ακόμη κι όταν ο χώρος είναι περιορισμένος. Γυρίζει πάνω ΜΟΝΟ όταν ο χώρος
+    // κάτω είναι πραγματικά ελάχιστος (και υπάρχει σαφώς περισσότερος πάνω).
+    const up = below < 132 && above > below + 24;
+    const maxH = Math.min(DESIRED, Math.max(112, (up ? above : below) - GAP));
     const left = Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8));
     setMenuPos({ top: up ? r.top - GAP : r.bottom + GAP, left, minWidth: r.width, maxH, up });
   };
