@@ -438,6 +438,56 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('persona: παράδειγμα aircondition', /aircondition/i.test(sp));
 }
 
+// ── Λογαριασμός/Ρυθμίσεις: ο βοηθός ξέρει την «Λογαριασμός» & δρομολογεί σωστά ──
+// (η νέα σελίδα λογαριασμού με 5 ενότητες· σύντομες/ημιτελείς/greeklish ερωτήσεις)
+{
+  const p = buildSystemPrompt(id(), 'Διαμέρισμα');
+  ok('settings: knows Λογαριασμός page section', /ΛΟΓΑΡΙΑΣΜΟΣ & ΡΥΘΜΙΣΕΙΣ ΕΦΑΡΜΟΓΗΣ/.test(p));
+  ok('settings: five sections named', /«Προφίλ»/.test(p) && /«Συνδρομή»/.test(p) && /«Εμφάνιση & Γλώσσα»/.test(p) && /«Ειδοποιήσεις»/.test(p) && /«Δεδομένα & Απόρρητο»/.test(p));
+  ok('settings: profile has email + billing', /email λογαριασμού/.test(p) && /στοιχεία τιμολόγησης/.test(p));
+  ok('settings: theme/dark → Εμφάνιση & Γλώσσα', /θέμα \(φωτεινό\/σκοτεινό\)/.test(p) && /«Εμφάνιση & Γλώσσα»/.test(p));
+  ok('settings: theme also from top-right icon', /εικονίδιο πάνω δεξιά/.test(p));
+  ok('settings: subscription + upgrade', /διαχείριση και αναβάθμιση συνδρομής/.test(p) && /απαιτεί αναβάθμιση συνδρομής/.test(p));
+  ok('settings: individual↔professional in subscription', /Ιδιώτης↔Επαγγελματίας/.test(p));
+  ok('settings: report branding for professionals', /επωνυμία στις αναφορές/.test(p));
+  ok('settings: notifications routing', /ειδοποιήσεις.*dunning|dunning/i.test(p) && /«Ειδοποιήσεις»/.test(p));
+  ok('settings: data & privacy routing', /εξαγωγή CSV/.test(p) && /σύνδεσμος λογιστή/.test(p) && /διαγραφή λογαριασμού/.test(p) && /αποσύνδεση/.test(p));
+  ok('settings: recognises short/greeklish/no-accents', /χωρίς τόνους/.test(p) && /greeklish/.test(p) && /μία λέξη/.test(p));
+  ok('settings: links to settings tab', /\[\[go:settings\]\]/.test(p));
+  ok('settings: property fields moved to property edit', /«Επεξεργασία ακινήτου»/.test(p) && /οδηγός ακινήτου/.test(p) && /ΑΤΑΚ/.test(p) && /εκτιμώμενος ΕΝΦΙΑ/.test(p));
+  ok('settings: do NOT go:settings for property fields', /ΜΗ βάλεις \[\[go:settings\]\] για στοιχεία ακινήτου/.test(p));
+  ok('settings: E2/income tax → accounting', /Ε2/.test(p) && /ΦΟΡΟΣ ΕΙΣΟΔΗΜΑΤΟΣ/.test(p) && /\[\[go:accounting\]\]/.test(p));
+  ok('settings: transfer tax → accounting or loan', /ΦΟΡΟΣ ΜΕΤΑΒΙΒΑΣΗΣ/.test(p) && /\[\[go:loan\]\]/.test(p));
+  // nav label ανανεώθηκε από «Ρυθμίσεις» σε «Λογαριασμός» (id ίδιο)
+  const nav = NAV_MAP.find(n => n.id === 'settings')!;
+  ok('settings: nav label is Λογαριασμός', nav.label === 'Λογαριασμός');
+  ok('settings: nav label appears in prompt', p.includes('Λογαριασμός'));
+}
+// Κάθε σύντομος/ανορθόγραφος/χωρίς τόνους/greeklish όρος αναφέρεται ΡΗΤΑ στον βοηθό,
+// ώστε να αναγνωρίζει την πρόθεση ακόμη κι από μία μισοτελειωμένη λέξη.
+{
+  const p = buildSystemPrompt(id(), 'x');
+  const SHORT_TRIGGERS = [
+    'θέμα', 'σκοτεινο', 'φωτεινο/light', 'γλωσσα', 'νομισμα', 'δεκαδικα',
+    'συνδρομη', 'πλανο', 'χρεωση', 'τιμολογιο', 'αναβαθμιση',
+    'να γινω επαγγελματιας', 'αλλαγη σε ιδιωτη', 'επωνυμια αναφορων/branding',
+    'ειδοποιησεις', 'notifications', 'υπενθυμισεις', 'οχληση για ενοικιο',
+    'εξαγωγη', 'csv', 'συνδεσμος λογιστη', 'λογιστης', 'ενσωματωσεις',
+    'αποσυνδεση/logout', 'διαγραφη λογαριασμου', 'dark mode',
+  ];
+  for (const t of SHORT_TRIGGERS) ok(`settings: trigger «${t}» documented`, p.includes(t));
+}
+// parseAction: οι deep-links που παράγει ο βοηθός για λογαριασμό/λογιστική
+{
+  const r = parseAction('Το θέμα αλλάζει στην ενότητα «Εμφάνιση & Γλώσσα». [[go:settings]]');
+  ok('go settings action', r.action?.type === 'go' && (r.action as any).tab === 'settings');
+  ok('go settings stripped', !/\[\[/.test(r.clean));
+}
+{
+  const r = parseAction('Για το Ε2 πάμε στη Λογιστική. [[go:accounting]]');
+  ok('go accounting action (Ε2)', r.action?.type === 'go' && (r.action as any).tab === 'accounting');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

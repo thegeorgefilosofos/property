@@ -189,6 +189,125 @@ function DeleteAccount() {
   );
 }
 
+// ── Πεδίο σε γραμμή «ετικέτα … τιμή / επεξεργασία» ─────────────────────────
+const fieldStyle = {
+  width: '100%', height: 40, padding: '0 14px', borderRadius: T.radius.inner,
+  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
+} as const;
+
+// ── Προφίλ: email (επεξεργάσιμο) + όνομα (μία αλλαγή ανά μήνα) ─────────────
+function ProfileCard({ userId, email }: { userId: string; email: string }) {
+  const supabase = createClient();
+  const [name, setName] = useState('');
+  const [afm, setAfm] = useState('');
+  const [changedAt, setChangedAt] = useState<string | null>(null);
+
+  const [emailEdit, setEmailEdit] = useState(false);
+  const [emailVal, setEmailVal] = useState('');
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  const [nameEdit, setNameEdit] = useState(false);
+  const [nameVal, setNameVal] = useState('');
+  const [nameErr, setNameErr] = useState('');
+  const [nameBusy, setNameBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.from('billing_profiles').select('full_name, afm, full_name_changed_at').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data) { setName((data.full_name as string) || ''); setAfm((data.afm as string) || ''); setChangedAt((data.full_name_changed_at as string) || null); } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const daysLeft = changedAt ? Math.max(0, 30 - Math.floor((Date.now() - new Date(changedAt).getTime()) / 86400000)) : 0;
+  const nameLocked = daysLeft > 0;
+
+  const saveEmail = async () => {
+    const v = emailVal.trim();
+    if (!v || v === email) { setEmailEdit(false); return; }
+    setEmailBusy(true); setEmailMsg(null);
+    const { error } = await supabase.auth.updateUser({ email: v });
+    setEmailBusy(false);
+    if (error) { setEmailMsg({ ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' }); return; }
+    setEmailMsg({ ok: true, text: 'Σου στείλαμε σύνδεσμο επιβεβαίωσης στη νέα διεύθυνση.' });
+    setEmailEdit(false);
+  };
+  const saveName = async () => {
+    const v = nameVal.trim();
+    if (!v || v === name || nameLocked) { setNameEdit(false); return; }
+    setNameBusy(true); setNameErr('');
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase.from('billing_profiles').upsert({ user_id: userId, full_name: v, full_name_changed_at: nowIso }, { onConflict: 'user_id' });
+    setNameBusy(false);
+    if (error) { setNameErr('Κάτι πήγε στραβά. Δοκίμασε ξανά.'); return; }
+    setName(v); setChangedAt(nowIso); setNameEdit(false);
+  };
+
+  const editBtn = (onClick: () => void, disabled = false) => (
+    <button onClick={onClick} disabled={disabled}
+      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0 }}>
+      Αλλαγή
+    </button>
+  );
+
+  return (
+    <Card className="acc-section">
+      <SecHdr label="Προφίλ" />
+
+      {/* Email */}
+      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        {!emailEdit ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Email</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || '—'}</div>
+            </div>
+            {editBtn(() => { setEmailVal(email); setEmailMsg(null); setEmailEdit(true); })}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Νέο email</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
+              <Btn variant="primary" onClick={saveEmail} disabled={emailBusy}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+              <Btn variant="secondary" onClick={() => setEmailEdit(false)} disabled={emailBusy}>Ακύρωση</Btn>
+            </div>
+          </div>
+        )}
+        {emailMsg && <div style={{ fontSize: 12, color: emailMsg.ok ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>{emailMsg.text}</div>}
+      </div>
+
+      {/* Όνομα (μία αλλαγή / μήνα) */}
+      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+        {!nameEdit ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Όνομα</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: name ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>{name || 'Δεν έχει οριστεί'}</div>
+            </div>
+            {editBtn(() => { setNameVal(name); setNameErr(''); setNameEdit(true); }, nameLocked)}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Όνομα ή επωνυμία</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} style={{ ...fieldStyle, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
+              <Btn variant="primary" onClick={saveName} disabled={nameBusy}>{nameBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+              <Btn variant="secondary" onClick={() => setNameEdit(false)} disabled={nameBusy}>Ακύρωση</Btn>
+            </div>
+          </div>
+        )}
+        {nameErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{nameErr}</div>}
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.5 }}>
+          {nameLocked ? `Το όνομα αλλάζει μία φορά τον μήνα. Θα μπορείς ξανά σε ${daysLeft} ${daysLeft === 1 ? 'ημέρα' : 'ημέρες'}.` : 'Το όνομα μπορεί να αλλάξει μία φορά τον μήνα.'}
+        </div>
+      </div>
+
+      {afm && <InfoLine label="ΑΦΜ" value={afm} />}
+    </Card>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function TabSettings({ propertyId, userId, profileType = 'individual', onProfileChange }: { propertyId: string; userId: string; profileType?: ProfileType; onProfileChange?: (v: ProfileType) => void }) {
@@ -198,8 +317,6 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [accountEmail, setAccountEmail] = useState('');
   const [plan, setPlan] = useState('free');
   const [partner, setPartner] = useState(false);
-  const [billingName, setBillingName] = useState('');
-  const [billingAfm, setBillingAfm] = useState('');
 
   // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
   const [s, setS] = useState<S>({});
@@ -216,8 +333,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setAccountEmail(data.user?.email || '')); }, []);
 
   useEffect(() => {
-    supabase.from('billing_profiles').select('plan, full_name, afm').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (data) { setPlan((data.plan as string) || 'free'); setBillingName((data.full_name as string) || ''); setBillingAfm((data.afm as string) || ''); } });
+    supabase.from('billing_profiles').select('plan').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (data) setPlan((data.plan as string) || 'free'); });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -284,27 +401,17 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       <PageTitle title="Λογαριασμός" sub="Ο λογαριασμός, η συνδρομή και οι προτιμήσεις σου." />
 
       {/* ── 1. ΠΡΟΦΙΛ ─────────────────────────────────────────────────── */}
-      <Card>
-        <SecHdr label="Προφίλ" />
-        <InfoLine label="Email" value={accountEmail || '—'} />
-        {billingName && <InfoLine label="Επωνυμία τιμολόγησης" value={billingName} />}
-        {billingAfm && <InfoLine label="ΑΦΜ" value={billingAfm} />}
-        {!billingName && !billingAfm && (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, lineHeight: 1.5 }}>
-            Τα στοιχεία τιμολόγησης (ονοματεπώνυμο, ΑΦΜ) συμπληρώνονται στη «Διαχείριση συνδρομής».
-          </div>
-        )}
-      </Card>
+      <ProfileCard userId={userId} email={accountEmail} />
 
       {/* ── 2. ΣΥΝΔΡΟΜΗ (hero) ────────────────────────────────────────── */}
-      <Card>
+      <Card className="acc-section" style={{ animationDelay: '70ms', background: 'var(--surface-hero)', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
         <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} size={32} />} />
 
         {/* Τρέχον πλάνο */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: isProPlan ? 'var(--accent)' : 'var(--text-secondary)' }} />
+              <span className={isProPlan ? 'acc-live-dot accent' : 'acc-live-dot'} style={{ width: 6, height: 6, background: isProPlan ? 'var(--accent)' : 'var(--positive)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Πλάνο {planMeta.name}</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5, maxWidth: 440 }}>{planMeta.tagline}</div>
@@ -322,8 +429,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             {PROFILE_OPTS.map(o => {
               const on = profileType === o.v;
               return (
-                <button key={o.v} onClick={() => setProfile(o.v)}
-                  style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none', transition: 'all 0.15s' }}>
+                <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
+                  style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
                     <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -342,7 +449,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, marginTop: 6 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Το mode Επαγγελματία απαιτεί αναβάθμιση συνδρομής</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Ο τρόπος «Επαγγελματίας» απαιτεί αναβάθμιση συνδρομής</div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>Οι δυνατότητες χαρτοφυλακίου και ομαδικής διαχείρισης ξεκλειδώνουν με το πλάνο Επαγγελματίας.</div>
                 </div>
               </div>
@@ -368,7 +475,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       )}
 
       {/* ── 3. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
-      <Card>
+      <Card className="acc-section" style={{ animationDelay: '140ms' }}>
         <SecHdr label="Εμφάνιση & Γλώσσα" />
         <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
         <SettingRow title="Γλώσσα" control={<span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ελληνικά</span>} />
@@ -393,13 +500,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       </Card>
 
       {/* ── 4. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
-      <Card>
+      <Card className="acc-section" style={{ animationDelay: '210ms' }}>
         <SecHdr label="Ειδοποιήσεις" />
         <NotificationSettings userId={userId} propertyId={propertyId} />
       </Card>
 
       {/* ── 5. ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ───────────────────────────────────── */}
-      <Card>
+      <Card className="acc-section" style={{ animationDelay: '280ms' }}>
         <SecHdr label="Δεδομένα & Απόρρητο" />
         <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Κατέβασε τις αποθηκευμένες ρυθμίσεις αυτού του ακινήτου σε αρχείο CSV."
           control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
